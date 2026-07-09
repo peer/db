@@ -235,17 +235,6 @@ func (s *Store[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMe
 	return view.Changes(ctx, id, after)
 }
 
-// UpdateExistingMetadata updates the metadata for an existing changeset in the MainView.
-func (s *Store[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]) UpdateExistingMetadata(
-	ctx context.Context, id identifier.Identifier, version Version, metadata Metadata,
-) (Version, errors.E) {
-	view, errE := s.View(ctx, MainView)
-	if errE != nil {
-		return Version{}, errE
-	}
-	return view.UpdateExistingMetadata(ctx, id, version, metadata)
-}
-
 // CommitLog returns up to MaxPageLength commit log entries in increasing seq order, after optional
 // seq number, to support keyset pagination. The optional view parameter filters results to commits
 // whose view has that name.

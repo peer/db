@@ -2033,43 +2033,6 @@ func TestNotifyRecovery(t *testing.T) {
 	}, 5*time.Second, 10*time.Millisecond)
 }
 
-func TestUpdateExistingMetadata(t *testing.T) {
-	t.Parallel()
-
-	ctx, s, _, _ := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
-
-	id := identifier.New()
-	insertData := json.RawMessage(`{"data": "original"}`)
-	insertMetadata := json.RawMessage(`{"meta": "v1"}`)
-
-	insertVersion, errE := s.Insert(ctx, id, insertData, insertMetadata, insertMetadata)
-	require.NoError(t, errE, "% -+#.1v", errE)
-	assert.Equal(t, int64(1), insertVersion.Revision)
-
-	// Update metadata only.
-	newMetadata := json.RawMessage(`{"meta": "v2"}`)
-	newVersion, errE := s.UpdateExistingMetadata(ctx, id, insertVersion, newMetadata)
-	require.NoError(t, errE, "% -+#.1v", errE)
-	assert.Equal(t, int64(2), newVersion.Revision)
-	assert.Equal(t, insertVersion.Changeset, newVersion.Changeset)
-
-	// GetLatest should return updated metadata but same data.
-	data, metadata, version, parentChangesets, errE := s.GetLatest(ctx, id)
-	require.NoError(t, errE, "% -+#.1v", errE)
-	assert.Equal(t, newVersion, version)
-	assert.Equal(t, json.RawMessage(`{"data": "original"}`), data) //nolint:testifylint
-	assert.Equal(t, json.RawMessage(`{"meta": "v2"}`), metadata)   //nolint:testifylint
-	assert.Empty(t, parentChangesets)
-
-	// Old version should still have original metadata.
-	data, metadata, resolvedVersion, parentChangesets, errE := s.Get(ctx, id, insertVersion)
-	require.NoError(t, errE, "% -+#.1v", errE)
-	assert.Equal(t, json.RawMessage(`{"data": "original"}`), data) //nolint:testifylint
-	assert.Equal(t, json.RawMessage(`{"meta": "v1"}`), metadata)   //nolint:testifylint
-	assert.Equal(t, insertVersion, resolvedVersion)
-	assert.Empty(t, parentChangesets)
-}
-
 func TestGetRevisionZero(t *testing.T) {
 	t.Parallel()
 
@@ -2083,7 +2046,7 @@ func TestGetRevisionZero(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, int64(1), insertVersion.Revision)
 
-	// Get with Revision 0 should return the latest (and only) revision.
+	// Get with Revision 0 should return the latest (and only) revision of the changeset.
 	data, metadata, resolvedVersion, parentChangesets, errE := s.Get(ctx, id, store.Version{
 		Changeset: insertVersion.Changeset,
 		Revision:  0,
@@ -2095,26 +2058,7 @@ func TestGetRevisionZero(t *testing.T) {
 		assert.Empty(t, parentChangesets)
 	}
 
-	// Update metadata to create revision 2 on the same changeset.
-	newMetadata := json.RawMessage(`{"meta": "v2"}`)
-	newVersion, errE := s.UpdateExistingMetadata(ctx, id, insertVersion, newMetadata)
-	require.NoError(t, errE, "% -+#.1v", errE)
-	assert.Equal(t, int64(2), newVersion.Revision)
-	assert.Equal(t, insertVersion.Changeset, newVersion.Changeset)
-
-	// Get with Revision 0 should now return revision 2 (the latest for this changeset).
-	data, metadata, resolvedVersion, parentChangesets, errE = s.Get(ctx, id, store.Version{
-		Changeset: insertVersion.Changeset,
-		Revision:  0,
-	})
-	if assert.NoError(t, errE, "% -+#.1v", errE) {
-		assert.Equal(t, json.RawMessage(`{"data": "original"}`), data) //nolint:testifylint
-		assert.Equal(t, json.RawMessage(`{"meta": "v2"}`), metadata)   //nolint:testifylint
-		assert.Equal(t, newVersion, resolvedVersion)
-		assert.Empty(t, parentChangesets)
-	}
-
-	// Get with explicit Revision 1 should still return the old metadata.
+	// Get with explicit Revision 1 should return the same.
 	data, metadata, resolvedVersion, parentChangesets, errE = s.Get(ctx, id, insertVersion)
 	if assert.NoError(t, errE, "% -+#.1v", errE) {
 		assert.Equal(t, json.RawMessage(`{"data": "original"}`), data) //nolint:testifylint
@@ -2123,19 +2067,10 @@ func TestGetRevisionZero(t *testing.T) {
 		assert.Empty(t, parentChangesets)
 	}
 
-	// Get with explicit Revision 2 should return the new metadata.
-	data, metadata, resolvedVersion, parentChangesets, errE = s.Get(ctx, id, newVersion)
-	if assert.NoError(t, errE, "% -+#.1v", errE) {
-		assert.Equal(t, json.RawMessage(`{"data": "original"}`), data) //nolint:testifylint
-		assert.Equal(t, json.RawMessage(`{"meta": "v2"}`), metadata)   //nolint:testifylint
-		assert.Equal(t, newVersion, resolvedVersion)
-		assert.Empty(t, parentChangesets)
-	}
-
 	// Update the value (creates a new changeset).
 	updateData := json.RawMessage(`{"data": "updated"}`)
 	updateMetadata := json.RawMessage(`{"meta": "u1"}`)
-	updateVersion, errE := s.Update(ctx, id, newVersion.Changeset, updateData, json.RawMessage(`{}`), updateMetadata, updateMetadata)
+	updateVersion, errE := s.Update(ctx, id, insertVersion.Changeset, updateData, json.RawMessage(`{}`), updateMetadata, updateMetadata)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, int64(1), updateVersion.Revision)
 
@@ -2148,18 +2083,18 @@ func TestGetRevisionZero(t *testing.T) {
 		assert.Equal(t, json.RawMessage(`{"data": "updated"}`), data) //nolint:testifylint
 		assert.Equal(t, json.RawMessage(`{"meta": "u1"}`), metadata)  //nolint:testifylint
 		assert.Equal(t, updateVersion, resolvedVersion)
-		assert.Equal(t, []store.Version{{Changeset: newVersion.Changeset, Revision: 0}}, parentChangesets)
+		assert.Equal(t, []store.Version{{Changeset: insertVersion.Changeset, Revision: 0}}, parentChangesets)
 	}
 
-	// Get with Revision 0 on the old changeset should still return the latest revision of that changeset.
+	// Get with Revision 0 on the old changeset should still return its revision.
 	data, metadata, resolvedVersion, parentChangesets, errE = s.Get(ctx, id, store.Version{
 		Changeset: insertVersion.Changeset,
 		Revision:  0,
 	})
 	if assert.NoError(t, errE, "% -+#.1v", errE) {
 		assert.Equal(t, json.RawMessage(`{"data": "original"}`), data) //nolint:testifylint
-		assert.Equal(t, json.RawMessage(`{"meta": "v2"}`), metadata)   //nolint:testifylint
-		assert.Equal(t, newVersion, resolvedVersion)
+		assert.Equal(t, json.RawMessage(`{"meta": "v1"}`), metadata)   //nolint:testifylint
+		assert.Equal(t, insertVersion, resolvedVersion)
 		assert.Empty(t, parentChangesets)
 	}
 
@@ -2236,59 +2171,6 @@ func TestGetRevisionZeroView(t *testing.T) {
 		Revision:  0,
 	})
 	assert.ErrorIs(t, errE, store.ErrViewNotFound)
-}
-
-func TestUpdateExistingMetadataRevisionMismatch(t *testing.T) {
-	t.Parallel()
-
-	ctx, s, _, _ := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
-
-	id := identifier.New()
-	insertVersion, errE := s.Insert(ctx, id, json.RawMessage(`{}`), json.RawMessage(`{}`), json.RawMessage(`{}`))
-	require.NoError(t, errE, "% -+#.1v", errE)
-
-	// Update to create revision 2.
-	v2, errE := s.UpdateExistingMetadata(ctx, id, insertVersion, json.RawMessage(`{"meta": "v2"}`))
-	require.NoError(t, errE, "% -+#.1v", errE)
-	assert.Equal(t, int64(2), v2.Revision)
-
-	// Try to update using the old revision - should fail with revision mismatch.
-	_, errE = s.UpdateExistingMetadata(ctx, id, insertVersion, json.RawMessage(`{"meta": "v3"}`))
-	assert.ErrorIs(t, errE, store.ErrRevisionMismatch)
-}
-
-func TestUpdateExistingMetadataChangesetNotFound(t *testing.T) {
-	t.Parallel()
-
-	ctx, s, _, _ := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
-
-	// Try to update a non-existent changeset.
-	fakeVersion := store.Version{
-		Changeset: identifier.New(),
-		Revision:  1,
-	}
-	_, errE := s.UpdateExistingMetadata(ctx, identifier.New(), fakeVersion, json.RawMessage(`{}`))
-	assert.ErrorIs(t, errE, store.ErrChangesetNotFound)
-}
-
-func TestUpdateExistingMetadataNonExistentRevision(t *testing.T) {
-	t.Parallel()
-
-	ctx, s, _, _ := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
-
-	id := identifier.New()
-	insertVersion, errE := s.Insert(ctx, id, json.RawMessage(`{}`), json.RawMessage(`{}`), json.RawMessage(`{}`))
-	require.NoError(t, errE, "% -+#.1v", errE)
-
-	// Use the correct changeset but a revision that doesn't exist in the Changes table.
-	// The outer SELECT's WHERE clause matches 0 rows, so the stored function is never called.
-	// Without the RowsAffected check this would silently succeed.
-	nonExistentVersion := store.Version{
-		Changeset: insertVersion.Changeset,
-		Revision:  99,
-	}
-	_, errE = s.UpdateExistingMetadata(ctx, id, nonExistentVersion, json.RawMessage(`{"meta": "new"}`))
-	assert.ErrorIs(t, errE, store.ErrChangesetNotFound)
 }
 
 // TestCountViewNotFound covers Count on a view name that does not exist.
@@ -2546,53 +2428,6 @@ func TestConcurrentCommitConflict(t *testing.T) {
 	}
 }
 
-// TestConcurrentUpdateExistingMetadata: two goroutines try to bump the same
-// changeset+id metadata from revision 1. SSI + the explicit revision-mismatch
-// check should ensure exactly one succeeds and the other observes the new
-// revision or ErrRevisionMismatch.
-func TestConcurrentUpdateExistingMetadata(t *testing.T) {
-	t.Parallel()
-
-	ctx, s, _, _ := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
-
-	id := identifier.New()
-	version, errE := s.Insert(ctx, id, json.RawMessage(`{}`), json.RawMessage(`{"meta":"v1"}`), json.RawMessage(`{}`))
-	require.NoError(t, errE, "% -+#.1v", errE)
-
-	var (
-		wg              sync.WaitGroup
-		mu              sync.Mutex
-		successes       int
-		mismatchOrRetry int
-	)
-	bump := func(label string) {
-		_, errE := s.UpdateExistingMetadata(ctx, id, version, json.RawMessage(`{"meta": "`+label+`"}`))
-		mu.Lock()
-		defer mu.Unlock()
-		switch {
-		case errE == nil:
-			successes++
-		case errors.Is(errE, store.ErrRevisionMismatch):
-			mismatchOrRetry++
-		default:
-			require.NoError(t, errE, "% -+#.1v", errE)
-		}
-	}
-	wg.Go(func() { bump("a") })
-	wg.Go(func() { bump("b") })
-	wg.Wait()
-
-	// Exactly one race winner. The other gets ErrRevisionMismatch after seeing
-	// the bumped revision (or after SSI-retry detects the new revision).
-	assert.Equal(t, 1, successes, "exactly one UpdateExistingMetadata succeeds")
-	assert.Equal(t, 1, mismatchOrRetry, "loser gets ErrRevisionMismatch")
-
-	// Final state: revision is 2.
-	_, _, latest, _, errE := s.GetLatest(ctx, id) //nolint:dogsled
-	require.NoError(t, errE, "% -+#.1v", errE)
-	assert.Equal(t, int64(2), latest.Revision)
-}
-
 // TestDeepViewHierarchy validates path resolution through 4 view levels
 // (main -> v1 -> v2 -> v3), including shadowing and deletion semantics across
 // the chain.
@@ -2837,50 +2672,6 @@ func TestCommitNotificationSurvivesSchemaRename(t *testing.T) {
 	notification, err := listenConn.WaitForNotification(waitCtx)
 	require.NoError(t, err, "expected a NOTIFY on the renamed schema's channel; without the fix the trigger notifies the pre-rename schema name")
 	assert.Equal(t, wantChannel, notification.Channel)
-}
-
-// TestUpdateExistingMetadataOnCommittedChangeset verifies that metadata can
-// be updated on an already-committed changeset and that doing so bumps the
-// revision; the changeset must remain committed (still cannot be discarded).
-func TestUpdateExistingMetadataOnCommittedChangeset(t *testing.T) {
-	t.Parallel()
-
-	ctx, s, _, _ := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
-
-	id := identifier.New()
-	// Use the jsonb canonical formatting (space after colon) so direct
-	// json.RawMessage comparisons work after a round-trip through the column.
-	insertVersion, errE := s.Insert(ctx, id, json.RawMessage(`{"data": "d"}`), json.RawMessage(`{"meta": "m1"}`), json.RawMessage(`{}`))
-	require.NoError(t, errE, "% -+#.1v", errE)
-	require.Equal(t, int64(1), insertVersion.Revision)
-
-	// Insert auto-commits, so the changeset is committed.
-	cs, errE := s.Changeset(ctx, insertVersion.Changeset)
-	require.NoError(t, errE, "% -+#.1v", errE)
-	errE = cs.Discard(ctx)
-	require.ErrorIs(t, errE, store.ErrAlreadyCommitted)
-
-	// Bump metadata. Revision must increment.
-	newVersion, errE := s.UpdateExistingMetadata(ctx, id, insertVersion, json.RawMessage(`{"meta": "m2"}`))
-	require.NoError(t, errE, "% -+#.1v", errE)
-	assert.Equal(t, insertVersion.Changeset, newVersion.Changeset)
-	assert.Equal(t, int64(2), newVersion.Revision)
-
-	// Latest reflects the bumped revision and new metadata.
-	_, metadata, latest, _, errE := s.GetLatest(ctx, id)
-	require.NoError(t, errE, "% -+#.1v", errE)
-	assert.Equal(t, newVersion, latest)
-	assert.Equal(t, json.RawMessage(`{"meta": "m2"}`), metadata) //nolint:testifylint
-
-	// Old revision is still retrievable with its original metadata.
-	_, oldMetadata, resolved, _, errE := s.Get(ctx, id, insertVersion)
-	require.NoError(t, errE, "% -+#.1v", errE)
-	assert.Equal(t, insertVersion, resolved)
-	assert.Equal(t, json.RawMessage(`{"meta": "m1"}`), oldMetadata) //nolint:testifylint
-
-	// The changeset stays committed.
-	errE = cs.Discard(ctx)
-	require.ErrorIs(t, errE, store.ErrAlreadyCommitted)
 }
 
 // TestChangesPaginationDepthBoundary verifies pagination correctness when the

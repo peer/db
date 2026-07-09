@@ -40,7 +40,6 @@ const (
 	errorCodeParentInvalid     = "P1003"
 	errorCodeViewNotFound      = "P1004"
 	errorCodeChangesetNotFound = "P1005"
-	errorCodeRevisionMismatch  = "P1006"
 )
 
 // CommittedChangesets represents all changesets committed together in one commit to a view.
@@ -474,30 +473,6 @@ func (s *Store[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMe
 					SET CONSTRAINTS "`+s.Prefix+`CommittedValuesLatest" IMMEDIATE;
 					INSERT INTO "`+s.Prefix+`CommitLog" ("view", "name", "changesets") VALUES (_view, _name, _changesetsToCommit);
 					RETURN _changesetsToCommit;
-					END;
-				$$;
-
-				CREATE FUNCTION "`+s.Prefix+`ChangesetUpdateExisting"(_changeset text, _id text, _revision bigint, _value `+s.DataType+`, _metadata `+s.MetadataType+patchesArgument+`)
-					RETURNS void LANGUAGE plpgsql AS $$
-					DECLARE
-						_current_revision bigint;
-					BEGIN
-						-- Find the current (latest) revision for this changeset and id.
-						SELECT "revision" INTO _current_revision
-							FROM "`+s.Prefix+`CurrentChanges"
-							WHERE "changeset"=_changeset AND "id"=_id;
-						IF NOT FOUND THEN
-							RAISE EXCEPTION 'changeset not found' USING ERRCODE='`+errorCodeChangesetNotFound+`';
-						END IF;
-						-- The provided revision must be the current revision.
-						IF _current_revision<>_revision THEN
-							RAISE EXCEPTION 'revision mismatch' USING ERRCODE='`+errorCodeRevisionMismatch+`';
-						END IF;
-						-- Insert a new revision with the provided data, metadata, and patches.
-						INSERT INTO "`+s.Prefix+`Changes"
-							SELECT "changeset", "id", "revision"+1, "parentChangesets", "parentIds", _value, _metadata`+patchesValue+`
-								FROM "`+s.Prefix+`Changes"
-								WHERE "changeset"=_changeset AND "id"=_id AND "revision"=_revision;
 					END;
 				$$;
 
