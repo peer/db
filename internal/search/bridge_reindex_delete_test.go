@@ -158,11 +158,9 @@ func TestBridgeReindexDoesNotResurrectDeletedDocument(t *testing.T) {
 
 	// The reindex of B now holds a live, pre-delete copy of B. Delete B; the main indexing loop removes it from
 	// ES independently of the blocked reindex worker.
-	_, metaB, vB, _, errE := s.GetLatest(ctx, docB)
+	_, _, vB, _, errE := s.GetLatest(ctx, docB) //nolint:dogsled
 	require.NoError(t, errE, "% -+#.1v", errE)
-	newMetaB := dummyMetadata()
-	newMetaB.CarryOver(metaB)
-	_, errE = s.Delete(ctx, docB, vB.Changeset, newMetaB, dummyCommitMetadata())
+	_, errE = s.Delete(ctx, docB, vB.Changeset, dummyMetadata(), dummyCommitMetadata())
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	require.EventuallyWithT(t, func(c *assert.CollectT) {

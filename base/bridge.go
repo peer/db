@@ -50,12 +50,11 @@ func (b *B) ResetBridgeProgress(ctx context.Context) errors.E {
 	return b.bridge.ResetSeq(ctx)
 }
 
-// ClearSystemManagedMetadata removes the bridge-maintained metadata from every document in the store, including
-// deleted ones, so a subsequent full reindex rebuilds it from a clean slate instead of diffing on top of stale
-// or wrongly-leveled entries. It returns the number of documents whose metadata was changed and must run while
-// the bridge is not processing (before Start). When count and size are non-nil they track progress.
-func (b *B) ClearSystemManagedMetadata(ctx context.Context, count, size *x.Counter) (int, errors.E) {
-	return b.bridge.ClearSystemManagedMetadata(ctx, count, size)
+// ClearSystemManagedMetadata removes all bridge-maintained inverse relations and embedding entries, so a
+// subsequent full reindex rebuilds them from a clean slate instead of diffing new commits on top of stale or
+// wrongly-leveled entries. It must run while the bridge is not processing (before Start).
+func (b *B) ClearSystemManagedMetadata(ctx context.Context) errors.E {
+	return b.bridge.ClearSystemManagedMetadata(ctx)
 }
 
 // EnqueueAllForReindex enqueues every document for re-indexing and submits a job to drain the queue, so the

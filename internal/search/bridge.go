@@ -330,6 +330,46 @@ func (b *Bridge) Init(
 				FOR EACH STATEMENT EXECUTE FUNCTION "`+b.Store.Prefix+`BridgeReindexQueueAfterChangeFunc"();
 			CREATE TRIGGER "`+b.Store.Prefix+`BridgeReindexQueueNotAllowed" BEFORE UPDATE OR TRUNCATE ON "`+b.Store.Prefix+`BridgeReindexQueue"
 				FOR EACH STATEMENT EXECUTE FUNCTION "`+b.Store.Prefix+`DoNotAllow"();
+
+			-- "InverseRelations" holds, per target document and visibility level, the inverse relations rendered
+			-- onto that document when it is indexed: relation claims from other documents that point to it, as
+			-- those source documents are seen at that level. The bridge upserts and deletes rows as commits change
+			-- the source documents. Rows are kept per level so indexing one level never leaks a source not visible
+			-- there.
+			CREATE TABLE "`+b.Store.Prefix+`InverseRelations" (
+				-- Target document (B): the document the inverse relation is rendered onto.
+				"target" text STORAGE PLAIN COLLATE "C" NOT NULL,
+				-- Visibility level at which the source document is visible.
+				"level" text STORAGE PLAIN COLLATE "C" NOT NULL,
+				-- Relation claim ID in the source document. Claim IDs are unique per source document but not
+				-- globally, so "source" is part of the key as well.
+				"claim" text STORAGE PLAIN COLLATE "C" NOT NULL,
+				-- Source document (A) that has the forward relation claim.
+				"source" text STORAGE PLAIN COLLATE "C" NOT NULL,
+				-- Resolved inverse property (Y) used for the synthetic reverse claim on the target.
+				"targetProp" text STORAGE PLAIN COLLATE "C" NOT NULL,
+				-- Property of the forward relation claim in the source document (X).
+				"sourceProp" text STORAGE PLAIN COLLATE "C" NOT NULL,
+				-- Confidence of the forward relation claim.
+				"confidence" double precision NOT NULL,
+				PRIMARY KEY ("target", "level", "claim", "source", "targetProp")
+			);
+
+			-- "Embedding" holds, per target document, the documents that embed claims from it (a document with a
+			-- reference claim to this one on a field configured with EMBED_PROPERTY) and the source paths they
+			-- embed: each path is the sequence of property IDs, within the target document, that the embedding
+			-- document copies (a single property for a direct embed, or a property path for a nested one). It is
+			-- maintained from the embedding side: a document sets its own entry when it is committed and embeds
+			-- from the target, and removes it when it stops. The paths are the union across visibility levels.
+			CREATE TABLE "`+b.Store.Prefix+`Embedding" (
+				-- Target document the paths are within (the document being embedded from).
+				"target" text STORAGE PLAIN COLLATE "C" NOT NULL,
+				-- Document that embeds claims from the target.
+				"embedder" text STORAGE PLAIN COLLATE "C" NOT NULL,
+				-- Source paths embedded, as a JSON array of property-ID paths.
+				"paths" jsonb NOT NULL,
+				PRIMARY KEY ("target", "embedder")
+			);
 		`)
 		return internalStore.WithPgxError(err)
 	})
@@ -862,85 +902,23 @@ func (b *Bridge) ResetSeq(ctx context.Context) errors.E {
 	return nil
 }
 
-// ClearSystemManagedMetadata removes the bridge-maintained metadata (the same fields CarryOver carries) from
-// the latest version of every document in the store, including deleted ones, by writing a new metadata-only
-// revision with both cleared. It returns the number of documents whose metadata was changed.
+// ClearSystemManagedMetadata removes all bridge-maintained inverse relations and embedding entries by
+// truncating both tables. A subsequent full reindex (commit-log replay) then rebuilds them from a clean
+// slate instead of diffing new commits on top of stale or wrongly-leveled entries.
 //
-// Deleted documents are included because the normal path never touches their system-managed metadata (updateSeq
-// skips deleted targets), yet those entries would be carried over if the document were ever undeleted.
-//
-// It must run while the bridge is not processing (before Start), so the version read by GetLatest stays the
-// latest one for the UpdateExistingMetadata optimistic-concurrency check.
-//
-// When count and size are non-nil they track progress: size is increased once by the document total and count is
-// increased as documents are traversed, ending exactly at that total (so this phase shares the same counters as
-// later phases, which add their own totals to size).
-func (b *Bridge) ClearSystemManagedMetadata(ctx context.Context, count, size *x.Counter) (int, errors.E) {
-	total, errE := b.Store.Count(ctx, true)
-	if errE != nil {
-		return 0, errE
-	}
-	if size != nil {
-		size.Add(total)
-	}
-
-	cleared := 0
-	var traversed int64
-	var after *identifier.Identifier
-	for {
-		// List returns every committed value id, including deleted ones, in id order, for keyset pagination.
-		ids, errE := b.Store.List(ctx, after)
-		if errE != nil {
-			return cleared, errE
-		}
-		if len(ids) == 0 {
-			break
-		}
-		for _, id := range ids {
-			_, metadata, version, _, errE := b.Store.GetLatest(ctx, id)
-			switch {
-			case errors.Is(errE, store.ErrValueDeleted):
-				// A deleted value still returns valid metadata and version (only the data is gone), so we clear
-				// it too. ErrValueDeleted wraps ErrValueNotFound, so this case must be checked first.
-			case errors.Is(errE, store.ErrValueNotFound):
-				// Never committed (should not be listed); nothing to clear.
-				continue
-			case errE != nil:
-				return cleared, errE
-			}
-			if metadata == nil || (len(metadata.InverseRelations) == 0 && len(metadata.Embedding) == 0) {
-				continue
-			}
-			metadata.InverseRelations = nil
-			metadata.Embedding = nil
-			_, errE = b.Store.UpdateExistingMetadata(ctx, id, version, metadata)
-			if errE != nil {
-				return cleared, errE
-			}
-			cleared++
-		}
-		if count != nil {
-			count.Add(int64(len(ids)))
-		}
-		traversed += int64(len(ids))
-		lastID := ids[len(ids)-1]
-		after = &lastID
-	}
-
-	// Reconcile so count was increased by exactly the total reported by Store.Count (matching the size
-	// increase), even if the number of listed ids differed due to concurrent changes between Count and List.
-	if count != nil {
-		count.Add(total - traversed)
-	}
-	return cleared, nil
+// It must run while the bridge is not processing (before Start), so nothing repopulates the tables concurrently.
+func (b *Bridge) ClearSystemManagedMetadata(ctx context.Context) errors.E {
+	return internalStore.RetryTransaction(ctx, b.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
+		_, err := tx.Exec(ctx, `TRUNCATE "`+b.Store.Prefix+`InverseRelations", "`+b.Store.Prefix+`Embedding"`)
+		return internalStore.WithPgxError(err)
+	})
 }
 
 // EnqueueAllForReindex enqueues every committed document (via Store.List, including deleted ones) into the
 // reindex queue and submits a job to drain it, so the bridge re-renders each document's current state into
 // ElasticSearch. Unlike the commit-log replay (ResetSeq) it reads each document once at its latest version, so a
-// deleted document is skipped rather than transiently re-created, and it never touches document metadata,
-// leaving the bridge-maintained inverse relations and embedding sets as they are. It returns the number of
-// documents enqueued.
+// deleted document is skipped rather than transiently re-created, and it never touches the inverse-relation or
+// embedding tables, leaving the bridge-maintained sets as they are. It returns the number of documents enqueued.
 //
 // Entries are enqueued at the current indexed seq. The drain stamps its writes with the job's snapshot seq (the
 // indexed seq at run time, never below the enqueue seq), which is at least every existing ElasticSearch version
@@ -1281,8 +1259,8 @@ func withCommitDetails(errE errors.E, seq int64, view, changeset, doc string) er
 //
 // Documents are converted for indexing and inverse relations are collected.
 // The first returned map contains, for each target document ID, the inverse relations that
-// should be stored in that document's metadata. The second returned map contains
-// inverse relations that should be removed from the document's metadata.
+// should be added to that document's inverse-relation table. The second returned map contains
+// inverse relations that should be removed from it.
 // embedChanges carries the embedding work a commit implies. set maps each target document to the source
 // documents whose embedding entry on it should be set (or updated) to the source paths they embed from it.
 // removed maps each target document to the source documents whose embedding entry on it should be removed.
@@ -1321,7 +1299,7 @@ func (b *Bridge) indexCommit( //nolint:maintidx
 	// accumulateDuration and convertDuration exclude their getDocument store fetches (those are
 	// fetchDuration), so the phases do not overlap.
 	changesDuration := time.Since(withStoreStart)
-	var getDuration, accumulateDuration, convertDuration time.Duration
+	var getDuration, embeddingDuration, inverseRelationsDuration, accumulateDuration, convertDuration time.Duration
 	bulkService := b.ESClient.Bulk()
 
 	// Every index and delete in this commit carries the commit seq as an external ElasticSearch version. The
@@ -1344,8 +1322,8 @@ func (b *Bridge) indexCommit( //nolint:maintidx
 	referenceTargets := map[identifier.Identifier]bool{}
 
 	// Collect the embedding work this commit implies: which source documents to add to or remove from each
-	// target's metadata embedding set (maintenance), and which documents to re-index because a document they
-	// embed from changed (firing).
+	// target's embedding set (maintenance of the embedding table), and which documents to re-index because a
+	// document they embed from changed (firing).
 	embeds := embedChanges{
 		set:     map[identifier.Identifier]map[identifier.Identifier][][]identifier.Identifier{},
 		removed: map[identifier.Identifier]map[identifier.Identifier]bool{},
@@ -1381,18 +1359,36 @@ func (b *Bridge) indexCommit( //nolint:maintidx
 				}
 
 				// Read and hook the document once at the change version, producing its per-level versions.
-				// produceLevels does no secondary fetches, so its whole cost is counted in getDuration.
+				// produceLevels does no secondary fetches, so its whole cost is counted in getDuration. The set of
+				// documents that embed claims from it and the inverse relations rendered onto it are then loaded,
+				// each timed on its own. Inverse relations are only needed when the document is indexed, so they
+				// are skipped when it is deleted (it is deleted from every index).
 				getStart := time.Now()
 				docs, metadata, parentChangesets, deleted, errE := b.produceLevels(ctx, change.ID, &change.Version)
 				getDuration += time.Since(getStart)
 				if errE != nil {
 					return nil, nil, nil, embedChanges{}, withCommitDetails(errE, committed.Seq, committed.View.Name(), cs.String(), change.ID.String())
 				}
+				embeddingStart := time.Now()
+				embedding, errE := b.Embedding(ctx, change.ID)
+				embeddingDuration += time.Since(embeddingStart)
+				if errE != nil {
+					return nil, nil, nil, embedChanges{}, withCommitDetails(errE, committed.Seq, committed.View.Name(), cs.String(), change.ID.String())
+				}
+				var inverseRelations map[string][]store.InverseRelation
+				if !deleted {
+					inverseRelationsStart := time.Now()
+					inverseRelations, errE = b.InverseRelations(ctx, change.ID)
+					inverseRelationsDuration += time.Since(inverseRelationsStart)
+					if errE != nil {
+						return nil, nil, nil, embedChanges{}, withCommitDetails(errE, committed.Seq, committed.View.Name(), cs.String(), change.ID.String())
+					}
+				}
 
 				// Collect this document's changed property IDs only when it has embedders, since the firing gate
 				// below is otherwise unused. accumulateChangeRelations fills it from the per-level claim diff.
 				var changedProps map[identifier.Identifier]bool
-				if metadata != nil && len(metadata.Embedding) > 0 {
+				if len(embedding) > 0 {
 					changedProps = map[identifier.Identifier]bool{}
 				}
 
@@ -1413,11 +1409,9 @@ func (b *Bridge) indexCommit( //nolint:maintidx
 				// Re-index the documents that embed claims from this one so their embedded copy is refreshed, but
 				// only those that embed a property which changed in this commit (when the document is deleted every
 				// embedded property counts as changed, so all of them are re-indexed).
-				if metadata != nil {
-					for embedderID, paths := range metadata.Embedding {
-						if embedPathsTouch(paths, changedProps) {
-							embeds.fire[embedderID] = true
-						}
+				for embedderID, paths := range embedding {
+					if embedPathsTouch(paths, changedProps) {
+						embeds.fire[embedderID] = true
 					}
 				}
 
@@ -1439,7 +1433,7 @@ func (b *Bridge) indexCommit( //nolint:maintidx
 					convertFetchBefore := stats.FetchDuration
 					convertStart := time.Now()
 					gen := gens[i]
-					searchDoc, errE := t.Converter.FromDocument(t.levelContext(ctx), docs[i], &gen, metadata)
+					searchDoc, errE := t.Converter.FromDocument(t.levelContext(ctx), docs[i], &gen, metadata, inverseRelations[t.Level])
 					convertDuration += time.Since(convertStart) - (stats.FetchDuration - convertFetchBefore)
 					if errE != nil {
 						return nil, nil, nil, embedChanges{}, withCommitDetails(errE, committed.Seq, committed.View.Name(), cs.String(), change.ID.String())
@@ -1522,12 +1516,13 @@ func (b *Bridge) indexCommit( //nolint:maintidx
 
 	// The counts here are the work this commit implies for other documents. indexed/deleted are the
 	// bulk operations for the changed documents themselves. inverseAdded/inverseRemoved are the
-	// numbers of target documents whose inverse-relation metadata changes, and referenceTargets is
+	// numbers of target documents whose inverse relations change, and referenceTargets is
 	// the number of documents whose counts.references must be refreshed. The durations are disjoint and
 	// sum to duration (minus small in-memory overhead for cache invalidation, bulk buffering, and the
 	// bulk error scan): changesDuration is reconstructing and reading the committed changesets,
-	// getDuration is reading and hooking each changed document, fetchDuration is the getDocument store fetches,
-	// accumulateDuration and convertDuration are accumulateChangeRelations and ConvertDocument
+	// getDuration is reading and hooking each changed document, embeddingDuration and inverseRelationsDuration
+	// are loading each changed document's embedding set and inverse relations, fetchDuration is the getDocument
+	// store fetches, accumulateDuration and convertDuration are accumulateChangeRelations and ConvertDocument
 	// excluding those fetches, and bulkDuration is the ES bulk request.
 	logger.Debug().
 		Int64("seq", committed.Seq).
@@ -1542,6 +1537,8 @@ func (b *Bridge) indexCommit( //nolint:maintidx
 		Int("infoCacheMisses", stats.InfoCacheMisses).
 		Dur("changesDuration", changesDuration).
 		Dur("getDuration", getDuration).
+		Dur("embeddingDuration", embeddingDuration).
+		Dur("inverseRelationsDuration", inverseRelationsDuration).
 		Dur("fetchDuration", stats.FetchDuration).
 		Dur("accumulateDuration", accumulateDuration).
 		Dur("convertDuration", convertDuration).
@@ -1807,18 +1804,22 @@ func (b *Bridge) invalidateCaches(ids ...identifier.Identifier) {
 	}
 }
 
-// ConvertDocument converts an already-fetched document (with its inverse relations carried in metadata)
-// for the read path, rendering it with the converter for the caller's visibility level, so display labels
-// and counts.references reflect that level's index.
+// ConvertDocument converts an already-fetched document for the read path, rendering it with the converter for
+// the caller's visibility level, so display labels and counts.references reflect that level's index. The
+// inverse relations rendered onto it are loaded from the bridge-maintained table for that level.
 //
 // It returns store.ErrAccessDenied when the caller resolves to no level.
 func (b *Bridge) ConvertDocument(ctx context.Context, doc *document.D, metadata *store.DocumentMetadata) (*Document, errors.E) {
 	level := auth.Visibility(ctx)
 	for _, t := range b.targets {
 		if t.Level == level {
+			inverseRelations, errE := b.InverseRelations(ctx, doc.ID)
+			if errE != nil {
+				return nil, errE
+			}
 			// We pass a nil generation: the document itself is a one-off render and is not
 			// cached, while its referenced documents and ancestors are fetched and cached as usual.
-			return t.Converter.FromDocument(ctx, doc, nil, metadata)
+			return t.Converter.FromDocument(ctx, doc, nil, metadata, inverseRelations[level])
 		}
 	}
 	return nil, errors.WithStack(store.ErrAccessDenied)
@@ -1883,8 +1884,8 @@ func (b *Bridge) countReferences(ctx context.Context, id identifier.Identifier, 
 	return int(res.Count), nil
 }
 
-// outgoingRelationsAndTargets returns both the document's outgoing inverse relations (for
-// inverse-relation metadata) and the set of all documents it references (for refreshing those
+// outgoingRelationsAndTargets returns both the document's outgoing inverse relations (for the
+// inverse-relation table) and the set of all documents it references (for refreshing those
 // targets' counts.references).
 func (b *Bridge) outgoingRelationsAndTargets(
 	ctx context.Context, c *Converter, doc *document.D,
@@ -2058,8 +2059,8 @@ func (b *Bridge) accumulateChangeRelations(
 
 	// Diff the document's current embed source paths against its parents', per target document (both are the
 	// union across visibility levels). When the path-set for a target appears or changes, set this document's
-	// entry, with the union of paths, in that target's metadata embedding set; when it disappears, remove it.
-	// The metadata update is applied, without re-indexing the target, in updateSeq.
+	// entry, with the union of paths, in that target's embedding set; when it disappears, remove it. The
+	// embedding table update is applied, without re-indexing the target, in updateSeq.
 	for targetID, current := range currentEmbeds {
 		if samePathSet(current, parentEmbeds[targetID]) {
 			continue
@@ -2105,11 +2106,110 @@ func (b *Bridge) getSeq(ctx context.Context) (int64, errors.E) {
 	return seq, errE
 }
 
-// Fetch latest metadata and merge inverse relations for all affected documents.
-type preparedUpdate struct {
-	id       identifier.Identifier
-	version  store.Version
-	metadata *store.DocumentMetadata
+// InverseRelations returns the inverse relations maintained for the document with the given id, grouped by
+// visibility level, in the form the converter renders them onto the document when indexing it. An empty map
+// (never nil) is returned when there are none.
+func (b *Bridge) InverseRelations(ctx context.Context, id identifier.Identifier) (map[string][]store.InverseRelation, errors.E) {
+	result := map[string][]store.InverseRelation{}
+	errE := internalStore.RetryTransaction(ctx, b.dbpool, pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
+		// Initialize in the case transaction is retried.
+		clear(result)
+		rows, err := tx.Query(ctx, `
+			SELECT "level", "claim", "source", "targetProp", "sourceProp", "confidence"
+				FROM "`+b.Store.Prefix+`InverseRelations" WHERE "target" = $1
+		`, id.String())
+		if err != nil {
+			return internalStore.WithPgxError(err)
+		}
+		var level, claim, source, targetProp, sourceProp string
+		var confidence float64
+		var scanErrE errors.E
+		_, err = pgx.ForEachRow(rows, []any{&level, &claim, &source, &targetProp, &sourceProp, &confidence}, func() error {
+			claimID, errE := identifier.MaybeString(claim)
+			if errE != nil {
+				scanErrE = errE
+				return errE
+			}
+			sourceID, errE := identifier.MaybeString(source)
+			if errE != nil {
+				scanErrE = errE
+				return errE
+			}
+			targetPropID, errE := identifier.MaybeString(targetProp)
+			if errE != nil {
+				scanErrE = errE
+				return errE
+			}
+			sourcePropID, errE := identifier.MaybeString(sourceProp)
+			if errE != nil {
+				scanErrE = errE
+				return errE
+			}
+			result[level] = append(result[level], store.InverseRelation{
+				InverseRelationKey: store.InverseRelationKey{
+					Claim:      claimID,
+					Source:     sourceID,
+					TargetProp: targetPropID,
+				},
+				SourceProp: sourcePropID,
+				Target:     id,
+				Confidence: document.Confidence(confidence),
+			})
+			return nil
+		})
+		if scanErrE != nil {
+			return scanErrE
+		}
+		return internalStore.WithPgxError(err)
+	})
+	if errE != nil {
+		errors.Details(errE)["id"] = id.String()
+		return nil, errE
+	}
+	return result, nil
+}
+
+// Embedding returns the embedding set maintained for the document with the given id: each document that embeds
+// claims from it, mapped to the source paths it embeds. An empty map (never nil) is returned when there are none.
+func (b *Bridge) Embedding(ctx context.Context, id identifier.Identifier) (map[identifier.Identifier][][]identifier.Identifier, errors.E) {
+	result := map[identifier.Identifier][][]identifier.Identifier{}
+	errE := internalStore.RetryTransaction(ctx, b.dbpool, pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
+		// Initialize in the case transaction is retried.
+		clear(result)
+		rows, err := tx.Query(ctx, `
+			SELECT "embedder", "paths" FROM "`+b.Store.Prefix+`Embedding" WHERE "target" = $1
+		`, id.String())
+		if err != nil {
+			return internalStore.WithPgxError(err)
+		}
+		var embedder string
+		var pathsJSON []byte
+		var scanErrE errors.E
+		_, err = pgx.ForEachRow(rows, []any{&embedder, &pathsJSON}, func() error {
+			embedderID, errE := identifier.MaybeString(embedder)
+			if errE != nil {
+				scanErrE = errE
+				return errE
+			}
+			var paths [][]identifier.Identifier
+			errE = x.UnmarshalWithoutUnknownFields(pathsJSON, &paths)
+			if errE != nil {
+				scanErrE = errE
+				return errE
+			}
+			result[embedderID] = paths
+			return nil
+		})
+		if scanErrE != nil {
+			return scanErrE
+		}
+		return internalStore.WithPgxError(err)
+	})
+	if errE != nil {
+		errors.Details(errE)["id"] = id.String()
+		return nil, errE
+	}
+	return result, nil
 }
 
 // anyNonEmpty reports whether any visibility level in a per-level inverse-relation map holds a relation.
@@ -2122,11 +2222,16 @@ func anyNonEmpty(byLevel map[string][]store.InverseRelation) bool {
 	return false
 }
 
-// updateSeq advances the bridge table to seq, updates document metadata with inverse relations and embedding
-// sets, and enqueues for re-indexing the documents whose inverse relations changed, whose counts.references
-// must be refreshed (referenceTargets), and which embed from a committed document (embeds.fire), all in a
-// single transaction. Documents whose only metadata change is their own embedding set are updated but not
-// enqueued.
+// updateSeq advances the bridge table to seq, maintains the inverse-relation and embedding tables for the
+// documents whose relations changed, and enqueues for re-indexing the documents whose inverse relations
+// changed (they gain or lose a synthetic inverse claim), whose counts.references must be refreshed
+// (referenceTargets), and which embed from a committed document (embeds.fire), all in a single transaction.
+// Documents whose only change is their own embedding set are updated in the table but not enqueued: their
+// search document does not depend on which documents embed from them.
+//
+// The tables are keyed by target document id, so the maintenance never reads a document: a target is upserted
+// or deleted even if it does not exist yet or has been deleted (a stale entry for it is then simply never
+// rendered).
 func (b *Bridge) updateSeq(
 	ctx context.Context, seq int64,
 	addedInverseRelations, removedInverseRelations map[identifier.Identifier]map[string][]store.InverseRelation,
@@ -2136,157 +2241,171 @@ func (b *Bridge) updateSeq(
 	logger := zerolog.Ctx(ctx)
 	start := time.Now()
 
-	// TODO: How to get MetricDatabaseRetries inside RetryTransaction to be incremented at every loop here?
-	for range internalStore.MaxRetries {
-		// Collect all affected document IDs from both added and removed maps.
-		affectedDocs := map[identifier.Identifier]bool{}
-		for docID, byLevel := range addedInverseRelations {
-			if anyNonEmpty(byLevel) {
-				affectedDocs[docID] = true
+	// Build the batched arguments for the inverse-relation table maintenance. A removal deletes every row
+	// matching a (target, level, claim); claim IDs are effectively unique per source document, matching how
+	// the removal set is keyed. An addition upserts the full row.
+	var remTargets, remLevels, remClaims []string
+	for targetID, byLevel := range removedInverseRelations {
+		for level, irs := range byLevel {
+			for i := range irs {
+				remTargets = append(remTargets, targetID.String())
+				remLevels = append(remLevels, level)
+				remClaims = append(remClaims, irs[i].Claim.String())
 			}
 		}
-		for docID, byLevel := range removedInverseRelations {
-			if anyNonEmpty(byLevel) {
-				affectedDocs[docID] = true
+	}
+	var addTargets, addLevels, addClaims, addSources, addTargetProps, addSourceProps []string
+	var addConfidences []float64
+	for targetID, byLevel := range addedInverseRelations {
+		for level, irs := range byLevel {
+			for i := range irs {
+				addTargets = append(addTargets, targetID.String())
+				addLevels = append(addLevels, level)
+				addClaims = append(addClaims, irs[i].Claim.String())
+				addSources = append(addSources, irs[i].Source.String())
+				addTargetProps = append(addTargetProps, irs[i].TargetProp.String())
+				addSourceProps = append(addSourceProps, irs[i].SourceProp.String())
+				addConfidences = append(addConfidences, float64(irs[i].Confidence))
 			}
 		}
-		// Targets whose embedding set changes also need a metadata update (but, unlike inverse-relation
-		// targets, no re-indexing).
-		for docID, sources := range embeds.set {
-			if len(sources) > 0 {
-				affectedDocs[docID] = true
-			}
-		}
-		for docID, sources := range embeds.removed {
-			if len(sources) > 0 {
-				affectedDocs[docID] = true
-			}
-		}
+	}
 
-		var updates []preparedUpdate
-		for docID := range affectedDocs {
-			// This is raw store bookkeeping, not the convert/index path, so it reads the store directly
-			// rather than through fetchHooked: it needs the resolved version for the optimistic-concurrency
-			// UpdateExistingMetadata below, it must see the unfiltered metadata (the inverse relations are
-			// stored once per document and are visibility-independent, while the document post-hooks could
-			// deny or alter the document at the indexing visibility), and it uses only the metadata and
-			// version, never the document.
-			_, metadata, version, _, errE := b.Store.GetLatest(ctx, docID)
-			if errors.Is(errE, store.ErrValueNotFound) {
-				// Document does not exist (yet), skip.
-				// TODO: We should handle the "not exist yet" case better.
-				//       We could every time a new document is inserted make a background job which would run an ES query to
-				//       find all relations pointing to it and update metadata new document's metadata and then re-index it.
-				//       Or, we can index the metadata column in PostgreSQL and then query that to obtain current inverse
-				//       relations inside a PostgreSQL transaction.
-				continue
-			} else if errors.Is(errE, store.ErrValueDeleted) {
-				// Document does not exist anymore, skip.
-				// TODO: We should keep track in source document's metadata, that some of its outgoing relations are invalid.
-				//       This can then be used to prompt the user to fix those relations. We could even use the metadata to
-				//       show links for those relations in red color in UI or something like that.
-				continue
-			} else if errE != nil {
+	// Build the batched arguments for the embedding table maintenance. A removed entry deletes the
+	// (target, embedder) row; a set entry upserts it with the embedded source paths.
+	var embRemTargets, embRemEmbedders []string
+	for targetID, embedders := range embeds.removed {
+		for embedderID := range embedders {
+			embRemTargets = append(embRemTargets, targetID.String())
+			embRemEmbedders = append(embRemEmbedders, embedderID.String())
+		}
+	}
+	var embSetTargets, embSetEmbedders, embSetPaths []string
+	for targetID, embedders := range embeds.set {
+		for embedderID, paths := range embedders {
+			pathsJSON, errE := x.MarshalWithoutEscapeHTML(paths)
+			if errE != nil {
 				return errE
 			}
-			for level, irs := range removedInverseRelations[docID] {
-				metadata.RemoveInverseRelations(level, irs)
-			}
-			for level, irs := range addedInverseRelations[docID] {
-				metadata.AddInverseRelations(level, irs)
-			}
-			for sourceID := range embeds.removed[docID] {
-				metadata.RemoveEmbedding(sourceID)
-			}
-			for sourceID, paths := range embeds.set[docID] {
-				metadata.SetEmbedding(sourceID, paths)
-			}
-			updates = append(updates, preparedUpdate{id: docID, version: version, metadata: metadata})
+			embSetTargets = append(embSetTargets, targetID.String())
+			embSetEmbedders = append(embSetEmbedders, embedderID.String())
+			embSetPaths = append(embSetPaths, string(pathsJSON))
 		}
+	}
 
-		// Enqueue the documents that must be re-indexed: those whose inverse-relation metadata changed (they
-		// gain or lose a synthetic inverse claim), those whose counts.references must be refreshed, and those
-		// that embed from a committed document (their embedded copy must be refreshed). Reference targets and
-		// embed-firing documents get no metadata update. Documents whose only metadata change is their own
-		// embedding set are deliberately not enqueued: their search document does not depend on which documents
-		// embed from them.
-		enqueue := make(map[identifier.Identifier]bool, len(updates)+len(referenceTargets)+len(embeds.fire))
-		for docID, byLevel := range addedInverseRelations {
-			if anyNonEmpty(byLevel) {
-				enqueue[docID] = true
-			}
-		}
-		for docID, byLevel := range removedInverseRelations {
-			if anyNonEmpty(byLevel) {
-				enqueue[docID] = true
-			}
-		}
-		for docID := range referenceTargets {
+	// Enqueue the documents that must be re-indexed: those whose inverse relations changed (they gain or lose
+	// a synthetic inverse claim), those whose counts.references must be refreshed, and those that embed from a
+	// committed document (their embedded copy must be refreshed). Reference targets and embed-firing documents
+	// get no table update; documents whose only change is their own embedding set get a table update but no
+	// enqueue.
+	enqueue := map[identifier.Identifier]bool{}
+	for docID, byLevel := range addedInverseRelations {
+		if anyNonEmpty(byLevel) {
 			enqueue[docID] = true
 		}
-		for docID := range embeds.fire {
+	}
+	for docID, byLevel := range removedInverseRelations {
+		if anyNonEmpty(byLevel) {
 			enqueue[docID] = true
 		}
+	}
+	for docID := range referenceTargets {
+		enqueue[docID] = true
+	}
+	for docID := range embeds.fire {
+		enqueue[docID] = true
+	}
 
-		// In a single transaction: update metadata, enqueue document IDs for re-indexing,
-		// and then advance the bridge seq. The order matters: the INSERT into
-		// BridgeReindexQueue triggers a notification BEFORE the UPDATE of Bridge seq
-		// triggers the BridgeSeq notification. Since notifications are delivered in order
-		// within a transaction and processed sequentially by the listener, the handler for
-		// BridgeReindexQueueMinSeq queries the current MIN(seq) and updates
-		// reindexQueueMinSeq before the BridgeSeq handler unblocks waitForLastSeq.
-		errE := internalStore.RetryTransaction(ctx, b.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
-			for _, u := range updates {
-				_, errE := b.Store.UpdateExistingMetadata(ctx, u.id, u.version, u.metadata)
-				if errE != nil {
-					return errE
-				}
+	// In a single transaction: maintain the inverse-relation and embedding tables, enqueue document IDs for
+	// re-indexing, and then advance the bridge seq. The order matters: the INSERT into BridgeReindexQueue
+	// triggers a notification BEFORE the UPDATE of Bridge seq triggers the BridgeSeq notification. Since
+	// notifications are delivered in order within a transaction and processed sequentially by the listener,
+	// the handler for BridgeReindexQueueMinSeq queries the current MIN(seq) and updates reindexQueueMinSeq
+	// before the BridgeSeq handler unblocks waitForLastSeq. The inverse-relation and embedding tables carry no
+	// triggers, so their maintenance produces no notifications and runs first. Serialization conflicts between
+	// concurrent bridges writing the same rows are handled by RetryTransaction.
+	errE := internalStore.RetryTransaction(ctx, b.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
+		if len(remTargets) > 0 {
+			_, err := tx.Exec(ctx, `
+				DELETE FROM "`+b.Store.Prefix+`InverseRelations" q
+					USING (SELECT unnest($1::text[]) AS "target", unnest($2::text[]) AS "level", unnest($3::text[]) AS "claim") v
+					WHERE q."target" = v."target" AND q."level" = v."level" AND q."claim" = v."claim"
+			`, remTargets, remLevels, remClaims)
+			if err != nil {
+				return internalStore.WithPgxError(err)
 			}
+		}
+		if len(addTargets) > 0 {
+			_, err := tx.Exec(ctx, `
+				INSERT INTO "`+b.Store.Prefix+`InverseRelations" ("target", "level", "claim", "source", "targetProp", "sourceProp", "confidence")
+					SELECT unnest($1::text[]), unnest($2::text[]), unnest($3::text[]), unnest($4::text[]), unnest($5::text[]), unnest($6::text[]), unnest($7::float8[])
+					ON CONFLICT ("target", "level", "claim", "source", "targetProp") DO UPDATE
+						SET "sourceProp" = EXCLUDED."sourceProp", "confidence" = EXCLUDED."confidence"
+			`, addTargets, addLevels, addClaims, addSources, addTargetProps, addSourceProps, addConfidences)
+			if err != nil {
+				return internalStore.WithPgxError(err)
+			}
+		}
+		if len(embRemTargets) > 0 {
+			_, err := tx.Exec(ctx, `
+				DELETE FROM "`+b.Store.Prefix+`Embedding" q
+					USING (SELECT unnest($1::text[]) AS "target", unnest($2::text[]) AS "embedder") v
+					WHERE q."target" = v."target" AND q."embedder" = v."embedder"
+			`, embRemTargets, embRemEmbedders)
+			if err != nil {
+				return internalStore.WithPgxError(err)
+			}
+		}
+		if len(embSetTargets) > 0 {
+			_, err := tx.Exec(ctx, `
+				INSERT INTO "`+b.Store.Prefix+`Embedding" ("target", "embedder", "paths")
+					SELECT unnest($1::text[]), unnest($2::text[]), unnest($3::jsonb[])
+					ON CONFLICT ("target", "embedder") DO UPDATE SET "paths" = EXCLUDED."paths"
+			`, embSetTargets, embSetEmbedders, embSetPaths)
+			if err != nil {
+				return internalStore.WithPgxError(err)
+			}
+		}
 
-			if len(enqueue) > 0 {
-				// Add document IDs with commit seq to the work queue for re-indexing.
-				for docID := range enqueue {
-					_, err := tx.Exec(ctx, `
-						INSERT INTO "`+b.Store.Prefix+`BridgeReindexQueue" ("id", "seq") VALUES ($1, $2)
-							ON CONFLICT ("id", "seq") DO NOTHING
-					`, docID.String(), seq)
-					if err != nil {
-						return internalStore.WithPgxError(err)
-					}
-				}
-
-				// Submit a job to process the queued documents.
-				_, err := b.riverClient.InsertTx(ctx, tx, jobArgs{
-					Prefix: b.Store.Prefix,
-				}, nil)
+		if len(enqueue) > 0 {
+			// Add document IDs with commit seq to the work queue for re-indexing.
+			for docID := range enqueue {
+				_, err := tx.Exec(ctx, `
+					INSERT INTO "`+b.Store.Prefix+`BridgeReindexQueue" ("id", "seq") VALUES ($1, $2)
+						ON CONFLICT ("id", "seq") DO NOTHING
+				`, docID.String(), seq)
 				if err != nil {
-					return errors.WithStack(err)
+					return internalStore.WithPgxError(err)
 				}
 			}
 
-			// Advance the bridge seq last, so its notification arrives after BridgeReindexQueueMinSeq.
-			_, err := tx.Exec(ctx, `UPDATE "`+b.Store.Prefix+`Bridge" SET "seq" = $1 WHERE "seq" < $1`, seq)
-			return internalStore.WithPgxError(err)
-		})
-		if errors.Is(errE, store.ErrRevisionMismatch) {
-			// Concurrent update changed a revision, refetch and retry.
-			continue
+			// Submit a job to process the queued documents.
+			_, err := b.riverClient.InsertTx(ctx, tx, jobArgs{
+				Prefix: b.Store.Prefix,
+			}, nil)
+			if err != nil {
+				return errors.WithStack(err)
+			}
 		}
-		if errE == nil {
-			// Each enqueued document becomes a row in BridgeReindexQueue, and a non-empty enqueue
-			// submits one reindex job. Logging this shows how many jobs each commit triggers.
-			logger.Debug().
-				Int64("seq", seq).
-				Int("metadataUpdates", len(updates)).
-				Int("enqueued", len(enqueue)).
-				Bool("jobSubmitted", len(enqueue) > 0).
-				Dur("duration", time.Since(start)).
-				Msg("bridge updated seq")
-		}
+
+		// Advance the bridge seq last, so its notification arrives after BridgeReindexQueueMinSeq.
+		_, err := tx.Exec(ctx, `UPDATE "`+b.Store.Prefix+`Bridge" SET "seq" = $1 WHERE "seq" < $1`, seq)
+		return internalStore.WithPgxError(err)
+	})
+	if errE != nil {
 		return errE
 	}
 
-	return errors.WithStack(internalStore.ErrMaxRetriesReached)
+	logger.Debug().
+		Int64("seq", seq).
+		Int("inverseRelationsRemoved", len(remTargets)).
+		Int("inverseRelationsAdded", len(addTargets)).
+		Int("embeddingRemoved", len(embRemTargets)).
+		Int("embeddingSet", len(embSetTargets)).
+		Int("enqueued", len(enqueue)).
+		Bool("jobSubmitted", len(enqueue) > 0).
+		Dur("duration", time.Since(start)).
+		Msg("bridge updated seq")
+	return nil
 }
 
 // reindexStats accumulates per-job timing and counts for a reindex job so that the job summary can
@@ -2308,6 +2427,8 @@ type reindexStats struct {
 	QueryDuration time.Duration
 	// GetLatestDuration is the total time spent reading the latest version of each document from the store.
 	GetLatestDuration time.Duration
+	// InverseRelationsDuration is the total time spent loading each document's inverse relations.
+	InverseRelationsDuration time.Duration
 	// ConvertDuration is the time spent in ConvertDocument excluding the related-document store fetches.
 	ConvertDuration time.Duration
 	// IndexDuration is the total time spent in the ElasticSearch bulk index requests.
@@ -2325,16 +2446,17 @@ type reindexJobOutput struct {
 	DeletedJobs     int64   `json:"deletedJobs"`
 
 	// Values from reindexStats.
-	Reindexed         int     `json:"reindexed"`
-	Skipped           int     `json:"skipped"`
-	Batches           int     `json:"batches"`
-	Queries           int     `json:"queries"`
-	ScheduledFollowUp bool    `json:"scheduledFollowUp"`
-	QueryDuration     float64 `json:"queryDuration"`
-	GetLatestDuration float64 `json:"getLatestDuration"`
-	ConvertDuration   float64 `json:"convertDuration"`
-	IndexDuration     float64 `json:"indexDuration"`
-	DeleteDuration    float64 `json:"deleteDuration"`
+	Reindexed                int     `json:"reindexed"`
+	Skipped                  int     `json:"skipped"`
+	Batches                  int     `json:"batches"`
+	Queries                  int     `json:"queries"`
+	ScheduledFollowUp        bool    `json:"scheduledFollowUp"`
+	QueryDuration            float64 `json:"queryDuration"`
+	GetLatestDuration        float64 `json:"getLatestDuration"`
+	InverseRelationsDuration float64 `json:"inverseRelationsDuration"`
+	ConvertDuration          float64 `json:"convertDuration"`
+	IndexDuration            float64 `json:"indexDuration"`
+	DeleteDuration           float64 `json:"deleteDuration"`
 
 	// Values from ConversionStats.
 	DocCacheHits    int     `json:"docCacheHits"`
@@ -2428,16 +2550,17 @@ func (b *Bridge) runReindexQueue(ctx context.Context, job *river.Job[jobArgs]) e
 		RefreshDuration: refreshDuration.Seconds(),
 		DeletedJobs:     deletedJobs,
 
-		Reindexed:         stats.Reindexed,
-		Skipped:           stats.Skipped,
-		Batches:           stats.Batches,
-		Queries:           stats.Queries,
-		ScheduledFollowUp: stats.ScheduledFollowUp,
-		QueryDuration:     stats.QueryDuration.Seconds(),
-		GetLatestDuration: stats.GetLatestDuration.Seconds(),
-		ConvertDuration:   stats.ConvertDuration.Seconds(),
-		IndexDuration:     stats.IndexDuration.Seconds(),
-		DeleteDuration:    stats.DeleteDuration.Seconds(),
+		Reindexed:                stats.Reindexed,
+		Skipped:                  stats.Skipped,
+		Batches:                  stats.Batches,
+		Queries:                  stats.Queries,
+		ScheduledFollowUp:        stats.ScheduledFollowUp,
+		QueryDuration:            stats.QueryDuration.Seconds(),
+		GetLatestDuration:        stats.GetLatestDuration.Seconds(),
+		InverseRelationsDuration: stats.InverseRelationsDuration.Seconds(),
+		ConvertDuration:          stats.ConvertDuration.Seconds(),
+		IndexDuration:            stats.IndexDuration.Seconds(),
+		DeleteDuration:           stats.DeleteDuration.Seconds(),
 
 		DocCacheHits:    convStats.DocCacheHits,
 		DocCacheMisses:  convStats.DocCacheMisses,
@@ -2465,6 +2588,7 @@ func (b *Bridge) runReindexQueue(ctx context.Context, job *river.Job[jobArgs]) e
 		Bool("scheduledFollowUp", stats.ScheduledFollowUp).
 		Dur("queryDuration", stats.QueryDuration).
 		Dur("getLatestDuration", stats.GetLatestDuration).
+		Dur("inverseRelationsDuration", stats.InverseRelationsDuration).
 		Dur("convertDuration", stats.ConvertDuration).
 		Dur("indexDuration", stats.IndexDuration).
 		Dur("deleteDuration", stats.DeleteDuration).
@@ -2811,6 +2935,14 @@ func (b *Bridge) convertForReindex(ctx context.Context, docID identifier.Identif
 		return nil, errE
 	}
 
+	// The inverse relations rendered onto the document are loaded here, timed separately from the store read.
+	inverseRelationsStart := time.Now()
+	inverseRelations, errE := b.InverseRelations(ctx, docID)
+	stats.InverseRelationsDuration += time.Since(inverseRelationsStart)
+	if errE != nil {
+		return nil, errE
+	}
+
 	// FromDocument also fetches related documents, recorded separately as FetchDuration. We subtract that so
 	// ConvertDuration is disjoint from the fetches: only the rendering and the counts.references query.
 	convStats := conversionStatsFromContext(ctx)
@@ -2825,7 +2957,7 @@ func (b *Bridge) convertForReindex(ctx context.Context, docID identifier.Identif
 			continue
 		}
 		// TODO: Use also information about the view so that documents are searchable by view as well.
-		searchDoc, errE := t.Converter.FromDocument(t.levelContext(ctx), docs[i], &gens[i], metadata)
+		searchDoc, errE := t.Converter.FromDocument(t.levelContext(ctx), docs[i], &gens[i], metadata, inverseRelations[t.Level])
 		if errE != nil {
 			return nil, errE
 		}

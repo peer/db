@@ -44,10 +44,8 @@ func dummyCommitMetadata() *store.CommitMetadata {
 // dummyMetadata returns a minimal DocumentMetadata for testing.
 func dummyMetadata() *store.DocumentMetadata {
 	return &store.DocumentMetadata{
-		At:               store.Time(time.Now().UTC()),
-		Users:            nil,
-		InverseRelations: nil,
-		Embedding:        nil,
+		At:    store.Time(time.Now().UTC()),
+		Users: nil,
 	}
 }
 
@@ -760,19 +758,19 @@ func TestBridgePerLevelInverseRelations(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	require.EventuallyWithT(t, func(c *assert.CollectT) {
-		_, metadata, _, _, errE := s.GetLatest(ctx, docB)
+		inverseRelations, errE := b.InverseRelations(ctx, docB)
 		if !assert.NoError(c, errE, "% -+#.1v", errE) {
 			return
 		}
-		assert.NotEmpty(c, metadata.InverseRelations[lvlEditor], "docB should have an inverse relation at the editor level")
-		assert.Empty(c, metadata.InverseRelations[lvlPublic], "docB must not have an inverse relation at the public level (source hidden there)")
+		assert.NotEmpty(c, inverseRelations[lvlEditor], "docB should have an inverse relation at the editor level")
+		assert.Empty(c, inverseRelations[lvlPublic], "docB must not have an inverse relation at the public level (source hidden there)")
 	}, 10*time.Second, 100*time.Millisecond)
 }
 
 // TestBridgeMutualEmbedding verifies that two documents embedding from each other are handled without an
-// infinite re-index loop. Each document's metadata records the other as embedding from it, and committing the
-// second cross-reference fires the first document's re-index, which (because a re-index never enqueues further
-// work) terminates: WaitUntilCaughtUp returns rather than hanging.
+// infinite re-index loop. The bridge records each document as embedding from the other (in the embedding
+// table), and committing the second cross-reference fires the first document's re-index, which (because a
+// re-index never enqueues further work) terminates: WaitUntilCaughtUp returns rather than hanging.
 func TestBridgeMutualEmbedding(t *testing.T) {
 	t.Parallel()
 
@@ -789,8 +787,7 @@ func TestBridgeMutualEmbedding(t *testing.T) {
 	classDoc := makeEmbedClassDoc(classID, relProp, destProp, sourceProp)
 	startBridge(ctx, t, env, makeConverterWithEmbed(t, classDoc, s))
 
-	// Insert both documents without the cross-references first, so each already exists when the other later
-	// starts embedding from it (the embedding set is maintained only for targets that already exist).
+	// Insert both documents without the cross-references first, then have each start embedding from the other.
 	_, errE := s.Insert(ctx, docA, makeEmbedDocJSON(t, docA, classID, relProp, nil), dummyMetadata(), dummyCommitMetadata())
 	require.NoError(t, errE, "% -+#.1v", errE)
 	_, errE = s.Insert(ctx, docB, makeEmbedDocJSON(t, docB, classID, relProp, nil), dummyMetadata(), dummyCommitMetadata())
@@ -798,24 +795,19 @@ func TestBridgeMutualEmbedding(t *testing.T) {
 	errE = b.WaitUntilCaughtUp(ctx, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	// A starts embedding from B. The replace carries over the bridge-maintained metadata, as a real edit does
-	// through the API layer's CarryOver, so the embedding set is not lost across versions.
-	_, metaA, vA, _, errE := s.GetLatest(ctx, docA)
+	// A starts embedding from B; the bridge records this in B's embedding set.
+	_, _, vA, _, errE := s.GetLatest(ctx, docA) //nolint:dogsled
 	require.NoError(t, errE, "% -+#.1v", errE)
-	newMetaA := dummyMetadata()
-	newMetaA.CarryOver(metaA)
-	_, errE = s.Replace(ctx, docA, vA.Changeset, makeEmbedDocJSON(t, docA, classID, relProp, &docB), newMetaA, dummyCommitMetadata())
+	_, errE = s.Replace(ctx, docA, vA.Changeset, makeEmbedDocJSON(t, docA, classID, relProp, &docB), dummyMetadata(), dummyCommitMetadata())
 	require.NoError(t, errE, "% -+#.1v", errE)
 	errE = b.WaitUntilCaughtUp(ctx, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// B starts embedding from A, closing the cycle. Firing B's embedding set re-indexes A, but the re-index
 	// fires no further work, so the cycle terminates and WaitUntilCaughtUp returns.
-	_, metaB, vB, _, errE := s.GetLatest(ctx, docB)
+	_, _, vB, _, errE := s.GetLatest(ctx, docB) //nolint:dogsled
 	require.NoError(t, errE, "% -+#.1v", errE)
-	newMetaB := dummyMetadata()
-	newMetaB.CarryOver(metaB)
-	_, errE = s.Replace(ctx, docB, vB.Changeset, makeEmbedDocJSON(t, docB, classID, relProp, &docA), newMetaB, dummyCommitMetadata())
+	_, errE = s.Replace(ctx, docB, vB.Changeset, makeEmbedDocJSON(t, docB, classID, relProp, &docA), dummyMetadata(), dummyCommitMetadata())
 	require.NoError(t, errE, "% -+#.1v", errE)
 	errE = b.WaitUntilCaughtUp(ctx, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
@@ -823,155 +815,79 @@ func TestBridgeMutualEmbedding(t *testing.T) {
 	// Each document records the other as embedding from it: A embeds from B (so B's set holds A) and B embeds
 	// from A (so A's set holds B).
 	require.EventuallyWithT(t, func(c *assert.CollectT) {
-		_, metaA, _, _, errE := s.GetLatest(ctx, docA)
+		embedA, errE := b.Embedding(ctx, docA)
 		if !assert.NoError(c, errE, "% -+#.1v", errE) {
 			return
 		}
-		_, metaB, _, _, errE := s.GetLatest(ctx, docB)
+		embedB, errE := b.Embedding(ctx, docB)
 		if !assert.NoError(c, errE, "% -+#.1v", errE) {
 			return
 		}
 		// Each entry records the source paths embedded from that document. Both directions embed the single
 		// source property sourceProp, so each path-set is {[sourceProp]}.
-		assert.Equal(c, [][]identifier.Identifier{{sourceProp}}, metaB.Embedding[docA], "B's embedding entry for A should record the embedded source path")
-		assert.Equal(c, [][]identifier.Identifier{{sourceProp}}, metaA.Embedding[docB], "A's embedding entry for B should record the embedded source path")
+		assert.Equal(c, [][]identifier.Identifier{{sourceProp}}, embedB[docA], "B's embedding entry for A should record the embedded source path")
+		assert.Equal(c, [][]identifier.Identifier{{sourceProp}}, embedA[docB], "A's embedding entry for B should record the embedded source path")
 	}, 10*time.Second, 100*time.Millisecond)
 }
 
-// TestBridgeClearSystemManagedMetadata verifies that ClearSystemManagedMetadata removes the bridge-maintained
-// metadata from every document in the store, including deleted ones, while leaving documents that have neither
-// untouched, and that it is idempotent. A document carrying only an embedding set (no inverse relations) must
-// also be cleared.
+// TestBridgeClearSystemManagedMetadata verifies that ClearSystemManagedMetadata truncates the inverse-relation
+// and embedding tables, and that it is idempotent.
 //
-// The metadata is seeded directly rather than via the full bridge pipeline so the deleted document case is
-// deterministic: ClearSystemManagedMetadata only reads and rewrites store metadata, so it does not require the
-// bridge to be running.
+// The tables are seeded directly rather than via the full bridge pipeline: ClearSystemManagedMetadata only
+// truncates them, so it does not require the bridge to be running.
 func TestBridgeClearSystemManagedMetadata(t *testing.T) {
 	t.Parallel()
 
 	ctx, env := setupBridge(t)
 	s, b := env.store, env.bridge
 
-	// inverseRelations returns a single inverse relation at the "all" level, modeling what the bridge accumulates
-	// for a target of a relation claim.
-	inverseRelations := func(source, target identifier.Identifier) map[string][]store.InverseRelation {
-		return map[string][]store.InverseRelation{
-			"all": {{
-				InverseRelationKey: store.InverseRelationKey{
-					Claim:      identifier.New(),
-					Source:     source,
-					TargetProp: identifier.New(),
-				},
-				SourceProp: identifier.New(),
-				Target:     target,
-				Confidence: document.HighConfidence,
-			}},
+	// target1 receives an inverse relation, target2 an embedding entry.
+	target1 := identifier.New()
+	target2 := identifier.New()
+
+	errE := internalStore.RetryTransaction(ctx, env.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
+		_, err := tx.Exec(ctx, `
+			INSERT INTO "`+s.Prefix+`InverseRelations" ("target", "level", "claim", "source", "targetProp", "sourceProp", "confidence")
+				VALUES ($1, 'all', $2, $3, $4, $5, 1)
+		`, target1.String(), identifier.New().String(), identifier.New().String(), identifier.New().String(), identifier.New().String())
+		if err != nil {
+			return internalStore.WithPgxError(err)
 		}
-	}
-
-	// embedding returns an embedding set with a single embedder, modeling what the bridge maintains for a
-	// document whose claims another document embeds.
-	embedding := func(embedder identifier.Identifier) map[identifier.Identifier][][]identifier.Identifier {
-		return map[identifier.Identifier][][]identifier.Identifier{
-			embedder: {{identifier.New()}},
-		}
-	}
-
-	meta := func(inverse map[string][]store.InverseRelation, embed map[identifier.Identifier][][]identifier.Identifier) *store.DocumentMetadata {
-		return &store.DocumentMetadata{
-			At:               store.Time(time.Now().UTC()),
-			Users:            nil,
-			InverseRelations: inverse,
-			Embedding:        embed,
-		}
-	}
-
-	// both returns metadata carrying both an inverse relation (targeting target) and an embedding set.
-	both := func(target identifier.Identifier) *store.DocumentMetadata {
-		return meta(inverseRelations(identifier.New(), target), embedding(identifier.New()))
-	}
-
-	// docLive: a live document carrying both an inverse relation and an embedding set.
-	docLive := identifier.New()
-	_, errE := s.Insert(ctx, docLive, makeDocJSON(t, docLive), both(docLive), dummyCommitMetadata())
+		_, err = tx.Exec(ctx, `
+			INSERT INTO "`+s.Prefix+`Embedding" ("target", "embedder", "paths") VALUES ($1, $2, $3)
+		`, target2.String(), identifier.New().String(), `[["`+identifier.New().String()+`"]]`)
+		return internalStore.WithPgxError(err)
+	})
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	// docDeleted: a document carrying both, then deleted, carrying the metadata onto the delete (as a real delete
-	// does via CarryOver). The normal indexing path never touches a deleted document's system-managed metadata,
-	// so without clearing it would linger forever.
-	docDeleted := identifier.New()
-	vDeleted, errE := s.Insert(ctx, docDeleted, makeDocJSON(t, docDeleted), both(docDeleted), dummyCommitMetadata())
+	// Preconditions: both tables hold their seeded rows.
+	inverse, errE := b.InverseRelations(ctx, target1)
 	require.NoError(t, errE, "% -+#.1v", errE)
-	_, errE = s.Delete(ctx, docDeleted, vDeleted.Changeset, both(docDeleted), dummyCommitMetadata())
+	require.NotEmpty(t, inverse, "target1 should start with an inverse relation")
+	embed, errE := b.Embedding(ctx, target2)
 	require.NoError(t, errE, "% -+#.1v", errE)
+	require.NotEmpty(t, embed, "target2 should start with an embedding entry")
 
-	// docEmbed: a live document carrying only an embedding set (no inverse relations); it must be cleared too.
-	docEmbed := identifier.New()
-	_, errE = s.Insert(ctx, docEmbed, makeDocJSON(t, docEmbed), meta(nil, embedding(identifier.New())), dummyCommitMetadata())
+	// Clear both tables.
+	errE = b.ClearSystemManagedMetadata(ctx)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	// docPlain: a live document with neither, the control that must stay untouched.
-	docPlain := identifier.New()
-	_, errE = s.Insert(ctx, docPlain, makeDocJSON(t, docPlain), dummyMetadata(), dummyCommitMetadata())
+	inverse, errE = b.InverseRelations(ctx, target1)
 	require.NoError(t, errE, "% -+#.1v", errE)
-
-	// Preconditions.
-	_, metaLive, _, _, errE := s.GetLatest(ctx, docLive) //nolint:dogsled
+	assert.Empty(t, inverse, "target1 inverse relations should be cleared")
+	embed, errE = b.Embedding(ctx, target2)
 	require.NoError(t, errE, "% -+#.1v", errE)
-	require.NotEmpty(t, metaLive.InverseRelations, "docLive should start with inverse relations")
-	require.NotEmpty(t, metaLive.Embedding, "docLive should start with an embedding set")
+	assert.Empty(t, embed, "target2 embedding set should be cleared")
 
-	_, metaDeleted, _, _, errE := s.GetLatest(ctx, docDeleted) //nolint:dogsled
-	require.ErrorIs(t, errE, store.ErrValueDeleted, "docDeleted should be deleted")
-	require.NotEmpty(t, metaDeleted.InverseRelations, "docDeleted should start with inverse relations")
-	require.NotEmpty(t, metaDeleted.Embedding, "docDeleted should start with an embedding set")
-
-	_, metaEmbed, _, _, errE := s.GetLatest(ctx, docEmbed) //nolint:dogsled
+	// Clearing again is a no-op.
+	errE = b.ClearSystemManagedMetadata(ctx)
 	require.NoError(t, errE, "% -+#.1v", errE)
-	require.Empty(t, metaEmbed.InverseRelations, "docEmbed should start with no inverse relations")
-	require.NotEmpty(t, metaEmbed.Embedding, "docEmbed should start with an embedding set")
-
-	// Clear system-managed metadata for every document, including the deleted one.
-	count := x.NewCounter(0)
-	size := x.NewCounter(0)
-	cleared, errE := b.ClearSystemManagedMetadata(ctx, count, size)
-	require.NoError(t, errE, "% -+#.1v", errE)
-	assert.Equal(t, 3, cleared, "the live, deleted, and embedding-only documents should be cleared")
-	assert.Equal(t, int64(4), size.Count(), "size is increased by the total document count (all four, including the deleted and the untouched one)")
-	assert.Equal(t, int64(4), count.Count(), "count is reconciled to exactly the total, regardless of how many were cleared")
-
-	// The live document keeps existing but loses both fields.
-	_, metaLive, _, _, errE = s.GetLatest(ctx, docLive) //nolint:dogsled
-	require.NoError(t, errE, "% -+#.1v", errE)
-	assert.Empty(t, metaLive.InverseRelations, "docLive inverse relations should be cleared")
-	assert.Empty(t, metaLive.Embedding, "docLive embedding set should be cleared")
-
-	// The deleted document stays deleted and loses both fields.
-	_, metaDeleted, _, _, errE = s.GetLatest(ctx, docDeleted) //nolint:dogsled
-	require.ErrorIs(t, errE, store.ErrValueDeleted, "docDeleted should still be deleted after clearing")
-	assert.Empty(t, metaDeleted.InverseRelations, "docDeleted inverse relations should be cleared")
-	assert.Empty(t, metaDeleted.Embedding, "docDeleted embedding set should be cleared")
-
-	// The embedding-only document keeps existing but loses its embedding set.
-	_, metaEmbed, _, _, errE = s.GetLatest(ctx, docEmbed) //nolint:dogsled
-	require.NoError(t, errE, "% -+#.1v", errE)
-	assert.Empty(t, metaEmbed.Embedding, "docEmbed embedding set should be cleared")
-
-	// The control document had neither and is unaffected.
-	_, metaPlain, _, _, errE := s.GetLatest(ctx, docPlain) //nolint:dogsled
-	require.NoError(t, errE, "% -+#.1v", errE)
-	assert.Empty(t, metaPlain.InverseRelations, "docPlain should remain without inverse relations")
-	assert.Empty(t, metaPlain.Embedding, "docPlain should remain without an embedding set")
-
-	// Clearing again finds nothing left to clear.
-	cleared, errE = b.ClearSystemManagedMetadata(ctx, nil, nil)
-	require.NoError(t, errE, "% -+#.1v", errE)
-	assert.Zero(t, cleared, "a second clear should find nothing to clear")
 }
 
 // TestBridgeEnqueueAllForReindex verifies that EnqueueAllForReindex re-renders every live document into
 // ElasticSearch via the reindex queue while skipping deleted documents (never resurrecting them) and leaving
-// document metadata untouched. This is the regular "db reindex" path, which does not replay the commit log.
+// the inverse-relation and embedding tables untouched. This is the regular "db reindex" path, which does not
+// replay the commit log.
 func TestBridgeEnqueueAllForReindex(t *testing.T) {
 	t.Parallel()
 
@@ -980,34 +896,32 @@ func TestBridgeEnqueueAllForReindex(t *testing.T) {
 
 	startBridge(ctx, t, env, newTestBridgeConverter(t))
 
-	// docLive1, docLive2: live documents. docDeleted: inserted then deleted. docMeta: a live document carrying
-	// inverse-relation metadata that the reindex must leave untouched.
+	// docLive1, docLive2: live documents. docDeleted: inserted then deleted. docMeta: a live document with an
+	// inverse relation (seeded directly into the table) that the reindex must leave untouched.
 	docLive1 := identifier.New()
 	docLive2 := identifier.New()
 	docDeleted := identifier.New()
 	docMeta := identifier.New()
 
-	metaWithInverse := &store.DocumentMetadata{ //nolint:exhaustruct
-		At: store.Time(time.Now().UTC()),
-		InverseRelations: map[string][]store.InverseRelation{
-			"all": {{
-				InverseRelationKey: store.InverseRelationKey{Claim: identifier.New(), Source: identifier.New(), TargetProp: identifier.New()},
-				SourceProp:         identifier.New(),
-				Target:             docMeta,
-				Confidence:         document.HighConfidence,
-			}},
-		},
-	}
-
 	_, errE := s.Insert(ctx, docLive1, makeDocJSON(t, docLive1), dummyMetadata(), dummyCommitMetadata())
 	require.NoError(t, errE, "% -+#.1v", errE)
 	_, errE = s.Insert(ctx, docLive2, makeDocJSON(t, docLive2), dummyMetadata(), dummyCommitMetadata())
 	require.NoError(t, errE, "% -+#.1v", errE)
-	_, errE = s.Insert(ctx, docMeta, makeDocJSON(t, docMeta), metaWithInverse, dummyCommitMetadata())
+	_, errE = s.Insert(ctx, docMeta, makeDocJSON(t, docMeta), dummyMetadata(), dummyCommitMetadata())
 	require.NoError(t, errE, "% -+#.1v", errE)
 	vDel, errE := s.Insert(ctx, docDeleted, makeDocJSON(t, docDeleted), dummyMetadata(), dummyCommitMetadata())
 	require.NoError(t, errE, "% -+#.1v", errE)
 	_, errE = s.Delete(ctx, docDeleted, vDel.Changeset, dummyMetadata(), dummyCommitMetadata())
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// Seed an inverse relation for docMeta directly into the table; the reindex must leave it in place.
+	errE = internalStore.RetryTransaction(ctx, env.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
+		_, err := tx.Exec(ctx, `
+			INSERT INTO "`+s.Prefix+`InverseRelations" ("target", "level", "claim", "source", "targetProp", "sourceProp", "confidence")
+				VALUES ($1, 'all', $2, $3, $4, $5, 1)
+		`, docMeta.String(), identifier.New().String(), identifier.New().String(), identifier.New().String(), identifier.New().String())
+		return internalStore.WithPgxError(err)
+	})
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	errE = b.WaitUntilCaughtUp(ctx, nil, nil)
@@ -1038,10 +952,10 @@ func TestBridgeEnqueueAllForReindex(t *testing.T) {
 	assert.True(t, testutils.DocExists(ctx, t, esClient, b.IndexPrefix, docMeta.String()), "docMeta present after reindex")
 	assert.False(t, testutils.DocExists(ctx, t, esClient, b.IndexPrefix, docDeleted.String()), "docDeleted must not be resurrected by the reindex")
 
-	// The reindex did not touch document metadata: docMeta keeps its inverse relations.
-	_, meta, _, _, errE := s.GetLatest(ctx, docMeta) //nolint:dogsled
+	// The reindex did not touch the inverse-relation table: docMeta keeps its inverse relations.
+	inverseRelations, errE := b.InverseRelations(ctx, docMeta)
 	require.NoError(t, errE, "% -+#.1v", errE)
-	assert.NotEmpty(t, meta.InverseRelations, "docMeta inverse relations should survive the reindex untouched")
+	assert.NotEmpty(t, inverseRelations, "docMeta inverse relations should survive the reindex untouched")
 }
 
 func TestBridgePerLevelDocumentPresence(t *testing.T) {
@@ -1288,13 +1202,13 @@ func TestBridgeInverseRelationReindexing(t *testing.T) {
 	errE = b.WaitUntilCaughtUp(ctx, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	// Verify that docB's metadata was updated with inverse relations.
+	// Verify that docB was updated with inverse relations.
 	require.EventuallyWithT(t, func(c *assert.CollectT) {
-		_, metadata, _, _, errE := s.GetLatest(ctx, docB)
+		inverseRelations, errE := b.InverseRelations(ctx, docB)
 		if !assert.NoError(c, errE, "% -+#.1v", errE) {
 			return
 		}
-		assert.NotEmpty(c, metadata.InverseRelations, "docB metadata should have inverse relations")
+		assert.NotEmpty(c, inverseRelations, "docB should have inverse relations")
 	}, 10*time.Second, 100*time.Millisecond)
 
 	// Wait for the River job to re-index document B with the inverse relation.
@@ -1659,11 +1573,11 @@ func TestBridgeInverseRelationRemoval(t *testing.T) {
 
 	// Wait for docB to lose the inverse relation.
 	require.EventuallyWithT(t, func(c *assert.CollectT) {
-		_, metadata, _, _, errE := s.GetLatest(ctx, docB)
+		inverseRelations, errE := b.InverseRelations(ctx, docB)
 		if !assert.NoError(c, errE, "% -+#.1v", errE) {
 			return
 		}
-		assert.Empty(c, metadata.InverseRelations, "docB metadata should have no inverse relations after removal")
+		assert.Empty(c, inverseRelations, "docB should have no inverse relations after removal")
 	}, 10*time.Second, 100*time.Millisecond)
 
 	// Verify in ES that docB no longer has the inverse relation.
@@ -1745,19 +1659,19 @@ func TestBridgeInverseRelationChange(t *testing.T) {
 			"docB should no longer have inverse B --Y--> A")
 	}, 10*time.Second, 100*time.Millisecond)
 
-	// Verify metadata as well.
+	// Verify the inverse-relation table as well.
 	require.EventuallyWithT(t, func(c *assert.CollectT) {
-		_, metadataB, _, _, errE := s.GetLatest(ctx, docB)
+		inverseRelationsB, errE := b.InverseRelations(ctx, docB)
 		if !assert.NoError(c, errE, "% -+#.1v", errE) {
 			return
 		}
-		assert.Empty(c, metadataB.InverseRelations, "docB metadata should have no inverse relations")
+		assert.Empty(c, inverseRelationsB, "docB should have no inverse relations")
 
-		_, metadataC, _, _, errE := s.GetLatest(ctx, docC)
+		inverseRelationsC, errE := b.InverseRelations(ctx, docC)
 		if !assert.NoError(c, errE, "% -+#.1v", errE) {
 			return
 		}
-		assert.NotEmpty(c, metadataC.InverseRelations, "docC metadata should have inverse relations")
+		assert.NotEmpty(c, inverseRelationsC, "docC should have inverse relations")
 	}, 10*time.Second, 100*time.Millisecond)
 }
 

@@ -60,13 +60,13 @@ var _ deepcopy.Interface = Time{}
 // the same property).
 type InverseRelationKey struct {
 	// Claim is the ID of the relation claim in the source document (A).
-	Claim identifier.Identifier `json:"claim"`
+	Claim identifier.Identifier
 	// Source is the ID of the source document (A) that has the forward relation claim.
-	Source identifier.Identifier `json:"source"`
+	Source identifier.Identifier
 	// TargetProp is the resolved inverse property ID (Y) to use for the synthetic
 	// reverse claim on the target document (B). Resolved at creation time from either
 	// field-level INVERSE_PROPERTY (takes precedence) or property-level INVERSE_PROPERTY_OF.
-	TargetProp identifier.Identifier `json:"targetProp"`
+	TargetProp identifier.Identifier
 }
 
 // InverseRelation contains data about a relation claim from another document
@@ -74,18 +74,18 @@ type InverseRelationKey struct {
 //
 // When document A has a relation claim with property X pointing to document B,
 // and property X has an inverse property Y (either from INVERSE_PROPERTY_OF on
-// the property, or from INVERSE_PROPERTY on a class field), then document B's
-// metadata will contain an InverseRelation with Source=A, SourceProp=X,
+// the property, or from INVERSE_PROPERTY on a class field), then the bridge
+// records for document B an InverseRelation with Source=A, SourceProp=X,
 // TargetProp=Y, and Target=B.
 type InverseRelation struct {
 	InverseRelationKey
 
 	// SourceProp is the property ID of the forward relation claim in the source document (X).
-	SourceProp identifier.Identifier `json:"sourceProp"`
+	SourceProp identifier.Identifier
 	// Target is the ID of the target document (B) that the relation points to.
-	Target identifier.Identifier `json:"-"`
+	Target identifier.Identifier
 	// Confidence is the confidence of the forward relation claim.
-	Confidence document.Confidence `json:"confidence"`
+	Confidence document.Confidence
 }
 
 // DocumentMetadata contains metadata about a document including its timestamp.
@@ -97,20 +97,6 @@ type DocumentMetadata struct {
 	// appended a change. The user who ended the session (committer) is NOT
 	// included here; that user goes to CommitMetadata.User instead.
 	Users []User `json:"users,omitempty"`
-
-	// InverseRelations maps a visibility level name to the inverse relations visible at that level: inverse
-	// relation data for relation claims from other documents that point to this document, as those source
-	// documents are seen at that level. The sets are kept strictly separate so that indexing one level
-	// never leaks a source not visible there.
-	InverseRelations map[string][]InverseRelation `json:"inverseRelations,omitempty"`
-
-	// Embedding maps each document that embeds claims from this document (a document with a reference claim to
-	// this one on a field configured with EMBED_PROPERTY) to the source paths it embeds: each path is the
-	// sequence of property IDs, within this document, that the embedding document copies (a single property for
-	// a direct embed, or a property path for a nested one). It is maintained from the embedding side: a document
-	// sets its own entry here when it is committed and embeds from this document, and removes it when it stops.
-	// The paths are the union across visibility levels.
-	Embedding map[identifier.Identifier][][]identifier.Identifier `json:"embedding,omitempty"`
 }
 
 // CommitMetadata contains metadata about a commit.
@@ -128,91 +114,6 @@ func (c *CommitMetadata) ChangesetID() identifier.Identifier {
 		panic(errors.New("base is empty"))
 	}
 	return identifier.From(c.Base...)
-}
-
-// AddInverseRelations adds inverse relations to the given visibility level, if they do not already exist at
-// that level (comparison is done by InverseRelationKey).
-func (m *DocumentMetadata) AddInverseRelations(level string, relations []InverseRelation) {
-	if len(relations) == 0 {
-		return
-	}
-	current := m.InverseRelations[level]
-	existing := make(map[InverseRelationKey]bool, len(current))
-	for _, ir := range current {
-		existing[ir.InverseRelationKey] = true
-	}
-	for _, ir := range relations {
-		if !existing[ir.InverseRelationKey] {
-			current = append(current, ir)
-			existing[ir.InverseRelationKey] = true
-		}
-	}
-	if m.InverseRelations == nil {
-		m.InverseRelations = map[string][]InverseRelation{}
-	}
-	m.InverseRelations[level] = current
-}
-
-// RemoveInverseRelations removes from the given visibility level the inverse relations identified by their
-// claim IDs. Only relations whose Claim field matches one of the provided relations' Claim fields are removed.
-// When a level's set becomes empty its key is dropped, and an empty map is reset to nil.
-func (m *DocumentMetadata) RemoveInverseRelations(level string, relations []InverseRelation) {
-	current := m.InverseRelations[level]
-	if len(relations) == 0 || len(current) == 0 {
-		return
-	}
-
-	// Build a set of claim IDs to remove.
-	toRemove := make(map[identifier.Identifier]bool, len(relations))
-	for i := range relations {
-		toRemove[relations[i].Claim] = true
-	}
-
-	kept := make([]InverseRelation, 0, len(current))
-	for i := range current {
-		if !toRemove[current[i].Claim] {
-			kept = append(kept, current[i])
-		}
-	}
-
-	if len(kept) == 0 {
-		delete(m.InverseRelations, level)
-		if len(m.InverseRelations) == 0 {
-			m.InverseRelations = nil
-		}
-	} else {
-		m.InverseRelations[level] = kept
-	}
-}
-
-// SetEmbedding records that the document with the given ID embeds claims from this document using the given
-// source paths (the union across visibility levels), replacing any existing entry for it.
-func (m *DocumentMetadata) SetEmbedding(id identifier.Identifier, paths [][]identifier.Identifier) {
-	if m.Embedding == nil {
-		m.Embedding = map[identifier.Identifier][][]identifier.Identifier{}
-	}
-	m.Embedding[id] = paths
-}
-
-// RemoveEmbedding removes the entry for the document with the given ID from the set of documents that embed
-// claims from this document. When the set becomes empty it is reset to nil.
-func (m *DocumentMetadata) RemoveEmbedding(id identifier.Identifier) {
-	delete(m.Embedding, id)
-	if len(m.Embedding) == 0 {
-		m.Embedding = nil
-	}
-}
-
-// CarryOver sets system-managed fields in this metadata based on old metadata.
-//
-// This should be called on new metadata before committing a new version of a
-// document to maintain fields managed by background processes (e.g., the bridge).
-func (m *DocumentMetadata) CarryOver(old *DocumentMetadata) {
-	if old == nil {
-		return
-	}
-	m.InverseRelations = old.InverseRelations
-	m.Embedding = old.Embedding
 }
 
 // NoMetadata represents an empty metadata structure.

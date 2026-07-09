@@ -51,8 +51,7 @@ type documentCompleteData struct {
 	// ParentVersion is the resolved version (with actual revision) of the parent document
 	// at which metadata was fetched and changes were validated.
 	ParentVersion store.Version
-	// Metadata is the new metadata for the updated document, with system-managed
-	// fields carried over from the parent version.
+	// Metadata is the new metadata for the updated document.
 	Metadata *store.DocumentMetadata
 }
 
@@ -195,14 +194,12 @@ func (b *B) completeDocumentSession(ctx context.Context, session identifier.Iden
 	}
 
 	var doc document.D
-	var oldMetadata *store.DocumentMetadata
 	var resolvedVersion store.Version
 	if beginMetadata.Version != nil {
 		// Edit session: load parent document at the session's begin version.
-		// Version has Revision 0, so Get returns the latest revision for the changeset,
-		// picking up any metadata updates made by the system (e.g., bridge) since the session began.
+		// Version has Revision 0, so Get returns the latest revision for the changeset.
 		var docJSON json.RawMessage
-		docJSON, oldMetadata, resolvedVersion, _, errE = b.documents.Get(ctx, beginMetadata.DocumentID, *beginMetadata.Version)
+		docJSON, _, resolvedVersion, _, errE = b.documents.Get(ctx, beginMetadata.DocumentID, *beginMetadata.Version)
 		if errE != nil {
 			return nil, errE
 		}
@@ -257,15 +254,11 @@ func (b *B) completeDocumentSession(ctx context.Context, session identifier.Iden
 	users = append(users, beginMetadata.User)
 	users = append(users, changeUsers...)
 
-	// Compute new metadata, carrying over system-managed fields from the parent version
-	// (no-op when oldMetadata is nil, which is the create-session case).
+	// Compute new metadata for this version.
 	newMetadata := &store.DocumentMetadata{
-		At:               endMetadata.At,
-		Users:            internalStore.SortedUniqueUsers(users),
-		InverseRelations: nil,
-		Embedding:        nil,
+		At:    endMetadata.At,
+		Users: internalStore.SortedUniqueUsers(users),
 	}
-	newMetadata.CarryOver(oldMetadata)
 
 	return &documentCompleteData{
 		BeginMetadata: beginMetadata,
@@ -348,10 +341,8 @@ func (b *B) completeDocumentSessionTx(
 		firstVersion, errE := b.documents.Insert(
 			ctx, data.BeginMetadata.DocumentID, emptyJSON,
 			&store.DocumentMetadata{
-				At:               data.EndMetadata.At,
-				Users:            internalStore.SortedUniqueUsers([]*store.User{data.BeginMetadata.User}),
-				InverseRelations: nil,
-				Embedding:        nil,
+				At:    data.EndMetadata.At,
+				Users: internalStore.SortedUniqueUsers([]*store.User{data.BeginMetadata.User}),
 			},
 			&store.CommitMetadata{Base: firstBase, User: data.EndMetadata.User},
 		)

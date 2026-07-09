@@ -68,7 +68,7 @@ func TestDocumentsForLevelMetadataClone(t *testing.T) {
 
 	id := identifier.New()
 	doc := &document.D{CoreDocument: document.CoreDocument{ID: id, Base: []string{"test", id.String()}}}
-	meta := &store.DocumentMetadata{At: store.Time{}, Users: nil, InverseRelations: map[string][]store.InverseRelation{"public": nil}, Embedding: nil}
+	meta := &store.DocumentMetadata{At: store.Time{}, Users: []store.User{{ID: "original"}}}
 	docs := []base.StartDocument{
 		{Document: doc, Metadata: meta, Version: store.Version{}, ParentChangesets: nil},
 	}
@@ -83,7 +83,7 @@ func TestDocumentsForLevelMetadataClone(t *testing.T) {
 			_ context.Context, doc *document.D, metadata *store.DocumentMetadata, version store.Version, parentChangesets []store.Version, errE errors.E,
 		) (*document.D, *store.DocumentMetadata, store.Version, []store.Version, errors.E) {
 			if errE == nil && metadata != nil {
-				metadata.InverseRelations["mutated"] = nil
+				metadata.Users[0] = store.User{ID: "mutated"}
 			}
 			return doc, metadata, version, parentChangesets, errE
 		},
@@ -93,9 +93,9 @@ func TestDocumentsForLevelMetadataClone(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// The shared metadata is untouched: only the per-level copy the hook received was mutated. A shallow copy
-	// would have shared the map and leaked the mutation back here.
-	assert.NotContains(t, meta.InverseRelations, "mutated")
-	assert.Contains(t, meta.InverseRelations, "public")
+	// would have shared the slice backing array and leaked the mutation back here.
+	require.Len(t, meta.Users, 1)
+	assert.Equal(t, "original", meta.Users[0].ID)
 }
 
 func TestDocumentsForLevelPreHook(t *testing.T) {

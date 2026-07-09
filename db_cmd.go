@@ -211,10 +211,11 @@ func (c *DBReindexCommand) Run(globals *Globals) errors.E {
 
 		// The regular reindex re-renders every document's current state through the reindex queue: it enqueues
 		// every document and drains the queue, reading each at its latest version (so deleted documents are
-		// skipped, never transiently re-created) without touching metadata. --recreate-index instead clears the
-		// bridge-maintained metadata and resets the bridge so the whole commit log is replayed into the freshly
-		// recreated index, which rebuilds that metadata from a clean slate. Both run in beforeWait so they feed
-		// the same "indexing" progress (count/size) as the drain or replay that follows.
+		// skipped, never transiently re-created) without touching the inverse-relation or embedding tables, and
+		// feeds the "indexing" progress (count/size). --recreate-index instead clears the bridge-maintained
+		// inverse relations and embedding and resets the bridge so the whole commit log is replayed into the
+		// freshly recreated index, which rebuilds those from a clean slate; there the replay that follows feeds
+		// the progress.
 		beforeWait := func(ctx context.Context, count, size *x.Counter) errors.E {
 			enqueued, errE := site.Base.EnqueueAllForReindex(ctx, count, size)
 			if errE != nil {
@@ -224,14 +225,14 @@ func (c *DBReindexCommand) Run(globals *Globals) errors.E {
 			return nil
 		}
 		if c.RecreateIndex {
-			beforeWait = func(ctx context.Context, count, size *x.Counter) errors.E {
+			beforeWait = func(ctx context.Context, _, _ *x.Counter) errors.E {
 				// The bridge is idle here: its seq is not reset until ResetBridgeProgress below, so on start it
-				// saw itself caught up and is not updating metadata, so the clear does not race it.
-				cleared, errE := site.Base.ClearSystemManagedMetadata(ctx, count, size)
+				// saw itself caught up and is not maintaining the tables, so the clear does not race it.
+				errE := site.Base.ClearSystemManagedMetadata(ctx)
 				if errE != nil {
 					return errE
 				}
-				globals.Logger.Info().Str("indexPrefix", site.IndexPrefix).Str("schema", site.Schema).Int("cleared", cleared).Msg("cleared system-managed metadata")
+				globals.Logger.Info().Str("indexPrefix", site.IndexPrefix).Str("schema", site.Schema).Msg("cleared system-managed metadata")
 				return site.Base.ResetBridgeProgress(ctx)
 			}
 		}

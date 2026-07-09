@@ -33,10 +33,8 @@ func (b *B) InsertOrReplaceDocument(ctx context.Context, doc *document.D) errors
 	}
 
 	metadata := &store.DocumentMetadata{
-		At:               store.Time(time.Now().UTC()),
-		Users:            nil,
-		InverseRelations: nil,
-		Embedding:        nil,
+		At:    store.Time(time.Now().UTC()),
+		Users: nil,
 	}
 
 	// Each doc.Id has to be unique, so each doc.Base is unique as well.
@@ -49,11 +47,10 @@ func (b *B) InsertOrReplaceDocument(ctx context.Context, doc *document.D) errors
 	// If commit with ID from changesetBase already exists, this means that also the doc
 	// with its ID already exist. So we replace the doc.
 	if errors.Is(errE, store.ErrAlreadyCommitted) {
-		_, oldMetadata, version, _, errE := b.documents.GetLatest(ctx, doc.ID)
+		_, _, version, _, errE := b.documents.GetLatest(ctx, doc.ID)
 		if errE != nil {
 			return errE
 		}
-		metadata.CarryOver(oldMetadata)
 		changesetBase := slices.Clone(doc.Base)
 		changesetBase = append(changesetBase, "CHANGESET", "REPLACE", version.Changeset.String())
 		// TODO: What to do once we have document melding and target document got melded into some other document?

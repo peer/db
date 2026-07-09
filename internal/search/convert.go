@@ -22,7 +22,6 @@ import (
 	"gitlab.com/tozd/go/x"
 	"gitlab.com/tozd/identifier"
 
-	"gitlab.com/peerdb/peerdb/auth"
 	"gitlab.com/peerdb/peerdb/document"
 	internalCore "gitlab.com/peerdb/peerdb/internal/core"
 	internalDocument "gitlab.com/peerdb/peerdb/internal/document"
@@ -2134,19 +2133,17 @@ func (v *convertVisitor) appendNotReferenceSubClaims(propID identifier.Identifie
 // the document's info is computed but not cached, used by callers without such a snapshot.
 // Its referenced documents and ancestors are cached regardless.
 //
-// inverseRelations contains reference claims from other documents that point to this document.
-// For each inverse relation, a synthetic reverse reference claim is added to the search document.
+// inverseRelations contains reference claims from other documents that point to this document, as those
+// source documents are seen at the caller's visibility level (the caller passes the level-specific set, which
+// the bridge maintains per level so there is no leak across levels). For each one a synthetic reverse
+// reference claim is added to the search document.
 func (c *Converter) FromDocument(
-	ctx context.Context, doc *document.D, gen *uint64, metadata *store.DocumentMetadata,
+	ctx context.Context, doc *document.D, gen *uint64, metadata *store.DocumentMetadata, inverseRelations []store.InverseRelation,
 ) (*Document, errors.E) {
-	// lastUpdated and the inverse relations come from the document's store metadata. metadata is nil for
-	// some callers (for example tests), in which case there is no last-updated time and no inverse relations.
+	// lastUpdated comes from the document's store metadata. metadata is nil for some callers (for example
+	// tests), in which case there is no last-updated time.
 	var lastUpdated *float64
-	var inverseRelations []store.InverseRelation
 	if metadata != nil {
-		// Render only the inverse relations for the caller's visibility level: the source documents are
-		// already filtered per level when these buckets are accumulated, so there is no leak across levels.
-		inverseRelations = metadata.InverseRelations[auth.Visibility(ctx)]
 		if at := time.Time(metadata.At); !at.IsZero() {
 			seconds := x.TimeToFloat64(at)
 			lastUpdated = &seconds
@@ -2807,8 +2804,8 @@ func (c *Converter) collectEmbedTasks(doc *document.D) ([]embedTask, errors.E) {
 // source paths it embeds from that document (a source path is the property-ID sequence within the target
 // document that an embed spec navigates). The targets are the direct targets of the document's reference
 // claims whose fields are configured with EMBED_PROPERTY. The bridge records the embedding document, with
-// these paths, in each target's metadata embedding set, so that committing a target re-indexes the embedding
-// document and refreshes its embedded copy.
+// these paths, in each target's embedding set, so that committing a target re-indexes the embedding document
+// and refreshes its embedded copy.
 func (c *Converter) OutgoingEmbeds(doc *document.D) (map[identifier.Identifier][][]identifier.Identifier, errors.E) {
 	result := map[identifier.Identifier][][]identifier.Identifier{}
 	if len(c.fieldEmbedSpecs) == 0 {
@@ -3131,8 +3128,8 @@ func (c *Converter) addInverseClaims(ctx context.Context, doc *document.D, inver
 		})
 		if errE != nil {
 			// The synthetic ID is a function of the inverse relation key, so a deterministic-ID collision would be
-			// the identical claim and is benign. The relations come from the InverseRelationKey-deduplicated metadata
-			// set, so in normal operation this never fires. Add reports a duplicate ID and we skip but log it.
+			// the identical claim and is benign. The relations come from the InverseRelationKey-deduplicated set,
+			// so in normal operation this never fires. Add reports a duplicate ID and we skip but log it.
 			zerolog.Ctx(ctx).Warn().Err(errE).
 				Str("id", doc.ID.String()).
 				Str("claimId", claimID.String()).

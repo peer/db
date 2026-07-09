@@ -23,6 +23,17 @@ func (b *B) TestingDocumentsForLevel(ctx context.Context, level string, document
 	return b.documentsForLevel(ctx, level, documents)
 }
 
+// TestingInverseRelations exposes the bridge-maintained inverse relations for the document with the given id,
+// grouped by visibility level.
+func (b *B) TestingInverseRelations(ctx context.Context, id identifier.Identifier) (map[string][]store.InverseRelation, errors.E) {
+	return b.bridge.InverseRelations(ctx, id)
+}
+
+// TestingEmbedding exposes the bridge-maintained embedding set for the document with the given id.
+func (b *B) TestingEmbedding(ctx context.Context, id identifier.Identifier) (map[identifier.Identifier][][]identifier.Identifier, errors.E) {
+	return b.bridge.Embedding(ctx, id)
+}
+
 // TestingAppendDocumentChangeUnvalidated appends a change directly through the coordinator,
 // bypassing the full validation AppendDocumentChange does. It lets tests construct sessions
 // with inapplicable operations, like sessions which predate apply-on-append validation.

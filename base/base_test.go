@@ -223,16 +223,16 @@ func TestInsertOrReplaceDocumentCarriesOverMetadata(t *testing.T) {
 	errE = b.WaitUntilCaughtUp(ctx, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	// Wait for docB's metadata to have inverse relations from the bridge.
+	// Wait for docB to have inverse relations from the bridge.
 	require.EventuallyWithT(t, func(c *assert.CollectT) {
-		_, metadata, _, _, errE := b.GetDocumentLatest(ctx, docB)
+		inverseRelations, errE := b.TestingInverseRelations(ctx, docB)
 		if !assert.NoError(c, errE, "% -+#.1v", errE) {
 			return
 		}
-		assert.NotEmpty(c, metadata.InverseRelations, "docB should have inverse relations")
+		assert.NotEmpty(c, inverseRelations, "docB should have inverse relations")
 	}, 30*time.Second, 100*time.Millisecond)
 
-	// Now replace docB. Inverse relations should be carried over.
+	// Now replace docB; its inverse relations, keyed by document id, should persist across the replace.
 	errE = b.InsertOrReplaceDocument(ctx, &document.D{
 		CoreDocument: docBDoc.CoreDocument,
 		Claims: &document.ClaimTypes{
@@ -247,10 +247,10 @@ func TestInsertOrReplaceDocumentCarriesOverMetadata(t *testing.T) {
 	})
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	// Verify inverse relations were carried over after replace.
-	_, metadata, _, _, errE := b.GetDocumentLatest(ctx, docB) //nolint:dogsled
+	// Verify inverse relations persisted across the replace.
+	inverseRelations, errE := b.TestingInverseRelations(ctx, docB)
 	require.NoError(t, errE, "% -+#.1v", errE)
-	assert.NotEmpty(t, metadata.InverseRelations, "docB should still have inverse relations after replace")
+	assert.NotEmpty(t, inverseRelations, "docB should still have inverse relations after replace")
 }
 
 // readAndClose reads all contents from the file handle and closes it.
@@ -728,13 +728,13 @@ func TestDocumentEditSessionCarriesOverMetadata(t *testing.T) {
 	errE = b.WaitUntilCaughtUp(ctx, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	// Wait for docB's metadata to have inverse relations from the bridge.
+	// Wait for docB to have inverse relations from the bridge.
 	require.EventuallyWithT(t, func(c *assert.CollectT) {
-		_, metadata, _, _, errE := b.GetDocumentLatest(ctx, docB)
+		inverseRelations, errE := b.TestingInverseRelations(ctx, docB)
 		if !assert.NoError(c, errE, "% -+#.1v", errE) {
 			return
 		}
-		assert.NotEmpty(c, metadata.InverseRelations, "docB should have inverse relations")
+		assert.NotEmpty(c, inverseRelations, "docB should have inverse relations")
 	}, 30*time.Second, 100*time.Millisecond)
 
 	// Run the edit session as an authenticated user.
@@ -777,19 +777,21 @@ func TestDocumentEditSessionCarriesOverMetadata(t *testing.T) {
 		assert.NotEqual(c, versionB.Changeset, newVersion.Changeset, "document changeset should change after session completes")
 	}, 30*time.Second, 100*time.Millisecond)
 
-	// Verify the document has the new claim AND inverse relations were carried over.
+	// Verify the document has the new claim AND its inverse relations persisted across the edit.
 	updatedDoc, metadata, newVersion, _, errE := b.GetDocumentLatestDoc(ctx, docB)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.NotNil(t, updatedDoc.Claims)
 	require.Len(t, updatedDoc.Claims.String, 1)
 	assert.Equal(t, "edited via session", updatedDoc.Claims.String[0].String)
-	assert.NotEmpty(t, metadata.InverseRelations, "inverse relations should be carried over after edit session")
+	inverseRelations, errE := b.TestingInverseRelations(ctx, docB)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.NotEmpty(t, inverseRelations, "inverse relations should persist across the edit session")
 	// Single editor session: Users union is the begin+per-change user (same subject).
 	assert.Equal(t, []store.User{{ID: editorSubject}}, metadata.Users)
 	assert.Equal(t, &store.User{ID: editorSubject}, documentCommitUser(ctx, t, b, newVersion.Changeset))
 }
 
-func TestDocumentEditSessionMetadataChangedDuringEdit(t *testing.T) {
+func TestDocumentEditSessionInverseRelationsAddedDuringEdit(t *testing.T) {
 	t.Parallel()
 
 	// Set up inverse properties: propX has inversePropertyOf propY.
@@ -818,8 +820,8 @@ func TestDocumentEditSessionMetadataChangedDuringEdit(t *testing.T) {
 	session, versionB, errE := b.BeginEditDocumentLatest(sessionCtx, docB)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	// Now insert docA with relation A --X--> B, which causes the bridge to update
-	// docB's metadata (adding inverse relations), bumping its revision DURING the edit session.
+	// Now insert docA with relation A --X--> B, which causes the bridge to add
+	// inverse relations for docB (in the inverse-relations table) DURING the edit session.
 	docADoc := newDoc()
 	docADoc.Claims = &document.ClaimTypes{
 		Reference: []document.ReferenceClaim{
@@ -836,23 +838,17 @@ func TestDocumentEditSessionMetadataChangedDuringEdit(t *testing.T) {
 	errE = b.WaitUntilCaughtUp(ctx, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	// Wait for docB's metadata to be updated with inverse relations by the bridge.
+	// Wait for docB to be updated with inverse relations by the bridge.
 	require.EventuallyWithT(t, func(c *assert.CollectT) {
-		_, metadata, _, _, errE := b.GetDocumentLatest(ctx, docB)
+		inverseRelations, errE := b.TestingInverseRelations(ctx, docB)
 		if !assert.NoError(c, errE, "% -+#.1v", errE) {
 			return
 		}
-		assert.NotEmpty(c, metadata.InverseRelations, "docB should have inverse relations from bridge")
+		assert.NotEmpty(c, inverseRelations, "docB should have inverse relations from bridge")
 	}, 30*time.Second, 100*time.Millisecond)
 
-	// Verify that docB's revision changed (metadata was updated by bridge during our session).
-	_, _, versionBAfterBridge, _, errE := b.GetDocumentLatest(ctx, docB) //nolint:dogsled
-	require.NoError(t, errE, "% -+#.1v", errE)
-	assert.Equal(t, versionB.Changeset, versionBAfterBridge.Changeset, "changeset should be the same")
-	assert.Greater(t, versionBAfterBridge.Revision, versionB.Revision, "revision should have been bumped by bridge")
-
-	// Now append a change to the session and end it. The session should still succeed
-	// because BeginEditDocumentLatest sets Revision to 0, allowing metadata-only updates.
+	// The bridge maintaining docB's inverse relations does not change docB's stored version, so the
+	// session's begin version stays the latest until the session itself commits.
 	confidence := document.HighConfidence
 	propID := identifier.New()
 	changeBase := append(append([]string{}, docBDoc.Base...), "SESSION", session.String(), "1")
@@ -863,14 +859,14 @@ func TestDocumentEditSessionMetadataChangedDuringEdit(t *testing.T) {
 		Patch: document.StringClaimPatch{
 			Confidence: &confidence,
 			Prop:       &propID,
-			String:     "added after metadata change",
+			String:     "added after inverse relations",
 		},
 	})
 	seqNo := int64(1)
 	_, errE = b.AppendDocumentChange(sessionCtx, session, changeJSON, seqNo)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	// End session (commit). This should NOT fail despite metadata revision change.
+	// End session (commit).
 	errE = b.EndEditDocument(sessionCtx, session, false)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
@@ -880,18 +876,19 @@ func TestDocumentEditSessionMetadataChangedDuringEdit(t *testing.T) {
 		if !assert.NoError(c, errE, "% -+#.1v", errE) {
 			return
 		}
-		assert.NotEqual(c, versionBAfterBridge.Changeset, newVersion.Changeset,
+		assert.NotEqual(c, versionB.Changeset, newVersion.Changeset,
 			"document changeset should change after session completes")
 	}, 30*time.Second, 100*time.Millisecond)
 
-	// Verify the document has the new claim AND the new (post-bridge) metadata was carried over.
+	// Verify the document has the new claim, and its inverse relations persisted across the edit.
 	updatedDoc, metadata, newVersion, _, errE := b.GetDocumentLatestDoc(ctx, docB)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.NotNil(t, updatedDoc.Claims)
 	require.Len(t, updatedDoc.Claims.String, 1)
-	assert.Equal(t, "added after metadata change", updatedDoc.Claims.String[0].String)
-	assert.NotEmpty(t, metadata.InverseRelations,
-		"new metadata (with inverse relations added during edit) should be carried over")
+	assert.Equal(t, "added after inverse relations", updatedDoc.Claims.String[0].String)
+	inverseRelations, errE := b.TestingInverseRelations(ctx, docB)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.NotEmpty(t, inverseRelations, "inverse relations added during the edit should persist")
 	// Single editor session: Users union is the begin+per-change user (same subject).
 	assert.Equal(t, []store.User{{ID: editorSubject}}, metadata.Users)
 	assert.Equal(t, &store.User{ID: editorSubject}, documentCommitUser(ctx, t, b, newVersion.Changeset))
@@ -1094,11 +1091,11 @@ func TestDocumentEditSessionIndexing(t *testing.T) {
 
 	// Verify docB's inverse relation is also removed.
 	require.EventuallyWithT(t, func(c *assert.CollectT) {
-		_, metadata, _, _, errE := b.GetDocumentLatest(ctx, docB)
+		inverseRelations, errE := b.TestingInverseRelations(ctx, docB)
 		if !assert.NoError(c, errE, "% -+#.1v", errE) {
 			return
 		}
-		assert.Empty(c, metadata.InverseRelations, "docB should have no inverse relations after removal")
+		assert.Empty(c, inverseRelations, "docB should have no inverse relations after removal")
 	}, 30*time.Second, 100*time.Millisecond)
 
 	require.EventuallyWithT(t, func(c *assert.CollectT) {

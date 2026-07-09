@@ -138,10 +138,8 @@ func (b *B) InsertDocument(ctx context.Context, doc *document.D) errors.E {
 	changesetBase = append(changesetBase, "CHANGESET", "FIRST")
 	user := store.UserFromContext(ctx)
 	_, errE = b.documents.Insert(ctx, doc.ID, documentJSON, &store.DocumentMetadata{
-		At:               store.Time(time.Now().UTC()),
-		Users:            internalStore.SortedUniqueUsers([]*store.User{user}),
-		InverseRelations: nil,
-		Embedding:        nil,
+		At:    store.Time(time.Now().UTC()),
+		Users: internalStore.SortedUniqueUsers([]*store.User{user}),
 	}, &store.CommitMetadata{
 		Base: changesetBase,
 		User: user,
@@ -152,10 +150,10 @@ func (b *B) InsertDocument(ctx context.Context, doc *document.D) errors.E {
 // DeleteDocument deletes the latest version of the document, committing a delete changeset.
 //
 // The delete is recorded as a new version (the document's data becomes nil) so the change history is
-// preserved and the document can be undeleted later. System-managed metadata (inverse relations) is
-// carried over so it is restored if the document is undeleted.
+// preserved and the document can be undeleted later. The bridge-maintained inverse relations and embedding are
+// keyed by document id, so they persist across the delete and are restored on undelete.
 func (b *B) DeleteDocument(ctx context.Context, id identifier.Identifier) errors.E {
-	doc, oldMetadata, version, _, errE := b.GetDocumentLatestDoc(ctx, id)
+	doc, _, version, _, errE := b.GetDocumentLatestDoc(ctx, id)
 	if errE != nil {
 		return errE
 	}
@@ -168,12 +166,9 @@ func (b *B) DeleteDocument(ctx context.Context, id identifier.Identifier) errors
 	changesetBase = append(changesetBase, "CHANGESET", identifier.New().String())
 
 	metadata := &store.DocumentMetadata{
-		At:               store.Time(time.Now().UTC()),
-		Users:            internalStore.SortedUniqueUsers([]*store.User{user}),
-		InverseRelations: nil,
-		Embedding:        nil,
+		At:    store.Time(time.Now().UTC()),
+		Users: internalStore.SortedUniqueUsers([]*store.User{user}),
 	}
-	metadata.CarryOver(oldMetadata)
 
 	_, errE = b.documents.Delete(ctx, id, version.Changeset, metadata, &store.CommitMetadata{
 		Base: changesetBase,
@@ -206,8 +201,7 @@ func (b *B) BeginEditDocumentLatest(ctx context.Context, id identifier.Identifie
 		Base:       doc.Base,
 		Version: &store.Version{
 			Changeset: version.Changeset,
-			// We set revision to 0 so that system metadata updates (e.g., inverse relations)
-			// that bump the revision do not invalidate the session.
+			// Revision 0 resolves to the changeset's latest revision when the session completes.
 			Revision: 0,
 		},
 		User: store.UserFromContext(ctx),

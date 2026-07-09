@@ -2045,7 +2045,7 @@ func TestVisitIdentifierPopulatesText(t *testing.T) {
 			}},
 		},
 	}
-	result, errE := c.FromDocument(ctx, doc, nil, nil)
+	result, errE := c.FromDocument(ctx, doc, nil, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, []string{testDocID.String(), "Q42"}, result.Text["und"])
 }
@@ -2066,7 +2066,7 @@ func TestVisitStringPopulatesTextDefaultsToUnd(t *testing.T) {
 			}},
 		},
 	}
-	result, errE := c.FromDocument(ctx, doc, nil, nil)
+	result, errE := c.FromDocument(ctx, doc, nil, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, []string{testDocID.String(), "hello world"}, result.Text["und"])
 	// The document ID and the String claim with no IN_LANGUAGE both go only to
@@ -2101,7 +2101,7 @@ func TestVisitStringPopulatesTextWithLanguage(t *testing.T) {
 			}},
 		},
 	}
-	result, errE := c.FromDocument(ctx, doc, nil, nil)
+	result, errE := c.FromDocument(ctx, doc, nil, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	// The English-tagged String claim goes to text["en"].
 	// The IN_LANGUAGE sub-reference name folds into text["und"]
@@ -2126,7 +2126,7 @@ func TestVisitHTMLStripsAndPopulatesText(t *testing.T) {
 			}},
 		},
 	}
-	result, errE := c.FromDocument(ctx, doc, nil, nil)
+	result, errE := c.FromDocument(ctx, doc, nil, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	// HTML tags are stripped in Go and adjacent block elements get a separating
 	// space so the tokenizer treats the words as distinct tokens. The first
@@ -2164,7 +2164,7 @@ func TestTextAggregatesAcrossClaims(t *testing.T) {
 			}},
 		},
 	}
-	result, errE := c.FromDocument(ctx, doc, nil, nil)
+	result, errE := c.FromDocument(ctx, doc, nil, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.ElementsMatch(t, []string{testDocID.String(), "Q42", "alpha", "https://example.com"}, result.Text["und"])
 }
@@ -2189,7 +2189,7 @@ func TestVisitIdentifierPopulatesClaim(t *testing.T) {
 			}},
 		},
 	}
-	result, errE := c.FromDocument(t.Context(), doc, nil, nil)
+	result, errE := c.FromDocument(t.Context(), doc, nil, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, result.Claims.Identifier, 1)
 	assert.Equal(t, testPropID, result.Claims.Identifier[0].Prop)
@@ -2225,7 +2225,7 @@ func TestVisitStringPopulatesClaim(t *testing.T) {
 			}},
 		},
 	}
-	result, errE := c.FromDocument(t.Context(), doc, nil, nil)
+	result, errE := c.FromDocument(t.Context(), doc, nil, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, result.Claims.String, 1)
 	assert.Equal(t, testPropID, result.Claims.String[0].Prop)
@@ -2253,7 +2253,7 @@ func TestVisitHTMLPopulatesClaim(t *testing.T) {
 			}},
 		},
 	}
-	result, errE := c.FromDocument(t.Context(), doc, nil, nil)
+	result, errE := c.FromDocument(t.Context(), doc, nil, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, result.Claims.HTML, 1)
 	assert.Equal(t, "hello world", result.Claims.HTML[0].HTML["und"])
@@ -2279,7 +2279,7 @@ func TestVisitLinkPopulatesClaim(t *testing.T) {
 			}},
 		},
 	}
-	result, errE := c.FromDocument(t.Context(), doc, nil, nil)
+	result, errE := c.FromDocument(t.Context(), doc, nil, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, result.Claims.Link, 1)
 	assert.Equal(t, testPropID, result.Claims.Link[0].Prop)
@@ -2304,7 +2304,7 @@ func TestVisitIdentifierMissingPropError(t *testing.T) {
 			}},
 		},
 	}
-	_, errE := c.FromDocument(t.Context(), doc, nil, nil)
+	_, errE := c.FromDocument(t.Context(), doc, nil, nil, nil)
 	assert.ErrorContains(t, errE, "document not found")
 }
 
@@ -4798,7 +4798,7 @@ func TestFromDocumentSubRefExpansionAndLeaf(t *testing.T) {
 		},
 	}
 
-	result, errE := c.FromDocument(ctx, doc, nil, nil)
+	result, errE := c.FromDocument(ctx, doc, nil, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// The single stated sub-value expands into the stated value plus its ancestor.
@@ -5090,7 +5090,7 @@ func TestFromDocument(t *testing.T) {
 		},
 	}
 
-	result, errE := c.FromDocument(ctx, doc, nil, nil)
+	result, errE := c.FromDocument(ctx, doc, nil, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, testDocID, result.ID)
 	assert.ElementsMatch(t, []string{testDocID.String(), "Q42", "hello"}, result.Text["und"])
@@ -5106,7 +5106,7 @@ func TestFromDocumentNilClaims(t *testing.T) {
 		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
 	}
 
-	result, errE := c.FromDocument(ctx, doc, nil, nil)
+	result, errE := c.FromDocument(ctx, doc, nil, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, testDocID, result.ID)
 	// The document ID goes only to the "und" bucket, so that is the sole entry.
@@ -5249,7 +5249,7 @@ func TestFromDocumentAllClaimTypesConfidence(t *testing.T) {
 			ctx := t.Context()
 			doc := makeDocWithAllClaimTypes(t, tt.confidence)
 
-			result, errE := c.FromDocument(ctx, doc, nil, nil)
+			result, errE := c.FromDocument(ctx, doc, nil, nil, nil)
 			require.NoError(t, errE, "% -+#.1v", errE)
 			assert.Equal(t, testDocID, result.ID)
 			// text["und"] aggregates the following, after dedupeResult drops
@@ -5319,7 +5319,7 @@ func TestDedupeResultDeMirrorsUnd(t *testing.T) {
 			},
 		},
 	}
-	result, errE := c.FromDocument(ctx, doc, nil, nil)
+	result, errE := c.FromDocument(ctx, doc, nil, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	assert.Equal(t, []string{"shared value"}, result.Text["en"])
@@ -5370,7 +5370,7 @@ func TestEarliestClaimTime(t *testing.T) {
 		},
 	}
 
-	result, errE := c.FromDocument(ctx, doc, nil, nil)
+	result, errE := c.FromDocument(ctx, doc, nil, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// The earliest of all bounds across all indexed time claims.
@@ -5420,7 +5420,7 @@ func TestEarliestClaimTimeNone(t *testing.T) {
 		},
 	}
 
-	result, errE := c.FromDocument(ctx, doc, nil, nil)
+	result, errE := c.FromDocument(ctx, doc, nil, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Nil(t, result.Time)
 }
@@ -5473,7 +5473,7 @@ func TestEarliestClaimTimeOpenBoundsNotSentinel(t *testing.T) {
 		},
 	}
 
-	result, errE := c.FromDocument(ctx, doc, nil, nil)
+	result, errE := c.FromDocument(ctx, doc, nil, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, result.Claims.Time, 2)
 
@@ -5551,7 +5551,7 @@ func TestClaimsCountCountsRecursively(t *testing.T) {
 		},
 	}
 
-	result, errE := c.FromDocument(ctx, doc, nil, nil)
+	result, errE := c.FromDocument(ctx, doc, nil, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.NotNil(t, result.Counts.Claims)
 	assert.Equal(t, 2, *result.Counts.Claims)
@@ -5583,7 +5583,7 @@ func TestReferencesCount(t *testing.T) {
 			},
 		},
 	}
-	result, errE := c.FromDocument(ctx, doc, nil, nil)
+	result, errE := c.FromDocument(ctx, doc, nil, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.NotNil(t, result.Counts.References)
 	assert.Equal(t, 7, *result.Counts.References)
@@ -5601,7 +5601,7 @@ func TestReferencesCount(t *testing.T) {
 			},
 		},
 	}
-	result, errE = c.FromDocument(ctx, classDoc, nil, nil)
+	result, errE = c.FromDocument(ctx, classDoc, nil, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Nil(t, result.Counts.References)
 
@@ -5618,7 +5618,7 @@ func TestReferencesCount(t *testing.T) {
 			},
 		},
 	}
-	result, errE = c.FromDocument(ctx, vocabDoc, nil, nil)
+	result, errE = c.FromDocument(ctx, vocabDoc, nil, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Nil(t, result.Counts.References)
 }
@@ -5658,7 +5658,7 @@ func TestReferencesCountIgnoresTransitiveSubclass(t *testing.T) {
 			},
 		},
 	}
-	result, errE := c.FromDocument(t.Context(), doc, nil, nil)
+	result, errE := c.FromDocument(t.Context(), doc, nil, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Nil(t, result.Counts.References)
 }
@@ -5685,7 +5685,7 @@ func TestFromDocumentAmountError(t *testing.T) {
 		},
 	}
 
-	_, errE := c.FromDocument(ctx, doc, nil, nil)
+	_, errE := c.FromDocument(ctx, doc, nil, nil, nil)
 	assert.EqualError(t, errE, "document not found")
 }
 
@@ -5715,7 +5715,7 @@ func TestFromDocumentAmountIntervalError(t *testing.T) {
 		},
 	}
 
-	_, errE := c.FromDocument(ctx, doc, nil, nil)
+	_, errE := c.FromDocument(ctx, doc, nil, nil, nil)
 	assert.EqualError(t, errE, "document not found")
 }
 
@@ -5739,7 +5739,7 @@ func TestFromDocumentTimeError(t *testing.T) {
 		},
 	}
 
-	_, errE := c.FromDocument(ctx, doc, nil, nil)
+	_, errE := c.FromDocument(ctx, doc, nil, nil, nil)
 	assert.EqualError(t, errE, "document not found")
 }
 
@@ -5769,7 +5769,7 @@ func TestFromDocumentTimeIntervalError(t *testing.T) {
 		},
 	}
 
-	_, errE := c.FromDocument(ctx, doc, nil, nil)
+	_, errE := c.FromDocument(ctx, doc, nil, nil, nil)
 	assert.EqualError(t, errE, "document not found")
 }
 
@@ -5792,7 +5792,7 @@ func TestFromDocumentRelationError(t *testing.T) {
 		},
 	}
 
-	_, errE := c.FromDocument(ctx, doc, nil, nil)
+	_, errE := c.FromDocument(ctx, doc, nil, nil, nil)
 	assert.EqualError(t, errE, "document not found")
 }
 
@@ -5814,7 +5814,7 @@ func TestFromDocumentHasError(t *testing.T) {
 		},
 	}
 
-	_, errE := c.FromDocument(ctx, doc, nil, nil)
+	_, errE := c.FromDocument(ctx, doc, nil, nil, nil)
 	assert.EqualError(t, errE, "document not found")
 }
 
@@ -5836,7 +5836,7 @@ func TestFromDocumentNoneError(t *testing.T) {
 		},
 	}
 
-	_, errE := c.FromDocument(ctx, doc, nil, nil)
+	_, errE := c.FromDocument(ctx, doc, nil, nil, nil)
 	assert.EqualError(t, errE, "document not found")
 }
 
@@ -5858,7 +5858,7 @@ func TestFromDocumentUnknownError(t *testing.T) {
 		},
 	}
 
-	_, errE := c.FromDocument(ctx, doc, nil, nil)
+	_, errE := c.FromDocument(ctx, doc, nil, nil, nil)
 	assert.EqualError(t, errE, "document not found")
 }
 
@@ -7843,7 +7843,7 @@ func TestRecognizedNotIndexedLanguageFallback(t *testing.T) {
 	priority := map[string][]string{"en": {"sl"}}
 	c := newTestConverterWithPriority(t, nil, []*document.D{enLangDoc, slLangDoc}, map[identifier.Identifier]*document.D{docID: doc}, priority)
 
-	result, errE := c.FromDocument(t.Context(), doc, nil, nil)
+	result, errE := c.FromDocument(t.Context(), doc, nil, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// The English display label resolves to the Slovenian name via the en->sl
@@ -7900,7 +7900,7 @@ func TestConversionIndexesOnlyEnabledLanguages(t *testing.T) {
 	priority := map[string][]string{"en": {"und"}}
 	c := newTestConverterWithPriority(t, nil, langs, map[identifier.Identifier]*document.D{docID: doc}, priority)
 
-	result, errE := c.FromDocument(t.Context(), doc, nil, nil)
+	result, errE := c.FromDocument(t.Context(), doc, nil, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// English content is indexed under "en".
@@ -7938,7 +7938,7 @@ func TestDetectLanguageRoutesUntaggedContent(t *testing.T) {
 			}},
 		},
 	}
-	result, errE := c.FromDocument(ctx, doc, nil, nil)
+	result, errE := c.FromDocument(ctx, doc, nil, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Contains(t, result.Text["en"], enText, "clearly-English content should route to text.en")
 	assert.NotContains(t, result.Text["und"], enText, "detected content should not also land in und")
@@ -7955,7 +7955,7 @@ func TestDetectLanguageRoutesUntaggedContent(t *testing.T) {
 			}},
 		},
 	}
-	result, errE = c.FromDocument(ctx, shortDoc, nil, nil)
+	result, errE = c.FromDocument(ctx, shortDoc, nil, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Contains(t, result.Text["und"], short, "short content stays in und")
 	_, hasEn := result.Text["en"]
@@ -7986,7 +7986,7 @@ func TestDetectLanguageSingleEnabled(t *testing.T) {
 			}},
 		},
 	}
-	result, errE := c.FromDocument(ctx, enDoc, nil, nil)
+	result, errE := c.FromDocument(ctx, enDoc, nil, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Contains(t, result.Text["en"], enText, "clearly-English content should route to text.en")
 	assert.NotContains(t, result.Text["und"], enText, "detected content should not also land in und")
@@ -8004,7 +8004,7 @@ func TestDetectLanguageSingleEnabled(t *testing.T) {
 			}},
 		},
 	}
-	result, errE = c.FromDocument(ctx, slDoc, nil, nil)
+	result, errE = c.FromDocument(ctx, slDoc, nil, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Contains(t, result.Text["und"], slText, "non-English content stays in und on an English-only site")
 	_, hasEn := result.Text["en"]
@@ -8135,7 +8135,7 @@ func TestDisplayPathsNoFallback(t *testing.T) {
 	// per-language display field: its own label plus its ancestors' labels.
 	// ("Parent EN" also appears in text independently, via the SUBCLASS_OF
 	// reference claim's ToDisplay/ToNaming, which is a separate mechanism.)
-	result, errE := c.FromDocument(ctx, childDoc, nil, nil)
+	result, errE := c.FromDocument(ctx, childDoc, nil, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.ElementsMatch(t, []string{"Child EN", "Parent EN"}, result.Display["en"])
 	assert.ElementsMatch(t, []string{"Child SL", "Parent EN"}, result.Display["sl"])
@@ -8606,12 +8606,7 @@ func TestFromDocumentIncomingInverseRelation(t *testing.T) {
 		newIR(claimID, sourceDocID, propX, propY, identifier.Identifier{}, document.HighConfidence),
 	}
 
-	result, errE := c.FromDocument(ctx, doc, nil, &store.DocumentMetadata{
-		At:               store.Time{},
-		Users:            nil,
-		InverseRelations: map[string][]store.InverseRelation{"": inverseRelations},
-		Embedding:        nil,
-	})
+	result, errE := c.FromDocument(ctx, doc, nil, &store.DocumentMetadata{At: store.Time{}, Users: nil}, inverseRelations)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Should have a reverse relation claim with property Y pointing to source document.
@@ -8654,12 +8649,7 @@ func TestFromDocumentIncomingInverseRelationMultipleInverses(t *testing.T) {
 		newIR(claimID, sourceDocID, propB, propC, identifier.Identifier{}, document.HighConfidence),
 	}
 
-	result, errE := c.FromDocument(ctx, doc, nil, &store.DocumentMetadata{
-		At:               store.Time{},
-		Users:            nil,
-		InverseRelations: map[string][]store.InverseRelation{"": inverseRelations},
-		Embedding:        nil,
-	})
+	result, errE := c.FromDocument(ctx, doc, nil, &store.DocumentMetadata{At: store.Time{}, Users: nil}, inverseRelations)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Should have two reverse relation claims: one for A and one for C.
@@ -8704,12 +8694,7 @@ func TestFromDocumentIncomingInverseRelationBidirectional(t *testing.T) {
 		newIR(identifier.New(), sourceDocID, propA, propB, identifier.Identifier{}, document.HighConfidence),
 	}
 
-	result, errE := c.FromDocument(ctx, doc, nil, &store.DocumentMetadata{
-		At:               store.Time{},
-		Users:            nil,
-		InverseRelations: map[string][]store.InverseRelation{"": inverseRelations},
-		Embedding:        nil,
-	})
+	result, errE := c.FromDocument(ctx, doc, nil, &store.DocumentMetadata{At: store.Time{}, Users: nil}, inverseRelations)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Should produce a reverse claim with property B.
@@ -9194,7 +9179,7 @@ func TestFromDocumentEmbed(t *testing.T) {
 		},
 	}
 
-	result, errE := c.FromDocument(t.Context(), doc, nil, nil)
+	result, errE := c.FromDocument(t.Context(), doc, nil, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// The embedded claim appears as a sub-reference under A's reference to B, carrying the destination
@@ -9259,7 +9244,7 @@ func TestFromDocumentEmbedStringDropped(t *testing.T) {
 		},
 	}
 
-	result, errE := c.FromDocument(t.Context(), doc, nil, nil)
+	result, errE := c.FromDocument(t.Context(), doc, nil, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// An embedded string becomes an ordinary string sub-claim of the reference. Textual sub-claims have no
@@ -9723,7 +9708,7 @@ func TestFromDocumentPlain(t *testing.T) {
 		},
 	}
 
-	result, errE := c.FromDocument(ctx, doc, nil, nil)
+	result, errE := c.FromDocument(ctx, doc, nil, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, testDocID, result.ID)
 	assert.Equal(t, []string{testDocID.String(), "hello"}, result.Text["und"])
@@ -9741,18 +9726,18 @@ func TestFromDocumentLastUpdated(t *testing.T) {
 
 	// LastUpdated comes from the document metadata's At timestamp (seconds since the Unix epoch).
 	at := time.Date(2021, time.January, 2, 3, 4, 5, 0, time.UTC)
-	result, errE := c.FromDocument(ctx, doc, nil, &store.DocumentMetadata{At: store.Time(at), Users: nil, InverseRelations: nil, Embedding: nil})
+	result, errE := c.FromDocument(ctx, doc, nil, &store.DocumentMetadata{At: store.Time(at), Users: nil}, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.NotNil(t, result.LastUpdated)
 	assert.InDelta(t, float64(at.Unix()), *result.LastUpdated, 0.001)
 
 	// Without metadata there is no last-updated time.
-	result, errE = c.FromDocument(ctx, doc, nil, nil)
+	result, errE = c.FromDocument(ctx, doc, nil, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Nil(t, result.LastUpdated)
 
 	// A zero At also yields no last-updated time.
-	result, errE = c.FromDocument(ctx, doc, nil, &store.DocumentMetadata{At: store.Time{}, Users: nil, InverseRelations: nil, Embedding: nil})
+	result, errE = c.FromDocument(ctx, doc, nil, &store.DocumentMetadata{At: store.Time{}, Users: nil}, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Nil(t, result.LastUpdated)
 }
