@@ -712,8 +712,16 @@ body.pd-printing [role="tablist"] {
   display: none !important;
 }
 
+/*
+  Collapse the navbar-height offset so the preview content starts at the page top, matching @media print. Setting
+  --pd-navbar-height alone is not enough in the preview: --pd-navbar-offset (the top margin content uses to clear the
+  navbar) derives from --pd-navbar-height at :root, so a body-level height override does not reach the already-resolved
+  offset. The @media print block avoids this by zeroing the height at :root; here we zero the offset directly on the
+  preview body, which reaches .pd-searchget's margin through inheritance regardless of the navbar mode's inline offset on <html>.
+*/
 body.pd-printing {
   --pd-navbar-height: 0;
+  --pd-navbar-offset: 0;
 }
 
 body.pd-printing .pd-print-only {
