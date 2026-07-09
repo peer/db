@@ -41,6 +41,7 @@ declare module "vue-i18n" {
         next: string
         open: string
         unlink: string
+        menu: string
         signIn: string
         signOut: string
       }
