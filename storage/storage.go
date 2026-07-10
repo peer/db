@@ -168,6 +168,16 @@ func (s *Storage) Init(
 		return errors.New("storage directory not configured")
 	}
 
+	// We create the storage directory up front so misconfiguration (an unwritable path) surfaces at
+	// initialization rather than only on the first file write. The sharded subdirectories under it are
+	// still created lazily by the write paths.
+	err := os.MkdirAll(s.Dir, 0o755) //nolint:gosec,mnd
+	if err != nil {
+		errE := errors.WithStack(err)
+		errors.Details(errE)["path"] = s.Dir
+		return errE
+	}
+
 	storageStore := &store.Store[string, *FileMetadata, *store.NoMetadata, *store.NoMetadata, *store.CommitMetadata, store.None]{
 		Schema:       s.Schema,
 		Prefix:       s.Prefix,
@@ -529,12 +539,7 @@ func (s *Storage) completeStorageSession(ctx context.Context, session identifier
 	// We assemble the uploaded chunks into a temporary file on disk and then store it.
 	// The temporary file is created in the storage directory root because its final,
 	// content-addressed location is only known once the assembled contents have been hashed.
-	err := os.MkdirAll(s.Dir, 0o755) //nolint:gosec,mnd
-	if err != nil {
-		errE := errors.WithStack(err)
-		errors.Details(errE)["path"] = s.Dir
-		return nil, errE
-	}
+	// The root directory itself is created by Init.
 	tmp, err := os.CreateTemp(s.Dir, "assemble-"+session.String()+".*.tmp")
 	if err != nil {
 		errE := errors.WithStack(err)
