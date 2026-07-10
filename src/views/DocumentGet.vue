@@ -7,6 +7,7 @@ import type { DocumentBeginEditResponse, QueryValues } from "@/types"
 
 import { Tab, TabGroup, TabList, TabPanel, TabPanels } from "@headlessui/vue"
 import { ChevronLeftIcon, ChevronRightIcon, MagnifyingGlassIcon } from "@heroicons/vue/20/solid"
+import { SidebarRightIcon } from "@sidekickicons/vue/20/solid"
 import { computed, onBeforeUnmount, provide, ref, toRef, useTemplateRef, watch, watchEffect } from "vue"
 import { useI18n } from "vue-i18n"
 import { useRoute, useRouter } from "vue-router"
@@ -81,6 +82,11 @@ const deleteBusy = localCounter(deleteLock)
 function getDeleteLock() {
   return deleteLock
 }
+
+// Whether the document sidebar (edit and delete actions plus the related-search links) is toggled open on
+// narrow screens, where it replaces the card. From 56rem up the card and sidebar always show side by side and
+// this has no effect (the toggle button is hidden there).
+const sidebarOpen = ref(false)
 
 const abortController = new AbortController()
 
@@ -416,6 +422,18 @@ function showShortcut(count: string | null): boolean {
   return count !== "0" || hasPermission(CAN_EDIT_DOCUMENT)
 }
 
+// Whether the sidebar has anything to show: the edit and delete actions (when permitted and not overridden by
+// the site) or any related-search link that is not hidden. A still-loading count does not count as content, so
+// the sidebar does not flash in and then out. When it is empty the sidebar and its navbar toggle are not
+// rendered, so the card takes the full width and no toggle appears for an empty panel.
+const hasSidebarContent = computed(() => {
+  if (!siteContext.features.hideDocumentActions && (hasPermission(CAN_EDIT_DOCUMENT) || hasPermission(CAN_DELETE_DOCUMENT))) {
+    return true
+  }
+  const shown = (count: string | null): boolean => count !== null && showShortcut(count)
+  return searchShortcuts.value.some((shortcut) => shown(shortcut.count)) || shown(referencedByCount.value)
+})
+
 async function onEdit() {
   if (abortController.signal.aborted) {
     return
@@ -526,8 +544,8 @@ async function onDelete() {
               :to="{ name: 'SearchGet', params: { id: searchSession.id }, query: encodeQuery({ at: id }) }"
               :after-click="afterClick"
             >
-              <MagnifyingGlassIcon class="size-5 sm:hidden" :alt="t('common.buttons.search')" />
-              <span class="hidden sm:inline">{{ t("common.buttons.search") }}</span>
+              <MagnifyingGlassIcon class="size-5 min-[56rem]:hidden" :alt="t('common.buttons.search')" />
+              <span class="hidden min-[56rem]:inline">{{ t("common.buttons.search") }}</span>
             </ButtonLink>
           </div>
           <!--
@@ -542,8 +560,8 @@ async function onDelete() {
               :disabled="!prevNext.previous"
               :to="{ name: 'DocumentGet', params: { id: prevNext.previous }, query: encodeQuery({ s: searchSession.id }) }"
             >
-              <ChevronLeftIcon class="size-5 sm:hidden" :alt="t('common.buttons.prev')" />
-              <span class="hidden sm:inline">{{ t("common.buttons.prev") }}</span>
+              <ChevronLeftIcon class="size-5 min-[56rem]:hidden" :alt="t('common.buttons.prev')" />
+              <span class="hidden min-[56rem]:inline">{{ t("common.buttons.prev") }}</span>
             </ButtonLink>
             <ButtonLink
               id="documentget-button-next"
@@ -551,12 +569,28 @@ async function onDelete() {
               :disabled="!prevNext.next"
               :to="{ name: 'DocumentGet', params: { id: prevNext.next }, query: encodeQuery({ s: searchSession.id }) }"
             >
-              <ChevronRightIcon class="size-5 sm:hidden" :alt="t('common.buttons.next')" />
-              <span class="hidden sm:inline">{{ t("common.buttons.next") }}</span>
+              <ChevronRightIcon class="size-5 min-[56rem]:hidden" :alt="t('common.buttons.next')" />
+              <span class="hidden min-[56rem]:inline">{{ t("common.buttons.next") }}</span>
             </ButtonLink>
           </div>
         </template>
         <NavBarSearch v-else />
+      </template>
+      <template #end>
+        <!--
+          On narrow screens the sidebar replaces the card; this button toggles it, mirroring the search results
+          filters toggle. Hidden from 56rem up, where the sidebar is always shown next to the card.
+        -->
+        <Button
+          v-if="withDocument?.doc && hasSidebarContent"
+          id="documentget-button-sidebar"
+          primary
+          class="min-[56rem]:hidden"
+          type="button"
+          @click.prevent="sidebarOpen = !sidebarOpen"
+        >
+          <SidebarRightIcon class="size-5" :alt="t('views.DocumentGet.sidebar')" />
+        </Button>
       </template>
     </NavBar>
   </Teleport>
@@ -567,167 +601,141 @@ async function onDelete() {
   >
     <!-- Registered document header components render above the card, on every tab. -->
     <component :is="component" v-for="(component, i) in getDocumentHeaderComponents().value" :id="id" :key="i" />
-    <div class="pd-documentget-card rounded-sm border border-gray-200 bg-white p-4 shadow-sm">
-      <WithDocumentD :id="id" ref="withDocument" name="DocumentGet" :version="reqVersion">
-        <template #default="{ doc }">
-          <div v-if="!classesInitialized" class="my-1 text-center sm:my-4">{{ t("common.status.loading") }}</div>
-          <!--
+    <!--
+      The card and the sidebar sit side by side from 56rem up. Below that only one shows at a time: the sidebar
+      replaces the card when it is toggled open (via the navbar button), mirroring the search results filters.
+    -->
+    <div class="pd-documentget-content flex w-full gap-x-1 sm:gap-x-4">
+      <div
+        class="pd-documentget-card min-w-0 flex-auto basis-3/4 rounded-sm border border-gray-200 bg-white p-4 shadow-sm min-[56rem]:block"
+        :class="sidebarOpen && hasSidebarContent ? 'hidden' : 'block'"
+      >
+        <WithDocumentD :id="id" ref="withDocument" name="DocumentGet" :version="reqVersion">
+          <template #default="{ doc }">
+            <div v-if="!classesInitialized" class="my-1 text-center sm:my-4">{{ t("common.status.loading") }}</div>
+            <!--
             TODO: Fix how hover interacts with focused tab.
             See: https://github.com/tailwindlabs/tailwindcss/discussions/10123
           -->
-          <TabGroup v-else manual :selected-index="selectedTabIndex" @change="onTabChange">
-            <TabList class="pd-documentget-tabs -m-4 mb-4 flex border-collapse flex-row rounded-t border-b border-gray-200 bg-slate-100">
-              <!-- The page content tab. The page title is shown as the h1 heading below. -->
-              <Tab
-                v-if="isPage"
-                class="border-r border-gray-200 px-4 py-3 leading-tight font-medium uppercase outline-none select-none first:rounded-tl not-aria-selected:hover:bg-slate-50 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 aria-selected:bg-white"
-                >{{ t("views.DocumentGet.tabs.content") }}</Tab
-              >
-              <Tab
-                v-for="documentTab in documentTabs"
-                :key="documentTab.id"
-                class="border-r border-gray-200 px-4 py-3 leading-tight font-medium uppercase outline-none select-none first:rounded-tl not-aria-selected:hover:bg-slate-50 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 aria-selected:bg-white"
-                ><DocumentRefInline :id="documentTab.id" :link="false"
-              /></Tab>
-              <Tab
-                v-if="hasFieldsViewPanel"
-                class="border-r border-gray-200 px-4 py-3 leading-tight font-medium uppercase outline-none select-none first:rounded-tl not-aria-selected:hover:bg-slate-50 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 aria-selected:bg-white"
-                ><DocumentRefInline :id="classTabId!" :link="false"
-              /></Tab>
-              <Tab
-                class="border-r border-gray-200 px-4 py-3 leading-tight font-medium uppercase outline-none select-none first:rounded-tl not-aria-selected:hover:bg-slate-50 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 aria-selected:bg-white"
-                >{{ t("views.DocumentGet.tabs.allProperties") }}</Tab
-              >
-              <!-- The history API requires this permission, so the tab is shown only to callers who can use it. -->
-              <Tab
-                v-if="hasPermission(CAN_CHANGES_DOCUMENT)"
-                class="border-r border-gray-200 px-4 py-3 leading-tight font-medium uppercase outline-none select-none first:rounded-tl not-aria-selected:hover:bg-slate-50 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 aria-selected:bg-white"
-                >{{ t("views.DocumentGet.tabs.history") }}</Tab
-              >
-            </TabList>
-            <h1 v-show="displayLabelComponent?.displayLabel" class="pd-documentget-title mb-4 text-3xl font-bold drop-shadow-xs"
-              ><DisplayLabel ref="displayLabelComponent" :doc="doc"
-            /></h1>
-            <!-- We explicitly disable tabbing. See: https://github.com/tailwindlabs/headlessui/discussions/1433 -->
-            <TabPanels as="template">
-              <!-- Page content tab panel: the document's content rendered as prose, in the current language. -->
-              <TabPanel v-if="isPage" tabindex="-1" class="outline-none">
-                <ClaimValueHtml v-for="content in pageContent" :key="content.id" :claim="content" />
-              </TabPanel>
-              <!-- Registry tabs. -->
-              <TabPanel v-for="documentTab in documentTabs" :key="documentTab.id" tabindex="-1" class="outline-none">
-                <component :is="documentTab.component" :doc="doc" />
-              </TabPanel>
-              <!-- Class-specific tab (if there are no registry tabs). -->
-              <TabPanel v-if="hasFieldsViewPanel" tabindex="-1" class="outline-none">
-                <div class="flex flex-row items-start gap-4">
-                  <div class="min-w-0 grow"><FieldsView :fields-data="mergedFieldsData!" :claims="doc.claims" sections /></div>
-                  <div class="pd-print-hidden flex shrink-0 flex-col gap-4">
-                    <!--
-                      Edit and delete sit at the top of the side links, set off from the search shortcuts below by the
-                      double gap. Shown when the user may perform the action and the site has not opted to render its
-                      own document actions (see the documentActions provide and hideDocumentActions).
-                    -->
-                    <div
-                      v-if="!siteContext.features.hideDocumentActions && (hasPermission(CAN_EDIT_DOCUMENT) || hasPermission(CAN_DELETE_DOCUMENT))"
-                      class="flex flex-col gap-2"
-                    >
-                      <WithLock v-if="hasPermission(CAN_EDIT_DOCUMENT)" :lock="getEditLock">
-                        <Button :progress="editBusy" type="button" class="w-full" @click.prevent="onEdit">{{ t("common.buttons.edit") }}</Button>
-                      </WithLock>
-                      <WithLock v-if="hasPermission(CAN_DELETE_DOCUMENT)" :lock="getDeleteLock">
-                        <Button :progress="deleteBusy" type="button" class="w-full" @click.prevent="onDelete">{{ t("common.buttons.delete") }}</Button>
-                      </WithLock>
-                    </div>
-                    <div class="flex flex-col gap-2">
-                      <template v-for="(shortcut, i) of searchShortcuts" :key="i">
-                        <SearchShortcutLink
-                          v-if="showShortcut(shortcut.count)"
-                          :query="shortcut.query"
-                          :label="shortcutLabel(shortcut.name, shortcut.count)"
-                          :create-query="shortcut.createQuery"
-                        />
-                      </template>
-                      <SearchShortcutLink
-                        v-if="showShortcut(referencedByCount)"
-                        :query="encodeQuery({ reverse: id })"
-                        :label="shortcutLabel(t('views.DocumentGet.referencedBy'), referencedByCount)"
-                      />
-                    </div>
-                  </div>
-                </div>
-              </TabPanel>
-              <!-- "All properties" tab panel. -->
-              <TabPanel tabindex="-1" class="outline-none">
-                <div class="flex flex-row items-start gap-4">
-                  <div class="min-w-0 grow">
-                    <table class="w-full table-auto border-collapse">
-                      <thead>
-                        <tr>
-                          <th class="border-r border-slate-200 px-2 py-1 text-left font-bold">{{ t("common.labels.property") }}</th>
-                          <th class="border-l border-slate-200 px-2 py-1 text-left font-bold">{{ t("common.labels.value") }}</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        <PropertiesRows :claims="doc.claims" />
-                      </tbody>
-                    </table>
-                  </div>
-                  <div v-if="!hasFieldsViewPanel" class="pd-print-hidden flex shrink-0 flex-col gap-4">
-                    <!-- Edit and delete on top of the side links, set off by the double gap, see the FieldsView panel above. -->
-                    <div
-                      v-if="!siteContext.features.hideDocumentActions && (hasPermission(CAN_EDIT_DOCUMENT) || hasPermission(CAN_DELETE_DOCUMENT))"
-                      class="flex flex-col gap-2"
-                    >
-                      <WithLock v-if="hasPermission(CAN_EDIT_DOCUMENT)" :lock="getEditLock">
-                        <Button :progress="editBusy" type="button" class="w-full" @click.prevent="onEdit">{{ t("common.buttons.edit") }}</Button>
-                      </WithLock>
-                      <WithLock v-if="hasPermission(CAN_DELETE_DOCUMENT)" :lock="getDeleteLock">
-                        <Button :progress="deleteBusy" type="button" class="w-full" @click.prevent="onDelete">{{ t("common.buttons.delete") }}</Button>
-                      </WithLock>
-                    </div>
-                    <div class="flex flex-col gap-2">
-                      <template v-for="(shortcut, i) of searchShortcuts" :key="i">
-                        <SearchShortcutLink
-                          v-if="showShortcut(shortcut.count)"
-                          :query="shortcut.query"
-                          :label="shortcutLabel(shortcut.name, shortcut.count)"
-                          :create-query="shortcut.createQuery"
-                        />
-                      </template>
-                      <SearchShortcutLink
-                        v-if="showShortcut(referencedByCount)"
-                        :query="encodeQuery({ reverse: id })"
-                        :label="shortcutLabel(t('views.DocumentGet.referencedBy'), referencedByCount)"
-                      />
-                    </div>
-                  </div>
-                </div>
-              </TabPanel>
-              <!-- "History" tab panel. The panel (and thus the data fetch) is mounted only when the tab is selected. -->
-              <TabPanel v-if="hasPermission(CAN_CHANGES_DOCUMENT)" tabindex="-1" class="outline-none">
-                <DocumentHistory :id="id" />
-              </TabPanel>
-            </TabPanels>
-          </TabGroup>
-        </template>
-        <template #loading>
-          <div class="pd-documentget-loading flex flex-col gap-y-2 motion-safe:animate-pulse" aria-hidden="true">
-            <div class="inline-block h-2 rounded-sm bg-slate-200" :class="[loadingLongWidth(`${id}/1`)]"></div>
-            <div class="flex gap-x-4">
-              <div class="h-2 rounded-sm bg-slate-200" :class="[loadingLongWidth(`${id}/2`)]"></div>
-              <div class="h-2 rounded-sm bg-slate-200" :class="[loadingLongWidth(`${id}/3`)]"></div>
+            <TabGroup v-else manual :selected-index="selectedTabIndex" @change="onTabChange">
+              <TabList class="pd-documentget-tabs -m-4 mb-4 flex border-collapse flex-row rounded-t border-b border-gray-200 bg-slate-100">
+                <!-- The page content tab. The page title is shown as the h1 heading below. -->
+                <Tab
+                  v-if="isPage"
+                  class="border-r border-gray-200 px-4 py-3 leading-tight font-medium uppercase outline-none select-none first:rounded-tl not-aria-selected:hover:bg-slate-50 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 aria-selected:bg-white"
+                  >{{ t("views.DocumentGet.tabs.content") }}</Tab
+                >
+                <Tab
+                  v-for="documentTab in documentTabs"
+                  :key="documentTab.id"
+                  class="border-r border-gray-200 px-4 py-3 leading-tight font-medium uppercase outline-none select-none first:rounded-tl not-aria-selected:hover:bg-slate-50 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 aria-selected:bg-white"
+                  ><DocumentRefInline :id="documentTab.id" :link="false"
+                /></Tab>
+                <Tab
+                  v-if="hasFieldsViewPanel"
+                  class="border-r border-gray-200 px-4 py-3 leading-tight font-medium uppercase outline-none select-none first:rounded-tl not-aria-selected:hover:bg-slate-50 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 aria-selected:bg-white"
+                  ><DocumentRefInline :id="classTabId!" :link="false"
+                /></Tab>
+                <Tab
+                  class="border-r border-gray-200 px-4 py-3 leading-tight font-medium uppercase outline-none select-none first:rounded-tl not-aria-selected:hover:bg-slate-50 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 aria-selected:bg-white"
+                  >{{ t("views.DocumentGet.tabs.allProperties") }}</Tab
+                >
+                <!-- The history API requires this permission, so the tab is shown only to callers who can use it. -->
+                <Tab
+                  v-if="hasPermission(CAN_CHANGES_DOCUMENT)"
+                  class="border-r border-gray-200 px-4 py-3 leading-tight font-medium uppercase outline-none select-none first:rounded-tl not-aria-selected:hover:bg-slate-50 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 aria-selected:bg-white"
+                  >{{ t("views.DocumentGet.tabs.history") }}</Tab
+                >
+              </TabList>
+              <h1 v-show="displayLabelComponent?.displayLabel" class="pd-documentget-title mb-4 text-3xl font-bold drop-shadow-xs"
+                ><DisplayLabel ref="displayLabelComponent" :doc="doc"
+              /></h1>
+              <!-- We explicitly disable tabbing. See: https://github.com/tailwindlabs/headlessui/discussions/1433 -->
+              <TabPanels as="template">
+                <!-- Page content tab panel: the document's content rendered as prose, in the current language. -->
+                <TabPanel v-if="isPage" tabindex="-1" class="outline-none">
+                  <ClaimValueHtml v-for="content in pageContent" :key="content.id" :claim="content" />
+                </TabPanel>
+                <!-- Registry tabs. -->
+                <TabPanel v-for="documentTab in documentTabs" :key="documentTab.id" tabindex="-1" class="outline-none">
+                  <component :is="documentTab.component" :doc="doc" />
+                </TabPanel>
+                <!-- Class-specific tab (if there are no registry tabs). -->
+                <TabPanel v-if="hasFieldsViewPanel" tabindex="-1" class="outline-none">
+                  <FieldsView :fields-data="mergedFieldsData!" :claims="doc.claims" sections />
+                </TabPanel>
+                <!-- "All properties" tab panel. -->
+                <TabPanel tabindex="-1" class="outline-none">
+                  <table class="w-full table-auto border-collapse">
+                    <thead>
+                      <tr>
+                        <th class="border-r border-slate-200 px-2 py-1 text-left font-bold">{{ t("common.labels.property") }}</th>
+                        <th class="border-l border-slate-200 px-2 py-1 text-left font-bold">{{ t("common.labels.value") }}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <PropertiesRows :claims="doc.claims" />
+                    </tbody>
+                  </table>
+                </TabPanel>
+                <!-- "History" tab panel. The panel (and thus the data fetch) is mounted only when the tab is selected. -->
+                <TabPanel v-if="hasPermission(CAN_CHANGES_DOCUMENT)" tabindex="-1" class="outline-none">
+                  <DocumentHistory :id="id" />
+                </TabPanel>
+              </TabPanels>
+            </TabGroup>
+          </template>
+          <template #loading>
+            <div class="pd-documentget-loading flex flex-col gap-y-2 motion-safe:animate-pulse" aria-hidden="true">
+              <div class="inline-block h-2 rounded-sm bg-slate-200" :class="[loadingLongWidth(`${id}/1`)]"></div>
+              <div class="flex gap-x-4">
+                <div class="h-2 rounded-sm bg-slate-200" :class="[loadingLongWidth(`${id}/2`)]"></div>
+                <div class="h-2 rounded-sm bg-slate-200" :class="[loadingLongWidth(`${id}/3`)]"></div>
+              </div>
+              <div class="flex gap-x-4">
+                <div class="h-2 rounded-sm bg-slate-200" :class="[loadingLongWidth(`${id}/4`)]"></div>
+                <div class="h-2 rounded-sm bg-slate-200" :class="[loadingLongWidth(`${id}/5`)]"></div>
+              </div>
             </div>
-            <div class="flex gap-x-4">
-              <div class="h-2 rounded-sm bg-slate-200" :class="[loadingLongWidth(`${id}/4`)]"></div>
-              <div class="h-2 rounded-sm bg-slate-200" :class="[loadingLongWidth(`${id}/5`)]"></div>
-            </div>
-          </div>
-        </template>
-        <template #error="{ message, accessDenied }">
-          <i :class="['pd-documentget-error', accessDenied ? 'text-gray-500' : 'text-error-600']">{{ message }}</i>
-        </template>
-      </WithDocumentD>
+          </template>
+          <template #error="{ message, accessDenied }">
+            <i :class="['pd-documentget-error', accessDenied ? 'text-gray-500' : 'text-error-600']">{{ message }}</i>
+          </template>
+        </WithDocumentD>
+      </div>
+      <!--
+        The sidebar renders once, alongside every tab, only after the document has loaded. Its edit and delete
+        actions sit on top, then a double gap, then the related-search links (search shortcuts and referenced-by).
+      -->
+      <aside
+        v-if="withDocument?.doc && hasSidebarContent"
+        class="pd-documentget-sidebar pd-print-hidden flex-auto basis-1/4 flex-col gap-4 min-[56rem]:flex"
+        :class="sidebarOpen ? 'flex' : 'hidden'"
+      >
+        <div v-if="!siteContext.features.hideDocumentActions && (hasPermission(CAN_EDIT_DOCUMENT) || hasPermission(CAN_DELETE_DOCUMENT))" class="flex flex-col gap-2">
+          <WithLock v-if="hasPermission(CAN_EDIT_DOCUMENT)" :lock="getEditLock">
+            <Button :progress="editBusy" type="button" class="w-full" @click.prevent="onEdit">{{ t("common.buttons.edit") }}</Button>
+          </WithLock>
+          <WithLock v-if="hasPermission(CAN_DELETE_DOCUMENT)" :lock="getDeleteLock">
+            <Button :progress="deleteBusy" type="button" class="w-full" @click.prevent="onDelete">{{ t("common.buttons.delete") }}</Button>
+          </WithLock>
+        </div>
+        <div class="flex flex-col gap-2">
+          <template v-for="(shortcut, i) of searchShortcuts" :key="i">
+            <SearchShortcutLink
+              v-if="showShortcut(shortcut.count)"
+              :query="shortcut.query"
+              :label="shortcutLabel(shortcut.name, shortcut.count)"
+              :create-query="shortcut.createQuery"
+            />
+          </template>
+          <SearchShortcutLink
+            v-if="showShortcut(referencedByCount)"
+            :query="encodeQuery({ reverse: id })"
+            :label="shortcutLabel(t('views.DocumentGet.referencedBy'), referencedByCount)"
+          />
+        </div>
+      </aside>
     </div>
   </div>
   <Teleport to="footer">

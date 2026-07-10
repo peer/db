@@ -309,7 +309,8 @@
         "empty": "No history."
       },
       "referencedBy": "Referenced by",
-      "shortcutWithCount": "{name} ({count})"
+      "shortcutWithCount": "{name} ({count})",
+      "sidebar": "Sidebar"
     },
     "DocumentEdit": {
       "tabs": {

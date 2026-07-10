@@ -309,7 +309,8 @@
         "empty": "Ni zgodovine."
       },
       "referencedBy": "Sklicujoči se",
-      "shortcutWithCount": "{name} ({count})"
+      "shortcutWithCount": "{name} ({count})",
+      "sidebar": "Stranska vrstica"
     },
     "DocumentEdit": {
       "tabs": {

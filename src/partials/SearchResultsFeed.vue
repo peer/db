@@ -441,7 +441,7 @@ const WithDocumentD = WithDocument<D>
 
 <template>
   <Teleport to="#navbarsearch-teleport-end">
-    <Button primary class="px-3.5 min-[56rem]:hidden" type="button" @click.prevent="onFilters">
+    <Button primary class="min-[56rem]:hidden" type="button" @click.prevent="onFilters">
       <FunnelIcon class="size-5" :alt="t('common.buttons.filters')" />
     </Button>
   </Teleport>

@@ -321,6 +321,7 @@ declare module "vue-i18n" {
         }
         referencedBy: string
         shortcutWithCount: string
+        sidebar: string
       }
       DocumentEdit: {
         tabs: {
