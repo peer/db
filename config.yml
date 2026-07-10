@@ -14,7 +14,9 @@ globals:
       roles:
         admin:
           - canEditDocument
+          - canDeleteDocument
           - canChangesDocument
           - canBulkGetFile
           - canChangesFile
           - canEditFile
+          - canDeleteFile
