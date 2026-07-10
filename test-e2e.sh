@@ -151,6 +151,10 @@ mkdir -p coverage
 # We chown to the container user so the process running inside Docker container can write to coverage.
 chown 1000:1000 coverage
 
+mkdir -p .storage
+# We chown to the container user so the process running inside Docker container can write to.
+chown 1000:1000 .storage
+
 docker run --rm \
   --network "$NETWORK" \
   -v "$(pwd):/data" \
