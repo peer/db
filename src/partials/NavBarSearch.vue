@@ -48,7 +48,11 @@ const formRef = useTemplateRef<HTMLFormElement>("formRef")
 // to it (for example a filter toggle) and stays inline longer when the navbar is otherwise empty. It is
 // suspended while expanded so the full-width overlay is left alone (focusout closes it).
 const expanded = ref(false)
-const collapsible = useNavbarCollapse(() => formRef.value, "pd-navbar-search-collapsible", () => expanded.value)
+const collapsible = useNavbarCollapse(
+  () => formRef.value,
+  "pd-navbar-search-collapsible",
+  () => expanded.value,
+)
 
 watchEffect(() => {
   if (abortController.signal.aborted) {

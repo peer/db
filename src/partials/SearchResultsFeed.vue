@@ -463,7 +463,7 @@ const WithDocumentD = WithDocument<D>
     <div
       id="search-results"
       tabindex="-1"
-      class="pd-searchresults flex-auto basis-3/4 flex-col gap-y-1 rounded-sm [--pd-indent:calc(var(--spacing)*4)] focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-1 focus-visible:outline-none min-[56rem]:flex sm:gap-y-4 sm:[--pd-indent:calc(var(--spacing)*6)]"
+      class="pd-searchresults flex-auto basis-3/4 flex-col gap-y-1 rounded-sm [--pd-indent:calc(var(--spacing)*4)] focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-1 focus-visible:outline-none sm:gap-y-4 sm:[--pd-indent:calc(var(--spacing)*6)] min-[56rem]:flex"
       :class="filtersEnabled ? 'hidden' : 'flex'"
     >
       <!-- Print row: the close and show-all buttons (preview only, left) and a live timestamp (right). -->
@@ -627,7 +627,7 @@ const WithDocumentD = WithDocument<D>
       id="search-filters"
       ref="filtersEl"
       tabindex="-1"
-      class="pd-searchfilters pd-print-hidden flex-auto basis-1/4 flex-col gap-y-1 rounded-sm focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-1 focus-visible:outline-none min-[56rem]:flex sm:gap-y-4"
+      class="pd-searchfilters pd-print-hidden flex-auto basis-1/4 flex-col gap-y-1 rounded-sm focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-1 focus-visible:outline-none sm:gap-y-4 min-[56rem]:flex"
       :class="filtersEnabled ? 'flex' : 'hidden'"
       :data-url="filtersURL"
     >

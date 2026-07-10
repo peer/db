@@ -117,66 +117,66 @@ function countFilters(): number {
       From sm up this wrapper is display: contents, so the button groups are direct children of the header row again.
     -->
     <div class="pd-searchresultsheader-toolbar flex flex-row gap-x-1 sm:contents">
-    <div v-if="sortable && !siteContext.features.disableSearchSort" class="pd-print-hidden flex shrink-0 items-center rounded-sm bg-slate-200 px-1 py-1">
-      <button
-        class="pd-searchresultsheader-button h-full rounded-sm px-2 py-0.5 outline-none hover:bg-slate-100 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1"
-        type="button"
-        :title="t('partials.SearchResultsHeader.sort')"
-        @click.prevent="$emit('sortOpen')"
-      >
-        <AdjustmentsHorizontalIcon class="size-6" :alt="t('partials.SearchResultsHeader.sort')" />
-      </button>
-    </div>
+      <div v-if="sortable && !siteContext.features.disableSearchSort" class="pd-print-hidden flex shrink-0 items-center rounded-sm bg-slate-200 px-1 py-1">
+        <button
+          class="pd-searchresultsheader-button h-full rounded-sm px-2 py-0.5 outline-none hover:bg-slate-100 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1"
+          type="button"
+          :title="t('partials.SearchResultsHeader.sort')"
+          @click.prevent="$emit('sortOpen')"
+        >
+          <AdjustmentsHorizontalIcon class="size-6" :alt="t('partials.SearchResultsHeader.sort')" />
+        </button>
+      </div>
 
-    <SelectButton
-      v-if="siteContext.features.searchResultsTable"
-      :model-value="searchSession.view"
-      :options="selectButtonOptions"
-      class="pd-print-hidden shrink-0"
-      @update:model-value="(v) => $emit('viewChange', v)"
-    />
+      <SelectButton
+        v-if="siteContext.features.searchResultsTable"
+        :model-value="searchSession.view"
+        :options="selectButtonOptions"
+        class="pd-print-hidden shrink-0"
+        @update:model-value="(v) => $emit('viewChange', v)"
+      />
 
-    <div v-if="printable && !siteContext.features.disablePrintView" class="pd-print-hidden flex shrink-0 items-center rounded-sm bg-slate-200 px-1 py-1">
-      <button
-        class="pd-searchresultsheader-button h-full rounded-sm px-2 py-0.5 outline-none hover:bg-slate-100 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1"
-        type="button"
-        :title="t('partials.SearchResultsHeader.print')"
-        @click.prevent="$emit('printOpen')"
-      >
-        <PrinterIcon class="size-6" :alt="t('partials.SearchResultsHeader.print')" />
-      </button>
-    </div>
+      <div v-if="printable && !siteContext.features.disablePrintView" class="pd-print-hidden flex shrink-0 items-center rounded-sm bg-slate-200 px-1 py-1">
+        <button
+          class="pd-searchresultsheader-button h-full rounded-sm px-2 py-0.5 outline-none hover:bg-slate-100 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1"
+          type="button"
+          :title="t('partials.SearchResultsHeader.print')"
+          @click.prevent="$emit('printOpen')"
+        >
+          <PrinterIcon class="size-6" :alt="t('partials.SearchResultsHeader.print')" />
+        </button>
+      </div>
 
-    <div
-      v-if="siteContext.features.downloadButtons && hasPermission(CAN_BULK_GET_FILE)"
-      class="pd-print-hidden flex shrink-0 items-center gap-1 rounded-sm bg-slate-200 px-1 py-1"
-    >
-      <button
-        class="pd-searchresultsheader-button h-full rounded-sm px-2 py-0.5 outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-1"
-        :class="{
-          'cursor-not-allowed text-gray-500': isDownloading, // Disabled style.
-          'hover:bg-slate-100': !isDownloading, // Enabled style.
-        }"
-        :disabled="isDownloading"
-        :title="t('partials.SearchResultsHeader.downloadZip')"
-        @click.prevent="$emit('downloadZip')"
+      <div
+        v-if="siteContext.features.downloadButtons && hasPermission(CAN_BULK_GET_FILE)"
+        class="pd-print-hidden flex shrink-0 items-center gap-1 rounded-sm bg-slate-200 px-1 py-1"
       >
-        <ArchiveBoxArrowDownIcon class="size-6" :alt="t('partials.SearchResultsHeader.downloadZip')" />
-      </button>
-      <button
-        v-if="directoryPickerSupported"
-        class="pd-searchresultsheader-button h-full rounded-sm px-2 py-0.5 outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-1"
-        :class="{
-          'cursor-not-allowed text-gray-500': isDownloading, // Disabled style.
-          'hover:bg-slate-100': !isDownloading, // Enabled style.
-        }"
-        :disabled="isDownloading"
-        :title="t('partials.SearchResultsHeader.downloadFiles')"
-        @click.prevent="$emit('downloadFiles')"
-      >
-        <ArrowDownTrayIcon class="size-6" :alt="t('partials.SearchResultsHeader.downloadFiles')" />
-      </button>
-    </div>
+        <button
+          class="pd-searchresultsheader-button h-full rounded-sm px-2 py-0.5 outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-1"
+          :class="{
+            'cursor-not-allowed text-gray-500': isDownloading, // Disabled style.
+            'hover:bg-slate-100': !isDownloading, // Enabled style.
+          }"
+          :disabled="isDownloading"
+          :title="t('partials.SearchResultsHeader.downloadZip')"
+          @click.prevent="$emit('downloadZip')"
+        >
+          <ArchiveBoxArrowDownIcon class="size-6" :alt="t('partials.SearchResultsHeader.downloadZip')" />
+        </button>
+        <button
+          v-if="directoryPickerSupported"
+          class="pd-searchresultsheader-button h-full rounded-sm px-2 py-0.5 outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-1"
+          :class="{
+            'cursor-not-allowed text-gray-500': isDownloading, // Disabled style.
+            'hover:bg-slate-100': !isDownloading, // Enabled style.
+          }"
+          :disabled="isDownloading"
+          :title="t('partials.SearchResultsHeader.downloadFiles')"
+          @click.prevent="$emit('downloadFiles')"
+        >
+          <ArrowDownTrayIcon class="size-6" :alt="t('partials.SearchResultsHeader.downloadFiles')" />
+        </button>
+      </div>
     </div>
   </div>
 </template>
