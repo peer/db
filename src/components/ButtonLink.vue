@@ -18,12 +18,14 @@ withDefaults(
     disabled?: boolean
     primary?: boolean
     active?: boolean
+    afterClick?: () => void | Promise<void>
   }>(),
   {
     replace: false,
     disabled: false,
     primary: false,
     active: false,
+    afterClick: undefined,
   },
 )
 </script>
@@ -32,7 +34,7 @@ withDefaults(
   <ButtonStyled v-if="disabled" as="div" :inactive="disabled" :primary="primary" :active="active" class="pd-buttonlink">
     <slot />
   </ButtonStyled>
-  <ButtonStyled v-else :as="RouterLink" :to="to" :replace="replace" :primary="primary" :active="active" class="pd-buttonlink">
+  <ButtonStyled v-else :as="RouterLink" :to="to" :replace="replace" :after-click="afterClick" :primary="primary" :active="active" class="pd-buttonlink">
     <slot />
   </ButtonStyled>
 </template>

@@ -1,6 +1,6 @@
 import type { Ref, StyleValue, TemplateRef } from "vue"
 
-import { computed, ref, useTemplateRef, watchEffect } from "vue"
+import { computed, onBeforeUnmount, onMounted, ref, useTemplateRef, watchEffect } from "vue"
 
 import { getConfig } from "@/config"
 import siteContext from "@/context"
@@ -166,4 +166,79 @@ export function useNavbar(): { navbar: TemplateRef<HTMLElement>; attrs: Ref<{ st
   })
 
   return { navbar, attrs }
+}
+
+// Collapses a navbar search element (the search input, or the search-session link on document pages) to
+// its compact form once the navbar can no longer fit it. The element must carry a minimum usable width
+// while inline (set in the stylesheet, gated on NOT having collapsedClass); the measurement toggles
+// collapsedClass off, and if the navbar then overflows there is no longer room, so collapsedClass is set
+// and the consumer's styles shrink the element to just its button/icon. This is based on the room actually
+// left for the element, not the viewport width, so it collapses sooner when other items sit next to it
+// (for example a filter toggle) and stays inline longer when the navbar is otherwise empty. getTarget is a
+// function (rather than a ref) so the caller can locate the element however it likes, including by query;
+// skip lets the caller suspend measuring (NavBarSearch uses it while the input is expanded to a full-width
+// overlay). Returns whether the element is currently collapsed, for callers that also branch on it in script.
+//
+// The marker is applied to the target with classList. If the target also carries a reactive Vue class
+// binding, bind this returned ref into that binding as well: Vue patches a class by overwriting the whole
+// class attribute, so a patch triggered by any other bound class changing would otherwise drop the marker.
+export function useNavbarCollapse(getTarget: () => HTMLElement | null, collapsedClass: string, skip?: () => boolean): Ref<boolean> {
+  const collapsible = ref(false)
+
+  let navbar: HTMLElement | null = null
+  let resizeObserver: ResizeObserver | null = null
+  let mutationObserver: MutationObserver | null = null
+  // Measured directly in the observer callbacks. In the ResizeObserver callback this runs after layout and
+  // before paint, so the collapse applies in the same frame with no flash, and the browser already delivers it
+  // at most once per frame. The MutationObserver callback is a microtask, so layout may still be dirty when it
+  // runs, but reading scrollWidth/clientWidth forces a synchronous layout, so the measurement is correct no
+  // matter the callback timing, and the microtask still runs before paint, so there is no flash there either.
+  // Toggling collapsedClass changes the target's own width, not the observed navbar's box, so there is no
+  // resize-observer loop to guard against, and it is an attribute change we do not observe, so it does not
+  // re-trigger the MutationObserver either.
+  function measure(): void {
+    const target = getTarget()
+    if (!target || !navbar || skip?.()) {
+      return
+    }
+    target.classList.remove(collapsedClass)
+    const overflowing = navbar.scrollWidth - navbar.clientWidth > 0.5
+    if (overflowing) {
+      target.classList.add(collapsedClass)
+    }
+    collapsible.value = overflowing
+  }
+
+  onMounted(() => {
+    navbar = document.querySelector<HTMLElement>(".pd-navbar")
+    if (navbar) {
+      resizeObserver = new ResizeObserver(() => {
+        measure()
+      })
+      resizeObserver.observe(navbar)
+      // The ResizeObserver only fires on the navbar's own size. Also re-measure when its contents change,
+      // which alters the room left for the element without resizing the navbar: a filter toggle teleported in
+      // on the search feed, or a document page's prev/next buttons appearing once its results load. These can
+      // settle after mount and after fonts are ready, so neither the first measurement nor fonts.ready catches
+      // them on their own.
+      mutationObserver = new MutationObserver(() => {
+        measure()
+      })
+      mutationObserver.observe(navbar, { childList: true, subtree: true })
+    }
+    measure()
+    // Web fonts load asynchronously and widen the navbar's text items (and so shrink the room left for the
+    // element) after this first measurement, without resizing the navbar or changing its children. Re-measure
+    // once fonts are ready so a cold load does not stay wrongly inline.
+    void document.fonts?.ready.then(() => {
+      measure()
+    })
+  })
+
+  onBeforeUnmount(() => {
+    resizeObserver?.disconnect()
+    mutationObserver?.disconnect()
+  })
+
+  return collapsible
 }

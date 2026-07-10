@@ -103,6 +103,70 @@
   }
 }
 
+/*
+  Collapsible navbar search (see NavBarSearch, which measures the room left for the input and toggles the
+  pd-navbar-search-collapsible and pd-navbar-search-expanded classes on the form). These are plain rules
+  rather than utilities on the input because a consumer theme may restyle the input through its pd- classes
+  with unlayered rules, which would beat layered utilities.
+
+  Inline, the input keeps a minimum usable width. Once the navbar can no longer fit the input at this width
+  the search collapses to just its button; NavBarSearch measures the overflow in this inline state, so the
+  search collapses based on the room actually left for it (sooner when e.g. a filter toggle sits next to it,
+  later when the navbar is otherwise empty) rather than at a fixed viewport width.
+*/
+.pd-navbar-search:not(.pd-navbar-search-collapsible) .pd-searchinput {
+  min-width: 8rem;
+}
+
+/*
+  Collapsed: the input takes no space and is not interactive, so only the button shows; its horizontal
+  padding and border are zeroed too, otherwise they would keep the border box wider than the zero width.
+*/
+.pd-navbar-search-collapsible:not(.pd-navbar-search-expanded) .pd-searchinput {
+  max-width: 0;
+  min-width: 0;
+  flex-grow: 0;
+  padding-inline: 0;
+  border-inline-width: 0;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/*
+  Expanded: hide every other navbar item, including the menu, so only the search (input and button) remains
+  and the input grows to cover the whole navbar width. The trailing spacer is hidden too: its auto left
+  margin would otherwise absorb the free space and stop the input from growing to fill.
+*/
+.pd-navbar:has(.pd-navbar-search-expanded) > *:not(.pd-navbar-search) {
+  display: none;
+}
+
+/* Also hide anything the search hosts other than the input and its button (e.g. a teleported filter toggle). */
+.pd-navbar-search-expanded > *:not(.pd-searchinput):not(.pd-navbar-search-button) {
+  display: none;
+}
+
+/*
+  Document-page search-session bar (see DocumentGet, which measures the room left for the query link and
+  toggles pd-navbar-searchlink-collapsible on the bar). Inline, the query link keeps a minimum usable width;
+  once the navbar can no longer fit it there the link is hidden and the button shows instead. Both link back
+  to the search results, so the button is a compact "back to the search" affordance.
+*/
+.pd-navbar-searchlink:not(.pd-navbar-searchlink-collapsible) .pd-inputtextlink {
+  min-width: 8rem;
+}
+.pd-navbar-searchlink-button {
+  display: none;
+}
+/* .pd-navbar prefix so this outweighs a consumer theme styling the link's display through .pd-navbar .pd-inputtextlink. */
+.pd-navbar .pd-navbar-searchlink-collapsible .pd-inputtextlink {
+  display: none;
+}
+.pd-navbar-searchlink-collapsible .pd-navbar-searchlink-button {
+  display: inline-flex;
+}
+
 @layer base {
   body {
     container-type: inline-size;

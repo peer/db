@@ -6,7 +6,7 @@ import type { D } from "@/document"
 import type { DocumentBeginEditResponse, QueryValues } from "@/types"
 
 import { Tab, TabGroup, TabList, TabPanel, TabPanels } from "@headlessui/vue"
-import { ChevronLeftIcon, ChevronRightIcon, PencilIcon, TrashIcon } from "@heroicons/vue/20/solid"
+import { ChevronLeftIcon, ChevronRightIcon, MagnifyingGlassIcon, PencilIcon, TrashIcon } from "@heroicons/vue/20/solid"
 import { computed, onBeforeUnmount, provide, ref, toRef, useTemplateRef, watch, watchEffect } from "vue"
 import { useI18n } from "vue-i18n"
 import { useRoute, useRouter } from "vue-router"
@@ -24,6 +24,7 @@ import { getBestClaimOfType, getClaimsOfTypeWithConfidence, selectClaimsByLangua
 import { documentActionsKey } from "@/document-actions"
 import { documentNavigationKey } from "@/document-navigation"
 import { decodeMetadata } from "@/metadata"
+import { useNavbarCollapse } from "@/navbar"
 import ClaimValueHtml from "@/partials/claimvalue/ClaimValueHtml.vue"
 import DisplayLabel from "@/partials/DisplayLabel.vue"
 import DocumentHistory from "@/partials/DocumentHistory.vue"
@@ -112,6 +113,13 @@ const { searchSession, error: searchSessionError } = useSearchSession(
   progress,
 )
 const { results, error: searchResultsError } = useSearch(searchSession, el, progress)
+
+// On document pages reached from a search the navbar top bar is the search-session bar: the query link plus
+// a button that replaces it. Collapse it the same way the search input collapses: once the navbar can no
+// longer fit the query link at its minimum usable width, hide the link and show the button (which links back
+// to the results). The bar is present only while a search session is set, so the query returns null
+// otherwise and the measurement is a no-op.
+useNavbarCollapse(() => document.querySelector<HTMLElement>(".pd-navbar .pd-navbar-searchlink"), "pd-navbar-searchlink-collapsible")
 
 // See: https://github.com/vuejs/core/issues/14249
 //eslint-disable-next-line @typescript-eslint/no-misused-promises
@@ -496,14 +504,31 @@ async function onDelete() {
     <NavBar>
       <template #start>
         <template v-if="searchSession !== null">
-          <!-- self-stretch so the query link keeps the row height even when the query is empty, instead of collapsing to its text height. -->
-          <InputTextLink
-            class="max-w-xl grow self-stretch"
-            :to="{ name: 'SearchGet', params: { id: searchSession.id }, query: encodeQuery({ at: id }) }"
-            :after-click="afterClick"
-          >
-            {{ searchSession.query }}
-          </InputTextLink>
+          <!--
+            The search-session bar: the query as a link back to the results, plus a button that replaces the
+            link once the navbar can no longer fit it (see useNavbarCollapse). display: contents so the link
+            and the button are the navbar's flex items directly. Both target the results, so the compact
+            button is simply a "back to the search" affordance.
+          -->
+          <div class="pd-navbar-searchlink contents">
+            <!-- self-stretch so the query link keeps the row height even when the query is empty, instead of collapsing to its text height. -->
+            <InputTextLink
+              class="max-w-xl grow self-stretch"
+              :to="{ name: 'SearchGet', params: { id: searchSession.id }, query: encodeQuery({ at: id }) }"
+              :after-click="afterClick"
+            >
+              {{ searchSession.query }}
+            </InputTextLink>
+            <ButtonLink
+              primary
+              class="pd-navbar-searchlink-button"
+              :to="{ name: 'SearchGet', params: { id: searchSession.id }, query: encodeQuery({ at: id }) }"
+              :after-click="afterClick"
+            >
+              <MagnifyingGlassIcon class="size-5 sm:hidden" :alt="t('common.buttons.search')" />
+              <span class="hidden sm:inline">{{ t("common.buttons.search") }}</span>
+            </ButtonLink>
+          </div>
           <!--
             A tight prev/next pair. The floor is two button floors plus the gap-x-1 (min-w-25), so the navbar can
             compress the pair down to the buttons' own floor (an icon each) but not past it, which would let the

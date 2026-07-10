@@ -13,8 +13,8 @@ const { t } = useI18n({ useScope: "global" })
 
 const open = ref(false)
 
-// The collapse breakpoint matches Tailwind's md (768px): below it the actions fold into the menu.
-const mediaQuery = window.matchMedia("(max-width: 767.98px)")
+// The collapse breakpoint matches Tailwind's md (48rem): below it the actions fold into the menu.
+const mediaQuery = window.matchMedia("(width < 48rem)")
 const collapsed = ref(mediaQuery.matches)
 function onMediaChange(event: MediaQueryListEvent): void {
   collapsed.value = event.matches
