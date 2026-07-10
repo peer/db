@@ -219,7 +219,7 @@ const hasContent = computed(() => hasAnyFieldValues.value || (props.sections && 
                   <DocumentRefInline :id="field.propertyId" :link="false" />
                 </td>
                 <td v-else class="hidden sm:block"></td>
-                <td class="px-2 py-1 align-top text-gray-700">
+                <td class="px-2 pt-0 pb-1 align-top text-gray-700 sm:pt-1">
                   <ClaimValue :claim="claim" :type="claimTypeName(claim)" />
                 </td>
               </tr>
@@ -280,7 +280,7 @@ const hasContent = computed(() => hasAnyFieldValues.value || (props.sections && 
                         <DocumentRefInline :id="field.propertyId" :link="false" />
                       </td>
                       <td v-else class="hidden sm:block"></td>
-                      <td class="px-2 py-1 align-top text-gray-700">
+                      <td class="px-2 pt-0 pb-1 align-top text-gray-700 sm:pt-1">
                         <ClaimValue :claim="claim" :type="claimTypeName(claim)" />
                       </td>
                     </tr>
