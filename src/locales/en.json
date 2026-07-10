@@ -39,6 +39,7 @@
       "upload": "Upload failed. Please try again."
     },
     "status": {
+      "deletingNotAllowed": "Deleting not allowed.",
       "editingNotAllowed": "Editing not allowed.",
       "loading": "Loading...",
       "loadingDataFailed": "loading data failed",
@@ -295,6 +296,10 @@
     "DocumentCreate": {
       "title": "Create a new document",
       "noClasses": "There are no document types available to create."
+    },
+    "DocumentDelete": {
+      "title": "Delete document",
+      "confirm": "Do you want to delete the document?"
     },
     "DocumentGet": {
       "tabs": {

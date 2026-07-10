@@ -267,6 +267,11 @@ func (s *Service) setRoutes() { //nolint:maintidx
 			},
 		},
 		"DocumentDelete": {
+			RouteOptions: waf.RouteOptions{
+				Handlers: map[string]waf.Handler{
+					http.MethodGet: s.DocumentDeleteGet,
+				},
+			},
 			Path: "/d/delete/:id",
 			API: waf.RouteOptions{
 				Handlers: map[string]waf.Handler{

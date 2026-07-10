@@ -25,13 +25,15 @@ import { encodeQuery, loadingLongWidth, loadingWidth } from "@/utils"
 
 const props = withDefaults(
   defineProps<{
-    searchSessionId: string
+    // The search session this result belongs to. The document links carry it as the "s" query parameter.
+    searchSessionId?: string
     result: DeepReadonly<Result>
     // duplicate is true when this result's document already appeared earlier in the grouped results; the card
     // then shows only its heading and a link back to the first occurrence instead of its contents.
     duplicate?: boolean
   }>(),
   {
+    searchSessionId: undefined,
     duplicate: false,
   },
 )

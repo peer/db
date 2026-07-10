@@ -98,6 +98,47 @@ func (s *Service) DocumentGetGet(w http.ResponseWriter, req *http.Request, param
 	s.HomeGet(w, req, nil)
 }
 
+// DocumentDeleteGet is a GET/HEAD HTTP request handler which returns HTML frontend for the
+// document deletion confirmation page given its ID as a parameter. It requires the delete
+// permission and that the document exists, so the page is not shown when the action is not possible.
+func (s *Service) DocumentDeleteGet(w http.ResponseWriter, req *http.Request, params waf.Params) {
+	ctx := req.Context()
+	metrics := waf.MustGetMetrics(ctx)
+
+	errE := s.HasPermission(ctx, auth.CanDeleteDocument)
+	if errE != nil {
+		s.ForbiddenWithError(w, req, errE)
+		return
+	}
+
+	id, errE := identifier.MaybeString(params["id"])
+	if errE != nil {
+		s.BadRequestWithError(w, req, errors.WithMessage(errE, `"id" is not a valid identifier`))
+		return
+	}
+
+	site := waf.MustGetSite[*internalSite.Site](req.Context())
+
+	m := metrics.Duration(internalStore.MetricDatabase).Start()
+	// TODO: Add API to store to just check if the value exists.
+	_, _, _, _, errE = site.Base.GetDocumentLatest(ctx, id)
+	m.Stop()
+
+	if errors.Is(errE, store.ErrValueNotFound) {
+		// This includes ErrValueDeleted, too.
+		s.NotFoundWithError(w, req, errE)
+		return
+	} else if errors.Is(errE, store.ErrAccessDenied) {
+		s.ForbiddenWithError(w, req, errE)
+		return
+	} else if errE != nil {
+		s.InternalServerErrorWithError(w, req, errE)
+		return
+	}
+
+	s.HomeGet(w, req, nil)
+}
+
 // documentGetData is a shared helper that validates the document ID and version parameters,
 // retrieves the document from the store, and returns the raw JSON data and metadata.
 func (s *Service) documentGetData(

@@ -12,7 +12,7 @@ import { computed, onBeforeUnmount, provide, ref, toRef, useTemplateRef, watch, 
 import { useI18n } from "vue-i18n"
 import { useRoute, useRouter } from "vue-router"
 
-import { deleteFromCache, headURLDirect, postJSON } from "@/api"
+import { headURLDirect, postJSON } from "@/api"
 import { CAN_CHANGES_DOCUMENT, CAN_DELETE_DOCUMENT, CAN_EDIT_DOCUMENT, hasPermission } from "@/auth"
 import Button from "@/components/Button.vue"
 import ButtonLink from "@/components/ButtonLink.vue"
@@ -74,13 +74,6 @@ const editLock = lockScope(getParentLock())
 const editBusy = localCounter(editLock)
 function getEditLock() {
   return editLock
-}
-
-// Independent lock-scope for the Delete button, mirroring the Edit button's.
-const deleteLock = lockScope(getParentLock())
-const deleteBusy = localCounter(deleteLock)
-function getDeleteLock() {
-  return deleteLock
 }
 
 // Whether the document sidebar (edit and delete actions plus the related-search links) is toggled open on
@@ -177,16 +170,16 @@ provide(documentNavigationKey, {
   prevNext,
 })
 
-// Expose the edit and delete actions to registered document components, so downstream sites can render
-// their own edit and delete controls inside the page. Setting hideDocumentActions hides the built-in
-// side-column edit and delete buttons (below) so a site's own controls do not appear alongside them.
+// Expose the edit action and the edit/delete permissions to registered document components, so downstream
+// sites can render their own edit and delete controls inside the page. Deletion goes through the
+// DocumentDelete confirmation page, so sites link their delete control to that route rather than calling a
+// handler here. Setting hideDocumentActions hides the built-in side-column edit and delete buttons (below) so
+// a site's own controls do not appear alongside them.
 provide(documentActionsKey, {
   canEdit: computed(() => hasPermission(CAN_EDIT_DOCUMENT)),
   canDelete: computed(() => hasPermission(CAN_DELETE_DOCUMENT)),
   editBusy,
-  deleteBusy,
   edit: onEdit,
-  delete: onDelete,
 })
 
 function afterClick() {
@@ -473,49 +466,6 @@ async function onEdit() {
   }
 }
 
-async function onDelete() {
-  if (abortController.signal.aborted) {
-    return
-  }
-
-  deleteBusy.value += 1
-  try {
-    await postJSON(
-      router.apiResolve({
-        name: "DocumentDelete",
-        params: {
-          id: props.id,
-        },
-      }).href,
-      {},
-      abortController.signal,
-      deleteBusy,
-    )
-    if (abortController.signal.aborted) {
-      return
-    }
-    // The document no longer exists, so drop its cached response and leave the page.
-    deleteFromCache(
-      router.apiResolve({
-        name: "DocumentGet",
-        params: {
-          id: props.id,
-        },
-      }).href,
-    )
-    await router.push({
-      name: "Home",
-    })
-  } catch (err) {
-    if (abortController.signal.aborted) {
-      return
-    }
-    // TODO: Show notification with error.
-    console.error("DocumentGet.onDelete", err)
-  } finally {
-    deleteBusy.value -= 1
-  }
-}
 </script>
 
 <template>
@@ -716,9 +666,7 @@ async function onDelete() {
           <WithLock v-if="hasPermission(CAN_EDIT_DOCUMENT)" :lock="getEditLock">
             <Button :progress="editBusy" type="button" class="w-full" @click.prevent="onEdit">{{ t("common.buttons.edit") }}</Button>
           </WithLock>
-          <WithLock v-if="hasPermission(CAN_DELETE_DOCUMENT)" :lock="getDeleteLock">
-            <Button :progress="deleteBusy" type="button" class="w-full" @click.prevent="onDelete">{{ t("common.buttons.delete") }}</Button>
-          </WithLock>
+          <ButtonLink v-if="hasPermission(CAN_DELETE_DOCUMENT)" :to="{ name: 'DocumentDelete', params: { id } }" class="w-full">{{ t("common.buttons.delete") }}</ButtonLink>
         </div>
         <div class="flex flex-col gap-2">
           <template v-for="(shortcut, i) of searchShortcuts" :key="i">

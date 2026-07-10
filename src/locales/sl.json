@@ -39,6 +39,7 @@
       "upload": "Nalaganje ni uspelo. Prosimo, poskusite znova."
     },
     "status": {
+      "deletingNotAllowed": "Brisanje ni dovoljeno.",
       "editingNotAllowed": "Urejanje ni dovoljeno.",
       "loading": "Nalaganje...",
       "loadingDataFailed": "nalaganje podatkov ni uspelo",
@@ -295,6 +296,10 @@
     "DocumentCreate": {
       "title": "Ustvari nov dokument",
       "noClasses": "Ni vrst dokumentov za ustvarjanje."
+    },
+    "DocumentDelete": {
+      "title": "Izbriši dokument",
+      "confirm": "Ali želite izbrisati dokument?"
     },
     "DocumentGet": {
       "tabs": {
