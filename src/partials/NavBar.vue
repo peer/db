@@ -59,9 +59,20 @@ useValidationRegistry()
             class="pd-navbar-logo h-10 group-focus:ring-2 group-focus:ring-primary-500 group-focus:ring-offset-1"
           />
         </picture>
-        <h1 v-else class="pd-navbar-logo text-4xl font-bold drop-shadow-xs group-focus:ring-2 group-focus:ring-primary-500 group-focus:ring-offset-1">{{
-          siteContext.title
-        }}</h1>
+        <!--
+          Without a configured logo the title stands in for it. On small screens only its first letter is shown
+          (a compact monogram) so the navbar fits narrow viewports; the full title returns from sm up. The full
+          title stays the accessible name at every width through aria-label, so the shortened form is not read
+          out on its own.
+        -->
+        <h1
+          v-else
+          :aria-label="siteContext.title"
+          class="pd-navbar-logo text-4xl font-bold drop-shadow-xs group-focus:ring-2 group-focus:ring-primary-500 group-focus:ring-offset-1"
+        >
+          <span aria-hidden="true" class="sm:hidden">{{ siteContext.title?.slice(0, 1) }}</span>
+          <span aria-hidden="true" class="hidden sm:inline">{{ siteContext.title }}</span>
+        </h1>
       </RouterLink>
       <slot name="start"><NavBarSearch /></slot>
       <component :is="c" v-for="(c, i) in navbarComponents" :key="i" :home="false" />

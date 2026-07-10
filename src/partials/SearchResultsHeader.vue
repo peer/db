@@ -76,9 +76,14 @@ function countFilters(): number {
 </script>
 
 <template>
-  <div class="pd-searchresultsheader flex flex-row gap-x-1 sm:gap-x-4">
+  <div class="pd-searchresultsheader flex items-start gap-y-1 max-sm:flex-col sm:gap-x-4 sm:gap-y-0">
+    <!--
+      The status box wraps rather than stacking on a fixed breakpoint: its description and result count sit side
+      by side (spread apart) while both fit, and the count drops onto its own line under the description once
+      there is no longer room, instead of each shrinking and wrapping internally.
+    -->
     <div
-      class="pd-searchresultsheader-status flex w-full flex-row items-center justify-between gap-x-1 rounded-sm bg-slate-200 px-2 py-1 sm:gap-x-4 sm:px-4 sm:py-2 print:bg-transparent print:px-1 print:py-0"
+      class="pd-searchresultsheader-status flex w-full flex-wrap items-start justify-between gap-x-4 gap-y-0.5 rounded-sm bg-slate-200 px-2 py-1 sm:px-4 sm:py-2 print:bg-transparent print:px-1 print:py-0"
     >
       <div v-if="searchTotal === null && searchSession.query">
         <i18n-t keypath="partials.SearchResultsHeader.searchingQueryFiltersInProgress" :plural="countFilters()" scope="global">
@@ -107,6 +112,11 @@ function countFilters(): number {
       </template>
     </div>
 
+    <!--
+      Below sm the toolbar sits on its own row under the status box, so its buttons form a horizontal group here.
+      From sm up this wrapper is display: contents, so the button groups are direct children of the header row again.
+    -->
+    <div class="pd-searchresultsheader-toolbar flex flex-row gap-x-1 sm:contents">
     <div v-if="sortable && !siteContext.features.disableSearchSort" class="pd-print-hidden flex shrink-0 items-center rounded-sm bg-slate-200 px-1 py-1">
       <button
         class="pd-searchresultsheader-button h-full rounded-sm px-2 py-0.5 outline-none hover:bg-slate-100 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1"
@@ -166,6 +176,7 @@ function countFilters(): number {
       >
         <ArrowDownTrayIcon class="size-6" :alt="t('partials.SearchResultsHeader.downloadFiles')" />
       </button>
+    </div>
     </div>
   </div>
 </template>

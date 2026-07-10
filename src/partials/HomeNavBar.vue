@@ -15,7 +15,7 @@ const parentProgress = getParentProgress()
   <div class="pd-navbar-wrapper">
     <div id="navbar" class="pd-navbar w-container flex min-h-[var(--pd-navbar-height)] grow items-center justify-end gap-x-1 p-1 sm:gap-x-4 sm:p-4">
       <component :is="c" v-for="(c, i) in navbarComponents" :key="i" home />
-      <CreateButton />
+      <CreateButton home />
       <LanguageSwitcher />
       <SignInButton />
     </div>

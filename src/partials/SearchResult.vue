@@ -5,6 +5,7 @@ import type { DeepReadonly } from "vue"
 import type { D } from "@/document"
 import type { Result } from "@/types"
 
+import { ArrowRightIcon } from "@heroicons/vue/20/solid"
 import { computed, onBeforeUnmount, toRef, useTemplateRef } from "vue"
 import { useI18n } from "vue-i18n"
 import { useRoute } from "vue-router"
@@ -164,8 +165,10 @@ const rowSpan = computed(() => {
           <ButtonLink
             :to="{ name: 'DocumentGet', params: { id: resultDoc.id }, query: encodeQuery({ s: searchSessionId }) }"
             class="pd-print-hidden float-end mb-1 ml-4 px-4"
-            >{{ t("partials.SearchResult.details") }}</ButtonLink
           >
+            <ArrowRightIcon class="size-5 sm:hidden" :alt="t('partials.SearchResult.details')" />
+            <span class="hidden sm:inline">{{ t("partials.SearchResult.details") }}</span>
+          </ButtonLink>
           <h2 v-show="displayLabelComponent?.displayLabel" class="mb-2 flex items-baseline gap-x-1 text-xl leading-none">
             <RouterLink :to="{ name: 'DocumentGet', params: { id: resultDoc.id }, query: encodeQuery({ s: searchSessionId }) }" class="link min-w-0"
               ><DisplayLabel ref="displayLabelComponent" :doc="resultDoc"
@@ -203,8 +206,10 @@ const rowSpan = computed(() => {
           <ButtonLink
             :to="{ name: 'DocumentGet', params: { id: resultDoc.id }, query: encodeQuery({ s: searchSessionId }) }"
             class="pd-print-hidden float-end mb-1 ml-4 px-4"
-            >{{ t("partials.SearchResult.details") }}</ButtonLink
           >
+            <ArrowRightIcon class="size-5 sm:hidden" :alt="t('partials.SearchResult.details')" />
+            <span class="hidden sm:inline">{{ t("partials.SearchResult.details") }}</span>
+          </ButtonLink>
           <h2 v-show="displayLabelComponent?.displayLabel" class="mb-2 flex items-baseline gap-x-1 text-xl leading-none">
             <RouterLink :to="{ name: 'DocumentGet', params: { id: resultDoc.id }, query: encodeQuery({ s: searchSessionId }) }" class="link min-w-0"
               ><DisplayLabel ref="displayLabelComponent" :doc="resultDoc"
