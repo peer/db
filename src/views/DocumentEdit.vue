@@ -1456,20 +1456,16 @@ function canSave(): boolean {
           See: https://github.com/tailwindlabs/tailwindcss/discussions/10123
         -->
           <TabGroup manual :selected-index="selectedMainTab" @change="(index) => (selectedMainTab = index)">
-            <TabList class="-m-4 mb-4 flex border-collapse flex-row rounded-t border-b border-gray-200 bg-slate-100 contain-inline-size">
+            <TabList class="mb-4 flex flex-wrap gap-2">
               <Tab
                 v-if="classTabId && mergedFieldsData"
                 :key="classTabId"
-                class="min-w-0 overflow-hidden border-r border-gray-200 leading-tight font-medium uppercase outline-none select-none first:rounded-tl not-aria-selected:hover:bg-slate-50 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 aria-selected:bg-white"
-                ><span class="block [mask-image:linear-gradient(to_right,black_calc(100%_-_--spacing(4)),transparent)] px-4 py-3 whitespace-nowrap"
-                  ><DocumentRefInline :id="classTabId" :link="false" title /></span
-              ></Tab>
+                class="rounded-sm border border-gray-300 bg-white px-4 py-2 leading-tight font-medium uppercase text-gray-700 outline-none select-none not-aria-selected:hover:bg-gray-50 focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-1 aria-selected:border-primary-600 aria-selected:bg-primary-600 aria-selected:text-white"
+                ><DocumentRefInline :id="classTabId" :link="false"
+              /></Tab>
               <Tab
-                :title="t('views.DocumentEdit.tabs.allProperties')"
-                class="min-w-0 overflow-hidden border-r border-gray-200 leading-tight font-medium uppercase outline-none select-none first:rounded-tl not-aria-selected:hover:bg-slate-50 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 aria-selected:bg-white"
-                ><span class="block [mask-image:linear-gradient(to_right,black_calc(100%_-_--spacing(4)),transparent)] px-4 py-3 whitespace-nowrap">{{
-                  t("views.DocumentEdit.tabs.allProperties")
-                }}</span></Tab
+                class="rounded-sm border border-gray-300 bg-white px-4 py-2 leading-tight font-medium uppercase text-gray-700 outline-none select-none not-aria-selected:hover:bg-gray-50 focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-1 aria-selected:border-primary-600 aria-selected:bg-primary-600 aria-selected:text-white"
+                >{{ t("views.DocumentEdit.tabs.allProperties") }}</Tab
               >
             </TabList>
             <h1 v-show="displayLabelComponent?.displayLabel" class="mb-4 text-3xl font-bold drop-shadow-xs"><DisplayLabel ref="displayLabelComponent" :doc="doc" /></h1>
@@ -1518,17 +1514,14 @@ function canSave(): boolean {
                     editingClaimId ? t("views.DocumentEdit.editClaim") : subClaimParentId ? t("views.DocumentEdit.addSubClaim") : t("views.DocumentEdit.addClaim")
                   }}</h2>
                   <TabGroup :selected-index="selectedClaimTab" @change="onChangeClaimTab">
-                    <TabList class="mt-4 flex border-collapse flex-row border border-gray-200 bg-slate-100 contain-inline-size">
+                    <TabList class="mt-4 flex flex-wrap gap-2">
                       <Tab
                         v-for="type in claimTypes"
                         :key="type"
                         :disabled="claimTypeDisabled(type)"
-                        :title="claimTypeLabel(type)"
-                        class="min-w-0 overflow-hidden border-r border-gray-200 leading-tight font-medium uppercase outline-none select-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 aria-selected:bg-white"
-                        :class="claimTypeDisabled(type) ? 'cursor-not-allowed opacity-50' : 'not-aria-selected:hover:bg-slate-50'"
-                        ><span class="block [mask-image:linear-gradient(to_right,black_calc(100%_-_--spacing(4)),transparent)] px-4 py-3 whitespace-nowrap">{{
-                          claimTypeLabel(type)
-                        }}</span></Tab
+                        class="rounded-sm border border-gray-300 bg-white px-4 py-2 leading-tight font-medium uppercase text-gray-700 outline-none select-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-1 aria-selected:border-primary-600 aria-selected:bg-primary-600 aria-selected:text-white"
+                        :class="claimTypeDisabled(type) ? 'cursor-not-allowed opacity-50' : 'not-aria-selected:hover:bg-gray-50'"
+                        >{{ claimTypeLabel(type) }}</Tab
                       >
                     </TabList>
                     <TabPanels as="template">

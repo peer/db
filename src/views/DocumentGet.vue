@@ -568,32 +568,32 @@ async function onEdit() {
             See: https://github.com/tailwindlabs/tailwindcss/discussions/10123
           -->
             <TabGroup v-else manual :selected-index="selectedTabIndex" @change="onTabChange">
-              <TabList class="pd-documentget-tabs -m-4 mb-4 flex border-collapse flex-row rounded-t border-b border-gray-200 bg-slate-100">
+              <TabList class="pd-documentget-tabs mb-4 flex flex-wrap gap-2">
                 <!-- The page content tab. The page title is shown as the h1 heading below. -->
                 <Tab
                   v-if="isPage"
-                  class="border-r border-gray-200 px-4 py-3 leading-tight font-medium uppercase outline-none select-none first:rounded-tl not-aria-selected:hover:bg-slate-50 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 aria-selected:bg-white"
+                  class="rounded-sm border border-gray-300 bg-white px-4 py-2 leading-tight font-medium uppercase text-gray-700 outline-none select-none not-aria-selected:hover:bg-gray-50 focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-1 aria-selected:border-primary-600 aria-selected:bg-primary-600 aria-selected:text-white"
                   >{{ t("views.DocumentGet.tabs.content") }}</Tab
                 >
                 <Tab
                   v-for="documentTab in documentTabs"
                   :key="documentTab.id"
-                  class="border-r border-gray-200 px-4 py-3 leading-tight font-medium uppercase outline-none select-none first:rounded-tl not-aria-selected:hover:bg-slate-50 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 aria-selected:bg-white"
+                  class="rounded-sm border border-gray-300 bg-white px-4 py-2 leading-tight font-medium uppercase text-gray-700 outline-none select-none not-aria-selected:hover:bg-gray-50 focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-1 aria-selected:border-primary-600 aria-selected:bg-primary-600 aria-selected:text-white"
                   ><DocumentRefInline :id="documentTab.id" :link="false"
                 /></Tab>
                 <Tab
                   v-if="hasFieldsViewPanel"
-                  class="border-r border-gray-200 px-4 py-3 leading-tight font-medium uppercase outline-none select-none first:rounded-tl not-aria-selected:hover:bg-slate-50 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 aria-selected:bg-white"
+                  class="rounded-sm border border-gray-300 bg-white px-4 py-2 leading-tight font-medium uppercase text-gray-700 outline-none select-none not-aria-selected:hover:bg-gray-50 focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-1 aria-selected:border-primary-600 aria-selected:bg-primary-600 aria-selected:text-white"
                   ><DocumentRefInline :id="classTabId!" :link="false"
                 /></Tab>
                 <Tab
-                  class="border-r border-gray-200 px-4 py-3 leading-tight font-medium uppercase outline-none select-none first:rounded-tl not-aria-selected:hover:bg-slate-50 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 aria-selected:bg-white"
+                  class="rounded-sm border border-gray-300 bg-white px-4 py-2 leading-tight font-medium uppercase text-gray-700 outline-none select-none not-aria-selected:hover:bg-gray-50 focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-1 aria-selected:border-primary-600 aria-selected:bg-primary-600 aria-selected:text-white"
                   >{{ t("views.DocumentGet.tabs.allProperties") }}</Tab
                 >
                 <!-- The history API requires this permission, so the tab is shown only to callers who can use it. -->
                 <Tab
                   v-if="hasPermission(CAN_CHANGES_DOCUMENT)"
-                  class="border-r border-gray-200 px-4 py-3 leading-tight font-medium uppercase outline-none select-none first:rounded-tl not-aria-selected:hover:bg-slate-50 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 aria-selected:bg-white"
+                  class="rounded-sm border border-gray-300 bg-white px-4 py-2 leading-tight font-medium uppercase text-gray-700 outline-none select-none not-aria-selected:hover:bg-gray-50 focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-1 aria-selected:border-primary-600 aria-selected:bg-primary-600 aria-selected:text-white"
                   >{{ t("views.DocumentGet.tabs.history") }}</Tab
                 >
               </TabList>
