@@ -6,7 +6,7 @@ import type { D } from "@/document"
 import type { DocumentBeginEditResponse, QueryValues } from "@/types"
 
 import { Tab, TabGroup, TabList, TabPanel, TabPanels } from "@headlessui/vue"
-import { ChevronLeftIcon, ChevronRightIcon, MagnifyingGlassIcon, PencilIcon, TrashIcon } from "@heroicons/vue/20/solid"
+import { ChevronLeftIcon, ChevronRightIcon, MagnifyingGlassIcon } from "@heroicons/vue/20/solid"
 import { computed, onBeforeUnmount, provide, ref, toRef, useTemplateRef, watch, watchEffect } from "vue"
 import { useI18n } from "vue-i18n"
 import { useRoute, useRouter } from "vue-router"
@@ -171,8 +171,9 @@ provide(documentNavigationKey, {
   prevNext,
 })
 
-// Expose the edit and delete actions to registered document components, so downstream sites can
-// render these controls inside the page (see hideNavbarDocumentActions to also hide the navbar buttons).
+// Expose the edit and delete actions to registered document components, so downstream sites can render
+// their own edit and delete controls inside the page. Setting hideDocumentActions hides the built-in
+// side-column edit and delete buttons (below) so a site's own controls do not appear alongside them.
 provide(documentActionsKey, {
   canEdit: computed(() => hasPermission(CAN_EDIT_DOCUMENT)),
   canDelete: computed(() => hasPermission(CAN_DELETE_DOCUMENT)),
@@ -557,26 +558,6 @@ async function onDelete() {
         </template>
         <NavBarSearch v-else />
       </template>
-      <template #end>
-        <!--
-          The edit and delete buttons are shown in the navbar unless the site opts to render them
-          inside the page instead (via the document actions provided to document components).
-        -->
-        <template v-if="!siteContext.features.hideNavbarDocumentActions">
-          <WithLock v-if="hasPermission(CAN_EDIT_DOCUMENT)" :lock="getEditLock">
-            <Button :progress="editBusy" type="button" primary @click.prevent="onEdit">
-              <PencilIcon class="size-5 sm:hidden" :alt="t('common.buttons.edit')" />
-              <span class="hidden sm:inline">{{ t("common.buttons.edit") }}</span>
-            </Button>
-          </WithLock>
-          <WithLock v-if="hasPermission(CAN_DELETE_DOCUMENT)" :lock="getDeleteLock">
-            <Button :progress="deleteBusy" type="button" primary @click.prevent="onDelete">
-              <TrashIcon class="size-5 sm:hidden" :alt="t('common.buttons.delete')" />
-              <span class="hidden sm:inline">{{ t("common.buttons.delete") }}</span>
-            </Button>
-          </WithLock>
-        </template>
-      </template>
     </NavBar>
   </Teleport>
   <div
@@ -641,20 +622,38 @@ async function onDelete() {
               <TabPanel v-if="hasFieldsViewPanel" tabindex="-1" class="outline-none">
                 <div class="flex flex-row items-start gap-4">
                   <div class="min-w-0 grow"><FieldsView :fields-data="mergedFieldsData!" :claims="doc.claims" sections /></div>
-                  <div class="pd-print-hidden flex shrink-0 flex-col gap-2">
-                    <template v-for="(shortcut, i) of searchShortcuts" :key="i">
+                  <div class="pd-print-hidden flex shrink-0 flex-col gap-4">
+                    <!--
+                      Edit and delete sit at the top of the side links, set off from the search shortcuts below by the
+                      double gap. Shown when the user may perform the action and the site has not opted to render its
+                      own document actions (see the documentActions provide and hideDocumentActions).
+                    -->
+                    <div
+                      v-if="!siteContext.features.hideDocumentActions && (hasPermission(CAN_EDIT_DOCUMENT) || hasPermission(CAN_DELETE_DOCUMENT))"
+                      class="flex flex-col gap-2"
+                    >
+                      <WithLock v-if="hasPermission(CAN_EDIT_DOCUMENT)" :lock="getEditLock">
+                        <Button :progress="editBusy" type="button" class="w-full" @click.prevent="onEdit">{{ t("common.buttons.edit") }}</Button>
+                      </WithLock>
+                      <WithLock v-if="hasPermission(CAN_DELETE_DOCUMENT)" :lock="getDeleteLock">
+                        <Button :progress="deleteBusy" type="button" class="w-full" @click.prevent="onDelete">{{ t("common.buttons.delete") }}</Button>
+                      </WithLock>
+                    </div>
+                    <div class="flex flex-col gap-2">
+                      <template v-for="(shortcut, i) of searchShortcuts" :key="i">
+                        <SearchShortcutLink
+                          v-if="showShortcut(shortcut.count)"
+                          :query="shortcut.query"
+                          :label="shortcutLabel(shortcut.name, shortcut.count)"
+                          :create-query="shortcut.createQuery"
+                        />
+                      </template>
                       <SearchShortcutLink
-                        v-if="showShortcut(shortcut.count)"
-                        :query="shortcut.query"
-                        :label="shortcutLabel(shortcut.name, shortcut.count)"
-                        :create-query="shortcut.createQuery"
+                        v-if="showShortcut(referencedByCount)"
+                        :query="encodeQuery({ reverse: id })"
+                        :label="shortcutLabel(t('views.DocumentGet.referencedBy'), referencedByCount)"
                       />
-                    </template>
-                    <SearchShortcutLink
-                      v-if="showShortcut(referencedByCount)"
-                      :query="encodeQuery({ reverse: id })"
-                      :label="shortcutLabel(t('views.DocumentGet.referencedBy'), referencedByCount)"
-                    />
+                    </div>
                   </div>
                 </div>
               </TabPanel>
@@ -674,20 +673,34 @@ async function onDelete() {
                       </tbody>
                     </table>
                   </div>
-                  <div v-if="!hasFieldsViewPanel" class="pd-print-hidden flex shrink-0 flex-col gap-2">
-                    <template v-for="(shortcut, i) of searchShortcuts" :key="i">
+                  <div v-if="!hasFieldsViewPanel" class="pd-print-hidden flex shrink-0 flex-col gap-4">
+                    <!-- Edit and delete on top of the side links, set off by the double gap, see the FieldsView panel above. -->
+                    <div
+                      v-if="!siteContext.features.hideDocumentActions && (hasPermission(CAN_EDIT_DOCUMENT) || hasPermission(CAN_DELETE_DOCUMENT))"
+                      class="flex flex-col gap-2"
+                    >
+                      <WithLock v-if="hasPermission(CAN_EDIT_DOCUMENT)" :lock="getEditLock">
+                        <Button :progress="editBusy" type="button" class="w-full" @click.prevent="onEdit">{{ t("common.buttons.edit") }}</Button>
+                      </WithLock>
+                      <WithLock v-if="hasPermission(CAN_DELETE_DOCUMENT)" :lock="getDeleteLock">
+                        <Button :progress="deleteBusy" type="button" class="w-full" @click.prevent="onDelete">{{ t("common.buttons.delete") }}</Button>
+                      </WithLock>
+                    </div>
+                    <div class="flex flex-col gap-2">
+                      <template v-for="(shortcut, i) of searchShortcuts" :key="i">
+                        <SearchShortcutLink
+                          v-if="showShortcut(shortcut.count)"
+                          :query="shortcut.query"
+                          :label="shortcutLabel(shortcut.name, shortcut.count)"
+                          :create-query="shortcut.createQuery"
+                        />
+                      </template>
                       <SearchShortcutLink
-                        v-if="showShortcut(shortcut.count)"
-                        :query="shortcut.query"
-                        :label="shortcutLabel(shortcut.name, shortcut.count)"
-                        :create-query="shortcut.createQuery"
+                        v-if="showShortcut(referencedByCount)"
+                        :query="encodeQuery({ reverse: id })"
+                        :label="shortcutLabel(t('views.DocumentGet.referencedBy'), referencedByCount)"
                       />
-                    </template>
-                    <SearchShortcutLink
-                      v-if="showShortcut(referencedByCount)"
-                      :query="encodeQuery({ reverse: id })"
-                      :label="shortcutLabel(t('views.DocumentGet.referencedBy'), referencedByCount)"
-                    />
+                    </div>
                   </div>
                 </div>
               </TabPanel>
