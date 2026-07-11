@@ -50,6 +50,7 @@ declare module "vue-i18n" {
         upload: string
       }
       status: {
+        deletingNotAllowed: string
         editingNotAllowed: string
         loading: string
         loadingDataFailed: string
@@ -307,6 +308,10 @@ declare module "vue-i18n" {
         title: string
         noClasses: string
       }
+      DocumentDelete: {
+        title: string
+        confirm: string
+      }
       DocumentGet: {
         tabs: {
           allProperties: string
@@ -315,7 +320,6 @@ declare module "vue-i18n" {
         }
         history: {
           author: string
-          changeset: string
           anonymous: string
           empty: string
         }
