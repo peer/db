@@ -12,6 +12,9 @@ globals:
         downloadButtons: true
         indexAncestorProperties: true
       roles:
+        "":
+          - canChangesDocument
+          - canChangesFile
         admin:
           - canEditDocument
           - canDeleteDocument
