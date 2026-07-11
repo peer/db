@@ -61,6 +61,11 @@ type SiteFeatures struct {
 	// of this flag.
 	HideDocumentActions bool `json:"hideDocumentActions,omitempty" yaml:"hideDocumentActions,omitempty"`
 
+	// LocalizedTimeDisplay makes TimeDisplay default to formatting absolute timestamps with
+	// Intl.DateTimeFormat in the current UI language (instead of the plain rendering). Sites that prefer
+	// localized times set this once instead of passing the localized prop through claim value components.
+	LocalizedTimeDisplay bool `json:"localizedTimeDisplay,omitempty" yaml:"localizedTimeDisplay,omitempty"`
+
 	// NavbarPosition is the navbar positioning mode: "fixed" keeps the navbar at the viewport top,
 	// "static" leaves it in the document flow at the page top, and empty means the default
 	// auto-hide behavior (hidden while scrolling down, shown when scrolling up).

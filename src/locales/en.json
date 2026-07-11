@@ -309,7 +309,6 @@
       },
       "history": {
         "author": "Author",
-        "changeset": "Changeset",
         "anonymous": "anonymous",
         "empty": "No history."
       },

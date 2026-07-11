@@ -13,11 +13,11 @@ import TimeDisplay from "@/partials/TimeDisplay.vue"
 const props = withDefaults(
   defineProps<{
     claim: TimeIntervalClaim | DeepReadonly<TimeIntervalClaim> | null
-    // Passed through to TimeDisplay: format with Intl.DateTimeFormat in the current UI language.
+    // Passed through to TimeDisplay. When unset, TimeDisplay falls back to the site's localizedTimeDisplay feature.
     localized?: boolean
   }>(),
   {
-    localized: false,
+    localized: undefined,
   },
 )
 

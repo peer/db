@@ -6,14 +6,15 @@ import { useI18n } from "vue-i18n"
 import { useRouter } from "vue-router"
 
 import { getURL } from "@/api"
+import TimeDisplay from "@/partials/TimeDisplay.vue"
 import { getRootProgress } from "@/progress"
-import { encodeQuery } from "@/utils"
+import { encodeQuery, timeStringFromFloat64 } from "@/utils"
 
 const props = defineProps<{
   id: string
 }>()
 
-const { t, locale } = useI18n({ useScope: "global" })
+const { t } = useI18n({ useScope: "global" })
 const router = useRouter()
 
 // We use root progress for loading data.
@@ -49,8 +50,9 @@ onMounted(async () => {
   }
 })
 
-function formatAt(at: string): string {
-  return new Intl.DateTimeFormat(locale.value, { dateStyle: "medium", timeStyle: "medium" }).format(new Date(at))
+// Convert the changeset timestamp (an ISO timestamp) to the Time-claim string TimeDisplay renders, at second precision.
+function timeString(at: string): string {
+  return timeStringFromFloat64(new Date(at).getTime() / 1000, "s")
 }
 
 function formatAuthors(item: DocumentHistoryItem): string {
@@ -69,20 +71,18 @@ function formatAuthors(item: DocumentHistoryItem): string {
     <table v-else class="w-full table-auto border-collapse">
       <thead>
         <tr>
-          <th class="border-r border-slate-200 px-2 py-1 text-left font-bold">{{ t("common.labels.time") }}</th>
-          <th class="border-x border-slate-200 px-2 py-1 text-left font-bold">{{ t("views.DocumentGet.history.author") }}</th>
-          <th class="border-l border-slate-200 px-2 py-1 text-left font-bold">{{ t("views.DocumentGet.history.changeset") }}</th>
+          <th class="w-1/2 border-r border-slate-200 px-2 py-1 text-left font-bold">{{ t("common.labels.time") }}</th>
+          <th class="w-1/2 border-l border-slate-200 px-2 py-1 text-left font-bold">{{ t("views.DocumentGet.history.author") }}</th>
         </tr>
       </thead>
       <tbody>
         <tr v-for="item in history" :key="item.changeset" class="border-t border-slate-200">
-          <td class="border-r border-slate-200 px-2 py-1 align-top whitespace-nowrap">{{ formatAt(item.at) }}</td>
-          <td class="border-x border-slate-200 px-2 py-1 align-top">{{ formatAuthors(item) }}</td>
-          <td class="border-l border-slate-200 px-2 py-1 align-top">
-            <RouterLink class="link font-mono" :to="{ name: 'DocumentGet', params: { id }, query: encodeQuery({ version: item.version }) }">{{
-              item.changeset
-            }}</RouterLink>
+          <td class="border-r border-slate-200 px-2 py-1 align-top">
+            <RouterLink class="link" :to="{ name: 'DocumentGet', params: { id }, query: encodeQuery({ version: item.version }) }"
+              ><TimeDisplay :timestamp="timeString(item.at)" precision="s" :toggle="false"
+            /></RouterLink>
           </td>
+          <td class="border-l border-slate-200 px-2 py-1 align-top">{{ formatAuthors(item) }}</td>
         </tr>
       </tbody>
     </table>

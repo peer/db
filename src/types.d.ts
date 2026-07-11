@@ -301,6 +301,10 @@ export type SiteContext = {
     // links), for sites that render these actions inside the page themselves (through the document actions
     // provided to document components).
     hideDocumentActions?: boolean
+    // Makes TimeDisplay default to formatting absolute timestamps with Intl.DateTimeFormat in the current UI
+    // language (instead of the plain rendering), so sites do not have to pass the localized prop through claim
+    // value components.
+    localizedTimeDisplay?: boolean
   }
   roles?: {
     [roleName: string]: string[]

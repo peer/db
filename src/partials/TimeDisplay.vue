@@ -4,6 +4,7 @@ import type { TimePrecision } from "@/document"
 import { computed, onBeforeUnmount, ref, watchEffect } from "vue"
 import { useI18n } from "vue-i18n"
 
+import siteContext from "@/context"
 import { timeFloat64 } from "@/document/time"
 import {
   convertParsedToUtc,
@@ -27,7 +28,8 @@ const props = withDefaults(
     // in another clickable element (e.g., a label) which should receive the click.
     toggle?: boolean
     // Format the absolute display with Intl.DateTimeFormat in the current UI language instead of
-    // the plain ISO-like rendering, still respecting the claim precision.
+    // the plain ISO-like rendering, still respecting the claim precision. When unset, the site's
+    // localizedTimeDisplay feature decides.
     localized?: boolean
     // IANA timezone the timestamp is in (from an IN_LOCATION sub claim of the time claim). Without
     // it the timestamp is in UTC. Only timestamps with hour or finer precision are converted;
@@ -37,7 +39,7 @@ const props = withDefaults(
   {
     format: "absolute",
     toggle: true,
-    localized: false,
+    localized: undefined,
     location: undefined,
   },
 )
@@ -85,12 +87,16 @@ const parsedUtc = computed(() => {
   return parsed.value
 })
 
+// Whether absolute timestamps are localized (Intl.DateTimeFormat in the UI language): an explicit prop
+// wins, otherwise the site's localizedTimeDisplay feature decides.
+const localizedEffective = computed(() => props.localized ?? siteContext.features.localizedTimeDisplay)
+
 // Format absolute time with grayed out imprecise parts, or localized when requested.
 const absoluteDisplay = computed(() => {
   if (!parsed.value || !parsedUtc.value) {
     return { parts: [] }
   }
-  if (props.localized) {
+  if (localizedEffective.value) {
     return { parts: formatAbsoluteLocalizedParts(parsed.value, props.precision, locale.value, props.location) }
   }
   return { parts: formatAbsoluteParts(parsedUtc.value, props.precision) }
