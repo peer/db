@@ -275,6 +275,14 @@ type Converter struct {
 	// (the field is then omitted).
 	CountReferences func(ctx context.Context, id identifier.Identifier) (int, errors.E)
 
+	// FinalizeHooks transform the document FromDocument converts, after it has been augmented with
+	// embedded claims and then synthetic incoming inverse claims, so related claims fetched via
+	// embedding can be post-processed. They run on a private copy of the document, so they may
+	// mutate it in place. Their changes feed only the conversion itself: not the inverse-relation,
+	// reference-target, and embedding accumulation, and not the document-intrinsic fields (display
+	// label, claim count, earliest time), which are all computed before augmentation.
+	FinalizeHooks []func(ctx context.Context, doc *document.D) (*document.D, errors.E)
+
 	// languageDetector detects the language of untagged content. It is built over all supported
 	// languages (not only the enabled ones) so that confidence is meaningful, and is nil only
 	// when fewer than two languages are supported. linguaToCode maps the detector's lingua
@@ -560,6 +568,7 @@ func NewConverter(
 		IndexAncestorProperties:  false,
 		DetectLanguages:          false,
 		CountReferences:          nil,
+		FinalizeHooks:                nil,
 		languageDetector:         nil,
 		linguaToCode:             nil,
 		propertyDescendants:      nil,
@@ -2137,6 +2146,9 @@ func (v *convertVisitor) appendNotReferenceSubClaims(propID identifier.Identifie
 // source documents are seen at the caller's visibility level (the caller passes the level-specific set, which
 // the bridge maintains per level so there is no leak across levels). For each one a synthetic reverse
 // reference claim is added to the search document.
+//
+// After the document is augmented with embedded claims and then the synthetic incoming inverse claims, the
+// converter's FinalizeHooks run over the augmented document, right before it is converted.
 func (c *Converter) FromDocument(
 	ctx context.Context, doc *document.D, gen *uint64, metadata *store.DocumentMetadata, inverseRelations []store.InverseRelation,
 ) (*Document, errors.E) {
@@ -2170,10 +2182,11 @@ func (c *Converter) FromDocument(
 	// Build the augmented document the conversion runs over: the clean doc plus embedded claims (added as
 	// sub-claims of its reference claims) and incoming inverse claims (added as top-level reference claims).
 	// Embedding runs first so it walks only the document's own references, not the synthetic inverse ones
-	// (an optimization). The clean doc is deep-copied first so neither the caller's document nor any
-	// cached copy is mutated.
+	// (an optimization). The finalize hooks then run over the fully augmented document. The clean doc is
+	// deep-copied first so neither the caller's document nor any cached copy is mutated (also not by a
+	// finalize hook mutating in place).
 	augmented := doc
-	if len(inverseRelations) > 0 || len(c.fieldEmbedSpecs) > 0 {
+	if len(inverseRelations) > 0 || len(c.fieldEmbedSpecs) > 0 || len(c.FinalizeHooks) > 0 {
 		augmentedCopy, errE := doc.Clone()
 		if errE != nil {
 			return nil, errE
@@ -2184,6 +2197,18 @@ func (c *Converter) FromDocument(
 			return nil, errE
 		}
 		c.addInverseClaims(ctx, augmented, inverseRelations)
+		for i, hook := range c.FinalizeHooks {
+			augmented, errE = hook(ctx, augmented)
+			if errE != nil {
+				errors.Details(errE)["hook"] = i
+				return nil, errE
+			}
+			if augmented == nil {
+				errE = errors.New("hook returned nil document")
+				errors.Details(errE)["hook"] = i
+				return nil, errE
+			}
+		}
 	}
 
 	v := &convertVisitor{

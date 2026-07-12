@@ -21,13 +21,16 @@ func (b *B) LanguageCodes() map[identifier.Identifier]string {
 // IndexedDocument returns the search document for the given document and metadata.
 //
 // The caller is expected to have already applied the read-path DocumentPostHooks when fetching dataJSON.
+// The indexing normalize hooks are applied here (the read path does not run them); the indexing finalize
+// hooks run inside the conversion itself, after the document is augmented with embedded and incoming
+// inverse claims.
 func (b *B) IndexedDocument(ctx context.Context, dataJSON json.RawMessage, metadata *store.DocumentMetadata) (*internalSearch.Document, errors.E) {
 	doc := new(document.D)
 	errE := x.UnmarshalWithoutUnknownFields(dataJSON, doc)
 	if errE != nil {
 		return nil, errE
 	}
-	for _, hook := range b.IndexingHooks {
+	for _, hook := range b.IndexingNormalizeHooks {
 		doc, errE = hook(ctx, doc)
 		if errE != nil {
 			return nil, errE

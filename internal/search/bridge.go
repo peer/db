@@ -218,8 +218,8 @@ type Bridge struct {
 
 	// DocumentPreHooks and DocumentPostHooks are run by fetchHooked around the store read, the same
 	// way base.B runs them on the read path. The base sets these from its own hooks, with the indexing
-	// hooks appended to the post-hooks, so documents are fetched for indexing through the same hook
-	// chain (filtered and normalized).
+	// normalize hooks appended to the post-hooks, so documents are fetched for indexing through the same
+	// hook chain (filtered and normalized).
 	DocumentPreHooks []func(ctx context.Context, id identifier.Identifier, version *store.Version) errors.E
 	// DocumentPostHooks is run after the store read.
 	DocumentPostHooks []func(

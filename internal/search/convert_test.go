@@ -9741,3 +9741,62 @@ func TestFromDocumentLastUpdated(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Nil(t, result.LastUpdated)
 }
+
+func TestFromDocumentFinalizeHooks(t *testing.T) {
+	t.Parallel()
+
+	// Property X has inverse Y, so the incoming inverse relation below renders as a synthetic
+	// reverse claim with property Y.
+	propX := identifier.New()
+	propY := identifier.New()
+	propXDoc := makePropertyDocFull(propX, nil, &propY)
+	propYDoc := makePropertyDocFull(propY, nil, nil)
+
+	sourceDocID := identifier.New()
+	extraDocs := map[identifier.Identifier]*document.D{
+		sourceDocID: makeNamingDoc(sourceDocID, "Source"),
+		propX:       makeNamingDoc(propX, "Prop X"),
+		propY:       makeNamingDoc(propY, "Prop Y"),
+	}
+	c := newTestConverter(t, []*document.D{propXDoc, propYDoc}, nil, extraDocs)
+
+	doc := &document.D{
+		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
+	}
+	inverseRelations := []store.InverseRelation{
+		newIR(identifier.New(), sourceDocID, propX, propY, identifier.Identifier{}, document.HighConfidence),
+	}
+
+	// The finalize hook runs after the synthetic incoming inverse claim is added, and what it returns is
+	// what gets converted: with the claim removed by the hook, the result has no reference claims.
+	sawInverse := false
+	c.FinalizeHooks = []func(ctx context.Context, doc *document.D) (*document.D, errors.E){
+		func(_ context.Context, d *document.D) (*document.D, errors.E) {
+			sawInverse = len(d.Get(propY)) == 1
+			d.Remove(propY)
+			return d, nil
+		},
+	}
+	result, errE := c.FromDocument(t.Context(), doc, nil, &store.DocumentMetadata{At: store.Time{}, Users: nil}, inverseRelations)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.True(t, sawInverse)
+	assert.Empty(t, result.Claims.Reference)
+
+	// A finalize hook alone (no embeds, no inverse relations) still runs on a private copy: the claim it
+	// adds is converted, but the caller's document stays unchanged.
+	c.FinalizeHooks = []func(ctx context.Context, doc *document.D) (*document.D, errors.E){
+		func(_ context.Context, d *document.D) (*document.D, errors.E) {
+			errE := d.Add(&document.ReferenceClaim{
+				CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+				Prop:      document.Reference{ID: propX},
+				To:        document.Reference{ID: sourceDocID},
+			})
+			return d, errE
+		},
+	}
+	result, errE = c.FromDocument(t.Context(), doc, nil, &store.DocumentMetadata{At: store.Time{}, Users: nil}, nil)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	require.Len(t, result.Claims.Reference, 1)
+	assert.Equal(t, propX, result.Claims.Reference[0].Prop)
+	assert.Nil(t, doc.Claims)
+}

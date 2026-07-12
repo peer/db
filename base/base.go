@@ -73,11 +73,22 @@ type B struct {
 	// via SUBPROPERTY_OF. Disabled by default.
 	IndexAncestorProperties bool
 
-	// IndexingHooks transform a document for indexing. The bridge runs them, adapted to document
-	// post-hooks (skipping on an incoming error), after DocumentPostHooks when fetching documents for
-	// indexing, so the indexed document is the post-hook document with any indexing-specific
-	// normalization applied. They are not run on the read/API path.
-	IndexingHooks []func(ctx context.Context, doc *document.D) (*document.D, errors.E)
+	// IndexingNormalizeHooks transform a document for indexing before it is augmented with embedded claims
+	// and synthetic incoming inverse claims. The bridge runs them, adapted to document post-hooks
+	// (skipping on an incoming error), after DocumentPostHooks when fetching documents for indexing,
+	// so the indexed document is the post-hook document with any indexing-specific normalization
+	// applied. Because they shape the per-level document itself, they also drive the inverse-relation,
+	// reference-target, and embedding accumulation. They are not run on the read/API path.
+	IndexingNormalizeHooks []func(ctx context.Context, doc *document.D) (*document.D, errors.E)
+
+	// IndexingFinalizeHooks transform a document for indexing after it has been augmented with embedded
+	// claims and then synthetic incoming inverse claims, right before the conversion to the search
+	// document, so related claims fetched via embedding can be post-processed. They run per visibility
+	// level, on a private copy of the document. Their changes do not feed the inverse-relation,
+	// reference-target, and embedding accumulation, nor the document-intrinsic fields (display label,
+	// claim count, earliest time), which are all computed before augmentation. They are not run on the
+	// read/API path.
+	IndexingFinalizeHooks []func(ctx context.Context, doc *document.D) (*document.D, errors.E)
 
 	// DocumentPreHooks are called before fetching the document from the store.
 	DocumentPreHooks []func(ctx context.Context, id identifier.Identifier, version *store.Version) errors.E
@@ -222,10 +233,10 @@ func QueueName(kind string) string {
 	return internalStore.RiverQueueName(kind)
 }
 
-// indexingPostHook adapts an indexing hook, which only transforms the document, to a document
-// post-hook. On an incoming error it skips the indexing hook and returns the error unchanged;
-// otherwise it runs the hook and passes the metadata, version, and parent changesets through.
-func indexingPostHook(hook func(ctx context.Context, doc *document.D) (*document.D, errors.E)) func(
+// adaptIndexingNormalizeHook adapts an indexing normalize hook, which only transforms the document, to a
+// document post-hook. On an incoming error it skips the normalize hook and returns the error unchanged;
+// otherwise it runs the normalize hook and passes the metadata, version, and parent changesets through.
+func adaptIndexingNormalizeHook(hook func(ctx context.Context, doc *document.D) (*document.D, errors.E)) func(
 	ctx context.Context, doc *document.D, metadata *store.DocumentMetadata, version store.Version, parentChangesets []store.Version, errE errors.E,
 ) (*document.D, *store.DocumentMetadata, store.Version, []store.Version, errors.E) {
 	return func(
@@ -257,12 +268,13 @@ type StartDocument struct {
 // You have to call this or PopulateAndStart for each base after Init.
 func (b *B) Start(ctx context.Context, documents []StartDocument) (func(), errors.E) {
 	// The bridge fetches documents for indexing through the same pre/post hooks as the read path, plus
-	// the indexing hooks (adapted to document post-hooks) appended after them, so the indexed document
-	// is the filtered and normalized one.
+	// the indexing normalize hooks (adapted to document post-hooks) appended after them, so the indexed
+	// document is the filtered and normalized one. The indexing finalize hooks run later, inside the
+	// conversion, after the document is augmented with embedded claims and synthetic incoming inverse claims.
 	b.bridge.DocumentPreHooks = b.DocumentPreHooks
 	postHooks := slices.Clone(b.DocumentPostHooks)
-	for _, hook := range b.IndexingHooks {
-		postHooks = append(postHooks, indexingPostHook(hook))
+	for _, hook := range b.IndexingNormalizeHooks {
+		postHooks = append(postHooks, adaptIndexingNormalizeHook(hook))
 	}
 	b.bridge.DocumentPostHooks = postHooks
 
@@ -289,6 +301,7 @@ func (b *B) Start(ctx context.Context, documents []StartDocument) (func(), error
 		converter.IndexAncestorProperties = b.IndexAncestorProperties
 		converter.DetectLanguages = true
 		converter.CountReferences = b.bridge.CountReferencesFunc(index)
+		converter.FinalizeHooks = b.IndexingFinalizeHooks
 		if i == len(b.Levels)-1 {
 			// The converter derived language codes from the language documents while being built.
 			// The highest (last) level is the unfiltered superset, so its converter has the complete set.
@@ -329,8 +342,8 @@ func (b *B) Start(ctx context.Context, documents []StartDocument) (func(), error
 }
 
 // documentsForLevel returns documents as seen at the given visibility level: each is run through the
-// read-path document pre-hooks and post-hooks (the filtering ones, not the indexing hooks) at that level's
-// visibility, dropping any the hooks deny. Pre-hooks see a nil requested version because the documents are
+// read-path document pre-hooks and post-hooks (the filtering ones, not the indexing normalize hooks) at that
+// level's visibility, dropping any the hooks deny. Pre-hooks see a nil requested version because the documents are
 // the latest committed view.
 //
 // With no document pre-hooks or post-hooks set (no per-level filtering) it returns the input documents unchanged.
