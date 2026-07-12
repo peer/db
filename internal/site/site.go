@@ -139,13 +139,14 @@ type Site struct {
 	// no roles, and an empty Visibility are all allowed.
 	//
 	// When non-empty, the bridge indexes each level into its own index and uses
-	// the highest (last) level as the visibility-independent superset (for example
-	// for inverse-relation accumulation), so that level must grant access to all
-	// documents without any filtering: the site's document post-hooks must not drop
-	// anything at the highest level. If the highest role-based level still filters,
-	// add a no-roles level (e.g. {Name: "all", Roles: nil}) on top: no role resolves
-	// to it, but it defines the unfiltered superset. An empty Visibility is the
-	// degenerate case of a single such level: one unfiltered index for everyone.
+	// the highest (last) level as the unfiltered superset (for example for paths
+	// that must see every document regardless of the caller), so that level must
+	// grant access to all documents without any filtering: the site's document
+	// post-hooks must not drop anything at the highest level. If the highest
+	// role-based level still filters, add a no-roles level (e.g. {Name: "all",
+	// Roles: nil}) on top: no role resolves to it, but it defines the unfiltered
+	// superset. An empty Visibility is the degenerate case of a single such
+	// level: one unfiltered index for everyone.
 	Visibility []auth.VisibilityLevel `json:"visibility,omitempty" yaml:"visibility,omitempty"`
 
 	// Auth carries per-site OIDC configuration. When all three fields

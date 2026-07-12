@@ -173,8 +173,9 @@ func (w *worker) Work(ctx context.Context, job *river.Job[jobArgs]) error {
 
 // Target is one (visibility level, ElasticSearch index, converter) that the bridge fans indexing out to.
 // Targets are ordered lowest to highest visibility, so the last target is the highest-visibility
-// (unfiltered) one, used for the visibility-independent inverse-relation accumulation. Each target's
-// Index is LevelIndex(indexPrefix, Level): the index prefix with the level name appended.
+// (unfiltered) one: the superset whose index serves paths that must see every document. Indexing and the
+// inverse-relation and reference-target accumulation all run per target, at that target's visibility. Each
+// target's Index is LevelIndex(indexPrefix, Level): the index prefix with the level name appended.
 type Target struct {
 	// Level is the visibility level name this target indexes.
 	Level string
@@ -1704,8 +1705,9 @@ func (b *Bridge) produceLevels(
 	}
 	// The highest (last) level is the unfiltered superset whose hooks must not drop anything, so an existing
 	// document must always be present there. A nil top means the top-level hooks filtered it, violating that
-	// invariant: the visibility-independent inverse-relation and reference-target accumulation reads the top
-	// version, so proceeding would silently corrupt those. We fail loudly instead.
+	// invariant: proceeding would cache the document as absent at the top level, delete it from the top
+	// index, and drop its outgoing inverse relations and embeds there, silently corrupting the superset
+	// that paths seeing all documents rely on. We fail loudly instead.
 	if baseDoc != nil && docs[len(docs)-1] == nil {
 		errE := errors.New("highest visibility level filtered a document, but it must be unfiltered")
 		errors.Details(errE)["id"] = id.String()

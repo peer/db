@@ -56,8 +56,8 @@ type B struct {
 	StorageDir string
 
 	// Levels is the ordered list of visibility level names (lowest to highest). The bridge indexes each
-	// document into one index per level: the highest (last) level must be the unfiltered superset used for
-	// the visibility-independent inverse-relation accumulation, so its hooks must not filter anything.
+	// document into one index per level and accumulates inverse relations per level. The highest (last)
+	// level must be the unfiltered superset containing every document, so its hooks must not filter anything.
 	Levels []string
 
 	// languagePriority defines per-language fallback order for display label resolution.
