@@ -1376,9 +1376,13 @@ func GetSession(_ context.Context, id identifier.Identifier) (*Session, errors.E
 //
 // A group heading whose ID is MissingValueID is the synthetic "missing" group: it holds the documents
 // that are missing this level's grouping property (the frontend renders it with a localized label).
+//
+// Col is the index of the group column (among the leading group sort keys) a group heading belongs to.
+// It is omitted when zero: for the first column and for leaf results.
 type Result struct {
 	ID    string   `json:"id"`
 	Count *int64   `json:"count,omitempty"`
+	Col   int      `json:"col,omitempty"`
 	Group []Result `json:"group,omitempty"`
 }
 

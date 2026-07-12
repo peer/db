@@ -230,27 +230,34 @@ func TestResultsGetGroupedMultiLevelMissing(t *testing.T) {
 	assert.Equal(t, poster.String(), posterGroup.ID)
 	require.NotNil(t, posterGroup.Count)
 	assert.Equal(t, int64(3), *posterGroup.Count)
+	assert.Equal(t, 0, posterGroup.Col)
 
-	// Within poster, by creator: Alice, Bob, then the missing-creator group last.
+	// Within poster, by creator: Alice, Bob, then the missing-creator group last. Their headings carry the
+	// second column's index.
 	require.Len(t, posterGroup.Group, 3)
 	aliceSub := posterGroup.Group[0]
 	bobSub := posterGroup.Group[1]
 	missingCreator := posterGroup.Group[2]
 
 	assert.Equal(t, alice.String(), aliceSub.ID)
+	assert.Equal(t, 1, aliceSub.Col)
 	assert.ElementsMatch(t, []string{doc1.String()}, leafIDs(aliceSub.Group))
 	assert.Equal(t, bob.String(), bobSub.ID)
+	assert.Equal(t, 1, bobSub.Col)
 	assert.ElementsMatch(t, []string{doc2.String()}, leafIDs(bobSub.Group))
 	assert.Equal(t, search.MissingValueID, missingCreator.ID)
+	assert.Equal(t, 1, missingCreator.Col)
 	require.NotNil(t, missingCreator.Count)
 	assert.Equal(t, int64(1), *missingCreator.Count)
 	assert.ElementsMatch(t, []string{doc3.String()}, leafIDs(missingCreator.Group))
 
 	// The missing-medium group is itself grouped by creator (doc4 under Alice).
 	assert.Equal(t, search.MissingValueID, missingMedium.ID)
+	assert.Equal(t, 0, missingMedium.Col)
 	require.NotNil(t, missingMedium.Count)
 	assert.Equal(t, int64(1), *missingMedium.Count)
 	require.Len(t, missingMedium.Group, 1)
 	assert.Equal(t, alice.String(), missingMedium.Group[0].ID)
+	assert.Equal(t, 1, missingMedium.Group[0].Col)
 	assert.ElementsMatch(t, []string{doc4.String()}, leafIDs(missingMedium.Group[0].Group))
 }

@@ -22,9 +22,9 @@ import { searchTrackKey } from "@/visibility"
 //
 // depth is the nesting level, used to break the full-width progress pager out of the group indentation.
 //
-// expandLevels[d] reports whether the group at depth d is rendered as a full result card for its grouping
-// value's document instead of a one-line heading. It is indexed by depth so the recursive children read
-// their own level; it is the same array for the whole tree.
+// expandLevels[c] reports whether the group column c is rendered as full result cards for its grouping
+// values' documents instead of one-line headings. It is indexed by the group column; it is the same
+// array for the whole tree.
 const props = withDefaults(
   defineProps<{
     node: DeepReadonly<Result>
@@ -40,15 +40,16 @@ const props = withDefaults(
 
 const { t } = useI18n()
 
-// levelExpanded reports whether this group level (across all of its values) is expanded into full result
-// cards; expanded reports whether this particular heading renders as a card. The synthetic "missing" group
-// has no document to show a card for, so it always stays a one-line heading even when the level is expanded.
-const levelExpanded = computed(() => props.expandLevels[props.depth] ?? false)
+// levelExpanded reports whether this heading's group column (across all of its values, at every hierarchy
+// level) is expanded into full result cards; expanded reports whether this particular heading renders as a
+// card. The synthetic "missing" group has no document to show a card for, so it always stays a one-line
+// heading even when the column is expanded.
+const levelExpanded = computed(() => props.expandLevels[props.node.col ?? 0] ?? false)
 const expanded = computed(() => props.node.id !== MISSING_VALUE_ID && levelExpanded.value)
 
-// setExpand switches this group level between its expanded (full result cards) and collapsed (one-line
-// headings) forms in the search state, the in-place equivalent of the sort dialog's Expand checkbox. The
-// heading offers it to expand, the expanded card offers it to collapse.
+// setExpand switches this heading's group column between its expanded (full result cards) and collapsed
+// (one-line headings) forms in the search state, the in-place equivalent of the sort dialog's Expand
+// checkbox. The heading offers it to expand, the expanded card offers it to collapse.
 const setExpand = inject(searchExpandKey, () => undefined)
 
 // The progress pager data SearchResultsFeed computes for the whole tree (which leaf a pager precedes, the
@@ -91,7 +92,7 @@ function childPagerIndex(child: DeepReadonly<Result>): number | undefined {
             type="button"
             class="self-center rounded-sm p-0.5 text-slate-400 outline-none hover:bg-slate-200 hover:text-slate-600 focus:ring-2 focus:ring-primary-500 print:hidden"
             :title="t('partials.SearchResultGroup.collapse')"
-            @click.prevent="setExpand(depth, false)"
+            @click.prevent="setExpand(node.col ?? 0, false)"
           >
             <ChevronDownUpIcon class="size-5" :alt="t('partials.SearchResultGroup.collapse')" />
           </button>
@@ -107,7 +108,7 @@ function childPagerIndex(child: DeepReadonly<Result>): number | undefined {
         type="button"
         class="shrink-0 self-center rounded-sm p-0.5 font-normal text-slate-400 outline-none hover:bg-slate-200 hover:text-slate-600 focus:ring-2 focus:ring-primary-500 print:hidden"
         :title="t('partials.SearchResultGroup.expand')"
-        @click.prevent="setExpand(depth, true)"
+        @click.prevent="setExpand(node.col ?? 0, true)"
       >
         <ChevronUpDownIcon class="size-5" :alt="t('partials.SearchResultGroup.expand')" />
       </button>

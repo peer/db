@@ -21,7 +21,7 @@ func TestFoldLevelHierarchy(t *testing.T) {
 		{IDs: []string{"eu", "de", "berlin"}, Labels: []string{"Europe", "Germany", "Berlin"}, Count: 1, Direct: []search.Result{{ID: "doc1"}}},            //nolint:exhaustruct
 	}
 
-	got := search.TestingFoldLevel(entries, false)
+	got := search.TestingFoldLevel(entries, false, 0)
 
 	want := []search.Result{
 		{ID: "eu", Group: []search.Result{ //nolint:exhaustruct
@@ -40,19 +40,20 @@ func TestFoldLevelNodeIsBothValueAndAncestor(t *testing.T) {
 	t.Parallel()
 
 	// France is a stated leaf value (has direct docs) and also an ancestor of Paris. Its sub-group (Paris)
-	// comes before its own direct documents.
+	// comes before its own direct documents. The column index (here 1) is stamped onto every heading of the
+	// level, including the synthesized ancestor (Europe), but not onto the leaf documents.
 	entries := []search.TestingBucketEntry{
 		{IDs: []string{"eu", "fr"}, Labels: []string{"Europe", "France"}, Count: 5, Direct: []search.Result{{ID: "docFR"}}},                  //nolint:exhaustruct
 		{IDs: []string{"eu", "fr", "paris"}, Labels: []string{"Europe", "France", "Paris"}, Count: 2, Direct: []search.Result{{ID: "docP"}}}, //nolint:exhaustruct
 	}
 
-	got := search.TestingFoldLevel(entries, false)
+	got := search.TestingFoldLevel(entries, false, 1)
 
 	want := []search.Result{
-		{ID: "eu", Group: []search.Result{ //nolint:exhaustruct
-			{ID: "fr", Count: cnt(5), Group: []search.Result{
-				{ID: "paris", Count: cnt(2), Group: []search.Result{{ID: "docP"}}}, //nolint:exhaustruct
-				{Count: nil, Group: nil, ID: "docFR"},
+		{ID: "eu", Col: 1, Group: []search.Result{ //nolint:exhaustruct
+			{ID: "fr", Count: cnt(5), Col: 1, Group: []search.Result{
+				{ID: "paris", Count: cnt(2), Col: 1, Group: []search.Result{{ID: "docP"}}}, //nolint:exhaustruct
+				{Count: nil, Col: 0, Group: nil, ID: "docFR"},
 			}},
 		}},
 	}
@@ -67,10 +68,10 @@ func TestFoldLevelDescendingOrder(t *testing.T) {
 		{IDs: []string{"b"}, Labels: []string{"Banana"}, Count: 1, Direct: []search.Result{{ID: "d2"}}}, //nolint:exhaustruct
 	}
 
-	asc := search.TestingFoldLevel(entries, false)
+	asc := search.TestingFoldLevel(entries, false, 0)
 	assert.Equal(t, []string{"a", "b"}, []string{asc[0].ID, asc[1].ID})
 
-	desc := search.TestingFoldLevel(entries, true)
+	desc := search.TestingFoldLevel(entries, true, 0)
 	assert.Equal(t, []string{"b", "a"}, []string{desc[0].ID, desc[1].ID})
 }
 
@@ -83,7 +84,7 @@ func TestFoldLevelFlat(t *testing.T) {
 		{IDs: []string{"berlin"}, Labels: []string{"Berlin"}, Count: 1, Direct: []search.Result{{ID: "y"}}}, //nolint:exhaustruct
 	}
 
-	got := search.TestingFoldLevel(entries, false)
+	got := search.TestingFoldLevel(entries, false, 0)
 
 	want := []search.Result{
 		{ID: "berlin", Count: cnt(1), Group: []search.Result{{ID: "y"}}}, //nolint:exhaustruct
@@ -132,11 +133,11 @@ func TestLimitGroupsNested(t *testing.T) {
 	// Two-level grouping: outer o1 nests inner i1 (two docs) and i2 (one doc); outer o2 nests i3 (two docs).
 	tree := func() []search.Result {
 		return []search.Result{
-			{ID: "o1", Count: cnt(3), Group: []search.Result{
+			{ID: "o1", Count: cnt(3), Col: 0, Group: []search.Result{
 				{ID: "i1", Count: cnt(2), Group: []search.Result{{ID: "d1"}, {ID: "d2"}}}, //nolint:exhaustruct
 				{ID: "i2", Count: cnt(1), Group: []search.Result{{ID: "d3"}}},             //nolint:exhaustruct
 			}},
-			{ID: "o2", Count: cnt(2), Group: []search.Result{
+			{ID: "o2", Count: cnt(2), Col: 0, Group: []search.Result{
 				{ID: "i3", Count: cnt(2), Group: []search.Result{{ID: "d4"}, {ID: "d5"}}}, //nolint:exhaustruct
 			}},
 		}
@@ -146,7 +147,7 @@ func TestLimitGroupsNested(t *testing.T) {
 	got, n := search.TestingLimitGroups(tree(), 3)
 	assert.Equal(t, 3, n)
 	assert.Equal(t, []search.Result{
-		{ID: "o1", Count: cnt(3), Group: []search.Result{
+		{ID: "o1", Count: cnt(3), Col: 0, Group: []search.Result{
 			{ID: "i1", Count: cnt(2), Group: []search.Result{{ID: "d1"}, {ID: "d2"}}}, //nolint:exhaustruct
 			{ID: "i2", Count: cnt(1), Group: []search.Result{{ID: "d3"}}},             //nolint:exhaustruct
 		}},
@@ -156,7 +157,7 @@ func TestLimitGroupsNested(t *testing.T) {
 	got, n = search.TestingLimitGroups(tree(), 2)
 	assert.Equal(t, 2, n)
 	assert.Equal(t, []search.Result{
-		{ID: "o1", Count: cnt(3), Group: []search.Result{
+		{ID: "o1", Count: cnt(3), Col: 0, Group: []search.Result{
 			{ID: "i1", Count: cnt(2), Group: []search.Result{{ID: "d1"}, {ID: "d2"}}}, //nolint:exhaustruct
 		}},
 	}, got)

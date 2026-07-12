@@ -187,7 +187,7 @@ func foldDocLevel(docAggs map[string]types.Aggregate, cols []SortKey, idx int) (
 	if errE != nil {
 		return nil, errE
 	}
-	results := foldLevel(entries, cols[idx].Descending)
+	results := foldLevel(entries, cols[idx].Descending, idx)
 
 	// The missing group always sorts after the present groups, regardless of sort direction (mirroring
 	// the missing-last convention of buildSort), and is omitted when no document is missing the value. It
@@ -202,7 +202,7 @@ func foldDocLevel(docAggs map[string]types.Aggregate, cols []SortKey, idx int) (
 			return nil, errE
 		}
 		count := missing.DocCount
-		results = append(results, Result{ID: MissingValueID, Count: &count, Group: direct})
+		results = append(results, Result{ID: MissingValueID, Count: &count, Col: idx, Group: direct})
 	}
 	return results, nil
 }
@@ -294,8 +294,9 @@ func newGroupNode(id string) *groupNode {
 }
 
 // foldLevel builds the hierarchy trie from one group level's leaf-value buckets and returns the ordered
-// nested results. desc reverses the per-level display-label ordering of group headings.
-func foldLevel(entries []bucketEntry, desc bool) []Result {
+// nested results. desc reverses the per-level display-label ordering of group headings. col is the group
+// column index stamped onto every heading of this level (including synthesized hierarchy ancestors).
+func foldLevel(entries []bucketEntry, desc bool, col int) []Result {
 	root := newGroupNode("")
 	for _, e := range entries {
 		node := root
@@ -315,12 +316,12 @@ func foldLevel(entries []bucketEntry, desc bool) []Result {
 		node.count = &count
 		node.direct = append(node.direct, e.Direct...)
 	}
-	return root.results(desc)
+	return root.results(desc, col)
 }
 
 // results returns this node's children as ordered group headings followed by this node's own direct
 // content. Children are ordered by display label (ascending, or descending when desc).
-func (n *groupNode) results(desc bool) []Result {
+func (n *groupNode) results(desc bool, col int) []Result {
 	order := slices.Clone(n.order)
 	slices.SortStableFunc(order, func(a, b string) int {
 		c := strings.Compare(n.children[a].label, n.children[b].label)
@@ -332,7 +333,7 @@ func (n *groupNode) results(desc bool) []Result {
 	out := make([]Result, 0, len(order)+len(n.direct))
 	for _, id := range order {
 		child := n.children[id]
-		out = append(out, Result{ID: child.id, Count: child.count, Group: child.results(desc)})
+		out = append(out, Result{ID: child.id, Count: child.count, Col: col, Group: child.results(desc, col)})
 	}
 	return append(out, n.direct...)
 }

@@ -73,12 +73,11 @@ export const searchPagerKey: InjectionKey<ComputedRef<{ pagerBefore: Map<object,
   process.env.NODE_ENV !== "production" ? Symbol.for("peerdb-search-pager") : Symbol()
 
 // searchExpandKey carries, from SearchResultsFeed down to the nested SearchResultGroup tree, a callback that
-// sets whether a grouping level is expanded (each group value shown as a full result card instead of a one-line
-// heading). It takes the depth of the group level and the desired expand state, the same change the sort
+// sets whether a group column is expanded (each of its group values shown as a full result card instead of a
+// one-line heading). It takes the group column index and the desired expand state, the same change the sort
 // dialog's Expand checkbox makes; it drives both the heading's expand control and the card's collapse control.
 // The default is a no-op for trees without a provider.
-export const searchExpandKey: InjectionKey<(depth: number, expand: boolean) => void> =
-  process.env.NODE_ENV !== "production" ? Symbol.for("peerdb-search-expand") : Symbol()
+export const searchExpandKey: InjectionKey<(col: number, expand: boolean) => void> = process.env.NODE_ENV !== "production" ? Symbol.for("peerdb-search-expand") : Symbol()
 
 // searchLoadAllClaimsKey carries, from SearchResultsFeed down to each result's FieldsView, whether the print
 // view's "Load all" button has been pressed. When true, FieldsView shows every repeating claim value instead

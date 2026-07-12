@@ -1419,7 +1419,7 @@ func TestJSONSerialization(t *testing.T) {
 
 	t.Run("Result", func(t *testing.T) {
 		t.Parallel()
-		r := search.Result{Count: nil, Group: nil, ID: "doc-123"}
+		r := search.Result{Count: nil, Col: 0, Group: nil, ID: "doc-123"}
 		data, errE := x.MarshalWithoutEscapeHTML(r)
 		require.NoError(t, errE, "% -+#.1v", errE)
 		var decoded search.Result

@@ -41,9 +41,11 @@ export type FilterResult = RefSearchResult | AmountSearchResult | TimeSearchResu
 // nested sub-groups or the documents. A node without group is a plain result document (a leaf).
 // A group heading whose id is "__MISSING__" is the synthetic "missing" group: it holds the documents
 // that are missing this level's grouping property (same sentinel the reference filter uses).
+// col is the index of the group column a heading belongs to; absent means 0.
 export type Result = {
   id: string
   count?: number
+  col?: number
   group?: Result[]
 }
 

@@ -76,9 +76,9 @@ const sortDialogOpen = ref(false)
 // nested results which we render as a group tree instead of a flat list.
 const grouped = computed(() => (props.searchSession.sort ?? []).some((s) => s.group))
 
-// groupExpand[d] reports whether the group level at depth d should render each group value as a full result
-// card instead of a one-line heading. It mirrors the leading run of group columns (the same order as the
-// tree's nesting), so SearchResultGroup can read its own level by depth.
+// groupExpand[c] reports whether group column c should render each of its group values as a full result
+// card instead of a one-line heading. It mirrors the leading run of group columns; SearchResultGroup reads
+// its entry by each heading's col.
 const groupExpand = computed<boolean[]>(() => {
   const out: boolean[] = []
   for (const s of props.searchSession.sort ?? []) {
@@ -90,16 +90,16 @@ const groupExpand = computed<boolean[]>(() => {
   return out
 })
 
-// setExpandLevel sets whether the grouping level at depth is expanded by writing expand on that group column
+// setExpandLevel sets whether the group column at index col is expanded by writing expand on that column
 // and emitting the change, the same update the sort dialog's Expand checkbox makes. It is provided to the
 // nested SearchResultGroup tree so a heading's expand control and an expanded card's collapse control can both
 // trigger it in place.
-function setExpandLevel(depth: number, expand: boolean): void {
+function setExpandLevel(col: number, expand: boolean): void {
   const newSort = clone(props.searchSession.sort ?? [])
-  if (depth < 0 || depth >= newSort.length || !newSort[depth].group) {
+  if (col < 0 || col >= newSort.length || !newSort[col].group) {
     return
   }
-  newSort[depth].expand = expand
+  newSort[col].expand = expand
   $emit("sortUpdate", newSort)
 }
 provide(searchExpandKey, setExpandLevel)
