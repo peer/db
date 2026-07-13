@@ -44,6 +44,10 @@ func modeWithUmask(mode os.FileMode) os.FileMode {
 	return mode &^ os.FileMode(um) //nolint:gosec
 }
 
+// storedDirMode is the permission mode applied to the storage directory and the sharded subdirectories
+// under it (the OS itself adjusts it by the process umask at creation).
+const storedDirMode = 0o755
+
 type beginMetadata struct {
 	At        store.Time `json:"at"`
 	Base      []string   `json:"base"`
@@ -171,10 +175,8 @@ func (s *Storage) Init(
 	// We create the storage directory up front so misconfiguration (an unwritable path) surfaces at
 	// initialization rather than only on the first file write. The sharded subdirectories under it are
 	// still created lazily by the write paths.
-	err := os.MkdirAll(s.Dir, 0o755) //nolint:gosec,mnd
-	if err != nil {
-		errE := errors.WithStack(err)
-		errors.Details(errE)["path"] = s.Dir
+	errE := mkdirAllSynced(s.Dir, storedDirMode)
+	if errE != nil {
 		return errE
 	}
 
@@ -185,7 +187,7 @@ func (s *Storage) Init(
 		MetadataType: "jsonb",
 		PatchType:    "",
 	}
-	errE := storageStore.Init(ctx, dbpool, listener)
+	errE = storageStore.Init(ctx, dbpool, listener)
 	if errE != nil {
 		return errE
 	}
@@ -254,10 +256,12 @@ func etagToHash(etag string) (string, errors.E) {
 // is later resolved back into the contents by Get, GetLatest, and GetFromChangeset.
 //
 // The contents are written to a uniquely named temporary file, fsynced, and then atomically renamed
-// to the final path, and finally the directory is fsynced. This way a file present at the final path
-// is always complete, even after an interrupted write or a crash, so the skip above is safe. A unique
-// temporary name lets concurrent writers of the same contents proceed without clashing; whichever
-// rename lands last wins and the contents are equal.
+// to the final path, and finally the directory is fsynced (the parents of any sharded subdirectories
+// created on the way are fsynced as well, at creation). This way a file present at the final path is
+// always complete, even after an interrupted write or a crash, so the skip above is safe; it only
+// fsyncs the directory itself, in case the file was published by a concurrent writer which has not
+// fsynced the directory yet. A unique temporary name lets concurrent writers of the same contents
+// proceed without clashing; whichever rename lands last wins and the contents are equal.
 func (s *Storage) WriteFile(reader io.ReadSeeker) (string, string, int64, errors.E) {
 	// First pass: hash the contents and measure their size by streaming, without buffering them.
 	etag, size, errE := x.ComputeEtagReader(reader)
@@ -273,7 +277,13 @@ func (s *Storage) WriteFile(reader io.ReadSeeker) (string, string, int64, errors
 
 	_, err := os.Stat(path)
 	if err == nil {
-		// The file is already stored and is therefore complete; there is nothing to do.
+		// The file is already stored and is therefore complete: contents are always fsynced before the
+		// rename which publishes the file. The rename itself might have been done by a concurrent writer
+		// which has not fsynced the directory yet, so we fsync it before reporting success.
+		errE := fsyncDir(filepath.Dir(path))
+		if errE != nil {
+			return "", "", 0, errE
+		}
 		return hash, etag, size, nil
 	} else if !errors.Is(err, os.ErrNotExist) {
 		errE := errors.WithStack(err)
@@ -290,10 +300,8 @@ func (s *Storage) WriteFile(reader io.ReadSeeker) (string, string, int64, errors
 	}
 
 	dir := filepath.Dir(path)
-	err = os.MkdirAll(dir, 0o755) //nolint:gosec,mnd
-	if err != nil {
-		errE := errors.WithStack(err)
-		errors.Details(errE)["path"] = path
+	errE = mkdirAllSynced(dir, storedDirMode)
+	if errE != nil {
 		return "", "", 0, errE
 	}
 
@@ -344,9 +352,11 @@ func (s *Storage) WriteFile(reader io.ReadSeeker) (string, string, int64, errors
 
 // finalizeTempFile durably places the open temporary file, whose contents hash to hash, at its
 // content-addressed final path. It fsyncs the contents, then either discards the temporary file when a
-// file is already stored at the final path (a concurrent writer placed identical contents) or
-// atomically renames it into place and fsyncs the directory. It closes the temporary file; the
-// caller's own removal of the temporary path becomes a no-op after a successful rename.
+// file is already stored at the final path (a concurrent writer placed identical contents; the
+// directory is fsynced so the concurrent rename is durable too) or atomically renames it into place,
+// durably creating any missing sharded subdirectories, and fsyncs the directory. It closes the
+// temporary file; the caller's own removal of the temporary path becomes a no-op after a successful
+// rename.
 func (s *Storage) finalizeTempFile(tmp *os.File, hash string) errors.E {
 	tmpPath := tmp.Name()
 
@@ -369,8 +379,10 @@ func (s *Storage) finalizeTempFile(tmp *os.File, hash string) errors.E {
 	path := s.filePath(hash)
 	_, err = os.Stat(path)
 	if err == nil {
-		// The file is already stored and is therefore complete; there is nothing to do.
-		return nil
+		// The file is already stored with complete and durable contents, but it might have been
+		// published by a concurrent writer which has not fsynced the directory yet, so we fsync it
+		// before reporting success.
+		return fsyncDir(filepath.Dir(path))
 	} else if !errors.Is(err, os.ErrNotExist) {
 		errE := errors.WithStack(err)
 		errors.Details(errE)["path"] = path
@@ -378,10 +390,8 @@ func (s *Storage) finalizeTempFile(tmp *os.File, hash string) errors.E {
 	}
 
 	dir := filepath.Dir(path)
-	err = os.MkdirAll(dir, 0o755) //nolint:gosec,mnd
-	if err != nil {
-		errE := errors.WithStack(err)
-		errors.Details(errE)["path"] = path
+	errE := mkdirAllSynced(dir, storedDirMode)
+	if errE != nil {
 		return errE
 	}
 
@@ -414,6 +424,45 @@ func fsyncDir(dir string) errors.E {
 		return errE
 	}
 	return nil
+}
+
+// mkdirAllSynced creates dir along with any missing ancestors, like os.MkdirAll, and additionally
+// fsyncs the parent of every directory it actually creates, so that the new entries survive a crash
+// (fsyncing a directory persists only its own entries; nothing propagates to ancestors). Directories
+// which already exist are not fsynced: whoever created one has already issued the fsync of its parent
+// before writing any file contents destined for it, so that fsync completes well before anything
+// referencing the directory is published.
+func mkdirAllSynced(dir string, perm os.FileMode) errors.E {
+	err := os.Mkdir(dir, perm)
+	if errors.Is(err, os.ErrNotExist) {
+		// The parent is missing: create it first, then retry. If there is no parent to create, report
+		// the original error.
+		parent := filepath.Dir(dir)
+		if parent == dir {
+			errE := errors.WithStack(err)
+			errors.Details(errE)["path"] = dir
+			return errE
+		}
+		errE := mkdirAllSynced(parent, perm)
+		if errE != nil {
+			return errE
+		}
+		err = os.Mkdir(dir, perm)
+	}
+	if err == nil {
+		return fsyncDir(filepath.Dir(dir))
+	}
+	if errors.Is(err, os.ErrExist) {
+		// The directory might have been created concurrently, which is fine. But something other than
+		// a directory might also exist at the path: report that like os.MkdirAll does.
+		info, statErr := os.Stat(dir)
+		if statErr == nil && info.IsDir() {
+			return nil
+		}
+	}
+	errE := errors.WithStack(err)
+	errors.Details(errE)["path"] = dir
+	return errE
 }
 
 // openFile opens the file addressed by the given content hash in the storage directory. The caller
