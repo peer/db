@@ -26,7 +26,7 @@ import type {
 import { Tab, TabGroup, TabList, TabPanel, TabPanels } from "@headlessui/vue"
 import { computed, nextTick, onBeforeUnmount, provide, readonly, ref, toRef, useTemplateRef, watch } from "vue"
 import { useI18n } from "vue-i18n"
-import { useRouter } from "vue-router"
+import { useRoute, useRouter } from "vue-router"
 
 import { deleteFromCache, FetchError, getURL, getURLDirect, postJSON } from "@/api"
 import { CAN_EDIT_DOCUMENT, hasPermission } from "@/auth"
@@ -181,6 +181,7 @@ function claimTypeLabel(type: ClaimType): string {
 
 const { t, locale } = useI18n({ useScope: "global" })
 const router = useRouter()
+const route = useRoute()
 
 // We use separate lock for data modification and controls.
 const lock = useLock()
@@ -565,9 +566,35 @@ const docRef = toRef(() => doc.value ?? null)
 const { classDocs, instanceOfClassIds, initialized: classesInitialized } = useParentClasses(docRef, el, busy)
 const { fieldsData: mergedFieldsData, classTabId } = useDocumentFields(classDocs, instanceOfClassIds)
 
-// The selected index of the main tab group (the class tab is index 0 when present),
-// controlled so the table of contents can show only while the FieldsForm is visible.
-const selectedMainTab = ref(0)
+// Tab slugs in the template's tab order, used to reflect the active tab in the URL. The class tab uses its class
+// document id as the slug; the All-properties tab uses a stable "properties" name, so links can target it (?tab=properties).
+const mainTabSlugs = computed(() => {
+  const slugs: string[] = []
+  if (classTabId.value && mergedFieldsData.value) {
+    slugs.push(classTabId.value)
+  }
+  slugs.push("properties")
+  return slugs
+})
+
+// The selected index of the main tab group follows the "tab" query parameter (the first tab when absent or unknown),
+// so the active tab can be linked and survives reloads, like DocumentGet. The class tab is index 0 when present, so the
+// table of contents shows only while the FieldsForm is selected.
+const selectedMainTab = computed(() => {
+  const tab = Array.isArray(route.query.tab) ? route.query.tab[0] : route.query.tab
+  if (!tab) {
+    return 0
+  }
+  const index = mainTabSlugs.value.indexOf(tab)
+  return index >= 0 ? index : 0
+})
+
+// Selecting a tab pushes a history entry, so the back button returns to the previously selected tab.
+function onMainTabChange(index: number) {
+  const tab = index > 0 ? mainTabSlugs.value[index] : undefined
+  //eslint-disable-next-line @typescript-eslint/no-floating-promises
+  router.push({ query: { ...route.query, tab } })
+}
 
 // Table of contents targets: the class tab's sections, in their render order, each
 // pointing at its section header in the FieldsForm (see sectionElementId).
@@ -1455,7 +1482,7 @@ function canSave(): boolean {
           TODO: Fix how hover interacts with focused tab.
           See: https://github.com/tailwindlabs/tailwindcss/discussions/10123
         -->
-          <TabGroup manual :selected-index="selectedMainTab" @change="(index) => (selectedMainTab = index)">
+          <TabGroup manual :selected-index="selectedMainTab" @change="onMainTabChange">
             <TabList class="mb-4 flex flex-wrap gap-2">
               <Tab
                 v-if="classTabId && mergedFieldsData"
