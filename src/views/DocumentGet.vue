@@ -34,7 +34,7 @@ import FieldsView from "@/partials/FieldsView.vue"
 import Footer from "@/partials/Footer.vue"
 import NavBar from "@/partials/NavBar.vue"
 import NavBarSearch from "@/partials/NavBarSearch.vue"
-import PropertiesRows from "@/partials/PropertiesRows.vue"
+import PropertiesView from "@/partials/PropertiesView.vue"
 import SearchShortcutLink from "@/partials/SearchShortcutLink.vue"
 import { getParentLock, localCounter, lockScope, useProgress } from "@/progress"
 import { getDocumentComponents } from "@/registry/document"
@@ -616,17 +616,7 @@ async function onEdit() {
                 </TabPanel>
                 <!-- "All properties" tab panel. -->
                 <TabPanel tabindex="-1" class="outline-none">
-                  <table class="w-full table-auto border-collapse">
-                    <thead>
-                      <tr>
-                        <th class="border-r border-slate-200 px-2 py-1 text-left font-bold">{{ t("common.labels.property") }}</th>
-                        <th class="border-l border-slate-200 px-2 py-1 text-left font-bold">{{ t("common.labels.value") }}</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <PropertiesRows :claims="doc.claims" />
-                    </tbody>
-                  </table>
+                  <PropertiesView :claims="doc.claims" />
                 </TabPanel>
                 <!-- "History" tab panel. The panel (and thus the data fetch) is mounted only when the tab is selected. -->
                 <TabPanel v-if="hasPermission(CAN_CHANGES_DOCUMENT)" tabindex="-1" class="outline-none">

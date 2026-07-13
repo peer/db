@@ -83,7 +83,7 @@ import InputField from "@/partials/InputField.vue"
 import InputMissing from "@/partials/InputMissing.vue"
 import NavBar from "@/partials/NavBar.vue"
 import NavBarSearch from "@/partials/NavBarSearch.vue"
-import PropertiesRows from "@/partials/PropertiesRows.vue"
+import PropertiesView from "@/partials/PropertiesView.vue"
 import TableOfContents from "@/partials/TableOfContents.vue"
 import { localCounter, pairCounters, useLock, useProgress } from "@/progress"
 import { useDocumentFields } from "@/useDocumentFields"
@@ -1487,28 +1487,15 @@ function canSave(): boolean {
               </TabPanel>
               <!-- "All properties" tab panel. -->
               <TabPanel tabindex="-1" class="outline-none">
-                <table class="w-full table-auto border-collapse">
-                  <thead>
-                    <tr>
-                      <th class="border-r border-slate-200 px-2 py-1 text-left font-bold">{{ t("common.labels.property") }}</th>
-                      <th class="border-l border-slate-200 px-2 py-1 text-left font-bold">{{ t("common.labels.value") }}</th>
-                      <th class="w-px"></th>
-                      <th class="w-px"></th>
-                      <th class="w-px"></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <PropertiesRows
-                      :claims="doc.claims"
-                      editable
-                      :editing-claim-id="editingClaimId"
-                      :sub-claim-parent-id="subClaimParentId"
-                      @edit-claim="onEditClaim"
-                      @remove-claim="onRemoveClaim"
-                      @sub-claim="onSubClaimAdd"
-                    />
-                  </tbody>
-                </table>
+                <PropertiesView
+                  :claims="doc.claims"
+                  editable
+                  :editing-claim-id="editingClaimId"
+                  :sub-claim-parent-id="subClaimParentId"
+                  @edit-claim="onEditClaim"
+                  @remove-claim="onRemoveClaim"
+                  @sub-claim="onSubClaimAdd"
+                />
                 <form ref="claimFormRef" @submit.prevent="onSubmit" @reset="onReset">
                   <h2 class="mt-4 text-xl font-medium">{{
                     editingClaimId ? t("views.DocumentEdit.editClaim") : subClaimParentId ? t("views.DocumentEdit.addSubClaim") : t("views.DocumentEdit.addClaim")
