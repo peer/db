@@ -138,12 +138,13 @@ const hasContent = computed(() => rows.value.length > 0)
           </td>
           <td v-else class="hidden sm:block"></td>
           <!--
-            A value-less claim (see rows) renders no value of its own, so when it has sub-claims they sit directly
-            in the value cell of the label row (aligned with the label) instead of leaving an empty value line
-            above them. The p-0 cell lets the nested table's label cells (px-2, like this table's value cells)
-            align with sibling values.
+            A value-less claim (HAS, see rows) renders no value. At the top level its sub-claims sit in the value cell, so
+            the first sub-claim aligns to the right of the label (where a value would be) from sm up, and indents one step
+            (pl-2) below sm so it sits under the label. In a nested instance the value column is left empty (an empty cell
+            keeps the grid aligned from sm up, hidden below sm so it adds no line) and the sub-claims stair-step in the
+            sub-row below, so a deep HAS chain does not march across the value columns.
           -->
-          <td v-if="row.valueless && row.hasSub" class="p-0 align-top">
+          <td v-if="row.valueless && !nested && row.hasSub" class="py-0 pr-0 pl-2 align-top sm:pl-0">
             <PropertiesView
               :claims="row.claim.sub!"
               nested
@@ -155,17 +156,18 @@ const hasContent = computed(() => rows.value.length > 0)
               @sub-claim="onSubClaim"
             />
           </td>
+          <td v-else-if="row.valueless" class="hidden sm:block"></td>
           <td v-else class="px-2 pt-0 pb-1 align-top text-gray-700 sm:pt-1">
             <ClaimValue :claim="row.claim" :type="row.typeName" />
           </td>
         </tr>
         <!--
-          Sub-claims of a claim that renders a value; a value-less claim's sub-claims already sit in its value
-          cell above. In a top-level instance the nested table sits in the value column (under the value, indented
-          by this cell's px-2). In a nested instance it spans both columns (sm:col-span-2), so deeper sub-claims
-          indent under the sub-claim's label rather than its value.
+          Sub-claims render indented below the claim. A top-level value-less (HAS) claim's sub-claims already sit in its
+          value cell above, so only value claims and nested HAS claims render here. In a top-level instance the sub-table
+          sits in the value column (under the value); in a nested instance it spans both columns (sm:col-span-2) and
+          indents by this cell's px-2 under the label, so deeper sub-claims stair-step down per level.
         -->
-        <tr v-if="row.hasSub && !row.valueless" class="contents">
+        <tr v-if="row.hasSub && !(row.valueless && !nested)" class="contents">
           <td v-if="!nested" class="hidden sm:block"></td>
           <td class="px-2 py-0 align-top" :class="{ 'sm:col-span-2': nested }">
             <PropertiesView
