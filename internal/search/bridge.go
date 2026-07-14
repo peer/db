@@ -19,7 +19,6 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/mohae/deepcopy"
 	"github.com/riverqueue/river"
 	"github.com/riverqueue/river/riverdriver"
 	"github.com/rs/zerolog"
@@ -216,15 +215,14 @@ type Bridge struct {
 	// IndexPrefix is the ElasticSearch index prefix; the visibility level name is appended to it to form each per-level index name.
 	IndexPrefix string
 
-	// DocumentPreHooks and DocumentPostHooks are run by fetchHooked around the store read, the same
-	// way base.B runs them on the read path. The base sets these from its own hooks, with the indexing
-	// normalize hooks appended to the post-hooks, so documents are fetched for indexing through the same
-	// hook chain (filtered and normalized).
-	DocumentPreHooks []func(ctx context.Context, id identifier.Identifier, version *store.Version) errors.E
-	// DocumentPostHooks is run after the store read.
-	DocumentPostHooks []func(
-		ctx context.Context, doc *document.D, metadata *store.DocumentMetadata, version store.Version, parentChangesets []store.Version, errE errors.E,
-	) (*document.D, *store.DocumentMetadata, store.Version, []store.Version, errors.E)
+	// NormalizeHooks are the indexing normalize hooks, run by produceLevels on each level's copy of a
+	// document read from the store for indexing, at that level's visibility. A hook may transform the
+	// document or return store.ErrAccessDenied to hide it at that level (it is then deleted from that
+	// level's index). The metadata is the one the document was read with; it is shared across levels and
+	// hooks, so hooks must not mutate it. The base sets these from its own indexing normalize hooks. The
+	// read-path document pre/post hooks are not run during indexing; a site which wants their filtering
+	// during indexing calls them from an indexing normalize hook itself.
+	NormalizeHooks []func(ctx context.Context, doc *document.D, metadata *store.DocumentMetadata) (*document.D, errors.E)
 
 	dbpool *pgxpool.Pool
 	schema string
@@ -238,7 +236,7 @@ type Bridge struct {
 	targets []Target
 	// documentCacheMu protects documentCache.
 	documentCacheMu sync.RWMutex
-	// documentCache holds the latest post-hook document per visibility level and id. produceLevels warms it
+	// documentCache holds the latest normalized document per visibility level and id. produceLevels warms it
 	// on latest reads and GetDocument serves it to each level's converter for secondary (referenced-document)
 	// fetches. It is dropped for changed documents on each commit via invalidateCaches. Documents are stored
 	// by pointer and shared with the converters' own caches.
@@ -246,7 +244,7 @@ type Bridge struct {
 	// cacheGenMu protects cacheGen.
 	cacheGenMu sync.RWMutex
 	// cacheGen holds a per-document monotonic generation, bumped by invalidateCaches before the cached
-	// document is dropped, so a fetchHooked that snapshotted the generation before reading does not
+	// document is dropped, so a produceLevels that snapshotted the generation before reading does not
 	// reinstall a stale document after a concurrent commit invalidated it. It is the bridge's own
 	// generation for documentCache, separate from each converter's generation for its own caches.
 	cacheGen               map[identifier.Identifier]uint64
@@ -1593,26 +1591,25 @@ func diffOutgoingInverseRelations(
 }
 
 // produceLevels reads the document once at the given version (or the latest when version is nil) and
-// produces its per-level versions: for each target it runs that target's pre-hooks and then, after deep
-// copying the document, its post-hooks (filter and indexing), all at that level's visibility. The returned
-// slice aligns with b.targets; an entry is nil when that level's pre-hooks or post-hooks denied the
-// document. deleted is true when the document was deleted at the requested version (no level has a
-// document). It always reads the store (the metadata it returns must be current), but on a latest read it
-// warms documentCache for every level via cacheLevels, including negative results for a deleted,
-// never-existed, or hidden document, so repeated references avoid the store read until the id changes.
+// produces its per-level versions: for each target it runs the indexing normalize hooks on that level's
+// copy of the document, at that level's visibility. The returned slice aligns with b.targets; an entry is
+// nil when a normalize hook denied the document at that level. deleted is true when the document was
+// deleted at the requested version (no level has a document). It always reads the store (the metadata it
+// returns must be current), but on a latest read it warms documentCache for every level via cacheLevels,
+// including negative results for a deleted, never-existed, or hidden document, so repeated references
+// avoid the store read until the id changes.
 func (b *Bridge) produceLevels(
 	ctx context.Context, id identifier.Identifier, version *store.Version,
 ) ([]*document.D, *store.DocumentMetadata, []store.Version, bool, errors.E) {
 	gen := b.genOf(id)
 	var data json.RawMessage
 	var metadata *store.DocumentMetadata
-	var resolved store.Version
 	var parentChangesets []store.Version
 	var errE errors.E
 	if version != nil {
-		data, metadata, resolved, parentChangesets, errE = b.Store.Get(ctx, id, *version)
+		data, metadata, _, parentChangesets, errE = b.Store.Get(ctx, id, *version)
 	} else {
-		data, metadata, resolved, parentChangesets, errE = b.Store.GetLatest(ctx, id)
+		data, metadata, _, parentChangesets, errE = b.Store.GetLatest(ctx, id)
 	}
 	if errors.Is(errE, store.ErrValueDeleted) {
 		// A deleted document is a stable latest state: cache it as a negative at every level so repeated
@@ -1640,13 +1637,32 @@ func (b *Bridge) produceLevels(
 	}
 	docs := make([]*document.D, len(b.targets))
 	for i, t := range b.targets {
+		if baseDoc == nil {
+			continue
+		}
 		ctxL := t.levelContext(ctx)
 
-		// Run the document pre-hooks at this level's visibility. A level may deny access here, in which case
-		// the document is absent at that level (docs[i] stays nil). Any other error aborts the whole conversion.
+		var docL *document.D
+		if i == len(b.targets)-1 {
+			// The last (top) level reuses the freshly unmarshaled document directly: baseDoc is owned here
+			// and not needed after the loop, so copying it once more would be wasted. Earlier levels copied
+			// it while it was still pristine (the hooks mutate only the per-level document), so by this
+			// iteration there is nothing left that needs an untouched baseDoc.
+			docL = baseDoc
+		} else {
+			docCopy, errE := baseDoc.Clone()
+			if errE != nil {
+				return nil, metadata, parentChangesets, false, errE
+			}
+			docL = docCopy
+		}
+		// Run the indexing normalize hooks at this level's visibility. A hook may deny access, in which case
+		// the document is hidden at that level (docs[i] stays nil, so the caller deletes it from this level's
+		// index). Any other error aborts the whole conversion.
 		denied := false
-		for _, hook := range b.DocumentPreHooks {
-			errEL := hook(ctxL, id, version)
+		for _, hook := range b.NormalizeHooks {
+			var errEL errors.E
+			docL, errEL = hook(ctxL, docL, metadata)
 			if errors.Is(errEL, store.ErrAccessDenied) {
 				denied = true
 				break
@@ -1658,50 +1674,7 @@ func (b *Bridge) produceLevels(
 		if denied {
 			continue
 		}
-
-		var docL *document.D
-		if baseDoc != nil {
-			if i == len(b.targets)-1 {
-				// The last (top) level reuses the freshly unmarshaled document directly: baseDoc is owned here
-				// and not needed after the loop, so copying it once more would be wasted. Earlier levels copied
-				// it while it was still pristine (the post-hooks mutate only the per-level document), so by this
-				// iteration there is nothing left that needs an untouched baseDoc.
-				docL = baseDoc
-			} else {
-				docCopy, errE := baseDoc.Clone()
-				if errE != nil {
-					return nil, metadata, parentChangesets, false, errE
-				}
-				docL = docCopy
-			}
-		}
-		// A hook may also change the metadata, so each level gets its own copy to keep a change from leaking
-		// across levels. Like the document, the last (top) level reuses the original directly and its post-hook
-		// metadata becomes the returned metadata.
-		m := metadata
-		if metadata != nil && i != len(b.targets)-1 {
-			metadataCopy, ok := deepcopy.Copy(metadata).(*store.DocumentMetadata)
-			if !ok {
-				return nil, metadata, parentChangesets, false, errors.New("deep copy returned unexpected type")
-			}
-			m = metadataCopy
-		}
-		v, pc, errEL := resolved, parentChangesets, errors.E(nil)
-		for _, hook := range b.DocumentPostHooks {
-			docL, m, v, pc, errEL = hook(ctxL, docL, m, v, pc, errEL)
-		}
-		if errors.Is(errEL, store.ErrAccessDenied) {
-			// Hidden at this level: leave docs[i] nil so the caller deletes it from this level's index.
-			continue
-		}
-		if errEL != nil {
-			return nil, metadata, parentChangesets, false, errEL
-		}
 		docs[i] = docL
-		if i == len(b.targets)-1 {
-			// The top level reused and may have transformed the original metadata. Return that.
-			metadata = m
-		}
 	}
 	// The highest (last) level is the unfiltered superset whose hooks must not drop anything, so an existing
 	// document must always be present there. A nil top means the top-level hooks filtered it, violating that
@@ -1748,7 +1721,7 @@ func (b *Bridge) genOf(id identifier.Identifier) uint64 {
 	return b.cacheGen[id]
 }
 
-// GetDocument returns the latest post-hook document for id at the visibility level in ctx. It is the
+// GetDocument returns the latest normalized document for id at the visibility level in ctx. It is the
 // callback each level's converter uses for secondary (referenced-document) fetches while rendering display
 // strings, so it returns only the document. It serves from documentCache (a cached negative is reported as
 // not found) and falls back to produceLevels on a miss, which warms the cache. A document deleted, never
@@ -1785,7 +1758,7 @@ func (b *Bridge) GetDocument(ctx context.Context, id identifier.Identifier) (*do
 
 // invalidateCaches drops the bridge's cached documents for the given ids and invalidates the converter's
 // caches for them. The bulk loop calls it for the documents changed in each commit. The bridge's own
-// generation is bumped before its cache is cleared, so a concurrent fetchHooked whose snapshot predates
+// generation is bumped before its cache is cleared, so a concurrent produceLevels whose snapshot predates
 // this invalidation fails its genOf guard and does not reinstall a stale document after we clear it. The
 // converter keeps its own generation for its own caches.
 func (b *Bridge) invalidateCaches(ids ...identifier.Identifier) {

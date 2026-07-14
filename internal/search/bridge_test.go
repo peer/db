@@ -152,11 +152,10 @@ func setupBridge(t *testing.T) (context.Context, *bridgeEnv) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	b := &internalSearch.Bridge{
-		Store:             s,
-		ESClient:          esClient,
-		IndexPrefix:       index,
-		DocumentPreHooks:  nil,
-		DocumentPostHooks: nil,
+		Store:          s,
+		ESClient:       esClient,
+		IndexPrefix:    index,
+		NormalizeHooks: nil,
 	}
 	errE = b.Init(ctx, dbpool, listener, r)
 	require.NoError(t, errE, "% -+#.1v", errE)
@@ -686,21 +685,16 @@ func makeConverterWithInverse(
 	return c
 }
 
-// denyDocumentAtLevel returns a document post-hook that denies access to document id at the given visibility
-// level (modeling an opted-out document), passing every other document and level through unchanged.
+// denyDocumentAtLevel returns an indexing normalize hook that denies access to document id at the given
+// visibility level (modeling an opted-out document), passing every other document and level through unchanged.
 func denyDocumentAtLevel(id identifier.Identifier, level string) func(
-	ctx context.Context, doc *document.D, metadata *store.DocumentMetadata, version store.Version, parentChangesets []store.Version, errE errors.E,
-) (*document.D, *store.DocumentMetadata, store.Version, []store.Version, errors.E) {
-	return func(
-		ctx context.Context, doc *document.D, metadata *store.DocumentMetadata, version store.Version, parentChangesets []store.Version, errE errors.E,
-	) (*document.D, *store.DocumentMetadata, store.Version, []store.Version, errors.E) {
-		if errE != nil {
-			return doc, metadata, version, parentChangesets, errE
+	ctx context.Context, doc *document.D, metadata *store.DocumentMetadata,
+) (*document.D, errors.E) {
+	return func(ctx context.Context, doc *document.D, _ *store.DocumentMetadata) (*document.D, errors.E) {
+		if doc.ID == id && auth.Visibility(ctx) == level {
+			return doc, errors.WithStack(store.ErrAccessDenied)
 		}
-		if doc != nil && doc.ID == id && auth.Visibility(ctx) == level {
-			return doc, metadata, version, parentChangesets, errors.WithStack(store.ErrAccessDenied)
-		}
-		return doc, metadata, version, parentChangesets, nil
+		return doc, nil
 	}
 }
 
@@ -721,11 +715,9 @@ func TestBridgePerLevelInverseRelations(t *testing.T) {
 
 	const lvlPublic, lvlEditor = "public", "editor"
 
-	// The post-hook denies the source document A at the public level (like an opted-out document), so A's
+	// The normalize hook denies the source document A at the public level (like an opted-out document), so A's
 	// relation must not contribute an inverse relation to that level. The editor (top) level is unfiltered.
-	b.DocumentPostHooks = []func(
-		ctx context.Context, doc *document.D, metadata *store.DocumentMetadata, version store.Version, parentChangesets []store.Version, errE errors.E,
-	) (*document.D, *store.DocumentMetadata, store.Version, []store.Version, errors.E){
+	b.NormalizeHooks = []func(ctx context.Context, doc *document.D, metadata *store.DocumentMetadata) (*document.D, errors.E){
 		denyDocumentAtLevel(docA, lvlPublic),
 	}
 
@@ -969,12 +961,10 @@ func TestBridgePerLevelDocumentPresence(t *testing.T) {
 
 	const lvlPublic, lvlEditor = "public", "editor"
 
-	// The post-hook denies document A at the public level (like an opted-out document). It must then be
+	// The normalize hook denies document A at the public level (like an opted-out document). It must then be
 	// absent from the public index but present in the editor (top, unfiltered) index. Document B is visible
 	// at both levels and must be present in both indexes.
-	b.DocumentPostHooks = []func(
-		ctx context.Context, doc *document.D, metadata *store.DocumentMetadata, version store.Version, parentChangesets []store.Version, errE errors.E,
-	) (*document.D, *store.DocumentMetadata, store.Version, []store.Version, errors.E){
+	b.NormalizeHooks = []func(ctx context.Context, doc *document.D, metadata *store.DocumentMetadata) (*document.D, errors.E){
 		denyDocumentAtLevel(docA, lvlPublic),
 	}
 
@@ -1032,9 +1022,7 @@ func TestBridgePerLevelReindexPresence(t *testing.T) {
 	const lvlPublic, lvlEditor = "public", "editor"
 
 	// The reindex target B is denied at the public level (like an opted-out document).
-	b.DocumentPostHooks = []func(
-		ctx context.Context, doc *document.D, metadata *store.DocumentMetadata, version store.Version, parentChangesets []store.Version, errE errors.E,
-	) (*document.D, *store.DocumentMetadata, store.Version, []store.Version, errors.E){
+	b.NormalizeHooks = []func(ctx context.Context, doc *document.D, metadata *store.DocumentMetadata) (*document.D, errors.E){
 		denyDocumentAtLevel(docB, lvlPublic),
 	}
 

@@ -380,7 +380,7 @@ func (s *Site) FetchDocuments(ctx context.Context, classID identifier.Identifier
 	documentsStore := s.Base.Documents()
 	documents := make([]base.StartDocument, 0, len(allIDs))
 	for _, id := range allIDs {
-		data, metadata, version, parentChangesets, errE := documentsStore.GetLatest(ctx, id)
+		data, metadata, _, _, errE := documentsStore.GetLatest(ctx, id)
 		if errE != nil {
 			return nil, errE
 		}
@@ -389,12 +389,7 @@ func (s *Site) FetchDocuments(ctx context.Context, classID identifier.Identifier
 		if errE != nil {
 			return nil, errE
 		}
-		documents = append(documents, base.StartDocument{
-			Document:         doc,
-			Metadata:         metadata,
-			Version:          version,
-			ParentChangesets: parentChangesets,
-		})
+		documents = append(documents, base.StartDocument{Document: doc, Metadata: metadata})
 	}
 
 	return documents, nil

@@ -13,17 +13,14 @@ import (
 	"context"
 	"encoding/json"
 	"io"
-	"slices"
 	"time"
 
 	"github.com/elastic/go-elasticsearch/v9"
 	"github.com/elastic/go-elasticsearch/v9/typedapi/types"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/mohae/deepcopy"
 	"github.com/riverqueue/river"
 	"github.com/rs/zerolog"
 	"gitlab.com/tozd/go/errors"
-	"gitlab.com/tozd/go/x"
 	"gitlab.com/tozd/identifier"
 
 	"gitlab.com/peerdb/peerdb/auth"
@@ -57,7 +54,8 @@ type B struct {
 
 	// Levels is the ordered list of visibility level names (lowest to highest). The bridge indexes each
 	// document into one index per level and accumulates inverse relations per level. The highest (last)
-	// level must be the unfiltered superset containing every document, so its hooks must not filter anything.
+	// level must be the unfiltered superset containing every document, so the indexing hooks must not
+	// filter anything at it.
 	Levels []string
 
 	// languagePriority defines per-language fallback order for display label resolution.
@@ -74,12 +72,18 @@ type B struct {
 	IndexAncestorProperties bool
 
 	// IndexingNormalizeHooks transform a document for indexing before it is augmented with embedded claims
-	// and synthetic incoming inverse claims. The bridge runs them, adapted to document post-hooks
-	// (skipping on an incoming error), after DocumentPostHooks when fetching documents for indexing,
-	// so the indexed document is the post-hook document with any indexing-specific normalization
-	// applied. Because they shape the per-level document itself, they also drive the inverse-relation,
-	// reference-target, and embedding accumulation. They are not run on the read/API path.
-	IndexingNormalizeHooks []func(ctx context.Context, doc *document.D) (*document.D, errors.E)
+	// and synthetic incoming inverse claims. The bridge runs them per visibility level, on that level's
+	// copy of the document read from the store, with the level's visibility in ctx. A hook may return
+	// store.ErrAccessDenied to hide the document at that level (it is then deleted from that level's
+	// index). Because they shape the per-level document itself, they also drive the inverse-relation,
+	// reference-target, and embedding accumulation. They are the only per-document hooks run when fetching
+	// documents for indexing: the read-path document pre-hooks and post-hooks are not run during indexing,
+	// so a site which wants their filtering during indexing calls them from a hook here itself. They are
+	// not run on the read/API path.
+	//
+	// The metadata is the document's store metadata (nil for a freshly generated, not-yet-read document
+	// passed to Start). It is shared across levels and hooks, so hooks must not mutate it.
+	IndexingNormalizeHooks []func(ctx context.Context, doc *document.D, metadata *store.DocumentMetadata) (*document.D, errors.E)
 
 	// IndexingFinalizeHooks transform a document for indexing after it has been augmented with embedded
 	// claims and then synthetic incoming inverse claims, right before the conversion to the search
@@ -90,10 +94,12 @@ type B struct {
 	// read/API path.
 	IndexingFinalizeHooks []func(ctx context.Context, doc *document.D) (*document.D, errors.E)
 
-	// DocumentPreHooks are called before fetching the document from the store.
+	// DocumentPreHooks are called before fetching the document from the store on the read/API path.
+	// They are not called during indexing.
 	DocumentPreHooks []func(ctx context.Context, id identifier.Identifier, version *store.Version) errors.E
 
-	// DocumentPostHooks are called after fetching the document from the store.
+	// DocumentPostHooks are called after fetching the document from the store on the read/API path.
+	// They are not called during indexing.
 	DocumentPostHooks []func(
 		ctx context.Context, doc *document.D, metadata *store.DocumentMetadata, version store.Version, parentChangesets []store.Version, errE errors.E,
 	) (*document.D, *store.DocumentMetadata, store.Version, []store.Version, errors.E)
@@ -198,9 +204,8 @@ func (b *B) Init(
 		Store:       documents,
 		ESClient:    esClient,
 		IndexPrefix: b.IndexPrefix,
-		// The document hooks are set from the base's hooks in Start, once the site has populated them.
-		DocumentPreHooks:  nil,
-		DocumentPostHooks: nil,
+		// The normalize hooks are set from the base's indexing hooks in Start, once the site has populated them.
+		NormalizeHooks: nil,
 	}
 	errE = bridge.Init(ctx, dbpool, listener, r)
 	if errE != nil {
@@ -233,50 +238,25 @@ func QueueName(kind string) string {
 	return internalStore.RiverQueueName(kind)
 }
 
-// adaptIndexingNormalizeHook adapts an indexing normalize hook, which only transforms the document, to a
-// document post-hook. On an incoming error it skips the normalize hook and returns the error unchanged;
-// otherwise it runs the normalize hook and passes the metadata, version, and parent changesets through.
-func adaptIndexingNormalizeHook(hook func(ctx context.Context, doc *document.D) (*document.D, errors.E)) func(
-	ctx context.Context, doc *document.D, metadata *store.DocumentMetadata, version store.Version, parentChangesets []store.Version, errE errors.E,
-) (*document.D, *store.DocumentMetadata, store.Version, []store.Version, errors.E) {
-	return func(
-		ctx context.Context, doc *document.D, metadata *store.DocumentMetadata, version store.Version, parentChangesets []store.Version, errE errors.E,
-	) (*document.D, *store.DocumentMetadata, store.Version, []store.Version, errors.E) {
-		if errE != nil {
-			return doc, metadata, version, parentChangesets, errE
-		}
-		doc, errE = hook(ctx, doc)
-		return doc, metadata, version, parentChangesets, errE
-	}
-}
-
-// StartDocument is a document passed to Start as converter vocabulary, together with the metadata, version,
-// and parent changesets it was read with. For a freshly generated, not-yet-stored document the metadata is
-// nil and the version and parent changesets are zero.
+// StartDocument is a document passed to Start as converter vocabulary, together with the metadata it was
+// read with. For a freshly generated, not-yet-read document the metadata is nil.
 type StartDocument struct {
-	Document         *document.D
-	Metadata         *store.DocumentMetadata
-	Version          store.Version
-	ParentChangesets []store.Version
+	Document *document.D
+	Metadata *store.DocumentMetadata
 }
 
 // Start starts the base.
 //
-// Documents ar property, class, and language documents used to index
+// Documents are property, class, and language documents used to index
 // documents for search. All three kinds must be provided.
 //
 // You have to call this or PopulateAndStart for each base after Init.
 func (b *B) Start(ctx context.Context, documents []StartDocument) (func(), errors.E) {
-	// The bridge fetches documents for indexing through the same pre/post hooks as the read path, plus
-	// the indexing normalize hooks (adapted to document post-hooks) appended after them, so the indexed
-	// document is the filtered and normalized one. The indexing finalize hooks run later, inside the
-	// conversion, after the document is augmented with embedded claims and synthetic incoming inverse claims.
-	b.bridge.DocumentPreHooks = b.DocumentPreHooks
-	postHooks := slices.Clone(b.DocumentPostHooks)
-	for _, hook := range b.IndexingNormalizeHooks {
-		postHooks = append(postHooks, adaptIndexingNormalizeHook(hook))
-	}
-	b.bridge.DocumentPostHooks = postHooks
+	// The bridge fetches documents for indexing through the indexing normalize hooks only (the read-path
+	// document pre-hooks and post-hooks are not run during indexing). The indexing finalize hooks run
+	// later, inside the conversion, after the document is augmented with embedded claims and synthetic
+	// incoming inverse claims.
+	b.bridge.NormalizeHooks = b.IndexingNormalizeHooks
 
 	// Build one converter and one ElasticSearch index per visibility level. We build them first so that
 	// invalid input (e.g., an unsupported language priority) fails fast without leaving any resources running.
@@ -342,15 +322,15 @@ func (b *B) Start(ctx context.Context, documents []StartDocument) (func(), error
 }
 
 // documentsForLevel returns documents as seen at the given visibility level: each is run through the
-// read-path document pre-hooks and post-hooks (the filtering ones, not the indexing normalize hooks) at that
-// level's visibility, dropping any the hooks deny. Pre-hooks see a nil requested version because the documents are
-// the latest committed view.
+// indexing normalize hooks at that level's visibility (the same hooks the bridge runs when fetching
+// documents for indexing), dropping any the hooks deny. The hooks may mutate the document, so each runs
+// on that level's own copy; the metadata is passed to the hooks as-is.
 //
-// With no document pre-hooks or post-hooks set (no per-level filtering) it returns the input documents unchanged.
+// With no indexing normalize hooks set (no per-level shaping) it returns the input documents unchanged.
 func (b *B) documentsForLevel(ctx context.Context, level string, documents []StartDocument) ([]*document.D, errors.E) {
 	out := make([]*document.D, 0, len(documents))
 
-	if len(b.DocumentPreHooks) == 0 && len(b.DocumentPostHooks) == 0 {
+	if len(b.IndexingNormalizeHooks) == 0 {
 		for _, sd := range documents {
 			out = append(out, sd.Document)
 		}
@@ -361,27 +341,24 @@ func (b *B) documentsForLevel(ctx context.Context, level string, documents []Sta
 	ctx = zerolog.Ctx(ctx).With().Str("index", internalSearch.LevelIndex(b.IndexPrefix, level)).Logger().WithContext(ctx)
 
 	for _, sd := range documents {
-		doc, _, _, _, errE := b.withDocumentHooks(ctx, sd.Document.ID, nil,
-			func() (json.RawMessage, *store.DocumentMetadata, store.Version, []store.Version, errors.E) {
-				// By marshalling document and using withDocumentHooks we effectively clone the document every time.
-				data, errE := x.MarshalWithoutEscapeHTML(sd.Document)
-				if errE != nil {
-					return nil, nil, store.Version{}, nil, errE
-				}
-				// Metadata we copy using deepcopy.
-				metadataCopy, ok := deepcopy.Copy(sd.Metadata).(*store.DocumentMetadata)
-				if !ok {
-					return nil, nil, store.Version{}, nil, errors.New("deep copy returned unexpected type")
-				}
-				return data, metadataCopy, sd.Version, sd.ParentChangesets, nil
-			},
-		)
-		if errors.Is(errE, store.ErrAccessDenied) {
-			// The document is not visible at this level, so it is not part of this level's vocabulary.
-			continue
-		}
+		doc, errE := sd.Document.Clone()
 		if errE != nil {
 			return nil, errE
+		}
+		denied := false
+		for _, hook := range b.IndexingNormalizeHooks {
+			doc, errE = hook(ctx, doc, sd.Metadata)
+			if errors.Is(errE, store.ErrAccessDenied) {
+				// The document is not visible at this level, so it is not part of this level's vocabulary.
+				denied = true
+				break
+			}
+			if errE != nil {
+				return nil, errE
+			}
+		}
+		if denied {
+			continue
 		}
 		out = append(out, doc)
 	}

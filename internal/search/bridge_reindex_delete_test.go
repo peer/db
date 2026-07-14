@@ -93,17 +93,13 @@ func TestBridgeReindexDoesNotResurrectDeletedDocument(t *testing.T) {
 		return &doc, nil
 	}
 
-	// A post-hook runs on every produceLevels of a live document, including each reindex of B. When armed it
-	// blocks the first time it sees B (the reindex holding a live, pre-delete copy), then disarms so the
+	// A normalize hook runs on every produceLevels of a live document, including each reindex of B. When armed
+	// it blocks the first time it sees B (the reindex holding a live, pre-delete copy), then disarms so the
 	// concurrent delete's own reads of B's parent version pass through.
-	b.DocumentPostHooks = []func(
-		ctx context.Context, doc *document.D, metadata *store.DocumentMetadata, version store.Version, parentChangesets []store.Version, errE errors.E,
-	) (*document.D, *store.DocumentMetadata, store.Version, []store.Version, errors.E){
-		func(
-			_ context.Context, doc *document.D, metadata *store.DocumentMetadata, version store.Version, parentChangesets []store.Version, errE errors.E,
-		) (*document.D, *store.DocumentMetadata, store.Version, []store.Version, errors.E) {
-			if errE != nil || doc == nil || doc.ID != docB {
-				return doc, metadata, version, parentChangesets, errE
+	b.NormalizeHooks = []func(ctx context.Context, doc *document.D, metadata *store.DocumentMetadata) (*document.D, errors.E){
+		func(_ context.Context, doc *document.D, _ *store.DocumentMetadata) (*document.D, errors.E) {
+			if doc.ID != docB {
+				return doc, nil
 			}
 			mu.Lock()
 			block := armed
@@ -115,7 +111,7 @@ func TestBridgeReindexDoesNotResurrectDeletedDocument(t *testing.T) {
 				close(reached)
 				<-release
 			}
-			return doc, metadata, version, parentChangesets, nil
+			return doc, nil
 		},
 	}
 
