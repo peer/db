@@ -60,6 +60,11 @@ func NewListener(dbpool *pgxpool.Pool) *Listener {
 			if err != nil {
 				return nil, errors.WithStack(err)
 			}
+
+			// A successful Acquire means the listener has a working connection and pgxlisten issues LISTEN on it next.
+			// LogError only reports failures, so this is the signal that the listener connected (or reconnected after an outage).
+			zerolog.Ctx(ctx).Info().Msg("NOTIFY listener connected")
+
 			// We do not hijack the connection because we want to prevent the pool from making a new connection
 			// while this one is in use, so that the max connections limit of the pool is also the limit on number
 			// of total connections we are making against the database.
@@ -94,6 +99,11 @@ func (l *Listener) Start(ctx context.Context) errors.E {
 		return errors.New("already started")
 	}
 	l.started = true
+
+	// We enrich the logger with the schema so every listener log line identifies the site.
+	if schema, ok := ctx.Value(schemaContextKey).(string); ok {
+		ctx = zerolog.Ctx(ctx).With().Str("schema", schema).Logger().WithContext(ctx)
+	}
 
 	go func() {
 		defer l.releaseConn()
