@@ -8,6 +8,7 @@ import { Namespace } from "@/core/namespace"
 export const CLASS = (await Identifier.from(Namespace, "CLASS")).toString()
 export const LANGUAGE = (await Identifier.from(Namespace, "LANGUAGE")).toString()
 export const PAGE = (await Identifier.from(Namespace, "PAGE")).toString()
+export const PERMISSION_ACTIONS = (await Identifier.from(Namespace, "PERMISSION_ACTIONS")).toString()
 export const PROPERTY = (await Identifier.from(Namespace, "PROPERTY")).toString()
 export const UNIT = (await Identifier.from(Namespace, "UNIT")).toString()
 export const VALUE_TYPE = (await Identifier.from(Namespace, "VALUE_TYPE")).toString()

@@ -333,5 +333,42 @@ func Classes(mnemonics map[string][]string) ([]any, errors.E) {
 		},
 	})
 
+	fields, errE = transform.Fields[PermissionAction](mnemonics, nil, nil)
+	if errE != nil {
+		return nil, errE
+	}
+	documents = append(documents, &Class{
+		ClassFields: ClassFields{
+			Name: []StringWithLanguage{{
+				Value: "permission actions",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "en-GB"},
+				}},
+			}, {
+				Value: "dejanja dovoljenj",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}},
+			ShortName:       nil,
+			AlternativeName: nil,
+			Mnemonic:        "PERMISSION_ACTIONS",
+			Description:     nil,
+			SubclassOf: []Ref{{
+				ID: []string{Namespace, "VOCABULARY"},
+			}},
+			AbstractClass:        false,
+			DisplayLabelTemplate: nil,
+			SearchShortcut:       nil,
+			Fields:               fields,
+		},
+		DocumentFields: DocumentFields{
+			ID: []string{Namespace, "PERMISSION_ACTIONS"},
+			InstanceOf: []Ref{{
+				ID: []string{Namespace, "CLASS"},
+			}},
+		},
+	})
+
 	return documents, nil
 }

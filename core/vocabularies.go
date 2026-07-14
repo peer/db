@@ -1048,5 +1048,77 @@ func Vocabularies() ([]any, errors.E) { //nolint:maintidx
 		},
 	})
 
+	documents = append(documents, &PermissionAction{
+		VocabularyFields: VocabularyFields{
+			Name: []StringWithLanguage{{
+				Value: "read",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "en-GB"},
+				}},
+			}, {
+				Value: "branje",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}},
+			Description: nil,
+			Code:        nil,
+		},
+		DocumentFields: DocumentFields{
+			ID: []string{Namespace, "PERMISSION_ACTIONS", "ACTION_READ"},
+			InstanceOf: []Ref{{
+				ID: []string{Namespace, "PERMISSION_ACTIONS"},
+			}},
+		},
+	})
+
+	documents = append(documents, &PermissionAction{
+		VocabularyFields: VocabularyFields{
+			Name: []StringWithLanguage{{
+				Value: "edit",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "en-GB"},
+				}},
+			}, {
+				Value: "urejanje",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}},
+			Description: nil,
+			Code:        nil,
+		},
+		DocumentFields: DocumentFields{
+			ID: []string{Namespace, "PERMISSION_ACTIONS", "ACTION_EDIT"},
+			InstanceOf: []Ref{{
+				ID: []string{Namespace, "PERMISSION_ACTIONS"},
+			}},
+		},
+	})
+
+	documents = append(documents, &PermissionAction{
+		VocabularyFields: VocabularyFields{
+			Name: []StringWithLanguage{{
+				Value: "permissions",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "en-GB"},
+				}},
+			}, {
+				Value: "dovoljenja",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}},
+			Description: nil,
+			Code:        nil,
+		},
+		DocumentFields: DocumentFields{
+			ID: []string{Namespace, "PERMISSION_ACTIONS", "ACTION_PERMISSIONS"},
+			InstanceOf: []Ref{{
+				ID: []string{Namespace, "PERMISSION_ACTIONS"},
+			}},
+		},
+	})
+
 	return documents, nil
 }

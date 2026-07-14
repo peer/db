@@ -45,6 +45,7 @@ func init() { //nolint:gochecknoinits
 	ClassRegistry[identifier.From(Namespace, "LANGUAGE")] = reflect.TypeFor[Language]()
 	ClassRegistry[identifier.From(Namespace, "UNIT")] = reflect.TypeFor[Unit]()
 	ClassRegistry[identifier.From(Namespace, "VALUE_TYPE")] = reflect.TypeFor[ValueType]()
+	ClassRegistry[identifier.From(Namespace, "PERMISSION_ACTIONS")] = reflect.TypeFor[PermissionAction]()
 	ClassRegistry[identifier.From(Namespace, "PAGE")] = reflect.TypeFor[Page]()
 
 	// ClassFieldsRegistry holds only the Go struct that carries a class's own

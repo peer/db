@@ -1482,5 +1482,98 @@ func Properties() ([]any, errors.E) {
 		},
 	})
 
+	documents = append(documents, &Property{
+		PropertyFields: PropertyFields{
+			Name: []StringWithLanguage{{
+				Value: "permission",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "en-GB"},
+				}},
+			}, {
+				Value: "dovoljenje",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}},
+			ShortName:              nil,
+			AlternativeName:        nil,
+			Mnemonic:               "HAS_PERMISSION",
+			Description:            nil,
+			IdentifierLinkTemplate: "",
+			SubpropertyOf: []Ref{{
+				ID: []string{Namespace, "SETTING"},
+			}},
+			InversePropertyOf: nil,
+		},
+		DocumentFields: DocumentFields{
+			ID: []string{Namespace, "HAS_PERMISSION"},
+			InstanceOf: []Ref{{
+				ID: []string{Namespace, "PROPERTY"},
+			}},
+		},
+	})
+
+	documents = append(documents, &Property{
+		PropertyFields: PropertyFields{
+			Name: []StringWithLanguage{{
+				Value: "requested permission",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "en-GB"},
+				}},
+			}, {
+				Value: "zaprošeno dovoljenje",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}},
+			ShortName:              nil,
+			AlternativeName:        nil,
+			Mnemonic:               "HAS_REQUESTED_PERMISSION",
+			Description:            nil,
+			IdentifierLinkTemplate: "",
+			SubpropertyOf: []Ref{{
+				ID: []string{Namespace, "SETTING"},
+			}},
+			InversePropertyOf: nil,
+		},
+		DocumentFields: DocumentFields{
+			ID: []string{Namespace, "HAS_REQUESTED_PERMISSION"},
+			InstanceOf: []Ref{{
+				ID: []string{Namespace, "PROPERTY"},
+			}},
+		},
+	})
+
+	documents = append(documents, &Property{
+		PropertyFields: PropertyFields{
+			Name: []StringWithLanguage{{
+				Value: "permission user",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "en-GB"},
+				}},
+			}, {
+				Value: "uporabnik dovoljenja",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}},
+			ShortName:              nil,
+			AlternativeName:        nil,
+			Mnemonic:               "PERMISSION_USER",
+			Description:            nil,
+			IdentifierLinkTemplate: "",
+			SubpropertyOf: []Ref{{
+				ID: []string{Namespace, "SETTING"},
+			}},
+			InversePropertyOf: nil,
+		},
+		DocumentFields: DocumentFields{
+			ID: []string{Namespace, "PERMISSION_USER"},
+			InstanceOf: []Ref{{
+				ID: []string{Namespace, "PROPERTY"},
+			}},
+		},
+	})
+
 	return documents, nil
 }

@@ -187,6 +187,13 @@ type ValueType struct {
 	DocumentFields
 }
 
+// PermissionAction represents a "permission actions" vocabulary document, an action a document-level
+// permission claim can grant.
+type PermissionAction struct {
+	VocabularyFields
+	DocumentFields
+}
+
 // PageFields contains fields specific to a page.
 type PageFields struct {
 	Title       []StringWithLanguage  `cardinality:"1.."  json:"title"                 property:"NAME"`
