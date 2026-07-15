@@ -99,7 +99,7 @@ func (s *Service) setRoutes() { //nolint:maintidx
 			},
 		},
 		"SearchSubAmountFilterWithUnit": {
-			Path: "/s/filters/:id/amount/:parentProp/:prop/:unit",
+			Path: "/s/filters/:id/subamount/:parentProp/:prop/:unit",
 			API: waf.RouteOptions{
 				Handlers: map[string]waf.Handler{
 					http.MethodGet: s.SearchSubAmountFilterGetAPI,
@@ -107,7 +107,7 @@ func (s *Service) setRoutes() { //nolint:maintidx
 			},
 		},
 		"SearchSubAmountFilter": {
-			Path: "/s/filters/:id/amount/:parentProp/:prop",
+			Path: "/s/filters/:id/subamount/:parentProp/:prop",
 			API: waf.RouteOptions{
 				Handlers: map[string]waf.Handler{
 					http.MethodGet: s.SearchSubAmountFilterGetAPI,
