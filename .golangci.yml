@@ -48,6 +48,7 @@ linters:
         - "none"
         - "parentProp"
         - "parentTo"
+        - "PERMISSION_ACTIONS"
         - "prop"
         - "propDisplay"
         - "PROPERTY"

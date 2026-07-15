@@ -143,7 +143,7 @@ func (s *Service) DocumentDeleteGet(w http.ResponseWriter, req *http.Request, pa
 // retrieves the document from the store, and returns the raw JSON data and metadata.
 func (s *Service) documentGetData(
 	w http.ResponseWriter, req *http.Request, params waf.Params,
-) (json.RawMessage, *store.DocumentMetadata, store.Version, bool) {
+) (json.RawMessage, *store.DocumentMetadata, store.Version, bool) { //nolint:unparam
 	ctx := req.Context()
 	metrics := waf.MustGetMetrics(ctx)
 
