@@ -2462,6 +2462,40 @@ func TestConvertAmount(t *testing.T) {
 	assert.Nil(t, result[0].Unit)
 }
 
+func TestConvertAmountDegenerateWindow(t *testing.T) {
+	t.Parallel()
+
+	// A precision finer than float64 can resolve at the value's magnitude (1e-14 near 112) collapses
+	// the symmetric window [value - precision/2, value + precision/2) to a single point. The claim is
+	// still valid, so indexing must not fail: it is indexed as a single-point inclusive range.
+	propDoc := makeNamingDoc(testPropID, "Amount Prop")
+	extraDocs := map[identifier.Identifier]*document.D{
+		testPropID: propDoc,
+	}
+	c := newTestConverter(t, nil, nil, extraDocs)
+
+	ctx := t.Context()
+	claim := &document.AmountClaim{
+		CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+		Prop:      document.Reference{ID: testPropID},
+		Amount:    document.Amount("112.00007334000001"),
+		Precision: 1e-14,
+	}
+	// The claim is valid, so it passes document validation and reaches the search converter.
+	require.NoError(t, claim.Validate(), "% -+#.1v", claim.Validate())
+
+	result, errE := c.convertAmount(ctx, claim)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	require.Len(t, result, 1)
+
+	r := result[0].Range
+	require.NotNil(t, r.GreaterThanOrEqual)
+	require.NotNil(t, r.LessThanOrEqual)
+	assert.Nil(t, r.LessThan)
+	assert.Equal(t, *r.GreaterThanOrEqual, *r.LessThanOrEqual) //nolint:testifylint
+	require.NoError(t, r.Validate())
+}
+
 func TestConvertAmountWithUnit(t *testing.T) {
 	t.Parallel()
 

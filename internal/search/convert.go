@@ -3399,9 +3399,17 @@ func (c *Converter) convertAmount(ctx context.Context, claim *document.AmountCla
 		GreaterThanOrEqual: &rangeFrom,
 		LessThan:           &rangeTo,
 	}
+	// When the precision is finer than float64 can represent at the value's magnitude, the window
+	// [value - precision/2, value + precision/2) collapses to a single point (from == to). A half-open
+	// range with equal bounds is empty and rejected, so we index it as a single-point inclusive range.
+	// Only single-point amount claims need this: an amount interval with such a collapsed window is
+	// already rejected as empty by AmountIntervalClaim.Validate, so it never reaches conversion.
+	if from == to {
+		rangeFloat.LessThan = nil
+		rangeFloat.LessThanOrEqual = &rangeTo
+	}
 
-	// Sanity check. Validate is strict and never swaps; for a single-point
-	// amount with positive precision the bounds are always well-formed.
+	// Sanity check.
 	errE = rangeFloat.Validate()
 	if errE != nil {
 		errors.Details(errE)["claim"] = claim
@@ -3580,6 +3588,9 @@ func (c *Converter) convertAmountInterval(
 		return nil, claims, subs, errE
 	}
 
+	// Sanity check. A single-point amount interval does not collapse: AmountIntervalClaim.Validate
+	// rejects an empty interval (start >= end) using the same window computation, so any interval
+	// reaching here has distinct bounds.
 	errE := rangeFloat.Validate()
 	if errE != nil {
 		errors.Details(errE)["claim"] = claim
@@ -3632,8 +3643,9 @@ func (c *Converter) convertTime(ctx context.Context, claim *document.TimeClaim) 
 		LessThan:           &rangeTo,
 	}
 
-	// Sanity check. Validate is strict and never swaps; for a single-point
-	// time with non-zero precision the bounds are always well-formed.
+	// Sanity check. For a single-point time the bounds are always well-formed: windowEndFloat64 widens
+	// the precision when its step is below the float64 resolution at the time's magnitude, so the
+	// window never collapses to equal bounds.
 	errE = rangeFloat.Validate()
 	if errE != nil {
 		errors.Details(errE)["claim"] = claim
@@ -3805,6 +3817,9 @@ func (c *Converter) convertTimeInterval(ctx context.Context, claim *document.Tim
 		return nil, claims, subs, errE
 	}
 
+	// Sanity check. A single-point time interval does not collapse: windowEndFloat64 widens the precision
+	// when its step is below the float64 resolution, and the open-bound single-point variants that would
+	// collapse are rejected by TimeIntervalClaim.Validate before conversion.
 	errE := rangeFloat.Validate()
 	if errE != nil {
 		errors.Details(errE)["claim"] = claim
