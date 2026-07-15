@@ -17,11 +17,13 @@ import { getClaimsOfTypeWithConfidence, selectClaimsByLanguage } from "@/documen
 import { useInternalLinksClick, useTransformedHtml } from "@/internal-links"
 import DisplayLabel from "@/partials/DisplayLabel.vue"
 import FieldsView from "@/partials/FieldsView.vue"
+import SearchResultTags from "@/partials/SearchResultTags.vue"
 import { useProgress } from "@/progress"
 import { getSearchResultComponents } from "@/registry/search-result"
+import { getDescriptionProperties, getPreviewProperties, getTagsProperties } from "@/registry/search-result-properties"
 import { useDocumentFields } from "@/useDocumentFields"
 import { useParentClasses } from "@/useParentClasses"
-import { encodeQuery, loadingLongWidth, loadingWidth } from "@/utils"
+import { encodeQuery, loadingLongWidth } from "@/utils"
 
 const props = withDefaults(
   defineProps<{
@@ -94,24 +96,39 @@ const { fieldsData } = useDocumentFields(classDocs, instanceOfClassIds)
 
 const onDescriptionClick = useInternalLinksClick()
 
-// TODO: Do not hard-code properties?
+// The description, tags, and preview images are taken from configurable property registries so that
+// consumers can adapt what a search result card shows (see registry/search-result-properties). Each
+// registry is empty by default; while empty we fall back to the built-in defaults below, and once a
+// consumer registers any property the registry replaces those defaults entirely.
+const descriptionProperties = getDescriptionProperties()
+const tagsProperties = getTagsProperties()
+const previewProperties = getPreviewProperties()
+
+const effectiveDescriptionProperties = computed(() => (descriptionProperties.value.length ? descriptionProperties.value : [DESCRIPTION]))
+const effectiveTagsProperties = computed(() => (tagsProperties.value.length ? tagsProperties.value : [INSTANCE_OF, SUBCLASS_OF]))
+
+// Only HTML claims of the description properties are used; the first match (resolved by language) wins.
 const description = computed(() => {
-  const claims = selectClaimsByLanguage(withDocument.value?.doc?.claims, "html", DESCRIPTION, locale.value, (c) => c.length > 0 && !!c[0].html)
+  const claims = selectClaimsByLanguage(withDocument.value?.doc?.claims, "html", effectiveDescriptionProperties.value, locale.value, (c) => c.length > 0 && !!c[0].html)
   return claims && claims.length > 0 ? claims[0].html : ""
 })
 const transformedDescription = useTransformedHtml(description)
 
-// TODO: Do not hard-code properties?
-const tags = computed(() => {
+// A tag with an id renders as the referenced document's label (from ref claims); a tag with a label
+// renders as a literal value (from identifier and string claims).
+const tags = computed<{ id?: string; label?: string }[]>(() => {
+  const claims = withDocument.value?.doc?.claims
   return [
-    ...getClaimsOfTypeWithConfidence(withDocument.value?.doc?.claims, "ref", INSTANCE_OF).map((c) => ({ id: c.to.id })),
-    ...getClaimsOfTypeWithConfidence(withDocument.value?.doc?.claims, "ref", SUBCLASS_OF).map((c) => ({ id: c.to.id })),
+    ...getClaimsOfTypeWithConfidence(claims, "ref", effectiveTagsProperties.value).map((c) => ({ id: c.to.id })),
+    ...getClaimsOfTypeWithConfidence(claims, "id", effectiveTagsProperties.value).map((c) => ({ label: c.value })),
+    ...getClaimsOfTypeWithConfidence(claims, "string", effectiveTagsProperties.value).map((c) => ({ label: c.string })),
   ]
 })
 
+// Only link claims of the preview properties are used, and their IRIs are shown as preview images.
+// There is no default preview property, so an empty registry means no preview.
 const previewFiles = computed<string[]>(() => {
-  // TODO: Return image files.
-  return []
+  return getClaimsOfTypeWithConfidence(withDocument.value?.doc?.claims, "link", previewProperties.value).map((c) => c.iri)
 })
 
 const rowsCount = computed(() => {
@@ -177,25 +194,7 @@ const rowSpan = computed(() => {
             /></RouterLink>
             <slot name="labelAside" />
           </h2>
-          <ul v-if="tags.length" class="mb-2 flex flex-row flex-wrap content-start items-baseline gap-1 text-sm">
-            <template v-for="tag of tags" :key="tag.id">
-              <WithDocumentD :id="tag.id" name="DocumentGet">
-                <template #default="{ doc, url }">
-                  <li class="rounded-xs bg-slate-100 px-1.5 py-0.5 leading-none text-gray-600 shadow-xs" :data-url="url">
-                    <DisplayLabel :doc="doc" />
-                  </li>
-                </template>
-                <template #loading="{ url }">
-                  <li
-                    class="pd-withdocument-loading h-2 rounded-sm bg-slate-200 motion-safe:animate-pulse"
-                    :data-url="url"
-                    :class="[loadingWidth(tag.id)]"
-                    aria-hidden="true"
-                  ></li>
-                </template>
-              </WithDocumentD>
-            </template>
-          </ul>
+          <SearchResultTags v-if="tags.length" :tags="tags" class="mb-2" />
           <i18n-t keypath="partials.SearchResult.resultShownAlready" scope="global" tag="p" class="text-slate-500 italic">
             <template #above>
               <RouterLink :to="duplicateOfLink" class="link">{{ t("partials.SearchResult.above") }}</RouterLink>
@@ -218,25 +217,7 @@ const rowSpan = computed(() => {
             /></RouterLink>
             <slot name="labelAside" />
           </h2>
-          <ul v-if="tags.length" class="mb-2 flex flex-row flex-wrap content-start items-baseline gap-1 text-sm">
-            <template v-for="tag of tags" :key="tag.id">
-              <WithDocumentD :id="tag.id" name="DocumentGet">
-                <template #default="{ doc, url }">
-                  <li class="rounded-xs bg-slate-100 px-1.5 py-0.5 leading-none text-gray-600 shadow-xs" :data-url="url">
-                    <DisplayLabel :doc="doc" />
-                  </li>
-                </template>
-                <template #loading="{ url }">
-                  <li
-                    class="pd-withdocument-loading h-2 rounded-sm bg-slate-200 motion-safe:animate-pulse"
-                    :data-url="url"
-                    :class="[loadingWidth(tag.id)]"
-                    aria-hidden="true"
-                  ></li>
-                </template>
-              </WithDocumentD>
-            </template>
-          </ul>
+          <SearchResultTags v-if="tags.length" :tags="tags" class="mb-2" />
           <FieldsView :fields-data="fieldsData" :claims="resultDoc.claims" limited />
         </div>
         <div v-else class="grid grid-cols-1 gap-4" :class="previewFiles.length ? `sm:grid-cols-[256px_auto] ${gridRows}` : ''">
@@ -250,25 +231,7 @@ const rowSpan = computed(() => {
               /></RouterLink>
               <slot name="labelAside" />
             </h2>
-            <ul v-if="tags.length" class="flex flex-row flex-wrap content-start items-baseline gap-1 text-sm">
-              <template v-for="tag of tags" :key="tag.id">
-                <WithDocumentD :id="tag.id" name="DocumentGet">
-                  <template #default="{ doc, url }">
-                    <li class="rounded-xs bg-slate-100 px-1.5 py-0.5 leading-none text-gray-600 shadow-xs" :data-url="url">
-                      <DisplayLabel :doc="doc" />
-                    </li>
-                  </template>
-                  <template #loading="{ url }">
-                    <li
-                      class="pd-withdocument-loading h-2 rounded-sm bg-slate-200 motion-safe:animate-pulse"
-                      :data-url="url"
-                      :class="[loadingWidth(tag.id)]"
-                      aria-hidden="true"
-                    ></li>
-                  </template>
-                </WithDocumentD>
-              </template>
-            </ul>
+            <SearchResultTags v-if="tags.length" :tags="tags" />
           </div>
           <div v-if="previewFiles.length" :class="`w-full sm:order-first ${rowSpan}`">
             <RouterLink :to="{ name: 'DocumentGet', params: { id: resultDoc.id }, query: encodeQuery({ s: searchSessionId }) }"
