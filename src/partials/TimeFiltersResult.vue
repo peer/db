@@ -329,7 +329,7 @@ onBeforeUnmount(() => {
       <span class="mb-1.5 text-lg leading-none"><FilterPropLabel :prop-ids="result.props" /></span>
       ({{ result.count }})
     </div>
-    <ul ref="el" role="group" :aria-labelledby="labelId" class="grid grid-cols-[max-content_auto] gap-x-1 gap-y-3">
+    <ul ref="el" role="group" :aria-labelledby="labelId" class="grid grid-cols-[max-content_auto] gap-x-1">
       <li v-if="error" class="col-span-2">
         <i class="pd-timefiltersresult-error text-error-600">{{ t("common.status.loadingDataFailed") }}</i>
       </li>
@@ -355,7 +355,7 @@ onBeforeUnmount(() => {
           >
         </div>
       </li>
-      <li v-else-if="from !== to" class="col-span-2">
+      <li v-else-if="from !== to" class="col-span-2 mb-3">
         <!-- We subtract 1 from chartWidth because we subtract 1 from bar width, so there would be a gap after the last one. -->
         <svg :viewBox="`0 0 ${chartWidth - 1} ${chartHeight}`">
           <!-- We subtract 1 from bar width to have a gap between bars. -->
