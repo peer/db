@@ -18,6 +18,7 @@ import (
 	internalSite "gitlab.com/peerdb/peerdb/internal/site"
 
 	"github.com/riverqueue/river"
+	"github.com/rs/zerolog"
 	"gitlab.com/tozd/go/cli"
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/waf"
@@ -355,7 +356,8 @@ func (c *ServeCommand) Prepare(ctx context.Context, service *Service) (http.Hand
 	}
 
 	for _, site := range service.Sites {
-		siteCtx := internalStore.WithFallbackDBContext(ctx, site.Schema, "prepare")
+		siteCtx := zerolog.Ctx(ctx).With().Str("indexPrefix", site.IndexPrefix).Str("schema", site.Schema).Logger().WithContext(ctx)
+		siteCtx = internalStore.WithFallbackDBContext(siteCtx, site.Schema, "prepare")
 
 		documents, errE := site.ConverterDocuments(siteCtx)
 		if errE != nil {

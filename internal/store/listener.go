@@ -100,11 +100,6 @@ func (l *Listener) Start(ctx context.Context) errors.E {
 	}
 	l.started = true
 
-	// We enrich the logger with the schema so every listener log line identifies the site.
-	if schema, ok := ctx.Value(schemaContextKey).(string); ok {
-		ctx = zerolog.Ctx(ctx).With().Str("schema", schema).Logger().WithContext(ctx)
-	}
-
 	go func() {
 		defer l.releaseConn()
 
