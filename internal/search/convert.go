@@ -568,7 +568,7 @@ func NewConverter(
 		IndexAncestorProperties:  false,
 		DetectLanguages:          false,
 		CountReferences:          nil,
-		FinalizeHooks:                nil,
+		FinalizeHooks:            nil,
 		languageDetector:         nil,
 		linguaToCode:             nil,
 		propertyDescendants:      nil,
