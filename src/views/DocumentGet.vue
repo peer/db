@@ -465,7 +465,6 @@ async function onEdit() {
     editBusy.value -= 1
   }
 }
-
 </script>
 
 <template>
@@ -572,28 +571,28 @@ async function onEdit() {
                 <!-- The page content tab. The page title is shown as the h1 heading below. -->
                 <Tab
                   v-if="isPage"
-                  class="rounded-sm border border-gray-300 bg-white px-4 py-2 leading-tight font-medium uppercase text-gray-700 outline-none select-none not-aria-selected:hover:bg-gray-50 focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-1 aria-selected:border-primary-600 aria-selected:bg-primary-600 aria-selected:text-white"
+                  class="rounded-sm border border-gray-300 bg-white px-4 py-2 leading-tight font-medium text-gray-700 uppercase outline-none select-none not-aria-selected:hover:bg-gray-50 focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-1 aria-selected:border-primary-600 aria-selected:bg-primary-600 aria-selected:text-white"
                   >{{ t("views.DocumentGet.tabs.content") }}</Tab
                 >
                 <Tab
                   v-for="documentTab in documentTabs"
                   :key="documentTab.id"
-                  class="rounded-sm border border-gray-300 bg-white px-4 py-2 leading-tight font-medium uppercase text-gray-700 outline-none select-none not-aria-selected:hover:bg-gray-50 focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-1 aria-selected:border-primary-600 aria-selected:bg-primary-600 aria-selected:text-white"
+                  class="rounded-sm border border-gray-300 bg-white px-4 py-2 leading-tight font-medium text-gray-700 uppercase outline-none select-none not-aria-selected:hover:bg-gray-50 focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-1 aria-selected:border-primary-600 aria-selected:bg-primary-600 aria-selected:text-white"
                   ><DocumentRefInline :id="documentTab.id" :link="false"
                 /></Tab>
                 <Tab
                   v-if="hasFieldsViewPanel"
-                  class="rounded-sm border border-gray-300 bg-white px-4 py-2 leading-tight font-medium uppercase text-gray-700 outline-none select-none not-aria-selected:hover:bg-gray-50 focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-1 aria-selected:border-primary-600 aria-selected:bg-primary-600 aria-selected:text-white"
+                  class="rounded-sm border border-gray-300 bg-white px-4 py-2 leading-tight font-medium text-gray-700 uppercase outline-none select-none not-aria-selected:hover:bg-gray-50 focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-1 aria-selected:border-primary-600 aria-selected:bg-primary-600 aria-selected:text-white"
                   ><DocumentRefInline :id="classTabId!" :link="false"
                 /></Tab>
                 <Tab
-                  class="rounded-sm border border-gray-300 bg-white px-4 py-2 leading-tight font-medium uppercase text-gray-700 outline-none select-none not-aria-selected:hover:bg-gray-50 focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-1 aria-selected:border-primary-600 aria-selected:bg-primary-600 aria-selected:text-white"
+                  class="rounded-sm border border-gray-300 bg-white px-4 py-2 leading-tight font-medium text-gray-700 uppercase outline-none select-none not-aria-selected:hover:bg-gray-50 focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-1 aria-selected:border-primary-600 aria-selected:bg-primary-600 aria-selected:text-white"
                   >{{ t("views.DocumentGet.tabs.allProperties") }}</Tab
                 >
                 <!-- The history API requires this permission, so the tab is shown only to callers who can use it. -->
                 <Tab
                   v-if="hasPermission(CAN_CHANGES_DOCUMENT)"
-                  class="rounded-sm border border-gray-300 bg-white px-4 py-2 leading-tight font-medium uppercase text-gray-700 outline-none select-none not-aria-selected:hover:bg-gray-50 focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-1 aria-selected:border-primary-600 aria-selected:bg-primary-600 aria-selected:text-white"
+                  class="rounded-sm border border-gray-300 bg-white px-4 py-2 leading-tight font-medium text-gray-700 uppercase outline-none select-none not-aria-selected:hover:bg-gray-50 focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-1 aria-selected:border-primary-600 aria-selected:bg-primary-600 aria-selected:text-white"
                   >{{ t("views.DocumentGet.tabs.history") }}</Tab
                 >
               </TabList>
@@ -656,7 +655,9 @@ async function onEdit() {
           <WithLock v-if="hasPermission(CAN_EDIT_DOCUMENT)" :lock="getEditLock">
             <Button :progress="editBusy" type="button" class="w-full" @click.prevent="onEdit">{{ t("common.buttons.edit") }}</Button>
           </WithLock>
-          <ButtonLink v-if="hasPermission(CAN_DELETE_DOCUMENT)" :to="{ name: 'DocumentDelete', params: { id } }" class="w-full">{{ t("common.buttons.delete") }}</ButtonLink>
+          <ButtonLink v-if="hasPermission(CAN_DELETE_DOCUMENT)" :to="{ name: 'DocumentDelete', params: { id } }" class="w-full">{{
+            t("common.buttons.delete")
+          }}</ButtonLink>
         </div>
         <div class="flex flex-col gap-2">
           <template v-for="(shortcut, i) of searchShortcuts" :key="i">

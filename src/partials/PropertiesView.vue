@@ -127,10 +127,7 @@ const hasContent = computed(() => rows.value.length > 0)
                   @click.prevent="onSubClaim(row.claim.id)"
                   ><PlusIcon class="size-3" :alt="t('common.buttons.subClaim')"
                 /></Button>
-                <Button
-                  type="button"
-                  class="px-0.5 py-0.5"
-                  @click.prevent="onRemove(row.claim.id)"
+                <Button type="button" class="px-0.5 py-0.5" @click.prevent="onRemove(row.claim.id)"
                   ><MinusIcon class="size-3" :alt="t('common.buttons.remove')"
                 /></Button>
               </div>

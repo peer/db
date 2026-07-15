@@ -1487,11 +1487,11 @@ function canSave(): boolean {
               <Tab
                 v-if="classTabId && mergedFieldsData"
                 :key="classTabId"
-                class="rounded-sm border border-gray-300 bg-white px-4 py-2 leading-tight font-medium uppercase text-gray-700 outline-none select-none not-aria-selected:hover:bg-gray-50 focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-1 aria-selected:border-primary-600 aria-selected:bg-primary-600 aria-selected:text-white"
+                class="rounded-sm border border-gray-300 bg-white px-4 py-2 leading-tight font-medium text-gray-700 uppercase outline-none select-none not-aria-selected:hover:bg-gray-50 focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-1 aria-selected:border-primary-600 aria-selected:bg-primary-600 aria-selected:text-white"
                 ><DocumentRefInline :id="classTabId" :link="false"
               /></Tab>
               <Tab
-                class="rounded-sm border border-gray-300 bg-white px-4 py-2 leading-tight font-medium uppercase text-gray-700 outline-none select-none not-aria-selected:hover:bg-gray-50 focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-1 aria-selected:border-primary-600 aria-selected:bg-primary-600 aria-selected:text-white"
+                class="rounded-sm border border-gray-300 bg-white px-4 py-2 leading-tight font-medium text-gray-700 uppercase outline-none select-none not-aria-selected:hover:bg-gray-50 focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-1 aria-selected:border-primary-600 aria-selected:bg-primary-600 aria-selected:text-white"
                 >{{ t("views.DocumentEdit.tabs.allProperties") }}</Tab
               >
             </TabList>
@@ -1533,7 +1533,7 @@ function canSave(): boolean {
                         v-for="type in claimTypes"
                         :key="type"
                         :disabled="claimTypeDisabled(type)"
-                        class="rounded-sm border border-gray-300 bg-white px-4 py-2 leading-tight font-medium uppercase text-gray-700 outline-none select-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-1 aria-selected:border-primary-600 aria-selected:bg-primary-600 aria-selected:text-white"
+                        class="rounded-sm border border-gray-300 bg-white px-4 py-2 leading-tight font-medium text-gray-700 uppercase outline-none select-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-1 aria-selected:border-primary-600 aria-selected:bg-primary-600 aria-selected:text-white"
                         :class="claimTypeDisabled(type) ? 'cursor-not-allowed opacity-50' : 'not-aria-selected:hover:bg-gray-50'"
                         >{{ claimTypeLabel(type) }}</Tab
                       >
