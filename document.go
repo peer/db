@@ -121,7 +121,7 @@ func (s *Service) DocumentDeleteGet(w http.ResponseWriter, req *http.Request, pa
 
 	m := metrics.Duration(internalStore.MetricDatabase).Start()
 	// TODO: Add API to store to just check if the value exists.
-	_, _, _, _, errE = site.Base.GetDocumentLatest(ctx, id)
+	_, _, _, _, errE = site.Base.GetDocumentLatest(ctx, id) //nolint:dogsled
 	m.Stop()
 
 	if errors.Is(errE, store.ErrValueNotFound) {
