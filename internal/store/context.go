@@ -23,7 +23,7 @@ var schemaContextKey = &contextKey{"schema"} //nolint:gochecknoglobals
 
 // requestIDContextKey is a fallback context key for a database context
 // when it is not part of the request.
-var requestIDContextKey = &contextKey{"request-id"} //nolint:gochecknoglobals
+var requestIDContextKey = &contextKey{"requestID"} //nolint:gochecknoglobals
 
 // maxDBPoolConnectionsContextKey allows overriding the maximum number of
 // connections in the database pool.
