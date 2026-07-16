@@ -353,6 +353,15 @@ const hasValue = computed<boolean>(() => {
   return !localIsEmpty.value
 })
 
+// subFieldsActive gates whether this slot's sub-fields enforce their required designation. They do
+// so once the slot is active: it either already holds content (any value or sub-claim present, so
+// not empty) or is itself a designated (required) slot of its own field. An empty optional
+// placeholder slot (e.g. an unfilled 0.. address) thus keeps its sub-fields non-required, so the
+// whole entry can be left blank without blocking the save; filling any sub-field makes the slot
+// non-empty and turns every sub-field required, so a partial entry is not allowed. Threaded into
+// each sub-field's ClaimCardinality as parentActive.
+const subFieldsActive = computed<boolean>(() => props.required || !isEmpty.value)
+
 // Number of this slot's changes queued or in flight. While non-zero the whole slot
 // (value input, checkbox, and sub-fields) is read-only - grayed and non-interactive,
 // but selectable - so no further local edits pile up on a claim whose committed state
@@ -1030,6 +1039,7 @@ defineExpose({
         :parent-cleanup="cleanupEmptyBase"
         :readonly="slotReadonly"
         :label-id="subFieldLabelId(subField)"
+        :parent-active="subFieldsActive"
       />
     </div>
   </div>

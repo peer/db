@@ -69,6 +69,14 @@ const props = withDefaults(
     // header above the slots. Top-level fields render no header (their label
     // lives in FieldsFormField's left cell).
     showHeader?: boolean
+    // Whether the enclosing slot is active: it either already holds content or is itself a
+    // designated (required) slot of its own field. A sub-field enforces its required designation
+    // (the "required" badge and the empty-slot "Required value.") only when its enclosing slot is
+    // active, so an empty optional placeholder (e.g. an unfilled 0.. address) leaves its sub-fields
+    // non-required and can be left blank; typing into any sub-field makes the enclosing slot
+    // non-empty, which then designates every sub-field as required (a partial entry is not allowed).
+    // Top-level fields have no enclosing slot and are always active (default true).
+    parentActive?: boolean
   }>(),
   {
     parentClaimId: undefined,
@@ -77,6 +85,7 @@ const props = withDefaults(
     readonly: false,
     labelId: undefined,
     showHeader: false,
+    parentActive: true,
   },
 )
 
@@ -607,6 +616,14 @@ function onRemoteAdds(claimIds: ReadonlySet<string>): boolean {
 onMounted(() => registerRemoteAdds(onRemoteAdds))
 onBeforeUnmount(() => unregisterRemoteAdds(onRemoteAdds))
 
+// Whether this (sub)field is currently enforced as required: it is a required field (positive min
+// cardinality and no default, see fieldIsRequired) AND its enclosing slot is active (see
+// parentActive). An empty optional placeholder's sub-fields report false here until the placeholder
+// gains content, so they show no "required" badge and designate no slots; once the placeholder is
+// non-empty they become required like any other required field. Top-level fields are always active,
+// so this reduces to fieldIsRequired for them.
+const requiredEnforced = computed<boolean>(() => fieldIsRequired(props.field) && props.parentActive)
+
 // Designated slots: the min slots that satisfy, or are still needed to satisfy,
 // the field's min cardinality. We pick min slots, preferring the filled ones
 // (they contribute) and topping up with the earliest empty ones (still needed).
@@ -615,13 +632,13 @@ onBeforeUnmount(() => unregisterRemoteAdds(onRemoteAdds))
 // the user leaves it empty - there is no field-level trigger, each empty slot
 // reds on its own blur. The designation shifts live: filling a non-designated
 // slot while a designated one is empty moves the designation onto the filled
-// slot and off the empty one. Empty for non-required fields (min <= 0, or a field with a
-// default, whose pre-open slot stores the default form when left empty, see fieldIsRequired)
-// and while locked (the surrounding form is in a noop state).
+// slot and off the empty one. Empty for non-enforced fields (min <= 0, a field with a
+// default whose pre-open slot stores the default form when left empty, or a sub-field of an
+// inactive placeholder, see requiredEnforced) and while locked (the surrounding form is in a noop state).
 const designated = computed<boolean[]>(() => {
   if (locked.value) return slots.value.map(() => false)
   const min = props.field.minCardinality
-  if (min <= 0 || !fieldIsRequired(props.field)) return slots.value.map(() => false)
+  if (min <= 0 || !requiredEnforced.value) return slots.value.map(() => false)
   let nonEmptyCount = 0
   for (const slot of slots.value) {
     if (!slotIsEmpty(slot)) nonEmptyCount++
@@ -839,7 +856,7 @@ onBeforeUnmount(() => {
       <span :id="labelId" class="cursor-pointer leading-none font-medium text-gray-700" @mousedown.prevent="onLabelMousedown"
         ><DocumentRefInline :id="field.propertyId" :link="false"
       /></span>
-      <InputBadges :required="fieldIsRequired(field)" :multiple="field.maxCardinality > 1" :changed="isDirty" @revert="onHeaderRevert" />
+      <InputBadges :required="requiredEnforced" :multiple="field.maxCardinality > 1" :changed="isDirty" @revert="onHeaderRevert" />
     </div>
     <!--
       Select mode: all of the field's claims are managed by one ClaimRefSelect (no
