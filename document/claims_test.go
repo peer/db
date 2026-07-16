@@ -154,13 +154,15 @@ func TestClaimTypesReplaceByID(t *testing.T) {
 		CoreClaim: document.CoreClaim{ID: topID, Confidence: 1.0},
 		Prop:      document.Reference{ID: prop},
 	}
-	require.NoError(t, ct.Add(top))
+	errE := ct.Add(top)
+	require.NoError(t, errE, "% -+#.1v", errE)
 	sub := &document.StringClaim{
 		CoreClaim: document.CoreClaim{ID: subID, Confidence: 1.0},
 		Prop:      document.Reference{ID: prop},
 		String:    "x",
 	}
-	require.NoError(t, ct.GetByID(topID).Add(sub))
+	errE = ct.GetByID(topID).Add(sub)
+	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Replace the nested sub-claim with a different type.
 	newSub := &document.UnknownClaim{
@@ -317,7 +319,8 @@ func TestClaimValidations(t *testing.T) { //nolint:maintidx
 	t.Run("IdentifierClaim/valid", func(t *testing.T) {
 		t.Parallel()
 		c := &document.IdentifierClaim{CoreClaim: core, Prop: ref, Value: "Q42"}
-		require.NoError(t, c.Validate())
+		errE := c.Validate()
+		require.NoError(t, errE, "% -+#.1v", errE)
 	})
 
 	t.Run("StringClaim/empty", func(t *testing.T) {
@@ -328,7 +331,8 @@ func TestClaimValidations(t *testing.T) { //nolint:maintidx
 	t.Run("StringClaim/valid", func(t *testing.T) {
 		t.Parallel()
 		c := &document.StringClaim{CoreClaim: core, Prop: ref, String: "hello"}
-		require.NoError(t, c.Validate())
+		errE := c.Validate()
+		require.NoError(t, errE, "% -+#.1v", errE)
 	})
 
 	t.Run("HTMLClaim/empty", func(t *testing.T) {
@@ -339,7 +343,8 @@ func TestClaimValidations(t *testing.T) { //nolint:maintidx
 	t.Run("HTMLClaim/valid", func(t *testing.T) {
 		t.Parallel()
 		c := &document.HTMLClaim{CoreClaim: core, Prop: ref, HTML: "<p>text</p>"}
-		require.NoError(t, c.Validate())
+		errE := c.Validate()
+		require.NoError(t, errE, "% -+#.1v", errE)
 	})
 	t.Run("HTMLClaim/unsanitized_disallowed_element", func(t *testing.T) {
 		t.Parallel()
@@ -426,7 +431,8 @@ func TestClaimValidations(t *testing.T) { //nolint:maintidx
 			Time:      "2025-01-01",
 			Precision: document.TimePrecisionDay,
 		}
-		require.NoError(t, c.Validate())
+		errE := c.Validate()
+		require.NoError(t, errE, "% -+#.1v", errE)
 	})
 	t.Run("TimeClaim/invalid_time", func(t *testing.T) {
 		t.Parallel()
@@ -454,7 +460,8 @@ func TestClaimValidations(t *testing.T) { //nolint:maintidx
 			To:            &to,
 			ToPrecision:   &toPrec,
 		}
-		require.NoError(t, c.Validate())
+		errE := c.Validate()
+		require.NoError(t, errE, "% -+#.1v", errE)
 	})
 	t.Run("TimeIntervalClaim/missing_from", func(t *testing.T) {
 		t.Parallel()
@@ -619,7 +626,8 @@ func TestClaimValidations(t *testing.T) { //nolint:maintidx
 			To:            &from,
 			ToPrecision:   &fromPrec,
 		}
-		require.NoError(t, c.Validate())
+		errE := c.Validate()
+		require.NoError(t, errE, "% -+#.1v", errE)
 	})
 	t.Run("TimeIntervalClaim/empty_overlapping_windows_open", func(t *testing.T) {
 		t.Parallel()
@@ -658,7 +666,8 @@ func TestClaimValidations(t *testing.T) { //nolint:maintidx
 			To:            &toY,
 			ToPrecision:   &yearPrec,
 		}
-		require.NoError(t, c.Validate())
+		errE := c.Validate()
+		require.NoError(t, errE, "% -+#.1v", errE)
 	})
 	t.Run("TimeIntervalClaim/directed_decreasing_adjacent_both_open_empty", func(t *testing.T) {
 		t.Parallel()
@@ -821,7 +830,8 @@ func TestAmountIntervalClaimValidateExtra(t *testing.T) {
 			To:            &from,
 			ToPrecision:   &fromP,
 		}
-		require.NoError(t, c.Validate())
+		errE := c.Validate()
+		require.NoError(t, errE, "% -+#.1v", errE)
 	})
 	t.Run("equal_value_different_precision_open_valid", func(t *testing.T) {
 		t.Parallel()
@@ -839,7 +849,8 @@ func TestAmountIntervalClaimValidateExtra(t *testing.T) {
 			To:            &intAmount,
 			ToPrecision:   &coarseP,
 		}
-		require.NoError(t, c.Validate())
+		errE := c.Validate()
+		require.NoError(t, errE, "% -+#.1v", errE)
 	})
 	t.Run("directed_decreasing_adjacent_valid", func(t *testing.T) {
 		t.Parallel()
@@ -858,7 +869,8 @@ func TestAmountIntervalClaimValidateExtra(t *testing.T) {
 			To:            &to10,
 			ToPrecision:   &prec,
 		}
-		require.NoError(t, c.Validate())
+		errE := c.Validate()
+		require.NoError(t, errE, "% -+#.1v", errE)
 	})
 	t.Run("directed_decreasing_adjacent_both_open_empty", func(t *testing.T) {
 		t.Parallel()

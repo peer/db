@@ -13,14 +13,14 @@ import { useI18n } from "vue-i18n"
 import { useRoute, useRouter } from "vue-router"
 
 import { headURLDirect, postJSON } from "@/api"
-import { CAN_CHANGES_DOCUMENT, CAN_DELETE_DOCUMENT, CAN_EDIT_DOCUMENT, hasPermission } from "@/auth"
+import { hasDocumentPermission } from "@/auth"
 import Button from "@/components/Button.vue"
 import ButtonLink from "@/components/ButtonLink.vue"
 import InputTextLink from "@/components/InputTextLink.vue"
 import WithDocument from "@/components/WithDocument.vue"
 import WithLock from "@/components/WithLock.vue"
 import siteContext from "@/context"
-import { CONTENT, CREATE_SHORTCUT, INSTANCE_OF, NAME, PAGE, SEARCH_SHORTCUT } from "@/core"
+import { ACTION_CREATE, ACTION_DELETE, ACTION_UPDATE_PERMISSIONS, ACTION_UPDATE, CONTENT, CREATE_SHORTCUT, INSTANCE_OF, NAME, PAGE, SEARCH_SHORTCUT } from "@/core"
 import { getBestClaimOfType, getClaimsOfTypeWithConfidence, selectClaimsByLanguage } from "@/document"
 import { documentActionsKey } from "@/document-actions"
 import { documentNavigationKey } from "@/document-navigation"
@@ -170,14 +170,16 @@ provide(documentNavigationKey, {
   prevNext,
 })
 
-// Expose the edit action and the edit/delete permissions to registered document components, so downstream
-// sites can render their own edit and delete controls inside the page. Deletion goes through the
+// Expose the edit action and whether the caller holds the update, delete, and permissions actions on the
+// document to registered document components, so downstream sites can render their own edit and delete
+// controls inside the page. Deletion goes through the
 // DocumentDelete confirmation page, so sites link their delete control to that route rather than calling a
 // handler here. Setting hideDocumentActions hides the built-in side-column edit and delete buttons (below) so
 // a site's own controls do not appear alongside them.
 provide(documentActionsKey, {
-  canEdit: computed(() => hasPermission(CAN_EDIT_DOCUMENT)),
-  canDelete: computed(() => hasPermission(CAN_DELETE_DOCUMENT)),
+  canUpdate: computed(() => hasDocumentPermission(ACTION_UPDATE, docRef.value)),
+  canDelete: computed(() => hasDocumentPermission(ACTION_DELETE, docRef.value)),
+  canUpdatePermissions: computed(() => hasDocumentPermission(ACTION_UPDATE_PERMISSIONS, docRef.value)),
   editBusy,
   edit: onEdit,
 })
@@ -237,10 +239,8 @@ const tabSlugs = computed(() => {
     slugs.push(classTabId.value)
   }
   slugs.push("properties")
-  // The history API requires this permission, so the tab is shown only to callers who can use it.
-  if (hasPermission(CAN_CHANGES_DOCUMENT)) {
-    slugs.push("history")
-  }
+  // Every caller who can see the document can open its history: it lists the versions they can read.
+  slugs.push("history")
   return slugs
 })
 
@@ -285,7 +285,7 @@ watch(
     // The create shortcut is only read (and later resolved) for users who can create documents, since the
     // "+" button leads to the create view which requires that permission, so it would not work for others.
     // Reading the permission here also recomputes the list when the caller's roles change.
-    const canCreate = hasPermission(CAN_EDIT_DOCUMENT)
+    const canCreate = hasDocumentPermission(ACTION_CREATE)
     const result: SearchShortcut[] = []
     // The same shortcut can be declared on several parent classes, so we deduplicate by the raw
     // shortcut string (the link, not the label) and keep the first occurrence.
@@ -412,7 +412,7 @@ function shortcutLabel(name: string, count: number | string | null): string {
 // next to it). A null count (still loading, or a fetch that returned no total)
 // is always shown.
 function showShortcut(count: string | null): boolean {
-  return count !== "0" || hasPermission(CAN_EDIT_DOCUMENT)
+  return count !== "0" || hasDocumentPermission(ACTION_CREATE)
 }
 
 // Whether the sidebar has anything to show: the edit and delete actions (when permitted and not overridden by
@@ -420,7 +420,7 @@ function showShortcut(count: string | null): boolean {
 // the sidebar does not flash in and then out. When it is empty the sidebar and its navbar toggle are not
 // rendered, so the card takes the full width and no toggle appears for an empty panel.
 const hasSidebarContent = computed(() => {
-  if (!siteContext.features.hideDocumentActions && (hasPermission(CAN_EDIT_DOCUMENT) || hasPermission(CAN_DELETE_DOCUMENT))) {
+  if (!siteContext.features.hideDocumentActions && (hasDocumentPermission(ACTION_UPDATE, docRef.value) || hasDocumentPermission(ACTION_DELETE, docRef.value))) {
     return true
   }
   const shown = (count: string | null): boolean => count !== null && showShortcut(count)
@@ -589,9 +589,7 @@ async function onEdit() {
                   class="rounded-sm border border-gray-300 bg-white px-4 py-2 leading-tight font-medium text-gray-700 uppercase outline-none select-none not-aria-selected:hover:bg-gray-50 focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-1 aria-selected:border-primary-600 aria-selected:bg-primary-600 aria-selected:text-white"
                   >{{ t("views.DocumentGet.tabs.allProperties") }}</Tab
                 >
-                <!-- The history API requires this permission, so the tab is shown only to callers who can use it. -->
                 <Tab
-                  v-if="hasPermission(CAN_CHANGES_DOCUMENT)"
                   class="rounded-sm border border-gray-300 bg-white px-4 py-2 leading-tight font-medium text-gray-700 uppercase outline-none select-none not-aria-selected:hover:bg-gray-50 focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-1 aria-selected:border-primary-600 aria-selected:bg-primary-600 aria-selected:text-white"
                   >{{ t("views.DocumentGet.tabs.history") }}</Tab
                 >
@@ -618,7 +616,7 @@ async function onEdit() {
                   <PropertiesView :claims="doc.claims" />
                 </TabPanel>
                 <!-- "History" tab panel. The panel (and thus the data fetch) is mounted only when the tab is selected. -->
-                <TabPanel v-if="hasPermission(CAN_CHANGES_DOCUMENT)" tabindex="-1" class="outline-none">
+                <TabPanel tabindex="-1" class="outline-none">
                   <DocumentHistory :id="id" />
                 </TabPanel>
               </TabPanels>
@@ -651,11 +649,14 @@ async function onEdit() {
         class="pd-documentget-sidebar pd-print-hidden flex-auto basis-1/4 flex-col gap-4 min-[56rem]:flex"
         :class="sidebarOpen ? 'flex' : 'hidden'"
       >
-        <div v-if="!siteContext.features.hideDocumentActions && (hasPermission(CAN_EDIT_DOCUMENT) || hasPermission(CAN_DELETE_DOCUMENT))" class="flex flex-col gap-2">
-          <WithLock v-if="hasPermission(CAN_EDIT_DOCUMENT)" :lock="getEditLock">
+        <div
+          v-if="!siteContext.features.hideDocumentActions && (hasDocumentPermission(ACTION_UPDATE, docRef) || hasDocumentPermission(ACTION_DELETE, docRef))"
+          class="flex flex-col gap-2"
+        >
+          <WithLock v-if="hasDocumentPermission(ACTION_UPDATE, docRef)" :lock="getEditLock">
             <Button :progress="editBusy" type="button" class="w-full" @click.prevent="onEdit">{{ t("common.buttons.edit") }}</Button>
           </WithLock>
-          <ButtonLink v-if="hasPermission(CAN_DELETE_DOCUMENT)" :to="{ name: 'DocumentDelete', params: { id } }" class="w-full">{{
+          <ButtonLink v-if="hasDocumentPermission(ACTION_DELETE, docRef)" :to="{ name: 'DocumentDelete', params: { id } }" class="w-full">{{
             t("common.buttons.delete")
           }}</ButtonLink>
         </div>

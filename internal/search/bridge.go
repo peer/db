@@ -217,7 +217,7 @@ type Bridge struct {
 
 	// NormalizeHooks are the indexing normalize hooks, run by produceLevels on each level's copy of a
 	// document read from the store for indexing, at that level's visibility. A hook may transform the
-	// document or return store.ErrAccessDenied to hide it at that level (it is then deleted from that
+	// document or return auth.ErrAccessDenied to hide it at that level (it is then deleted from that
 	// level's index). The metadata is the one the document was read with; it is shared across levels and
 	// hooks, so hooks must not mutate it. The base sets these from its own indexing normalize hooks. The
 	// read-path document pre/post hooks are not run during indexing; a site which wants their filtering
@@ -1663,7 +1663,7 @@ func (b *Bridge) produceLevels(
 		for _, hook := range b.NormalizeHooks {
 			var errEL errors.E
 			docL, errEL = hook(ctxL, docL, metadata)
-			if errors.Is(errEL, store.ErrAccessDenied) {
+			if errors.Is(errEL, auth.ErrAccessDenied) {
 				denied = true
 				break
 			}
@@ -1783,7 +1783,7 @@ func (b *Bridge) invalidateCaches(ids ...identifier.Identifier) {
 // the caller's visibility level, so display labels and counts.references reflect that level's index. The
 // inverse relations rendered onto it are loaded from the bridge-maintained table for that level.
 //
-// It returns store.ErrAccessDenied when the caller resolves to no level.
+// It returns auth.ErrAccessDenied when the caller resolves to no level.
 func (b *Bridge) ConvertDocument(ctx context.Context, doc *document.D, metadata *store.DocumentMetadata) (*Document, errors.E) {
 	level := auth.Visibility(ctx)
 	for _, t := range b.targets {
@@ -1797,7 +1797,7 @@ func (b *Bridge) ConvertDocument(ctx context.Context, doc *document.D, metadata 
 			return t.Converter.FromDocument(ctx, doc, nil, metadata, inverseRelations[level])
 		}
 	}
-	return nil, errors.WithStack(store.ErrAccessDenied)
+	return nil, errors.WithStack(auth.ErrAccessDenied)
 }
 
 // DocumentHierarchyPaths returns the document's full hierarchy paths in the indexed toPath form
@@ -1806,7 +1806,7 @@ func (b *Bridge) ConvertDocument(ctx context.Context, doc *document.D, metadata 
 // self path ("__SELF__:<id>").
 //
 // The paths reflect the level's own converter, so an ancestor hidden at that level does not appear in
-// them. It returns store.ErrAccessDenied when the caller resolves to no level.
+// them. It returns auth.ErrAccessDenied when the caller resolves to no level.
 func (b *Bridge) DocumentHierarchyPaths(ctx context.Context, id identifier.Identifier) ([]string, errors.E) {
 	level := auth.Visibility(ctx)
 	for _, t := range b.targets {
@@ -1814,7 +1814,7 @@ func (b *Bridge) DocumentHierarchyPaths(ctx context.Context, id identifier.Ident
 			return t.Converter.DocumentHierarchyPaths(ctx, id)
 		}
 	}
-	return nil, errors.WithStack(store.ErrAccessDenied)
+	return nil, errors.WithStack(auth.ErrAccessDenied)
 }
 
 // CountReferencesFunc returns a converter CountReferences callback that counts references in the given

@@ -38,7 +38,7 @@ func TestDocumentsForLevel(t *testing.T) {
 	b.IndexingNormalizeHooks = []func(ctx context.Context, doc *document.D, metadata *store.DocumentMetadata) (*document.D, errors.E){
 		func(ctx context.Context, doc *document.D, _ *store.DocumentMetadata) (*document.D, errors.E) {
 			if doc.ID == secret && auth.Visibility(ctx) == "public" {
-				return doc, errors.WithStack(store.ErrAccessDenied)
+				return doc, errors.WithStack(auth.ErrAccessDenied)
 			}
 			return doc, nil
 		},

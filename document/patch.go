@@ -56,7 +56,8 @@ func ChangeMarshalJSON(change Change) ([]byte, errors.E) {
 //nolint:recvcheck
 type Changes []Change
 
-// Apply applies all changes in order to the given document.
+// Apply applies all changes in order to the given document. It does not check that change bases and
+// IDs are correctly derived: that is what Validate checks.
 func (c Changes) Apply(doc *D) errors.E {
 	for i, change := range c {
 		errE := change.Apply(doc)
@@ -80,6 +81,39 @@ func (c Changes) Validate(base []string, startOperation int64) errors.E {
 		}
 	}
 	return nil
+}
+
+// ValidateAndApply validates the changes and applies them to the document, the canonical pipeline
+// for bringing a set of changes onto a document. The two steps are complementary and always run
+// together: Validate checks what Apply does not (that the change bases and IDs are correctly
+// derived from the base and the operation numbers, startOperation+1 onward), while Apply checks
+// what Validate cannot (that each change fits the document state produced by the changes before
+// it).
+func (c Changes) ValidateAndApply(doc *D, base []string, startOperation int64) errors.E {
+	errE := c.Validate(base, startOperation)
+	if errE != nil {
+		return errE
+	}
+	return c.Apply(doc)
+}
+
+// ApplyChangesJSON unmarshals the changes, validates them, and applies them to the document,
+// returning the unmarshaled changes.
+func ApplyChangesJSON(doc *D, base []string, startOperation int64, changesJSON []json.RawMessage) (Changes, errors.E) {
+	changes := make(Changes, 0, len(changesJSON))
+	for i, changeJSON := range changesJSON {
+		change, errE := ChangeUnmarshalJSON(changeJSON)
+		if errE != nil {
+			errors.Details(errE)["change"] = startOperation + int64(i) + 1
+			return nil, errE
+		}
+		changes = append(changes, change)
+	}
+	errE := changes.ValidateAndApply(doc, base, startOperation)
+	if errE != nil {
+		return nil, errE
+	}
+	return changes, nil
 }
 
 // UnmarshalJSON implements json.Unmarshaler for Changes.

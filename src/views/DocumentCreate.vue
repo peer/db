@@ -6,6 +6,7 @@ import { useI18n } from "vue-i18n"
 import { useRoute, useRouter } from "vue-router"
 
 import { getURL, postJSON } from "@/api"
+import { scopeProperties } from "@/auth"
 import { INSTANCE_OF } from "@/core"
 import { HighConfidence } from "@/document"
 import ClassTreeList from "@/partials/ClassTreeList.vue"
@@ -89,7 +90,7 @@ async function loadClasses() {
     // When exactly one creatable class is offered (for example under a "limit" that resolves to a
     // single class), skip the picker and create it directly. The navigation replaces this view in
     // history, so the back button does not land here and immediately create another document.
-    const creatable = doc.classes.filter((c) => c.canCreate)
+    const creatable = doc.classes.filter((c) => c.creatable)
     if (creatable.length === 1) {
       await onCreate(creatable[0].id, true)
       return
@@ -142,19 +143,36 @@ async function onCreate(classId: string, replace = false) {
     // Open a create session. The document is not yet inserted in the store;
     // the session holds all pending changes (starting with instance_of below)
     // and the backend materializes the document only on Save.
-    const createResponse = await postJSON<DocumentCreateResponse>(router.apiResolve({ name: "DocumentCreate" }).href, {}, abortController.signal, null)
-    if (abortController.signal.aborted) {
-      return
+    // Initial claims of properties participating in permission scopes (usually the "instance of"
+    // class) are passed to the backend through the query string: it validates them against the
+    // caller's create grants and seeds them into the session as its first changes (clients cannot add
+    // such claims themselves, see the create API). Claims of other properties are appended as
+    // ordinary client changes after the session is opened.
+    const scopeProps = scopeProperties()
+    const query: Record<string, string[]> = {}
+    const clientSeeds: { prop: string; to: string }[] = []
+    const addSeed = (prop: string, to: string) => {
+      if (scopeProps.has(prop)) {
+        query[prop] = [...(query[prop] ?? []), to]
+      } else {
+        clientSeeds.push({ prop, to })
+      }
     }
-
-    // The first change is the "instance of" class; then any property=value query params become further
-    // initial reference claims, before navigating to the editor.
-    let change = 1
-    await saveRefClaim(createResponse, change, INSTANCE_OF, classId)
-    if (abortController.signal.aborted) {
-      return
-    }
+    addSeed(INSTANCE_OF, classId)
     for (const { prop, to } of claimParams.value) {
+      addSeed(prop, to)
+    }
+    const createResponse = await postJSON<DocumentCreateResponse>(
+      router.apiResolve({ name: "DocumentCreate", query: encodeQuery(query) }).href,
+      {},
+      abortController.signal,
+      null,
+    )
+    if (abortController.signal.aborted) {
+      return
+    }
+    let change = createResponse.lastChange
+    for (const { prop, to } of clientSeeds) {
       change += 1
       await saveRefClaim(createResponse, change, prop, to)
       if (abortController.signal.aborted) {

@@ -39,6 +39,12 @@ type documentEndMetadata struct {
 	// unauthenticated. Lands in CommitMetadata.User at completion. NOT included in
 	// the Users union on changeset metadata.
 	User *store.User `json:"user,omitempty"`
+	// Roles are the roles of the user who ended the session, recorded for
+	// EndEditPermissionCheck at completion.
+	Roles []string `json:"roles,omitempty"`
+	// System marks a session ended by the application itself and not on behalf of the caller,
+	// for which EndEditPermissionCheck is skipped. See WithSystemSession.
+	System bool `json:"system,omitempty"`
 }
 
 // documentCompleteData contains JSON serialized document with metadata to be
@@ -96,7 +102,7 @@ func (b *B) applySessionChanges(
 
 	// Operations are numbered sequentially without gaps, so the committed operations past
 	// fromOperation are exactly fromOperation+1 through lastOperation.
-	changes := make(document.Changes, 0, lastOperation-fromOperation)
+	changesJSON := make([]json.RawMessage, 0, lastOperation-fromOperation)
 	changeUsers := make([]*store.User, 0, lastOperation-fromOperation)
 	for ch := fromOperation + 1; ch <= lastOperation; ch++ {
 		data, changeMetadata, errE := b.coordinator.GetData(ctx, session, ch)
@@ -104,22 +110,11 @@ func (b *B) applySessionChanges(
 			errors.Details(errE)["change"] = ch
 			return nil, nil, 0, errE
 		}
-		change, errE := document.ChangeUnmarshalJSON(data)
-		if errE != nil {
-			errE = errors.WrapWith(errE, coordinator.ErrInvalidSessionData)
-			errors.Details(errE)["change"] = ch
-			return nil, nil, 0, errE
-		}
-		changes = append(changes, change)
+		changesJSON = append(changesJSON, data)
 		changeUsers = append(changeUsers, changeMetadata.User)
 	}
 
-	errE = changes.Validate(changesetBase, fromOperation)
-	if errE != nil {
-		return nil, nil, 0, errors.WrapWith(errE, coordinator.ErrInvalidSessionData)
-	}
-
-	errE = changes.Apply(doc)
+	changes, errE := document.ApplyChangesJSON(doc, changesetBase, fromOperation, changesJSON)
 	if errE != nil {
 		return nil, nil, 0, errors.WrapWith(errE, coordinator.ErrInvalidSessionData)
 	}
@@ -143,7 +138,7 @@ func (b *B) rebuildSessionDocument(
 		fromOperation = 0
 		if beginMetadata.Version != nil {
 			// Edit session: load parent document at the session's begin version.
-			docJSON, _, _, _, errE := b.documents.Get(ctx, beginMetadata.DocumentID, *beginMetadata.Version)
+			docJSON, _, _, _, errE := b.Documents().Get(ctx, beginMetadata.DocumentID, *beginMetadata.Version)
 			if errE != nil {
 				return nil, 0, errE
 			}
@@ -182,24 +177,13 @@ func (b *B) completeDocumentSession(ctx context.Context, session identifier.Iden
 		return nil, errE
 	}
 
-	if endMetadata.Discarded {
-		return &documentCompleteData{
-			BeginMetadata: beginMetadata,
-			EndMetadata:   endMetadata,
-			Changes:       nil,
-			Document:      nil,
-			ParentVersion: store.Version{},
-			Metadata:      nil,
-		}, nil
-	}
-
 	var doc document.D
 	var resolvedVersion store.Version
 	if beginMetadata.Version != nil {
 		// Edit session: load parent document at the session's begin version.
 		// Version has Revision 0, so Get returns the latest revision for the changeset.
 		var docJSON json.RawMessage
-		docJSON, _, resolvedVersion, _, errE = b.documents.Get(ctx, beginMetadata.DocumentID, *beginMetadata.Version)
+		docJSON, _, resolvedVersion, _, errE = b.Documents().Get(ctx, beginMetadata.DocumentID, *beginMetadata.Version)
 		if errE != nil {
 			return nil, errE
 		}
@@ -230,8 +214,32 @@ func (b *B) completeDocumentSession(ctx context.Context, session identifier.Iden
 		return nil, errE
 	}
 
-	// If there are no changes, treat the session as discarded.
+	// If there are no changes, treat the session as discarded. There is nothing to check
+	// permissions for either: nothing is committed and nothing is destroyed.
 	if len(changes) == 0 {
+		return &documentCompleteData{
+			BeginMetadata: beginMetadata,
+			EndMetadata:   endMetadata,
+			Changes:       nil,
+			Document:      nil,
+			ParentVersion: store.Version{},
+			Metadata:      nil,
+		}, nil
+	}
+
+	// The check runs also for a discarded session (see EndEditPermissionCheck). It is the
+	// authoritative check: it sees the session's final change list, while the check made when the
+	// end was requested through the HTTP API raced with changes still being appended.
+	if b.EndEditPermissionCheck != nil && !endMetadata.System {
+		errE = b.EndEditPermissionCheck(endMetadata.User, endMetadata.Roles, &doc)
+		if errE != nil {
+			// The rejection is deterministic, so the complete-session job is canceled (the session
+			// completes as errored and nothing is committed) instead of being retried.
+			return nil, errors.WrapWith(errE, coordinator.ErrSessionNotAllowed)
+		}
+	}
+
+	if endMetadata.Discarded {
 		return &documentCompleteData{
 			BeginMetadata: beginMetadata,
 			EndMetadata:   endMetadata,
@@ -281,7 +289,7 @@ func (b *B) completeDocumentSessionTx(
 	changesetBase = append(changesetBase, "SESSION", session.String())
 
 	changesetID := identifier.From(changesetBase...)
-	changeset, errE := b.files.Store().Changeset(ctx, changesetID)
+	changeset, errE := b.Files().Changeset(ctx, changesetID)
 	if errE != nil {
 		return nil, errE
 	}
@@ -297,6 +305,9 @@ func (b *B) completeDocumentSessionTx(
 		if errE != nil {
 			return nil, errE
 		}
+
+		// The session has completed, so its cached state is not needed anymore.
+		b.sessionDocs.Delete(session)
 
 		return &DocumentCompleteMetadata{
 			Discarded: true,
@@ -338,7 +349,7 @@ func (b *B) completeDocumentSessionTx(
 		// The synthesized empty-document insert is attributed to the begin user
 		// (sole contributor at this synthetic step) and committed by the end user
 		// as part of the same End call.
-		firstVersion, errE := b.documents.Insert(
+		firstVersion, errE := b.Documents().Insert(
 			ctx, data.BeginMetadata.DocumentID, emptyJSON,
 			&store.DocumentMetadata{
 				At:    data.EndMetadata.At,
@@ -352,7 +363,7 @@ func (b *B) completeDocumentSessionTx(
 		parentChangeset = firstVersion.Changeset
 	}
 
-	version, errE := b.documents.Update(
+	version, errE := b.Documents().Update(
 		ctx, data.BeginMetadata.DocumentID, parentChangeset,
 		data.Document, data.Changes, data.Metadata, commitMetadata,
 	)
@@ -362,11 +373,14 @@ func (b *B) completeDocumentSessionTx(
 
 	// There might be files uploaded into a changeset in file storage store.
 	// We commit the changeset here to persist them.
-	_, errE = b.files.Store().Commit(ctx, changeset, commitMetadata)
+	_, errE = b.Files().Commit(ctx, changeset, commitMetadata)
 	if errE != nil && !errors.Is(errE, store.ErrChangesetNotFound) {
 		// ErrChangesetNotFound is fine. It means no file uploads were made into the document edit session.
 		return nil, errE
 	}
+
+	// The session has completed, so its cached state is not needed anymore.
+	b.sessionDocs.Delete(session)
 
 	return &DocumentCompleteMetadata{
 		Discarded: false,
@@ -391,7 +405,7 @@ func (b *B) completeSessionOnErrorTx(
 	changesetBase = append(changesetBase, "SESSION", session.String())
 
 	changesetID := identifier.From(changesetBase...)
-	changeset, errE := b.files.Store().Changeset(ctx, changesetID)
+	changeset, errE := b.Files().Changeset(ctx, changesetID)
 	if errE != nil {
 		return nil, errE
 	}
@@ -404,6 +418,9 @@ func (b *B) completeSessionOnErrorTx(
 	if errE != nil {
 		return nil, errE
 	}
+
+	// The session has completed, so its cached state is not needed anymore.
+	b.sessionDocs.Delete(session)
 
 	return &DocumentCompleteMetadata{
 		Discarded: completeErr == nil,

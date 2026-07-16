@@ -9,13 +9,12 @@ import (
 
 	"gitlab.com/peerdb/peerdb/auth"
 	"gitlab.com/peerdb/peerdb/internal/site"
-	"gitlab.com/peerdb/peerdb/store"
 )
 
 func TestValidateVisibility(t *testing.T) {
 	t.Parallel()
 
-	roles := map[string][]string{
+	roles := map[string]auth.Grants{
 		"public":     nil,
 		"researcher": nil,
 		"reviewer":   nil,
@@ -25,7 +24,7 @@ func TestValidateVisibility(t *testing.T) {
 
 	tests := []struct {
 		name       string
-		roles      map[string][]string
+		roles      map[string]auth.Grants
 		visibility []auth.VisibilityLevel
 		wantErr    string
 	}{
@@ -149,7 +148,7 @@ func TestReadIndex(t *testing.T) {
 	// A caller with no visibility level is denied, so the read route returns 403 Forbidden.
 	_, errE = s.ReadIndex(context.Background())
 	require.Error(t, errE)
-	assert.ErrorIs(t, errE, store.ErrAccessDenied)
+	assert.ErrorIs(t, errE, auth.ErrAccessDenied)
 }
 
 func TestLevelIndexes(t *testing.T) {

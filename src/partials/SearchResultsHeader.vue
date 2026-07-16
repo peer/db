@@ -14,7 +14,8 @@ import type { SearchSession, SelectButtonOption, ViewType } from "@/types"
 import { AdjustmentsHorizontalIcon, ArchiveBoxArrowDownIcon, ArrowDownTrayIcon, Bars4Icon, PrinterIcon, TableCellsIcon } from "@heroicons/vue/24/outline"
 import { useI18n } from "vue-i18n"
 
-import { CAN_BULK_GET_FILE, hasPermission } from "@/auth"
+import { hasDocumentPermission } from "@/auth"
+import { ACTION_READ_BULK } from "@/core"
 import SelectButton from "@/components/SelectButton.vue"
 import siteContext from "@/context"
 
@@ -148,7 +149,7 @@ function countFilters(): number {
       </div>
 
       <div
-        v-if="siteContext.features.downloadButtons && hasPermission(CAN_BULK_GET_FILE)"
+        v-if="siteContext.features.downloadButtons && hasDocumentPermission(ACTION_READ_BULK)"
         class="pd-print-hidden flex shrink-0 items-center gap-1 rounded-sm bg-slate-200 px-1 py-1"
       >
         <button

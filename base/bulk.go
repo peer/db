@@ -40,21 +40,21 @@ func (b *B) InsertOrReplaceDocument(ctx context.Context, doc *document.D) errors
 	// Each doc.Id has to be unique, so each doc.Base is unique as well.
 	changesetBase := slices.Clone(doc.Base)
 	changesetBase = append(changesetBase, "CHANGESET", "FIRST")
-	_, errE = b.documents.Insert(ctx, doc.ID, data, metadata, &store.CommitMetadata{
+	_, errE = b.Documents().Insert(ctx, doc.ID, data, metadata, &store.CommitMetadata{
 		Base: changesetBase,
 		User: nil,
 	})
 	// If commit with ID from changesetBase already exists, this means that also the doc
 	// with its ID already exist. So we replace the doc.
 	if errors.Is(errE, store.ErrAlreadyCommitted) {
-		_, _, version, _, errE := b.documents.GetLatest(ctx, doc.ID)
+		_, _, version, _, errE := b.Documents().GetLatest(ctx, doc.ID)
 		if errE != nil {
 			return errE
 		}
 		changesetBase := slices.Clone(doc.Base)
 		changesetBase = append(changesetBase, "CHANGESET", "REPLACE", version.Changeset.String())
 		// TODO: What to do once we have document melding and target document got melded into some other document?
-		_, errE = b.documents.Replace(ctx, doc.ID, version.Changeset, data, metadata, &store.CommitMetadata{
+		_, errE = b.Documents().Replace(ctx, doc.ID, version.Changeset, data, metadata, &store.CommitMetadata{
 			Base: changesetBase,
 			User: nil,
 		})
@@ -106,20 +106,20 @@ func (b *B) InsertOrReplaceFile(ctx context.Context, base []string, reader io.Re
 	// Each base is unique.
 	changesetBase := slices.Clone(base)
 	changesetBase = append(changesetBase, "CHANGESET", "FIRST")
-	_, errE = b.files.Store().Insert(ctx, id, hash, metadata, &store.CommitMetadata{
+	_, errE = b.Files().Insert(ctx, id, hash, metadata, &store.CommitMetadata{
 		Base: changesetBase,
 		User: nil,
 	})
 	// If commit with ID from changesetBase already exists, this means that also the file
 	// with its ID already exist. So we replace the file.
 	if errors.Is(errE, store.ErrAlreadyCommitted) {
-		_, _, version, _, errE := b.files.Store().GetLatest(ctx, id)
+		_, _, version, _, errE := b.Files().GetLatest(ctx, id)
 		if errE != nil {
 			return id, errE
 		}
 		changesetBase := slices.Clone(base)
 		changesetBase = append(changesetBase, "CHANGESET", "REPLACE", version.Changeset.String())
-		_, errE = b.files.Store().Replace(ctx, id, version.Changeset, hash, metadata, &store.CommitMetadata{
+		_, errE = b.Files().Replace(ctx, id, version.Changeset, hash, metadata, &store.CommitMetadata{
 			Base: changesetBase,
 			User: nil,
 		})

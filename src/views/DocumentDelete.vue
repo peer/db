@@ -4,7 +4,8 @@ import { useI18n } from "vue-i18n"
 import { useRouter } from "vue-router"
 
 import { deleteFromCache, postJSON } from "@/api"
-import { CAN_DELETE_DOCUMENT, hasPermission } from "@/auth"
+import { hasDocumentPermission } from "@/auth"
+import { ACTION_DELETE } from "@/core"
 import Button from "@/components/Button.vue"
 import Footer from "@/partials/Footer.vue"
 import NavBar from "@/partials/NavBar.vue"
@@ -80,7 +81,7 @@ async function onDelete() {
     <NavBar />
   </Teleport>
   <div class="pd-documentdelete mt-[var(--pd-navbar-offset)] flex w-full flex-col gap-y-1 border-t border-transparent p-1 sm:gap-y-4 sm:p-4">
-    <template v-if="hasPermission(CAN_DELETE_DOCUMENT)">
+    <template v-if="hasDocumentPermission(ACTION_DELETE)">
       <div>
         <h1 class="text-3xl font-bold drop-shadow-xs">{{ t("views.DocumentDelete.title") }}</h1>
         <p class="mt-1 text-gray-700">{{ t("views.DocumentDelete.confirm") }}</p>

@@ -1051,6 +1051,30 @@ func Vocabularies() ([]any, errors.E) { //nolint:maintidx
 	documents = append(documents, &PermissionAction{
 		VocabularyFields: VocabularyFields{
 			Name: []StringWithLanguage{{
+				Value: "create",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "en-GB"},
+				}},
+			}, {
+				Value: "ustvarjanje",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}},
+			Description: nil,
+			Code:        []Identifier{"ACTION_CREATE"},
+		},
+		DocumentFields: DocumentFields{
+			ID: []string{Namespace, "PERMISSION_ACTIONS", "ACTION_CREATE"},
+			InstanceOf: []Ref{{
+				ID: []string{Namespace, "PERMISSION_ACTIONS"},
+			}},
+		},
+	})
+
+	documents = append(documents, &PermissionAction{
+		VocabularyFields: VocabularyFields{
+			Name: []StringWithLanguage{{
 				Value: "read",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "en-GB"},
@@ -1062,7 +1086,7 @@ func Vocabularies() ([]any, errors.E) { //nolint:maintidx
 				}},
 			}},
 			Description: nil,
-			Code:        nil,
+			Code:        []Identifier{"ACTION_READ"},
 		},
 		DocumentFields: DocumentFields{
 			ID: []string{Namespace, "PERMISSION_ACTIONS", "ACTION_READ"},
@@ -1075,21 +1099,21 @@ func Vocabularies() ([]any, errors.E) { //nolint:maintidx
 	documents = append(documents, &PermissionAction{
 		VocabularyFields: VocabularyFields{
 			Name: []StringWithLanguage{{
-				Value: "edit",
+				Value: "update",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "en-GB"},
 				}},
 			}, {
-				Value: "urejanje",
+				Value: "posodabljanje",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
 			}},
 			Description: nil,
-			Code:        nil,
+			Code:        []Identifier{"ACTION_UPDATE"},
 		},
 		DocumentFields: DocumentFields{
-			ID: []string{Namespace, "PERMISSION_ACTIONS", "ACTION_EDIT"},
+			ID: []string{Namespace, "PERMISSION_ACTIONS", "ACTION_UPDATE"},
 			InstanceOf: []Ref{{
 				ID: []string{Namespace, "PERMISSION_ACTIONS"},
 			}},
@@ -1099,21 +1123,113 @@ func Vocabularies() ([]any, errors.E) { //nolint:maintidx
 	documents = append(documents, &PermissionAction{
 		VocabularyFields: VocabularyFields{
 			Name: []StringWithLanguage{{
-				Value: "permissions",
+				Value: "delete",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "en-GB"},
 				}},
 			}, {
-				Value: "dovoljenja",
+				Value: "brisanje",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
 			}},
 			Description: nil,
-			Code:        nil,
+			Code:        []Identifier{"ACTION_DELETE"},
 		},
 		DocumentFields: DocumentFields{
-			ID: []string{Namespace, "PERMISSION_ACTIONS", "ACTION_PERMISSIONS"},
+			ID: []string{Namespace, "PERMISSION_ACTIONS", "ACTION_DELETE"},
+			InstanceOf: []Ref{{
+				ID: []string{Namespace, "PERMISSION_ACTIONS"},
+			}},
+		},
+	})
+
+	documents = append(documents, &PermissionAction{
+		VocabularyFields: VocabularyFields{
+			Name: []StringWithLanguage{{
+				Value: "historic read",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "en-GB"},
+				}},
+			}, {
+				Value: "zgodovinsko branje",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}},
+			Description: []RawHTMLWithLanguage{{
+				Value: "<p>Reading historical versions.</p>",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "en-GB"},
+				}},
+			}, {
+				Value: "<p>Branje zgodovinskih verzij.</p>",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}},
+			Code: []Identifier{"ACTION_READ_HISTORIC"},
+		},
+		DocumentFields: DocumentFields{
+			ID: []string{Namespace, "PERMISSION_ACTIONS", "ACTION_READ_HISTORIC"},
+			InstanceOf: []Ref{{
+				ID: []string{Namespace, "PERMISSION_ACTIONS"},
+			}},
+		},
+	})
+
+	documents = append(documents, &PermissionAction{
+		VocabularyFields: VocabularyFields{
+			Name: []StringWithLanguage{{
+				Value: "permissions update",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "en-GB"},
+				}},
+			}, {
+				Value: "posodabljanje dovoljenj",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}},
+			Description: []RawHTMLWithLanguage{{
+				Value: "<p>Updating permissions.</p>",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "en-GB"},
+				}},
+			}, {
+				Value: "<p>Posodabljanje dovoljenj.</p>",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}},
+			Code: []Identifier{"ACTION_UPDATE_PERMISSIONS"},
+		},
+		DocumentFields: DocumentFields{
+			ID: []string{Namespace, "PERMISSION_ACTIONS", "ACTION_UPDATE_PERMISSIONS"},
+			InstanceOf: []Ref{{
+				ID: []string{Namespace, "PERMISSION_ACTIONS"},
+			}},
+		},
+	})
+
+	documents = append(documents, &PermissionAction{
+		VocabularyFields: VocabularyFields{
+			Name: []StringWithLanguage{{
+				Value: "bulk read",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "en-GB"},
+				}},
+			}, {
+				Value: "množično branje",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}},
+			Description: nil,
+			Code:        []Identifier{"ACTION_READ_BULK"},
+		},
+		DocumentFields: DocumentFields{
+			ID: []string{Namespace, "PERMISSION_ACTIONS", "ACTION_READ_BULK"},
 			InstanceOf: []Ref{{
 				ID: []string{Namespace, "PERMISSION_ACTIONS"},
 			}},

@@ -9,10 +9,12 @@ import { inject } from "vue"
 // uses. Deletion is performed on the dedicated DocumentDelete confirmation page, so sites link their
 // delete control to the DocumentDelete route rather than calling a handler here.
 export type DocumentActions = {
-  // Whether the caller has permission to edit or delete the document (CAN_EDIT_DOCUMENT and
-  // CAN_DELETE_DOCUMENT). Sites can gate the rendered buttons further (for example by role).
-  canEdit: Readonly<Ref<boolean>>
+  // Whether the caller has permission to update, delete, or manage permissions of the document (the
+  // ACTION_UPDATE, ACTION_DELETE, and ACTION_UPDATE_PERMISSIONS actions checked against the document, so
+  // document-level permission claims count).
+  canUpdate: Readonly<Ref<boolean>>
   canDelete: Readonly<Ref<boolean>>
+  canUpdatePermissions: Readonly<Ref<boolean>>
   // Progress counter, greater than zero while an edit session is starting.
   editBusy: Readonly<Ref<number>>
   // Start editing (begins an edit session and navigates to the edit view).
@@ -23,8 +25,8 @@ export type DocumentActions = {
 // So we use Symbol.for to make sure that symbols are deduplicated. Also symbol name is useful for debugging.
 export const documentActionsKey: InjectionKey<DocumentActions> = process.env.NODE_ENV !== "production" ? Symbol.for("peerdb-document-actions") : Symbol()
 
-// useDocumentActions returns the edit action and the edit/delete permissions provided by the
-// DocumentGet view, or null outside of it.
+// useDocumentActions returns the edit action and whether the caller holds the update, delete, and
+// permissions actions on the document, as provided by the DocumentGet view, or null outside of it.
 export function useDocumentActions(): DocumentActions | null {
   return inject(documentActionsKey, null)
 }

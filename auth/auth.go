@@ -79,7 +79,7 @@ type Authenticator interface {
 	// headers consumed by the frontend. On failure the original ctx is
 	// returned unchanged and no headers are written.
 	Authenticate(
-		w http.ResponseWriter, req *http.Request, metadataHeaderPrefix string, allowedRoles map[string][]string, visibility []VisibilityLevel,
+		w http.ResponseWriter, req *http.Request, metadataHeaderPrefix string, allowedRoles map[string]Grants, visibility []VisibilityLevel,
 	) context.Context
 
 	// SignIn begins a fresh sign-in flow. uiLocales is the user's preferred UI language (forwarded to the
@@ -155,7 +155,7 @@ type baseAuthenticator struct {
 // emitting them lets a cached signed-in response self-correct to signed-out
 // instead of retaining a stale identity. Callers should continue handling.
 func (b *baseAuthenticator) Authenticate(
-	w http.ResponseWriter, req *http.Request, metadataHeaderPrefix string, allowedRoles map[string][]string, visibility []VisibilityLevel,
+	w http.ResponseWriter, req *http.Request, metadataHeaderPrefix string, allowedRoles map[string]Grants, visibility []VisibilityLevel,
 ) context.Context {
 	ctx := req.Context()
 	subject, roles, token, ok := b.authenticatedIdentity(ctx, w, req, allowedRoles)
@@ -196,7 +196,7 @@ func (b *baseAuthenticator) Authenticate(
 // invalid or revoked token, or a role-extraction failure. The caller then
 // treats the request as anonymous.
 func (b *baseAuthenticator) authenticatedIdentity(
-	ctx context.Context, w http.ResponseWriter, req *http.Request, allowedRoles map[string][]string,
+	ctx context.Context, w http.ResponseWriter, req *http.Request, allowedRoles map[string]Grants,
 ) (string, []string, string, bool) {
 	token, _ := resolveAccessToken(w, req)
 	if token == "" {
@@ -507,7 +507,7 @@ func addVary(w http.ResponseWriter, header string) {
 // allowedRoles acts as a allowlist: only roles whose name is a key in the map
 // pass through. Values are ignored. A nil or empty map drops every role. This
 // guarantees that auth.Roles never carries a role the site has not declared.
-func extractRoles(idToken *oidc.IDToken, allowedRoles map[string][]string) ([]string, errors.E) {
+func extractRoles(idToken *oidc.IDToken, allowedRoles map[string]Grants) ([]string, errors.E) {
 	var claims struct {
 		Scope string   `json:"scope"`
 		SCP   []string `json:"scp"`

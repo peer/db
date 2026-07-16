@@ -18,7 +18,7 @@ const WithDocumentD = WithDocument<D>
 <template>
   <WithDocumentD :id="node.res.id" name="DocumentGet">
     <template #default="{ doc, url }">
-      <Button v-if="node.res.canCreate" type="button" :data-url="url" @click.prevent="onCreate(node.res.id)">
+      <Button v-if="node.res.creatable" type="button" :data-url="url" @click.prevent="onCreate(node.res.id)">
         <DisplayLabel :doc="doc" />
       </Button>
       <!-- A class a document cannot be created for (abstract, or without fields) is shown only as a structural heading. -->

@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"slices"
 	"strconv"
 
 	internalSite "gitlab.com/peerdb/peerdb/internal/site"
@@ -43,7 +44,7 @@ func (s *Service) DocumentGetGet(w http.ResponseWriter, req *http.Request, param
 		m := metrics.Duration(internalStore.MetricSearchSession).Start()
 		_, errE = search.GetSessionFromID(ctx, req.Form.Get("s"))
 		m.Stop()
-		if errors.Is(errE, search.ErrNotFound) || errors.Is(errE, store.ErrAccessDenied) {
+		if errors.Is(errE, search.ErrNotFound) || errors.Is(errE, auth.ErrAccessDenied) {
 			// Session not found, so we redirect to the URL without "s".
 			path, errE := s.Reverse("DocumentGet", waf.Params{"id": id.String()}, url.Values{"tab": req.Form["tab"]})
 			if errE != nil {
@@ -87,7 +88,7 @@ func (s *Service) DocumentGetGet(w http.ResponseWriter, req *http.Request, param
 		// This includes ErrValueDeleted, too.
 		s.NotFoundWithError(w, req, errE)
 		return
-	} else if errors.Is(errE, store.ErrAccessDenied) {
+	} else if errors.Is(errE, auth.ErrAccessDenied) {
 		s.ForbiddenWithError(w, req, errE)
 		return
 	} else if errE != nil {
@@ -100,16 +101,11 @@ func (s *Service) DocumentGetGet(w http.ResponseWriter, req *http.Request, param
 
 // DocumentDeleteGet is a GET/HEAD HTTP request handler which returns HTML frontend for the
 // document deletion confirmation page given its ID as a parameter. It requires the delete
-// permission and that the document exists, so the page is not shown when the action is not possible.
+// permission on the document and that the document exists, so the page is not shown when the
+// action is not possible.
 func (s *Service) DocumentDeleteGet(w http.ResponseWriter, req *http.Request, params waf.Params) {
 	ctx := req.Context()
 	metrics := waf.MustGetMetrics(ctx)
-
-	errE := s.HasPermission(ctx, auth.CanDeleteDocument)
-	if errE != nil {
-		s.ForbiddenWithError(w, req, errE)
-		return
-	}
 
 	id, errE := identifier.MaybeString(params["id"])
 	if errE != nil {
@@ -120,19 +116,24 @@ func (s *Service) DocumentDeleteGet(w http.ResponseWriter, req *http.Request, pa
 	site := waf.MustGetSite[*internalSite.Site](req.Context())
 
 	m := metrics.Duration(internalStore.MetricDatabase).Start()
-	// TODO: Add API to store to just check if the value exists.
-	_, _, _, _, errE = site.Base.GetDocumentLatest(ctx, id) //nolint:dogsled
+	doc, _, _, _, errE := site.Base.GetDocumentLatestDoc(ctx, id) //nolint:dogsled
 	m.Stop()
 
 	if errors.Is(errE, store.ErrValueNotFound) {
 		// This includes ErrValueDeleted, too.
 		s.NotFoundWithError(w, req, errE)
 		return
-	} else if errors.Is(errE, store.ErrAccessDenied) {
+	} else if errors.Is(errE, auth.ErrAccessDenied) {
 		s.ForbiddenWithError(w, req, errE)
 		return
 	} else if errE != nil {
 		s.InternalServerErrorWithError(w, req, errE)
+		return
+	}
+
+	errE = s.HasDocumentPermission(ctx, auth.ActionDelete, doc)
+	if errE != nil {
+		s.ForbiddenWithError(w, req, errE)
 		return
 	}
 
@@ -184,7 +185,7 @@ func (s *Service) documentGetData(
 		// This includes ErrValueDeleted, too.
 		s.NotFoundWithError(w, req, errE)
 		return nil, nil, store.Version{}, true
-	} else if errors.Is(errE, store.ErrAccessDenied) {
+	} else if errors.Is(errE, auth.ErrAccessDenied) {
 		s.ForbiddenWithError(w, req, errE)
 		return nil, nil, store.Version{}, true
 	} else if errE != nil {
@@ -224,6 +225,9 @@ type documentHistoryItem struct {
 // DocumentHistoryGetAPI handles GET requests to list a document's changeset history. Entries are
 // returned newest first, one store page at a time (with optional "after" keyset pagination), each
 // carrying the timestamp, the contributing users, and the version for linking to that revision.
+// Only versions the caller can open are listed: all of them when the caller holds the historic read
+// action on the document, and otherwise the versions readable at their own state, so a page can be
+// shorter than the store page.
 func (s *Service) DocumentHistoryGetAPI(w http.ResponseWriter, req *http.Request, params waf.Params) {
 	ctx := req.Context()
 	metrics := waf.MustGetMetrics(ctx)
@@ -246,16 +250,16 @@ func (s *Service) DocumentHistoryGetAPI(w http.ResponseWriter, req *http.Request
 
 	site := waf.MustGetSite[*internalSite.Site](ctx)
 
-	// We confirm the document exists and is accessible to the caller (same access semantics as viewing it)
-	// before exposing its history.
+	// We confirm the document exists and is accessible to the caller (same access semantics as
+	// viewing it, including the read action on its latest version) before exposing its history.
 	m := metrics.Duration(internalStore.MetricDatabase).Start()
-	_, _, _, _, errE = site.Base.GetDocumentLatest(ctx, id) //nolint:dogsled
+	doc, _, _, _, errE := site.Base.GetDocumentLatestDoc(ctx, id) //nolint:dogsled
 	m.Stop()
 	if errors.Is(errE, store.ErrValueNotFound) {
 		// This includes ErrValueDeleted, too.
 		s.NotFoundWithError(w, req, errE)
 		return
-	} else if errors.Is(errE, store.ErrAccessDenied) {
+	} else if errors.Is(errE, auth.ErrAccessDenied) {
 		s.ForbiddenWithError(w, req, errE)
 		return
 	} else if errE != nil {
@@ -263,11 +267,15 @@ func (s *Service) DocumentHistoryGetAPI(w http.ResponseWriter, req *http.Request
 		return
 	}
 
+	// With the historic read action on the document every version is openable and listed; without it
+	// only the versions readable at their own state.
+	historic := checkDocumentPermission(ctx, site, auth.ActionReadHistoric, doc)
+
 	changesets, errE := site.Base.Documents().Changes(ctx, id, after)
 	if errors.Is(errE, store.ErrValueNotFound) {
 		s.NotFoundWithError(w, req, errE)
 		return
-	} else if errors.Is(errE, store.ErrAccessDenied) {
+	} else if errors.Is(errE, auth.ErrAccessDenied) {
 		s.ForbiddenWithError(w, req, errE)
 		return
 	} else if errE != nil {
@@ -277,12 +285,36 @@ func (s *Service) DocumentHistoryGetAPI(w http.ResponseWriter, req *http.Request
 
 	history := make([]documentHistoryItem, 0, len(changesets))
 	for _, changesetID := range changesets {
-		// Revision 0 asks for the latest revision in the changeset. A deleted version still has valid
-		// metadata and version, so we keep it in the history.
-		_, metadata, version, _, errE := site.Base.GetDocumentFromChangeset(ctx, changesetID, id, 0)
-		if errE != nil && !errors.Is(errE, store.ErrValueDeleted) {
+		changeset, errE := site.Base.DocumentChangeset(ctx, changesetID)
+		if errE != nil {
 			s.InternalServerErrorWithError(w, req, errE)
 			return
+		}
+		// Revision 0 asks for the latest revision in the changeset. The version's document is fetched raw
+		// (so we cannot use GetDocumentFromChangeset): it serves only the permission check and the history
+		// item's metadata, and the caller was already allowed to read the document at its latest version.
+		versionJSON, metadata, version, _, errE := changeset.Get(ctx, id, 0)
+		if errors.Is(errE, store.ErrValueDeleted) {
+			// A deleted version still has valid metadata and version, but it carries no claims
+			// through which era readers could be allowed, so only callers holding the historic read
+			// action see it.
+			// TODO: Expose deleted documents and their versions once we have an undelete action.
+			if !historic {
+				continue
+			}
+		} else if errE != nil {
+			s.InternalServerErrorWithError(w, req, errE)
+			return
+		} else if !historic {
+			versionDoc := new(document.D)
+			errE = x.UnmarshalWithoutUnknownFields(versionJSON, versionDoc)
+			if errE != nil {
+				s.InternalServerErrorWithError(w, req, errE)
+				return
+			}
+			if !checkDocumentPermission(ctx, site, auth.ActionRead, versionDoc) {
+				continue
+			}
 		}
 		history = append(history, documentHistoryItem{
 			Changeset: changesetID,
@@ -317,7 +349,7 @@ func listReadableDocuments(ctx context.Context, site *internalSite.Site, after *
 		for _, id := range ids {
 			// TODO: Add API to store to just check if the value exists.
 			_, _, _, _, errE := site.Base.GetDocumentLatest(ctx, id)
-			if errors.Is(errE, store.ErrValueNotFound) || errors.Is(errE, store.ErrAccessDenied) {
+			if errors.Is(errE, store.ErrValueNotFound) || errors.Is(errE, auth.ErrAccessDenied) {
 				continue
 			} else if errE != nil {
 				return nil, errE
@@ -371,12 +403,15 @@ type documentCreateResponse struct {
 	ID      identifier.Identifier `json:"id"`
 	Base    []string              `json:"base"`
 	Session identifier.Identifier `json:"session"`
+	// LastChange is the sequence number of the last change seeded into the session by the server;
+	// client changes continue at LastChange plus one.
+	LastChange int64 `json:"lastChange"`
 }
 
 // DocumentCreateGet is a GET/HEAD HTTP request handler which returns HTML frontend for the document
 // creation page.
 func (s *Service) DocumentCreateGet(w http.ResponseWriter, req *http.Request, _ waf.Params) {
-	errE := s.HasPermission(req.Context(), auth.CanEditDocument)
+	errE := s.HasDocumentPermission(req.Context(), auth.ActionCreate, nil)
 	if errE != nil {
 		s.ForbiddenWithError(w, req, errE)
 		return
@@ -400,34 +435,78 @@ func (s *Service) DocumentCreatePostAPI(w http.ResponseWriter, req *http.Request
 
 	ctx := req.Context()
 
-	errE := s.HasPermission(ctx, auth.CanEditDocument)
+	errE := s.HasDocumentPermission(ctx, auth.ActionCreate, nil)
 	if errE != nil {
 		s.ForbiddenWithError(w, req, errE)
-		return
-	}
-
-	var ea emptyRequest
-	errE = x.DecodeJSONWithoutUnknownFields(req.Body, &ea)
-	if errE != nil {
-		s.BadRequestWithError(w, req, errE)
 		return
 	}
 
 	site := waf.MustGetSite[*internalSite.Site](ctx)
 
 	// TODO: Support configuring base and not just use the domain.
-	base := []string{site.Domain, "DOCUMENT", identifier.New().String()}
+	docBase := []string{site.Domain, "DOCUMENT", identifier.New().String()}
 
-	session, errE := site.Base.BeginCreateDocument(ctx, base)
+	session, errE := site.Base.BeginCreateDocument(ctx, docBase)
 	if errE != nil {
 		s.InternalServerErrorWithError(w, req, errE)
 		return
 	}
+	systemCtx := base.WithSystemSession(ctx)
+
+	// The session's first changes come from the seed hook.
+	var seedChanges document.Changes
+	if site.Base.CreateDocumentSeed != nil {
+		seedChanges, errE = site.Base.CreateDocumentSeed(ctx, req, session, docBase)
+		if errE != nil {
+			// Attempt to discard the session to cleanup.
+			_ = site.Base.EndEditDocument(systemCtx, session, true)
+			// TODO: Support mapping errors to 500 Internal Server Error.
+			//       Currently RequestedClaimsChanges returns only errors which should b mapped to 400 Bad Request, but non-default implementations
+			//       might return other errors (like transient errors) which should te mapped to 500 Internal Server Error or even something else.
+			s.BadRequestWithError(w, req, errE)
+			return
+		}
+	}
+
+	// The session's initial document state: the seed changes are validated and applied to it
+	// before anything is appended to the session, so a misbehaving seed hook fails early.
+	changesetBase := append(slices.Clone(docBase), "SESSION", session.String())
+	doc := &document.D{CoreDocument: document.CoreDocument{ID: identifier.From(docBase...), Base: docBase}}
+	errE = seedChanges.ValidateAndApply(doc, changesetBase, 0)
+	if errE != nil {
+		// Attempt to discard the session to cleanup.
+		_ = site.Base.EndEditDocument(systemCtx, session, true)
+		s.InternalServerErrorWithError(w, req, errE)
+		return
+	}
+
+	lastChange, errE := site.Base.AppendDocumentChanges(systemCtx, session, seedChanges, 0)
+	if errE != nil {
+		// Attempt to discard the session to cleanup.
+		_ = site.Base.EndEditDocument(systemCtx, session, true)
+		s.InternalServerErrorWithError(w, req, errE)
+		return
+	}
+
+	// The document with the requested and seeded claims (bare when there are none) has to satisfy
+	// the caller's create grants (only role grants can give the create action): claim-scoped create
+	// grants cover only documents carrying a matching claim, so callers holding only such grants
+	// have to request matching initial claims. The check runs after all initial changes, so it
+	// evaluates the document state the session actually starts from; on denial the session, with
+	// the changes appended to it, is discarded.
+	if !checkRoleDocumentPermission(ctx, site, auth.ActionCreate, doc) {
+		_ = site.Base.EndEditDocument(systemCtx, session, true)
+		errE := errors.WithStack(auth.ErrAccessDenied)
+		errors.Details(errE)["action"] = auth.ActionCreate.String()
+		s.ForbiddenWithError(w, req, errE)
+		return
+	}
 
 	s.WriteJSON(w, req, documentCreateResponse{
-		ID:      identifier.From(base...),
-		Base:    base,
-		Session: session,
+		ID:         identifier.From(docBase...),
+		Base:       docBase,
+		Session:    session,
+		LastChange: lastChange,
 	}, nil)
 }
 
@@ -446,7 +525,7 @@ type createOptionsResponse struct {
 func (s *Service) DocumentCreateOptionsGetAPI(w http.ResponseWriter, req *http.Request, _ waf.Params) {
 	ctx := req.Context()
 
-	errE := s.HasPermission(ctx, auth.CanEditDocument)
+	errE := s.HasDocumentPermission(ctx, auth.ActionCreate, nil)
 	if errE != nil {
 		s.ForbiddenWithError(w, req, errE)
 		return
@@ -498,18 +577,13 @@ type documentBeginEditResponse struct {
 	Version store.Version         `json:"version"`
 }
 
-// DocumentBeginEditPostAPI handles POST requests to begin an edit session for a document.
+// DocumentBeginEditPostAPI handles POST requests to begin an edit session for a document. It requires the
+// update action on the document, so document-level permission claims count besides role grants.
 func (s *Service) DocumentBeginEditPostAPI(w http.ResponseWriter, req *http.Request, params waf.Params) {
 	defer req.Body.Close()              //nolint:errcheck
 	defer io.Copy(io.Discard, req.Body) //nolint:errcheck
 
 	ctx := req.Context()
-
-	errE := s.HasPermission(ctx, auth.CanEditDocument)
-	if errE != nil {
-		s.ForbiddenWithError(w, req, errE)
-		return
-	}
 
 	id, errE := identifier.MaybeString(params["id"])
 	if errE != nil {
@@ -526,11 +600,28 @@ func (s *Service) DocumentBeginEditPostAPI(w http.ResponseWriter, req *http.Requ
 
 	site := waf.MustGetSite[*internalSite.Site](ctx)
 
-	session, version, errE := site.Base.BeginEditDocumentLatest(ctx, id)
-	if errors.Is(errE, store.ErrAccessDenied) {
+	// The update action is checked against the document itself, so both role grants and the
+	// document's own permission claims count, and the session then begins at exactly the version
+	// the permission check saw.
+	doc, _, version, _, errE := site.Base.GetDocumentLatestDoc(ctx, id)
+	if errors.Is(errE, store.ErrValueNotFound) {
+		s.NotFoundWithError(w, req, errE)
+		return
+	} else if errors.Is(errE, auth.ErrAccessDenied) {
 		s.ForbiddenWithError(w, req, errE)
 		return
 	} else if errE != nil {
+		s.InternalServerErrorWithError(w, req, errE)
+		return
+	}
+	errE = s.HasDocumentPermission(ctx, auth.ActionUpdate, doc)
+	if errE != nil {
+		s.ForbiddenWithError(w, req, errE)
+		return
+	}
+
+	session, errE := site.Base.BeginEditDocument(ctx, version, doc)
+	if errE != nil {
 		s.InternalServerErrorWithError(w, req, errE)
 		return
 	}
@@ -545,15 +636,21 @@ func (s *Service) DocumentSaveChangePostAPI(w http.ResponseWriter, req *http.Req
 
 	ctx := req.Context()
 
-	errE := s.HasPermission(ctx, auth.CanEditDocument)
-	if errE != nil {
-		s.ForbiddenWithError(w, req, errE)
-		return
-	}
-
 	session, errE := identifier.MaybeString(params["session"])
 	if errE != nil {
 		s.BadRequestWithError(w, req, errors.WithMessage(errE, `"session" is not a valid identifier`))
+		return
+	}
+
+	errE = s.HasSessionPermission(ctx, session)
+	if errors.Is(errE, coordinator.ErrSessionNotFound) {
+		s.NotFoundWithError(w, req, errE)
+		return
+	} else if errors.Is(errE, auth.ErrAccessDenied) {
+		s.ForbiddenWithError(w, req, errE)
+		return
+	} else if errE != nil {
+		s.InternalServerErrorWithError(w, req, errE)
 		return
 	}
 
@@ -600,7 +697,7 @@ func (s *Service) DocumentSaveChangePostAPI(w http.ResponseWriter, req *http.Req
 	} else if errors.Is(errE, coordinator.ErrConflict) {
 		waf.Error(w, req, http.StatusConflict)
 		return
-	} else if errors.Is(errE, store.ErrAccessDenied) {
+	} else if errors.Is(errE, auth.ErrAccessDenied) {
 		s.ForbiddenWithError(w, req, errE)
 		return
 	} else if errE != nil {
@@ -614,20 +711,24 @@ func (s *Service) DocumentSaveChangePostAPI(w http.ResponseWriter, req *http.Req
 // DocumentLastChangeGetAPI handles GET requests to get the sequence number of the latest
 // change in an edit session, 0 when there are none. Changes are numbered sequentially without
 // gaps starting at 1, so the session's changes are exactly 1 through the returned number.
-//
-//nolint:dupl
 func (s *Service) DocumentLastChangeGetAPI(w http.ResponseWriter, req *http.Request, params waf.Params) {
 	ctx := req.Context()
-
-	errE := s.HasPermission(ctx, auth.CanEditDocument)
-	if errE != nil {
-		s.ForbiddenWithError(w, req, errE)
-		return
-	}
 
 	session, errE := identifier.MaybeString(params["session"])
 	if errE != nil {
 		s.BadRequestWithError(w, req, errors.WithMessage(errE, `"session" is not a valid identifier`))
+		return
+	}
+
+	errE = s.HasSessionPermission(ctx, session)
+	if errors.Is(errE, coordinator.ErrSessionNotFound) {
+		s.NotFoundWithError(w, req, errE)
+		return
+	} else if errors.Is(errE, auth.ErrAccessDenied) {
+		s.ForbiddenWithError(w, req, errE)
+		return
+	} else if errE != nil {
+		s.InternalServerErrorWithError(w, req, errE)
 		return
 	}
 
@@ -640,7 +741,7 @@ func (s *Service) DocumentLastChangeGetAPI(w http.ResponseWriter, req *http.Requ
 	} else if errors.Is(errE, coordinator.ErrAlreadyCompleted) {
 		s.NotFoundWithError(w, req, errE)
 		return
-	} else if errors.Is(errE, store.ErrAccessDenied) {
+	} else if errors.Is(errE, auth.ErrAccessDenied) {
 		s.ForbiddenWithError(w, req, errE)
 		return
 	} else if errE != nil {
@@ -655,15 +756,21 @@ func (s *Service) DocumentLastChangeGetAPI(w http.ResponseWriter, req *http.Requ
 func (s *Service) DocumentGetChangeGetAPI(w http.ResponseWriter, req *http.Request, params waf.Params) {
 	ctx := req.Context()
 
-	errE := s.HasPermission(ctx, auth.CanEditDocument)
-	if errE != nil {
-		s.ForbiddenWithError(w, req, errE)
-		return
-	}
-
 	session, errE := identifier.MaybeString(params["session"])
 	if errE != nil {
 		s.BadRequestWithError(w, req, errors.WithMessage(errE, `"session" is not a valid identifier`))
+		return
+	}
+
+	errE = s.HasSessionPermission(ctx, session)
+	if errors.Is(errE, coordinator.ErrSessionNotFound) {
+		s.NotFoundWithError(w, req, errE)
+		return
+	} else if errors.Is(errE, auth.ErrAccessDenied) {
+		s.ForbiddenWithError(w, req, errE)
+		return
+	} else if errE != nil {
+		s.InternalServerErrorWithError(w, req, errE)
 		return
 	}
 
@@ -679,13 +786,13 @@ func (s *Service) DocumentGetChangeGetAPI(w http.ResponseWriter, req *http.Reque
 	if errors.Is(errE, coordinator.ErrSessionNotFound) {
 		s.NotFoundWithError(w, req, errE)
 		return
-	} else if errors.Is(errE, coordinator.ErrAlreadyEnded) {
+	} else if errors.Is(errE, coordinator.ErrAlreadyCompleted) {
 		s.NotFoundWithError(w, req, errE)
 		return
 	} else if errors.Is(errE, coordinator.ErrOperationNotFound) {
 		s.NotFoundWithError(w, req, errE)
 		return
-	} else if errors.Is(errE, store.ErrAccessDenied) {
+	} else if errors.Is(errE, auth.ErrAccessDenied) {
 		s.ForbiddenWithError(w, req, errE)
 		return
 	} else if errE != nil {
@@ -712,15 +819,21 @@ func (s *Service) documentEndEdit(w http.ResponseWriter, req *http.Request, para
 
 	ctx := req.Context()
 
-	errE := s.HasPermission(ctx, auth.CanEditDocument)
-	if errE != nil {
-		s.ForbiddenWithError(w, req, errE)
-		return
-	}
-
 	session, errE := identifier.MaybeString(params["session"])
 	if errE != nil {
 		s.BadRequestWithError(w, req, errors.WithMessage(errE, `"session" is not a valid identifier`))
+		return
+	}
+
+	errE = s.HasSessionPermission(ctx, session)
+	if errors.Is(errE, coordinator.ErrSessionNotFound) {
+		s.NotFoundWithError(w, req, errE)
+		return
+	} else if errors.Is(errE, auth.ErrAccessDenied) {
+		s.ForbiddenWithError(w, req, errE)
+		return
+	} else if errE != nil {
+		s.InternalServerErrorWithError(w, req, errE)
 		return
 	}
 
@@ -733,6 +846,31 @@ func (s *Service) documentEndEdit(w http.ResponseWriter, req *http.Request, para
 
 	site := waf.MustGetSite[*internalSite.Site](ctx)
 
+	if site.Base.EndEditPermissionCheck != nil {
+		// The completion (commit or discard) is gated by the same configured check which runs again
+		// when the session completes: there with the user and roles recorded at the session's end
+		// as the authoritative one (it sees the session's final change list), here with the
+		// request's user and roles so the request fails fast. The check gets the session's
+		// resulting document, so scoped role grants are enforced against what the session actually
+		// produces (and an edit cannot move the document out of the granted scope).
+		_, doc, errE := site.Base.SessionDocument(ctx, session)
+		if errors.Is(errE, coordinator.ErrSessionNotFound) {
+			s.NotFoundWithError(w, req, errE)
+			return
+		} else if errors.Is(errE, coordinator.ErrAlreadyCompleted) {
+			s.NotFoundWithError(w, req, errE)
+			return
+		} else if errE != nil {
+			s.InternalServerErrorWithError(w, req, errE)
+			return
+		}
+		errE = site.Base.EndEditPermissionCheck(store.UserFromContext(ctx), auth.Roles(ctx), doc)
+		if errE != nil {
+			s.ForbiddenWithError(w, req, errE)
+			return
+		}
+	}
+
 	errE = site.Base.EndEditDocument(ctx, session, discard)
 	if errors.Is(errE, coordinator.ErrSessionNotFound) {
 		s.NotFoundWithError(w, req, errE)
@@ -740,7 +878,7 @@ func (s *Service) documentEndEdit(w http.ResponseWriter, req *http.Request, para
 	} else if errors.Is(errE, coordinator.ErrAlreadyEnded) {
 		s.NotFoundWithError(w, req, errE)
 		return
-	} else if errors.Is(errE, store.ErrAccessDenied) {
+	} else if errors.Is(errE, auth.ErrAccessDenied) {
 		s.ForbiddenWithError(w, req, errE)
 		return
 	} else if errE != nil {
@@ -758,12 +896,6 @@ func (s *Service) DocumentDeletePostAPI(w http.ResponseWriter, req *http.Request
 
 	ctx := req.Context()
 
-	errE := s.HasPermission(ctx, auth.CanDeleteDocument)
-	if errE != nil {
-		s.ForbiddenWithError(w, req, errE)
-		return
-	}
-
 	id, errE := identifier.MaybeString(params["id"])
 	if errE != nil {
 		s.BadRequestWithError(w, req, errors.WithMessage(errE, `"id" is not a valid identifier`))
@@ -779,6 +911,26 @@ func (s *Service) DocumentDeletePostAPI(w http.ResponseWriter, req *http.Request
 
 	site := waf.MustGetSite[*internalSite.Site](ctx)
 
+	// The delete action is checked against the document itself, so document-level permission claims
+	// count besides role grants.
+	doc, _, _, _, errE := site.Base.GetDocumentLatestDoc(ctx, id) //nolint:dogsled
+	if errors.Is(errE, store.ErrValueNotFound) {
+		// This includes ErrValueDeleted, too.
+		s.NotFoundWithError(w, req, errE)
+		return
+	} else if errors.Is(errE, auth.ErrAccessDenied) {
+		s.ForbiddenWithError(w, req, errE)
+		return
+	} else if errE != nil {
+		s.InternalServerErrorWithError(w, req, errE)
+		return
+	}
+	errE = s.HasDocumentPermission(ctx, auth.ActionDelete, doc)
+	if errE != nil {
+		s.ForbiddenWithError(w, req, errE)
+		return
+	}
+
 	errE = site.Base.DeleteDocument(ctx, id)
 	if errors.Is(errE, store.ErrValueNotFound) {
 		// This includes ErrValueDeleted, too.
@@ -787,7 +939,7 @@ func (s *Service) DocumentDeletePostAPI(w http.ResponseWriter, req *http.Request
 	} else if errors.Is(errE, store.ErrConflict) {
 		waf.Error(w, req, http.StatusConflict)
 		return
-	} else if errors.Is(errE, store.ErrAccessDenied) {
+	} else if errors.Is(errE, auth.ErrAccessDenied) {
 		s.ForbiddenWithError(w, req, errE)
 		return
 	} else if errE != nil {
@@ -802,12 +954,6 @@ func (s *Service) DocumentDeletePostAPI(w http.ResponseWriter, req *http.Request
 func (s *Service) DocumentEditGet(w http.ResponseWriter, req *http.Request, params waf.Params) {
 	ctx := req.Context()
 
-	errE := s.HasPermission(ctx, auth.CanEditDocument)
-	if errE != nil {
-		s.ForbiddenWithError(w, req, errE)
-		return
-	}
-
 	id, errE := identifier.MaybeString(params["id"])
 	if errE != nil {
 		s.BadRequestWithError(w, req, errors.WithMessage(errE, `"id" is not a valid identifier`))
@@ -820,13 +966,25 @@ func (s *Service) DocumentEditGet(w http.ResponseWriter, req *http.Request, para
 		return
 	}
 
+	errE = s.HasSessionPermission(ctx, session)
+	if errors.Is(errE, coordinator.ErrSessionNotFound) {
+		s.NotFoundWithError(w, req, errE)
+		return
+	} else if errors.Is(errE, auth.ErrAccessDenied) {
+		s.ForbiddenWithError(w, req, errE)
+		return
+	} else if errE != nil {
+		s.InternalServerErrorWithError(w, req, errE)
+		return
+	}
+
 	site := waf.MustGetSite[*internalSite.Site](req.Context())
 
 	beginMetadata, _, completeMetadata, errE := site.Base.GetEditDocumentSession(ctx, session)
 	if errors.Is(errE, coordinator.ErrSessionNotFound) {
 		s.NotFoundWithError(w, req, errE)
 		return
-	} else if errors.Is(errE, store.ErrAccessDenied) {
+	} else if errors.Is(errE, auth.ErrAccessDenied) {
 		s.ForbiddenWithError(w, req, errE)
 		return
 	} else if errE != nil {
@@ -857,12 +1015,6 @@ func (s *Service) DocumentEditGet(w http.ResponseWriter, req *http.Request, para
 func (s *Service) DocumentEditGetAPI(w http.ResponseWriter, req *http.Request, params waf.Params) {
 	ctx := req.Context()
 
-	errE := s.HasPermission(ctx, auth.CanEditDocument)
-	if errE != nil {
-		s.ForbiddenWithError(w, req, errE)
-		return
-	}
-
 	id, errE := identifier.MaybeString(params["id"])
 	if errE != nil {
 		s.BadRequestWithError(w, req, errors.WithMessage(errE, `"id" is not a valid identifier`))
@@ -875,13 +1027,25 @@ func (s *Service) DocumentEditGetAPI(w http.ResponseWriter, req *http.Request, p
 		return
 	}
 
+	errE = s.HasSessionPermission(ctx, session)
+	if errors.Is(errE, coordinator.ErrSessionNotFound) {
+		s.NotFoundWithError(w, req, errE)
+		return
+	} else if errors.Is(errE, auth.ErrAccessDenied) {
+		s.ForbiddenWithError(w, req, errE)
+		return
+	} else if errE != nil {
+		s.InternalServerErrorWithError(w, req, errE)
+		return
+	}
+
 	site := waf.MustGetSite[*internalSite.Site](req.Context())
 
 	beginMetadata, sessionEnded, completeMetadata, errE := site.Base.GetEditDocumentSession(ctx, session)
 	if errors.Is(errE, coordinator.ErrSessionNotFound) {
 		s.NotFoundWithError(w, req, errE)
 		return
-	} else if errors.Is(errE, store.ErrAccessDenied) {
+	} else if errors.Is(errE, auth.ErrAccessDenied) {
 		s.ForbiddenWithError(w, req, errE)
 		return
 	} else if errE != nil {
@@ -953,7 +1117,7 @@ func (s *Service) changesetChangesGetAPI(
 		// This happens when "after" is not found.
 		s.NotFoundWithError(w, req, errE)
 		return
-	} else if errors.Is(errE, store.ErrAccessDenied) {
+	} else if errors.Is(errE, auth.ErrAccessDenied) {
 		s.ForbiddenWithError(w, req, errE)
 		return
 	} else if errE != nil {
@@ -964,32 +1128,39 @@ func (s *Service) changesetChangesGetAPI(
 	s.WriteJSON(w, req, changes, nil)
 }
 
-// DocumentChangesGetAPI handles GET requests to list changes in a document changeset.
+// DocumentChangesGetAPI handles GET requests to list changes in a document changeset. Only changes
+// of documents whose changed version the caller may read are listed, so a page can be shorter than
+// the store page.
+//
+//nolint:dupl
 func (s *Service) DocumentChangesGetAPI(w http.ResponseWriter, req *http.Request, params waf.Params) {
-	errE := s.HasPermission(req.Context(), auth.CanChangesDocument)
-	if errE != nil {
-		s.ForbiddenWithError(w, req, errE)
-		return
-	}
-
 	s.changesetChangesGetAPI(w, req, params, func(ctx context.Context, changesetID identifier.Identifier, after *identifier.Identifier) ([]store.Change, errors.E) {
-		cs, errE := waf.MustGetSite[*internalSite.Site](ctx).Base.DocumentChangeset(ctx, changesetID)
+		site := waf.MustGetSite[*internalSite.Site](ctx)
+		cs, errE := site.Base.DocumentChangeset(ctx, changesetID)
 		if errE != nil {
 			return nil, errE
 		}
-		return cs.Changes(ctx, after)
+		changes, errE := cs.Changes(ctx, after)
+		if errE != nil {
+			return nil, errE
+		}
+		visible := make([]store.Change, 0, len(changes))
+		for _, change := range changes {
+			ok, errE := checkVersionedReadPermission(ctx, site, change.ID, change.Version)
+			if errE != nil {
+				return nil, errE
+			}
+			if ok {
+				visible = append(visible, change)
+			}
+		}
+		return visible, nil
 	})
 }
 
 // DocumentChangesGetGetAPI handles GET requests to retrieve a document from a changeset.
 func (s *Service) DocumentChangesGetGetAPI(w http.ResponseWriter, req *http.Request, params waf.Params) {
 	ctx := req.Context()
-
-	errE := s.HasPermission(ctx, auth.CanChangesDocument)
-	if errE != nil {
-		s.ForbiddenWithError(w, req, errE)
-		return
-	}
 
 	changesetID, errE := identifier.MaybeString(params["changeset"])
 	if errE != nil {
@@ -1014,7 +1185,7 @@ func (s *Service) DocumentChangesGetGetAPI(w http.ResponseWriter, req *http.Requ
 	} else if errors.Is(errE, store.ErrChangesetNotFound) {
 		s.NotFoundWithError(w, req, errE)
 		return
-	} else if errors.Is(errE, store.ErrAccessDenied) {
+	} else if errors.Is(errE, auth.ErrAccessDenied) {
 		s.ForbiddenWithError(w, req, errE)
 		return
 	} else if errE != nil {

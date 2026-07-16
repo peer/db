@@ -372,7 +372,7 @@ func TestDocumentEditSession(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Begin edit session.
-	session, version, errE := b.BeginEditDocumentLatest(ctx, docID)
+	session, version, errE := beginEditDocumentLatest(ctx, b, docID)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Verify session is active.
@@ -488,7 +488,7 @@ func TestDocumentEditSessionDiscard(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Begin edit session.
-	session, version, errE := b.BeginEditDocumentLatest(ctx, docID)
+	session, version, errE := beginEditDocumentLatest(ctx, b, docID)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Add a change.
@@ -742,7 +742,7 @@ func TestDocumentEditSessionCarriesOverMetadata(t *testing.T) {
 	sessionCtx := auth.WithSubject(ctx, editorSubject)
 
 	// Begin edit session for docB.
-	session, versionB, errE := b.BeginEditDocumentLatest(sessionCtx, docB)
+	session, versionB, errE := beginEditDocumentLatest(sessionCtx, b, docB)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Add a string claim to docB through the edit session.
@@ -817,7 +817,7 @@ func TestDocumentEditSessionInverseRelationsAddedDuringEdit(t *testing.T) {
 	sessionCtx := auth.WithSubject(ctx, editorSubject)
 
 	// Begin edit session for docB BEFORE any inverse relations exist.
-	session, versionB, errE := b.BeginEditDocumentLatest(sessionCtx, docB)
+	session, versionB, errE := beginEditDocumentLatest(sessionCtx, b, docB)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Now insert docA with relation A --X--> B, which causes the bridge to add
@@ -919,7 +919,7 @@ func TestDocumentEditSessionMultipleActors(t *testing.T) {
 	appendCtx := auth.WithSubject(ctx, appendSubject)
 	endCtx := auth.WithSubject(ctx, endSubject)
 
-	session, version, errE := b.BeginEditDocumentLatest(beginCtx, docID)
+	session, version, errE := beginEditDocumentLatest(beginCtx, b, docID)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	confidence := document.HighConfidence
@@ -999,7 +999,7 @@ func TestDocumentEditSessionIndexing(t *testing.T) {
 	}, 30*time.Second, 100*time.Millisecond)
 
 	// Add a relation from docA to docB via edit session.
-	session, versionA, errE := b.BeginEditDocumentLatest(ctx, docA)
+	session, versionA, errE := beginEditDocumentLatest(ctx, b, docA)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	confidence := document.HighConfidence
@@ -1054,7 +1054,7 @@ func TestDocumentEditSessionIndexing(t *testing.T) {
 	}, 30*time.Second, 100*time.Millisecond)
 
 	// Now remove the relation from docA via another edit session.
-	session2, versionA2, errE := b.BeginEditDocumentLatest(ctx, docA)
+	session2, versionA2, errE := beginEditDocumentLatest(ctx, b, docA)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	removeChangeJSON := marshalChange(t, document.RemoveClaimChange{
@@ -1290,7 +1290,7 @@ func TestDocumentEditSessionMultipleChanges(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Begin edit session.
-	session, version, errE := b.BeginEditDocumentLatest(ctx, docID)
+	session, version, errE := beginEditDocumentLatest(ctx, b, docID)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Add first claim (operation 0).
@@ -1380,7 +1380,7 @@ func TestDocumentEditSessionSequential(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// First edit session: add a string claim.
-	session1, version1, errE := b.BeginEditDocumentLatest(ctx, docID)
+	session1, version1, errE := beginEditDocumentLatest(ctx, b, docID)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	confidence := document.HighConfidence
@@ -1428,7 +1428,7 @@ func TestDocumentEditSessionSequential(t *testing.T) {
 	assert.Equal(t, claimID1, docAfter1.Claims.String[0].ID)
 
 	// Second edit session: add another string claim.
-	session2, version2Again, errE := b.BeginEditDocumentLatest(ctx, docID)
+	session2, version2Again, errE := beginEditDocumentLatest(ctx, b, docID)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, version2.Changeset, version2Again.Changeset, "BeginEditDocumentLatest should return the latest version")
 
@@ -1549,7 +1549,7 @@ func TestAppendDocumentChangeToEndedSession(t *testing.T) {
 	errE := b.InsertOrReplaceDocument(ctx, doc)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	session, _, errE := b.BeginEditDocumentLatest(ctx, docID)
+	session, _, errE := beginEditDocumentLatest(ctx, b, docID)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Build a valid change so the append reaches the session-state check instead of failing
@@ -1586,7 +1586,7 @@ func TestBeginEditDocumentLatestNotFound(t *testing.T) {
 	ctx, b := initBase(t)
 
 	// Trying to begin edit for a non-existent document should fail.
-	_, _, errE := b.BeginEditDocumentLatest(ctx, identifier.New())
+	_, _, errE := beginEditDocumentLatest(ctx, b, identifier.New())
 	assert.ErrorIs(t, errE, store.ErrValueNotFound)
 }
 
@@ -1616,7 +1616,7 @@ func TestAppendDocumentChangeWithBadBase(t *testing.T) {
 	errE := b.InsertOrReplaceDocument(ctx, doc)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	session, _, errE := b.BeginEditDocumentLatest(ctx, docID)
+	session, _, errE := beginEditDocumentLatest(ctx, b, docID)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Append a change with wrong base.
@@ -1652,7 +1652,7 @@ func TestDocumentEditSessionCompletionWithApplyError(t *testing.T) {
 	errE := b.InsertOrReplaceDocument(ctx, doc)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	session, version, errE := b.BeginEditDocumentLatest(ctx, docID)
+	session, version, errE := beginEditDocumentLatest(ctx, b, docID)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Append a RemoveClaimChange for a non-existent claim. AppendDocumentChange rejects such
@@ -1701,7 +1701,7 @@ func TestAppendDocumentChangeWithInvalidJSON(t *testing.T) {
 	errE := b.InsertOrReplaceDocument(ctx, doc)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	session, _, errE := b.BeginEditDocumentLatest(ctx, docID)
+	session, _, errE := beginEditDocumentLatest(ctx, b, docID)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Append invalid change data.
@@ -1724,7 +1724,7 @@ func TestLastDocumentChangeEmpty(t *testing.T) {
 	errE := b.InsertOrReplaceDocument(ctx, doc)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	session, _, errE := b.BeginEditDocumentLatest(ctx, docID)
+	session, _, errE := beginEditDocumentLatest(ctx, b, docID)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Having no changes is not an error.
@@ -1752,7 +1752,7 @@ func TestEndEditDocumentEmptyNoDiscard(t *testing.T) {
 	_, _, version, _, errE := b.GetDocumentLatest(ctx, docID) //nolint:dogsled
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	session, _, errE := b.BeginEditDocumentLatest(ctx, docID)
+	session, _, errE := beginEditDocumentLatest(ctx, b, docID)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// End session without discard but with no changes.
@@ -1799,7 +1799,7 @@ func TestFileUploadDuringDocumentEdit(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Begin document edit session.
-	session, version, errE := b.BeginEditDocumentLatest(ctx, docID)
+	session, version, errE := beginEditDocumentLatest(ctx, b, docID)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Begin a file upload as part of the document edit session.
@@ -1888,7 +1888,7 @@ func TestFileUploadDuringDocumentEditDiscard(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Begin document edit session.
-	session, _, errE := b.BeginEditDocumentLatest(ctx, docID)
+	session, _, errE := beginEditDocumentLatest(ctx, b, docID)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Upload a file as part of the document edit session.
@@ -1938,7 +1938,7 @@ func TestEndEditDocumentUploadEndedSession(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Begin and end document edit session.
-	session, _, errE := b.BeginEditDocumentLatest(ctx, docID)
+	session, _, errE := beginEditDocumentLatest(ctx, b, docID)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	errE = b.EndEditDocument(ctx, session, true)
@@ -1973,7 +1973,7 @@ func TestFileUploadCompletionAfterEditSessionDiscard(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Begin document edit session.
-	session, _, errE := b.BeginEditDocumentLatest(ctx, docID)
+	session, _, errE := beginEditDocumentLatest(ctx, b, docID)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Begin a file upload as part of the document edit session.
@@ -2126,7 +2126,7 @@ func TestGetEditDocumentSessionCompleted(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Begin edit session.
-	session, version, errE := b.BeginEditDocumentLatest(ctx, docID)
+	session, version, errE := beginEditDocumentLatest(ctx, b, docID)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Add a change.
@@ -2186,7 +2186,7 @@ func TestAppendDocumentChangeFullValidation(t *testing.T) {
 	errE := b.InsertOrReplaceDocument(ctx, doc)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	session, _, errE := b.BeginEditDocumentLatest(ctx, docID)
+	session, _, errE := beginEditDocumentLatest(ctx, b, docID)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	confidence := document.HighConfidence
@@ -2239,8 +2239,11 @@ func TestAppendDocumentChangeFullValidation(t *testing.T) {
 	errE = b.EndEditDocument(ctx, session, true)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	// The session's cache entry is dropped when the session ends.
-	assert.Equal(t, 0, b.TestingSessionDocsLen())
+	// The session's cache entry is kept while the ended session is completing (permission checks
+	// keep consulting it) and dropped when the session completes.
+	require.EventuallyWithT(t, func(c *assert.CollectT) {
+		assert.Equal(c, 0, b.TestingSessionDocsLen())
+	}, 30*time.Second, 100*time.Millisecond)
 }
 
 func TestAppendDocumentChangeValidationCache(t *testing.T) {
@@ -2253,7 +2256,7 @@ func TestAppendDocumentChangeValidationCache(t *testing.T) {
 	errE := b.InsertOrReplaceDocument(ctx, doc)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	session, _, errE := b.BeginEditDocumentLatest(ctx, docID)
+	session, _, errE := beginEditDocumentLatest(ctx, b, docID)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	confidence := document.HighConfidence
@@ -2394,7 +2397,7 @@ func TestAppendDocumentChangeManyOperations(t *testing.T) {
 	errE := b.InsertOrReplaceDocument(ctx, doc)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	session, _, errE := b.BeginEditDocumentLatest(ctx, docID)
+	session, _, errE := beginEditDocumentLatest(ctx, b, docID)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	confidence := document.HighConfidence

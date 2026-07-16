@@ -109,6 +109,8 @@ func cancelPermanentError(errE errors.E) error {
 			return river.JobCancel(errE) //nolint:wrapcheck
 		} else if errors.Is(errE, ErrInvalidSessionData) {
 			return river.JobCancel(errE) //nolint:wrapcheck
+		} else if errors.Is(errE, ErrSessionNotAllowed) {
+			return river.JobCancel(errE) //nolint:wrapcheck
 		}
 		return errE
 	}

@@ -44,6 +44,7 @@ var (
 	NamePropID                   = identifier.From(Namespace, "NAME")
 	NamingPropID                 = identifier.From(Namespace, "NAMING")
 	OrderInListPropID            = identifier.From(Namespace, "ORDER_IN_LIST")
+	PermissionScopePropID        = identifier.From(Namespace, "PERMISSION_SCOPE")
 	PermissionUserPropID         = identifier.From(Namespace, "PERMISSION_USER")
 	SearchShortcutPropID         = identifier.From(Namespace, "SEARCH_SHORTCUT")
 	SectionPropID                = identifier.From(Namespace, "SECTION")

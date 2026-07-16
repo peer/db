@@ -2526,7 +2526,8 @@ func TestConvertAmountDegenerateWindow(t *testing.T) {
 	require.NotNil(t, r.LessThanOrEqual)
 	assert.Nil(t, r.LessThan)
 	assert.Equal(t, *r.GreaterThanOrEqual, *r.LessThanOrEqual) //nolint:testifylint
-	require.NoError(t, r.Validate())
+	errE = r.Validate()
+	require.NoError(t, errE, "% -+#.1v", errE)
 }
 
 func TestConvertAmountWithUnit(t *testing.T) {
@@ -8644,7 +8645,7 @@ func TestOutgoingInverseRelations(t *testing.T) {
 	}
 
 	outgoing, errE := c.OutgoingInverseRelations(t.Context(), doc)
-	require.NoError(t, errE)
+	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Should have an entry for the target document.
 	require.Contains(t, outgoing, testTargetDocID)
@@ -8759,7 +8760,7 @@ func TestOutgoingInverseRelationsEmpty(t *testing.T) {
 	}
 
 	outgoing, errE := c.OutgoingInverseRelations(t.Context(), doc)
-	require.NoError(t, errE)
+	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Empty(t, outgoing)
 }
 
@@ -8784,7 +8785,7 @@ func TestOutgoingInverseRelationsNoInverse(t *testing.T) {
 	}
 
 	outgoing, errE := c.OutgoingInverseRelations(t.Context(), doc)
-	require.NoError(t, errE)
+	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// No inverse property, so no outgoing relations should be created.
 	assert.Empty(t, outgoing)
@@ -9637,7 +9638,7 @@ func TestOutgoingInverseRelationsFieldLevel(t *testing.T) {
 	addInstanceOf(doc, classID, document.HighConfidence)
 
 	outgoing, errE := c.OutgoingInverseRelations(t.Context(), doc)
-	require.NoError(t, errE)
+	require.NoError(t, errE, "% -+#.1v", errE)
 
 	require.Contains(t, outgoing, targetDocID)
 	require.Len(t, outgoing[targetDocID], 1)
@@ -9682,7 +9683,7 @@ func TestOutgoingInverseRelationsFieldLevelPrecedence(t *testing.T) {
 	addInstanceOf(doc, classID, document.HighConfidence)
 
 	outgoing, errE := c.OutgoingInverseRelations(t.Context(), doc)
-	require.NoError(t, errE)
+	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Field-level inverse takes precedence over property-level.
 	require.Contains(t, outgoing, targetDocID)
@@ -9732,7 +9733,7 @@ func TestOutgoingInverseRelationsSubFieldInverse(t *testing.T) {
 	addInstanceOf(doc, classID, document.HighConfidence)
 
 	outgoing, errE := c.OutgoingInverseRelations(t.Context(), doc)
-	require.NoError(t, errE)
+	require.NoError(t, errE, "% -+#.1v", errE)
 
 	require.Contains(t, outgoing, targetDocID)
 	require.Len(t, outgoing[targetDocID], 1)
@@ -9801,7 +9802,7 @@ func TestOutgoingInverseRelationsDifferentPathsSameProperty(t *testing.T) {
 	addInstanceOf(doc, classB, document.HighConfidence)
 
 	outgoing, errE := c.OutgoingInverseRelations(t.Context(), doc)
-	require.NoError(t, errE)
+	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Each should have the correct inverse based on its path.
 	require.Contains(t, outgoing, targetDoc1)
@@ -9839,7 +9840,7 @@ func TestOutgoingInverseRelationsPropertyFallback(t *testing.T) {
 	}
 
 	outgoing, errE := c.OutgoingInverseRelations(t.Context(), doc)
-	require.NoError(t, errE)
+	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Should use property-level inverse.
 	require.Contains(t, outgoing, targetDocID)
@@ -9892,7 +9893,7 @@ func TestOutgoingInverseRelationsStringSubClaimReference(t *testing.T) {
 	addInstanceOf(doc, classID, document.HighConfidence)
 
 	outgoing, errE := c.OutgoingInverseRelations(t.Context(), doc)
-	require.NoError(t, errE)
+	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Should find the reference inside the string claim's sub-claims.
 	require.Contains(t, outgoing, langDocID)

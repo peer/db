@@ -55,6 +55,9 @@ func InitComponents(
 		DocumentPostHooks:       nil,
 		FilePreHooks:            nil,
 		FilePostHooks:           nil,
+		EndEditPermissionCheck:  nil,
+		ChangePermissionCheck:   nil,
+		CreateDocumentSeed:      nil,
 		SearchQueryHook:         nil,
 	}
 	errE = b.Init(ctx, dbpool, listener, esClient, r)

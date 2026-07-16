@@ -2,17 +2,23 @@ package peerdb
 
 import (
 	"context"
+	"net/http"
 
 	"github.com/elastic/go-elasticsearch/v9"
 	"github.com/hashicorp/go-cleanhttp"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"gitlab.com/tozd/go/cli"
 	"gitlab.com/tozd/go/errors"
+	"gitlab.com/tozd/identifier"
 	"gitlab.com/tozd/waf"
 
+	"gitlab.com/peerdb/peerdb/auth"
+	"gitlab.com/peerdb/peerdb/base"
+	"gitlab.com/peerdb/peerdb/document"
 	internalSearch "gitlab.com/peerdb/peerdb/internal/search"
 	internalSite "gitlab.com/peerdb/peerdb/internal/site"
 	internalStore "gitlab.com/peerdb/peerdb/internal/store"
+	"gitlab.com/peerdb/peerdb/store"
 )
 
 // Init initializes PeerDB for all sites defined in globals.
@@ -95,10 +101,75 @@ func Init(ctx context.Context, globals *Globals) (func(), errors.E) {
 			return onShutdownF, errE
 		}
 
+		if firstInit {
+			// The default create-session seeding is assigned before the customizer runs, so the
+			// customizer can keep, wrap, replace, or disable it (by setting it to nil). It adds the
+			// initial claims requested through the API request and grants the creator the default
+			// permission actions.
+			site.Base.CreateDocumentSeed = func(
+				ctx context.Context, req *http.Request, session identifier.Identifier, docBase []string,
+			) (document.Changes, errors.E) {
+				changes, errE := base.RequestedClaimsChanges(req, site.ScopeProperties, session, docBase, 0)
+				if errE != nil {
+					return changes, errE
+				}
+				subject, ok := auth.Subject(ctx)
+				if !ok {
+					return changes, nil
+				}
+				return append(changes, base.PermissionClaimsChanges(subject, base.DefaultCreatorActions, session, docBase, int64(len(changes)))...), nil
+			}
+		}
+
 		if firstInit && globals.Customize.ConfigureBase != nil {
 			errE = globals.Customize.ConfigureBase(site)
 			if errE != nil {
 				return onShutdownF, errE
+			}
+		}
+
+		if firstInit {
+			// Hook lists the site does not customize get the default permission-enforcing hooks. A site
+			// which customizes a list and wants the default enforcement as well has to include the
+			// corresponding default hook in the list itself.
+			if len(site.Base.DocumentPreHooks) == 0 {
+				site.Base.DocumentPreHooks = append(site.Base.DocumentPreHooks, DefaultDocumentPreHook)
+			}
+			if len(site.Base.DocumentPostHooks) == 0 {
+				site.Base.DocumentPostHooks = append(site.Base.DocumentPostHooks, DefaultDocumentPostHook)
+			}
+			if len(site.Base.FilePreHooks) == 0 {
+				site.Base.FilePreHooks = append(site.Base.FilePreHooks, DefaultFilePreHook)
+			}
+			if len(site.Base.FilePostHooks) == 0 {
+				site.Base.FilePostHooks = append(site.Base.FilePostHooks, DefaultFilePostHook)
+			}
+			// Every change appended to an edit session is checked against the session's document
+			// state before and after the change (see checkChangePermission).
+			if site.Base.ChangePermissionCheck == nil {
+				site.Base.ChangePermissionCheck = func(ctx context.Context, before, after *document.D, _ document.Change) errors.E {
+					return checkChangePermission(ctx, site, before, after)
+				}
+			}
+			// Completing an edit session (committing it, or discarding it, which destroys the
+			// session for everyone) requires the update action on the session's resulting document,
+			// with the document's own permission claims counting: removing the claim granting the
+			// subject the update action makes the completion itself fail. Sessions ended through the
+			// HTTP API are also gated when the end is requested, but the check at completion is the
+			// authoritative one: it sees the final change list.
+			if site.Base.EndEditPermissionCheck == nil {
+				site.Base.EndEditPermissionCheck = func(user *store.User, roles []string, doc *document.D) errors.E {
+					subject := ""
+					if user != nil {
+						subject = user.ID
+					}
+					if auth.HasDocumentPermission(site.Roles, auth.ActionUpdate, subject, roles, doc) {
+						return nil
+					}
+					errE := errors.WithStack(auth.ErrAccessDenied)
+					errors.Details(errE)["action"] = auth.ActionUpdate.String()
+					return errE
+				}
 			}
 		}
 	}
@@ -130,6 +201,7 @@ func InitSites(globals *Globals) errors.E {
 			LanguageCodes:        nil,
 			Features:             internalSite.SiteFeatures{},
 			Roles:                nil,
+			ScopeProperties:      nil,
 			Visibility:           nil,
 			Auth:                 internalSite.SiteAuthConfig{},
 			MetadataHeaderPrefix: "",

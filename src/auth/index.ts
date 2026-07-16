@@ -1,12 +1,17 @@
-import type { Ref } from "vue"
+import type { DeepReadonly, Ref } from "vue"
 import type { Router } from "vue-router"
 
+import type { ClaimTypes } from "@/document"
 import type { UserInfo } from "@/types"
 
+import { Identifier } from "@tozd/identifier"
 import { computed, ref } from "vue"
 
 import { clearCache, postJSON } from "@/api"
 import siteContext, { initialRoles, initialUserInfo } from "@/context"
+import { ACTION_CREATE, HAS_PERMISSION, PERMISSION_SCOPE, PERMISSION_USER } from "@/core"
+import { getClaimsOfTypeWithConfidence } from "@/document"
+import { ENTRY_SEPARATOR, parseEntry } from "@/shortcut"
 import { currentAbsoluteURL, redirectServerSide } from "@/utils"
 
 // currentUserInfo is the canonical reactive container for the signed-in
@@ -33,47 +38,303 @@ export const currentIdentityId = computed(() => currentUserInfo.value?.subject ?
 // currentUsername is the currentUserInfo's username.
 export const currentUsername = computed(() => currentUserInfo.value?.username ?? "")
 
+// hasRole is the symmetric counterpart of auth.HasRole on the backend.
+export function hasRole(role: string): boolean {
+  return currentRoles.value.includes(role)
+}
+
 // ROLE_EVERYONE is a reserved role name under which sites can declare permissions which apply
 // to every caller, authenticated or not. It is not a real role and never appears in currentRoles.
 //
 // Keep in sync with auth/permissions.go.
 export const ROLE_EVERYONE = ""
 
-// PeerDB permissions.
+// Literal permission scopes. Besides them, a scope entry in role grants has the form "property=value"
+// (both resolved document IDs in siteContext.roles), which scopes the action to documents carrying a
+// reference claim with that property and value.
 //
 // Keep in sync with auth/permissions.go.
-export const CAN_EDIT_DOCUMENT = "canEditDocument"
-export const CAN_DELETE_DOCUMENT = "canDeleteDocument"
-export const CAN_CHANGES_DOCUMENT = "canChangesDocument"
-export const CAN_BULK_GET_FILE = "canBulkGetFile"
-export const CAN_CHANGES_FILE = "canChangesFile"
-export const CAN_EDIT_FILE = "canEditFile"
-export const CAN_DELETE_FILE = "canDeleteFile"
 
-type Permission = "canEditDocument" | "canDeleteDocument" | "canChangesDocument" | "canBulkGetFile" | "canChangesFile" | "canEditFile" | "canDeleteFile"
+// SCOPE_ALL scopes an action to all objects (documents and files). It is valid only in role grants.
+export const SCOPE_ALL = "all"
+// SCOPE_FILES scopes an action to all files. It is valid only in role grants.
+export const SCOPE_FILES = "files"
+// SCOPE_DOCUMENTS scopes an action to all documents. It is valid only in role grants.
+export const SCOPE_DOCUMENTS = "documents"
+// SCOPE_SELF scopes an action to the document carrying the permission claim. It is valid only in
+// document-level permission claims.
+export const SCOPE_SELF = "self"
 
-// hasRole is the symmetric counterpart of auth.HasRole on the backend.
-export function hasRole(role: string): boolean {
-  return currentRoles.value.includes(role)
+// Scope is one parsed entry of a permission scope expression. Either literal holds one of the literal
+// scopes, or prop and value hold a claim scope: the scope then matches a document carrying a reference
+// claim with that property and value. In sync with auth.Scope in auth/permissions.go.
+export class Scope {
+  readonly literal: string
+  readonly prop: string
+  readonly value: string
+
+  constructor(literal: string, prop: string, value: string) {
+    this.literal = literal
+    this.prop = prop
+    this.value = value
+  }
+
+  // CoversDocuments reports whether the scope can cover any document at all. It is the optimistic
+  // document check used when no concrete document is available, with the definitive
+  // scopesAllowDocument check following once one is. In sync with auth.Scope.CoversDocuments in
+  // auth/permissions.go.
+  CoversDocuments(): boolean {
+    switch (this.literal) {
+      case SCOPE_ALL:
+      case SCOPE_DOCUMENTS:
+        // The all and documents scopes cover every document.
+        return true
+      case SCOPE_SELF:
+        // The self scope never appears in role grants.
+        throw new Error(`unexpected scope: ${this.literal}`)
+      case SCOPE_FILES:
+        // The files scope covers no document.
+        return false
+      case "":
+        // A claim scope covers the documents carrying the matching reference claim.
+        // We return true here and expect that the definitive scopesAllowDocument check follows this
+        // call once the document is available.
+        return true
+      default:
+        throw new Error(`unknown scope: ${this.literal}`)
+    }
+  }
+
+  // MatchesFiles reports whether the scope covers files. In sync with auth.Scope.MatchesFiles in
+  // auth/permissions.go.
+  MatchesFiles(): boolean {
+    switch (this.literal) {
+      case SCOPE_ALL:
+      case SCOPE_FILES:
+        return true
+      case SCOPE_DOCUMENTS:
+        return false
+      case SCOPE_SELF:
+        // The self scope never appears in role grants.
+        throw new Error(`unexpected scope: ${this.literal}`)
+      case "":
+        // A claim scope covers only documents.
+        return false
+      default:
+        throw new Error(`unknown scope: ${this.literal}`)
+    }
+  }
 }
 
-// hasPermission returns true if the current user has the given permission, either through the
-// reserved ROLE_EVERYONE entry (which applies to every caller, authenticated or not) or through
-// one of the caller's roles. In sync with auth/permissions.go.
-export function hasPermission(permission: Permission): boolean {
-  const roles = siteContext.roles
-  if (!roles) {
-    return false
+// parseScopes parses a permission scope expression: "&"-separated entries, each either a literal scope
+// (all, files, documents, or self) or a claim scope of the form "property=value". In sync with
+// auth.ParseScopes in auth/permissions.go, with one difference: the backend resolves identifier
+// tokens, while here both sides of a claim scope must already be resolved document IDs, because
+// resolution is async and never needed (role grants arrive resolved from the backend and
+// document-level permission claims validly contain only the self scope). Throws on the first invalid
+// entry.
+export function parseScopes(expression: string): Scope[] {
+  const scopes: Scope[] = []
+  for (const term of expression.split(ENTRY_SEPARATOR)) {
+    if (term === SCOPE_ALL || term === SCOPE_FILES || term === SCOPE_DOCUMENTS || term === SCOPE_SELF) {
+      scopes.push(new Scope(term, "", ""))
+      continue
+    }
+    const { key, value } = parseEntry(term)
+    if (!Identifier.valid(key) || !Identifier.valid(value)) {
+      throw new Error(`scope entry must be a property and a value, each a single identifier: ${term}`)
+    }
+    scopes.push(new Scope("", key, value))
   }
-  if (roles[ROLE_EVERYONE]?.includes(permission)) {
+  return scopes
+}
+
+// PermissionDocument is the structural subset of a document (the D class or a DeepReadonly view of it)
+// that permission checks read: its claims.
+type PermissionDocument = {
+  claims?: DeepReadonly<ClaimTypes> | null
+}
+
+// scopesAllowDocument reports whether the scopes, evaluated together, allow an action on the
+// document. The all and documents scopes allow every document on their own, and so does the self scope
+// (it comes only from the document's own permission claims, extracted by permissionClaimScopes, and
+// covers the document carrying them). Claim scopes have to be fully satisfied by the document: for
+// every property among them which the document carries, every value the document carries has to be
+// granted (so a document with multiple instance_of claims requires all of its classes to be granted),
+// and at least one such property has to be present on the document. The files scope allows no
+// document. In sync with auth.scopesAllowDocument in auth/permissions.go.
+function scopesAllowDocument(scopes: readonly Scope[], doc: PermissionDocument): boolean {
+  const values = new Map<string, Set<string>>()
+  for (const scope of scopes) {
+    switch (scope.literal) {
+      case SCOPE_ALL:
+      case SCOPE_DOCUMENTS:
+      case SCOPE_SELF:
+        return true
+      case SCOPE_FILES:
+        continue
+      case "": {
+        let granted = values.get(scope.prop)
+        if (!granted) {
+          granted = new Set()
+          values.set(scope.prop, granted)
+        }
+        granted.add(scope.value)
+        break
+      }
+      default:
+        throw new Error(`unknown scope: ${scope.literal}`)
+    }
+  }
+
+  let present = false
+  for (const [prop, granted] of values) {
+    const claims = getClaimsOfTypeWithConfidence(doc.claims, "ref", prop)
+    if (claims.length === 0) {
+      continue
+    }
+    for (const claim of claims) {
+      if (!granted.has(claim.to.id)) {
+        return false
+      }
+    }
+    present = true
+  }
+  return present
+}
+
+// Grants maps permission actions (ACTION_* document IDs) to the scopes they are granted with. In sync
+// with auth.Grants in auth/permissions.go.
+type Grants = { [action: string]: Scope[] }
+
+// parsedRoles caches the site's role grants with every scope string parsed, so permission checks
+// evaluate parsed scopes like the backend does. The backend parses role configuration once at startup;
+// the frontend mirrors that by parsing siteContext.roles (which is static after boot) once, on the
+// first permission check.
+let parsedRoles: { [roleName: string]: Grants } | null = null
+
+// siteGrants returns the site's role grants parsed into Scope lists, parsing and caching them on the
+// first call.
+function siteGrants(): { [roleName: string]: Grants } {
+  if (parsedRoles === null) {
+    const roles: { [roleName: string]: Grants } = {}
+    for (const [roleName, actions] of Object.entries(siteContext.roles ?? {})) {
+      const grants: Grants = {}
+      for (const [action, expressions] of Object.entries(actions)) {
+        grants[action] = expressions.flatMap((expression) => parseScopes(expression))
+      }
+      roles[roleName] = grants
+    }
+    parsedRoles = roles
+  }
+  return parsedRoles
+}
+
+// permissionClaimScopes returns the scopes of the document's own permission claims granting the user
+// the action: for every HAS_PERMISSION claim with the action as the value and a PERMISSION_USER
+// sub-claim with the user, the scopes of its PERMISSION_SCOPE sub-claims which are valid in
+// document-level permission claims (currently only the self scope). Both sub-claims are required, so a
+// permission claim without them (or with only invalid scopes) contributes nothing, and an empty user
+// (an anonymous caller) has no scopes, because permission claims always name a user. The create
+// action never has claim scopes: a document's own claims cannot grant creating it. In sync with
+// auth.PermissionClaimScopes in auth/permissions.go.
+function permissionClaimScopes(action: string, user: string, doc: PermissionDocument): Scope[] {
+  if (!user || action === ACTION_CREATE) {
+    return []
+  }
+  const scopes: Scope[] = []
+  for (const claim of getClaimsOfTypeWithConfidence(doc.claims, "ref", HAS_PERMISSION)) {
+    if (claim.to.id !== action) {
+      continue
+    }
+    if (!getClaimsOfTypeWithConfidence(claim.sub, "id", PERMISSION_USER).some((sub) => sub.value === user)) {
+      continue
+    }
+    for (const sub of getClaimsOfTypeWithConfidence(claim.sub, "string", PERMISSION_SCOPE)) {
+      let parsed: Scope[]
+      try {
+        parsed = parseScopes(sub.string)
+      } catch {
+        // A sub-claim which does not parse contributes no scopes, like on the backend.
+        continue
+      }
+      for (const scope of parsed) {
+        // Other scopes are not allowed at document-level permissions, but we ignore them.
+        if (scope.literal === SCOPE_SELF) {
+          scopes.push(scope)
+        }
+      }
+    }
+  }
+  return scopes
+}
+
+// allowsDocument reports whether one role's scopes for the action allow the user the action on the
+// document: the role's scopes and the scopes extracted from the document's own permission claims
+// granting the user the action (see permissionClaimScopes) together form one list which has to allow
+// the document (see scopesAllowDocument). Without a document it reports whether the role's scopes
+// allow the action on documents at all (any scope which can cover a document counts); there are then
+// no document claims to consult. In sync with auth.Grants.AllowsDocument in auth/permissions.go.
+function allowsDocument(scopes: readonly Scope[] | undefined, action: string, user: string, doc?: PermissionDocument | null): boolean {
+  if (!doc) {
+    return (scopes ?? []).some((scope) => scope.CoversDocuments())
+  }
+  return scopesAllowDocument([...(scopes ?? []), ...permissionClaimScopes(action, user, doc)], doc)
+}
+
+// hasDocumentPermission returns true if the current user holds the permission action (an ACTION_* document ID
+// from @/core) under the reserved ROLE_EVERYONE entry or one of the caller's roles: through a role
+// grant with a scope covering the document or, when doc is given, through the document's own permission
+// claims. Without doc only role grants are checked, against documents in general. In sync with
+// auth.HasDocumentPermission in auth/permissions.go, with the identity taken from the reactive auth
+// state (like checkDocumentPermission in permissions.go takes it from the request context).
+export function hasDocumentPermission(action: string, doc?: PermissionDocument | null): boolean {
+  const grants = siteGrants()
+  const user = currentIdentityId.value
+  if (allowsDocument(grants[ROLE_EVERYONE]?.[action], action, user, doc)) {
     return true
   }
   for (const role of currentRoles.value) {
-    if (roles[role]?.includes(permission)) {
+    if (allowsDocument(grants[role]?.[action], action, user, doc)) {
       return true
     }
   }
   return false
+}
+
+// hasFilePermission returns true if the current user holds the permission action on files, through a
+// role grant with a scope covering files (under the reserved ROLE_EVERYONE entry or one of the
+// caller's roles). In sync with auth.HasFilePermission in auth/permissions.go, with the identity taken
+// from the reactive auth state (like checkFilePermission in permissions.go takes it from the request
+// context).
+export function hasFilePermission(action: string): boolean {
+  const grants = siteGrants()
+  if ((grants[ROLE_EVERYONE]?.[action] ?? []).some((scope) => scope.MatchesFiles())) {
+    return true
+  }
+  for (const role of currentRoles.value) {
+    if ((grants[role]?.[action] ?? []).some((scope) => scope.MatchesFiles())) {
+      return true
+    }
+  }
+  return false
+}
+
+// scopeProperties returns the set of properties participating in claim scopes of any role grant of the
+// site. Claims of these properties can be requested at document creation but cannot be changed as
+// ordinary client changes. In sync with auth.ScopeProperties in auth/permissions.go.
+export function scopeProperties(): Set<string> {
+  const properties = new Set<string>()
+  for (const grants of Object.values(siteGrants())) {
+    for (const scopes of Object.values(grants)) {
+      for (const scope of scopes) {
+        if (scope.literal === "") {
+          properties.add(scope.prop)
+        }
+      }
+    }
+  }
+  return properties
 }
 
 // isSignedIn reports whether the user has a validated cookie session.

@@ -22,7 +22,8 @@ func newTestFlowStore(t *testing.T) (context.Context, *auth.TestingFlowStore) {
 
 	ctx, dbpool := auth.TestingInitPool(t)
 	fs := auth.TestingNewFlowStore(dbpool)
-	require.NoError(t, fs.Init(ctx), "%+v", fs.Init(ctx))
+	errE := fs.Init(ctx)
+	require.NoError(t, errE, "% -+#.1v", errE)
 	return ctx, fs
 }
 
@@ -65,9 +66,10 @@ func TestFlowStoreConsumeIsSingleUse(t *testing.T) {
 
 	ctx, fs := newTestFlowStore(t)
 	state := identifier.New().String()
-	require.NoError(t, fs.BeginFlow(ctx, state, auth.TestingFlowState{CodeVerifier: "v", Nonce: "n", Redirect: "/"}))
+	errE := fs.BeginFlow(ctx, state, auth.TestingFlowState{CodeVerifier: "v", Nonce: "n", Redirect: "/"})
+	require.NoError(t, errE, "% -+#.1v", errE)
 
-	_, errE := fs.ConsumeFlow(ctx, state)
+	_, errE = fs.ConsumeFlow(ctx, state)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	_, errE = fs.ConsumeFlow(ctx, state)
@@ -98,11 +100,13 @@ func TestFlowStoreCleanupExpired(t *testing.T) {
 
 	expired := identifier.New().String()
 	fresh := identifier.New().String()
-	require.NoError(t, fs.BeginFlow(ctx, expired, auth.TestingFlowState{CodeVerifier: "v", Nonce: "n", Redirect: "/"}))
-	require.NoError(t, fs.BeginFlow(ctx, fresh, auth.TestingFlowState{CodeVerifier: "v", Nonce: "n", Redirect: "/"}))
+	errE := fs.BeginFlow(ctx, expired, auth.TestingFlowState{CodeVerifier: "v", Nonce: "n", Redirect: "/"})
+	require.NoError(t, errE, "% -+#.1v", errE)
+	errE = fs.BeginFlow(ctx, fresh, auth.TestingFlowState{CodeVerifier: "v", Nonce: "n", Redirect: "/"})
+	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Age the first row out of its window.
-	errE := internalStore.RetryTransaction(ctx, fs.DBPool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
+	errE = internalStore.RetryTransaction(ctx, fs.DBPool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
 		_, err := tx.Exec(ctx, `UPDATE "AuthFlows" SET "expiresAt" = now() - interval '1 second' WHERE "state" = $1`, expired)
 		return internalStore.WithPgxError(err)
 	})

@@ -121,11 +121,11 @@ func TestCreateOptionsIntegration(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	ids := make([]string, 0, len(options))
-	canCreate := map[string]bool{}
+	creatable := map[string]bool{}
 	paths := map[string][][]string{}
 	for _, o := range options {
 		ids = append(ids, o.ID)
-		canCreate[o.ID] = o.CanCreate
+		creatable[o.ID] = o.Creatable
 		paths[o.ID] = o.Paths
 	}
 
@@ -133,10 +133,10 @@ func TestCreateOptionsIntegration(t *testing.T) {
 	// ordered by instance count descending then depth ascending (A and B have five, C and E have three).
 	assert.Equal(t, []string{classA.String(), classB.String(), classC.String(), classE.String()}, ids)
 	// Abstract classA is kept only as a structural ancestor; the others can be created.
-	assert.False(t, canCreate[classA.String()])
-	assert.True(t, canCreate[classB.String()])
-	assert.True(t, canCreate[classC.String()])
-	assert.True(t, canCreate[classE.String()])
+	assert.False(t, creatable[classA.String()])
+	assert.True(t, creatable[classB.String()])
+	assert.True(t, creatable[classC.String()])
+	assert.True(t, creatable[classE.String()])
 	// classA is a root (no ancestor paths); classE renders under both of its parents.
 	assert.Empty(t, paths[classA.String()])
 	assert.ElementsMatch(t, [][]string{{classA.String(), classB.String()}, {classA.String(), classC.String()}}, paths[classE.String()])
@@ -146,15 +146,15 @@ func TestCreateOptionsIntegration(t *testing.T) {
 	limited, errE := search.CreateOptions(ctx, getSearchService, nil, loadDocument, documentHierarchyPaths, classB.String())
 	require.NoError(t, errE, "% -+#.1v", errE)
 	limitedIDs := make([]string, 0, len(limited))
-	limitedCanCreate := map[string]bool{}
+	limitedCreatable := map[string]bool{}
 	for _, o := range limited {
 		limitedIDs = append(limitedIDs, o.ID)
-		limitedCanCreate[o.ID] = o.CanCreate
+		limitedCreatable[o.ID] = o.Creatable
 	}
 	assert.Equal(t, []string{classA.String(), classB.String(), classE.String()}, limitedIDs)
-	assert.False(t, limitedCanCreate[classA.String()])
-	assert.True(t, limitedCanCreate[classB.String()])
-	assert.True(t, limitedCanCreate[classE.String()])
+	assert.False(t, limitedCreatable[classA.String()])
+	assert.True(t, limitedCreatable[classB.String()])
+	assert.True(t, limitedCreatable[classE.String()])
 
 	// An unknown limit id yields nothing.
 	none, errE := search.CreateOptions(ctx, getSearchService, nil, loadDocument, documentHierarchyPaths, identifier.From("createClassMissing").String())

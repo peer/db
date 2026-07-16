@@ -290,7 +290,8 @@ func TestDocumentSizeWithSub(t *testing.T) {
 		Prop:      document.Reference{ID: prop},
 		String:    "sub1",
 	}
-	require.NoError(t, sub1.Add(deepSub))
+	errE := sub1.Add(deepSub)
+	require.NoError(t, errE, "% -+#.1v", errE)
 	sub2 := &document.UnknownClaim{
 		CoreClaim: document.CoreClaim{ID: identifier.New(), Confidence: 1.0},
 		Prop:      document.Reference{ID: prop},
@@ -300,11 +301,14 @@ func TestDocumentSizeWithSub(t *testing.T) {
 		Prop:      document.Reference{ID: prop},
 		String:    "top",
 	}
-	require.NoError(t, top.Add(sub1))
-	require.NoError(t, top.Add(sub2))
+	errE = top.Add(sub1)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	errE = top.Add(sub2)
+	require.NoError(t, errE, "% -+#.1v", errE)
 
 	doc := &document.D{}
-	require.NoError(t, doc.Add(top))
+	errE = doc.Add(top)
+	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Shallow: only the single top-level claim.
 	assert.Equal(t, 1, doc.Size())

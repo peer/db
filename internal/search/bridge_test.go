@@ -745,7 +745,7 @@ func denyDocumentAtLevel(id identifier.Identifier, level string) func(
 ) (*document.D, errors.E) {
 	return func(ctx context.Context, doc *document.D, _ *store.DocumentMetadata) (*document.D, errors.E) {
 		if doc.ID == id && auth.Visibility(ctx) == level {
-			return doc, errors.WithStack(store.ErrAccessDenied)
+			return doc, errors.WithStack(auth.ErrAccessDenied)
 		}
 		return doc, nil
 	}

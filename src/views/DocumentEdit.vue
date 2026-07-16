@@ -29,9 +29,9 @@ import { useI18n } from "vue-i18n"
 import { useRoute, useRouter } from "vue-router"
 
 import { deleteFromCache, FetchError, getURL, getURLDirect, postJSON } from "@/api"
-import { CAN_EDIT_DOCUMENT, hasPermission } from "@/auth"
+import { hasDocumentPermission } from "@/auth"
 import Button from "@/components/Button.vue"
-import { INSTANCE_OF, PROPERTY } from "@/core"
+import { ACTION_UPDATE, INSTANCE_OF, PROPERTY } from "@/core"
 import {
   AmountClaim,
   AmountIntervalClaim,
@@ -1074,6 +1074,10 @@ async function onSave() {
       if (abortController.signal.aborted) {
         return
       }
+      if (status.errored) {
+        // The commit was rejected at completion (e.g. by the commit permission check).
+        throw new Error("edit session errored")
+      }
       if (status.changeset || status.discarded) {
         break
       }
@@ -1472,12 +1476,12 @@ function canSave(): boolean {
       sticky/scroll machinery keys off its parent (this wrapper) spanning the whole
       content height.
     -->
-    <TableOfContents v-if="hasPermission(CAN_EDIT_DOCUMENT) && doc && classesInitialized && showToc" :targets="tocTargets" class="ml-4 w-48 shrink-0">
+    <TableOfContents v-if="hasDocumentPermission(ACTION_UPDATE, doc) && doc && classesInitialized && showToc" :targets="tocTargets" class="ml-4 w-48 shrink-0">
       <div class="font-semibold">{{ t("partials.TableOfContents.title") }}</div>
     </TableOfContents>
     <div ref="el" class="pd-documentedit flex min-w-0 grow flex-col gap-y-1 border-t border-transparent p-1 sm:gap-y-4 sm:p-4">
       <div class="rounded-sm border border-gray-200 bg-white p-4 shadow-sm">
-        <template v-if="hasPermission(CAN_EDIT_DOCUMENT) && doc && classesInitialized">
+        <template v-if="hasDocumentPermission(ACTION_UPDATE, doc) && doc && classesInitialized">
           <!--
           TODO: Fix how hover interacts with focused tab.
           See: https://github.com/tailwindlabs/tailwindcss/discussions/10123
@@ -1730,7 +1734,7 @@ function canSave(): boolean {
             }}</Button>
           </div>
         </template>
-        <div v-else-if="!hasPermission(CAN_EDIT_DOCUMENT)" class="my-1 text-center sm:my-4">{{ t("common.status.editingNotAllowed") }}</div>
+        <div v-else-if="!hasDocumentPermission(ACTION_UPDATE, doc)" class="my-1 text-center sm:my-4">{{ t("common.status.editingNotAllowed") }}</div>
         <div v-else-if="!classesInitialized" class="my-1 text-center sm:my-4">{{ t("common.status.loading") }}</div>
         <div v-else class="my-1 text-center sm:my-4">{{ t("common.status.loading") }}</div>
       </div>

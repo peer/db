@@ -55,7 +55,7 @@ type Service struct {
 //nolint:ireturn
 func (s *Service) lookupSiteAuthenticator(
 	w http.ResponseWriter, req *http.Request,
-) (auth.Authenticator, map[string][]string, []auth.VisibilityLevel, bool) {
+) (auth.Authenticator, map[string]auth.Grants, []auth.VisibilityLevel, bool) {
 	site, ok := waf.GetSite[*internalSite.Site](req.Context())
 	if !ok {
 		s.InternalServerErrorWithError(w, req, errors.New("no site in request context"))
@@ -68,30 +68,6 @@ func (s *Service) lookupSiteAuthenticator(
 		return nil, nil, nil, true
 	}
 	return site.Authenticator, site.Roles, site.Visibility, false
-}
-
-// HasPermission reports whether the caller currently holds the given
-// permission on the site this request targets. A permission is granted
-// when it is declared under the reserved auth.RoleEveryone name (which
-// applies to every caller, authenticated or not) or when any role bound
-// to the request (auth.Roles) maps via Site.Roles to a permission list
-// that contains it. Returns nil on success and a "permission denied"
-// error otherwise (including when no site is in ctx). In sync with
-// src/auth/index.ts.
-func (s *Service) HasPermission(ctx context.Context, permission string) errors.E {
-	site, ok := waf.GetSite[*internalSite.Site](ctx)
-	if !ok {
-		return errors.New("permission denied")
-	}
-	if slices.Contains(site.Roles[auth.RoleEveryone], permission) {
-		return nil
-	}
-	for _, role := range auth.Roles(ctx) {
-		if slices.Contains(site.Roles[role], permission) {
-			return nil
-		}
-	}
-	return errors.New("permission denied")
 }
 
 // siteRoleNames returns the sorted names of the roles the site declares.
@@ -141,6 +117,7 @@ func (c *ServeCommand) Init(ctx context.Context, globals *Globals, files fs.FS) 
 			LanguageCodes:        nil,
 			Features:             internalSite.SiteFeatures{},
 			Roles:                nil,
+			ScopeProperties:      nil,
 			Visibility:           nil,
 			Auth:                 internalSite.SiteAuthConfig{},
 			MetadataHeaderPrefix: "",

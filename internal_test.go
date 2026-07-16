@@ -12,8 +12,14 @@ import (
 
 //nolint:gochecknoglobals
 var (
-	TestingClearDirContents         = clearDirContents
-	TestingParseSearchShortcutQuery = parseSearchShortcutQuery
+	TestingClearDirContents            = clearDirContents
+	TestingParseSearchShortcutQuery    = parseSearchShortcutQuery
+	TestingCheckChangePermission       = checkChangePermission
+	TestingCheckDocumentPermission     = checkDocumentPermission
+	TestingCheckFilePermission         = checkFilePermission
+	TestingCheckRoleDocumentPermission = checkRoleDocumentPermission
+	TestingChangedClaimProperties      = changedClaimProperties
+	TestingTopLevelClaimsByID          = topLevelClaimsByID
 )
 
 // TestingListReadableDocuments re-exports listReadableDocuments for tests, returning the readable document

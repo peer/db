@@ -117,12 +117,12 @@ export type RefFilterValueToken = { kind: "value"; id: string; direct: boolean }
 
 // ClassCreateResult is one class returned by the DocumentCreateOptions endpoint. paths are the SUBCLASS_OF
 // ancestor chains (root to immediate parent), one per parent, so the class renders once under each parent.
-// canCreate is true when a document can be created for the class; non-creatable classes appear only as
+// creatable is true when a document can be created for the class; non-creatable classes appear only as
 // structural ancestors of creatable ones.
 export type ClassCreateResult = {
   id: string
   paths?: string[][]
-  canCreate: boolean
+  creatable: boolean
 }
 
 export type ClassCreateTreeNode = TreeNode<ClassCreateResult>
@@ -336,8 +336,12 @@ export type SiteContext = {
     // value components.
     localizedTimeDisplay?: boolean
   }
+  // Role grants resolved by the backend: per role, per permission action (an ACTION_* document ID), the
+  // permission scope entries (literal scopes or "property=value" with resolved document IDs).
   roles?: {
-    [roleName: string]: string[]
+    [roleName: string]: {
+      [action: string]: string[]
+    }
   }
   metadataHeaderPrefix?: string
 }
@@ -403,12 +407,14 @@ export type DocumentEditStatus = {
   version?: string
   changeset?: string
   discarded?: boolean
+  errored?: boolean
 }
 
 export type DocumentCreateResponse = {
   id: string
   base: string[]
   session: string
+  lastChange: number
 }
 
 export type DocumentBeginEditResponse = {

@@ -237,3 +237,23 @@ func TestVersionUnmarshalTextRoundTripThroughMarshalText(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, original, decoded)
 }
+
+// TestVersionEquals verifies version equality: equal changesets with equal revisions, where revision
+// 0 (the changeset's latest revision) is equal to any revision.
+func TestVersionEquals(t *testing.T) {
+	t.Parallel()
+
+	changeset1 := identifier.New()
+	changeset2 := identifier.New()
+
+	assert.True(t, store.Version{Changeset: changeset1, Revision: 1}.Equals(store.Version{Changeset: changeset1, Revision: 1}))
+	assert.False(t, store.Version{Changeset: changeset1, Revision: 1}.Equals(store.Version{Changeset: changeset1, Revision: 2}))
+	assert.False(t, store.Version{Changeset: changeset1, Revision: 1}.Equals(store.Version{Changeset: changeset2, Revision: 1}))
+
+	// Revision 0 means the changeset's latest revision, so it is equal to any revision of the same
+	// changeset.
+	assert.True(t, store.Version{Changeset: changeset1, Revision: 0}.Equals(store.Version{Changeset: changeset1, Revision: 2}))
+	assert.True(t, store.Version{Changeset: changeset1, Revision: 2}.Equals(store.Version{Changeset: changeset1, Revision: 0}))
+	assert.True(t, store.Version{Changeset: changeset1, Revision: 0}.Equals(store.Version{Changeset: changeset1, Revision: 0}))
+	assert.False(t, store.Version{Changeset: changeset1, Revision: 0}.Equals(store.Version{Changeset: changeset2, Revision: 0}))
+}

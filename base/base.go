@@ -13,6 +13,7 @@ import (
 	"context"
 	"encoding/json"
 	"io"
+	"net/http"
 	"time"
 
 	"github.com/elastic/go-elasticsearch/v9"
@@ -74,7 +75,7 @@ type B struct {
 	// IndexingNormalizeHooks transform a document for indexing before it is augmented with embedded claims
 	// and synthetic incoming inverse claims. The bridge runs them per visibility level, on that level's
 	// copy of the document read from the store, with the level's visibility in ctx. A hook may return
-	// store.ErrAccessDenied to hide the document at that level (it is then deleted from that level's
+	// auth.ErrAccessDenied to hide the document at that level (it is then deleted from that level's
 	// index). Because they shape the per-level document itself, they also drive the inverse-relation,
 	// reference-target, and embedding accumulation. They are the only per-document hooks run when fetching
 	// documents for indexing: the read-path document pre-hooks and post-hooks are not run during indexing,
@@ -99,9 +100,16 @@ type B struct {
 	DocumentPreHooks []func(ctx context.Context, id identifier.Identifier, version *store.Version) errors.E
 
 	// DocumentPostHooks are called after fetching the document from the store on the read/API path.
-	// They are not called during indexing.
+	// They are not called during indexing. Besides the fetched document they receive the document at
+	// its latest version, fetched raw: for a read of the latest version it has the same content as
+	// the fetched document but is never the same instance (so transforming the fetched document does
+	// not affect it), and it is nil when the document is deleted at its latest version (the read
+	// error then reports the deletion, so access to versions of a deleted document is for the hooks
+	// to decide by transforming the error). It is input for permission checks and transformations,
+	// is shared between the hooks, and must not be modified; hooks return (possibly transformed)
+	// only the fetched document.
 	DocumentPostHooks []func(
-		ctx context.Context, doc *document.D, metadata *store.DocumentMetadata, version store.Version, parentChangesets []store.Version, errE errors.E,
+		ctx context.Context, doc, latest *document.D, metadata *store.DocumentMetadata, version store.Version, parentChangesets []store.Version, errE errors.E,
 	) (*document.D, *store.DocumentMetadata, store.Version, []store.Version, errors.E)
 
 	// FilePreHooks are called before fetching the file from the store.
@@ -109,10 +117,45 @@ type B struct {
 
 	// FilePostHooks are called after fetching the file from the store. The file is an open handle on
 	// the contents; a hook that drops or replaces it (returns a different handle or a non-nil error)
-	// is responsible for closing the handle it received.
+	// is responsible for closing the handle it received. Besides the fetched file they receive the
+	// version of the file's latest version, read raw: for a read of the latest version it is the
+	// fetched version itself, and it is nil when the file is deleted at its latest version (the read
+	// error then reports the deletion, so access to versions of a deleted file is for the hooks to
+	// decide by transforming the error). It is input for permission checks, is shared between the
+	// hooks, and must not be modified.
 	FilePostHooks []func(
-		ctx context.Context, file io.ReadSeekCloser, metadata *storage.FileMetadata, version store.Version, parentChangesets []store.Version, errE errors.E,
+		ctx context.Context, file io.ReadSeekCloser, latestVersion *store.Version, metadata *storage.FileMetadata, version store.Version, parentChangesets []store.Version, errE errors.E,
 	) (io.ReadSeekCloser, *storage.FileMetadata, store.Version, []store.Version, errors.E)
+
+	// EndEditPermissionCheck, when set, is called when an edit session with changes completes, both
+	// when the session is committed and when it is discarded (discarding destroys the session and
+	// its changes for everyone, so it requires the same permission as committing). It receives the
+	// user who ended the session, the roles recorded when the session was ended, and the session's
+	// resulting document. It verifies only that the ender may complete the session: the content of
+	// the session's changes is not re-evaluated here, because each change was authorized against
+	// its author when it was appended (see ChangePermissionCheck). A non-nil error rejects the
+	// completion: the session completes as errored and nothing is committed. Sessions ended through
+	// a context marked with WithSystemSession skip the check.
+	EndEditPermissionCheck func(user *store.User, roles []string, doc *document.D) errors.E
+
+	// ChangePermissionCheck, when set, is called for every change appended to an edit session, with
+	// the session's document state before the change, the state with the change applied, and the
+	// change itself. It is where the content of a change is authorized: per change, against the
+	// appending caller in ctx, at append time, and that authorization is final (it is not
+	// re-evaluated when the session completes, see EndEditPermissionCheck). A non-nil error rejects
+	// the append and nothing is stored. Both document states are shared and must not be modified.
+	// Changes appended through a context marked with WithSystemSession skip the check.
+	ChangePermissionCheck func(ctx context.Context, before, after *document.D, change document.Change) errors.E
+
+	// CreateDocumentSeed, when set, is called when a create session is opened through the HTTP API,
+	// with the API request, and returns the session's first changes, before any client change: the
+	// default processes the request (the initial claims requested through the query string) and
+	// grants the creator the default permission actions. The changes have to be built for the
+	// session and the document base as operations numbered from 1. The caller appends the
+	// returned changes to the session and applies them to the session's initial document state.
+	// PeerDB assigns its default before the site customizer runs, so a customizer can keep, wrap,
+	// replace, or set it to nil (with nil nothing is seeded and the request is not processed).
+	CreateDocumentSeed func(ctx context.Context, req *http.Request, session identifier.Identifier, docBase []string) (document.Changes, errors.E)
 
 	// SearchQueryHook, when set, is called per request and returns an optional
 	// filter query that is added (as a bool filter clause) to every search
@@ -348,7 +391,7 @@ func (b *B) documentsForLevel(ctx context.Context, level string, documents []Sta
 		denied := false
 		for _, hook := range b.IndexingNormalizeHooks {
 			doc, errE = hook(ctx, doc, sd.Metadata)
-			if errors.Is(errE, store.ErrAccessDenied) {
+			if errors.Is(errE, auth.ErrAccessDenied) {
 				// The document is not visible at this level, so it is not part of this level's vocabulary.
 				denied = true
 				break

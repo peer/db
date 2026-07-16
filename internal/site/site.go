@@ -26,7 +26,6 @@ import (
 	"gitlab.com/peerdb/peerdb/document"
 	internalCore "gitlab.com/peerdb/peerdb/internal/core"
 	internalSearch "gitlab.com/peerdb/peerdb/internal/search"
-	"gitlab.com/peerdb/peerdb/store"
 )
 
 // AllVisibilityLevel is the default name for the top (highest) visibility level: the unfiltered superset
@@ -130,13 +129,20 @@ type Site struct {
 
 	Features SiteFeatures `json:"features" yaml:"features"`
 
-	// Roles is a map of role names to permissions. Its keys also act as
-	// the allowlist of roles a token may bind to a request: any role a
-	// token claims that is not a key here is dropped at authentication
-	// time so it cannot leak into auth.Roles or the Roles response header.
-	// Permissions under the reserved empty name (auth.RoleEveryone) apply
-	// to every caller, authenticated or not.
-	Roles map[string][]string `json:"roles,omitempty" yaml:"roles,omitempty"`
+	// Roles maps role names to the permission actions each role grants and, per action, the permission
+	// scope expressions of the grant (see auth.ParseScopes; the self scope is not allowed here). Actions
+	// are named by their codes (e.g. ACTION_READ, see auth.Actions). The map keys also act as the
+	// allowlist of roles a token may bind to a request: any role a token claims that is not a key here
+	// is dropped at authentication time so it cannot leak into auth.Roles or the Roles response header.
+	// Grants under the reserved empty name (auth.RoleEveryone) apply to every caller, authenticated or
+	// not. When empty, everything is readable by everyone and nothing else is allowed.
+	Roles map[string]auth.Grants `json:"roles,omitempty" yaml:"roles,omitempty"`
+
+	// ScopeProperties are the properties participating in claim scopes of any role grant, resolved
+	// from Roles during validation. Claims of these properties determine which documents role grants
+	// cover, so changing them requires role-granted permissions (document-level permission claims
+	// granting the update action do not allow it).
+	ScopeProperties map[identifier.Identifier]bool `json:"-" yaml:"-"`
 
 	// Visibility is the ordered list of visibility levels, from the lowest
 	// (least access) to the highest (most access). The order lets a request
@@ -229,12 +235,28 @@ func (s *Site) Validate() error {
 		}
 	}
 
+	s.validateRoles()
+
 	errE := s.validateVisibility()
 	if errE != nil {
 		return errE
 	}
 
 	return nil
+}
+
+// validateRoles normalizes the Roles configuration (grants are already parsed and validated while
+// unmarshaling, see auth.Grants.UnmarshalYAML) and resolves ScopeProperties from it. When Roles is
+// empty it is set to the default under which everything is readable by everyone and nothing else is
+// allowed; making anything writable requires configuring grants (in the configuration or in code).
+func (s *Site) validateRoles() {
+	if len(s.Roles) == 0 {
+		s.Roles = map[string]auth.Grants{
+			auth.RoleEveryone: auth.MustParseRoleGrants(map[string][]string{auth.ActionReadCode: {auth.ScopeAll}}),
+		}
+	}
+
+	s.ScopeProperties = auth.ScopeProperties(s.Roles)
 }
 
 // validateVisibility checks the Visibility configuration: level names must be unique and non-empty, every
@@ -378,7 +400,7 @@ func (s *Site) TopIndex() string {
 }
 
 // ReadIndex returns the ElasticSearch index a request should read, derived from the caller's resolved
-// visibility level, so a caller only ever reads the index filtered to its level. It returns store.ErrAccessDenied
+// visibility level, so a caller only ever reads the index filtered to its level. It returns auth.ErrAccessDenied
 // when the caller has no visibility level, so read routes that access ElasticSearch must respond with
 // 403 Forbidden. A site that defines no visibility levels defaults to a single "all" level that is both
 // floor and top, so every request resolves to it and this never denies there; the empty case only arises
@@ -386,7 +408,7 @@ func (s *Site) TopIndex() string {
 func (s *Site) ReadIndex(ctx context.Context) (string, errors.E) {
 	level := auth.Visibility(ctx)
 	if level == "" {
-		return "", errors.WithStack(store.ErrAccessDenied)
+		return "", errors.WithStack(auth.ErrAccessDenied)
 	}
 	return internalSearch.LevelIndex(s.IndexPrefix, level), nil
 }

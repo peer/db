@@ -13,13 +13,18 @@ globals:
         indexAncestorProperties: true
       roles:
         "":
-          - canChangesDocument
-          - canChangesFile
+          ACTION_READ:
+            - all
+          ACTION_HISTORY:
+            - all
         admin:
-          - canEditDocument
-          - canDeleteDocument
-          - canChangesDocument
-          - canBulkGetFile
-          - canChangesFile
-          - canEditFile
-          - canDeleteFile
+          ACTION_CREATE:
+            - all
+          ACTION_UPDATE:
+            - all
+          ACTION_DELETE:
+            - all
+          ACTION_UPDATE_PERMISSIONS:
+            - all
+          ACTION_BULK_READ:
+            - all

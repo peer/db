@@ -55,7 +55,7 @@ func (s *Service) StorageBeginUploadPostAPI(w http.ResponseWriter, req *http.Req
 
 	ctx := req.Context()
 
-	errE := s.HasPermission(ctx, auth.CanEditFile)
+	errE := s.HasFilePermission(ctx, auth.ActionCreate)
 	if errE != nil {
 		s.ForbiddenWithError(w, req, errE)
 		return
@@ -74,7 +74,7 @@ func (s *Service) StorageBeginUploadPostAPI(w http.ResponseWriter, req *http.Req
 	base := []string{site.Domain}
 
 	session, errE := site.Base.BeginUploadNew(ctx, base, payload.Size, payload.MediaType, payload.Filename)
-	if errors.Is(errE, store.ErrAccessDenied) {
+	if errors.Is(errE, auth.ErrAccessDenied) {
 		s.ForbiddenWithError(w, req, errE)
 		return
 	} else if errE != nil {
@@ -92,7 +92,7 @@ func (s *Service) StorageUploadChunkPostAPI(w http.ResponseWriter, req *http.Req
 
 	ctx := req.Context()
 
-	errE := s.HasPermission(ctx, auth.CanEditFile)
+	errE := s.HasFilePermission(ctx, auth.ActionCreate)
 	if errE != nil {
 		s.ForbiddenWithError(w, req, errE)
 		return
@@ -144,7 +144,7 @@ func (s *Service) StorageUploadChunkPostAPI(w http.ResponseWriter, req *http.Req
 	} else if errors.Is(errE, storage.ErrInvalidChunk) {
 		s.BadRequestWithError(w, req, errE)
 		return
-	} else if errors.Is(errE, store.ErrAccessDenied) {
+	} else if errors.Is(errE, auth.ErrAccessDenied) {
 		s.ForbiddenWithError(w, req, errE)
 		return
 	} else if errE != nil {
@@ -167,12 +167,10 @@ type lastOperationResponse struct {
 // uploaded to a file upload session, 0 when there are none. Chunks are numbered sequentially
 // without gaps starting at 1, so the session's chunks are exactly 1 through the returned
 // number.
-//
-//nolint:dupl
 func (s *Service) StorageLastChunkGetAPI(w http.ResponseWriter, req *http.Request, params waf.Params) {
 	ctx := req.Context()
 
-	errE := s.HasPermission(ctx, auth.CanEditFile)
+	errE := s.HasFilePermission(ctx, auth.ActionCreate)
 	if errE != nil {
 		s.ForbiddenWithError(w, req, errE)
 		return
@@ -193,7 +191,7 @@ func (s *Service) StorageLastChunkGetAPI(w http.ResponseWriter, req *http.Reques
 	} else if errors.Is(errE, coordinator.ErrAlreadyCompleted) {
 		s.NotFoundWithError(w, req, errE)
 		return
-	} else if errors.Is(errE, store.ErrAccessDenied) {
+	} else if errors.Is(errE, auth.ErrAccessDenied) {
 		s.ForbiddenWithError(w, req, errE)
 		return
 	} else if errE != nil {
@@ -213,7 +211,7 @@ type storageGetChunkResponse struct {
 func (s *Service) StorageGetChunkGetAPI(w http.ResponseWriter, req *http.Request, params waf.Params) {
 	ctx := req.Context()
 
-	errE := s.HasPermission(ctx, auth.CanEditFile)
+	errE := s.HasFilePermission(ctx, auth.ActionCreate)
 	if errE != nil {
 		s.ForbiddenWithError(w, req, errE)
 		return
@@ -243,7 +241,7 @@ func (s *Service) StorageGetChunkGetAPI(w http.ResponseWriter, req *http.Request
 	} else if errors.Is(errE, coordinator.ErrOperationNotFound) {
 		s.NotFoundWithError(w, req, errE)
 		return
-	} else if errors.Is(errE, store.ErrAccessDenied) {
+	} else if errors.Is(errE, auth.ErrAccessDenied) {
 		s.ForbiddenWithError(w, req, errE)
 		return
 	} else if errE != nil {
@@ -269,7 +267,7 @@ func (s *Service) StorageEndUploadPostAPI(w http.ResponseWriter, req *http.Reque
 
 	ctx := req.Context()
 
-	errE := s.HasPermission(ctx, auth.CanEditFile)
+	errE := s.HasFilePermission(ctx, auth.ActionCreate)
 	if errE != nil {
 		s.ForbiddenWithError(w, req, errE)
 		return
@@ -300,7 +298,7 @@ func (s *Service) StorageEndUploadPostAPI(w http.ResponseWriter, req *http.Reque
 	} else if errors.Is(errE, storage.ErrEndNotPossible) {
 		s.BadRequestWithError(w, req, errE)
 		return
-	} else if errors.Is(errE, store.ErrAccessDenied) {
+	} else if errors.Is(errE, auth.ErrAccessDenied) {
 		s.ForbiddenWithError(w, req, errE)
 		return
 	} else if errE != nil {
@@ -318,7 +316,7 @@ func (s *Service) StorageDiscardUploadPostAPI(w http.ResponseWriter, req *http.R
 
 	ctx := req.Context()
 
-	errE := s.HasPermission(ctx, auth.CanEditFile)
+	errE := s.HasFilePermission(ctx, auth.ActionCreate)
 	if errE != nil {
 		s.ForbiddenWithError(w, req, errE)
 		return
@@ -346,7 +344,7 @@ func (s *Service) StorageDiscardUploadPostAPI(w http.ResponseWriter, req *http.R
 	} else if errors.Is(errE, coordinator.ErrAlreadyEnded) {
 		s.NotFoundWithError(w, req, errE)
 		return
-	} else if errors.Is(errE, store.ErrAccessDenied) {
+	} else if errors.Is(errE, auth.ErrAccessDenied) {
 		s.ForbiddenWithError(w, req, errE)
 		return
 	} else if errE != nil {
@@ -361,7 +359,7 @@ func (s *Service) StorageDiscardUploadPostAPI(w http.ResponseWriter, req *http.R
 func (s *Service) StorageUploadGetAPI(w http.ResponseWriter, req *http.Request, params waf.Params) {
 	ctx := req.Context()
 
-	errE := s.HasPermission(ctx, auth.CanEditFile)
+	errE := s.HasFilePermission(ctx, auth.ActionCreate)
 	if errE != nil {
 		s.ForbiddenWithError(w, req, errE)
 		return
@@ -379,7 +377,7 @@ func (s *Service) StorageUploadGetAPI(w http.ResponseWriter, req *http.Request, 
 	if errors.Is(errE, coordinator.ErrSessionNotFound) {
 		s.NotFoundWithError(w, req, errE)
 		return
-	} else if errors.Is(errE, store.ErrAccessDenied) {
+	} else if errors.Is(errE, auth.ErrAccessDenied) {
 		s.ForbiddenWithError(w, req, errE)
 		return
 	} else if errE != nil {
@@ -440,7 +438,7 @@ func (s *Service) StorageGetGet(w http.ResponseWriter, req *http.Request, params
 	if errors.Is(errE, store.ErrValueNotFound) {
 		s.NotFoundWithError(w, req, errE)
 		return
-	} else if errors.Is(errE, store.ErrAccessDenied) {
+	} else if errors.Is(errE, auth.ErrAccessDenied) {
 		s.ForbiddenWithError(w, req, errE)
 		return
 	} else if errE != nil {
@@ -462,32 +460,39 @@ func (s *Service) StorageGetGet(w http.ResponseWriter, req *http.Request, params
 	http.ServeContent(w, req, "", time.Time(metadata.At), file)
 }
 
-// StorageChangesGetAPI handles GET requests to list changes in a file changeset.
+// StorageChangesGetAPI handles GET requests to list changes in a file changeset. Only changes of
+// files whose changed version the caller may read are listed, so a page can be shorter than the
+// store page.
+//
+//nolint:dupl
 func (s *Service) StorageChangesGetAPI(w http.ResponseWriter, req *http.Request, params waf.Params) {
-	errE := s.HasPermission(req.Context(), auth.CanChangesFile)
-	if errE != nil {
-		s.ForbiddenWithError(w, req, errE)
-		return
-	}
-
 	s.changesetChangesGetAPI(w, req, params, func(ctx context.Context, changesetID identifier.Identifier, after *identifier.Identifier) ([]store.Change, errors.E) {
-		cs, errE := waf.MustGetSite[*internalSite.Site](ctx).Base.FileChangeset(ctx, changesetID)
+		site := waf.MustGetSite[*internalSite.Site](ctx)
+		cs, errE := site.Base.FileChangeset(ctx, changesetID)
 		if errE != nil {
 			return nil, errE
 		}
-		return cs.Changes(ctx, after)
+		changes, errE := cs.Changes(ctx, after)
+		if errE != nil {
+			return nil, errE
+		}
+		visible := make([]store.Change, 0, len(changes))
+		for _, change := range changes {
+			ok, errE := checkVersionedFileReadPermission(ctx, site, change.ID, change.Version)
+			if errE != nil {
+				return nil, errE
+			}
+			if ok {
+				visible = append(visible, change)
+			}
+		}
+		return visible, nil
 	})
 }
 
 // StorageChangesGetGet handles GET requests to retrieve a file from a changeset.
 func (s *Service) StorageChangesGetGet(w http.ResponseWriter, req *http.Request, params waf.Params) {
 	ctx := req.Context()
-
-	errE := s.HasPermission(ctx, auth.CanChangesFile)
-	if errE != nil {
-		s.ForbiddenWithError(w, req, errE)
-		return
-	}
 
 	changesetID, errE := identifier.MaybeString(params["changeset"])
 	if errE != nil {
@@ -512,7 +517,7 @@ func (s *Service) StorageChangesGetGet(w http.ResponseWriter, req *http.Request,
 	} else if errors.Is(errE, store.ErrChangesetNotFound) {
 		s.NotFoundWithError(w, req, errE)
 		return
-	} else if errors.Is(errE, store.ErrAccessDenied) {
+	} else if errors.Is(errE, auth.ErrAccessDenied) {
 		s.ForbiddenWithError(w, req, errE)
 		return
 	} else if errE != nil {
