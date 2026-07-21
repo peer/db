@@ -161,6 +161,15 @@ func (d *D) SizeWithSub() int {
 	return d.Claims.SizeWithSub()
 }
 
+// SizeWithSubWithConfidence returns the total number of claims in the document with confidence equal
+// to or higher than the specified minimum confidence, counting recursively into sub-claims, where a
+// claim below the minimum is skipped together with its whole subtree.
+//
+// If confidence is 0, it defaults to LowConfidence.
+func (d *D) SizeWithSubWithConfidence(confidence Confidence) int {
+	return d.Claims.SizeWithSubWithConfidence(confidence)
+}
+
 // AllClaims returns an iterator over all claims in the document.
 //
 // It does not recurse into sub-claims; use AllClaimsWithSub for that.

@@ -119,6 +119,11 @@ func Init(ctx context.Context, globals *Globals) (func(), errors.E) {
 				}
 				return append(changes, base.PermissionClaimsChanges(subject, base.DefaultCreatorActions, session, docBase, int64(len(changes)))...), nil
 			}
+
+			// The default indexing source check is likewise assigned before the customizer runs, so the
+			// customizer can keep, wrap, replace, or disable it. Denials are logged at the debug level:
+			// for a site with read-restricted documents they are the expected outcome.
+			site.Base.IndexingSourceCheck = base.DefaultIndexingSourceCheck(site.Visibility, site.Roles, false)
 		}
 
 		if firstInit && globals.Customize.ConfigureBase != nil {

@@ -569,6 +569,29 @@ func (c *ClaimTypes) SizeWithSub() int {
 	return s
 }
 
+// SizeWithSubWithConfidence returns the total number of claims with confidence equal to or higher than
+// the specified minimum confidence, counting recursively into sub-claims, where a claim below the
+// minimum is skipped together with its whole subtree.
+//
+// If confidence is 0, it defaults to LowConfidence.
+func (c *ClaimTypes) SizeWithSubWithConfidence(confidence Confidence) int {
+	if c == nil {
+		return 0
+	}
+	if confidence == 0 {
+		confidence = LowConfidence
+	}
+	s := 0
+	for claim := range c.AllClaims() {
+		if claim.GetConfidence() < confidence {
+			continue
+		}
+		s++
+		s += claim.GetSub().SizeWithSubWithConfidence(confidence)
+	}
+	return s
+}
+
 // AllClaims returns an iterator over all claims.
 func (c *ClaimTypes) AllClaims() iter.Seq[Claim] {
 	return func(yield func(Claim) bool) {

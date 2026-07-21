@@ -311,17 +311,6 @@ func (r *rawFieldValue) FieldValueCaster() *types.FieldValue {
 // FetchDocumentIDs retrieves document IDs matching the given class IDs using ES PIT.
 // If classIDs is empty, all documents are returned.
 func FetchDocumentIDs(ctx context.Context, esClient *elasticsearch.TypedClient, index string, classIDs []identifier.Identifier) ([]identifier.Identifier, errors.E) {
-	pit, err := esClient.OpenPointInTime(index).KeepAlive("1m").Do(ctx)
-	if err != nil {
-		return nil, WithESError(err)
-	}
-	pitID := pit.Id
-
-	defer func() {
-		_, _ = esClient.ClosePointInTime().Id(pitID).Do(ctx)
-	}()
-
-	// Build query.
 	var query types.QueryVariant
 	if len(classIDs) == 0 {
 		query = esdsl.NewMatchAllQuery()
@@ -342,6 +331,22 @@ func FetchDocumentIDs(ctx context.Context, esClient *elasticsearch.TypedClient, 
 		}
 		query = esdsl.NewBoolQuery().Should(shoulds...)
 	}
+
+	return FetchDocumentIDsForQuery(ctx, esClient, index, query)
+}
+
+// FetchDocumentIDsForQuery retrieves the IDs of all documents in the index matching the query, paging
+// through the index with ES PIT and search_after.
+func FetchDocumentIDsForQuery(ctx context.Context, esClient *elasticsearch.TypedClient, index string, query types.QueryVariant) ([]identifier.Identifier, errors.E) {
+	pit, err := esClient.OpenPointInTime(index).KeepAlive("1m").Do(ctx)
+	if err != nil {
+		return nil, WithESError(err)
+	}
+	pitID := pit.Id
+
+	defer func() {
+		_, _ = esClient.ClosePointInTime().Id(pitID).Do(ctx)
+	}()
 
 	var allIDs []identifier.Identifier
 	var searchAfter []types.FieldValue

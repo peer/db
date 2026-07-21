@@ -44,7 +44,7 @@ func TestDocumentsForLevel(t *testing.T) {
 		},
 	}
 
-	// At the public level the secret document is dropped from the vocabulary.
+	// At the public level the secret document is dropped from the schema documents.
 	pub, errE := b.TestingDocumentsForLevel(context.Background(), "public", docs)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, pub, 1)
@@ -52,6 +52,26 @@ func TestDocumentsForLevel(t *testing.T) {
 
 	// At the editor level both documents are present.
 	ed, errE := b.TestingDocumentsForLevel(context.Background(), "editor", docs)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Len(t, ed, 2)
+
+	// A source check that denies the "secret" document at the public level only: with no normalize hooks
+	// set, the check alone drops it from that level's schema documents, because they shape every entry
+	// at the level and only sources may do that.
+	b = &base.B{}
+	b.IndexingSourceCheck = func(ctx context.Context, doc *document.D, _ *store.DocumentMetadata) errors.E {
+		if doc.ID == secret && auth.Visibility(ctx) == "public" {
+			return errors.WithStack(auth.ErrAccessDenied)
+		}
+		return nil
+	}
+
+	pub, errE = b.TestingDocumentsForLevel(context.Background(), "public", docs)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	require.Len(t, pub, 1)
+	assert.Equal(t, public, pub[0].ID)
+
+	ed, errE = b.TestingDocumentsForLevel(context.Background(), "editor", docs)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Len(t, ed, 2)
 }

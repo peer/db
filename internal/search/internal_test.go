@@ -26,6 +26,9 @@ func (b *Bridge) TestingScheduleReindexJob(ctx context.Context, prefix string) e
 func (b *Bridge) TestingCountAvailableReindexJobs(ctx context.Context, prefix string) (int, errors.E) {
 	var count int
 	errE := internalStore.RetryTransaction(ctx, b.dbpool, pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
+		// Initialize in the case transaction is retried.
+		count = 0
+
 		return internalStore.WithPgxError(
 			tx.QueryRow(ctx, `SELECT count(*) FROM river_job WHERE "kind" = $1 AND "state" = 'available' AND "args"->>'prefix' = $2`, jobArgs{}.Kind(), prefix).Scan(&count),
 		)

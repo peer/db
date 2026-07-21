@@ -55,8 +55,9 @@ type B struct {
 
 	// Levels is the ordered list of visibility level names (lowest to highest). The bridge indexes each
 	// document into one index per level and accumulates inverse relations per level. The highest (last)
-	// level must be the unfiltered superset containing every document, so the indexing hooks must not
-	// filter anything at it.
+	// level must be the unfiltered superset containing every document, so the indexing normalize hooks
+	// must not filter anything at it. The indexing source check is not bound by that: it may deny a
+	// document at any level, including the highest, because a denied document keeps its own entry.
 	Levels []string
 
 	// languagePriority defines per-language fallback order for display label resolution.
@@ -74,13 +75,15 @@ type B struct {
 
 	// IndexingNormalizeHooks transform a document for indexing before it is augmented with embedded claims
 	// and synthetic incoming inverse claims. The bridge runs them per visibility level, on that level's
-	// copy of the document read from the store, with the level's visibility in ctx. A hook may return
+	// copy of the document read from the store, with the level's visibility in ctx and no caller identity
+	// (no subject and no roles), so a hook cannot, and must not, differentiate by caller: its output at a
+	// level is one shared rendering for every searcher of the level. A hook may return
 	// auth.ErrAccessDenied to hide the document at that level (it is then deleted from that level's
 	// index). Because they shape the per-level document itself, they also drive the inverse-relation,
-	// reference-target, and embedding accumulation. They are the only per-document hooks run when fetching
-	// documents for indexing: the read-path document pre-hooks and post-hooks are not run during indexing,
-	// so a site which wants their filtering during indexing calls them from a hook here itself. They are
-	// not run on the read/API path.
+	// reference-target, and embedding accumulation. Together with IndexingSourceCheck they are the only
+	// per-document hooks run when fetching documents for indexing: the read-path document pre-hooks and
+	// post-hooks are not run during indexing, so a site which wants their filtering during indexing calls
+	// them from a hook here itself. They are not run on the read/API path.
 	//
 	// The metadata is the document's store metadata (nil for a freshly generated, not-yet-read document
 	// passed to Start). It is shared across levels and hooks, so hooks must not mutate it.
@@ -94,6 +97,41 @@ type B struct {
 	// claim count, earliest time), which are all computed before augmentation. They are not run on the
 	// read/API path.
 	IndexingFinalizeHooks []func(ctx context.Context, doc *document.D) (*document.D, errors.E)
+
+	// IndexingSourceCheck, when set, decides per visibility level whether a document is a source at that
+	// level: visible to everyone who can search the level, not only to a subset of its readers. The bridge
+	// runs it on the level's normalized document (after IndexingNormalizeHooks), with the level's
+	// visibility in ctx. Returning auth.ErrAccessDenied keeps the document's own entry in the level's
+	// index but excludes the document from everything which flows into other documents' entries at that
+	// level: display labels and hierarchy paths of references to it, claims embedded from it, the inverse
+	// relations its relation claims produce, reference counting (its claims are skipped by
+	// counts.references), and the schema the level's converter is built from (its property, class, and
+	// language documents). When its outcome for a document changes between the document's versions, every
+	// document referencing it and every document embedding from it is re-indexed, so entries rendered
+	// under the old outcome do not linger. Any other error aborts indexing.
+	//
+	// This maintains the indexing invariant: an entry may contain only data which everyone who can
+	// retrieve that entry may see. A query filter (SearchQueryHook) admits or hides an entry whole, per
+	// searcher, and search (matching, aggregations, sorting, counts) then exposes everything the entry
+	// contains, so retrieval is never per entry part. For the document's own data the filter is
+	// therefore enough even when the document is read-restricted: it can narrow the entry's retrievers
+	// to exactly the document's readers. That does not extend to data rendered into the entry from
+	// another document, which is exposed to this entry's retrievers rather than to the other document's
+	// readers: such data may come only from documents everyone searching the level may see, and this
+	// check decides which those are (i.e. they can be "source" of data for other documents during indexing).
+	// A site whose levels each contain only documents everyone at the level may read does not need the
+	// check (nil means every document is a source, which is then correct). A site which indexes
+	// read-restricted documents into a level must set it, so those documents keep their own (query-filtered)
+	// entries without leaking into entries which other searchers can retrieve.
+	//
+	// PeerDB assigns a default before the site customizer runs (see DefaultIndexingSourceCheck), so a
+	// customizer can keep, wrap, replace, or set it to nil. It denies documents whose role grants do not
+	// make them readable by every searcher of a level.
+	//
+	// The check must be a pure function of the document, its metadata, and the level: it is evaluated
+	// only when the document is indexed, so an outcome change from anywhere else (for example a site
+	// configuration change) requires a full reindex.
+	IndexingSourceCheck func(ctx context.Context, doc *document.D, metadata *store.DocumentMetadata) errors.E
 
 	// DocumentPreHooks are called before fetching the document from the store on the read/API path.
 	// They are not called during indexing.
@@ -247,8 +285,10 @@ func (b *B) Init(
 		Store:       documents,
 		ESClient:    esClient,
 		IndexPrefix: b.IndexPrefix,
-		// The normalize hooks are set from the base's indexing hooks in Start, once the site has populated them.
+		// The normalize hooks and the source check are set from the base's indexing hooks in Start, once the
+		// site has populated them.
 		NormalizeHooks: nil,
+		SourceCheck:    nil,
 	}
 	errE = bridge.Init(ctx, dbpool, listener, r)
 	if errE != nil {
@@ -281,8 +321,9 @@ func QueueName(kind string) string {
 	return internalStore.RiverQueueName(kind)
 }
 
-// StartDocument is a document passed to Start as converter vocabulary, together with the metadata it was
-// read with. For a freshly generated, not-yet-read document the metadata is nil.
+// StartDocument is a schema document (a property, class, or language document) passed to Start for
+// building the converters, together with the metadata it was read with. For a freshly generated,
+// not-yet-read document the metadata is nil.
 type StartDocument struct {
 	Document *document.D
 	Metadata *store.DocumentMetadata
@@ -298,16 +339,18 @@ func (b *B) Start(ctx context.Context, documents []StartDocument) (func(), error
 	// The bridge fetches documents for indexing through the indexing normalize hooks only (the read-path
 	// document pre-hooks and post-hooks are not run during indexing). The indexing finalize hooks run
 	// later, inside the conversion, after the document is augmented with embedded claims and synthetic
-	// incoming inverse claims.
+	// incoming inverse claims. The source check runs on the normalized documents and gates what may flow
+	// from a document into other documents' entries.
 	b.bridge.NormalizeHooks = b.IndexingNormalizeHooks
+	b.bridge.SourceCheck = b.IndexingSourceCheck
 
 	// Build one converter and one ElasticSearch index per visibility level. We build them first so that
 	// invalid input (e.g., an unsupported language priority) fails fast without leaving any resources running.
 	targets := make([]internalSearch.Target, 0, len(b.Levels))
 	for i, level := range b.Levels {
 		index := internalSearch.LevelIndex(b.IndexPrefix, level)
-		// Each level's converter resolves vocabulary (properties, classes, languages) as that level sees it,
-		// so a vocab document or claim hidden at the level does not contribute to resolution there (for
+		// Each level's converter resolves its schema (properties, classes, languages) as that level sees it,
+		// so a schema document or claim hidden at the level does not contribute to resolution there (for
 		// example an inverse-property declaration hidden at the level then yields no inverse relation at that
 		// level). documents is the unfiltered superset. documentsForLevel filters it to this level's view.
 		levelDocuments, errE := b.documentsForLevel(ctx, level, documents)
@@ -323,7 +366,7 @@ func (b *B) Start(ctx context.Context, documents []StartDocument) (func(), error
 		}
 		converter.IndexAncestorProperties = b.IndexAncestorProperties
 		converter.DetectLanguages = true
-		converter.CountReferences = b.bridge.CountReferencesFunc(index)
+		converter.CountReferences = b.bridge.CountReferencesFunc(level)
 		converter.FinalizeHooks = b.IndexingFinalizeHooks
 		if i == len(b.Levels)-1 {
 			// The converter derived language codes from the language documents while being built.
@@ -366,14 +409,18 @@ func (b *B) Start(ctx context.Context, documents []StartDocument) (func(), error
 
 // documentsForLevel returns documents as seen at the given visibility level: each is run through the
 // indexing normalize hooks at that level's visibility (the same hooks the bridge runs when fetching
-// documents for indexing), dropping any the hooks deny. The hooks may mutate the document, so each runs
-// on that level's own copy; the metadata is passed to the hooks as-is.
+// documents for indexing), dropping any the hooks deny, and then through the indexing source check,
+// dropping any it denies. These schema documents shape every entry converted at the level (property and
+// class labels, hierarchy, inverse and embed configuration), so they are source data and only sources
+// belong among them. The hooks may mutate the document, so each runs on that level's own copy; the
+// metadata is passed to the hooks as-is.
 //
-// With no indexing normalize hooks set (no per-level shaping) it returns the input documents unchanged.
+// With no indexing normalize hooks and no source check set (no per-level shaping) it returns the input
+// documents unchanged.
 func (b *B) documentsForLevel(ctx context.Context, level string, documents []StartDocument) ([]*document.D, errors.E) {
 	out := make([]*document.D, 0, len(documents))
 
-	if len(b.IndexingNormalizeHooks) == 0 {
+	if len(b.IndexingNormalizeHooks) == 0 && b.IndexingSourceCheck == nil {
 		for _, sd := range documents {
 			out = append(out, sd.Document)
 		}
@@ -392,7 +439,7 @@ func (b *B) documentsForLevel(ctx context.Context, level string, documents []Sta
 		for _, hook := range b.IndexingNormalizeHooks {
 			doc, errE = hook(ctx, doc, sd.Metadata)
 			if errors.Is(errE, auth.ErrAccessDenied) {
-				// The document is not visible at this level, so it is not part of this level's vocabulary.
+				// The document is not visible at this level, so it is not part of this level's schema.
 				denied = true
 				break
 			}
@@ -402,6 +449,16 @@ func (b *B) documentsForLevel(ctx context.Context, level string, documents []Sta
 		}
 		if denied {
 			continue
+		}
+		if b.IndexingSourceCheck != nil {
+			errE = b.IndexingSourceCheck(ctx, doc, sd.Metadata)
+			if errors.Is(errE, auth.ErrAccessDenied) {
+				// The document is not a source at this level, so it is not part of this level's schema.
+				continue
+			}
+			if errE != nil {
+				return nil, errE
+			}
 		}
 		out = append(out, doc)
 	}

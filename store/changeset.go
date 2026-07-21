@@ -424,7 +424,7 @@ func (c Changeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, Commi
 	var committedChangesets []string
 	errE := internalStore.RetryTransaction(ctx, c.store.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
 		// Initialize in the case transaction is retried.
-		committedChangesets = nil
+		committedChangesets = committedChangesets[:0]
 
 		err := tx.QueryRow(ctx, `SELECT "`+c.store.Prefix+`ChangesetCommit"($1, $2, $3)`, arguments...).Scan(&committedChangesets)
 		if err != nil {
@@ -529,7 +529,7 @@ func (c Changeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, Commi
 	var committed []CommittedChangeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]
 	errE := internalStore.RetryTransaction(ctx, c.store.dbpool, pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
 		// Initialize in the case transaction is retried.
-		committed = nil
+		committed = committed[:0]
 
 		rows, err := tx.Query(ctx, `
 			SELECT v."name"
@@ -583,7 +583,7 @@ func (b baseChangeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, C
 	var changes []Change
 	errE := internalStore.RetryTransaction(ctx, b.store.dbpool, pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
 		// Initialize in the case transaction is retried.
-		changes = nil
+		changes = changes[:0]
 
 		rows, err := tx.Query(ctx, `
 			SELECT "id", "revision"	FROM "`+b.store.Prefix+`CurrentChanges"
@@ -669,7 +669,7 @@ func (b baseChangeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, C
 		data = *new(Data)
 		metadata = *new(Metadata)
 		resolved = Version{}
-		parentChangesets = nil
+		parentChangesets = parentChangesets[:0]
 
 		var dataIsNull bool
 		var resolvedRevision int64

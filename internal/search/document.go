@@ -55,12 +55,15 @@ type Document struct {
 
 // Counts holds a document's count metrics, used to boost search ranking.
 //
-// References is the number of other documents that reference this document, computed
-// at index time and kept current by re-indexing a document when another document
-// starts or stops referencing it.
+// References is the number of stored reference claims in other documents referencing this document,
+// computed at index time from the bridge-maintained references table and kept current by re-indexing a
+// document when rows pointing at it change. It covers claims of documents which are sources at the
+// level, expanded across value hierarchies like the forward index; synthetic inverse claims and
+// embedded copies in entries do not count.
 //
-// Claims is the total number of claims the document has, counted recursively
-// including sub-claims.
+// Claims is the total number of claims the document has, counted recursively including sub-claims,
+// with only claims at or above low confidence counting (a low-confidence claim is skipped together
+// with its whole subtree, matching which claims produce reference rows).
 //
 // Score is Claims plus References, used to boost search ranking. Ignored documents
 // (which have no References) get just their Claims.

@@ -51,6 +51,7 @@ func InitComponents(
 		IndexAncestorProperties: false,
 		IndexingNormalizeHooks:  nil,
 		IndexingFinalizeHooks:   nil,
+		IndexingSourceCheck:     nil,
 		DocumentPreHooks:        nil,
 		DocumentPostHooks:       nil,
 		FilePreHooks:            nil,

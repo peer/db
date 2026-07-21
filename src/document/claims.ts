@@ -790,6 +790,21 @@ export class ClaimTypes implements Claims {
     return s
   }
 
+  // SizeWithSubWithConfidence returns the total number of claims with confidence equal to or higher
+  // than the specified minimum confidence, counting recursively into sub-claims, where a claim below
+  // the minimum is skipped together with its whole subtree.
+  SizeWithSubWithConfidence(confidence: Confidence = LowConfidence): number {
+    let s = 0
+    for (const claim of this.AllClaims()) {
+      if (claim.confidence < confidence) {
+        continue
+      }
+      s += 1
+      s += claim.sub?.SizeWithSubWithConfidence(confidence) ?? 0
+    }
+    return s
+  }
+
   AllClaims(): Claim[] {
     return (Object.keys(CLAIM_TYPES_MAP) as ClaimTypeName[]).flatMap((k) => this[k] ?? [])
   }

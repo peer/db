@@ -39,9 +39,10 @@ import (
 
 // TODO: Reindex referencing documents when a referenced document's display changes.
 //       A document embeds a referenced (and inverse-referenced) document's display as toDisplay in
-//       its search document, but the bridge only reindexes on reference structure changes, not on a
-//       referenced document's display change. The cache is correct on reindex; the reindex is not
-//       triggered.
+//       its search document, but the bridge only reindexes on reference structure changes and on
+//       visibility transitions (deletion, undeletion, and per-level presence or source visibility
+//       flips all re-index every referencing document), not on a same-visibility display change of
+//       the referenced document. The cache is correct on reindex; the reindex is not triggered.
 
 // TODO: Handle the case when schema structure changes.
 //       The Converter precomputes schema structure once at startup. So if a property, class, or
@@ -270,9 +271,9 @@ type Converter struct {
 	// and do not load language models); enabled on the production indexing converter.
 	DetectLanguages bool
 
-	// CountReferences returns how many documents reference the given document. When set,
-	// FromDocument records it as the document's counts.references. Nil disables the count
-	// (the field is then omitted).
+	// CountReferences returns how many stored reference claims in other documents reference the given
+	// document. When set, FromDocument records it as the document's counts.references. Nil disables
+	// the count (the field is then omitted).
 	CountReferences func(ctx context.Context, id identifier.Identifier) (int, errors.E)
 
 	// FinalizeHooks transform the document FromDocument converts, after it has been augmented with
@@ -2223,7 +2224,7 @@ func (v *convertVisitor) VisitUnknown(claim *document.UnknownClaim) (document.Vi
 // After the document is augmented with embedded claims and then the synthetic incoming inverse claims, the
 // converter's FinalizeHooks run over the augmented document, right before it is converted.
 func (c *Converter) FromDocument(
-	ctx context.Context, doc *document.D, gen *uint64, metadata *store.DocumentMetadata, inverseRelations []store.InverseRelation,
+	ctx context.Context, doc *document.D, gen *uint64, metadata *store.DocumentMetadata, inverseRelations []InverseRelation,
 ) (*Document, errors.E) {
 	// lastUpdated comes from the document's store metadata. metadata is nil for some callers (for example
 	// tests), in which case there is no last-updated time.
@@ -2250,7 +2251,10 @@ func (c *Converter) FromDocument(
 	if errE != nil {
 		return nil, errE
 	}
-	claimsCount := doc.SizeWithSub()
+	// Only claims at or above low confidence count (with a low-confidence claim pruning its whole
+	// subtree), matching which claims produce reference rows, so both summands of counts.score count
+	// stored claims the same way.
+	claimsCount := doc.SizeWithSubWithConfidence(document.LowConfidence)
 
 	// Build the augmented document the conversion runs over: the clean doc plus embedded claims (added as
 	// sub-claims of its reference claims) and incoming inverse claims (added as top-level reference claims).
@@ -2351,7 +2355,8 @@ func (c *Converter) FromDocument(
 	// reference filter can count and select documents that are exactly a value ("direct").
 	v.markReferenceLeaves()
 
-	// Index, unless the document is ignored for counts.references, the number of documents referencing it.
+	// Index, unless the document is ignored for counts.references, the number of stored reference
+	// claims in other documents referencing it.
 	if c.CountReferences != nil && !info.IgnoredForReferencesCount {
 		count, errE := c.CountReferences(ctx, doc.ID)
 		if errE != nil {
@@ -2360,12 +2365,11 @@ func (c *Converter) FromDocument(
 		v.result.Counts.References = &count
 	}
 
-	// counts.score is the document's total "amount of knowledge" (its own number of claims plus
-	// the number of documents referencing it, where the number of documents referencing it is a
-	// proxy for how many claims of this document are "stored" in other documents, we see inverse
-	// references as claims which could be stored in this document but are stored in other documents
-	// so that they are not stored twice, duplicated). Used to boost search ranking.
-	// TODO: Should counts.references count the number of inverse reference claims directly and not referring documents?
+	// counts.score is the document's total "amount of knowledge": its own number of claims plus the
+	// number of stored reference claims in other documents referencing it. We see inverse references
+	// as claims which could be stored in this document but are stored in other documents so that they
+	// are not stored twice, duplicated, so counts.references counts exactly those claims. Used to
+	// boost search ranking.
 	score := claimsCount
 	if v.result.Counts.References != nil {
 		score += *v.result.Counts.References
@@ -2377,19 +2381,21 @@ func (c *Converter) FromDocument(
 
 // inverseReferenceClaimID computes an unique claim ID for a synthetic inverse reference claim.
 //
-// It uses InverseRelationKey to avoid collisions between claims from
-// different source documents that might share the same claim ID.
-func inverseReferenceClaimID(base []string, irKey store.InverseRelationKey) identifier.Identifier {
+// It uses the relation's source, claim, and target property to avoid collisions
+// between claims from different source documents that might share the same claim ID.
+func inverseReferenceClaimID(base []string, ir InverseRelation) identifier.Identifier {
 	base = slices.Clone(base)
-	base = append(base, "INVERSE_RELATION", irKey.Source.String(), irKey.Claim.String(), irKey.TargetProp.String())
+	base = append(base, "INVERSE_RELATION", ir.Source.String(), ir.Claim.String(), ir.TargetProp.String())
 	return identifier.From(base...)
 }
 
-// inverseRelationsVisitor implements document.Visitor to collect outgoing inverse
-// relations from a document. It tracks the current field path (via sub-claims)
-// and for each reference claim, resolves the inverse property from field-level
-// definitions (taking precedence) or property-level INVERSE_PROPERTY_OF.
-type inverseRelationsVisitor struct {
+// referencesVisitor implements document.Visitor to collect outgoing references from a document: for
+// each reference claim, at any depth of nesting (a claim below low confidence is skipped together with
+// its whole subtree), it emits a reference row per (transitive, across value hierarchies) target, and,
+// when the claim resolves inverse properties from field-level definitions (taking precedence) or
+// property-level INVERSE_PROPERTY_OF, an inverse relation per resolved inverse property. It tracks the
+// current field path (via sub-claims) for the field-level resolution.
+type referencesVisitor struct {
 	// ctx is used to resolve a target's hierarchy ancestors via getDocumentInfo.
 	ctx       context.Context //nolint:containedctx
 	converter *Converter
@@ -2399,14 +2405,16 @@ type inverseRelationsVisitor struct {
 	classes []identifier.Identifier
 	// path tracks the current nesting of claim property IDs.
 	path []identifier.Identifier
-	// result maps target document ID to collected inverse relations.
-	result map[identifier.Identifier][]store.InverseRelation
+	// references maps target document ID to collected reference rows.
+	references map[identifier.Identifier][]Reference
+	// inverse maps target document ID to collected inverse relations.
+	inverse map[identifier.Identifier][]InverseRelation
 }
 
-var _ document.Visitor = (*inverseRelationsVisitor)(nil)
+var _ document.Visitor = (*referencesVisitor)(nil)
 
 // recurse pushes propID onto the path, visits sub-claims, then pops.
-func (v *inverseRelationsVisitor) recurse(propID identifier.Identifier, claim document.Claim) errors.E {
+func (v *referencesVisitor) recurse(propID identifier.Identifier, claim document.Claim) errors.E {
 	v.path = append(v.path, propID)
 	errE := claim.Visit(v)
 	v.path = v.path[:len(v.path)-1]
@@ -2414,7 +2422,7 @@ func (v *inverseRelationsVisitor) recurse(propID identifier.Identifier, claim do
 }
 
 // VisitIdentifier recurses into sub-claims to find nested references.
-func (v *inverseRelationsVisitor) VisitIdentifier(claim *document.IdentifierClaim) (document.VisitResult, errors.E) {
+func (v *referencesVisitor) VisitIdentifier(claim *document.IdentifierClaim) (document.VisitResult, errors.E) {
 	if claim.GetConfidence() < document.LowConfidence {
 		return document.Keep, nil
 	}
@@ -2422,7 +2430,7 @@ func (v *inverseRelationsVisitor) VisitIdentifier(claim *document.IdentifierClai
 }
 
 // VisitString recurses into sub-claims to find nested references.
-func (v *inverseRelationsVisitor) VisitString(claim *document.StringClaim) (document.VisitResult, errors.E) {
+func (v *referencesVisitor) VisitString(claim *document.StringClaim) (document.VisitResult, errors.E) {
 	if claim.GetConfidence() < document.LowConfidence {
 		return document.Keep, nil
 	}
@@ -2430,7 +2438,7 @@ func (v *inverseRelationsVisitor) VisitString(claim *document.StringClaim) (docu
 }
 
 // VisitHTML recurses into sub-claims to find nested references.
-func (v *inverseRelationsVisitor) VisitHTML(claim *document.HTMLClaim) (document.VisitResult, errors.E) {
+func (v *referencesVisitor) VisitHTML(claim *document.HTMLClaim) (document.VisitResult, errors.E) {
 	if claim.GetConfidence() < document.LowConfidence {
 		return document.Keep, nil
 	}
@@ -2438,7 +2446,7 @@ func (v *inverseRelationsVisitor) VisitHTML(claim *document.HTMLClaim) (document
 }
 
 // VisitAmount recurses into sub-claims to find nested references.
-func (v *inverseRelationsVisitor) VisitAmount(claim *document.AmountClaim) (document.VisitResult, errors.E) {
+func (v *referencesVisitor) VisitAmount(claim *document.AmountClaim) (document.VisitResult, errors.E) {
 	if claim.GetConfidence() < document.LowConfidence {
 		return document.Keep, nil
 	}
@@ -2446,7 +2454,7 @@ func (v *inverseRelationsVisitor) VisitAmount(claim *document.AmountClaim) (docu
 }
 
 // VisitAmountInterval recurses into sub-claims to find nested references.
-func (v *inverseRelationsVisitor) VisitAmountInterval(claim *document.AmountIntervalClaim) (document.VisitResult, errors.E) {
+func (v *referencesVisitor) VisitAmountInterval(claim *document.AmountIntervalClaim) (document.VisitResult, errors.E) {
 	if claim.GetConfidence() < document.LowConfidence {
 		return document.Keep, nil
 	}
@@ -2454,7 +2462,7 @@ func (v *inverseRelationsVisitor) VisitAmountInterval(claim *document.AmountInte
 }
 
 // VisitTime recurses into sub-claims to find nested references.
-func (v *inverseRelationsVisitor) VisitTime(claim *document.TimeClaim) (document.VisitResult, errors.E) {
+func (v *referencesVisitor) VisitTime(claim *document.TimeClaim) (document.VisitResult, errors.E) {
 	if claim.GetConfidence() < document.LowConfidence {
 		return document.Keep, nil
 	}
@@ -2462,7 +2470,7 @@ func (v *inverseRelationsVisitor) VisitTime(claim *document.TimeClaim) (document
 }
 
 // VisitTimeInterval recurses into sub-claims to find nested references.
-func (v *inverseRelationsVisitor) VisitTimeInterval(claim *document.TimeIntervalClaim) (document.VisitResult, errors.E) {
+func (v *referencesVisitor) VisitTimeInterval(claim *document.TimeIntervalClaim) (document.VisitResult, errors.E) {
 	if claim.GetConfidence() < document.LowConfidence {
 		return document.Keep, nil
 	}
@@ -2470,7 +2478,7 @@ func (v *inverseRelationsVisitor) VisitTimeInterval(claim *document.TimeInterval
 }
 
 // VisitLink recurses into sub-claims to find nested references.
-func (v *inverseRelationsVisitor) VisitLink(claim *document.LinkClaim) (document.VisitResult, errors.E) {
+func (v *referencesVisitor) VisitLink(claim *document.LinkClaim) (document.VisitResult, errors.E) {
 	if claim.GetConfidence() < document.LowConfidence {
 		return document.Keep, nil
 	}
@@ -2481,7 +2489,7 @@ func (v *inverseRelationsVisitor) VisitLink(claim *document.LinkClaim) (document
 // then recurses into sub-claims to find further nested references.
 // It first checks field-level inverse properties (based on the document's classes and
 // the current path), then falls back to property-level inverse properties.
-func (v *inverseRelationsVisitor) VisitReference(claim *document.ReferenceClaim) (document.VisitResult, errors.E) {
+func (v *referencesVisitor) VisitReference(claim *document.ReferenceClaim) (document.VisitResult, errors.E) {
 	if claim.GetConfidence() < document.LowConfidence {
 		return document.Keep, nil
 	}
@@ -2508,30 +2516,35 @@ func (v *inverseRelationsVisitor) VisitReference(claim *document.ReferenceClaim)
 		targetProps = v.converter.inverseProperties[claim.Prop.ID]
 	}
 
-	if len(targetProps) > 0 {
-		// Expand the target across its value hierarchies so the inverse relation lands on the direct
-		// target and all its transitive ancestors, mirroring the forward reference expansion in
-		// convertReference. This keeps the forward and inverse indexes consistent: if the forward
-		// index says the source (transitively) references an ancestor, the ancestor's inverse index
-		// records the source too. It is a no-op for targets that are not part of any value hierarchy.
-		targets, errE := v.expandedTargets(claim.To.ID)
-		if errE != nil {
-			errors.Details(errE)["claim"] = claim
-			return document.Keep, errE
-		}
+	// Expand the target across its value hierarchies so the rows land on the direct target and all its
+	// transitive ancestors, mirroring the forward reference expansion in convertReference. This keeps
+	// the reference rows and the forward index consistent: if the forward index says the source
+	// (transitively) references an ancestor, the ancestor's rows record the source too, so its
+	// counts.references and its synthetic inverse claims cover the source as well. It is a no-op for
+	// targets that are not part of any value hierarchy.
+	targets, errE := v.expandedTargets(claim.To.ID)
+	if errE != nil {
+		errors.Details(errE)["claim"] = claim
+		return document.Keep, errE
+	}
+	// The source flag is the bridge's decision per document version, stamped onto the rows by
+	// mergeReferenceRows, so it is left false here.
+	for _, target := range targets {
+		v.references[target] = append(v.references[target], Reference{
+			Claim:    claim.ID,
+			Source:   v.docID,
+			Target:   target,
+			IsSource: false,
+		})
 		for _, targetProp := range targetProps {
-			for _, target := range targets {
-				v.result[target] = append(v.result[target], store.InverseRelation{
-					InverseRelationKey: store.InverseRelationKey{
-						Claim:      claim.ID,
-						Source:     v.docID,
-						TargetProp: targetProp,
-					},
-					SourceProp: claim.Prop.ID,
-					Target:     target,
-					Confidence: claim.GetConfidence(),
-				})
-			}
+			v.inverse[target] = append(v.inverse[target], InverseRelation{
+				Claim:      claim.ID,
+				Source:     v.docID,
+				TargetProp: targetProp,
+				SourceProp: claim.Prop.ID,
+				Target:     target,
+				Confidence: claim.GetConfidence(),
+			})
 		}
 	}
 
@@ -2540,7 +2553,7 @@ func (v *inverseRelationsVisitor) VisitReference(claim *document.ReferenceClaim)
 }
 
 // VisitHas recurses into sub-claims to find nested references.
-func (v *inverseRelationsVisitor) VisitHas(claim *document.HasClaim) (document.VisitResult, errors.E) {
+func (v *referencesVisitor) VisitHas(claim *document.HasClaim) (document.VisitResult, errors.E) {
 	if claim.GetConfidence() < document.LowConfidence {
 		return document.Keep, nil
 	}
@@ -2548,7 +2561,7 @@ func (v *inverseRelationsVisitor) VisitHas(claim *document.HasClaim) (document.V
 }
 
 // VisitNone recurses into sub-claims to find nested references.
-func (v *inverseRelationsVisitor) VisitNone(claim *document.NoneClaim) (document.VisitResult, errors.E) {
+func (v *referencesVisitor) VisitNone(claim *document.NoneClaim) (document.VisitResult, errors.E) {
 	if claim.GetConfidence() < document.LowConfidence {
 		return document.Keep, nil
 	}
@@ -2556,7 +2569,7 @@ func (v *inverseRelationsVisitor) VisitNone(claim *document.NoneClaim) (document
 }
 
 // VisitUnknown recurses into sub-claims to find nested references.
-func (v *inverseRelationsVisitor) VisitUnknown(claim *document.UnknownClaim) (document.VisitResult, errors.E) {
+func (v *referencesVisitor) VisitUnknown(claim *document.UnknownClaim) (document.VisitResult, errors.E) {
 	if claim.GetConfidence() < document.LowConfidence {
 		return document.Keep, nil
 	}
@@ -2566,7 +2579,7 @@ func (v *inverseRelationsVisitor) VisitUnknown(claim *document.UnknownClaim) (do
 // expandedTargets returns the direct target document ID plus its transitive ancestors
 // across all value hierarchies, deduplicated. It mirrors the target expansion
 // convertReference performs for forward references.
-func (v *inverseRelationsVisitor) expandedTargets(targetID identifier.Identifier) ([]identifier.Identifier, errors.E) {
+func (v *referencesVisitor) expandedTargets(targetID identifier.Identifier) ([]identifier.Identifier, errors.E) {
 	if len(v.converter.valueHierarchyProperties) == 0 {
 		// When no value hierarchies are configured we avoid
 		// fetching the target document entirely.
@@ -2589,15 +2602,17 @@ func (v *inverseRelationsVisitor) expandedTargets(targetID identifier.Identifier
 	return targets, nil
 }
 
-// OutgoingInverseRelations extracts the outgoing inverse relations from a document.
+// OutgoingReferences extracts the outgoing reference rows and inverse relations from a document.
 //
-// It walks the document's claims using an inverseRelationsVisitor that tracks the
-// current field path (via HasClaim nesting). For each reference claim, it resolves
-// the inverse property from field-level INVERSE_PROPERTY (taking precedence) or
-// property-level INVERSE_PROPERTY_OF, and emits an InverseRelation for the direct
-// target and each of its value-hierarchy ancestors. Returns a map keyed by target
-// document ID.
-func (c *Converter) OutgoingInverseRelations(ctx context.Context, doc *document.D) (map[identifier.Identifier][]store.InverseRelation, errors.E) {
+// It walks the document's claims recursively, at any depth of nesting, using a referencesVisitor that
+// tracks the current field path. For each reference claim (at or above low confidence, under parents at
+// or above low confidence) it emits, for the direct target and each of its value-hierarchy ancestors, a
+// reference row plus one inverse relation per inverse property resolved from field-level
+// INVERSE_PROPERTY (taking precedence) or property-level INVERSE_PROPERTY_OF. Returns both keyed by
+// target document ID.
+func (c *Converter) OutgoingReferences(
+	ctx context.Context, doc *document.D,
+) (map[identifier.Identifier][]Reference, map[identifier.Identifier][]InverseRelation, errors.E) {
 	// Field-level inverse properties are defined per class, so collect the classes the
 	// document is an instance of to resolve them.
 	instanceOf := document.GetClaimsOfTypeWithConfidence[document.ReferenceClaim](doc, internalCore.InstanceOfPropID, document.LowConfidence)
@@ -2605,45 +2620,20 @@ func (c *Converter) OutgoingInverseRelations(ctx context.Context, doc *document.
 	for _, rel := range instanceOf {
 		classes = append(classes, rel.To.ID)
 	}
-	v := &inverseRelationsVisitor{
-		ctx:       ctx,
-		converter: c,
-		docID:     doc.ID,
-		classes:   classes,
-		path:      nil,
-		result:    map[identifier.Identifier][]store.InverseRelation{},
+	v := &referencesVisitor{
+		ctx:        ctx,
+		converter:  c,
+		docID:      doc.ID,
+		classes:    classes,
+		path:       nil,
+		references: map[identifier.Identifier][]Reference{},
+		inverse:    map[identifier.Identifier][]InverseRelation{},
 	}
 	errE := doc.Visit(v)
 	if errE != nil {
-		return nil, errE
+		return nil, nil, errE
 	}
-	return v.result, nil
-}
-
-// OutgoingReferenceTargets returns the set of document IDs the document references
-// via a reference claim or a sub-reference claim with confidence at or above
-// LowConfidence.
-//
-// It mirrors what CountReferences counts on the target side, so the
-// bridge can re-index the affected targets when a document's references change.
-//
-// Targets ignored for counts.references are not filtered here; the caller does that.
-func (c *Converter) OutgoingReferenceTargets(doc *document.D) map[identifier.Identifier]bool {
-	targets := map[identifier.Identifier]bool{}
-	if doc.Claims == nil {
-		return targets
-	}
-	for claim := range doc.Claims.AllClaimsWithSub() {
-		ref, ok := claim.(*document.ReferenceClaim)
-		if !ok {
-			continue
-		}
-		if ref.GetConfidence() < document.LowConfidence {
-			continue
-		}
-		targets[ref.To.ID] = true
-	}
-	return targets
+	return v.references, v.inverse, nil
 }
 
 // fieldEmbedKey identifies a position within a specific class's field hierarchy for field-level embed
@@ -2773,7 +2763,7 @@ type embedTask struct {
 }
 
 // embedVisitor implements document.Visitor to collect embed tasks from a document. It tracks the document's
-// classes and the current field path (via sub-claim nesting), the same way inverseRelationsVisitor does, and
+// classes and the current field path (via sub-claim nesting), the same way referencesVisitor does, and
 // for each reference claim resolves the field-level embed specs that apply to it.
 type embedVisitor struct {
 	converter *Converter
@@ -3213,9 +3203,9 @@ func embeddedClaimID(base []string, hostClaimID, target, sourceClaimID, destProp
 // claims, each pointing back to the source document via the inverse property, with a deterministic ID. The
 // single conversion then indexes them like any other reference claim. The relations are already filtered to
 // the indexing visibility level by the caller.
-func (c *Converter) addInverseClaims(ctx context.Context, doc *document.D, inverseRelations []store.InverseRelation) {
+func (c *Converter) addInverseClaims(ctx context.Context, doc *document.D, inverseRelations []InverseRelation) {
 	for _, ir := range inverseRelations {
-		claimID := inverseReferenceClaimID(doc.Base, ir.InverseRelationKey)
+		claimID := inverseReferenceClaimID(doc.Base, ir)
 		errE := doc.Add(&document.ReferenceClaim{
 			CoreClaim: document.CoreClaim{
 				ID:         claimID,
@@ -3225,9 +3215,10 @@ func (c *Converter) addInverseClaims(ctx context.Context, doc *document.D, inver
 			To:   document.Reference{ID: ir.Source},
 		})
 		if errE != nil {
-			// The synthetic ID is a function of the inverse relation key, so a deterministic-ID collision would be
-			// the identical claim and is benign. The relations come from the InverseRelationKey-deduplicated set,
-			// so in normal operation this never fires. Add reports a duplicate ID and we skip but log it.
+			// The synthetic ID is a function of the relation's source, claim, and target property, so a
+			// deterministic-ID collision would be the identical claim and is benign. The relations come from
+			// the table whose primary key dedupes exactly those, so in normal operation this never fires.
+			// Add reports a duplicate ID and we skip but log it.
 			zerolog.Ctx(ctx).Warn().Err(errE).
 				Str("id", doc.ID.String()).
 				Str("claimId", claimID.String()).

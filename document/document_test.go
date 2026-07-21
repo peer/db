@@ -319,6 +319,53 @@ func TestDocumentSizeWithSub(t *testing.T) {
 	assert.Len(t, slices.Collect(doc.AllClaimsWithSub()), 4)
 }
 
+// TestDocumentSizeWithSubWithConfidence verifies the confidence-gated recursive count: a claim below
+// the minimum confidence is skipped together with its whole subtree.
+func TestDocumentSizeWithSubWithConfidence(t *testing.T) {
+	t.Parallel()
+
+	prop := identifier.New()
+
+	// The same shape as in TestDocumentSizeWithSub, but sub1 is below low confidence, so it and its
+	// deep sub-claim are pruned: only top and sub2 count.
+	deepSub := &document.StringClaim{
+		CoreClaim: document.CoreClaim{ID: identifier.New(), Confidence: 1.0},
+		Prop:      document.Reference{ID: prop},
+		String:    "deep",
+	}
+	sub1 := &document.StringClaim{
+		CoreClaim: document.CoreClaim{ID: identifier.New(), Confidence: document.LowConfidence / 2},
+		Prop:      document.Reference{ID: prop},
+		String:    "sub1",
+	}
+	errE := sub1.Add(deepSub)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	sub2 := &document.UnknownClaim{
+		CoreClaim: document.CoreClaim{ID: identifier.New(), Confidence: document.LowConfidence},
+		Prop:      document.Reference{ID: prop},
+	}
+	top := &document.StringClaim{
+		CoreClaim: document.CoreClaim{ID: identifier.New(), Confidence: 1.0},
+		Prop:      document.Reference{ID: prop},
+		String:    "top",
+	}
+	errE = top.Add(sub1)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	errE = top.Add(sub2)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	doc := &document.D{}
+	errE = doc.Add(top)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// All claims count without the confidence gate.
+	assert.Equal(t, 4, doc.SizeWithSub())
+	// With the gate, sub1 and its subtree are pruned: top + sub2. The zero confidence defaults to
+	// LowConfidence, so both calls agree.
+	assert.Equal(t, 2, doc.SizeWithSubWithConfidence(document.LowConfidence))
+	assert.Equal(t, 2, doc.SizeWithSubWithConfidence(0))
+}
+
 // TestDocumentMergeFrom tests D.MergeFrom merging claims from multiple documents.
 func TestDocumentMergeFrom(t *testing.T) {
 	t.Parallel()
