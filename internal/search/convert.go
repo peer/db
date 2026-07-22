@@ -305,6 +305,13 @@ type Converter struct {
 	// Y is in inverseProperties[X] and X is in inverseProperties[Y].
 	// Multiple properties can be inverses of the same property.
 	inverseProperties map[identifier.Identifier][]identifier.Identifier
+	// textExcludedProperties is the set of property IDs marked with EXCLUDE_FROM_TEXT_SEARCH: claims
+	// with these properties contribute nothing to the top-level text field, neither their textual
+	// values (identifier, string, HTML, and link claims) nor their display strings (a referenced
+	// document's labels, amount and time boundary displays, a has-property's name), so the main text
+	// search does not match them. Everything stays indexed with the claims themselves, so facets still
+	// show and match them.
+	textExcludedProperties map[identifier.Identifier]bool
 	// fieldInverseProperties maps a (class, field path, source property ID) tuple to the
 	// target inverse property ID defined on class field definitions. Built from all
 	// class documents that define fields with INVERSE_PROPERTY. Field-level inverse
@@ -577,6 +584,7 @@ func NewConverter(
 		valueHierarchyProperties: nil,
 		namingProperties:         nil,
 		inverseProperties:        nil,
+		textExcludedProperties:   nil,
 		fieldInverseProperties:   nil,
 		fieldEmbedSpecs:          nil,
 		languagePriority:         languagePriority,
@@ -597,6 +605,7 @@ func NewConverter(
 	c.buildNamingProperties()
 	c.buildLanguageCodes(languages)
 	c.buildInverseProperties(properties)
+	c.buildTextExcludedProperties(properties)
 	c.buildFieldInverseProperties(classes)
 	c.buildFieldEmbedSpecs(classes)
 	return c, nil
@@ -850,6 +859,18 @@ func (c *Converter) buildInverseProperties(properties []*document.D) {
 			if !slices.Contains(c.inverseProperties[rel.To.ID], prop.ID) {
 				c.inverseProperties[rel.To.ID] = append(c.inverseProperties[rel.To.ID], prop.ID)
 			}
+		}
+	}
+}
+
+// buildTextExcludedProperties collects the properties marked with the EXCLUDE_FROM_TEXT_SEARCH
+// setting (a boolean has claim on the property document), whose claims contribute neither their
+// textual values nor their display strings to the searchable text.
+func (c *Converter) buildTextExcludedProperties(properties []*document.D) {
+	c.textExcludedProperties = map[identifier.Identifier]bool{}
+	for _, prop := range properties {
+		if len(document.GetClaimsOfTypeWithConfidence[document.HasClaim](prop, internalCore.ExcludeFromTextSearchPropID, document.LowConfidence)) > 0 {
+			c.textExcludedProperties[prop.ID] = true
 		}
 	}
 }
@@ -1882,6 +1903,12 @@ func (v *convertVisitor) markReferenceLeaves() {
 // extracted per their own language, so they fold into that language's bucket
 // where the matching analyzer applies.
 func (v *convertVisitor) appendClaimDisplaysToText() {
+	// Properties marked with EXCLUDE_FROM_TEXT_SEARCH do not fold their claims' display strings, so
+	// the main text search does not match them; the strings stay indexed with the claims themselves,
+	// so facets still show and match them. The check runs per indexed record's property: when claims
+	// are also indexed for ancestor properties (IndexAncestorProperties), the ancestor records fold
+	// unless the ancestors are marked too.
+	excluded := v.converter.textExcludedProperties
 	// Display values across the per-language map all collapse into "und".
 	addDisplay := func(m map[string]string) {
 		for _, val := range m {
@@ -1897,14 +1924,23 @@ func (v *convertVisitor) appendClaimDisplaysToText() {
 	}
 	fold := func(claims *ClaimTypes) {
 		for _, c := range claims.Amount {
+			if excluded[c.Prop] {
+				continue
+			}
 			v.addText(document.UndeterminedLanguage, c.FromDisplay)
 			v.addText(document.UndeterminedLanguage, c.ToDisplay)
 		}
 		for _, c := range claims.Time {
+			if excluded[c.Prop] {
+				continue
+			}
 			v.addText(document.UndeterminedLanguage, c.FromDisplay)
 			v.addText(document.UndeterminedLanguage, c.ToDisplay)
 		}
 		for _, c := range claims.Rel {
+			if excluded[c.Prop] {
+				continue
+			}
 			switch c.ClaimType {
 			case ClaimTypeRef:
 				addDisplay(c.ToDisplay)
@@ -1934,7 +1970,9 @@ func (v *convertVisitor) VisitIdentifier(claim *document.IdentifierClaim) (docum
 	if claim.GetConfidence() < document.LowConfidence {
 		return document.Keep, nil
 	}
-	v.addText(document.UndeterminedLanguage, claim.Value)
+	if !v.converter.textExcludedProperties[claim.Prop.ID] {
+		v.addText(document.UndeterminedLanguage, claim.Value)
+	}
 	claims, errE := v.converter.convertIdentifier(v.ctx, claim)
 	if errE != nil {
 		return document.Keep, errE
@@ -1958,8 +1996,10 @@ func (v *convertVisitor) VisitString(claim *document.StringClaim) (document.Visi
 		return document.Keep, nil
 	}
 	langs := v.converter.textLanguages(claim.Sub, claim.String)
-	for _, lang := range langs {
-		v.addText(lang, claim.String)
+	if !v.converter.textExcludedProperties[claim.Prop.ID] {
+		for _, lang := range langs {
+			v.addText(lang, claim.String)
+		}
 	}
 	claims, errE := v.converter.convertString(v.ctx, claim, langs)
 	if errE != nil {
@@ -1994,9 +2034,12 @@ func (v *convertVisitor) VisitHTML(claim *document.HTMLClaim) (document.VisitRes
 	// per language.
 	langs := v.converter.textLanguages(claim.Sub, stripDoc(doc, document.UndeterminedLanguage))
 	stripped := make(map[string]string, len(langs))
+	textExcluded := v.converter.textExcludedProperties[claim.Prop.ID]
 	for _, lang := range langs {
 		s := stripDoc(doc, lang)
-		v.addText(lang, s)
+		if !textExcluded {
+			v.addText(lang, s)
+		}
 		if s != "" {
 			stripped[lang] = s
 		}
@@ -2113,7 +2156,9 @@ func (v *convertVisitor) VisitLink(claim *document.LinkClaim) (document.VisitRes
 	if claim.GetConfidence() < document.LowConfidence {
 		return document.Keep, nil
 	}
-	v.addText(document.UndeterminedLanguage, claim.IRI)
+	if !v.converter.textExcludedProperties[claim.Prop.ID] {
+		v.addText(document.UndeterminedLanguage, claim.IRI)
+	}
 	claims, errE := v.converter.convertLink(v.ctx, claim)
 	if errE != nil {
 		return document.Keep, errE
@@ -2346,7 +2391,8 @@ func (c *Converter) FromDocument(
 	// Fold every non-text-claim display label into the top-level text bucket
 	// so the text-search query can match against property names, referenced-
 	// document names, and amount/time boundary strings without depending only
-	// on the per-claim-type nested queries.
+	// on the per-claim-type nested queries. Claims of properties marked with
+	// EXCLUDE_FROM_TEXT_SEARCH are skipped.
 	v.appendClaimDisplaysToText()
 
 	v.deduplicateResult()

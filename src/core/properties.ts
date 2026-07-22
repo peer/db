@@ -16,6 +16,7 @@ export const DESCRIPTION = (await Identifier.from(Namespace, "DESCRIPTION")).toS
 export const DISPLAY_LABEL_TEMPLATE = (await Identifier.from(Namespace, "DISPLAY_LABEL_TEMPLATE")).toString()
 export const DISTINCT_FROM = (await Identifier.from(Namespace, "DISTINCT_FROM")).toString()
 export const EMBED_PROPERTY = (await Identifier.from(Namespace, "EMBED_PROPERTY")).toString()
+export const EXCLUDE_FROM_TEXT_SEARCH = (await Identifier.from(Namespace, "EXCLUDE_FROM_TEXT_SEARCH")).toString()
 export const FIELD = (await Identifier.from(Namespace, "FIELD")).toString()
 export const FIELD_CONTEXT = (await Identifier.from(Namespace, "FIELD_CONTEXT")).toString()
 export const FIELD_DEFAULT = (await Identifier.from(Namespace, "FIELD_DEFAULT")).toString()

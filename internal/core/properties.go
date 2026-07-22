@@ -21,6 +21,7 @@ var (
 	DisplayLabelTemplatePropID   = identifier.From(Namespace, "DISPLAY_LABEL_TEMPLATE")
 	DistinctFromPropID           = identifier.From(Namespace, "DISTINCT_FROM")
 	EmbedPropertyPropID          = identifier.From(Namespace, "EMBED_PROPERTY")
+	ExcludeFromTextSearchPropID  = identifier.From(Namespace, "EXCLUDE_FROM_TEXT_SEARCH")
 	FieldContextPropID           = identifier.From(Namespace, "FIELD_CONTEXT")
 	FieldDefaultPropID           = identifier.From(Namespace, "FIELD_DEFAULT")
 	FieldInstructionPropID       = identifier.From(Namespace, "FIELD_INSTRUCTION")
