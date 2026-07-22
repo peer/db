@@ -4,6 +4,7 @@ import (
 	"cmp"
 	"context"
 	"fmt"
+	"maps"
 	"slices"
 	"strconv"
 	"strings"
@@ -159,6 +160,39 @@ type valueFacetInfo struct {
 	Matched int64
 }
 
+// hiddenFacetClauses builds, for each of the given record property fields, a terms query matching the
+// hidden facet properties. Used as must_not clauses of a discovery aggregation's scoped filter, they drop
+// the records of hidden facets before bucketing, so hidden facets do not take up discovery slots (see
+// MaxResultsCount) and do not count towards the per-type totals. The facets stay indexed and their filters
+// stay functional; they are only not offered by discovery. With no hidden properties there are no clauses.
+func hiddenFacetClauses(hidden map[string]bool, propFields ...string) []types.QueryVariant {
+	if len(hidden) == 0 {
+		return nil
+	}
+	// Sorted, so the emitted query is deterministic.
+	ids := slices.Sorted(maps.Keys(hidden))
+	values := make([]types.FieldValueVariant, len(ids))
+	for i, id := range ids {
+		values[i] = esdsl.NewFieldValue().String(id)
+	}
+	clauses := make([]types.QueryVariant, 0, len(propFields))
+	for _, field := range propFields {
+		clauses = append(clauses, esdsl.NewTermsQuery().AddTermsQuery(field, esdsl.NewTermsQueryField().FieldValues(values...)))
+	}
+	return clauses
+}
+
+// scopedDiscoveryAggregation wraps a discovery aggregation in a "scoped" filter dropping the records of
+// hidden facet properties before the terms are computed, so a hidden facet is neither discovered nor
+// counted. name is the aggregation name the discovery keeps inside the scope ("props" for a collection's
+// per-property discovery, "parents" for a parent-collection's parent-property enumeration) and propFields
+// are the record property fields to check. With no hidden properties the filter matches every record.
+func scopedDiscoveryAggregation(hidden map[string]bool, name string, inner types.AggregationsVariant, propFields ...string) types.AggregationsVariant { //nolint:ireturn
+	return esdsl.NewAggregations().
+		Filter(esdsl.NewBoolQuery().MustNot(hiddenFacetClauses(hidden, propFields...)...)).
+		AddAggregation(name, inner)
+}
+
 // relDiscoveryAggregation builds the rel discovery terms aggregation over path: per-property
 // buckets with the full document count, the valueless (has/none/unknown) document count, the claim
 // types present, the hierarchy marker (a non-leaf ref record, so the property can carry a direct
@@ -226,12 +260,15 @@ func timeDiscoveryAggregation(path string, match types.QueryVariant) types.Aggre
 // still provides the full, value-query-independent counts for the facets it covers; a facet found
 // only here (beyond the cap) takes its count and type from this pass, so its count is the matching
 // document count (equal to the full count when the facet was reached through its property name,
-// and a lower bound when reached through a value name).
-func filteredDiscoveryAggregation(path string, match types.QueryVariant, inner types.AggregationsVariant) types.AggregationsVariant { //nolint:ireturn
+// and a lower bound when reached through a value name). The filter also drops the records of hidden
+// facet properties, so this pass cannot surface a facet the unfiltered pass hides.
+func filteredDiscoveryAggregation(path string, match types.QueryVariant, inner types.AggregationsVariant, hidden map[string]bool) types.AggregationsVariant { //nolint:ireturn
 	return esdsl.NewAggregations().
 		Nested(esdsl.NewNestedAggregation().Path(path)).
 		AddAggregation("filter", esdsl.NewAggregations().
-			Filter(match).
+			Filter(esdsl.NewBoolQuery().
+				Filter(match).
+				MustNot(hiddenFacetClauses(hidden, path+".prop")...)).
 			AddAggregation("props", inner))
 }
 
@@ -280,13 +317,13 @@ func relSpecialPresenceQuery(path string, specials requestedSpecials) types.Quer
 func parentDiscoveryBuckets( //nolint:ireturn
 	parent, subRel, subAmount, subTime string,
 	subRelMatch, subAmountMatch, subTimeMatch, subRelSpecialMatch types.QueryVariant,
-	valueQuery string, enabledLanguages []string,
+	valueQuery string, enabledLanguages []string, hidden map[string]bool,
 ) types.AggregationsVariant {
 	buckets := esdsl.NewAggregations().
 		Terms(esdsl.NewTermsAggregation().Field(parentPath(parent)+".prop").Size(MaxResultsCount)).
 		AddAggregation("subRel", esdsl.NewAggregations().
 			Nested(esdsl.NewNestedAggregation().Path(subRel)).
-			AddAggregation("props", relDiscoveryAggregation(subRel, subRelMatch)).
+			AddAggregation("scoped", scopedDiscoveryAggregation(hidden, "props", relDiscoveryAggregation(subRel, subRelMatch), subRel+".prop")).
 			// The pooled sub-has facet's count for this parent property in this parent collection:
 			// distinct documents with any has sub-claim under a parent claim of this property. The
 			// nested(subRel) context scopes to sub-claims of the parent-property claims; reverse_nested
@@ -297,23 +334,23 @@ func parentDiscoveryBuckets( //nolint:ireturn
 					ReverseNested(esdsl.NewReverseNestedAggregation())))).
 		AddAggregation("subAmount", esdsl.NewAggregations().
 			Nested(esdsl.NewNestedAggregation().Path(subAmount)).
-			AddAggregation("props", amountDiscoveryAggregation(subAmount, subAmountMatch))).
+			AddAggregation("scoped", scopedDiscoveryAggregation(hidden, "props", amountDiscoveryAggregation(subAmount, subAmountMatch), subAmount+".prop"))).
 		AddAggregation("subTime", esdsl.NewAggregations().
 			Nested(esdsl.NewNestedAggregation().Path(subTime)).
-			AddAggregation("props", timeDiscoveryAggregation(subTime, subTimeMatch)))
+			AddAggregation("scoped", scopedDiscoveryAggregation(hidden, "props", timeDiscoveryAggregation(subTime, subTimeMatch), subTime+".prop")))
 	if valueQuery != "" {
 		buckets = buckets.
 			AddAggregation("parentMatched", esdsl.NewAggregations().
 				Filter(propLabelMatchQuery(
 					[]string{parentPath(parent) + ".propNaming"}, []string{parentPath(parent) + ".propDisplay"}, valueQuery, enabledLanguages))).
-			AddAggregation("subRelMatched", filteredDiscoveryAggregation(subRel, subRelMatch, relDiscoveryAggregation(subRel, nil))).
-			AddAggregation("subAmountMatched", filteredDiscoveryAggregation(subAmount, subAmountMatch, amountDiscoveryAggregation(subAmount, nil))).
-			AddAggregation("subTimeMatched", filteredDiscoveryAggregation(subTime, subTimeMatch, timeDiscoveryAggregation(subTime, nil)))
+			AddAggregation("subRelMatched", filteredDiscoveryAggregation(subRel, subRelMatch, relDiscoveryAggregation(subRel, nil), hidden)).
+			AddAggregation("subAmountMatched", filteredDiscoveryAggregation(subAmount, subAmountMatch, amountDiscoveryAggregation(subAmount, nil), hidden)).
+			AddAggregation("subTimeMatched", filteredDiscoveryAggregation(subTime, subTimeMatch, timeDiscoveryAggregation(subTime, nil), hidden))
 		// A matched claim-type special surfaces sub properties that carry it but rank beyond the sub cap,
 		// the analogue of subRelMatched. Folded by mergeMatchedSubFacets like the text sub pass.
 		if subRelSpecialMatch != nil {
 			buckets = buckets.
-				AddAggregation("subRelSpecialMatched", filteredDiscoveryAggregation(subRel, subRelSpecialMatch, relDiscoveryAggregation(subRel, nil)))
+				AddAggregation("subRelSpecialMatched", filteredDiscoveryAggregation(subRel, subRelSpecialMatch, relDiscoveryAggregation(subRel, nil), hidden))
 		}
 	}
 	return buckets
@@ -528,7 +565,11 @@ func parseParentBucket(parentBucket types.StringTermsBucket, set *facetSet, valu
 	if errE != nil {
 		return errE
 	}
-	subRelTerms, errE := internalSearch.AggAs[types.StringTermsAggregate](subRelNested.Aggregations, "props")
+	subRelScoped, errE := internalSearch.AggAs[types.FilterAggregate](subRelNested.Aggregations, "scoped")
+	if errE != nil {
+		return errE
+	}
+	subRelTerms, errE := internalSearch.AggAs[types.StringTermsAggregate](subRelScoped.Aggregations, "props")
 	if errE != nil {
 		return errE
 	}
@@ -552,7 +593,11 @@ func parseParentBucket(parentBucket types.StringTermsBucket, set *facetSet, valu
 	if errE != nil {
 		return errE
 	}
-	subAmountTerms, errE := internalSearch.AggAs[types.MultiTermsAggregate](subAmountNested.Aggregations, "props")
+	subAmountScoped, errE := internalSearch.AggAs[types.FilterAggregate](subAmountNested.Aggregations, "scoped")
+	if errE != nil {
+		return errE
+	}
+	subAmountTerms, errE := internalSearch.AggAs[types.MultiTermsAggregate](subAmountScoped.Aggregations, "props")
 	if errE != nil {
 		return errE
 	}
@@ -567,7 +612,11 @@ func parseParentBucket(parentBucket types.StringTermsBucket, set *facetSet, valu
 	if errE != nil {
 		return errE
 	}
-	subTimeTerms, errE := internalSearch.AggAs[types.StringTermsAggregate](subTimeNested.Aggregations, "props")
+	subTimeScoped, errE := internalSearch.AggAs[types.FilterAggregate](subTimeNested.Aggregations, "scoped")
+	if errE != nil {
+		return errE
+	}
+	subTimeTerms, errE := internalSearch.AggAs[types.StringTermsAggregate](subTimeScoped.Aggregations, "props")
 	if errE != nil {
 		return errE
 	}
@@ -844,9 +893,15 @@ func specialFacetPasses(specials requestedSpecials, ct relClaimTypeSet, isRef, h
 // FiltersGet retrieves all available filters for the current search: one entry per discovered
 // facet (value-list, amount per unit, time), the pooled has facet (top-level and per parent
 // property), and one entry per active filter with its availability count.
+//
+// hiddenFacetProperties drops, inside every discovery aggregation, the records whose property path
+// contains one of the given property IDs, top-level and sub-facets alike, so hidden facets are not
+// discovered, take up none of the discovery slots (see MaxResultsCount), and do not count towards the
+// per-type totals; active filters are returned regardless, so a filter already in the session stays
+// visible.
 func FiltersGet( //nolint:maintidx
 	ctx context.Context, getSearchService func() *esSearch.Search, searchSession *Session, languages *Languages,
-	valueQuery string, extraFilters ...types.QueryVariant,
+	valueQuery string, hiddenFacetProperties map[string]bool, extraFilters ...types.QueryVariant,
 ) ([]FilterResult, map[string]any, errors.E) {
 	metrics, _ := waf.GetMetrics(ctx)
 
@@ -890,17 +945,19 @@ func FiltersGet( //nolint:maintidx
 			[]string{timePath + ".fromDisplay", timePath + ".toDisplay"}, valueQuery, enabledLanguages)
 	}
 
-	// Top-level discovery: one aggregation per facetable collection.
+	// Top-level discovery: one aggregation per facetable collection, each scoped to the records of
+	// properties which are not hidden.
 	searchService = searchService.
 		AddAggregation("rel", esdsl.NewAggregations().
 			Nested(esdsl.NewNestedAggregation().Path(relPath)).
-			AddAggregation("props", relDiscoveryAggregation(relPath, relMatch))).
+			AddAggregation("scoped", scopedDiscoveryAggregation(hiddenFacetProperties, "props", relDiscoveryAggregation(relPath, relMatch), relPath+".prop"))).
 		AddAggregation("amount", esdsl.NewAggregations().
 			Nested(esdsl.NewNestedAggregation().Path(amountPath)).
-			AddAggregation("props", amountDiscoveryAggregation(amountPath, amountMatch))).
+			AddAggregation("scoped", scopedDiscoveryAggregation(
+				hiddenFacetProperties, "props", amountDiscoveryAggregation(amountPath, amountMatch), amountPath+".prop"))).
 		AddAggregation("time", esdsl.NewAggregations().
 			Nested(esdsl.NewNestedAggregation().Path(timePath)).
-			AddAggregation("props", timeDiscoveryAggregation(timePath, timeMatch))).
+			AddAggregation("scoped", scopedDiscoveryAggregation(hiddenFacetProperties, "props", timeDiscoveryAggregation(timePath, timeMatch), timePath+".prop"))).
 		// The pooled has facet's count: distinct documents with any has claim. It is a document-level
 		// root filter (the same query the active pooled-has availability count uses), so the inactive
 		// heading and the active count agree by construction.
@@ -913,15 +970,15 @@ func FiltersGet( //nolint:maintidx
 	// still provides the full, value-query-independent counts for the facets it covers.
 	if valueQueryActive {
 		searchService = searchService.
-			AddAggregation("relMatched", filteredDiscoveryAggregation(relPath, relMatch, relDiscoveryAggregation(relPath, nil))).
-			AddAggregation("amountMatched", filteredDiscoveryAggregation(amountPath, amountMatch, amountDiscoveryAggregation(amountPath, nil))).
-			AddAggregation("timeMatched", filteredDiscoveryAggregation(timePath, timeMatch, timeDiscoveryAggregation(timePath, nil)))
+			AddAggregation("relMatched", filteredDiscoveryAggregation(relPath, relMatch, relDiscoveryAggregation(relPath, nil), hiddenFacetProperties)).
+			AddAggregation("amountMatched", filteredDiscoveryAggregation(amountPath, amountMatch, amountDiscoveryAggregation(amountPath, nil), hiddenFacetProperties)).
+			AddAggregation("timeMatched", filteredDiscoveryAggregation(timePath, timeMatch, timeDiscoveryAggregation(timePath, nil), hiddenFacetProperties))
 		// A matched claim-type special (none/unknown/has/direct) surfaces the rel properties that carry it
 		// but rank beyond the cap, the analogue of the text passes above. The inner aggregation is the same
 		// rel discovery, so mergeMatchedRelFacets folds it in exactly like the text pass.
 		if relSpecialMatch != nil {
 			searchService = searchService.
-				AddAggregation("relSpecialMatched", filteredDiscoveryAggregation(relPath, relSpecialMatch, relDiscoveryAggregation(relPath, nil)))
+				AddAggregation("relSpecialMatched", filteredDiscoveryAggregation(relPath, relSpecialMatch, relDiscoveryAggregation(relPath, nil), hiddenFacetProperties))
 		}
 	}
 
@@ -944,10 +1001,13 @@ func FiltersGet( //nolint:maintidx
 				[]string{subTime + ".fromDisplay", subTime + ".toDisplay"}, valueQuery, enabledLanguages)
 			subRelSpecialMatch = relSpecialPresenceQuery(subRel, specials)
 		}
+		// The parent enumeration is scoped on the parent claim's own property, so a hidden parent property
+		// takes none of the parent slots and none of its sub facets are discovered.
 		searchService = searchService.AddAggregation("sub:"+parent, esdsl.NewAggregations().
 			Nested(esdsl.NewNestedAggregation().Path(parentPath(parent))).
-			AddAggregation("parents", parentDiscoveryBuckets(
-				parent, subRel, subAmount, subTime, subRelMatch, subAmountMatch, subTimeMatch, subRelSpecialMatch, valueQuery, enabledLanguages)))
+			AddAggregation("scoped", scopedDiscoveryAggregation(hiddenFacetProperties, "parents", parentDiscoveryBuckets(
+				parent, subRel, subAmount, subTime, subRelMatch, subAmountMatch, subTimeMatch, subRelSpecialMatch,
+				valueQuery, enabledLanguages, hiddenFacetProperties), parentPath(parent)+".prop")))
 
 		// When a value query is active, a filtered parent enumeration surfaces parent properties that
 		// match the query but rank beyond the parent-property Size cap by document count. A parent
@@ -968,13 +1028,17 @@ func FiltersGet( //nolint:maintidx
 			if subRelSpecialMatch != nil {
 				parentShoulds = append(parentShoulds, esdsl.NewNestedQuery(subRelSpecialMatch).Path(subRel))
 			}
-			parentMatchFilter := esdsl.NewBoolQuery().Should(parentShoulds...).MinimumShouldMatch(esdsl.NewMinimumShouldMatch().Int(1))
+			// Hidden parent properties are dropped here too, so this pass cannot surface a parent property
+			// the unfiltered enumeration hides.
+			parentMatchFilter := esdsl.NewBoolQuery().Should(parentShoulds...).MinimumShouldMatch(esdsl.NewMinimumShouldMatch().Int(1)).
+				MustNot(hiddenFacetClauses(hiddenFacetProperties, parentPath(parent)+".prop")...)
 			searchService = searchService.AddAggregation("sub:"+parent+":beyondParents", esdsl.NewAggregations().
 				Nested(esdsl.NewNestedAggregation().Path(parentPath(parent))).
 				AddAggregation("filter", esdsl.NewAggregations().
 					Filter(parentMatchFilter).
 					AddAggregation("parents", parentDiscoveryBuckets(
-						parent, subRel, subAmount, subTime, subRelMatch, subAmountMatch, subTimeMatch, subRelSpecialMatch, valueQuery, enabledLanguages))))
+						parent, subRel, subAmount, subTime, subRelMatch, subAmountMatch, subTimeMatch, subRelSpecialMatch,
+						valueQuery, enabledLanguages, hiddenFacetProperties))))
 		}
 	}
 
@@ -1022,7 +1086,11 @@ func FiltersGet( //nolint:maintidx
 	if errE != nil {
 		return nil, nil, errE
 	}
-	relTerms, errE := internalSearch.AggAs[types.StringTermsAggregate](relNested.Aggregations, "props")
+	relScoped, errE := internalSearch.AggAs[types.FilterAggregate](relNested.Aggregations, "scoped")
+	if errE != nil {
+		return nil, nil, errE
+	}
+	relTerms, errE := internalSearch.AggAs[types.StringTermsAggregate](relScoped.Aggregations, "props")
 	if errE != nil {
 		return nil, nil, errE
 	}
@@ -1041,7 +1109,11 @@ func FiltersGet( //nolint:maintidx
 	if errE != nil {
 		return nil, nil, errE
 	}
-	amountTerms, errE := internalSearch.AggAs[types.MultiTermsAggregate](amountNested.Aggregations, "props")
+	amountScoped, errE := internalSearch.AggAs[types.FilterAggregate](amountNested.Aggregations, "scoped")
+	if errE != nil {
+		return nil, nil, errE
+	}
+	amountTerms, errE := internalSearch.AggAs[types.MultiTermsAggregate](amountScoped.Aggregations, "props")
 	if errE != nil {
 		return nil, nil, errE
 	}
@@ -1060,7 +1132,11 @@ func FiltersGet( //nolint:maintidx
 	if errE != nil {
 		return nil, nil, errE
 	}
-	timeTerms, errE := internalSearch.AggAs[types.StringTermsAggregate](timeNested.Aggregations, "props")
+	timeScoped, errE := internalSearch.AggAs[types.FilterAggregate](timeNested.Aggregations, "scoped")
+	if errE != nil {
+		return nil, nil, errE
+	}
+	timeTerms, errE := internalSearch.AggAs[types.StringTermsAggregate](timeScoped.Aggregations, "props")
 	if errE != nil {
 		return nil, nil, errE
 	}
@@ -1136,7 +1212,11 @@ func FiltersGet( //nolint:maintidx
 		if errE != nil {
 			return nil, nil, errE
 		}
-		parentTerms, errE := internalSearch.AggAs[types.StringTermsAggregate](subNested.Aggregations, "parents")
+		parentScoped, errE := internalSearch.AggAs[types.FilterAggregate](subNested.Aggregations, "scoped")
+		if errE != nil {
+			return nil, nil, errE
+		}
+		parentTerms, errE := internalSearch.AggAs[types.StringTermsAggregate](parentScoped.Aggregations, "parents")
 		if errE != nil {
 			return nil, nil, errE
 		}
@@ -1176,7 +1256,11 @@ func FiltersGet( //nolint:maintidx
 			if errE != nil {
 				return nil, nil, errE
 			}
-			parentTerms, errE := internalSearch.AggAs[types.StringTermsAggregate](subNested.Aggregations, "parents")
+			parentScoped, errE := internalSearch.AggAs[types.FilterAggregate](subNested.Aggregations, "scoped")
+			if errE != nil {
+				return nil, nil, errE
+			}
+			parentTerms, errE := internalSearch.AggAs[types.StringTermsAggregate](parentScoped.Aggregations, "parents")
 			if errE != nil {
 				return nil, nil, errE
 			}

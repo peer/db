@@ -59,7 +59,18 @@
           }
         },
         "filter": {
-          "bool": {}
+          "bool": {
+            "must_not": [
+              {
+                "terms": {
+                  "claims.amount.prop": [
+                    "4UNChpyCeNV1NtnUd6RNGp",
+                    "LgMtFKvXE3G8WYTSFBNSHX"
+                  ]
+                }
+              }
+            ]
+          }
         }
       }
     },
@@ -151,7 +162,18 @@
           }
         },
         "filter": {
-          "bool": {}
+          "bool": {
+            "must_not": [
+              {
+                "terms": {
+                  "claims.rel.prop": [
+                    "4UNChpyCeNV1NtnUd6RNGp",
+                    "LgMtFKvXE3G8WYTSFBNSHX"
+                  ]
+                }
+              }
+            ]
+          }
         }
       }
     },
@@ -193,7 +215,18 @@
                       }
                     },
                     "filter": {
-                      "bool": {}
+                      "bool": {
+                        "must_not": [
+                          {
+                            "terms": {
+                              "claims.amount.sub.amount.prop": [
+                                "4UNChpyCeNV1NtnUd6RNGp",
+                                "LgMtFKvXE3G8WYTSFBNSHX"
+                              ]
+                            }
+                          }
+                        ]
+                      }
                     }
                   }
                 },
@@ -285,7 +318,18 @@
                       }
                     },
                     "filter": {
-                      "bool": {}
+                      "bool": {
+                        "must_not": [
+                          {
+                            "terms": {
+                              "claims.amount.sub.rel.prop": [
+                                "4UNChpyCeNV1NtnUd6RNGp",
+                                "LgMtFKvXE3G8WYTSFBNSHX"
+                              ]
+                            }
+                          }
+                        ]
+                      }
                     }
                   }
                 },
@@ -313,7 +357,18 @@
                       }
                     },
                     "filter": {
-                      "bool": {}
+                      "bool": {
+                        "must_not": [
+                          {
+                            "terms": {
+                              "claims.amount.sub.time.prop": [
+                                "4UNChpyCeNV1NtnUd6RNGp",
+                                "LgMtFKvXE3G8WYTSFBNSHX"
+                              ]
+                            }
+                          }
+                        ]
+                      }
                     }
                   }
                 },
@@ -329,7 +384,18 @@
           }
         },
         "filter": {
-          "bool": {}
+          "bool": {
+            "must_not": [
+              {
+                "terms": {
+                  "claims.amount.prop": [
+                    "4UNChpyCeNV1NtnUd6RNGp",
+                    "LgMtFKvXE3G8WYTSFBNSHX"
+                  ]
+                }
+              }
+            ]
+          }
         }
       }
     },
@@ -371,7 +437,18 @@
                       }
                     },
                     "filter": {
-                      "bool": {}
+                      "bool": {
+                        "must_not": [
+                          {
+                            "terms": {
+                              "claims.html.sub.amount.prop": [
+                                "4UNChpyCeNV1NtnUd6RNGp",
+                                "LgMtFKvXE3G8WYTSFBNSHX"
+                              ]
+                            }
+                          }
+                        ]
+                      }
                     }
                   }
                 },
@@ -463,7 +540,18 @@
                       }
                     },
                     "filter": {
-                      "bool": {}
+                      "bool": {
+                        "must_not": [
+                          {
+                            "terms": {
+                              "claims.html.sub.rel.prop": [
+                                "4UNChpyCeNV1NtnUd6RNGp",
+                                "LgMtFKvXE3G8WYTSFBNSHX"
+                              ]
+                            }
+                          }
+                        ]
+                      }
                     }
                   }
                 },
@@ -491,7 +579,18 @@
                       }
                     },
                     "filter": {
-                      "bool": {}
+                      "bool": {
+                        "must_not": [
+                          {
+                            "terms": {
+                              "claims.html.sub.time.prop": [
+                                "4UNChpyCeNV1NtnUd6RNGp",
+                                "LgMtFKvXE3G8WYTSFBNSHX"
+                              ]
+                            }
+                          }
+                        ]
+                      }
                     }
                   }
                 },
@@ -507,7 +606,18 @@
           }
         },
         "filter": {
-          "bool": {}
+          "bool": {
+            "must_not": [
+              {
+                "terms": {
+                  "claims.html.prop": [
+                    "4UNChpyCeNV1NtnUd6RNGp",
+                    "LgMtFKvXE3G8WYTSFBNSHX"
+                  ]
+                }
+              }
+            ]
+          }
         }
       }
     },
@@ -549,7 +659,18 @@
                       }
                     },
                     "filter": {
-                      "bool": {}
+                      "bool": {
+                        "must_not": [
+                          {
+                            "terms": {
+                              "claims.id.sub.amount.prop": [
+                                "4UNChpyCeNV1NtnUd6RNGp",
+                                "LgMtFKvXE3G8WYTSFBNSHX"
+                              ]
+                            }
+                          }
+                        ]
+                      }
                     }
                   }
                 },
@@ -641,7 +762,18 @@
                       }
                     },
                     "filter": {
-                      "bool": {}
+                      "bool": {
+                        "must_not": [
+                          {
+                            "terms": {
+                              "claims.id.sub.rel.prop": [
+                                "4UNChpyCeNV1NtnUd6RNGp",
+                                "LgMtFKvXE3G8WYTSFBNSHX"
+                              ]
+                            }
+                          }
+                        ]
+                      }
                     }
                   }
                 },
@@ -669,7 +801,18 @@
                       }
                     },
                     "filter": {
-                      "bool": {}
+                      "bool": {
+                        "must_not": [
+                          {
+                            "terms": {
+                              "claims.id.sub.time.prop": [
+                                "4UNChpyCeNV1NtnUd6RNGp",
+                                "LgMtFKvXE3G8WYTSFBNSHX"
+                              ]
+                            }
+                          }
+                        ]
+                      }
                     }
                   }
                 },
@@ -685,7 +828,18 @@
           }
         },
         "filter": {
-          "bool": {}
+          "bool": {
+            "must_not": [
+              {
+                "terms": {
+                  "claims.id.prop": [
+                    "4UNChpyCeNV1NtnUd6RNGp",
+                    "LgMtFKvXE3G8WYTSFBNSHX"
+                  ]
+                }
+              }
+            ]
+          }
         }
       }
     },
@@ -727,7 +881,18 @@
                       }
                     },
                     "filter": {
-                      "bool": {}
+                      "bool": {
+                        "must_not": [
+                          {
+                            "terms": {
+                              "claims.link.sub.amount.prop": [
+                                "4UNChpyCeNV1NtnUd6RNGp",
+                                "LgMtFKvXE3G8WYTSFBNSHX"
+                              ]
+                            }
+                          }
+                        ]
+                      }
                     }
                   }
                 },
@@ -819,7 +984,18 @@
                       }
                     },
                     "filter": {
-                      "bool": {}
+                      "bool": {
+                        "must_not": [
+                          {
+                            "terms": {
+                              "claims.link.sub.rel.prop": [
+                                "4UNChpyCeNV1NtnUd6RNGp",
+                                "LgMtFKvXE3G8WYTSFBNSHX"
+                              ]
+                            }
+                          }
+                        ]
+                      }
                     }
                   }
                 },
@@ -847,7 +1023,18 @@
                       }
                     },
                     "filter": {
-                      "bool": {}
+                      "bool": {
+                        "must_not": [
+                          {
+                            "terms": {
+                              "claims.link.sub.time.prop": [
+                                "4UNChpyCeNV1NtnUd6RNGp",
+                                "LgMtFKvXE3G8WYTSFBNSHX"
+                              ]
+                            }
+                          }
+                        ]
+                      }
                     }
                   }
                 },
@@ -863,7 +1050,18 @@
           }
         },
         "filter": {
-          "bool": {}
+          "bool": {
+            "must_not": [
+              {
+                "terms": {
+                  "claims.link.prop": [
+                    "4UNChpyCeNV1NtnUd6RNGp",
+                    "LgMtFKvXE3G8WYTSFBNSHX"
+                  ]
+                }
+              }
+            ]
+          }
         }
       }
     },
@@ -905,7 +1103,18 @@
                       }
                     },
                     "filter": {
-                      "bool": {}
+                      "bool": {
+                        "must_not": [
+                          {
+                            "terms": {
+                              "claims.rel.sub.amount.prop": [
+                                "4UNChpyCeNV1NtnUd6RNGp",
+                                "LgMtFKvXE3G8WYTSFBNSHX"
+                              ]
+                            }
+                          }
+                        ]
+                      }
                     }
                   }
                 },
@@ -997,7 +1206,18 @@
                       }
                     },
                     "filter": {
-                      "bool": {}
+                      "bool": {
+                        "must_not": [
+                          {
+                            "terms": {
+                              "claims.rel.sub.rel.prop": [
+                                "4UNChpyCeNV1NtnUd6RNGp",
+                                "LgMtFKvXE3G8WYTSFBNSHX"
+                              ]
+                            }
+                          }
+                        ]
+                      }
                     }
                   }
                 },
@@ -1025,7 +1245,18 @@
                       }
                     },
                     "filter": {
-                      "bool": {}
+                      "bool": {
+                        "must_not": [
+                          {
+                            "terms": {
+                              "claims.rel.sub.time.prop": [
+                                "4UNChpyCeNV1NtnUd6RNGp",
+                                "LgMtFKvXE3G8WYTSFBNSHX"
+                              ]
+                            }
+                          }
+                        ]
+                      }
                     }
                   }
                 },
@@ -1041,7 +1272,18 @@
           }
         },
         "filter": {
-          "bool": {}
+          "bool": {
+            "must_not": [
+              {
+                "terms": {
+                  "claims.rel.prop": [
+                    "4UNChpyCeNV1NtnUd6RNGp",
+                    "LgMtFKvXE3G8WYTSFBNSHX"
+                  ]
+                }
+              }
+            ]
+          }
         }
       }
     },
@@ -1083,7 +1325,18 @@
                       }
                     },
                     "filter": {
-                      "bool": {}
+                      "bool": {
+                        "must_not": [
+                          {
+                            "terms": {
+                              "claims.string.sub.amount.prop": [
+                                "4UNChpyCeNV1NtnUd6RNGp",
+                                "LgMtFKvXE3G8WYTSFBNSHX"
+                              ]
+                            }
+                          }
+                        ]
+                      }
                     }
                   }
                 },
@@ -1175,7 +1428,18 @@
                       }
                     },
                     "filter": {
-                      "bool": {}
+                      "bool": {
+                        "must_not": [
+                          {
+                            "terms": {
+                              "claims.string.sub.rel.prop": [
+                                "4UNChpyCeNV1NtnUd6RNGp",
+                                "LgMtFKvXE3G8WYTSFBNSHX"
+                              ]
+                            }
+                          }
+                        ]
+                      }
                     }
                   }
                 },
@@ -1203,7 +1467,18 @@
                       }
                     },
                     "filter": {
-                      "bool": {}
+                      "bool": {
+                        "must_not": [
+                          {
+                            "terms": {
+                              "claims.string.sub.time.prop": [
+                                "4UNChpyCeNV1NtnUd6RNGp",
+                                "LgMtFKvXE3G8WYTSFBNSHX"
+                              ]
+                            }
+                          }
+                        ]
+                      }
                     }
                   }
                 },
@@ -1219,7 +1494,18 @@
           }
         },
         "filter": {
-          "bool": {}
+          "bool": {
+            "must_not": [
+              {
+                "terms": {
+                  "claims.string.prop": [
+                    "4UNChpyCeNV1NtnUd6RNGp",
+                    "LgMtFKvXE3G8WYTSFBNSHX"
+                  ]
+                }
+              }
+            ]
+          }
         }
       }
     },
@@ -1261,7 +1547,18 @@
                       }
                     },
                     "filter": {
-                      "bool": {}
+                      "bool": {
+                        "must_not": [
+                          {
+                            "terms": {
+                              "claims.time.sub.amount.prop": [
+                                "4UNChpyCeNV1NtnUd6RNGp",
+                                "LgMtFKvXE3G8WYTSFBNSHX"
+                              ]
+                            }
+                          }
+                        ]
+                      }
                     }
                   }
                 },
@@ -1353,7 +1650,18 @@
                       }
                     },
                     "filter": {
-                      "bool": {}
+                      "bool": {
+                        "must_not": [
+                          {
+                            "terms": {
+                              "claims.time.sub.rel.prop": [
+                                "4UNChpyCeNV1NtnUd6RNGp",
+                                "LgMtFKvXE3G8WYTSFBNSHX"
+                              ]
+                            }
+                          }
+                        ]
+                      }
                     }
                   }
                 },
@@ -1381,7 +1689,18 @@
                       }
                     },
                     "filter": {
-                      "bool": {}
+                      "bool": {
+                        "must_not": [
+                          {
+                            "terms": {
+                              "claims.time.sub.time.prop": [
+                                "4UNChpyCeNV1NtnUd6RNGp",
+                                "LgMtFKvXE3G8WYTSFBNSHX"
+                              ]
+                            }
+                          }
+                        ]
+                      }
                     }
                   }
                 },
@@ -1397,7 +1716,18 @@
           }
         },
         "filter": {
-          "bool": {}
+          "bool": {
+            "must_not": [
+              {
+                "terms": {
+                  "claims.time.prop": [
+                    "4UNChpyCeNV1NtnUd6RNGp",
+                    "LgMtFKvXE3G8WYTSFBNSHX"
+                  ]
+                }
+              }
+            ]
+          }
         }
       }
     },
@@ -1425,7 +1755,18 @@
           }
         },
         "filter": {
-          "bool": {}
+          "bool": {
+            "must_not": [
+              {
+                "terms": {
+                  "claims.time.prop": [
+                    "4UNChpyCeNV1NtnUd6RNGp",
+                    "LgMtFKvXE3G8WYTSFBNSHX"
+                  ]
+                }
+              }
+            ]
+          }
         }
       }
     },

@@ -182,11 +182,11 @@ func Init(ctx context.Context, globals *Globals) (func(), errors.E) {
 	return onShutdownF, nil
 }
 
-// InitSites sets up default site configuration and build information if needed. It also applies consumer
-// site defaults (through Customize.SiteDefaults) to every site: sites from the configuration already received
-// them during configuration validation, but the default site synthesized here did not, and callers which populate
-// Globals programmatically (without command-line parsing) get them here as well. SiteDefaults is idempotent,
-// so the repeated application is safe.
+// InitSites sets up default site configuration and build information if needed. It also applies site
+// defaults (PeerDB defaults followed by Customize.SiteDefaults) to every site: sites from the configuration
+// already received them during configuration validation, but the default site synthesized here did not, and
+// callers which populate Globals programmatically (without command-line parsing) get them here as well.
+// Applying site defaults is idempotent, so the repeated application is safe.
 func InitSites(globals *Globals) errors.E {
 	if len(globals.Sites) == 0 {
 		globals.Sites = []internalSite.Site{{
@@ -219,12 +219,10 @@ func InitSites(globals *Globals) errors.E {
 		}}
 	}
 
-	if globals.Customize.SiteDefaults != nil {
-		for i := range globals.Sites {
-			errE := globals.Customize.SiteDefaults(&globals.Sites[i])
-			if errE != nil {
-				return errE
-			}
+	for i := range globals.Sites {
+		errE := applySiteDefaults(globals.Customize, &globals.Sites[i])
+		if errE != nil {
+			return errE
 		}
 	}
 

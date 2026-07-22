@@ -57,18 +57,50 @@ type StorageConfig struct {
 // All hooks are optional. Set it on Globals in code before command-line parsing.
 type Customizer struct {
 	// SiteDefaults is called for every site after the configuration file and command-line flags have been
-	// applied and before the site is validated. It can fill defaults into fields the configuration left
-	// unset (the configuration can then override such fields) or overwrite fields unconditionally (such
-	// fields are fixed by code and the configuration cannot change them). It is also called for sites
-	// synthesized when none are configured (the default site and the domain/certificate-based sites),
-	// and can run more than once for the same site, so it must be idempotent and accept values it
-	// has set itself.
+	// applied, after PeerDB has filled its own defaults into fields the configuration left unset (see
+	// applySiteDefaults), and before the site is validated. It can keep, extend, replace, or unset those
+	// defaults, fill defaults into further fields the configuration left unset (the configuration can then
+	// override such fields), or overwrite fields unconditionally (such fields are fixed by code and the
+	// configuration cannot change them). Roles and Visibility are exceptions: they are still unset here
+	// when the configuration left them unset (their degenerate-case defaults are filled in during
+	// validation), so a customizer can distinguish a configured value from an unset one for them.
+	// SiteDefaults is also called for sites synthesized when none are configured (the default site and
+	// the domain/certificate-based sites), and can run more than once for the same site, so it must be
+	// idempotent and accept values it has set itself.
 	SiteDefaults func(site *Site) errors.E
 
 	// ConfigureBase is called for every site right after Init has populated site.Base and before the base
 	// is started, in every command which initializes the base. It is the place to register document, file,
 	// and indexing hooks on the base. It is called exactly once per site.
 	ConfigureBase func(site *Site) errors.E
+}
+
+// applySiteDefaults fills PeerDB defaults into site fields the configuration left unset and then calls
+// the consumer's SiteDefaults customizer (when set), so the customizer always observes the defaults
+// already applied and can keep, extend, replace, or unset them. Roles and Visibility are deliberately
+// not defaulted here: for them a customizer needs to distinguish a configured value from an unset one
+// (to apply its own defaults, or to reject configured values fixed in code), so their degenerate-case
+// defaults are filled in later, during validation (see Site.Validate). Both the defaulting and (per its
+// contract) the customizer are idempotent, so this can run more than once for the same site.
+func applySiteDefaults(customize Customizer, site *Site) errors.E {
+	// These cannot be set through kong defaults because sites come from the configuration as values,
+	// not through per-field flag parsing.
+	if site.IndexPrefix == "" {
+		site.IndexPrefix = DefaultIndexPrefix
+	}
+	if site.Schema == "" {
+		site.Schema = DefaultSchema
+	}
+	if site.Title == "" {
+		site.Title = DefaultTitle
+	}
+	if site.Features.HiddenFacetProperties == nil {
+		site.Features.HiddenFacetProperties = internalSite.DefaultHiddenFacetProperties()
+	}
+	if customize.SiteDefaults != nil {
+		return customize.SiteDefaults(site)
+	}
+	return nil
 }
 
 // Globals describes top-level (global) flags.
@@ -99,28 +131,18 @@ func (g *Globals) Validate() error {
 			return errE
 		}
 
-		// Consumer defaults run before validation, so that they see the raw configured state (e.g. an
-		// empty Visibility is still empty, not yet defaulted by validation) and so that the values they
-		// set are validated.
-		if g.Customize.SiteDefaults != nil {
-			errE := g.Customize.SiteDefaults(&site)
-			if errE != nil {
-				return errE
-			}
+		// Defaults and the consumer customizer run before validation, so that the customizer sees Roles
+		// and Visibility in their raw configured state (e.g. an empty Visibility is still empty, not yet
+		// defaulted by validation) and so that the values it sets are validated.
+		errE := applySiteDefaults(g.Customize, &site)
+		if errE != nil {
+			return errE
 		}
 
 		// To make sure validation is called.
 		err := site.Validate()
 		if err != nil {
 			return errors.WithStack(err)
-		}
-
-		// We cannot use kong to set these defaults, so we do it here.
-		if site.IndexPrefix == "" {
-			site.IndexPrefix = DefaultIndexPrefix
-		}
-		if site.Title == "" {
-			site.Title = DefaultTitle
 		}
 
 		if !domains.Add(site.Domain) {

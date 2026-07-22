@@ -871,9 +871,10 @@ func (s *Service) SearchFiltersGetAPI(w http.ResponseWriter, req *http.Request, 
 		return
 	}
 
+	site := waf.MustGetSite[*internalSite.Site](ctx)
 	data, metadata, errE := search.FiltersGet(
 		ctx, s.getSearchServiceClosure(req, index), searchSession, searchLanguages(ctx, searchSession.Language),
-		req.URL.Query().Get("q"), accessFilter,
+		req.URL.Query().Get("q"), site.HiddenFacetPropertySet(), accessFilter,
 	)
 	if errors.Is(errE, search.ErrValidationFailed) {
 		s.BadRequestWithError(w, req, errE)

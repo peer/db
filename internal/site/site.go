@@ -74,6 +74,25 @@ type SiteFeatures struct {
 	// when indexing: a claim for property X is also indexed for every ancestor of X
 	// via SUBPROPERTY_OF. Disabled by default. Backend-only; not exposed to the frontend.
 	IndexAncestorProperties bool `json:"-" yaml:"indexAncestorProperties,omitempty"`
+
+	// HiddenFacetProperties lists property IDs whose facets are hidden from the filters UI: filter
+	// discovery drops facets whose property path contains one of them, top-level and sub-facets
+	// ("parent > prop") alike. The properties stay indexed, and active filters on them keep working
+	// and being shown. When the configuration leaves this unset (nil), site initialization fills in
+	// DefaultHiddenFacetProperties (the permission properties) before the SiteDefaults customizer
+	// runs, so the customizer can extend, replace, or unset the list; an explicitly empty list hides
+	// none. Backend-only; not exposed to the frontend.
+	HiddenFacetProperties []string `json:"-" yaml:"hiddenFacetProperties,omitempty"`
+}
+
+// DefaultHiddenFacetProperties returns the default value site initialization fills into
+// Features.HiddenFacetProperties when the configuration leaves it unset: the permission properties,
+// whose facets would list permission actions and are not useful for searching.
+func DefaultHiddenFacetProperties() []string {
+	return []string{
+		internalCore.HasPermissionPropID.String(),
+		internalCore.HasRequestedPermissionPropID.String(),
+	}
 }
 
 // Favicon configures the site favicon rendered into the page head. When Href is set, a
@@ -322,6 +341,16 @@ func (s *Site) validateVisibility() errors.E {
 		}
 	}
 	return nil
+}
+
+// HiddenFacetPropertySet returns Features.HiddenFacetProperties as a set.
+func (s *Site) HiddenFacetPropertySet() map[string]bool {
+	props := s.Features.HiddenFacetProperties
+	set := make(map[string]bool, len(props))
+	for _, prop := range props {
+		set[prop] = true
+	}
+	return set
 }
 
 // LevelNames returns the configured visibility level names, from lowest to highest access.

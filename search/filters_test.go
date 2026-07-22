@@ -2,6 +2,7 @@ package search_test
 
 import (
 	"encoding/json"
+	"slices"
 	"sort"
 	"strconv"
 	"testing"
@@ -49,7 +50,7 @@ func TestFiltersGetTotalSaturationIntegration(t *testing.T) {
 
 	session := createSession(t, ctx, search.SessionData{})
 
-	results, metadata, errE := search.FiltersGet(ctx, getSearchService, session, nil, "")
+	results, metadata, errE := search.FiltersGet(ctx, getSearchService, session, nil, "", nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// The total is the seen facet count marked as a lower bound; the returned facet slice is itself
@@ -93,7 +94,7 @@ func TestFiltersGetIntegration(t *testing.T) {
 
 	session := createSession(t, ctx, search.SessionData{})
 
-	filterResults, metadata, errE := search.FiltersGet(ctx, getSearchService, session, nil, "")
+	filterResults, metadata, errE := search.FiltersGet(ctx, getSearchService, session, nil, "", nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// We should have 3 filters: ref, amount, and time.
@@ -150,7 +151,7 @@ func TestFiltersGetWithQueryIntegration(t *testing.T) {
 		Query: "searchable",
 	})
 
-	filterResults, _, errE := search.FiltersGet(ctx, getSearchService, session, nil, "")
+	filterResults, _, errE := search.FiltersGet(ctx, getSearchService, session, nil, "", nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// With query "searchable", only 1 doc matches, so ref filter should have count 1.
@@ -203,13 +204,13 @@ func TestFiltersGetAmountTimeValueDisplayQueryIntegration(t *testing.T) {
 	}
 
 	// A query matching the amount value-bound display surfaces the amount facet but not the time facet.
-	amountResults, _, errE := search.FiltersGet(ctx, getSearchService, session, nil, "1500*")
+	amountResults, _, errE := search.FiltersGet(ctx, getSearchService, session, nil, "1500*", nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.True(t, hasFacet(amountResults, "amount", amountProp.String()), "amount facet should match its value display")
 	assert.False(t, hasFacet(amountResults, "time", timeProp.String()), "time facet should not match the amount value")
 
 	// A query matching the time value-bound display surfaces the time facet but not the amount facet.
-	timeResults, _, errE := search.FiltersGet(ctx, getSearchService, session, nil, "2020*")
+	timeResults, _, errE := search.FiltersGet(ctx, getSearchService, session, nil, "2020*", nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.True(t, hasFacet(timeResults, "time", timeProp.String()), "time facet should match its value display")
 	assert.False(t, hasFacet(timeResults, "amount", amountProp.String()), "amount facet should not match the time value")
@@ -263,13 +264,13 @@ func TestFiltersGetSubAmountTimeValueDisplayQueryIntegration(t *testing.T) {
 	}
 
 	// A query matching the sub-amount value-bound display surfaces the sub-amount facet but not sub-time.
-	amountResults, _, errE := search.FiltersGet(ctx, getSearchService, session, nil, "1500*")
+	amountResults, _, errE := search.FiltersGet(ctx, getSearchService, session, nil, "1500*", nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.True(t, hasSubFacet(amountResults, "amount", parentProp.String(), subAmountProp.String()), "sub-amount facet should match its value display")
 	assert.False(t, hasSubFacet(amountResults, "time", parentProp.String(), subTimeProp.String()), "sub-time facet should not match the amount value")
 
 	// A query matching the sub-time value-bound display surfaces the sub-time facet but not sub-amount.
-	timeResults, _, errE := search.FiltersGet(ctx, getSearchService, session, nil, "2020*")
+	timeResults, _, errE := search.FiltersGet(ctx, getSearchService, session, nil, "2020*", nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.True(t, hasSubFacet(timeResults, "time", parentProp.String(), subTimeProp.String()), "sub-time facet should match its value display")
 	assert.False(t, hasSubFacet(timeResults, "amount", parentProp.String(), subAmountProp.String()), "sub-amount facet should not match the time value")
@@ -292,7 +293,7 @@ func TestFiltersGetAmountMissingUnitIntegration(t *testing.T) {
 
 	session := createSession(t, ctx, search.SessionData{})
 
-	filterResults, _, errE := search.FiltersGet(ctx, getSearchService, session, nil, "")
+	filterResults, _, errE := search.FiltersGet(ctx, getSearchService, session, nil, "", nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Should have exactly one amount filter with empty unit and count 1.
@@ -344,7 +345,7 @@ func TestFiltersGetValueQueryIntegration(t *testing.T) {
 	}
 
 	// Without a query both facets are available.
-	results, metadata, errE := search.FiltersGet(ctx, getSearchService, session, searchLangs(enabledLanguages), "")
+	results, metadata, errE := search.FiltersGet(ctx, getSearchService, session, searchLangs(enabledLanguages), "", nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.True(t, has(results, "ref", instanceOf))
 	assert.True(t, has(results, "amount", height))
@@ -352,28 +353,28 @@ func TestFiltersGetValueQueryIntegration(t *testing.T) {
 	assert.Equal(t, "2", metadata["total"])
 
 	// Matching a facet by its own property name keeps only that facet, but the total stays the same.
-	results, metadata, errE = search.FiltersGet(ctx, getSearchService, session, searchLangs(enabledLanguages), "instance*")
+	results, metadata, errE = search.FiltersGet(ctx, getSearchService, session, searchLangs(enabledLanguages), "instance*", nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.True(t, has(results, "ref", instanceOf))
 	assert.False(t, has(results, "amount", height))
 	assert.Equal(t, "2", metadata["total"])
 
 	// Matching a reference facet by one of its value names keeps that facet too.
-	results, metadata, errE = search.FiltersGet(ctx, getSearchService, session, searchLangs(enabledLanguages), "germ*")
+	results, metadata, errE = search.FiltersGet(ctx, getSearchService, session, searchLangs(enabledLanguages), "germ*", nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.True(t, has(results, "ref", instanceOf))
 	assert.False(t, has(results, "amount", height))
 	assert.Equal(t, "2", metadata["total"])
 
 	// An amount facet is reachable by its name even though its values (numbers) cannot be searched.
-	results, metadata, errE = search.FiltersGet(ctx, getSearchService, session, searchLangs(enabledLanguages), "heig*")
+	results, metadata, errE = search.FiltersGet(ctx, getSearchService, session, searchLangs(enabledLanguages), "heig*", nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.True(t, has(results, "amount", height))
 	assert.False(t, has(results, "ref", instanceOf))
 	assert.Equal(t, "2", metadata["total"])
 
 	// A query that matches no facet name or value returns no facets, yet the total still reports both.
-	results, metadata, errE = search.FiltersGet(ctx, getSearchService, session, searchLangs(enabledLanguages), "zzz*")
+	results, metadata, errE = search.FiltersGet(ctx, getSearchService, session, searchLangs(enabledLanguages), "zzz*", nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.False(t, has(results, "ref", instanceOf))
 	assert.False(t, has(results, "amount", height))
@@ -422,7 +423,7 @@ func TestFiltersGetRefDiscoveryCountValueQueryIntegration(t *testing.T) {
 	}
 
 	// Without a value query both facets are available at their full document counts.
-	results, metadata, errE := search.FiltersGet(ctx, getSearchService, session, searchLangs(enabledLanguages), "")
+	results, metadata, errE := search.FiltersGet(ctx, getSearchService, session, searchLangs(enabledLanguages), "", nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	c, ok := count(results, instanceOf)
 	assert.True(t, ok, "instance of facet present without query")
@@ -434,7 +435,7 @@ func TestFiltersGetRefDiscoveryCountValueQueryIntegration(t *testing.T) {
 
 	// A value query matching only one of the three values keeps the facet at its full count (3, not 1) and
 	// drops the facet that matches nothing, while the available-filters total is unchanged.
-	results, metadata, errE = search.FiltersGet(ctx, getSearchService, session, searchLangs(enabledLanguages), "germ*")
+	results, metadata, errE = search.FiltersGet(ctx, getSearchService, session, searchLangs(enabledLanguages), "germ*", nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	c, ok = count(results, instanceOf)
 	assert.True(t, ok, "instance of facet present under matching query")
@@ -444,7 +445,7 @@ func TestFiltersGetRefDiscoveryCountValueQueryIntegration(t *testing.T) {
 	assert.Equal(t, "2", metadata["total"])
 
 	// A query that matches nothing drops both facets but still reports the full total.
-	results, metadata, errE = search.FiltersGet(ctx, getSearchService, session, searchLangs(enabledLanguages), "zzz*")
+	results, metadata, errE = search.FiltersGet(ctx, getSearchService, session, searchLangs(enabledLanguages), "zzz*", nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	_, ok = count(results, instanceOf)
 	assert.False(t, ok, "instance of facet absent under non-matching query")
@@ -483,7 +484,7 @@ func TestFiltersGetHasDiscoveryCountValueQueryIntegration(t *testing.T) {
 	}
 
 	// Without a value query the has facet reports all documents with any has claim.
-	results, metadata, errE := search.FiltersGet(ctx, getSearchService, session, searchLangs(enabledLanguages), "")
+	results, metadata, errE := search.FiltersGet(ctx, getSearchService, session, searchLangs(enabledLanguages), "", nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	c, ok := hasCount(results)
 	assert.True(t, ok, "has facet present without query")
@@ -492,7 +493,7 @@ func TestFiltersGetHasDiscoveryCountValueQueryIntegration(t *testing.T) {
 
 	// A value query matching only one has-property keeps the facet at its full document count (3, not 1),
 	// while the available-filters total is unchanged.
-	results, metadata, errE = search.FiltersGet(ctx, getSearchService, session, searchLangs(enabledLanguages), "color*")
+	results, metadata, errE = search.FiltersGet(ctx, getSearchService, session, searchLangs(enabledLanguages), "color*", nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	c, ok = hasCount(results)
 	assert.True(t, ok, "has facet present under matching query")
@@ -500,7 +501,7 @@ func TestFiltersGetHasDiscoveryCountValueQueryIntegration(t *testing.T) {
 	assert.Equal(t, "1", metadata["total"])
 
 	// A query matching no has-property drops the facet but still reports it in the total.
-	results, metadata, errE = search.FiltersGet(ctx, getSearchService, session, searchLangs(enabledLanguages), "zzz*")
+	results, metadata, errE = search.FiltersGet(ctx, getSearchService, session, searchLangs(enabledLanguages), "zzz*", nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	_, ok = hasCount(results)
 	assert.False(t, ok, "has facet absent under non-matching query")
@@ -538,7 +539,7 @@ func TestFiltersGetPooledHasDistinctCountIntegration(t *testing.T) {
 
 	session := createSession(t, ctx, search.SessionData{})
 
-	results, _, errE := search.FiltersGet(ctx, getSearchService, session, nil, "")
+	results, _, errE := search.FiltersGet(ctx, getSearchService, session, nil, "", nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	find := func(typ string, props []string) (search.FilterResult, bool) {
@@ -624,7 +625,7 @@ func TestFiltersGetHasPoolingMigrationIntegration(t *testing.T) {
 
 	session := createSession(t, ctx, search.SessionData{})
 
-	results, metadata, errE := search.FiltersGet(ctx, getSearchService, session, nil, "")
+	results, metadata, errE := search.FiltersGet(ctx, getSearchService, session, nil, "", nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	find := func(typ string, props []string) (search.FilterResult, bool) {
@@ -717,7 +718,7 @@ func TestFiltersGetSubHasPooledIntegration(t *testing.T) {
 
 	session := createSession(t, ctx, search.SessionData{})
 
-	results, metadata, errE := search.FiltersGet(ctx, getSearchService, session, nil, "")
+	results, metadata, errE := search.FiltersGet(ctx, getSearchService, session, nil, "", nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	find := func(typ string, props []string) (search.FilterResult, bool) {
@@ -788,7 +789,7 @@ func TestFiltersGetActiveFilterIntegration(t *testing.T) {
 		}},
 	})
 
-	results, metadata, errE := search.FiltersGet(ctx, getSearchService, session, nil, "")
+	results, metadata, errE := search.FiltersGet(ctx, getSearchService, session, nil, "", nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// The active entry comes first with the filter's ID; its count is the facet's availability in
@@ -849,7 +850,7 @@ func TestFiltersGetSubRefDiscoveryCountValueQueryIntegration(t *testing.T) {
 
 	// Without a value query both sub-facets are available at their full document counts. The parent claims
 	// also surface as a top-level value-list facet, so the total counts three facets.
-	results, metadata, errE := search.FiltersGet(ctx, getSearchService, session, searchLangs(enabledLanguages), "")
+	results, metadata, errE := search.FiltersGet(ctx, getSearchService, session, searchLangs(enabledLanguages), "", nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	c, ok := count(results, instanceOf)
 	assert.True(t, ok, "instance of sub-facet present without query")
@@ -861,7 +862,7 @@ func TestFiltersGetSubRefDiscoveryCountValueQueryIntegration(t *testing.T) {
 
 	// A value query matching only one value keeps the sub-facet at its full count (3, not 1) and drops the
 	// sub-facet that matches nothing, while the available-filters total is unchanged.
-	results, metadata, errE = search.FiltersGet(ctx, getSearchService, session, searchLangs(enabledLanguages), "germ*")
+	results, metadata, errE = search.FiltersGet(ctx, getSearchService, session, searchLangs(enabledLanguages), "germ*", nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	c, ok = count(results, instanceOf)
 	assert.True(t, ok, "instance of sub-facet present under matching query")
@@ -899,7 +900,7 @@ func TestFiltersGetSpecialsActiveValuedFacetIntegration(t *testing.T) {
 	// With nothing selected, discovery offers the amount facet with the reachable-through count:
 	// the three value documents plus the valueless one.
 	emptySession := createSession(t, ctx, search.SessionData{})
-	results, _, errE := search.FiltersGet(ctx, getSearchService, emptySession, nil, "")
+	results, _, errE := search.FiltersGet(ctx, getSearchService, emptySession, nil, "", nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, []search.FilterResult{
 		{Props: []string{amountProp.String()}, Type: "amount", Unit: unitID.String(), FilterID: "", Count: 4},
@@ -920,7 +921,7 @@ func TestFiltersGetSpecialsActiveValuedFacetIntegration(t *testing.T) {
 	// facet (the amount facet with its unit) with the full reachable-through count, and no
 	// specials-only value-list facet is offered beside it.
 	unknownSession := createSession(t, ctx, search.SessionData{Filters: []search.Filter{unknownFilter}}) //nolint:exhaustruct
-	results, _, errE = search.FiltersGet(ctx, getSearchService, unknownSession, nil, "")
+	results, _, errE = search.FiltersGet(ctx, getSearchService, unknownSession, nil, "", nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, []search.FilterResult{
 		{Props: []string{amountProp.String()}, Type: "amount", Unit: unitID.String(), FilterID: unknownSession.Filters[0].ID.String(), Count: 4},
@@ -929,7 +930,7 @@ func TestFiltersGetSpecialsActiveValuedFacetIntegration(t *testing.T) {
 	// With only the range selected, the active amount entry's count stays the facet's full
 	// reachable-through count, not the count within its own selection.
 	rangeSession := createSession(t, ctx, search.SessionData{Filters: []search.Filter{rangeFilter}}) //nolint:exhaustruct
-	results, _, errE = search.FiltersGet(ctx, getSearchService, rangeSession, nil, "")
+	results, _, errE = search.FiltersGet(ctx, getSearchService, rangeSession, nil, "", nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.NotEmpty(t, results)
 	assert.Equal(t, search.FilterResult{
@@ -943,7 +944,7 @@ func TestFiltersGetSpecialsActiveValuedFacetIntegration(t *testing.T) {
 	searchResults, _, errE := search.ResultsGet(ctx, getSearchService, &bothSession.SessionData, nil, 0)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Len(t, searchResults, 4)
-	results, _, errE = search.FiltersGet(ctx, getSearchService, bothSession, nil, "")
+	results, _, errE = search.FiltersGet(ctx, getSearchService, bothSession, nil, "", nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	activeEntries := 0
 	for _, r := range results {
@@ -989,7 +990,7 @@ func TestFiltersGetDiscoveryBeyondCapValueQueryIntegration(t *testing.T) {
 	session := createSession(t, ctx, search.SessionData{})
 
 	// Searching the target property's name surfaces its facet, even though it ranks beyond the cap.
-	results, metadata, errE := search.FiltersGet(ctx, getSearchService, session, nil, "findmeuniquename*")
+	results, metadata, errE := search.FiltersGet(ctx, getSearchService, session, nil, "findmeuniquename*", nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	found := false
@@ -1051,14 +1052,14 @@ func TestFiltersGetQuotedPhraseNoStopWordIntegration(t *testing.T) {
 	// Quoted phrase (the frontend appends no wildcard when the query ends with a quote): the
 	// "in language" property matches by its name; the "instance of" property, whose only possible
 	// match is its value named "language", does not, because the phrase keeps "in".
-	quoted, _, errE := search.FiltersGet(ctx, getSearchService, session, nil, `"in language"`)
+	quoted, _, errE := search.FiltersGet(ctx, getSearchService, session, nil, `"in language"`, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.True(t, hasRefFacet(quoted, inLangProp.String()), "the in-language property matches the quoted phrase")
 	assert.False(t, hasRefFacet(quoted, instOfProp.String()), "a value named language must not match the quoted phrase \"in language\"")
 
 	// Unquoted, "in" is a required AND term (matched via the non-stop und bucket), so the value named
 	// "language" is excluded there too; the in-language property still matches.
-	unquoted, _, errE := search.FiltersGet(ctx, getSearchService, session, nil, "in language*")
+	unquoted, _, errE := search.FiltersGet(ctx, getSearchService, session, nil, "in language*", nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.True(t, hasRefFacet(unquoted, inLangProp.String()), "the in-language property matches the unquoted query")
 	assert.False(t, hasRefFacet(unquoted, instOfProp.String()), "a value named language must not match the unquoted in language")
@@ -1098,7 +1099,7 @@ func TestFiltersGetSubDiscoveryBeyondCapValueQueryIntegration(t *testing.T) {
 
 	// Searching the target sub-property's name surfaces its (parentProp, subProp) sub facet, even
 	// though it ranks beyond the sub cap within the parent property.
-	results, _, errE := search.FiltersGet(ctx, getSearchService, session, nil, "findmesubuniquename*")
+	results, _, errE := search.FiltersGet(ctx, getSearchService, session, nil, "findmesubuniquename*", nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	found := false
@@ -1147,7 +1148,7 @@ func TestFiltersGetBeyondParentCapValueQueryIntegration(t *testing.T) {
 
 	// Searching the target sub-property's name surfaces its (parentProp, subProp) sub facet, even
 	// though the parent property ranks beyond the parent-property cap.
-	results, _, errE := search.FiltersGet(ctx, getSearchService, session, nil, "findmeparentbeyonduniquename*")
+	results, _, errE := search.FiltersGet(ctx, getSearchService, session, nil, "findmeparentbeyonduniquename*", nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	found := false
@@ -1158,4 +1159,98 @@ func TestFiltersGetBeyondParentCapValueQueryIntegration(t *testing.T) {
 		}
 	}
 	assert.True(t, found, "the sub facet under the beyond-parent-cap property was surfaced by its name")
+}
+
+// TestFiltersGetHiddenFacetsIntegration verifies that hidden facet properties are dropped inside the
+// discovery aggregations, in every path position: as a top-level property, as a parent property (with
+// its sub facets), and as a sub property under a visible parent. Their filters keep working, so an
+// active filter on a hidden property is still returned with its count.
+func TestFiltersGetHiddenFacetsIntegration(t *testing.T) {
+	t.Parallel()
+
+	ctx := t.Context()
+	esClient, getSearchService, index := initES(t)
+
+	hiddenProp := identifier.From("hiddenProp")
+	visibleProp := identifier.From("visibleProp")
+	parentProp := identifier.From("parentProp")
+	target := identifier.From("target")
+	parentTo := identifier.From("parentTo")
+
+	// One document with reference claims on the hidden and on a visible property, plus parent claims
+	// covering the hidden path positions: a hidden parent carrying a visible sub-claim, and a visible
+	// parent carrying a hidden and a visible sub-claim.
+	indexDocument(t, ctx, esClient, index, relDoc("hiddenFacetsDoc", internalSearch.RelClaims{
+		refRecord(hiddenProp, target, nil),
+		refRecord(visibleProp, target, nil),
+		refRecord(hiddenProp, parentTo, relSub(refRecord(visibleProp, target, nil))),
+		refRecord(parentProp, parentTo, relSub(
+			refRecord(hiddenProp, target, nil),
+			refRecord(visibleProp, target, nil),
+		)),
+	}))
+	refreshIndex(t, ctx, esClient, index)
+
+	session := createSession(t, ctx, search.SessionData{})
+
+	// present reports whether a facet with exactly the given property path is among the results.
+	present := func(results []search.FilterResult, props ...string) bool {
+		for _, r := range results {
+			if slices.Equal(r.Props, props) {
+				return true
+			}
+		}
+		return false
+	}
+
+	// Without hidden facet properties, all six facets are discovered and counted in the total: three
+	// top-level ones (the hidden, the visible, and the parent property) and three sub ones.
+	results, metadata, errE := search.FiltersGet(ctx, getSearchService, session, nil, "", nil)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Len(t, results, 6)
+	assert.Equal(t, "6", metadata["total"])
+
+	// Hiding the property drops every facet whose path contains it (the top-level facet, the sub-facet
+	// under it as parent, and the sub-facet of it under a visible parent) inside the aggregations
+	// themselves, so the hidden facets also do not count towards the available-filters total.
+	hidden := map[string]bool{hiddenProp.String(): true}
+	results, metadata, errE = search.FiltersGet(ctx, getSearchService, session, nil, "", hidden)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.True(t, present(results, visibleProp.String()), "visible top-level facet present")
+	assert.True(t, present(results, parentProp.String()), "parent property's own facet present")
+	assert.True(t, present(results, parentProp.String(), visibleProp.String()), "visible sub-facet present")
+	assert.False(t, present(results, hiddenProp.String()), "hidden top-level facet absent")
+	assert.False(t, present(results, hiddenProp.String(), visibleProp.String()), "sub-facet under hidden parent absent")
+	assert.False(t, present(results, parentProp.String(), hiddenProp.String()), "hidden sub-facet absent")
+	assert.Len(t, results, 3)
+	assert.Equal(t, "3", metadata["total"])
+
+	// An active filter on the hidden property is still returned, with its count: active filters ride
+	// their own per-filter aggregations and the session's filter list, which the scoped record drops in
+	// the discovery aggregations do not touch. Discovery still does not offer the hidden facet (no entry
+	// without a filter ID) and the hidden facet still does not count towards the available-filters total.
+	filterBase := []string{"test", "FILTER", "hiddenActive"}
+	filterID := identifier.From(filterBase...)
+	sessionWithActive := createSession(t, ctx, search.SessionData{ //nolint:exhaustruct
+		Filters: []search.Filter{{ //nolint:exhaustruct
+			ID:   &filterID,
+			Base: filterBase,
+			Prop: []identifier.Identifier{hiddenProp},
+			Ref:  &search.RefFilter{To: []search.ToValue{{ID: target}}, Direct: nil},
+		}},
+	})
+	results, metadata, errE = search.FiltersGet(ctx, getSearchService, sessionWithActive, nil, "", hidden)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	var active *search.FilterResult
+	for i, r := range results {
+		if r.FilterID == filterID.String() {
+			active = &results[i]
+		} else if r.FilterID == "" {
+			assert.False(t, slices.Equal(r.Props, []string{hiddenProp.String()}), "hidden facet still not discovered")
+		}
+	}
+	require.NotNil(t, active, "active filter on the hidden property returned")
+	assert.Equal(t, []string{hiddenProp.String()}, active.Props)
+	assert.Equal(t, int64(1), active.Count)
+	assert.Equal(t, "3", metadata["total"])
 }
