@@ -21,13 +21,13 @@ const (
 	// DefaultElastic is the default Elasticsearch URL.
 	DefaultElastic = "http://127.0.0.1:9200"
 	// DefaultSchema is the default database schema name.
-	DefaultSchema = "peerdb"
+	DefaultSchema = internalSite.DefaultSchema
 	// DefaultIndexPrefix is the default Elasticsearch index prefix. The visibility level name is appended to it to form each per-level index name.
-	DefaultIndexPrefix = "peerdb"
+	DefaultIndexPrefix = internalSite.DefaultIndexPrefix
 	// DefaultShards is the default number of Elasticsearch shards.
 	DefaultShards = "10"
 	// DefaultTitle is the default application title.
-	DefaultTitle = "PeerDB"
+	DefaultTitle = internalSite.DefaultTitle
 )
 
 // PostgresConfig contains configuration for PostgreSQL database connection.
@@ -57,14 +57,11 @@ type StorageConfig struct {
 // All hooks are optional. Set it on Globals in code before command-line parsing.
 type Customizer struct {
 	// SiteDefaults is called for every site after the configuration file and command-line flags have been
-	// applied, after PeerDB has filled its own defaults into fields the configuration left unset (see
-	// applySiteDefaults), and before the site is validated. It can keep, extend, replace, or unset those
-	// defaults, fill defaults into further fields the configuration left unset (the configuration can then
-	// override such fields), or overwrite fields unconditionally (such fields are fixed by code and the
-	// configuration cannot change them). Roles and Visibility are exceptions: they are still unset here
-	// when the configuration left them unset (their degenerate-case defaults are filled in during
-	// validation), so a customizer can distinguish a configured value from an unset one for them.
-	// SiteDefaults is also called for sites synthesized when none are configured (the default site and
+	// applied, after PeerDB has filled its own defaults into some fields the configuration left unset, and
+	// before the site is validated. It can keep, extend, replace, or unset those defaults, fill defaults
+	// into further fields the configuration left unset (the configuration can then override such fields),
+	// or overwrite fields unconditionally (such fields are fixed by code and the configuration cannot change
+	// them). SiteDefaults is also called for sites synthesized when none are configured (the default site and
 	// the domain/certificate-based sites), and can run more than once for the same site, so it must be
 	// idempotent and accept values it has set itself.
 	SiteDefaults func(site *Site) errors.E
@@ -77,24 +74,14 @@ type Customizer struct {
 
 // applySiteDefaults fills PeerDB defaults into site fields the configuration left unset and then calls
 // the consumer's SiteDefaults customizer (when set), so the customizer always observes the defaults
-// already applied and can keep, extend, replace, or unset them. Roles and Visibility are deliberately
-// not defaulted here: for them a customizer needs to distinguish a configured value from an unset one
-// (to apply its own defaults, or to reject configured values fixed in code), so their degenerate-case
-// defaults are filled in later, during validation (see Site.Validate). Both the defaulting and (per its
+// already applied and can keep, extend, replace, or unset them. Only fields whose customizer operation
+// is extending or overriding the default are filled with defaults first. Fields a customizer may want to
+// default itself stay unset here, so the customizer can see whether the configuration set them; they are
+// defaulted during validation, which runs after the customizer. Both the defaulting and (per its
 // contract) the customizer are idempotent, so this can run more than once for the same site.
 func applySiteDefaults(customize Customizer, site *Site) errors.E {
-	// These cannot be set through kong defaults because sites come from the configuration as values,
-	// not through per-field flag parsing.
-	if site.IndexPrefix == "" {
-		site.IndexPrefix = DefaultIndexPrefix
-	}
-	if site.Schema == "" {
-		site.Schema = DefaultSchema
-	}
-	if site.Title == "" {
-		site.Title = DefaultTitle
-	}
 	if site.Features.HiddenFacetProperties == nil {
+		// This also makes a new slice, so it is safe to mutate it in SiteDefaults.
 		site.Features.HiddenFacetProperties = internalSite.DefaultHiddenFacetProperties()
 	}
 	if customize.SiteDefaults != nil {

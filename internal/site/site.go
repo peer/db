@@ -32,6 +32,16 @@ import (
 // that sees all documents. A site that does not configure Visibility indexes into a single level with this name.
 const AllVisibilityLevel = "all"
 
+// Defaults validation fills into a site the configuration (and the SiteDefaults customizer) left unset.
+const (
+	// DefaultSchema is the default database schema name.
+	DefaultSchema = "peerdb"
+	// DefaultIndexPrefix is the default Elasticsearch index prefix. The visibility level name is appended to it to form each per-level index name.
+	DefaultIndexPrefix = "peerdb"
+	// DefaultTitle is the default application title.
+	DefaultTitle = "PeerDB"
+)
+
 // Build contains version and build metadata.
 type Build struct {
 	Version        string `json:"version,omitempty"`
@@ -259,6 +269,20 @@ func (s *Site) Validate() error {
 	errE := s.validateVisibility()
 	if errE != nil {
 		return errE
+	}
+
+	// These defaults cannot be set through kong (sites come from the configuration as values, not
+	// through per-field flag parsing), so validation fills them, like the Roles and Visibility
+	// defaults above: it runs after the SiteDefaults customizer, so a customizer can default these
+	// fields itself from their raw unset state.
+	if s.IndexPrefix == "" {
+		s.IndexPrefix = DefaultIndexPrefix
+	}
+	if s.Schema == "" {
+		s.Schema = DefaultSchema
+	}
+	if s.Title == "" {
+		s.Title = DefaultTitle
 	}
 
 	return nil
