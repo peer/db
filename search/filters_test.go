@@ -1047,3 +1047,50 @@ func TestFiltersGetQuotedPhraseNoStopWordIntegration(t *testing.T) {
 	assert.True(t, hasRefFacet(unquoted, inLangProp.String()), "the in-language property matches the unquoted query")
 	assert.False(t, hasRefFacet(unquoted, instOfProp.String()), "a value named language must not match the unquoted in language")
 }
+
+// TestFiltersGetSubDiscoveryBeyondCapValueQueryIntegration verifies that the filtered sub-discovery
+// pass surfaces a sub facet (parentProp, subProp) matching the typed text but ranking beyond the
+// unfiltered sub-discovery's Size cap by document count within its parent property.
+func TestFiltersGetSubDiscoveryBeyondCapValueQueryIntegration(t *testing.T) {
+	t.Parallel()
+
+	ctx := t.Context()
+	esClient, getSearchService, index := initES(t)
+
+	locationProp := identifier.From("locationProp")
+	venue := identifier.From("venue")
+
+	// MaxResultsCount filler sub-properties under one parent claim, present in two documents (sub
+	// document count 2), filling the unfiltered sub-discovery cap ahead of the target (document count 1).
+	fillerSubs := make(internalSearch.RelClaims, 0, search.MaxResultsCount)
+	for i := range search.MaxResultsCount {
+		fillerSubs = append(fillerSubs, refRecord(identifier.From("subFiller", strconv.Itoa(i)), identifier.From("subFillerTarget", strconv.Itoa(i)), nil))
+	}
+	fillerParent := refRecord(locationProp, venue, relSub(fillerSubs...))
+	indexDocument(t, ctx, esClient, index, relDoc("subFillerDoc1", internalSearch.RelClaims{fillerParent}))
+	indexDocument(t, ctx, esClient, index, relDoc("subFillerDoc2", internalSearch.RelClaims{fillerParent}))
+
+	// The target sub-property: one document, with a distinctive property name to match by.
+	targetSubProp := identifier.From("targetSubProp")
+	targetSub := refRecord(targetSubProp, identifier.From("targetSubTarget"), nil)
+	targetSub.PropNaming = map[string][]string{"en": {"findmesubuniquename"}}
+	targetSub.PropDisplay = map[string]string{"en": "findmesubuniquename"}
+	indexDocument(t, ctx, esClient, index, relDoc("subTargetDoc", internalSearch.RelClaims{refRecord(locationProp, venue, relSub(targetSub))}))
+	refreshIndex(t, ctx, esClient, index)
+
+	session := createSession(t, ctx, search.SessionData{})
+
+	// Searching the target sub-property's name surfaces its (parentProp, subProp) sub facet, even
+	// though it ranks beyond the sub cap within the parent property.
+	results, _, errE := search.FiltersGet(ctx, getSearchService, session, nil, "findmesubuniquename*")
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	found := false
+	for _, r := range results {
+		if r.Type == "ref" && len(r.Props) == 2 && r.Props[0] == locationProp.String() && r.Props[1] == targetSubProp.String() {
+			found = true
+			assert.Equal(t, int64(1), r.Count)
+		}
+	}
+	assert.True(t, found, "the beyond-cap target sub facet was surfaced by its name")
+}

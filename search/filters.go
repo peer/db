@@ -696,6 +696,13 @@ func FiltersGet( //nolint:maintidx
 			parentBuckets = parentBuckets.AddAggregation("parentMatched", esdsl.NewAggregations().
 				Filter(propLabelMatchQuery(
 					[]string{parentPath(parent) + ".propNaming"}, []string{parentPath(parent) + ".propDisplay"}, valueQuery, enabledLanguages)))
+			// The filtered sub-discovery passes for this parent property, mirroring the top-level ones:
+			// they enumerate only the sub facets with a matching record, surfacing sub facets that match
+			// the query but rank beyond the unfiltered sub-discovery's Size cap within this parent property.
+			parentBuckets = parentBuckets.
+				AddAggregation("subRelMatched", filteredDiscoveryAggregation(subRel, subRelMatch, relDiscoveryAggregation(subRel, nil))).
+				AddAggregation("subAmountMatched", filteredDiscoveryAggregation(subAmount, subAmountMatch, amountDiscoveryAggregation(subAmount, nil))).
+				AddAggregation("subTimeMatched", filteredDiscoveryAggregation(subTime, subTimeMatch, timeDiscoveryAggregation(subTime, nil)))
 		}
 		searchService = searchService.AddAggregation("sub:"+parent, esdsl.NewAggregations().
 			Nested(esdsl.NewNestedAggregation().Path(parentPath(parent))).
@@ -934,6 +941,53 @@ func FiltersGet( //nolint:maintidx
 			}
 		}
 	}
+
+	// Fold in the filtered sub-discovery passes across all parent collections, after all unfiltered
+	// sub parsing above: a sub facet matching the query but beyond the unfiltered cap within its parent
+	// property is added to that parent property's set (marked beyond so it renders without growing the
+	// total). Doing it in a second pass keeps a sub facet that is unfiltered in any parent collection
+	// from being treated as beyond (and its count from being corrupted by a matched-scoped merge).
+	// A parent property that itself ranks beyond the parent-property cap is still not surfaced (its
+	// bucket is absent), so this covers many sub-properties under a surfaced parent, not many parents.
+	if valueQueryActive {
+		for _, parent := range parentCollections {
+			subNested, errE := internalSearch.AggAs[types.NestedAggregate](res.Aggregations, "sub:"+parent)
+			if errE != nil {
+				return nil, nil, errE
+			}
+			parentTerms, errE := internalSearch.AggAs[types.StringTermsAggregate](subNested.Aggregations, "parents")
+			if errE != nil {
+				return nil, nil, errE
+			}
+			parentBuckets, ok := parentTerms.Buckets.([]types.StringTermsBucket)
+			if !ok {
+				continue
+			}
+			for _, parentBucket := range parentBuckets {
+				parentProp, ok := parentBucket.Key.(string)
+				if !ok {
+					continue
+				}
+				set := subSets[parentProp]
+				if set == nil {
+					continue
+				}
+				errE = mergeMatchedRelFacets(parentBucket.Aggregations, "subRelMatched", set)
+				if errE != nil {
+					return nil, nil, errE
+				}
+				errE = mergeMatchedAmountFacets(parentBucket.Aggregations, "subAmountMatched", set)
+				if errE != nil {
+					return nil, nil, errE
+				}
+				errE = mergeMatchedTimeFacets(parentBucket.Aggregations, "subTimeMatched", set)
+				if errE != nil {
+					return nil, nil, errE
+				}
+			}
+		}
+	}
+
 	for _, parentProp := range subOrder {
 		set := subSets[parentProp]
 		subResults, subPooledProps, subTotalFacets := set.Results([]string{parentProp}, valueQueryActive)
