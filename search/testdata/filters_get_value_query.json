@@ -55,7 +55,8 @@
                         "claims.amount.propNaming.en",
                         "claims.amount.propNaming.und"
                       ],
-                      "query": "col*"
+                      "query": "col*",
+                      "quote_field_suffix": ".unstemmed"
                     }
                   },
                   {
@@ -190,7 +191,8 @@
                     "claims.amount.propNaming.en",
                     "claims.amount.propNaming.und"
                   ],
-                  "query": "col*"
+                  "query": "col*",
+                  "quote_field_suffix": ".unstemmed"
                 }
               },
               {
@@ -314,7 +316,8 @@
                         "claims.rel.toNaming.en",
                         "claims.rel.toNaming.und"
                       ],
-                      "query": "col*"
+                      "query": "col*",
+                      "quote_field_suffix": ".unstemmed"
                     }
                   },
                   {
@@ -375,7 +378,8 @@
                         "claims.rel.propNaming.en",
                         "claims.rel.propNaming.und"
                       ],
-                      "query": "col*"
+                      "query": "col*",
+                      "quote_field_suffix": ".unstemmed"
                     }
                   },
                   {
@@ -520,7 +524,8 @@
                     "claims.rel.toNaming.en",
                     "claims.rel.toNaming.und"
                   ],
-                  "query": "col*"
+                  "query": "col*",
+                  "quote_field_suffix": ".unstemmed"
                 }
               },
               {
@@ -581,7 +586,8 @@
                     "claims.rel.propNaming.en",
                     "claims.rel.propNaming.und"
                   ],
-                  "query": "col*"
+                  "query": "col*",
+                  "quote_field_suffix": ".unstemmed"
                 }
               },
               {
@@ -657,7 +663,8 @@
                         "claims.amount.propNaming.en",
                         "claims.amount.propNaming.und"
                       ],
-                      "query": "col*"
+                      "query": "col*",
+                      "quote_field_suffix": ".unstemmed"
                     }
                   },
                   {
@@ -736,7 +743,8 @@
                                 "claims.amount.sub.amount.propNaming.en",
                                 "claims.amount.sub.amount.propNaming.und"
                               ],
-                              "query": "col*"
+                              "query": "col*",
+                              "quote_field_suffix": ".unstemmed"
                             }
                           },
                           {
@@ -877,7 +885,8 @@
                                 "claims.amount.sub.rel.toNaming.en",
                                 "claims.amount.sub.rel.toNaming.und"
                               ],
-                              "query": "col*"
+                              "query": "col*",
+                              "quote_field_suffix": ".unstemmed"
                             }
                           },
                           {
@@ -938,7 +947,8 @@
                                 "claims.amount.sub.rel.propNaming.en",
                                 "claims.amount.sub.rel.propNaming.und"
                               ],
-                              "query": "col*"
+                              "query": "col*",
+                              "quote_field_suffix": ".unstemmed"
                             }
                           },
                           {
@@ -1051,7 +1061,8 @@
                                 "claims.amount.sub.time.propNaming.en",
                                 "claims.amount.sub.time.propNaming.und"
                               ],
-                              "query": "col*"
+                              "query": "col*",
+                              "quote_field_suffix": ".unstemmed"
                             }
                           },
                           {
@@ -1167,7 +1178,8 @@
                         "claims.html.propNaming.en",
                         "claims.html.propNaming.und"
                       ],
-                      "query": "col*"
+                      "query": "col*",
+                      "quote_field_suffix": ".unstemmed"
                     }
                   },
                   {
@@ -1246,7 +1258,8 @@
                                 "claims.html.sub.amount.propNaming.en",
                                 "claims.html.sub.amount.propNaming.und"
                               ],
-                              "query": "col*"
+                              "query": "col*",
+                              "quote_field_suffix": ".unstemmed"
                             }
                           },
                           {
@@ -1387,7 +1400,8 @@
                                 "claims.html.sub.rel.toNaming.en",
                                 "claims.html.sub.rel.toNaming.und"
                               ],
-                              "query": "col*"
+                              "query": "col*",
+                              "quote_field_suffix": ".unstemmed"
                             }
                           },
                           {
@@ -1448,7 +1462,8 @@
                                 "claims.html.sub.rel.propNaming.en",
                                 "claims.html.sub.rel.propNaming.und"
                               ],
-                              "query": "col*"
+                              "query": "col*",
+                              "quote_field_suffix": ".unstemmed"
                             }
                           },
                           {
@@ -1561,7 +1576,8 @@
                                 "claims.html.sub.time.propNaming.en",
                                 "claims.html.sub.time.propNaming.und"
                               ],
-                              "query": "col*"
+                              "query": "col*",
+                              "quote_field_suffix": ".unstemmed"
                             }
                           },
                           {
@@ -1677,7 +1693,8 @@
                         "claims.id.propNaming.en",
                         "claims.id.propNaming.und"
                       ],
-                      "query": "col*"
+                      "query": "col*",
+                      "quote_field_suffix": ".unstemmed"
                     }
                   },
                   {
@@ -1756,7 +1773,8 @@
                                 "claims.id.sub.amount.propNaming.en",
                                 "claims.id.sub.amount.propNaming.und"
                               ],
-                              "query": "col*"
+                              "query": "col*",
+                              "quote_field_suffix": ".unstemmed"
                             }
                           },
                           {
@@ -1897,7 +1915,8 @@
                                 "claims.id.sub.rel.toNaming.en",
                                 "claims.id.sub.rel.toNaming.und"
                               ],
-                              "query": "col*"
+                              "query": "col*",
+                              "quote_field_suffix": ".unstemmed"
                             }
                           },
                           {
@@ -1958,7 +1977,8 @@
                                 "claims.id.sub.rel.propNaming.en",
                                 "claims.id.sub.rel.propNaming.und"
                               ],
-                              "query": "col*"
+                              "query": "col*",
+                              "quote_field_suffix": ".unstemmed"
                             }
                           },
                           {
@@ -2071,7 +2091,8 @@
                                 "claims.id.sub.time.propNaming.en",
                                 "claims.id.sub.time.propNaming.und"
                               ],
-                              "query": "col*"
+                              "query": "col*",
+                              "quote_field_suffix": ".unstemmed"
                             }
                           },
                           {
@@ -2187,7 +2208,8 @@
                         "claims.link.propNaming.en",
                         "claims.link.propNaming.und"
                       ],
-                      "query": "col*"
+                      "query": "col*",
+                      "quote_field_suffix": ".unstemmed"
                     }
                   },
                   {
@@ -2266,7 +2288,8 @@
                                 "claims.link.sub.amount.propNaming.en",
                                 "claims.link.sub.amount.propNaming.und"
                               ],
-                              "query": "col*"
+                              "query": "col*",
+                              "quote_field_suffix": ".unstemmed"
                             }
                           },
                           {
@@ -2407,7 +2430,8 @@
                                 "claims.link.sub.rel.toNaming.en",
                                 "claims.link.sub.rel.toNaming.und"
                               ],
-                              "query": "col*"
+                              "query": "col*",
+                              "quote_field_suffix": ".unstemmed"
                             }
                           },
                           {
@@ -2468,7 +2492,8 @@
                                 "claims.link.sub.rel.propNaming.en",
                                 "claims.link.sub.rel.propNaming.und"
                               ],
-                              "query": "col*"
+                              "query": "col*",
+                              "quote_field_suffix": ".unstemmed"
                             }
                           },
                           {
@@ -2581,7 +2606,8 @@
                                 "claims.link.sub.time.propNaming.en",
                                 "claims.link.sub.time.propNaming.und"
                               ],
-                              "query": "col*"
+                              "query": "col*",
+                              "quote_field_suffix": ".unstemmed"
                             }
                           },
                           {
@@ -2697,7 +2723,8 @@
                         "claims.rel.propNaming.en",
                         "claims.rel.propNaming.und"
                       ],
-                      "query": "col*"
+                      "query": "col*",
+                      "quote_field_suffix": ".unstemmed"
                     }
                   },
                   {
@@ -2776,7 +2803,8 @@
                                 "claims.rel.sub.amount.propNaming.en",
                                 "claims.rel.sub.amount.propNaming.und"
                               ],
-                              "query": "col*"
+                              "query": "col*",
+                              "quote_field_suffix": ".unstemmed"
                             }
                           },
                           {
@@ -2917,7 +2945,8 @@
                                 "claims.rel.sub.rel.toNaming.en",
                                 "claims.rel.sub.rel.toNaming.und"
                               ],
-                              "query": "col*"
+                              "query": "col*",
+                              "quote_field_suffix": ".unstemmed"
                             }
                           },
                           {
@@ -2978,7 +3007,8 @@
                                 "claims.rel.sub.rel.propNaming.en",
                                 "claims.rel.sub.rel.propNaming.und"
                               ],
-                              "query": "col*"
+                              "query": "col*",
+                              "quote_field_suffix": ".unstemmed"
                             }
                           },
                           {
@@ -3091,7 +3121,8 @@
                                 "claims.rel.sub.time.propNaming.en",
                                 "claims.rel.sub.time.propNaming.und"
                               ],
-                              "query": "col*"
+                              "query": "col*",
+                              "quote_field_suffix": ".unstemmed"
                             }
                           },
                           {
@@ -3207,7 +3238,8 @@
                         "claims.string.propNaming.en",
                         "claims.string.propNaming.und"
                       ],
-                      "query": "col*"
+                      "query": "col*",
+                      "quote_field_suffix": ".unstemmed"
                     }
                   },
                   {
@@ -3286,7 +3318,8 @@
                                 "claims.string.sub.amount.propNaming.en",
                                 "claims.string.sub.amount.propNaming.und"
                               ],
-                              "query": "col*"
+                              "query": "col*",
+                              "quote_field_suffix": ".unstemmed"
                             }
                           },
                           {
@@ -3427,7 +3460,8 @@
                                 "claims.string.sub.rel.toNaming.en",
                                 "claims.string.sub.rel.toNaming.und"
                               ],
-                              "query": "col*"
+                              "query": "col*",
+                              "quote_field_suffix": ".unstemmed"
                             }
                           },
                           {
@@ -3488,7 +3522,8 @@
                                 "claims.string.sub.rel.propNaming.en",
                                 "claims.string.sub.rel.propNaming.und"
                               ],
-                              "query": "col*"
+                              "query": "col*",
+                              "quote_field_suffix": ".unstemmed"
                             }
                           },
                           {
@@ -3601,7 +3636,8 @@
                                 "claims.string.sub.time.propNaming.en",
                                 "claims.string.sub.time.propNaming.und"
                               ],
-                              "query": "col*"
+                              "query": "col*",
+                              "quote_field_suffix": ".unstemmed"
                             }
                           },
                           {
@@ -3717,7 +3753,8 @@
                         "claims.time.propNaming.en",
                         "claims.time.propNaming.und"
                       ],
-                      "query": "col*"
+                      "query": "col*",
+                      "quote_field_suffix": ".unstemmed"
                     }
                   },
                   {
@@ -3796,7 +3833,8 @@
                                 "claims.time.sub.amount.propNaming.en",
                                 "claims.time.sub.amount.propNaming.und"
                               ],
-                              "query": "col*"
+                              "query": "col*",
+                              "quote_field_suffix": ".unstemmed"
                             }
                           },
                           {
@@ -3937,7 +3975,8 @@
                                 "claims.time.sub.rel.toNaming.en",
                                 "claims.time.sub.rel.toNaming.und"
                               ],
-                              "query": "col*"
+                              "query": "col*",
+                              "quote_field_suffix": ".unstemmed"
                             }
                           },
                           {
@@ -3998,7 +4037,8 @@
                                 "claims.time.sub.rel.propNaming.en",
                                 "claims.time.sub.rel.propNaming.und"
                               ],
-                              "query": "col*"
+                              "query": "col*",
+                              "quote_field_suffix": ".unstemmed"
                             }
                           },
                           {
@@ -4111,7 +4151,8 @@
                                 "claims.time.sub.time.propNaming.en",
                                 "claims.time.sub.time.propNaming.und"
                               ],
-                              "query": "col*"
+                              "query": "col*",
+                              "quote_field_suffix": ".unstemmed"
                             }
                           },
                           {
@@ -4235,7 +4276,8 @@
                         "claims.time.propNaming.en",
                         "claims.time.propNaming.und"
                       ],
-                      "query": "col*"
+                      "query": "col*",
+                      "quote_field_suffix": ".unstemmed"
                     }
                   },
                   {
@@ -4354,7 +4396,8 @@
                     "claims.time.propNaming.en",
                     "claims.time.propNaming.und"
                   ],
-                  "query": "col*"
+                  "query": "col*",
+                  "quote_field_suffix": ".unstemmed"
                 }
               },
               {

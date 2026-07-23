@@ -58,7 +58,8 @@
                           "claims.rel.propNaming.en",
                           "claims.rel.propNaming.und"
                         ],
-                        "query": "col*"
+                        "query": "col*",
+                        "quote_field_suffix": ".unstemmed"
                       }
                     },
                     {
@@ -185,7 +186,8 @@
                               "claims.rel.propNaming.en",
                               "claims.rel.propNaming.und"
                             ],
-                            "query": "col*"
+                            "query": "col*",
+                            "quote_field_suffix": ".unstemmed"
                           }
                         },
                         {

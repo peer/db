@@ -106,12 +106,14 @@ func langProperties(langs []string, perLang func(lang string) string) string {
 // multiLanguageText builds a per-language text property using each language's own analyzer
 // (en_text, sl_text, ...). Used for naming-string fields. It mirrors the top-level text field's prefix setup
 // (see textProperties): the stemmed main field does full-word recall, and an unstemmed sub-field (und_text)
-// with index_prefixes carries analyze_wildcard prefix-as-you-type. "und" is already unstemmed, so it takes
-// index_prefixes on the main field instead of a sub-field.
+// with index_prefixes carries analyze_wildcard prefix-as-you-type and quoted-phrase matching without stop
+// words. "und" is already unstemmed on its main field, but it still carries the unstemmed sub-field so that
+// the label-match query can route quoted phrases to a "<field>.unstemmed" sub-field uniformly across the
+// per-language and language-neutral buckets.
 func multiLanguageText(langs []string) string {
 	return langProperties(langs, func(lang string) string {
 		if lang == document.UndeterminedLanguage {
-			return `{"type":"text","analyzer":"und_text",` + indexPrefixes + `}`
+			return `{"type":"text","analyzer":"und_text",` + indexPrefixes + `,"fields":{"unstemmed":{"type":"text","analyzer":"und_text",` + indexPrefixes + `}}}`
 		}
 
 		return fmt.Sprintf(`{"type":"text","analyzer":"%s_text","fields":{"unstemmed":{"type":"text","analyzer":"und_text",`+indexPrefixes+`}}}`, lang)

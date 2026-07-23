@@ -159,7 +159,8 @@
                           "claims.rel.propNaming.en",
                           "claims.rel.propNaming.und"
                         ],
-                        "query": "col*"
+                        "query": "col*",
+                        "quote_field_suffix": ".unstemmed"
                       }
                     },
                     {
@@ -285,7 +286,8 @@
                           "claims.rel.toNaming.en",
                           "claims.rel.toNaming.und"
                         ],
-                        "query": "col*"
+                        "query": "col*",
+                        "quote_field_suffix": ".unstemmed"
                       }
                     },
                     {
@@ -346,7 +348,8 @@
                           "claims.rel.propNaming.en",
                           "claims.rel.propNaming.und"
                         ],
-                        "query": "col*"
+                        "query": "col*",
+                        "quote_field_suffix": ".unstemmed"
                       }
                     },
                     {
@@ -450,7 +453,8 @@
                               "claims.rel.toNaming.en",
                               "claims.rel.toNaming.und"
                             ],
-                            "query": "col*"
+                            "query": "col*",
+                            "quote_field_suffix": ".unstemmed"
                           }
                         },
                         {
@@ -511,7 +515,8 @@
                               "claims.rel.propNaming.en",
                               "claims.rel.propNaming.und"
                             ],
-                            "query": "col*"
+                            "query": "col*",
+                            "quote_field_suffix": ".unstemmed"
                           }
                         },
                         {

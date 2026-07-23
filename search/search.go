@@ -520,7 +520,10 @@ func amountTimeMatchQuery(propNamingFields, propDisplayFields, valueDisplayField
 // regularRecallClauses builds the non-prefix recall shared by value and property label matching, via
 // simple_query_string: each naming field matched stemmed per language combined with the language-neutral und
 // bucket (inflected full-word recall), and each display field matched with quoted phrases routed to its
-// diacritic-preserved "exact" sub-field. The query is passed verbatim.
+// diacritic-preserved "exact" sub-field. On the naming fields, quoted phrases are routed to the unstemmed
+// (und_text) "<field>.unstemmed" sub-field, which has no stop-word filter, so a quoted phrase keeps its stop
+// words ("in language" stays a two-token phrase instead of collapsing to "language" on the stemmed field);
+// unquoted terms still hit the stemmed main field for recall. The query is passed verbatim.
 func regularRecallClauses(namingFields, displayFields []string, q string, langs []string) []types.QueryVariant {
 	var clauses []types.QueryVariant
 	for _, namingField := range namingFields {
@@ -531,10 +534,10 @@ func regularRecallClauses(namingFields, displayFields []string, q string, langs 
 				continue
 			}
 			hasLang = true
-			clauses = append(clauses, esdsl.NewSimpleQueryStringQuery(q).Fields(namingField+"."+lang, undNaming).DefaultOperator(operator.And))
+			clauses = append(clauses, esdsl.NewSimpleQueryStringQuery(q).Fields(namingField+"."+lang, undNaming).DefaultOperator(operator.And).QuoteFieldSuffix(".unstemmed"))
 		}
 		if !hasLang {
-			clauses = append(clauses, esdsl.NewSimpleQueryStringQuery(q).Fields(undNaming).DefaultOperator(operator.And))
+			clauses = append(clauses, esdsl.NewSimpleQueryStringQuery(q).Fields(undNaming).DefaultOperator(operator.And).QuoteFieldSuffix(".unstemmed"))
 		}
 	}
 	for _, displayField := range displayFields {

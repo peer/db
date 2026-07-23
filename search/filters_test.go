@@ -989,3 +989,61 @@ func TestFiltersGetDiscoveryBeyondCapValueQueryIntegration(t *testing.T) {
 	// facets, marked "+"; the beyond-cap surfaced facet does not grow it.
 	assert.Equal(t, strconv.Itoa(search.MaxResultsCount)+"+", metadata["total"])
 }
+
+// TestFiltersGetQuotedPhraseNoStopWordIntegration verifies that a quoted phrase in the filter-pane
+// value query keeps its stop words: "in language" as a phrase matches a property named "in language"
+// but not a facet whose only possible match is a value named "language". Previously the English
+// stop-word filter dropped "in" from the phrase on the stemmed naming field, collapsing it to
+// "language"; the quoted phrase now routes to the unstemmed (no-stop) naming sub-field.
+func TestFiltersGetQuotedPhraseNoStopWordIntegration(t *testing.T) {
+	t.Parallel()
+
+	ctx := t.Context()
+	esClient, getSearchService, index := initES(t)
+
+	inLangProp := identifier.From("inLangProp")
+	instOfProp := identifier.From("instOfProp")
+	someVal := identifier.From("someVal")
+	langVal := identifier.From("langVal")
+
+	// A property named "in language".
+	inLangRec := refRecord(inLangProp, someVal, nil)
+	inLangRec.PropNaming = map[string][]string{"en": {"in language"}}
+	inLangRec.PropDisplay = map[string]string{"en": "in language"}
+	indexDocument(t, ctx, esClient, index, relDoc("inLangDoc", internalSearch.RelClaims{inLangRec}))
+
+	// A property "instance of" whose value is named "language".
+	instRec := refRecord(instOfProp, langVal, nil)
+	instRec.PropNaming = map[string][]string{"en": {"instance of"}}
+	instRec.PropDisplay = map[string]string{"en": "instance of"}
+	instRec.ToNaming = map[string][]string{"en": {"language"}}
+	instRec.ToDisplay = map[string]string{"en": "language"}
+	indexDocument(t, ctx, esClient, index, relDoc("instOfDoc", internalSearch.RelClaims{instRec}))
+	refreshIndex(t, ctx, esClient, index)
+
+	session := createSession(t, ctx, search.SessionData{})
+
+	hasRefFacet := func(results []search.FilterResult, prop string) bool {
+		for _, r := range results {
+			if r.Type == "ref" && len(r.Props) == 1 && r.Props[0] == prop {
+				return true
+			}
+		}
+		return false
+	}
+
+	// Quoted phrase (the frontend appends no wildcard when the query ends with a quote): the
+	// "in language" property matches by its name; the "instance of" property, whose only possible
+	// match is its value named "language", does not, because the phrase keeps "in".
+	quoted, _, errE := search.FiltersGet(ctx, getSearchService, session, nil, `"in language"`)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.True(t, hasRefFacet(quoted, inLangProp.String()), "the in-language property matches the quoted phrase")
+	assert.False(t, hasRefFacet(quoted, instOfProp.String()), "a value named language must not match the quoted phrase \"in language\"")
+
+	// Unquoted, "in" is a required AND term (matched via the non-stop und bucket), so the value named
+	// "language" is excluded there too; the in-language property still matches.
+	unquoted, _, errE := search.FiltersGet(ctx, getSearchService, session, nil, "in language*")
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.True(t, hasRefFacet(unquoted, inLangProp.String()), "the in-language property matches the unquoted query")
+	assert.False(t, hasRefFacet(unquoted, instOfProp.String()), "a value named language must not match the unquoted in language")
+}
