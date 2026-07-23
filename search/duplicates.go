@@ -163,12 +163,13 @@ func duplicateClauses(doc *document.D, enabledLanguages []string) ([]types.Query
 		}
 		// The index expands a reference to the target and all its hierarchy ancestors, so matching the
 		// stated (most-specific) target also matches documents that reference a narrower value of it.
+		// A term on "to" matches only rel records with the ref claimType, so no claimType term is needed.
 		add("ref\x00"+claim.Prop.ID.String()+"\x00"+claim.To.ID.String(), referenceDuplicateWeight, esdsl.NewNestedQuery(
 			esdsl.NewBoolQuery().Must(
-				esdsl.NewTermQuery("claims.ref.prop", esdsl.NewFieldValue().String(claim.Prop.ID.String())),
-				esdsl.NewTermQuery("claims.ref.to", esdsl.NewFieldValue().String(claim.To.ID.String())),
+				esdsl.NewTermQuery(relPath+".prop", esdsl.NewFieldValue().String(claim.Prop.ID.String())),
+				esdsl.NewTermQuery(relPath+".to", esdsl.NewFieldValue().String(claim.To.ID.String())),
 			),
-		).Path("claims.ref"))
+		).Path(relPath))
 	}
 
 	for i := range c.Amount {
@@ -195,8 +196,11 @@ func duplicateClauses(doc *document.D, enabledLanguages []string) ([]types.Query
 			continue
 		}
 		add("has\x00"+claim.Prop.ID.String(), hasDuplicateWeight, esdsl.NewNestedQuery(
-			esdsl.NewTermQuery("claims.has.prop", esdsl.NewFieldValue().String(claim.Prop.ID.String())),
-		).Path("claims.has"))
+			esdsl.NewBoolQuery().Must(
+				claimTypeTerm(relPath, internalSearch.ClaimTypeHas),
+				esdsl.NewTermQuery(relPath+".prop", esdsl.NewFieldValue().String(claim.Prop.ID.String())),
+			),
+		).Path(relPath))
 	}
 
 	return clauses, distinctFrom
@@ -339,10 +343,10 @@ func duplicatesQuery(doc *document.D, enabledLanguages []string, exclude identif
 		// the direct assertion, not chains of it.
 		mustNot = append(mustNot, esdsl.NewNestedQuery(
 			esdsl.NewBoolQuery().Must(
-				esdsl.NewTermQuery("claims.ref.prop", esdsl.NewFieldValue().String(internalCore.DistinctFromPropID.String())),
-				esdsl.NewTermQuery("claims.ref.to", esdsl.NewFieldValue().String(exclude.String())),
+				esdsl.NewTermQuery(relPath+".prop", esdsl.NewFieldValue().String(internalCore.DistinctFromPropID.String())),
+				esdsl.NewTermQuery(relPath+".to", esdsl.NewFieldValue().String(exclude.String())),
 			),
-		).Path("claims.ref"))
+		).Path(relPath))
 	}
 	if len(mustNot) > 0 {
 		query = query.MustNot(mustNot...)

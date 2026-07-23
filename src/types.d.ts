@@ -70,10 +70,15 @@ export type SortKey = SortColumn & {
 export type RefFilterResult = {
   id: string
   count: number
-  // childCount is the value's exact number of distinct child values across the whole hierarchy (robust to
+  // childCount is the value's number of distinct child values across the whole hierarchy (robust to
   // multiple inheritance), as computed by the backend. It is compared against how many of the value's children
-  // are actually loaded to detect children truncated by the server's value cap.
+  // are actually loaded to detect children truncated by the server's value cap. On the wire it is a number
+  // when exact or the string "<n>+" when it is a lower bound (the search results total convention);
+  // ingestion normalizes the string form into the numeric n with childCountAtLeast set.
   childCount: number
+  // childCountAtLeast is set when childCount is a lower bound: the server's collected child key set is
+  // known to be incomplete, so more child values exist beyond childCount of them.
+  childCountAtLeast?: boolean
   paths?: string[][]
 }
 
@@ -95,19 +100,20 @@ export type RefFilterTreeNode = TreeNode<RefFilterResult>
 // entry has no paths. RefFilterResult satisfies this.
 export type RefValueLike = { id: string; paths?: string[][] }
 
-// RefValueWithCounts extends the minimal value shape with the document count and the exact number of
-// distinct child values (childCount) the all-children promotion gate needs. RefFilterResult satisfies it.
-// When count/childCount are absent (older callers and tests), a value is treated as promotable so the
-// prior promotion behavior is preserved.
-export type RefValueWithCounts = RefValueLike & { count?: number; childCount?: number }
+// RefValueWithCounts extends the minimal value shape with the document count and the number of distinct
+// child values (childCount, a lower bound when childCountAtLeast is set) the all-children promotion gate
+// needs. RefFilterResult satisfies it. When count/childCount are absent (older callers and tests), a
+// value is treated as promotable so the prior promotion behavior is preserved.
+export type RefValueWithCounts = RefValueLike & { count?: number; childCount?: number; childCountAtLeast?: boolean }
 
 // RefCheckState is the tri-state a reference filter value renders as.
 export type RefCheckState = { checked: boolean; indeterminate: boolean }
 
 // RefFilterValueToken is one rendered entry of a reference filter's selection: a selected value (its id,
-// with direct marking the "most-specific only" variant the facet tree labels "direct"), or the synthetic
-// missing entry. A flat display iterates these to list the whole selection uniformly.
-export type RefFilterValueToken = { kind: "value"; id: string; direct: boolean } | { kind: "missing" }
+// with direct marking the "most-specific only" variant the facet tree labels "direct"), or a selected
+// special entry (its synthetic id: missing, none, unknown, or has property). A flat display iterates
+// these to list the whole selection uniformly.
+export type RefFilterValueToken = { kind: "value"; id: string; direct: boolean } | { kind: "special"; id: string }
 
 // ClassCreateResult is one class returned by the DocumentCreateOptions endpoint. paths are the SUBCLASS_OF
 // ancestor chains (root to immediate parent), one per parent, so the class renders once under each parent.
@@ -153,17 +159,16 @@ export type HasValue = {
 export type RefFilter = {
   to?: ToValue[]
   direct?: ToValue[]
-  missing?: boolean
 }
 
-// A numeric or temporal filter selection: a range with both bounds set, the documents missing the property (missing), the documents
-// having any value (exists), or an empty selection. The variants are mutually exclusive, so a range always carries both bounds and an
-// empty selection (the payload that removes the filter from the session) carries none.
-type RangeSelection = { gte: number; lte: number; missing?: never; exists?: never }
-type MissingSelection = { missing: true; gte?: never; lte?: never; exists?: never }
-type ExistsSelection = { exists: true; gte?: never; lte?: never; missing?: never }
-type EmptySelection = { gte?: never; lte?: never; missing?: never; exists?: never }
-type RangeFilterSelection = RangeSelection | MissingSelection | ExistsSelection | EmptySelection
+// A numeric or temporal filter selection: a range with both bounds set, the documents having an actual
+// value (exists), or an empty selection. The variants are mutually exclusive, so a range always carries
+// both bounds and an empty selection (the payload that removes the filter from the session) carries none.
+// The missing/none/unknown selections live in the property path's specials filter.
+type RangeSelection = { gte: number; lte: number; exists?: never }
+type ExistsSelection = { exists: true; gte?: never; lte?: never }
+type EmptySelection = { gte?: never; lte?: never; exists?: never }
+type RangeFilterSelection = RangeSelection | ExistsSelection | EmptySelection
 
 export type AmountFilter = { unit?: string } & RangeFilterSelection
 
@@ -171,6 +176,17 @@ export type TimeFilter = RangeFilterSelection
 
 export type HasFilter = {
   props?: HasValue[]
+}
+
+// The special-value selections of a property path (facts about the path, not about one value-type
+// facet): missing (nothing facetable stated), none (explicitly no value), unknown (a value exists but
+// is unknown), and hasProperty (a bare has statement). Stored once per path and rendered identically
+// in every value-type facet of the path; they OR with the path's typed selections.
+export type SpecialsFilter = {
+  missing?: boolean
+  none?: boolean
+  unknown?: boolean
+  hasProperty?: boolean
 }
 
 export type FilterBase = {
@@ -185,18 +201,30 @@ export type RefFilterEntry = FilterBase & { ref: RefFilter }
 export type AmountFilterEntry = FilterBase & { amount: AmountFilter }
 export type TimeFilterEntry = FilterBase & { time: TimeFilter }
 export type HasFilterEntry = FilterBase & { has: HasFilter }
+export type SpecialsFilterEntry = FilterBase & { specials: SpecialsFilter }
 
-export type Filter = RefFilterEntry | AmountFilterEntry | TimeFilterEntry | HasFilterEntry
+export type Filter = RefFilterEntry | AmountFilterEntry | TimeFilterEntry | HasFilterEntry | SpecialsFilterEntry
+
+// One filter change to apply to the session: the filter's current id (empty for a new filter) and its
+// updated payload. A facet interaction can change several filters at once (its typed filter and the
+// path's specials filter), so updates travel in batches applied in one session update.
+export type FilterUpdate = { filterId: string; filter: Filter }
 
 // A single parsed key/value pair from a search shortcut string. Nested keys
 // keep the raw "parent:prop" form; callers resolve each side individually.
 export type ShortcutPair = { key: string; value: string }
 
-// Payload shape for the SearchJustResults POST endpoint built.
+// Payload shape for the SearchJustResults POST endpoint built. Each filter entry carries either a
+// reference selection or the path's specials selection (a missing selection travels as a specials
+// entry beside an optional ref entry for the same property).
 export type JustResultsFilters = {
   reverse?: string
   ids?: string[]
-  filters?: { prop: string[]; ref: { to?: { id: string }[]; direct?: { id: string }[]; missing?: boolean } }[]
+  filters?: {
+    prop: string[]
+    ref?: { to?: { id: string }[]; direct?: { id: string }[] }
+    specials?: { missing?: boolean }
+  }[]
 }
 
 export type SearchSession = {

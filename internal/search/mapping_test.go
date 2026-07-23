@@ -56,11 +56,18 @@ func TestMappingContainsClaimTypes(t *testing.T) {
 	claimProps, ok := claims["properties"].(map[string]any)
 	require.True(t, ok)
 
-	// Textual claim types (id, string, html, link) have per-claim nested ES records for
-	// structured per-property queries, in addition to being folded into the top-level "text" field.
-	expectedTypes := []string{"id", "string", "html", "link", "amount", "time", "ref", "has", "none", "unknown"}
+	// The claims collections: rel holds the four target-or-nothing claim types (ref, has,
+	// none, unknown) in one claimType-discriminated collection; the textual collections (id, string,
+	// html, link) have per-claim nested ES records for structured per-property queries, in
+	// addition to being folded into the top-level "text" field.
+	expectedTypes := []string{"rel", "amount", "time", "id", "string", "html", "link"}
 	for _, ct := range expectedTypes {
-		assert.Contains(t, claimProps, ct, "missing claim type: %s", ct)
+		assert.Contains(t, claimProps, ct, "missing claims collection: %s", ct)
+	}
+	// The four claim types share claims.rel, and sub-claims nest inside their parent record,
+	// so neither per-claim-type collections nor flat sub collections exist.
+	for _, ct := range []string{"ref", "has", "none", "unknown", "subRef", "subAmount", "subTime", "subHas"} {
+		assert.NotContains(t, claimProps, ct, "unexpected claims collection left: %s", ct)
 	}
 
 	// id and link have no language, so their value/iri fields use the und_text analyzer, matching
@@ -207,7 +214,11 @@ func TestMappingIsIndented(t *testing.T) {
 	assert.Contains(t, str, "  ")
 }
 
-func TestMappingNestedReference(t *testing.T) {
+// TestMappingNestedCollections verifies the nested layout of the claims block: seven top-level
+// nested collections, each carrying a "sub" object with the same seven collection shapes nested
+// inside (a single sub level), the claimType discriminator and the ref target fields on rel, and
+// the range fields on the amount and time collections, mirrored into every sub container.
+func TestMappingNestedCollections(t *testing.T) {
 	t.Parallel()
 
 	data, errE := internalSearch.Mapping(nil)
@@ -226,43 +237,101 @@ func TestMappingNestedReference(t *testing.T) {
 	claimProps, ok := claims["properties"].(map[string]any)
 	require.True(t, ok)
 
-	// Check that claims.subRef exists as a nested field.
-	subRef, ok := claimProps["subRef"].(map[string]any)
-	require.True(t, ok)
-	assert.Equal(t, "nested", subRef["type"])
-	subRefProps, ok := subRef["properties"].(map[string]any)
-	require.True(t, ok)
-	_, ok = subRefProps["parentProp"]
-	assert.True(t, ok)
-	_, ok = subRefProps["parentTo"]
-	assert.True(t, ok)
-	_, ok = subRefProps["prop"]
-	assert.True(t, ok)
-	_, ok = subRefProps["to"]
-	assert.True(t, ok)
+	// ParentCollections lists the claims collections in mapping order, and the mapping has
+	// exactly those collections.
+	parents := internalSearch.ParentCollections()
+	assert.Equal(t, []string{"rel", "amount", "time", "id", "string", "html", "link"}, parents)
+	assert.Len(t, claimProps, len(parents))
 
-	// Check claims.subAmount, claims.subTime, claims.subHas are nested fields
-	// with parentProp / parentTo / prop indexed for cross-filter matching.
-	for _, name := range []string{"subAmount", "subTime", "subHas"} {
-		sub, ok := claimProps[name].(map[string]any)
-		require.True(t, ok, "missing claims.%s", name)
-		assert.Equal(t, "nested", sub["type"], "claims.%s should be a nested field", name)
-		subProps, ok := sub["properties"].(map[string]any)
-		require.True(t, ok)
-		for _, f := range []string{"parentProp", "parentTo", "prop"} {
-			_, ok = subProps[f]
-			assert.True(t, ok, "missing claims.%s.%s", name, f)
+	// requireCollection asserts that props[name] is a nested type and returns its properties.
+	requireCollection := func(props map[string]any, name, path string) map[string]any {
+		coll, collOK := props[name].(map[string]any)
+		require.True(t, collOK, "missing %s", path)
+		assert.Equal(t, "nested", coll["type"], "%s should be a nested field", path)
+		collProps, collPropsOK := coll["properties"].(map[string]any)
+		require.True(t, collPropsOK, "%s has no properties", path)
+		return collProps
+	}
+
+	// checkCollectionShape asserts the per-collection fields shared by a collection's top-level
+	// and sub variants: the property identity fields on every collection, the claimType
+	// discriminator and the ref target fields on rel, and the range field on amount and time.
+	checkCollectionShape := func(collProps map[string]any, name, path string) {
+		for _, f := range []string{"prop", "propDisplay", "propSortKey", "propNaming"} {
+			assert.Contains(t, collProps, f, "missing %s.%s", path, f)
+		}
+		if name == "rel" {
+			claimType, claimTypeOK := collProps["claimType"].(map[string]any)
+			require.True(t, claimTypeOK, "missing %s.claimType", path)
+			assert.Equal(t, "keyword", claimType["type"], "%s.claimType should be a keyword", path)
+			for _, f := range []string{"to", "toDisplay", "toSortKey", "toNaming", "toPath", "toParent", "toPathSortKey", "isLeaf"} {
+				assert.Contains(t, collProps, f, "missing %s.%s", path, f)
+			}
+		}
+		if name == "amount" || name == "time" {
+			rangeField, rangeOK := collProps["range"].(map[string]any)
+			require.True(t, rangeOK, "missing %s.range", path)
+			assert.Equal(t, "double_range", rangeField["type"], "%s.range should be a double_range", path)
 		}
 	}
 
-	// subAmount and subTime also expose a range field for numeric filtering.
-	for _, name := range []string{"subAmount", "subTime"} {
-		sub := claimProps[name].(map[string]any)       //nolint:errcheck,forcetypeassert
-		subProps := sub["properties"].(map[string]any) //nolint:errcheck,forcetypeassert
-		rangeField, ok := subProps["range"].(map[string]any)
-		require.True(t, ok, "missing claims.%s.range", name)
-		assert.Equal(t, "double_range", rangeField["type"], "claims.%s.range should be a double_range", name)
+	for _, name := range parents {
+		path := "claims." + name
+		collProps := requireCollection(claimProps, name, path)
+		checkCollectionShape(collProps, name, path)
+
+		// Every top-level collection hosts a "sub" object with all seven collection shapes
+		// nested inside.
+		sub, subOK := collProps["sub"].(map[string]any)
+		require.True(t, subOK, "missing %s.sub", path)
+		subProps, subPropsOK := sub["properties"].(map[string]any)
+		require.True(t, subPropsOK, "%s.sub has no properties", path)
+		assert.Len(t, subProps, len(parents))
+		for _, subName := range parents {
+			subPath := path + ".sub." + subName
+			subCollProps := requireCollection(subProps, subName, subPath)
+			checkCollectionShape(subCollProps, subName, subPath)
+			// The mapping indexes a single sub level: sub collections have no "sub" of their own.
+			assert.NotContains(t, subCollProps, "sub", "%s must not have its own sub", subPath)
+		}
 	}
+}
+
+// TestMappingSettingsLimits verifies the index settings raised for the nested sub-claims layout:
+// the nested type count (7 top-level collections plus 7 x 7 sub collections, 56 nested types) is
+// over ElasticSearch's default nested_fields limit of 50, and the sub mirror multiplies the field
+// count past the default total_fields limit of 1000, so both limits are raised with headroom.
+func TestMappingSettingsLimits(t *testing.T) {
+	t.Parallel()
+
+	data, errE := internalSearch.Mapping(nil)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	var parsed map[string]any
+	errE = x.UnmarshalWithoutUnknownFields(data, &parsed)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	settings, ok := parsed["settings"].(map[string]any)
+	require.True(t, ok)
+
+	assert.Equal(t, float64(internalSearch.MaxInnerResultWindow), settings["max_inner_result_window"]) //nolint:testifylint
+
+	mapping, ok := settings["mapping"].(map[string]any)
+	require.True(t, ok, "missing settings.mapping")
+	nestedFields, ok := mapping["nested_fields"].(map[string]any)
+	require.True(t, ok, "missing settings.mapping.nested_fields")
+	assert.Equal(t, float64(internalSearch.NestedFieldsLimit), nestedFields["limit"]) //nolint:testifylint
+	totalFields, ok := mapping["total_fields"].(map[string]any)
+	require.True(t, ok, "missing settings.mapping.total_fields")
+	assert.Equal(t, float64(internalSearch.TotalFieldsLimit), totalFields["limit"]) //nolint:testifylint
+
+	// The constants pin the documented limits, and the mapping's 56 nested types fit under the
+	// nested_fields limit.
+	assert.Equal(t, 128, internalSearch.NestedFieldsLimit)
+	assert.Equal(t, 6000, internalSearch.TotalFieldsLimit)
+	nestedTypes := len(internalSearch.ParentCollections()) * (1 + len(internalSearch.ParentCollections()))
+	assert.Equal(t, 56, nestedTypes)
+	assert.LessOrEqual(t, nestedTypes, internalSearch.NestedFieldsLimit)
 }
 
 func TestMappingDynamicStrict(t *testing.T) {

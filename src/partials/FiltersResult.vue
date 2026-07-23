@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { DeepReadonly } from "vue"
 
-import type { AmountFilterEntry, Filter, FilterResult, HasFilterEntry, RefFilterEntry, SearchSession, TimeFilterEntry } from "@/types"
+import type { AmountFilterEntry, Filter, FilterResult, FilterUpdate, HasFilterEntry, RefFilterEntry, SearchSession, SpecialsFilterEntry, TimeFilterEntry } from "@/types"
 
 import { onBeforeUnmount } from "vue"
 
@@ -27,7 +27,7 @@ const props = withDefaults(
 )
 
 const $emit = defineEmits<{
-  filterUpdate: [filterId: string, filter: Filter]
+  filterUpdates: [updates: FilterUpdate[]]
 }>()
 
 // We have to explicitly pass attributes because we use multiple root nodes.
@@ -41,41 +41,44 @@ onBeforeUnmount(() => {
   abortController.abort()
 })
 
-// Find the active filter by filterId. Returns undefined for inactive filters.
+// samePath reports whether a filter's property path equals a facet's property path.
+function samePath(a: readonly string[] | undefined, b: readonly string[] | undefined): boolean {
+  const aa = a ?? []
+  const bb = b ?? []
+  return aa.length === bb.length && aa.every((v, i) => v === bb[i])
+}
+
+// The active filters of a facet's path are matched by the path (and unit for amount facets), not by the
+// facet's filterId: a path can have both a typed filter and a specials filter active, and a facet needs
+// both to render its selections.
 function findRefFilter(result: FilterResult): RefFilterEntry | undefined {
-  if (!result.filterId) {
-    return undefined
-  }
-  return props.filters.find((f): f is RefFilterEntry => "ref" in f && f.id === result.filterId)
+  return props.filters.find((f): f is RefFilterEntry => "ref" in f && samePath(f.prop, result.props))
 }
 
 function findAmountFilter(result: FilterResult): AmountFilterEntry | undefined {
-  if (!result.filterId) {
-    return undefined
-  }
-  return props.filters.find((f): f is AmountFilterEntry => "amount" in f && f.id === result.filterId)
+  return props.filters.find(
+    (f): f is AmountFilterEntry => "amount" in f && samePath(f.prop, result.props) && f.amount.unit === (result.type === "amount" ? result.unit : undefined),
+  )
 }
 
 function findTimeFilter(result: FilterResult): TimeFilterEntry | undefined {
-  if (!result.filterId) {
-    return undefined
-  }
-  return props.filters.find((f): f is TimeFilterEntry => "time" in f && f.id === result.filterId)
+  return props.filters.find((f): f is TimeFilterEntry => "time" in f && samePath(f.prop, result.props))
 }
 
 function findHasFilter(result: FilterResult): HasFilterEntry | undefined {
-  if (!result.filterId) {
-    return undefined
-  }
-  return props.filters.find((f): f is HasFilterEntry => "has" in f && f.id === result.filterId)
+  return props.filters.find((f): f is HasFilterEntry => "has" in f && samePath(f.prop, result.props))
 }
 
-function onFilterUpdate(filterId: string, filter: Filter) {
+function findSpecialsFilter(result: FilterResult): SpecialsFilterEntry | undefined {
+  return props.filters.find((f): f is SpecialsFilterEntry => "specials" in f && samePath(f.prop, result.props))
+}
+
+function onFilterUpdates(updates: FilterUpdate[]) {
   if (abortController.signal.aborted) {
     return
   }
 
-  $emit("filterUpdate", filterId, filter)
+  $emit("filterUpdates", updates)
 }
 </script>
 
@@ -86,9 +89,10 @@ function onFilterUpdate(filterId: string, filter: Filter) {
     :search-session="searchSession"
     :result="result"
     :filter="findRefFilter(result)"
+    :specials="findSpecialsFilter(result)"
     :query="query"
     v-bind="$attrs"
-    @filter-update="onFilterUpdate"
+    @filter-updates="onFilterUpdates"
   />
 
   <AmountFiltersResult
@@ -97,8 +101,9 @@ function onFilterUpdate(filterId: string, filter: Filter) {
     :search-session="searchSession"
     :result="result"
     :filter="findAmountFilter(result)"
+    :specials="findSpecialsFilter(result)"
     v-bind="$attrs"
-    @filter-update="onFilterUpdate"
+    @filter-updates="onFilterUpdates"
   />
 
   <TimeFiltersResult
@@ -107,8 +112,9 @@ function onFilterUpdate(filterId: string, filter: Filter) {
     :search-session="searchSession"
     :result="result"
     :filter="findTimeFilter(result)"
+    :specials="findSpecialsFilter(result)"
     v-bind="$attrs"
-    @filter-update="onFilterUpdate"
+    @filter-updates="onFilterUpdates"
   />
 
   <HasFiltersResult
@@ -119,6 +125,6 @@ function onFilterUpdate(filterId: string, filter: Filter) {
     :filter="findHasFilter(result)"
     :query="query"
     v-bind="$attrs"
-    @filter-update="onFilterUpdate"
+    @filter-updates="onFilterUpdates"
   />
 </template>

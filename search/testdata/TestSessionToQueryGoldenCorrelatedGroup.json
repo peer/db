@@ -1,0 +1,120 @@
+{
+  "bool": {
+    "must": [
+      {
+        "nested": {
+          "path": "claims.rel",
+          "query": {
+            "bool": {
+              "must": [
+                {
+                  "term": {
+                    "claims.rel.prop": {
+                      "value": "XHaC94kLmNZ5NtifgrStop"
+                    }
+                  }
+                },
+                {
+                  "term": {
+                    "claims.rel.to": {
+                      "value": "J2mKxMiRXEtaumyE3J3cAA"
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "nested": {
+          "path": "claims.rel",
+          "query": {
+            "bool": {
+              "must": [
+                {
+                  "term": {
+                    "claims.rel.prop": {
+                      "value": "XHaC94kLmNZ5NtifgrStop"
+                    }
+                  }
+                },
+                {
+                  "term": {
+                    "claims.rel.to": {
+                      "value": "J2mKxMiRXEtaumyE3J3cAA"
+                    }
+                  }
+                },
+                {
+                  "nested": {
+                    "path": "claims.rel.sub.rel",
+                    "query": {
+                      "bool": {
+                        "must": [
+                          {
+                            "term": {
+                              "claims.rel.sub.rel.prop": {
+                                "value": "D8uGqCge9hxEzZocEg5er4"
+                              }
+                            }
+                          },
+                          {
+                            "term": {
+                              "claims.rel.sub.rel.to": {
+                                "value": "UsssL86wyFqEWG6jQUV2uC"
+                              }
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  }
+                },
+                {
+                  "nested": {
+                    "path": "claims.rel.sub.amount",
+                    "query": {
+                      "bool": {
+                        "must": [
+                          {
+                            "term": {
+                              "claims.rel.sub.amount.prop": {
+                                "value": "U4DHANeQr2fPLkA2n2JgKr"
+                              }
+                            }
+                          },
+                          {
+                            "bool": {
+                              "must": [
+                                {
+                                  "range": {
+                                    "claims.rel.sub.amount.range": {
+                                      "gte": 10,
+                                      "lte": 20
+                                    }
+                                  }
+                                },
+                                {
+                                  "term": {
+                                    "claims.rel.sub.amount.unit": {
+                                      "value": "7xgMSp3wauK811A8Fwk3rY"
+                                    }
+                                  }
+                                }
+                              ]
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      }
+    ]
+  }
+}

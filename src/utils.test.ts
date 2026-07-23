@@ -461,6 +461,21 @@ describe("computeRefCheckStates", () => {
     assert.isTrue(states.get("artist")?.indeterminate)
   })
 
+  test("a parent whose childCount is a lower bound (childCountAtLeast) does not promote", () => {
+    // childCount equals the loaded children, but it is only a lower bound: the child set is known to be
+    // incomplete, so the parent can never be full from its loaded children alone.
+    const values: RefFilterResult[] = [
+      { id: "artist", count: 9, childCount: 2, childCountAtLeast: true },
+      { id: "painter", count: 2, childCount: 0, paths: [["artist"]] },
+      { id: "sculptor", count: 4, childCount: 0, paths: [["artist"]] },
+      { id: "__DIRECT__:artist", count: 3, childCount: 0, paths: [["artist"]] },
+    ]
+    const selected = new Set(["painter", "sculptor", "__DIRECT__:artist"])
+    const states = computeRefCheckStates(values, selected)
+    assert.isFalse(states.get("artist")?.checked)
+    assert.isTrue(states.get("artist")?.indeterminate)
+  })
+
   test("a count-0 augment parent does not promote, it stays indeterminate", () => {
     // artist holds no documents of its own (count 0), so even with all of its children checked it is not full,
     // it only renders indeterminate and stays clickable to fully select.
@@ -610,6 +625,21 @@ describe("valuesNotShownMarkers", () => {
       { id: "__DIRECT__:artist", count: 3, childCount: 0, paths: [["artist"]] },
     ]
     assert.lengthOf(valuesNotShownMarkers(results), 0)
+  })
+
+  test("a parent whose childCount is a lower bound (childCountAtLeast) yields a marker", () => {
+    // childCount equals the loaded children, but it is only a lower bound, so children are missing no
+    // matter how many are loaded and the marker is produced.
+    const results: RefFilterResult[] = [
+      { id: "artist", count: 100, childCount: 2, childCountAtLeast: true },
+      { id: "painter", count: 2, childCount: 0, paths: [["artist"]] },
+      { id: "sculptor", count: 4, childCount: 0, paths: [["artist"]] },
+      { id: "__DIRECT__:artist", count: 3, childCount: 0, paths: [["artist"]] },
+    ]
+    const markers = valuesNotShownMarkers(results)
+    assert.lengthOf(markers, 1)
+    assert.equal(markers[0].id, "__MORE__:artist")
+    assert.equal(markers[0].count, 91)
   })
 
   test("the direct entry is excluded from the real loaded child count but included in the document gap", () => {

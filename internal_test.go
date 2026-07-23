@@ -8,7 +8,10 @@ import (
 )
 
 //nolint:gochecknoglobals
-var TestingClearDirContents = clearDirContents
+var (
+	TestingClearDirContents         = clearDirContents
+	TestingParseSearchShortcutQuery = parseSearchShortcutQuery
+)
 
 // TestingRoutePaths returns the route name to path-template map that setRoutes configures,
 // including debugging routes when development is true.

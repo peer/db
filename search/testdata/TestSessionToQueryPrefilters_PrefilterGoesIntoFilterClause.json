@@ -3,20 +3,20 @@
     "filter": [
       {
         "nested": {
-          "path": "claims.ref",
+          "path": "claims.rel",
           "query": {
             "bool": {
               "must": [
                 {
                   "term": {
-                    "claims.ref.prop": {
+                    "claims.rel.prop": {
                       "value": "4EB1kqHAskLaz9t1on8sQA"
                     }
                   }
                 },
                 {
                   "term": {
-                    "claims.ref.to": {
+                    "claims.rel.to": {
                       "value": "UYamgAkUR6EpFzMduRTqJG"
                     }
                   }

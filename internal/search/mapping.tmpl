@@ -109,7 +109,15 @@
         }
       }
     },
-    "max_inner_result_window": {{ .MaxInnerResultWindow }}
+    "max_inner_result_window": {{ .MaxInnerResultWindow }},
+    "mapping": {
+      "nested_fields": {
+        "limit": {{ .NestedFieldsLimit }}
+      },
+      "total_fields": {
+        "limit": {{ .TotalFieldsLimit }}
+      }
+    }
   },
   "mappings": {
     "_source": {
@@ -144,12 +152,12 @@
       },
       "claims": {
         "properties": {
-          {{range $i, $claimType := .ClaimTypes}}
+          {{range $i, $collection := .Collections}}
             {{if $i}},{{end}}
-            "{{$claimType.Name}}": {
+            "{{$collection.Name}}": {
               "type": "nested",
               "properties": {
-                {{range $i, $field := $claimType.Fields}}
+                {{range $i, $field := $collection.Fields}}
                   {{if $i}},{{end}}
                   "{{$field.Name}}": {{$field.Definition}}
                 {{end}}

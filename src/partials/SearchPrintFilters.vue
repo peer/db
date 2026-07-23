@@ -41,21 +41,22 @@ function hasValueParts(values: readonly { id: string }[]): Array<{ separator: st
             </i18n-t>
             <FilterPropLabel v-else :prop-ids="filter.prop" :link="false" />
           </template>
-          <!-- A filter that is neither missing nor exists is a range, so gte and lte are both set. The gte check narrows the type past the empty clear payload. -->
+          <!-- A filter that is not exists is a range, so gte and lte are both set. The gte check narrows the type past the empty clear payload. -->
           <template #values>
-            <i v-if="filter.amount.missing">{{ t("common.values.missing") }}</i>
-            <i v-else-if="filter.amount.exists">{{ t("common.values.exists") }}</i>
+            <i v-if="filter.amount.exists">{{ t("common.values.exists") }}</i>
             <AmountRange v-else-if="filter.amount.gte != null" :from="filter.amount.gte" :to="filter.amount.lte" />
           </template>
         </i18n-t>
         <i18n-t v-else-if="'time' in filter" keypath="common.labelWithValues" scope="global">
           <template #label><FilterPropLabel :prop-ids="filter.prop" :link="false" /></template>
           <template #values>
-            <i v-if="filter.time.missing">{{ t("common.values.missing") }}</i>
-            <i v-else-if="filter.time.exists">{{ t("common.values.exists") }}</i>
+            <i v-if="filter.time.exists">{{ t("common.values.exists") }}</i>
             <TimeRange v-else-if="filter.time.gte != null" :from="filter.time.gte" :to="filter.time.lte" />
           </template>
         </i18n-t>
+        <RefFilterValues v-else-if="'specials' in filter" :specials="filter.specials" :link="false">
+          <FilterPropLabel :prop-ids="filter.prop" :link="false" />
+        </RefFilterValues>
         <i18n-t v-else-if="'has' in filter && filter.has.props && filter.has.props.length > 0" keypath="common.labelWithValues" scope="global">
           <template #label><FilterPropLabel :prop-ids="filter.prop" :link="false" /></template>
           <template #values>

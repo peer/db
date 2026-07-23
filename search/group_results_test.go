@@ -18,41 +18,49 @@ func sortKey(disp, idPath string) map[string][]string {
 	return map[string][]string{"en": {disp + internalSearch.SortKeySeparator + internalSearch.EncodeSortKeyPath(idPath)}}
 }
 
-// hierRef builds an indexed reference claim for a value at a hierarchy path. toPath is
+// hierRef builds an indexed ref rel record for a value at a hierarchy path. toPath is
 // "<prop>:<root>/.../<value>" and disp is the matching display labels joined by the null byte.
 //
 //nolint:exhaustruct
-func hierRef(prop, to identifier.Identifier, toPath, disp string, isLeaf bool) internalSearch.ReferenceClaim {
-	return internalSearch.ReferenceClaim{
+func hierRef(prop, to identifier.Identifier, toPath, disp string, isLeaf bool) internalSearch.RelClaim {
+	target := to
+	return internalSearch.RelClaim{
+		ClaimType:     internalSearch.ClaimTypeRef,
 		Prop:          prop,
-		To:            to,
+		To:            &target,
 		ToPath:        []string{toPath},
 		ToPathSortKey: sortKey(disp, toPath),
 		IsLeaf:        isLeaf,
 	}
 }
 
-// flatRef builds an indexed reference claim for a flat value (one in no value hierarchy), with the self
-// path the indexer stamps onto such a value: toPath is "__SELF__:<value>" and its sort key carries disp.
-//
-//nolint:exhaustruct
-func flatRef(prop, to identifier.Identifier, disp string) internalSearch.ReferenceClaim {
-	selfPath := internalSearch.SelfHierarchyPathPrefix + to.String()
-	return internalSearch.ReferenceClaim{
-		Prop:          prop,
-		To:            to,
-		ToPath:        []string{selfPath},
-		ToPathSortKey: sortKey(disp, selfPath),
-		IsLeaf:        true,
+// flatRef builds an indexed ref rel record for a flat value (one in no value hierarchy), with the
+// self path the indexer stamps onto such a value ("__SELF__:<value>") and a sort key carrying disp.
+func flatRef(prop, to identifier.Identifier, disp string) internalSearch.RelClaim {
+	record := refRecord(prop, to, nil)
+	record.ToPathSortKey = sortKey(disp, internalSearch.SelfHierarchyPathPrefix+to.String())
+	return record
+}
+
+// idClaimsDoc builds a Document with the given ID and claims and nothing else. Unlike claimsDoc it
+// takes the ID directly instead of hashing a seed string.
+func idClaimsDoc(id identifier.Identifier, claims internalSearch.ClaimTypes) internalSearch.Document {
+	return internalSearch.Document{
+		ID:          id,
+		Display:     nil,
+		DisplaySort: nil,
+		Text:        nil,
+		Time:        nil,
+		LastUpdated: nil,
+		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
+		Claims:      claims,
 	}
 }
 
-//nolint:exhaustruct
-func hierDoc(id identifier.Identifier, refs []internalSearch.ReferenceClaim) internalSearch.Document {
-	return internalSearch.Document{
-		ID:     id,
-		Claims: internalSearch.ClaimTypes{Reference: refs},
-	}
+func hierDoc(id identifier.Identifier, rels []internalSearch.RelClaim) internalSearch.Document {
+	return idClaimsDoc(id, internalSearch.ClaimTypes{ //nolint:exhaustruct
+		Rel: rels,
+	})
 }
 
 // leafIDs collects the IDs of the leaf (non-group) results directly under a group node.
@@ -88,9 +96,9 @@ func TestResultsGetGroupedIntegration(t *testing.T) {
 	berlinLeaf := hierRef(loc, berlin, berlinPath, "Europe\x00Berlin", true)
 	euAncestor := hierRef(loc, eu, euPath, "Europe", false)
 
-	indexDocument(t, ctx, esClient, index, hierDoc(docA, []internalSearch.ReferenceClaim{parisLeaf, euAncestor}))
-	indexDocument(t, ctx, esClient, index, hierDoc(docB, []internalSearch.ReferenceClaim{berlinLeaf, euAncestor}))
-	indexDocument(t, ctx, esClient, index, hierDoc(docC, []internalSearch.ReferenceClaim{parisLeaf, berlinLeaf, euAncestor}))
+	indexDocument(t, ctx, esClient, index, hierDoc(docA, []internalSearch.RelClaim{parisLeaf, euAncestor}))
+	indexDocument(t, ctx, esClient, index, hierDoc(docB, []internalSearch.RelClaim{berlinLeaf, euAncestor}))
+	indexDocument(t, ctx, esClient, index, hierDoc(docC, []internalSearch.RelClaim{parisLeaf, berlinLeaf, euAncestor}))
 	refreshIndex(t, ctx, esClient, index)
 
 	// Group by location (a ref column). View resolves to "feed", which enables grouping.
@@ -139,14 +147,26 @@ func TestResultsGetGroupedFlatMissing(t *testing.T) {
 	docB := identifier.From("docFlatB") // medium: book.
 	docC := identifier.From("docFlatC") // medium: both poster and book.
 	docD := identifier.From("docFlatD") // no medium.
+	docE := identifier.From("docFlatE") // medium: unknown.
+	docF := identifier.From("docFlatF") // medium stated as an amount.
 
 	posterRef := flatRef(medium, poster, "Poster")
 	bookRef := flatRef(medium, book, "Book")
 
-	indexDocument(t, ctx, esClient, index, hierDoc(docA, []internalSearch.ReferenceClaim{posterRef}))
-	indexDocument(t, ctx, esClient, index, hierDoc(docB, []internalSearch.ReferenceClaim{bookRef}))
-	indexDocument(t, ctx, esClient, index, hierDoc(docC, []internalSearch.ReferenceClaim{posterRef, bookRef}))
-	indexDocument(t, ctx, esClient, index, hierDoc(docD, []internalSearch.ReferenceClaim{flatRef(other, otherVal, "Other")}))
+	one := 1.0
+	two := 2.0
+
+	indexDocument(t, ctx, esClient, index, hierDoc(docA, []internalSearch.RelClaim{posterRef}))
+	indexDocument(t, ctx, esClient, index, hierDoc(docB, []internalSearch.RelClaim{bookRef}))
+	indexDocument(t, ctx, esClient, index, hierDoc(docC, []internalSearch.RelClaim{posterRef, bookRef}))
+	indexDocument(t, ctx, esClient, index, hierDoc(docD, []internalSearch.RelClaim{flatRef(other, otherVal, "Other")}))
+	// An unknown record and an amount claim for the property both block the missing group (the
+	// missing definition excludes any rel, amount, or time claim for the property), while neither
+	// contributes a present leaf value, so these documents appear in no group.
+	indexDocument(t, ctx, esClient, index, hierDoc(docE, []internalSearch.RelClaim{simpleRelRecord(internalSearch.ClaimTypeUnknown, medium, nil)}))
+	indexDocument(t, ctx, esClient, index, idClaimsDoc(docF, internalSearch.ClaimTypes{ //nolint:exhaustruct
+		Amount: internalSearch.AmountClaims{amountRecord(medium, nil, &one, &two, nil)},
+	}))
 	refreshIndex(t, ctx, esClient, index)
 
 	// Group by a flat ref column (medium). View resolves to "feed", which enables grouping.
@@ -157,8 +177,8 @@ func TestResultsGetGroupedFlatMissing(t *testing.T) {
 	results, metadata, errE := search.ResultsGet(ctx, getSearchService, &session.SessionData, []string{"en"}, 0)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	// total counts matching documents (not group placements): docA, docB, docC, docD.
-	assert.Equal(t, int64(4), metadata["total"])
+	// total counts matching documents (not group placements): all six documents.
+	assert.Equal(t, int64(6), metadata["total"])
 
 	// Two flat single-level groups ordered by display label (Book, Poster), then the missing group last.
 	require.Len(t, results, 3)
@@ -176,7 +196,9 @@ func TestResultsGetGroupedFlatMissing(t *testing.T) {
 	assert.Equal(t, int64(2), *posterGroup.Count)
 	assert.ElementsMatch(t, []string{docA.String(), docC.String()}, leafIDs(posterGroup.Group))
 
-	// docD has no medium value, so it lands in the trailing synthetic "missing" group.
+	// docD states nothing facetable for medium, so it lands in the trailing synthetic "missing"
+	// group. docE and docF state something facetable (an unknown record, an amount claim), so they
+	// are not missing, and having no leaf ref value they appear in no group.
 	assert.Equal(t, search.MissingValueID, missingGroup.ID)
 	require.NotNil(t, missingGroup.Count)
 	assert.Equal(t, int64(1), *missingGroup.Count)
@@ -203,10 +225,10 @@ func TestResultsGetGroupedMultiLevelMissing(t *testing.T) {
 	aliceRef := flatRef(creator, alice, "Alice")
 	bobRef := flatRef(creator, bob, "Bob")
 
-	indexDocument(t, ctx, esClient, index, hierDoc(doc1, []internalSearch.ReferenceClaim{posterRef, aliceRef}))
-	indexDocument(t, ctx, esClient, index, hierDoc(doc2, []internalSearch.ReferenceClaim{posterRef, bobRef}))
-	indexDocument(t, ctx, esClient, index, hierDoc(doc3, []internalSearch.ReferenceClaim{posterRef}))
-	indexDocument(t, ctx, esClient, index, hierDoc(doc4, []internalSearch.ReferenceClaim{aliceRef}))
+	indexDocument(t, ctx, esClient, index, hierDoc(doc1, []internalSearch.RelClaim{posterRef, aliceRef}))
+	indexDocument(t, ctx, esClient, index, hierDoc(doc2, []internalSearch.RelClaim{posterRef, bobRef}))
+	indexDocument(t, ctx, esClient, index, hierDoc(doc3, []internalSearch.RelClaim{posterRef}))
+	indexDocument(t, ctx, esClient, index, hierDoc(doc4, []internalSearch.RelClaim{aliceRef}))
 	refreshIndex(t, ctx, esClient, index)
 
 	// Group by medium, then by creator: two leading group columns.

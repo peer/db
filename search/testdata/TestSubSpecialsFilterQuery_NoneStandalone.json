@@ -1,0 +1,314 @@
+{
+  "bool": {
+    "must": [
+      {
+        "bool": {
+          "minimum_should_match": 1,
+          "should": [
+            {
+              "nested": {
+                "path": "claims.rel",
+                "query": {
+                  "bool": {
+                    "must": [
+                      {
+                        "term": {
+                          "claims.rel.prop": {
+                            "value": "XHaC94kLmNZ5NtifgrStop"
+                          }
+                        }
+                      },
+                      {
+                        "nested": {
+                          "path": "claims.rel.sub.rel",
+                          "query": {
+                            "bool": {
+                              "must": [
+                                {
+                                  "term": {
+                                    "claims.rel.sub.rel.claimType": {
+                                      "value": "none"
+                                    }
+                                  }
+                                },
+                                {
+                                  "term": {
+                                    "claims.rel.sub.rel.prop": {
+                                      "value": "BdPHADUy9rAaqkQDrp41xq"
+                                    }
+                                  }
+                                }
+                              ]
+                            }
+                          }
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            },
+            {
+              "nested": {
+                "path": "claims.amount",
+                "query": {
+                  "bool": {
+                    "must": [
+                      {
+                        "term": {
+                          "claims.amount.prop": {
+                            "value": "XHaC94kLmNZ5NtifgrStop"
+                          }
+                        }
+                      },
+                      {
+                        "nested": {
+                          "path": "claims.amount.sub.rel",
+                          "query": {
+                            "bool": {
+                              "must": [
+                                {
+                                  "term": {
+                                    "claims.amount.sub.rel.claimType": {
+                                      "value": "none"
+                                    }
+                                  }
+                                },
+                                {
+                                  "term": {
+                                    "claims.amount.sub.rel.prop": {
+                                      "value": "BdPHADUy9rAaqkQDrp41xq"
+                                    }
+                                  }
+                                }
+                              ]
+                            }
+                          }
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            },
+            {
+              "nested": {
+                "path": "claims.time",
+                "query": {
+                  "bool": {
+                    "must": [
+                      {
+                        "term": {
+                          "claims.time.prop": {
+                            "value": "XHaC94kLmNZ5NtifgrStop"
+                          }
+                        }
+                      },
+                      {
+                        "nested": {
+                          "path": "claims.time.sub.rel",
+                          "query": {
+                            "bool": {
+                              "must": [
+                                {
+                                  "term": {
+                                    "claims.time.sub.rel.claimType": {
+                                      "value": "none"
+                                    }
+                                  }
+                                },
+                                {
+                                  "term": {
+                                    "claims.time.sub.rel.prop": {
+                                      "value": "BdPHADUy9rAaqkQDrp41xq"
+                                    }
+                                  }
+                                }
+                              ]
+                            }
+                          }
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            },
+            {
+              "nested": {
+                "path": "claims.id",
+                "query": {
+                  "bool": {
+                    "must": [
+                      {
+                        "term": {
+                          "claims.id.prop": {
+                            "value": "XHaC94kLmNZ5NtifgrStop"
+                          }
+                        }
+                      },
+                      {
+                        "nested": {
+                          "path": "claims.id.sub.rel",
+                          "query": {
+                            "bool": {
+                              "must": [
+                                {
+                                  "term": {
+                                    "claims.id.sub.rel.claimType": {
+                                      "value": "none"
+                                    }
+                                  }
+                                },
+                                {
+                                  "term": {
+                                    "claims.id.sub.rel.prop": {
+                                      "value": "BdPHADUy9rAaqkQDrp41xq"
+                                    }
+                                  }
+                                }
+                              ]
+                            }
+                          }
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            },
+            {
+              "nested": {
+                "path": "claims.string",
+                "query": {
+                  "bool": {
+                    "must": [
+                      {
+                        "term": {
+                          "claims.string.prop": {
+                            "value": "XHaC94kLmNZ5NtifgrStop"
+                          }
+                        }
+                      },
+                      {
+                        "nested": {
+                          "path": "claims.string.sub.rel",
+                          "query": {
+                            "bool": {
+                              "must": [
+                                {
+                                  "term": {
+                                    "claims.string.sub.rel.claimType": {
+                                      "value": "none"
+                                    }
+                                  }
+                                },
+                                {
+                                  "term": {
+                                    "claims.string.sub.rel.prop": {
+                                      "value": "BdPHADUy9rAaqkQDrp41xq"
+                                    }
+                                  }
+                                }
+                              ]
+                            }
+                          }
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            },
+            {
+              "nested": {
+                "path": "claims.html",
+                "query": {
+                  "bool": {
+                    "must": [
+                      {
+                        "term": {
+                          "claims.html.prop": {
+                            "value": "XHaC94kLmNZ5NtifgrStop"
+                          }
+                        }
+                      },
+                      {
+                        "nested": {
+                          "path": "claims.html.sub.rel",
+                          "query": {
+                            "bool": {
+                              "must": [
+                                {
+                                  "term": {
+                                    "claims.html.sub.rel.claimType": {
+                                      "value": "none"
+                                    }
+                                  }
+                                },
+                                {
+                                  "term": {
+                                    "claims.html.sub.rel.prop": {
+                                      "value": "BdPHADUy9rAaqkQDrp41xq"
+                                    }
+                                  }
+                                }
+                              ]
+                            }
+                          }
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            },
+            {
+              "nested": {
+                "path": "claims.link",
+                "query": {
+                  "bool": {
+                    "must": [
+                      {
+                        "term": {
+                          "claims.link.prop": {
+                            "value": "XHaC94kLmNZ5NtifgrStop"
+                          }
+                        }
+                      },
+                      {
+                        "nested": {
+                          "path": "claims.link.sub.rel",
+                          "query": {
+                            "bool": {
+                              "must": [
+                                {
+                                  "term": {
+                                    "claims.link.sub.rel.claimType": {
+                                      "value": "none"
+                                    }
+                                  }
+                                },
+                                {
+                                  "term": {
+                                    "claims.link.sub.rel.prop": {
+                                      "value": "BdPHADUy9rAaqkQDrp41xq"
+                                    }
+                                  }
+                                }
+                              ]
+                            }
+                          }
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          ]
+        }
+      }
+    ]
+  }
+}

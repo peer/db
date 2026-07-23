@@ -7,8 +7,10 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gitlab.com/tozd/identifier"
+	"gitlab.com/tozd/waf"
 
 	"gitlab.com/peerdb/peerdb"
+	internalSite "gitlab.com/peerdb/peerdb/internal/site"
 	"gitlab.com/peerdb/peerdb/search"
 )
 
@@ -162,5 +164,100 @@ func TestParseShortcutQueryGroups(t *testing.T) {
 		_, _, _, _, _, errE := peerdb.TestingParseShortcutQueryGroups(url.Values{"reverse": {doc.String(), value1.String()}})
 		require.Error(t, errE)
 		assert.ErrorContains(t, errE, `"reverse" query parameter must be set exactly once`)
+	})
+}
+
+// TestParseSearchShortcutQueryPrefilters covers the mapping from parsed shortcut groups to the
+// session's prefilters: selected values become a ref prefilter and the "missing" selection the
+// property path's specials prefilter (Missing set), so both prefilters may be present for one
+// property.
+func TestParseSearchShortcutQueryPrefilters(t *testing.T) {
+	t.Parallel()
+
+	prop := identifier.New()
+	parent := identifier.New()
+	value1 := identifier.New()
+	value2 := identifier.New()
+
+	// assertFilterIdentity checks the prefilter carries a coherent generated Base/ID pair.
+	assertFilterIdentity := func(t *testing.T, f search.Filter) {
+		t.Helper()
+		require.NotNil(t, f.ID)
+		require.NotEmpty(t, f.Base)
+		assert.Equal(t, identifier.From(f.Base...), *f.ID)
+	}
+
+	t.Run("values only", func(t *testing.T) {
+		t.Parallel()
+
+		ctx := waf.WithSite[*internalSite.Site](t.Context(), &internalSite.Site{})
+		session, errE := peerdb.TestingParseSearchShortcutQuery(ctx, url.Values{prop.String(): {value1.String()}})
+		require.NoError(t, errE, "% -+#.1v", errE)
+		require.Len(t, session.Prefilters, 1)
+		f := session.Prefilters[0]
+		assertFilterIdentity(t, f)
+		assert.Equal(t, []identifier.Identifier{prop}, f.Prop)
+		require.NotNil(t, f.Ref)
+		assert.Equal(t, []search.ToValue{{ID: value1}}, f.Ref.To)
+		assert.Nil(t, f.Ref.Direct)
+		assert.Nil(t, f.Specials)
+	})
+
+	t.Run("missing only", func(t *testing.T) {
+		t.Parallel()
+
+		ctx := waf.WithSite[*internalSite.Site](t.Context(), &internalSite.Site{})
+		session, errE := peerdb.TestingParseSearchShortcutQuery(ctx, url.Values{prop.String(): {"missing"}})
+		require.NoError(t, errE, "% -+#.1v", errE)
+		require.Len(t, session.Prefilters, 1)
+		f := session.Prefilters[0]
+		assertFilterIdentity(t, f)
+		assert.Equal(t, []identifier.Identifier{prop}, f.Prop)
+		assert.Nil(t, f.Ref)
+		require.NotNil(t, f.Specials)
+		assert.Equal(t, search.SpecialsFilter{Missing: true, None: false, Unknown: false, HasProperty: false}, *f.Specials)
+	})
+
+	t.Run("values and missing", func(t *testing.T) {
+		t.Parallel()
+
+		ctx := waf.WithSite[*internalSite.Site](t.Context(), &internalSite.Site{})
+		session, errE := peerdb.TestingParseSearchShortcutQuery(ctx, url.Values{
+			prop.String(): {value1.String(), "direct:" + value2.String(), "missing"},
+		})
+		require.NoError(t, errE, "% -+#.1v", errE)
+		require.Len(t, session.Prefilters, 2)
+
+		ref := session.Prefilters[0]
+		assertFilterIdentity(t, ref)
+		assert.Equal(t, []identifier.Identifier{prop}, ref.Prop)
+		require.NotNil(t, ref.Ref)
+		assert.Equal(t, []search.ToValue{{ID: value1}}, ref.Ref.To)
+		assert.Equal(t, []search.ToValue{{ID: value2}}, ref.Ref.Direct)
+		assert.Nil(t, ref.Specials)
+
+		specials := session.Prefilters[1]
+		assertFilterIdentity(t, specials)
+		assert.Equal(t, []identifier.Identifier{prop}, specials.Prop)
+		assert.Nil(t, specials.Ref)
+		require.NotNil(t, specials.Specials)
+		assert.Equal(t, search.SpecialsFilter{Missing: true, None: false, Unknown: false, HasProperty: false}, *specials.Specials)
+	})
+
+	t.Run("nested missing", func(t *testing.T) {
+		t.Parallel()
+
+		ctx := waf.WithSite[*internalSite.Site](t.Context(), &internalSite.Site{})
+		session, errE := peerdb.TestingParseSearchShortcutQuery(ctx, url.Values{
+			parent.String() + ":" + prop.String(): {"missing"},
+		})
+		require.NoError(t, errE, "% -+#.1v", errE)
+		require.Len(t, session.Prefilters, 1)
+		f := session.Prefilters[0]
+		assertFilterIdentity(t, f)
+		assert.Equal(t, []identifier.Identifier{parent, prop}, f.Prop)
+		assert.Nil(t, f.Ref)
+		require.NotNil(t, f.Specials)
+		assert.Equal(t, search.SpecialsFilter{Missing: true, None: false, Unknown: false, HasProperty: false}, *f.Specials)
 	})
 }

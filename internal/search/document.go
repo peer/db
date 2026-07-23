@@ -72,38 +72,51 @@ type Counts struct {
 	Score *int `json:"score,omitempty"`
 }
 
-// ClaimTypes organizes claims by their type. Synthetic sub-claim types
-// (SubRef, SubAmount, SubTime, SubHas) flatten nested sub-claims from
-// parent claims (ref, has, none, unknown) so they can be matched by sub-claim
-// filters without ES join queries.
+// ClaimType values for RelClaim records, discriminating the four target-or-nothing
+// claim types sharing the claims.rel collection.
+const (
+	ClaimTypeRef     = "ref"
+	ClaimTypeHas     = "has"
+	ClaimTypeNone    = "none"
+	ClaimTypeUnknown = "unknown"
+)
+
+// ClaimTypes organizes claims by their ElasticSearch collection. Each collection is a
+// nested field under "claims" (or, for sub-claims, under a parent record's "sub" field).
 //
-// Identifier, String, HTML and Link claims are currently not directly used
-// by search APIs in PeerDB but are still indexed to support queries over
-// them when PeerDB is used as a library.
+// Rel holds the four target-or-nothing claim types (ref, has, none, unknown) in one
+// claimType-discriminated collection, so a facet's value and special-value buckets (which must
+// count against each other) live in a single nested context and per-document counts are
+// exact without cross-collection deduplication.
+//
+// Amount and Time hold numeric and temporal claims; interval source claims map into them
+// as a range over their bounds, while a point claim becomes a range whose endpoints are
+// its precision window.
+//
+// Identifier, String, HTML and Link are the text-only collections: they surface no facets
+// (and do not block a facet's missing bucket) but are indexed so code can make structured
+// per-property queries over them.
 type ClaimTypes struct {
+	Rel        RelClaims        `json:"rel,omitempty"`
+	Amount     AmountClaims     `json:"amount,omitempty"`
+	Time       TimeClaims       `json:"time,omitempty"`
 	Identifier IdentifierClaims `json:"id,omitempty"`
 	String     StringClaims     `json:"string,omitempty"`
 	HTML       HTMLClaims       `json:"html,omitempty"`
-	Amount     AmountClaims     `json:"amount,omitempty"`
-	Time       TimeClaims       `json:"time,omitempty"`
 	Link       LinkClaims       `json:"link,omitempty"`
-	Reference  ReferenceClaims  `json:"ref,omitempty"`
-	Has        HasClaims        `json:"has,omitempty"`
-	None       NoneClaims       `json:"none,omitempty"`
-	Unknown    UnknownClaims    `json:"unknown,omitempty"`
-
-	SubRef    SubRefClaims    `json:"subRef,omitempty"`
-	SubAmount SubAmountClaims `json:"subAmount,omitempty"`
-	SubTime   SubTimeClaims   `json:"subTime,omitempty"`
-	SubHas    SubHasClaims    `json:"subHas,omitempty"`
 }
 
-// AmountInterval and TimeInterval source claims are mapped to AmountClaim and
-// TimeClaim records respectively (top-level and sub-claim alike): a point
-// claim becomes a range whose endpoints coincide, while an interval claim
-// becomes a range over its bounds.
+// Size returns the total number of records across all collections.
+func (c *ClaimTypes) Size() int {
+	if c == nil {
+		return 0
+	}
+	return len(c.Rel) + len(c.Amount) + len(c.Time) + len(c.Identifier) + len(c.String) + len(c.HTML) + len(c.Link)
+}
 
 type (
+	// RelClaims is a slice of RelClaim.
+	RelClaims = []RelClaim
 	// IdentifierClaims is a slice of IdentifierClaim.
 	IdentifierClaims = []IdentifierClaim
 	// StringClaims is a slice of StringClaim.
@@ -116,23 +129,16 @@ type (
 	TimeClaims = []TimeClaim
 	// LinkClaims is a slice of LinkClaim.
 	LinkClaims = []LinkClaim
-	// ReferenceClaims is a slice of ReferenceClaim.
-	ReferenceClaims = []ReferenceClaim
-	// HasClaims is a slice of HasClaim.
-	HasClaims = []HasClaim
-	// NoneClaims is a slice of NoneClaim.
-	NoneClaims = []NoneClaim
-	// UnknownClaims is a slice of UnknownClaim.
-	UnknownClaims = []UnknownClaim
-	// SubRefClaims is a slice of SubRefClaim.
-	SubRefClaims = []SubRefClaim
-	// SubAmountClaims is a slice of SubAmountClaim.
-	SubAmountClaims = []SubAmountClaim
-	// SubTimeClaims is a slice of SubTimeClaim.
-	SubTimeClaims = []SubTimeClaim
-	// SubHasClaims is a slice of SubHasClaim.
-	SubHasClaims = []SubHasClaim
 )
+
+// Sub containers hold a record's sub-claims as the same ClaimTypes collections, nested one
+// level inside the parent record (ElasticSearch multi-level nested). Only top-level records
+// carry a Sub container; records inside a Sub container have Sub nil (the mapping defines a
+// single sub level, and deeper sub-claims are not indexed, though they still count toward
+// counts.claims and the document time). Because a sub record sits structurally under its
+// parent record, queries correlate sub conditions on the same parent claim by nesting inner
+// nested queries inside the parent's nested query, and no parent identity fields are needed
+// on sub records.
 
 // IdentifierClaim represents a claim with a string identifier value.
 type IdentifierClaim struct {
@@ -141,6 +147,8 @@ type IdentifierClaim struct {
 	PropNaming  map[string][]string   `json:"propNaming"`
 	PropSortKey map[string]string     `json:"propSortKey,omitempty"`
 	Value       string                `json:"value"`
+
+	Sub *ClaimTypes `json:"sub,omitempty"`
 }
 
 // StringClaim represents a claim with a plain string value for a given language.
@@ -153,6 +161,8 @@ type StringClaim struct {
 	// String maps each language the claim resolves to (its IN_LANGUAGE sub-claims, or
 	// detected language) to the claim's value. Every entry holds the same value.
 	String map[string]string `json:"string"`
+
+	Sub *ClaimTypes `json:"sub,omitempty"`
 }
 
 // HTMLClaim represents a claim with HTML content, indexed as plain text. The HTML is
@@ -167,6 +177,8 @@ type HTMLClaim struct {
 	// HTML maps each language the claim resolves to (its IN_LANGUAGE sub-claims, or detected
 	// language) to the plain-text rendering of the claim's HTML for that language.
 	HTML map[string]string `json:"html"`
+
+	Sub *ClaimTypes `json:"sub,omitempty"`
 }
 
 // RangeFloat represents a numeric range.
@@ -288,6 +300,8 @@ type AmountClaim struct {
 	FromDisplay string                 `json:"fromDisplay,omitempty"`
 	To          *float64               `json:"to,omitempty"`
 	ToDisplay   string                 `json:"toDisplay,omitempty"`
+
+	Sub *ClaimTypes `json:"sub,omitempty"`
 }
 
 // TimeClaim represents a claim for time.
@@ -304,6 +318,8 @@ type TimeClaim struct {
 	FromDisplay string                `json:"fromDisplay,omitempty"`
 	To          *float64              `json:"to,omitempty"`
 	ToDisplay   string                `json:"toDisplay,omitempty"`
+
+	Sub *ClaimTypes `json:"sub,omitempty"`
 }
 
 // LinkClaim represents a claim with an IRI (Internationalized Resource Identifier) value.
@@ -313,17 +329,25 @@ type LinkClaim struct {
 	PropNaming  map[string][]string   `json:"propNaming"`
 	PropSortKey map[string]string     `json:"propSortKey,omitempty"`
 	IRI         string                `json:"iri"`
+
+	Sub *ClaimTypes `json:"sub,omitempty"`
 }
 
-// ReferenceClaim represents a claim that relates this document to another document.
-type ReferenceClaim struct {
+// RelClaim represents a target-or-nothing statement about a property: a reference to
+// another document (ClaimType "ref"), a bare property assertion ("has"), an explicit
+// statement that no value exists ("none"), or a statement that the value exists but is
+// unknown ("unknown"). The To* fields are set only on ref records; has, none, and
+// unknown records carry only the property fields and the discriminator.
+type RelClaim struct {
+	ClaimType   string                `json:"claimType"`
 	Prop        identifier.Identifier `json:"prop"`
 	PropDisplay map[string]string     `json:"propDisplay"`
 	PropNaming  map[string][]string   `json:"propNaming"`
 	PropSortKey map[string]string     `json:"propSortKey,omitempty"`
-	To          identifier.Identifier `json:"to"`
-	ToDisplay   map[string]string     `json:"toDisplay"`
-	ToNaming    map[string][]string   `json:"toNaming"`
+
+	To        *identifier.Identifier `json:"to,omitempty"`
+	ToDisplay map[string]string      `json:"toDisplay,omitempty"`
+	ToNaming  map[string][]string    `json:"toNaming,omitempty"`
 	// ToSortKey is, per language, the value's own display label as a sort_key_normalizer keyword, so facet
 	// values can be sorted by their display label (independent of the hierarchy ToPathSortKey).
 	ToSortKey map[string]string `json:"toSortKey,omitempty"`
@@ -333,14 +357,9 @@ type ReferenceClaim struct {
 	// ancestor IDs joined by "/". Multiple paths exist when the target has
 	// multiple parents in a hierarchy or participates in multiple hierarchies.
 	ToPath []string `json:"toPath,omitempty"`
-	// ToFullPath is the hierarchy path of the original (leaf) target this claim was expanded from,
-	// the same for every record produced from one stated claim (the leaf and each of its ancestors).
-	// While ToPath is the path of this record's own To value, ToFullPath identifies the leaf the
-	// record derives from.
-	ToFullPath []string `json:"toFullPath,omitempty"`
 	// ToParent holds the immediate-parent value id for each of ToPath's chains (the segment before the last).
 	// It is multi-valued because a value can have several parents under multiple inheritance, and absent for a
-	// root value. It lets a terms(toParent) -> cardinality(to) aggregation count a value's distinct children.
+	// root value. It lets a terms(toParent) aggregation group a value's distinct children.
 	ToParent []string `json:"toParent,omitempty"`
 	// ToDisplayPath contains per-language display hierarchy paths from root to the target document. Each
 	// path is a string of display labels joined by null bytes. It is not indexed (json:"-"): it is kept in
@@ -354,126 +373,17 @@ type ReferenceClaim struct {
 	// single key for ref-column sorting and for grouping: ordering by it sorts by label with the id as a
 	// tiebreaker, so distinct values that share a display label stay distinct.
 	ToPathSortKey map[string][]string `json:"toPathSortKey,omitempty"`
-	// IsLeaf is true when the target is a most-specific value for this document: the document
-	// references it but none of its narrower values (its descendants in the value hierarchy) for
-	// the same property. It lets the reference filter count and select documents that are exactly
-	// this value, with none of its narrower values ("direct").
+	// IsLeaf is true when the target is a most-specific value: the containing scope (the whole
+	// document for top-level records, the parent record's Sub container for sub records)
+	// references the value but none of its narrower values (its descendants in the value
+	// hierarchy) for the same property. It lets the reference filter count and select documents
+	// that are exactly this value, with none of its narrower values ("direct").
 	//
-	// IsLeaf is a property of the whole document (computed across all of its claims for this
-	// property), so it is not the same as ToPath == ToFullPath (which holds for the record whose To is
-	// its own claim's stated value). The two diverge when a document states both a parent and a child
-	// directly: the parent's directly-stated record has ToPath == ToFullPath, but IsLeaf is false
-	// because the child (a narrower value) is also referenced, so the document is not exactly the
-	// parent. That is why IsLeaf is computed and stored separately, not derived from ToPath ==
-	// ToFullPath.
+	// IsLeaf is a property of the whole scope (computed across all of its ref records for this
+	// property), so a record whose To is its own claim's stated value can still have IsLeaf
+	// false: when the scope states both a parent and a child directly, the parent is not
+	// most-specific because the child (a narrower value) is also referenced.
 	IsLeaf bool `json:"isLeaf,omitempty"`
-}
 
-// HasClaim represents a claim with just a property.
-//
-// HasClaim entries hold simple has claims with no sub-claims. Any sub-claims of
-// a has claim are flattened into the appropriate Sub* records on the parent
-// document with ParentTo=ParentToHas, so the has filter that queries claims.has
-// naturally sees only simple has claims.
-type HasClaim struct {
-	Prop        identifier.Identifier `json:"prop"`
-	PropDisplay map[string]string     `json:"propDisplay"`
-	PropNaming  map[string][]string   `json:"propNaming"`
-	PropSortKey map[string]string     `json:"propSortKey,omitempty"`
-}
-
-// NoneClaim represents a claim that explicitly states no value exists for a property.
-type NoneClaim struct {
-	Prop        identifier.Identifier `json:"prop"`
-	PropDisplay map[string]string     `json:"propDisplay"`
-	PropNaming  map[string][]string   `json:"propNaming"`
-	PropSortKey map[string]string     `json:"propSortKey,omitempty"`
-}
-
-// UnknownClaim represents a claim where the value for a property is known to exist but is unknown.
-type UnknownClaim struct {
-	Prop        identifier.Identifier `json:"prop"`
-	PropDisplay map[string]string     `json:"propDisplay"`
-	PropNaming  map[string][]string   `json:"propNaming"`
-	PropSortKey map[string]string     `json:"propSortKey,omitempty"`
-}
-
-// TODO: Index the parent claim's own ID alongside ParentTo.
-//       ParentTo on the four Sub* claim types is the parent claim's target identity
-//       (the ref's To, or the ParentToHas/None/Unknown sentinel). It is NOT the
-//       parent claim's own claim ID. This is fine when a document carries at most
-//       one parent claim with a given (parentProp, parentTo) - cross-filter joins
-//       between two sub-claim filters that share the same parent prop then narrow
-//       to entries under the same parent record.
-//       When a document carries multiple parent claims that share the same
-//       (parentProp, parentTo) - e.g. the same venue listed twice under HAS_LOCATION
-//       with different periods - the cross-filter cannot distinguish them: each
-//       sub-claim filter independently matches "some entry under any of those
-//       parents", so a session like:
-//       HAS_LOCATION = L
-//       HAS_LOCATION > HAS_USER = A
-//       HAS_LOCATION > PERIOD in [X,Y]
-//       matches an exhibition where one of its L-entries lists A and another of its
-//       L-entries has period in [X,Y], rather than requiring the same L-entry to
-//       satisfy both.
-//       Fix: add a ParentID identifier.Identifier on each Sub* type, populated by
-//       extractSubClaims from the parent CoreClaim.ID. Sub-claim filter queries
-//       would then group their per-(parentProp, sub-claim-type) restrictions by
-//       ParentID, so the joins narrow to the same parent record. Cross-filter
-//       against a sibling top-level ref filter would still key on ParentTo (since
-//       the top-level filter selects by target identity).
-
-// SubRefClaim represents a denormalized nested reference sub-claim flattened from parent claims
-// (ref, has, none, unknown) for cross-filtering.
-//
-// IsLeaf is computed across the document's sub-references that share the same (ParentProp, ParentTo, Prop).
-type SubRefClaim struct {
-	ReferenceClaim
-
-	ParentProp        identifier.Identifier `json:"parentProp"`
-	ParentPropDisplay map[string]string     `json:"parentPropDisplay"`
-	ParentPropNaming  map[string][]string   `json:"parentPropNaming"`
-	ParentTo          string                `json:"parentTo"`
-}
-
-// SubAmountClaim represents a denormalized nested amount sub-claim flattened
-// from parent claims (ref, has, none, unknown) so sub-amount filters can
-// match without ES join queries. AmountInterval source claims are stored
-// here too as a range over their bounds.
-type SubAmountClaim struct {
-	AmountClaim
-
-	ParentProp        identifier.Identifier `json:"parentProp"`
-	ParentPropDisplay map[string]string     `json:"parentPropDisplay"`
-	ParentPropNaming  map[string][]string   `json:"parentPropNaming"`
-	ParentTo          string                `json:"parentTo"`
-}
-
-// SubTimeClaim represents a denormalized nested time sub-claim flattened from
-// parent claims (ref, has, none, unknown) so sub-time filters can match
-// without ES join queries. TimeInterval source claims are stored here too as
-// a range over their bounds. Times are stored as float64 seconds since Unix
-// epoch.
-type SubTimeClaim struct {
-	TimeClaim
-
-	ParentProp        identifier.Identifier `json:"parentProp"`
-	ParentPropDisplay map[string]string     `json:"parentPropDisplay"`
-	ParentPropNaming  map[string][]string   `json:"parentPropNaming"`
-	ParentTo          string                `json:"parentTo"`
-}
-
-// SubHasClaim represents a denormalized nested has-only sub-claim flattened
-// from parent claims (ref, has, none, unknown) so sub-has filters can match
-// without ES join queries. Only simple has sub-claims (those with no further
-// sub-claims of their own) are recorded here; has sub-claims with their own
-// sub-claims contribute to the appropriate Sub* records of their content
-// types but do not themselves appear as SubHasClaim entries.
-type SubHasClaim struct {
-	HasClaim
-
-	ParentProp        identifier.Identifier `json:"parentProp"`
-	ParentPropDisplay map[string]string     `json:"parentPropDisplay"`
-	ParentPropNaming  map[string][]string   `json:"parentPropNaming"`
-	ParentTo          string                `json:"parentTo"`
+	Sub *ClaimTypes `json:"sub,omitempty"`
 }

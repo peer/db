@@ -42,6 +42,16 @@ func makeCoreClaim(confidence document.Confidence, sub *document.ClaimTypes) doc
 	}
 }
 
+// findRefTo returns the first ref record in recs whose target is to, or nil when there is none.
+func findRefTo(recs []RelClaim, to identifier.Identifier) *RelClaim {
+	for i := range recs {
+		if recs[i].ClaimType == ClaimTypeRef && recs[i].To != nil && *recs[i].To == to {
+			return &recs[i]
+		}
+	}
+	return nil
+}
+
 // newIR creates an InverseRelation with the given fields.
 func newIR(claim, source, sourceProp, targetProp, target identifier.Identifier, confidence document.Confidence) store.InverseRelation {
 	return store.InverseRelation{
@@ -1396,13 +1406,13 @@ func TestConvertRelationMultipleHierarchies(t *testing.T) {
 	}
 	errE := claim.Validate()
 	require.NoError(t, errE, "% -+#.1v", errE)
-	result, _, errE := c.convertReference(ctx, claim)
+	result, errE := c.convertReference(ctx, claim)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	// Target + classParent + partParent = 3 claims.
 	require.Len(t, result, 3)
 	toIDs := make([]identifier.Identifier, 0, len(result))
 	for _, r := range result {
-		toIDs = append(toIDs, r.To)
+		toIDs = append(toIDs, *r.To)
 	}
 	assert.Contains(t, toIDs, target)
 	assert.Contains(t, toIDs, classParent)
@@ -1465,13 +1475,13 @@ func TestConvertRelationOverlappingAncestors(t *testing.T) {
 	}
 	errE := claim.Validate()
 	require.NoError(t, errE, "% -+#.1v", errE)
-	result, _, errE := c.convertReference(ctx, claim)
+	result, errE := c.convertReference(ctx, claim)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	// Target + sharedAncestor (deduplicated) = 2 claims.
 	require.Len(t, result, 2)
 	toIDs := make([]identifier.Identifier, 0, len(result))
 	for _, r := range result {
-		toIDs = append(toIDs, r.To)
+		toIDs = append(toIDs, *r.To)
 	}
 	assert.Contains(t, toIDs, target)
 	assert.Contains(t, toIDs, sharedAncestor)
@@ -1513,17 +1523,18 @@ func TestConvertReferenceFlatValue(t *testing.T) {
 	}
 	errE := claim.Validate()
 	require.NoError(t, errE, "% -+#.1v", errE)
-	result, _, errE := c.convertReference(ctx, claim)
+	result, errE := c.convertReference(ctx, claim)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	// A flat value expands to exactly one record (itself, no ancestors), carrying a single self path on
-	// both toPath and toFullPath so it groups and prefilters as a one-node hierarchy.
+	// A flat value expands to exactly one record (itself, no ancestors), carrying a single self path
+	// on toPath so it groups as a one-node hierarchy.
 	require.Len(t, result, 1)
 	r := result[0]
-	assert.Equal(t, target, r.To)
+	assert.Equal(t, ClaimTypeRef, r.ClaimType)
+	require.NotNil(t, r.To)
+	assert.Equal(t, target, *r.To)
 	selfPath := SelfHierarchyPathPrefix + target.String()
 	assert.Equal(t, []string{selfPath}, r.ToPath)
-	assert.Equal(t, []string{selfPath}, r.ToFullPath)
 	assert.Equal(t, []string{"Target"}, r.ToDisplayPath["und"])
 	// The sort key pairs the (raw, pre-fold) display label with the chain's raw id bytes hex-encoded (a flat
 	// value's chain is just its own id; the __SELF__ prefix is dropped).
@@ -1569,7 +1580,6 @@ func TestMarkReferenceLeaves(t *testing.T) {
 
 	parentProp := identifier.New()
 	subProp := identifier.New()
-	parentTo := identifier.New().String()
 	mammal := identifier.New()
 	dog := identifier.New()
 
@@ -1583,21 +1593,39 @@ func TestMarkReferenceLeaves(t *testing.T) {
 		}
 		return hierProp.String() + ":" + strings.Join(parts, "/")
 	}
+	ref := func(prop, to identifier.Identifier, toPath ...string) RelClaim {
+		return RelClaim{ClaimType: ClaimTypeRef, Prop: prop, To: &to, ToPath: toPath} //nolint:exhaustruct
+	}
+
+	// Each parent claim's Sub container is its own leaf-marking scope: the first container states
+	// both mammal and its narrower dog, the second states mammal alone. The first container also
+	// carries a non-ref record, which must never get IsLeaf.
+	subWithDog := &ClaimTypes{ //nolint:exhaustruct
+		Rel: []RelClaim{
+			ref(subProp, dog, path(mammal, dog)),
+			ref(subProp, mammal, path(mammal)),
+			{ClaimType: ClaimTypeHas, Prop: subProp}, //nolint:exhaustruct
+		},
+	}
+	subOnlyMammal := &ClaimTypes{ //nolint:exhaustruct
+		Rel: []RelClaim{
+			ref(subProp, mammal, path(mammal)),
+		},
+	}
 
 	v := &convertVisitor{ //nolint:exhaustruct
 		result: &Document{ //nolint:exhaustruct
 			Claims: ClaimTypes{ //nolint:exhaustruct
-				Reference: []ReferenceClaim{
+				Rel: []RelClaim{
 					// Instance of two sibling leaf classes (painter, sculptor), both narrower than artist.
-					{Prop: instanceOf, To: painter, ToPath: []string{path(artist, painter)}},   //nolint:exhaustruct
-					{Prop: instanceOf, To: sculptor, ToPath: []string{path(artist, sculptor)}}, //nolint:exhaustruct
-					{Prop: instanceOf, To: artist, ToPath: []string{path(artist)}},             //nolint:exhaustruct
+					ref(instanceOf, painter, path(artist, painter)),
+					ref(instanceOf, sculptor, path(artist, sculptor)),
+					ref(instanceOf, artist, path(artist)),
 					// The same value under a different property, where it has no narrower value present.
-					{Prop: otherProp, To: artist, ToPath: []string{path(artist)}}, //nolint:exhaustruct
-				},
-				SubRef: []SubRefClaim{
-					{ParentProp: parentProp, ParentTo: parentTo, ReferenceClaim: ReferenceClaim{Prop: subProp, To: dog, ToPath: []string{path(mammal, dog)}}}, //nolint:exhaustruct
-					{ParentProp: parentProp, ParentTo: parentTo, ReferenceClaim: ReferenceClaim{Prop: subProp, To: mammal, ToPath: []string{path(mammal)}}},   //nolint:exhaustruct
+					ref(otherProp, artist, path(artist)),
+					// Two parent has records whose Sub containers are separate leaf-marking scopes.
+					{ClaimType: ClaimTypeHas, Prop: parentProp, Sub: subWithDog},    //nolint:exhaustruct
+					{ClaimType: ClaimTypeHas, Prop: parentProp, Sub: subOnlyMammal}, //nolint:exhaustruct
 				},
 			},
 		},
@@ -1605,36 +1633,32 @@ func TestMarkReferenceLeaves(t *testing.T) {
 
 	v.markReferenceLeaves()
 
-	refLeaf := func(prop, to identifier.Identifier) bool {
-		for _, c := range v.result.Claims.Reference {
-			if c.Prop == prop && c.To == to {
+	relLeaf := func(recs []RelClaim, prop, to identifier.Identifier) bool {
+		for _, c := range recs {
+			if c.ClaimType == ClaimTypeRef && c.Prop == prop && c.To != nil && *c.To == to {
 				return c.IsLeaf
 			}
 		}
-		t.Fatalf("reference claim not found: prop=%s to=%s", prop, to)
-		return false
-	}
-	subRefLeaf := func(to identifier.Identifier) bool {
-		for _, c := range v.result.Claims.SubRef {
-			if c.To == to {
-				return c.IsLeaf
-			}
-		}
-		t.Fatalf("sub-reference claim not found: to=%s", to)
+		t.Fatalf("ref record not found: prop=%s to=%s", prop, to)
 		return false
 	}
 
 	// Both sibling classes are most-specific; their shared ancestor is not.
-	assert.True(t, refLeaf(instanceOf, painter))
-	assert.True(t, refLeaf(instanceOf, sculptor))
-	assert.False(t, refLeaf(instanceOf, artist))
+	assert.True(t, relLeaf(v.result.Claims.Rel, instanceOf, painter))
+	assert.True(t, relLeaf(v.result.Claims.Rel, instanceOf, sculptor))
+	assert.False(t, relLeaf(v.result.Claims.Rel, instanceOf, artist))
 	// Leaf detection is per property: under otherProp artist has no narrower value present, so it
 	// is most-specific there even though it is not under instanceOf.
-	assert.True(t, refLeaf(otherProp, artist))
+	assert.True(t, relLeaf(v.result.Claims.Rel, otherProp, artist))
 
-	// Sub-references get the same treatment, scoped by parent and property.
-	assert.True(t, subRefLeaf(dog))
-	assert.False(t, subRefLeaf(mammal))
+	// Sub-references get the same treatment, each parent claim's Sub container being its own scope:
+	// in the first container dog is a leaf and mammal (its ancestor) is not, while in the second
+	// container mammal has no narrower value present and is a leaf.
+	assert.True(t, relLeaf(subWithDog.Rel, subProp, dog))
+	assert.False(t, relLeaf(subWithDog.Rel, subProp, mammal))
+	assert.True(t, relLeaf(subOnlyMammal.Rel, subProp, mammal))
+	// The non-ref record in the same scope never gets IsLeaf.
+	assert.False(t, subWithDog.Rel[2].IsLeaf)
 }
 
 func TestBuildLanguageCodes(t *testing.T) {
@@ -2232,6 +2256,15 @@ func TestVisitStringPopulatesClaim(t *testing.T) {
 	assert.Equal(t, "hello", result.Claims.String[0].String["en"])
 	_, hasUnd := result.Claims.String[0].String["und"]
 	assert.False(t, hasUnd)
+	// The IN_LANGUAGE sub-claim is both consumed (routing the value to "en") and indexed as a sub
+	// ref record.
+	require.NotNil(t, result.Claims.String[0].Sub)
+	require.Len(t, result.Claims.String[0].Sub.Rel, 1)
+	langRec := result.Claims.String[0].Sub.Rel[0]
+	assert.Equal(t, ClaimTypeRef, langRec.ClaimType)
+	assert.Equal(t, internalCore.InLanguagePropID, langRec.Prop)
+	require.NotNil(t, langRec.To)
+	assert.Equal(t, testLangDocID, *langRec.To)
 }
 
 // TestVisitHTMLPopulatesClaim verifies the nested html claim stores the claim's HTML converted to
@@ -2530,6 +2563,55 @@ func TestConvertAmountWithUnit(t *testing.T) {
 	assert.Equal(t, testUnitDocID, *result[0].Unit)
 }
 
+// TestFromDocumentAmountUnitSubIndexed verifies that an IN_UNIT sub-claim is both consumed (as
+// the amount record's unit) and indexed as a sub ref record.
+func TestFromDocumentAmountUnitSubIndexed(t *testing.T) {
+	t.Parallel()
+
+	extraDocs := map[identifier.Identifier]*document.D{
+		testPropID:    makeNamingDoc(testPropID, "Amount Prop"),
+		testUnitDocID: makeNamingDoc(testUnitDocID, "Unit"),
+	}
+	c := newTestConverter(t, nil, nil, extraDocs)
+
+	ctx := t.Context()
+	sub := &document.ClaimTypes{
+		Reference: []document.ReferenceClaim{
+			{
+				CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+				Prop:      document.Reference{ID: internalCore.InUnitPropID},
+				To:        document.Reference{ID: testUnitDocID},
+			},
+		},
+	}
+	doc := &document.D{
+		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
+		Claims: &document.ClaimTypes{
+			Amount: []document.AmountClaim{
+				{
+					CoreClaim: makeCoreClaim(document.HighConfidence, sub),
+					Prop:      document.Reference{ID: testPropID},
+					Amount:    document.Amount("42"),
+					Precision: 1,
+				},
+			},
+		},
+	}
+	result, errE := c.FromDocument(ctx, doc, nil, nil, nil)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	require.Len(t, result.Claims.Amount, 1)
+	require.NotNil(t, result.Claims.Amount[0].Unit)
+	assert.Equal(t, testUnitDocID, *result.Claims.Amount[0].Unit)
+	require.NotNil(t, result.Claims.Amount[0].Sub)
+	require.Len(t, result.Claims.Amount[0].Sub.Rel, 1)
+	unitRec := result.Claims.Amount[0].Sub.Rel[0]
+	assert.Equal(t, ClaimTypeRef, unitRec.ClaimType)
+	assert.Equal(t, internalCore.InUnitPropID, unitRec.Prop)
+	require.NotNil(t, unitRec.To)
+	assert.Equal(t, testUnitDocID, *unitRec.To)
+}
+
 func TestConvertAmountInterval(t *testing.T) {
 	t.Parallel()
 
@@ -2554,7 +2636,7 @@ func TestConvertAmountInterval(t *testing.T) {
 	}
 	errE := claim.Validate()
 	require.NoError(t, errE, "% -+#.1v", errE)
-	amountClaims, unknownClaims, _, errE := c.convertAmountInterval(ctx, claim)
+	amountClaims, unknownClaims, errE := c.convertAmountInterval(ctx, claim)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, amountClaims, 1)
 	assert.Empty(t, unknownClaims)
@@ -2604,7 +2686,7 @@ func TestConvertAmountIntervalOpen(t *testing.T) {
 	}
 	errE := claim.Validate()
 	require.NoError(t, errE, "% -+#.1v", errE)
-	amountClaims, unknownClaims, _, errE := c.convertAmountInterval(ctx, claim)
+	amountClaims, unknownClaims, errE := c.convertAmountInterval(ctx, claim)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, amountClaims, 1)
 	assert.Empty(t, unknownClaims)
@@ -2652,7 +2734,7 @@ func TestConvertAmountIntervalSinglePointSamePrecision(t *testing.T) {
 	}
 	errE := intervalClaim.Validate()
 	require.NoError(t, errE, "% -+#.1v", errE)
-	intervalClaims, unknownClaims, _, errE := c.convertAmountInterval(ctx, intervalClaim)
+	intervalClaims, unknownClaims, errE := c.convertAmountInterval(ctx, intervalClaim)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, intervalClaims, 1)
 	assert.Empty(t, unknownClaims)
@@ -2712,7 +2794,7 @@ func TestConvertAmountIntervalSinglePointDifferentPrecisions(t *testing.T) {
 	}
 	errE := claim.Validate()
 	require.NoError(t, errE, "% -+#.1v", errE)
-	amountClaims, unknownClaims, _, errE := c.convertAmountInterval(ctx, claim)
+	amountClaims, unknownClaims, errE := c.convertAmountInterval(ctx, claim)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, amountClaims, 1)
 	assert.Empty(t, unknownClaims)
@@ -2755,7 +2837,7 @@ func TestConvertAmountIntervalForwardAdjacent(t *testing.T) { //nolint:dupl
 	}
 	errE := claim.Validate()
 	require.NoError(t, errE, "% -+#.1v", errE)
-	amountClaims, unknownClaims, _, errE := c.convertAmountInterval(ctx, claim)
+	amountClaims, unknownClaims, errE := c.convertAmountInterval(ctx, claim)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, amountClaims, 1)
 	assert.Empty(t, unknownClaims)
@@ -2807,7 +2889,7 @@ func TestConvertAmountIntervalOverlappingDirectedDecreasingRejected(t *testing.T
 	}
 	// Intentionally NO claim.Validate() call here - claim is deliberately
 	// invalid and would not pass Validate().
-	_, _, _, errE := c.convertAmountInterval(ctx, claim) //nolint:dogsled
+	_, _, errE := c.convertAmountInterval(ctx, claim)
 	assert.ErrorContains(t, errE, "amount is not rounded to precision")
 }
 
@@ -2839,7 +2921,7 @@ func TestConvertAmountIntervalDirectedDecreasingAdjacent(t *testing.T) { //nolin
 	}
 	errE := claim.Validate()
 	require.NoError(t, errE, "% -+#.1v", errE)
-	amountClaims, unknownClaims, _, errE := c.convertAmountInterval(ctx, claim)
+	amountClaims, unknownClaims, errE := c.convertAmountInterval(ctx, claim)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, amountClaims, 1)
 	assert.Empty(t, unknownClaims)
@@ -2885,7 +2967,7 @@ func TestConvertTimeIntervalDirectedDecreasingAdjacent(t *testing.T) {
 	}
 	errE := claim.Validate()
 	require.NoError(t, errE, "% -+#.1v", errE)
-	timeClaims, unknownClaims, _, errE := c.convertTimeInterval(ctx, claim)
+	timeClaims, unknownClaims, errE := c.convertTimeInterval(ctx, claim)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, timeClaims, 1)
 	assert.Empty(t, unknownClaims)
@@ -2938,14 +3020,14 @@ func TestConvertAmountIntervalToIsOpenExcludesWindow(t *testing.T) {
 	defaultClaim := mkClaim(false)
 	errE := defaultClaim.Validate()
 	require.NoError(t, errE, "% -+#.1v", errE)
-	defaultClaims, _, _, errE := c.convertAmountInterval(ctx, defaultClaim)
+	defaultClaims, _, errE := c.convertAmountInterval(ctx, defaultClaim)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, defaultClaims, 1)
 
 	openClaim := mkClaim(true)
 	errE = openClaim.Validate()
 	require.NoError(t, errE, "% -+#.1v", errE)
-	openClaims, _, _, errE := c.convertAmountInterval(ctx, openClaim)
+	openClaims, _, errE := c.convertAmountInterval(ctx, openClaim)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, openClaims, 1)
 
@@ -2985,7 +3067,7 @@ func TestConvertAmountIntervalFromNone(t *testing.T) {
 	}
 	errE := claim.Validate()
 	require.NoError(t, errE, "% -+#.1v", errE)
-	amountClaims, unknownClaims, _, errE := c.convertAmountInterval(ctx, claim)
+	amountClaims, unknownClaims, errE := c.convertAmountInterval(ctx, claim)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, amountClaims, 1)
 	assert.Empty(t, unknownClaims)
@@ -3015,7 +3097,7 @@ func TestConvertAmountIntervalToNone(t *testing.T) {
 	}
 	errE := claim.Validate()
 	require.NoError(t, errE, "% -+#.1v", errE)
-	amountClaims, unknownClaims, _, errE := c.convertAmountInterval(ctx, claim)
+	amountClaims, unknownClaims, errE := c.convertAmountInterval(ctx, claim)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, amountClaims, 1)
 	assert.Empty(t, unknownClaims)
@@ -3045,7 +3127,7 @@ func TestConvertAmountIntervalFromUnknownWithTo(t *testing.T) {
 	errE := claim.Validate()
 	require.NoError(t, errE, "% -+#.1v", errE)
 	// Should treat as single point at To.
-	amountClaims, unknownClaims, _, errE := c.convertAmountInterval(ctx, claim)
+	amountClaims, unknownClaims, errE := c.convertAmountInterval(ctx, claim)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, amountClaims, 1)
 	assert.Empty(t, unknownClaims)
@@ -3075,7 +3157,7 @@ func TestConvertAmountIntervalToUnknownWithFrom(t *testing.T) {
 	errE := claim.Validate()
 	require.NoError(t, errE, "% -+#.1v", errE)
 	// Should treat as single point at From.
-	amountClaims, unknownClaims, _, errE := c.convertAmountInterval(ctx, claim)
+	amountClaims, unknownClaims, errE := c.convertAmountInterval(ctx, claim)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, amountClaims, 1)
 	assert.Empty(t, unknownClaims)
@@ -3100,7 +3182,7 @@ func TestConvertAmountIntervalBothUnknown(t *testing.T) {
 	errE := claim.Validate()
 	require.NoError(t, errE, "% -+#.1v", errE)
 	// Both unknown: should become unknown claim.
-	amountClaims, unknownClaims, _, errE := c.convertAmountInterval(ctx, claim)
+	amountClaims, unknownClaims, errE := c.convertAmountInterval(ctx, claim)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Empty(t, amountClaims)
 	require.Len(t, unknownClaims, 1)
@@ -3125,7 +3207,7 @@ func TestConvertAmountIntervalFromNoneToUnknown(t *testing.T) {
 	errE := claim.Validate()
 	require.NoError(t, errE, "% -+#.1v", errE)
 	// From is None, To is Unknown with known From: becomes unknown.
-	amountClaims, unknownClaims, _, errE := c.convertAmountInterval(ctx, claim)
+	amountClaims, unknownClaims, errE := c.convertAmountInterval(ctx, claim)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Empty(t, amountClaims)
 	require.Len(t, unknownClaims, 1)
@@ -3149,7 +3231,7 @@ func TestConvertAmountIntervalMissingFromPrecision(t *testing.T) {
 	}
 	// Intentionally NO claim.Validate() call here - claim is deliberately
 	// invalid and would not pass Validate().
-	_, _, _, errE := c.convertAmountInterval(ctx, claim) //nolint:dogsled
+	_, _, errE := c.convertAmountInterval(ctx, claim)
 	assert.EqualError(t, errE, "missing from precision in claim")
 }
 
@@ -3175,7 +3257,7 @@ func TestConvertAmountIntervalMissingToPrecision(t *testing.T) {
 	}
 	// Intentionally NO claim.Validate() call here - claim is deliberately
 	// invalid and would not pass Validate().
-	_, _, _, errE := c.convertAmountInterval(ctx, claim) //nolint:dogsled
+	_, _, errE := c.convertAmountInterval(ctx, claim)
 	assert.EqualError(t, errE, "missing to precision in claim")
 }
 
@@ -3194,7 +3276,7 @@ func TestConvertAmountIntervalFromUnknownMissingToPrecision(t *testing.T) {
 	}
 	// Intentionally NO claim.Validate() call here - claim is deliberately
 	// invalid and would not pass Validate().
-	_, _, _, errE := c.convertAmountInterval(ctx, claim) //nolint:dogsled
+	_, _, errE := c.convertAmountInterval(ctx, claim)
 	assert.EqualError(t, errE, "missing to precision in claim")
 }
 
@@ -3213,7 +3295,7 @@ func TestConvertAmountIntervalToUnknownMissingFromPrecision(t *testing.T) {
 	}
 	// Intentionally NO claim.Validate() call here - claim is deliberately
 	// invalid and would not pass Validate().
-	_, _, _, errE := c.convertAmountInterval(ctx, claim) //nolint:dogsled
+	_, _, errE := c.convertAmountInterval(ctx, claim)
 	assert.EqualError(t, errE, "missing from precision in claim")
 }
 
@@ -3274,7 +3356,7 @@ func TestConvertTimeInterval(t *testing.T) {
 	}
 	errE := claim.Validate()
 	require.NoError(t, errE, "% -+#.1v", errE)
-	timeClaims, unknownClaims, _, errE := c.convertTimeInterval(ctx, claim)
+	timeClaims, unknownClaims, errE := c.convertTimeInterval(ctx, claim)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, timeClaims, 1)
 	assert.Empty(t, unknownClaims)
@@ -3311,7 +3393,7 @@ func TestConvertTimeIntervalOpen(t *testing.T) {
 	}
 	errE := claim.Validate()
 	require.NoError(t, errE, "% -+#.1v", errE)
-	timeClaims, unknownClaims, _, errE := c.convertTimeInterval(ctx, claim)
+	timeClaims, unknownClaims, errE := c.convertTimeInterval(ctx, claim)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, timeClaims, 1)
 	assert.Empty(t, unknownClaims)
@@ -3361,7 +3443,7 @@ func TestConvertTimeIntervalAppliesToPrecision(t *testing.T) {
 	}
 	errE := claim.Validate()
 	require.NoError(t, errE, "% -+#.1v", errE)
-	timeClaims, unknownClaims, _, errE := c.convertTimeInterval(ctx, claim)
+	timeClaims, unknownClaims, errE := c.convertTimeInterval(ctx, claim)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, timeClaims, 1)
 	assert.Empty(t, unknownClaims)
@@ -3409,7 +3491,7 @@ func TestConvertTimeIntervalCoarseTo(t *testing.T) {
 	}
 	errE := claim.Validate()
 	require.NoError(t, errE, "% -+#.1v", errE)
-	timeClaims, unknownClaims, _, errE := c.convertTimeInterval(ctx, claim)
+	timeClaims, unknownClaims, errE := c.convertTimeInterval(ctx, claim)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, timeClaims, 1)
 	assert.Empty(t, unknownClaims)
@@ -3462,14 +3544,14 @@ func TestConvertTimeIntervalToIsOpenExcludesWindow(t *testing.T) {
 	defaultClaim := mkClaim(false)
 	errE := defaultClaim.Validate()
 	require.NoError(t, errE, "% -+#.1v", errE)
-	defaultClaims, _, _, errE := c.convertTimeInterval(ctx, defaultClaim)
+	defaultClaims, _, errE := c.convertTimeInterval(ctx, defaultClaim)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, defaultClaims, 1)
 
 	openClaim := mkClaim(true)
 	errE = openClaim.Validate()
 	require.NoError(t, errE, "% -+#.1v", errE)
-	openClaims, _, _, errE := c.convertTimeInterval(ctx, openClaim)
+	openClaims, _, errE := c.convertTimeInterval(ctx, openClaim)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, openClaims, 1)
 
@@ -3518,7 +3600,7 @@ func TestConvertTimeIntervalCoarseFromOpen(t *testing.T) {
 	}
 	errE := claim.Validate()
 	require.NoError(t, errE, "% -+#.1v", errE)
-	timeClaims, unknownClaims, _, errE := c.convertTimeInterval(ctx, claim)
+	timeClaims, unknownClaims, errE := c.convertTimeInterval(ctx, claim)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, timeClaims, 1)
 	assert.Empty(t, unknownClaims)
@@ -3568,7 +3650,7 @@ func TestConvertTimeIntervalSinglePointSamePrecision(t *testing.T) {
 	}
 	errE := intervalClaim.Validate()
 	require.NoError(t, errE, "% -+#.1v", errE)
-	intervalClaims, unknownClaims, _, errE := c.convertTimeInterval(ctx, intervalClaim)
+	intervalClaims, unknownClaims, errE := c.convertTimeInterval(ctx, intervalClaim)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, intervalClaims, 1)
 	assert.Empty(t, unknownClaims)
@@ -3633,7 +3715,7 @@ func TestConvertTimeIntervalSinglePointToFinerPrecision(t *testing.T) { //nolint
 	}
 	errE := claim.Validate()
 	require.NoError(t, errE, "% -+#.1v", errE)
-	timeClaims, unknownClaims, _, errE := c.convertTimeInterval(ctx, claim)
+	timeClaims, unknownClaims, errE := c.convertTimeInterval(ctx, claim)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, timeClaims, 1)
 	assert.Empty(t, unknownClaims)
@@ -3677,7 +3759,7 @@ func TestConvertTimeIntervalSinglePointToCoarserPrecision(t *testing.T) { //noli
 	}
 	errE := claim.Validate()
 	require.NoError(t, errE, "% -+#.1v", errE)
-	timeClaims, unknownClaims, _, errE := c.convertTimeInterval(ctx, claim)
+	timeClaims, unknownClaims, errE := c.convertTimeInterval(ctx, claim)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, timeClaims, 1)
 	assert.Empty(t, unknownClaims)
@@ -3714,7 +3796,7 @@ func TestConvertTimeIntervalFromNone(t *testing.T) {
 	}
 	errE := claim.Validate()
 	require.NoError(t, errE, "% -+#.1v", errE)
-	timeClaims, unknownClaims, _, errE := c.convertTimeInterval(ctx, claim)
+	timeClaims, unknownClaims, errE := c.convertTimeInterval(ctx, claim)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, timeClaims, 1)
 	assert.Empty(t, unknownClaims)
@@ -3743,7 +3825,7 @@ func TestConvertTimeIntervalToNone(t *testing.T) {
 	}
 	errE := claim.Validate()
 	require.NoError(t, errE, "% -+#.1v", errE)
-	timeClaims, unknownClaims, _, errE := c.convertTimeInterval(ctx, claim)
+	timeClaims, unknownClaims, errE := c.convertTimeInterval(ctx, claim)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, timeClaims, 1)
 	assert.Empty(t, unknownClaims)
@@ -3772,7 +3854,7 @@ func TestConvertTimeIntervalFromUnknownWithTo(t *testing.T) {
 	}
 	errE := claim.Validate()
 	require.NoError(t, errE, "% -+#.1v", errE)
-	timeClaims, unknownClaims, _, errE := c.convertTimeInterval(ctx, claim)
+	timeClaims, unknownClaims, errE := c.convertTimeInterval(ctx, claim)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, timeClaims, 1)
 	assert.Empty(t, unknownClaims)
@@ -3808,7 +3890,7 @@ func TestConvertTimeIntervalToUnknownWithFrom(t *testing.T) {
 	}
 	errE := claim.Validate()
 	require.NoError(t, errE, "% -+#.1v", errE)
-	timeClaims, unknownClaims, _, errE := c.convertTimeInterval(ctx, claim)
+	timeClaims, unknownClaims, errE := c.convertTimeInterval(ctx, claim)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, timeClaims, 1)
 	assert.Empty(t, unknownClaims)
@@ -3841,7 +3923,7 @@ func TestConvertTimeIntervalBothUnknown(t *testing.T) {
 	}
 	errE := claim.Validate()
 	require.NoError(t, errE, "% -+#.1v", errE)
-	timeClaims, unknownClaims, _, errE := c.convertTimeInterval(ctx, claim)
+	timeClaims, unknownClaims, errE := c.convertTimeInterval(ctx, claim)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Empty(t, timeClaims)
 	require.Len(t, unknownClaims, 1)
@@ -3867,7 +3949,7 @@ func TestConvertTimeIntervalFromNoneToUnknown(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 	// FromNone sets range gte, then ToUnknown with known From (but From is set through range) -
 	// this hits the default case.
-	timeClaims, unknownClaims, _, errE := c.convertTimeInterval(ctx, claim)
+	timeClaims, unknownClaims, errE := c.convertTimeInterval(ctx, claim)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Empty(t, timeClaims)
 	require.Len(t, unknownClaims, 1)
@@ -3891,7 +3973,7 @@ func TestConvertTimeIntervalMissingFromPrecision(t *testing.T) {
 	}
 	// Intentionally NO claim.Validate() call here - claim is deliberately
 	// invalid and would not pass Validate().
-	_, _, _, errE := c.convertTimeInterval(ctx, claim) //nolint:dogsled
+	_, _, errE := c.convertTimeInterval(ctx, claim)
 	assert.EqualError(t, errE, "missing from precision in claim")
 }
 
@@ -3917,7 +3999,7 @@ func TestConvertTimeIntervalMissingToPrecision(t *testing.T) {
 	}
 	// Intentionally NO claim.Validate() call here - claim is deliberately
 	// invalid and would not pass Validate().
-	_, _, _, errE := c.convertTimeInterval(ctx, claim) //nolint:dogsled
+	_, _, errE := c.convertTimeInterval(ctx, claim)
 	assert.EqualError(t, errE, "missing to precision in claim")
 }
 
@@ -3936,7 +4018,7 @@ func TestConvertTimeIntervalFromUnknownMissingToPrecision(t *testing.T) {
 	}
 	// Intentionally NO claim.Validate() call here - claim is deliberately
 	// invalid and would not pass Validate().
-	_, _, _, errE := c.convertTimeInterval(ctx, claim) //nolint:dogsled
+	_, _, errE := c.convertTimeInterval(ctx, claim)
 	assert.EqualError(t, errE, "missing to precision in claim")
 }
 
@@ -3955,7 +4037,7 @@ func TestConvertTimeIntervalToUnknownMissingFromPrecision(t *testing.T) {
 	}
 	// Intentionally NO claim.Validate() call here - claim is deliberately
 	// invalid and would not pass Validate().
-	_, _, _, errE := c.convertTimeInterval(ctx, claim) //nolint:dogsled
+	_, _, errE := c.convertTimeInterval(ctx, claim)
 	assert.EqualError(t, errE, "missing from precision in claim")
 }
 
@@ -3978,11 +4060,13 @@ func TestConvertRelation(t *testing.T) {
 	}
 	errE := claim.Validate()
 	require.NoError(t, errE, "% -+#.1v", errE)
-	result, _, errE := c.convertReference(ctx, claim)
+	result, errE := c.convertReference(ctx, claim)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, result, 1)
+	assert.Equal(t, ClaimTypeRef, result[0].ClaimType)
 	assert.Equal(t, testPropID, result[0].Prop)
-	assert.Equal(t, testTargetDocID, result[0].To)
+	require.NotNil(t, result[0].To)
+	assert.Equal(t, testTargetDocID, *result[0].To)
 	assert.Equal(t, "Target", result[0].ToDisplay["und"])
 }
 
@@ -4015,22 +4099,24 @@ func TestConvertRelationWithClassAncestors(t *testing.T) {
 	}
 	errE := claim.Validate()
 	require.NoError(t, errE, "% -+#.1v", errE)
-	result, _, errE := c.convertReference(ctx, claim)
+	result, errE := c.convertReference(ctx, claim)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	// Should produce claims for both target and parent class.
 	require.Len(t, result, 2)
 
 	// Find the claim for the target and the claim for the parent.
-	var targetClaim, parentClaim ReferenceClaim
+	var targetClaim, parentClaim RelClaim
 	for _, r := range result {
-		if r.To == testTargetDocID {
+		if r.To != nil && *r.To == testTargetDocID {
 			targetClaim = r
 		} else {
 			parentClaim = r
 		}
 	}
-	assert.Equal(t, testTargetDocID, targetClaim.To)
-	assert.Equal(t, testParentClass, parentClaim.To)
+	require.NotNil(t, targetClaim.To)
+	require.NotNil(t, parentClaim.To)
+	assert.Equal(t, testTargetDocID, *targetClaim.To)
+	assert.Equal(t, testParentClass, *parentClaim.To)
 
 	// Target claim should have a hierarchy path: <SUBCLASS_OF>:<parent>/<target>.
 	require.Len(t, targetClaim.ToPath, 1)
@@ -4043,9 +4129,8 @@ func TestConvertRelationWithClassAncestors(t *testing.T) {
 	targetChainRaw := append(append([]byte{}, testParentClass[:]...), testTargetDocID[:]...)
 	assert.Equal(t, "Parent Class\x00Target"+SortKeySeparator+hex.EncodeToString(targetChainRaw), targetClaim.ToPathSortKey["und"][0])
 
-	// Parent class is a hierarchy root, so its own value path is the synthetic self path (it groups and
-	// prefilters as a one-node hierarchy). Its toFullPath is still the stated leaf's path, stamped onto
-	// every expanded record.
+	// Parent class is a hierarchy root, so its own value path is the synthetic self path (it groups
+	// as a one-node hierarchy).
 	require.Len(t, parentClaim.ToPath, 1)
 	assert.Equal(t, SelfHierarchyPathPrefix+testParentClass.String(), parentClaim.ToPath[0])
 	require.Len(t, parentClaim.ToDisplayPath["und"], 1)
@@ -4081,10 +4166,11 @@ func TestConvertRelationWithClassSelfCycle(t *testing.T) {
 	errE := claim.Validate()
 	require.NoError(t, errE, "% -+#.1v", errE)
 	// Self-reference excluded, so only one result claim.
-	result, _, errE := c.convertReference(ctx, claim)
+	result, errE := c.convertReference(ctx, claim)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, result, 1)
-	assert.Equal(t, testTargetDocID, result[0].To)
+	require.NotNil(t, result[0].To)
+	assert.Equal(t, testTargetDocID, *result[0].To)
 }
 
 func TestConvertRelationWithClassMutualCycle(t *testing.T) {
@@ -4118,13 +4204,13 @@ func TestConvertRelationWithClassMutualCycle(t *testing.T) {
 	}
 	errE := claim.Validate()
 	require.NoError(t, errE, "% -+#.1v", errE)
-	result, _, errE := c.convertReference(ctx, claim)
+	result, errE := c.convertReference(ctx, claim)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	// Target classA + ancestor classB, no duplicates.
 	require.Len(t, result, 2)
 	toIDs := make([]identifier.Identifier, 0, len(result))
 	for _, r := range result {
-		toIDs = append(toIDs, r.To)
+		toIDs = append(toIDs, *r.To)
 	}
 	assert.Contains(t, toIDs, classA)
 	assert.Contains(t, toIDs, classB)
@@ -4154,12 +4240,13 @@ func TestConvertRelationWithPropertySelfCycle(t *testing.T) {
 	}
 	errE := claim.Validate()
 	require.NoError(t, errE, "% -+#.1v", errE)
-	result, _, errE := c.convertReference(ctx, claim)
+	result, errE := c.convertReference(ctx, claim)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	// Self-cycle excluded: only one claim with propA, no duplicate.
 	require.Len(t, result, 1)
 	assert.Equal(t, propA, result[0].Prop)
-	assert.Equal(t, testTargetDocID, result[0].To)
+	require.NotNil(t, result[0].To)
+	assert.Equal(t, testTargetDocID, *result[0].To)
 }
 
 func TestConvertRelationWithPropertyMutualCycle(t *testing.T) {
@@ -4191,7 +4278,7 @@ func TestConvertRelationWithPropertyMutualCycle(t *testing.T) {
 	}
 	errE := claim.Validate()
 	require.NoError(t, errE, "% -+#.1v", errE)
-	result, _, errE := c.convertReference(ctx, claim)
+	result, errE := c.convertReference(ctx, claim)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	// propA (direct) + propB (ancestor), no duplicates.
 	require.Len(t, result, 2)
@@ -4237,14 +4324,21 @@ func TestConvertRelationWithSubRelations(t *testing.T) {
 	}
 	errE := claim.Validate()
 	require.NoError(t, errE, "% -+#.1v", errE)
-	result, subs, errE := c.convertReference(ctx, claim)
+	result, errE := c.convertReference(ctx, claim)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, result, 1)
-	require.Len(t, subs.Refs, 1)
-	assert.Equal(t, subPropID, subs.Refs[0].Prop)
-	assert.Equal(t, subTargetID, subs.Refs[0].To)
+	// The reference sub-claim converts into a ref record in the claim's Sub container.
+	subTypes, errE := c.convertSubClaimTypes(ctx, claim.Sub)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	require.NotNil(t, subTypes)
+	require.Len(t, subTypes.Rel, 1)
+	assert.Equal(t, ClaimTypeRef, subTypes.Rel[0].ClaimType)
+	assert.Equal(t, subPropID, subTypes.Rel[0].Prop)
+	require.NotNil(t, subTypes.Rel[0].To)
+	assert.Equal(t, subTargetID, *subTypes.Rel[0].To)
 }
 
+//nolint:dupl
 func TestConvertHas(t *testing.T) {
 	t.Parallel()
 
@@ -4261,13 +4355,17 @@ func TestConvertHas(t *testing.T) {
 	}
 	errE := claim.Validate()
 	require.NoError(t, errE, "% -+#.1v", errE)
-	result, _, errE := c.convertHas(ctx, claim)
+	result, errE := c.relRecordsSimple(ctx, ClaimTypeHas, claim.Prop.ID)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, result, 1)
+	assert.Equal(t, ClaimTypeHas, result[0].ClaimType)
 	assert.Equal(t, testPropID, result[0].Prop)
+	assert.Nil(t, result[0].To)
 }
 
-func TestConvertHasWithSubRelations(t *testing.T) {
+// TestFromDocumentHasWithSubClaims verifies that a has claim with a reference sub-claim is
+// indexed as a has rel record carrying the sub-reference in its Sub container.
+func TestFromDocumentHasWithSubClaims(t *testing.T) {
 	t.Parallel()
 
 	subPropID := identifier.New()
@@ -4292,20 +4390,36 @@ func TestConvertHasWithSubRelations(t *testing.T) {
 			},
 		},
 	}
-	claim := &document.HasClaim{
-		CoreClaim: makeCoreClaim(document.HighConfidence, sub),
-		Prop:      document.Reference{ID: testPropID},
+	doc := &document.D{
+		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
+		Claims: &document.ClaimTypes{
+			Has: []document.HasClaim{
+				{
+					CoreClaim: makeCoreClaim(document.HighConfidence, sub),
+					Prop:      document.Reference{ID: testPropID},
+				},
+			},
+		},
 	}
-	errE := claim.Validate()
+	result, errE := c.FromDocument(ctx, doc, nil, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
-	result, subs, errE := c.convertHas(ctx, claim)
-	require.NoError(t, errE, "% -+#.1v", errE)
-	// Has claims with sub-ref claims are not indexed as HasClaim entries.
-	// They are recorded only in subs.Refs.
-	require.Empty(t, result)
-	require.Len(t, subs.Refs, 1)
+
+	// The has claim is indexed as a has rel record even though it has sub-claims.
+	require.Len(t, result.Claims.Rel, 1)
+	rec := result.Claims.Rel[0]
+	assert.Equal(t, ClaimTypeHas, rec.ClaimType)
+	assert.Equal(t, testPropID, rec.Prop)
+	assert.Nil(t, rec.To)
+	// The reference sub-claim is indexed inside the record's Sub container.
+	require.NotNil(t, rec.Sub)
+	require.Len(t, rec.Sub.Rel, 1)
+	assert.Equal(t, ClaimTypeRef, rec.Sub.Rel[0].ClaimType)
+	assert.Equal(t, subPropID, rec.Sub.Rel[0].Prop)
+	require.NotNil(t, rec.Sub.Rel[0].To)
+	assert.Equal(t, subTargetID, *rec.Sub.Rel[0].To)
 }
 
+//nolint:dupl
 func TestConvertNone(t *testing.T) {
 	t.Parallel()
 
@@ -4322,12 +4436,15 @@ func TestConvertNone(t *testing.T) {
 	}
 	errE := claim.Validate()
 	require.NoError(t, errE, "% -+#.1v", errE)
-	result, _, errE := c.convertNone(ctx, claim)
+	result, errE := c.relRecordsSimple(ctx, ClaimTypeNone, claim.Prop.ID)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, result, 1)
+	assert.Equal(t, ClaimTypeNone, result[0].ClaimType)
 	assert.Equal(t, testPropID, result[0].Prop)
+	assert.Nil(t, result[0].To)
 }
 
+//nolint:dupl
 func TestConvertUnknown(t *testing.T) {
 	t.Parallel()
 
@@ -4344,29 +4461,27 @@ func TestConvertUnknown(t *testing.T) {
 	}
 	errE := claim.Validate()
 	require.NoError(t, errE, "% -+#.1v", errE)
-	result, _, errE := c.convertUnknown(ctx, claim)
+	result, errE := c.relRecordsSimple(ctx, ClaimTypeUnknown, claim.Prop.ID)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, result, 1)
+	assert.Equal(t, ClaimTypeUnknown, result[0].ClaimType)
 	assert.Equal(t, testPropID, result[0].Prop)
+	assert.Nil(t, result[0].To)
 }
 
-// TestConvertReferenceSubClaimFields verifies that sub-reference claims generated from a
-// reference parent claim have ParentProp and ParentTo set to the parent's prop and target IDs,
-// and that inner prop/to/display/naming fields are all populated.
-func TestConvertReferenceSubClaimFields(t *testing.T) {
+// TestConvertSubClaimTypesRefFields verifies that a reference sub-claim converts into a ref
+// record inside the parent's Sub container with prop/to/display fields populated, and that the
+// record itself carries no Sub of its own (a single sub level is indexed).
+func TestConvertSubClaimTypesRefFields(t *testing.T) {
 	t.Parallel()
 
 	subPropID := identifier.New()
 	subTargetID := identifier.New()
-	propDoc := makeNamingDoc(testPropID, "Rel Prop")
-	targetDoc := makeNamingDoc(testTargetDocID, "Target")
 	subPropDoc := makeNamingDoc(subPropID, "Sub Prop")
 	subTargetDoc := makeNamingDoc(subTargetID, "Sub Target")
 	extraDocs := map[identifier.Identifier]*document.D{
-		testPropID:      propDoc,
-		testTargetDocID: targetDoc,
-		subPropID:       subPropDoc,
-		subTargetID:     subTargetDoc,
+		subPropID:   subPropDoc,
+		subTargetID: subTargetDoc,
 	}
 	c := newTestConverter(t, nil, nil, extraDocs)
 
@@ -4380,42 +4495,35 @@ func TestConvertReferenceSubClaimFields(t *testing.T) {
 			},
 		},
 	}
-	claim := &document.ReferenceClaim{
-		CoreClaim: makeCoreClaim(document.HighConfidence, sub),
-		Prop:      document.Reference{ID: testPropID},
-		To:        document.Reference{ID: testTargetDocID},
-	}
-	_, subs, errE := c.convertReference(ctx, claim)
+	subTypes, errE := c.convertSubClaimTypes(ctx, sub)
 	require.NoError(t, errE, "% -+#.1v", errE)
+	require.NotNil(t, subTypes)
 
-	require.Len(t, subs.Refs, 1)
-	sr := subs.Refs[0]
-	assert.Equal(t, testPropID, sr.ParentProp)
-	assert.Equal(t, testTargetDocID.String(), sr.ParentTo)
+	require.Len(t, subTypes.Rel, 1)
+	sr := subTypes.Rel[0]
+	assert.Equal(t, ClaimTypeRef, sr.ClaimType)
 	assert.Equal(t, subPropID, sr.Prop)
-	assert.Equal(t, subTargetID, sr.To)
+	require.NotNil(t, sr.To)
+	assert.Equal(t, subTargetID, *sr.To)
 	assert.NotEmpty(t, sr.PropDisplay)
 	assert.NotEmpty(t, sr.ToDisplay)
+	assert.Nil(t, sr.Sub)
 }
 
-// TestConvertReferenceMultipleSubClaims verifies that multiple reference sub-claims
-// each produce a separate SubRefClaim entry.
-func TestConvertReferenceMultipleSubClaims(t *testing.T) {
+// TestConvertSubClaimTypesMultipleRefs verifies that multiple reference sub-claims each produce
+// a separate ref record in the shared Sub container.
+func TestConvertSubClaimTypesMultipleRefs(t *testing.T) {
 	t.Parallel()
 
 	subPropID1 := identifier.New()
 	subTargetID1 := identifier.New()
 	subPropID2 := identifier.New()
 	subTargetID2 := identifier.New()
-	propDoc := makeNamingDoc(testPropID, "Rel Prop")
-	targetDoc := makeNamingDoc(testTargetDocID, "Target")
 	extraDocs := map[identifier.Identifier]*document.D{
-		testPropID:      propDoc,
-		testTargetDocID: targetDoc,
-		subPropID1:      makeNamingDoc(subPropID1, "Sub Prop 1"),
-		subTargetID1:    makeNamingDoc(subTargetID1, "Sub Target 1"),
-		subPropID2:      makeNamingDoc(subPropID2, "Sub Prop 2"),
-		subTargetID2:    makeNamingDoc(subTargetID2, "Sub Target 2"),
+		subPropID1:   makeNamingDoc(subPropID1, "Sub Prop 1"),
+		subTargetID1: makeNamingDoc(subTargetID1, "Sub Target 1"),
+		subPropID2:   makeNamingDoc(subPropID2, "Sub Prop 2"),
+		subTargetID2: makeNamingDoc(subTargetID2, "Sub Target 2"),
 	}
 	c := newTestConverter(t, nil, nil, extraDocs)
 
@@ -4434,30 +4542,21 @@ func TestConvertReferenceMultipleSubClaims(t *testing.T) {
 			},
 		},
 	}
-	claim := &document.ReferenceClaim{
-		CoreClaim: makeCoreClaim(document.HighConfidence, sub),
-		Prop:      document.Reference{ID: testPropID},
-		To:        document.Reference{ID: testTargetDocID},
-	}
-	_, subs, errE := c.convertReference(ctx, claim)
+	subTypes, errE := c.convertSubClaimTypes(ctx, sub)
 	require.NoError(t, errE, "% -+#.1v", errE)
+	require.NotNil(t, subTypes)
 
-	require.Len(t, subs.Refs, 2)
-	// All subs.Refs have the same parent.
-	for _, sr := range subs.Refs {
-		assert.Equal(t, testPropID, sr.ParentProp)
-		assert.Equal(t, testTargetDocID.String(), sr.ParentTo)
-	}
-	// Collect the inner props to verify both are present.
-	innerProps := []identifier.Identifier{subs.Refs[0].Prop, subs.Refs[1].Prop}
+	require.Len(t, subTypes.Rel, 2)
+	// Collect the props to verify both are present.
+	innerProps := []identifier.Identifier{subTypes.Rel[0].Prop, subTypes.Rel[1].Prop}
 	assert.Contains(t, innerProps, subPropID1)
 	assert.Contains(t, innerProps, subPropID2)
 }
 
-// TestConvertReferenceSubClaimHierarchyExpansion verifies that when the parent reference claim's
-// target has hierarchy ancestors, a SubRefClaim is generated for each (expanded target × sub-ref)
-// combination, with ParentTo set to each expanded target ID.
-func TestConvertReferenceSubClaimHierarchyExpansion(t *testing.T) {
+// TestFromDocumentHierarchyExpandedCopiesShareSub verifies that when the parent reference
+// claim's target has hierarchy ancestors, the hierarchy-expanded copies of the claim share one
+// Sub container: the sub-claim is converted once, not per expanded copy.
+func TestFromDocumentHierarchyExpandedCopiesShareSub(t *testing.T) {
 	t.Parallel()
 
 	// Set up hierarchy property chain so SUBCLASS_OF is discovered as a value hierarchy property.
@@ -4509,32 +4608,43 @@ func TestConvertReferenceSubClaimHierarchyExpansion(t *testing.T) {
 			},
 		},
 	}
-	claim := &document.ReferenceClaim{
-		CoreClaim: makeCoreClaim(document.HighConfidence, sub),
-		Prop:      document.Reference{ID: testPropID},
-		To:        document.Reference{ID: target},
+	doc := &document.D{
+		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
+		Claims: &document.ClaimTypes{
+			Reference: []document.ReferenceClaim{
+				{
+					CoreClaim: makeCoreClaim(document.HighConfidence, sub),
+					Prop:      document.Reference{ID: testPropID},
+					To:        document.Reference{ID: target},
+				},
+			},
+		},
 	}
-	_, subs, errE := c.convertReference(ctx, claim)
+	result, errE := c.FromDocument(ctx, doc, nil, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	// 1 sub-ref × 2 expanded targets (target + classParent) = 2 SubRefClaim entries.
-	require.Len(t, subs.Refs, 2)
-	parentTos := []string{subs.Refs[0].ParentTo, subs.Refs[1].ParentTo}
-	assert.Contains(t, parentTos, target.String())
-	assert.Contains(t, parentTos, classParent.String())
-	// All subs.Refs share the same inner prop and to.
-	for _, sr := range subs.Refs {
-		assert.Equal(t, testPropID, sr.ParentProp)
-		assert.Equal(t, subPropID, sr.Prop)
-		assert.Equal(t, subTargetID, sr.To)
-	}
+	// The claim expands into two ref records (target + classParent).
+	require.Len(t, result.Claims.Rel, 2)
+	targetRec := findRefTo(result.Claims.Rel, target)
+	parentRec := findRefTo(result.Claims.Rel, classParent)
+	require.NotNil(t, targetRec, "stated target record missing")
+	require.NotNil(t, parentRec, "ancestor target record missing")
+
+	// Both expanded copies share the single Sub container, holding the one sub-reference.
+	require.NotNil(t, targetRec.Sub)
+	assert.Same(t, targetRec.Sub, parentRec.Sub)
+	require.Len(t, targetRec.Sub.Rel, 1)
+	assert.Equal(t, ClaimTypeRef, targetRec.Sub.Rel[0].ClaimType)
+	assert.Equal(t, subPropID, targetRec.Sub.Rel[0].Prop)
+	require.NotNil(t, targetRec.Sub.Rel[0].To)
+	assert.Equal(t, subTargetID, *targetRec.Sub.Rel[0].To)
 }
 
-// TestConvertReferenceToFullPath verifies that a top-level reference target is expanded across its value
-// hierarchy and that ToFullPath identifies the stated (leaf) target on every expanded record: the stated
-// value's record has ToPath equal to ToFullPath, while each ancestor record keeps the stated leaf's
-// ToFullPath but carries its own shorter ToPath.
-func TestConvertReferenceToFullPath(t *testing.T) {
+// TestConvertReferenceExpandedRecordPaths verifies that a top-level reference target is expanded
+// across its value hierarchy and that each expanded record carries its own target's paths: the
+// stated value's record has the full hierarchy chain (with its immediate parent), while the root
+// ancestor's record has a self path and no parent.
+func TestConvertReferenceExpandedRecordPaths(t *testing.T) {
 	t.Parallel()
 
 	// Set up the hierarchy property chain so SUBCLASS_OF is discovered as a value hierarchy property.
@@ -4577,39 +4687,31 @@ func TestConvertReferenceToFullPath(t *testing.T) {
 		Prop:      document.Reference{ID: testPropID},
 		To:        document.Reference{ID: target},
 	}
-	result, _, errE := c.convertReference(ctx, claim)
+	result, errE := c.convertReference(ctx, claim)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// The stated target expands into itself plus its ancestor.
 	require.Len(t, result, 2)
 
-	var leafRec, ancestorRec *ReferenceClaim
-	for i := range result {
-		switch result[i].To {
-		case target:
-			leafRec = &result[i]
-		case classParent:
-			ancestorRec = &result[i]
-		}
-	}
+	leafRec := findRefTo(result, target)
+	ancestorRec := findRefTo(result, classParent)
 	require.NotNil(t, leafRec, "stated target record missing")
 	require.NotNil(t, ancestorRec, "ancestor target record missing")
 
-	// The stated value's own path is its ToFullPath, and every expanded record carries that same leaf path.
-	assert.Equal(t, leafRec.ToPath, leafRec.ToFullPath)
-	assert.Equal(t, leafRec.ToPath, ancestorRec.ToFullPath)
-	// The ancestor's own path is shorter and differs from the stated leaf's ToFullPath.
-	assert.NotEqual(t, ancestorRec.ToPath, ancestorRec.ToFullPath)
+	// The stated value's path is the full chain from the root, while the root ancestor's own path
+	// is its self path.
+	assert.Equal(t, []string{internalCore.SubclassOfPropID.String() + ":" + classParent.String() + "/" + target.String()}, leafRec.ToPath)
+	assert.Equal(t, []string{SelfHierarchyPathPrefix + classParent.String()}, ancestorRec.ToPath)
 	// The stated value's immediate parent is its ancestor classParent; the root ancestor has no parent.
 	assert.Equal(t, []string{classParent.String()}, leafRec.ToParent)
 	assert.Nil(t, ancestorRec.ToParent)
 }
 
-// TestConvertReferenceSubValueHierarchyExpansion verifies that a reference sub-claim's own target is
-// expanded across its value hierarchy, the same way top-level reference targets are: the stated
-// sub-value plus each of its ancestors get their own SubRefClaim, all sharing the stated leaf's
-// ToFullPath, while only the stated value's record has ToPath equal to ToFullPath.
-func TestConvertReferenceSubValueHierarchyExpansion(t *testing.T) {
+// TestConvertSubClaimTypesValueHierarchyExpansion verifies that a reference sub-claim's own
+// target is expanded across its value hierarchy, the same way top-level reference targets are:
+// the stated sub-value plus each of its ancestors get their own ref record in the parent's Sub
+// container, each carrying its own target's paths.
+func TestConvertSubClaimTypesValueHierarchyExpansion(t *testing.T) {
 	t.Parallel()
 
 	// Set up hierarchy property chain so SUBCLASS_OF is discovered as a value hierarchy property.
@@ -4619,7 +4721,6 @@ func TestConvertReferenceSubValueHierarchyExpansion(t *testing.T) {
 	instanceDoc := makePropertyDoc(internalCore.InstanceOfPropID, &internalCore.SubentityOfPropID)
 	properties := []*document.D{subentityDoc, subclassDoc, subpropDoc, instanceDoc}
 
-	target := identifier.New()
 	subPropID := identifier.New()
 	subTargetID := identifier.New()
 	subClassParent := identifier.New()
@@ -4641,10 +4742,7 @@ func TestConvertReferenceSubValueHierarchyExpansion(t *testing.T) {
 		Claims:       subTargetClaims,
 	}
 
-	// The parent target has no value hierarchy, so it does not multiply the parentTo dimension.
 	extraDocs := map[identifier.Identifier]*document.D{
-		testPropID:     makeNamingDoc(testPropID, "Rel Prop"),
-		target:         makeNamingDoc(target, "Target"),
 		subPropID:      makeNamingDoc(subPropID, "Sub Prop"),
 		subTargetID:    subTargetDoc,
 		subClassParent: makeNamingDoc(subClassParent, "Sub Class Parent"),
@@ -4661,48 +4759,35 @@ func TestConvertReferenceSubValueHierarchyExpansion(t *testing.T) {
 			},
 		},
 	}
-	claim := &document.ReferenceClaim{
-		CoreClaim: makeCoreClaim(document.HighConfidence, sub),
-		Prop:      document.Reference{ID: testPropID},
-		To:        document.Reference{ID: target},
-	}
-	_, subs, errE := c.convertReference(ctx, claim)
+	subTypes, errE := c.convertSubClaimTypes(ctx, sub)
 	require.NoError(t, errE, "% -+#.1v", errE)
+	require.NotNil(t, subTypes)
 
-	// 1 parentTo (target has no hierarchy) x 2 expanded sub-values (subTargetID + subClassParent) = 2.
-	require.Len(t, subs.Refs, 2)
+	// The single stated sub-value expands into the stated value plus its ancestor.
+	require.Len(t, subTypes.Rel, 2)
 
-	var leafRec, ancestorRec *SubRefClaim
-	for i := range subs.Refs {
-		switch subs.Refs[i].To {
-		case subTargetID:
-			leafRec = &subs.Refs[i]
-		case subClassParent:
-			ancestorRec = &subs.Refs[i]
-		}
-	}
+	leafRec := findRefTo(subTypes.Rel, subTargetID)
+	ancestorRec := findRefTo(subTypes.Rel, subClassParent)
 	require.NotNil(t, leafRec, "stated sub-value record missing")
 	require.NotNil(t, ancestorRec, "ancestor sub-value record missing")
 
-	// Both records share the same parent, inner property, and the stated leaf's ToFullPath.
-	for _, sr := range []*SubRefClaim{leafRec, ancestorRec} {
-		assert.Equal(t, target.String(), sr.ParentTo)
-		assert.Equal(t, testPropID, sr.ParentProp)
-		assert.Equal(t, subPropID, sr.Prop)
-		assert.Equal(t, leafRec.ToPath, sr.ToFullPath)
-	}
-	// Only the stated sub-value's record has ToPath equal to ToFullPath; the ancestor's own path is shorter.
-	assert.Equal(t, leafRec.ToFullPath, leafRec.ToPath)
-	assert.NotEqual(t, ancestorRec.ToPath, ancestorRec.ToFullPath)
+	// Both records carry the sub-claim's property.
+	assert.Equal(t, subPropID, leafRec.Prop)
+	assert.Equal(t, subPropID, ancestorRec.Prop)
+	// The stated sub-value's path is the full chain from the root, while the root ancestor's own
+	// path is its self path.
+	assert.Equal(t, []string{internalCore.SubclassOfPropID.String() + ":" + subClassParent.String() + "/" + subTargetID.String()}, leafRec.ToPath)
+	assert.Equal(t, []string{SelfHierarchyPathPrefix + subClassParent.String()}, ancestorRec.ToPath)
 	// The stated sub-value's immediate parent is its ancestor subClassParent; the root ancestor has no parent.
 	assert.Equal(t, []string{subClassParent.String()}, leafRec.ToParent)
 	assert.Nil(t, ancestorRec.ToParent)
 }
 
-// TestConvertReferenceSubRefPropertyPropagation verifies that a reference sub-claim's own property is
-// propagated to its super-properties when IndexAncestorProperties is set, the same way convertReference
-// propagates a top-level reference property, and that it stays unexpanded when the flag is off.
-func TestConvertReferenceSubRefPropertyPropagation(t *testing.T) {
+// TestConvertSubClaimTypesPropertyPropagation verifies that a reference sub-claim's own property
+// is propagated to its super-properties when IndexAncestorProperties is set, the same way
+// convertReference propagates a top-level reference property, and that it stays unexpanded when
+// the flag is off.
+func TestConvertSubClaimTypesPropertyPropagation(t *testing.T) {
 	t.Parallel()
 
 	superProp := identifier.New()
@@ -4710,13 +4795,10 @@ func TestConvertReferenceSubRefPropertyPropagation(t *testing.T) {
 	superPropDoc := makePropertyDoc(superProp, nil)
 	subPropDoc := makePropertyDoc(subProp, &superProp)
 
-	target := identifier.New()
 	subTargetID := identifier.New()
-	// Neither the parent target nor the sub-value has a value hierarchy, so only the property dimension
-	// can multiply: the result count isolates property propagation.
+	// The sub-value has no value hierarchy, so only the property dimension can multiply: the
+	// record count isolates property propagation.
 	extraDocs := map[identifier.Identifier]*document.D{
-		testPropID:  makeNamingDoc(testPropID, "Rel Prop"),
-		target:      makeNamingDoc(target, "Target"),
 		superProp:   makeNamingDoc(superProp, "Super Prop"),
 		subProp:     makeNamingDoc(subProp, "Sub Prop"),
 		subTargetID: makeNamingDoc(subTargetID, "Sub Target"),
@@ -4734,39 +4816,36 @@ func TestConvertReferenceSubRefPropertyPropagation(t *testing.T) {
 			},
 		},
 	}
-	claim := &document.ReferenceClaim{
-		CoreClaim: makeCoreClaim(document.HighConfidence, sub),
-		Prop:      document.Reference{ID: testPropID},
-		To:        document.Reference{ID: target},
-	}
 
 	// With IndexAncestorProperties off, only the stated sub-reference property is indexed.
 	c.IndexAncestorProperties = false
-	_, subs, errE := c.convertReference(ctx, claim)
+	subTypes, errE := c.convertSubClaimTypes(ctx, sub)
 	require.NoError(t, errE, "% -+#.1v", errE)
-	require.Len(t, subs.Refs, 1)
-	assert.Equal(t, subProp, subs.Refs[0].Prop)
+	require.NotNil(t, subTypes)
+	require.Len(t, subTypes.Rel, 1)
+	assert.Equal(t, subProp, subTypes.Rel[0].Prop)
 
 	// With IndexAncestorProperties on, the sub-reference property also expands to its super-property.
 	c.IndexAncestorProperties = true
-	_, subs, errE = c.convertReference(ctx, claim)
+	subTypes, errE = c.convertSubClaimTypes(ctx, sub)
 	require.NoError(t, errE, "% -+#.1v", errE)
-	require.Len(t, subs.Refs, 2)
-	props := []identifier.Identifier{subs.Refs[0].Prop, subs.Refs[1].Prop}
+	require.NotNil(t, subTypes)
+	require.Len(t, subTypes.Rel, 2)
+	props := []identifier.Identifier{subTypes.Rel[0].Prop, subTypes.Rel[1].Prop}
 	assert.Contains(t, props, subProp)
 	assert.Contains(t, props, superProp)
-	// Propagation applies to the inner property only; the parent and the target are unchanged.
-	for _, sr := range subs.Refs {
-		assert.Equal(t, testPropID, sr.ParentProp)
-		assert.Equal(t, target.String(), sr.ParentTo)
-		assert.Equal(t, subTargetID, sr.To)
+	// Propagation applies to the property only; the target is unchanged.
+	for _, sr := range subTypes.Rel {
+		require.NotNil(t, sr.To)
+		assert.Equal(t, subTargetID, *sr.To)
 	}
 }
 
-// TestFromDocumentSubRefExpansionAndLeaf exercises the full document-conversion pipeline for a reference
-// sub-claim whose value sits in a value hierarchy: convertSubRefs expands the sub-value into the stated
-// value plus its ancestor, ToFullPath is stamped to the stated leaf on every expanded record, and
-// markReferenceLeaves flags the stated value as a leaf while the ancestor is not.
+// TestFromDocumentSubRefExpansionAndLeaf exercises the full document-conversion pipeline for a
+// reference sub-claim whose value sits in a value hierarchy: the sub-value expands into the
+// stated value plus its ancestor inside the parent record's Sub container, and
+// markReferenceLeaves flags the stated value as a leaf within that container while the ancestor
+// is not.
 func TestFromDocumentSubRefExpansionAndLeaf(t *testing.T) {
 	t.Parallel()
 
@@ -4799,7 +4878,7 @@ func TestFromDocumentSubRefExpansionAndLeaf(t *testing.T) {
 		Claims:       subTargetClaims,
 	}
 
-	// The parent target has no value hierarchy, so it does not multiply the parentTo dimension.
+	// The parent target has no value hierarchy, so the claim converts into a single top-level record.
 	extraDocs := map[identifier.Identifier]*document.D{
 		testPropID:     makeNamingDoc(testPropID, "Rel Prop"),
 		target:         makeNamingDoc(target, "Target"),
@@ -4835,121 +4914,37 @@ func TestFromDocumentSubRefExpansionAndLeaf(t *testing.T) {
 	result, errE := c.FromDocument(ctx, doc, nil, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	// The single stated sub-value expands into the stated value plus its ancestor.
-	require.Len(t, result.Claims.SubRef, 2)
+	// The parent claim produces one top-level ref record (its target has no hierarchy), whose Sub
+	// container holds the expanded sub-values.
+	require.Len(t, result.Claims.Rel, 1)
+	parentRec := result.Claims.Rel[0]
+	require.NotNil(t, parentRec.To)
+	assert.Equal(t, target, *parentRec.To)
+	require.NotNil(t, parentRec.Sub)
 
-	var leafRec, ancestorRec *SubRefClaim
-	for i := range result.Claims.SubRef {
-		switch result.Claims.SubRef[i].To {
-		case subTargetID:
-			leafRec = &result.Claims.SubRef[i]
-		case subClassParent:
-			ancestorRec = &result.Claims.SubRef[i]
-		}
-	}
+	// The single stated sub-value expands into the stated value plus its ancestor.
+	require.Len(t, parentRec.Sub.Rel, 2)
+	leafRec := findRefTo(parentRec.Sub.Rel, subTargetID)
+	ancestorRec := findRefTo(parentRec.Sub.Rel, subClassParent)
 	require.NotNil(t, leafRec, "stated sub-value record missing")
 	require.NotNil(t, ancestorRec, "ancestor sub-value record missing")
 
-	// Both records carry the same parent, inner property, and the stated leaf's ToFullPath.
-	for _, sr := range []*SubRefClaim{leafRec, ancestorRec} {
-		assert.Equal(t, testPropID, sr.ParentProp)
-		assert.Equal(t, target.String(), sr.ParentTo)
-		assert.Equal(t, subPropID, sr.Prop)
-		assert.Equal(t, leafRec.ToPath, sr.ToFullPath)
-	}
-	// The stated sub-value is the most-specific value: it is a leaf and its own path equals its ToFullPath.
+	// Both records carry the sub-claim's property.
+	assert.Equal(t, subPropID, leafRec.Prop)
+	assert.Equal(t, subPropID, ancestorRec.Prop)
+	// The stated sub-value is the most-specific value in its Sub container: it is a leaf, and its
+	// immediate parent is its ancestor subClassParent. The ancestor is not a leaf and has no parent.
 	assert.True(t, leafRec.IsLeaf)
-	assert.Equal(t, leafRec.ToFullPath, leafRec.ToPath)
-	// The ancestor is not a leaf, and its own (shorter) path differs from the stated leaf's ToFullPath.
-	assert.False(t, ancestorRec.IsLeaf)
-	assert.NotEqual(t, ancestorRec.ToPath, ancestorRec.ToFullPath)
-	// The stated sub-value's immediate parent is its ancestor subClassParent; the root ancestor has no parent.
 	assert.Equal(t, []string{subClassParent.String()}, leafRec.ToParent)
+	assert.False(t, ancestorRec.IsLeaf)
 	assert.Nil(t, ancestorRec.ToParent)
 }
 
-// TestConvertHasSubClaimParentToSentinel verifies that has claims with reference sub-claims
-// produce SubRefClaim entries with ParentTo set to the ParentToHas sentinel.
-func TestConvertHasSubClaimParentToSentinel(t *testing.T) {
-	t.Parallel()
-
-	subPropID := identifier.New()
-	subTargetID := identifier.New()
-	propDoc := makeNamingDoc(testPropID, "Has Prop")
-	extraDocs := map[identifier.Identifier]*document.D{
-		testPropID:  propDoc,
-		subPropID:   makeNamingDoc(subPropID, "Sub Prop"),
-		subTargetID: makeNamingDoc(subTargetID, "Sub Target"),
-	}
-	c := newTestConverter(t, nil, nil, extraDocs)
-
-	ctx := t.Context()
-	sub := &document.ClaimTypes{
-		Reference: []document.ReferenceClaim{
-			{
-				CoreClaim: makeCoreClaim(document.HighConfidence, nil),
-				Prop:      document.Reference{ID: subPropID},
-				To:        document.Reference{ID: subTargetID},
-			},
-		},
-	}
-	claim := &document.HasClaim{
-		CoreClaim: makeCoreClaim(document.HighConfidence, sub),
-		Prop:      document.Reference{ID: testPropID},
-	}
-	result, subs, errE := c.convertHas(ctx, claim)
-	require.NoError(t, errE, "% -+#.1v", errE)
-
-	// Has claim with sub-claims is not indexed as HasClaim.
-	assert.Empty(t, result)
-	require.Len(t, subs.Refs, 1)
-	assert.Equal(t, testPropID, subs.Refs[0].ParentProp)
-	assert.Equal(t, ParentToHas, subs.Refs[0].ParentTo)
-	assert.Equal(t, subPropID, subs.Refs[0].Prop)
-	assert.Equal(t, subTargetID, subs.Refs[0].To)
-}
-
-// TestConvertHasSkippedForNonRefSubClaim verifies that a has claim with any sub-claim
-// (not necessarily a reference sub-claim) is still not indexed as a HasClaim entry.
-func TestConvertHasSkippedForNonRefSubClaim(t *testing.T) {
-	t.Parallel()
-
-	nestedHasPropID := identifier.New()
-	propDoc := makeNamingDoc(testPropID, "Has Prop")
-	extraDocs := map[identifier.Identifier]*document.D{
-		testPropID:      propDoc,
-		nestedHasPropID: makeNamingDoc(nestedHasPropID, "Nested Has Prop"),
-	}
-	c := newTestConverter(t, nil, nil, extraDocs)
-
-	ctx := t.Context()
-	// Sub-claims contain only a has claim, not a reference claim.
-	sub := &document.ClaimTypes{
-		Has: []document.HasClaim{
-			{
-				CoreClaim: makeCoreClaim(document.HighConfidence, nil),
-				Prop:      document.Reference{ID: nestedHasPropID},
-			},
-		},
-	}
-	claim := &document.HasClaim{
-		CoreClaim: makeCoreClaim(document.HighConfidence, sub),
-		Prop:      document.Reference{ID: testPropID},
-	}
-	result, subs, errE := c.convertHas(ctx, claim)
-	require.NoError(t, errE, "% -+#.1v", errE)
-
-	// Has claim with ANY sub-claim (even non-ref) is not indexed.
-	assert.Empty(t, result)
-	// No reference sub-claims, so no SubRefClaim entries either.
-	assert.Empty(t, subs.Refs)
-}
-
-// TestConvertNoneSubClaimParentToSentinel verifies that none claims with reference sub-claims
-// produce SubRefClaim entries with ParentTo set to the ParentToNone sentinel.
+// TestFromDocumentNoneWithSubClaims verifies that a none claim is indexed as a none rel record
+// and that its reference sub-claims are indexed in the record's Sub container.
 //
 //nolint:dupl
-func TestConvertNoneSubClaimParentToSentinel(t *testing.T) {
+func TestFromDocumentNoneWithSubClaims(t *testing.T) {
 	t.Parallel()
 
 	subPropID := identifier.New()
@@ -4972,27 +4967,38 @@ func TestConvertNoneSubClaimParentToSentinel(t *testing.T) {
 			},
 		},
 	}
-	claim := &document.NoneClaim{
-		CoreClaim: makeCoreClaim(document.HighConfidence, sub),
-		Prop:      document.Reference{ID: testPropID},
+	doc := &document.D{
+		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
+		Claims: &document.ClaimTypes{
+			None: []document.NoneClaim{
+				{
+					CoreClaim: makeCoreClaim(document.HighConfidence, sub),
+					Prop:      document.Reference{ID: testPropID},
+				},
+			},
+		},
 	}
-	result, subs, errE := c.convertNone(ctx, claim)
+	result, errE := c.FromDocument(ctx, doc, nil, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	// Unlike has claims, none claims are still indexed even when they have sub-claims.
-	require.Len(t, result, 1)
-	require.Len(t, subs.Refs, 1)
-	assert.Equal(t, testPropID, subs.Refs[0].ParentProp)
-	assert.Equal(t, ParentToNone, subs.Refs[0].ParentTo)
-	assert.Equal(t, subPropID, subs.Refs[0].Prop)
-	assert.Equal(t, subTargetID, subs.Refs[0].To)
+	require.Len(t, result.Claims.Rel, 1)
+	rec := result.Claims.Rel[0]
+	assert.Equal(t, ClaimTypeNone, rec.ClaimType)
+	assert.Equal(t, testPropID, rec.Prop)
+	assert.Nil(t, rec.To)
+	require.NotNil(t, rec.Sub)
+	require.Len(t, rec.Sub.Rel, 1)
+	assert.Equal(t, ClaimTypeRef, rec.Sub.Rel[0].ClaimType)
+	assert.Equal(t, subPropID, rec.Sub.Rel[0].Prop)
+	require.NotNil(t, rec.Sub.Rel[0].To)
+	assert.Equal(t, subTargetID, *rec.Sub.Rel[0].To)
 }
 
-// TestConvertUnknownSubClaimParentToSentinel verifies that unknown claims with reference sub-claims
-// produce SubRefClaim entries with ParentTo set to the ParentToUnknown sentinel.
+// TestFromDocumentUnknownWithSubClaims verifies that an unknown claim is indexed as an unknown
+// rel record and that its reference sub-claims are indexed in the record's Sub container.
 //
 //nolint:dupl
-func TestConvertUnknownSubClaimParentToSentinel(t *testing.T) {
+func TestFromDocumentUnknownWithSubClaims(t *testing.T) {
 	t.Parallel()
 
 	subPropID := identifier.New()
@@ -5015,82 +5021,106 @@ func TestConvertUnknownSubClaimParentToSentinel(t *testing.T) {
 			},
 		},
 	}
-	claim := &document.UnknownClaim{
-		CoreClaim: makeCoreClaim(document.HighConfidence, sub),
-		Prop:      document.Reference{ID: testPropID},
+	doc := &document.D{
+		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
+		Claims: &document.ClaimTypes{
+			Unknown: []document.UnknownClaim{
+				{
+					CoreClaim: makeCoreClaim(document.HighConfidence, sub),
+					Prop:      document.Reference{ID: testPropID},
+				},
+			},
+		},
 	}
-	result, subs, errE := c.convertUnknown(ctx, claim)
+	result, errE := c.FromDocument(ctx, doc, nil, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	// Unlike has claims, unknown claims are still indexed even when they have sub-claims.
-	require.Len(t, result, 1)
-	require.Len(t, subs.Refs, 1)
-	assert.Equal(t, testPropID, subs.Refs[0].ParentProp)
-	assert.Equal(t, ParentToUnknown, subs.Refs[0].ParentTo)
-	assert.Equal(t, subPropID, subs.Refs[0].Prop)
-	assert.Equal(t, subTargetID, subs.Refs[0].To)
+	require.Len(t, result.Claims.Rel, 1)
+	rec := result.Claims.Rel[0]
+	assert.Equal(t, ClaimTypeUnknown, rec.ClaimType)
+	assert.Equal(t, testPropID, rec.Prop)
+	assert.Nil(t, rec.To)
+	require.NotNil(t, rec.Sub)
+	require.Len(t, rec.Sub.Rel, 1)
+	assert.Equal(t, ClaimTypeRef, rec.Sub.Rel[0].ClaimType)
+	assert.Equal(t, subPropID, rec.Sub.Rel[0].Prop)
+	require.NotNil(t, rec.Sub.Rel[0].To)
+	assert.Equal(t, subTargetID, *rec.Sub.Rel[0].To)
 }
 
-// TestConvertSubClaimsEmpty verifies that convert functions return no SubRefClaim entries
-// when the parent claim has no reference sub-claims.
-func TestConvertSubClaimsEmpty(t *testing.T) {
+// TestConvertSubClaimTypesEmpty verifies that a claim without indexable sub-claims gets no Sub
+// container.
+func TestConvertSubClaimTypesEmpty(t *testing.T) {
 	t.Parallel()
 
-	propDoc := makeNamingDoc(testPropID, "Prop")
-	targetDoc := makeNamingDoc(testTargetDocID, "Target")
-	extraDocs := map[identifier.Identifier]*document.D{
-		testPropID:      propDoc,
-		testTargetDocID: targetDoc,
-	}
-	c := newTestConverter(t, nil, nil, extraDocs)
+	c := newTestConverter(t, nil, nil, map[identifier.Identifier]*document.D{})
 
 	ctx := t.Context()
 
-	t.Run("Reference", func(t *testing.T) {
-		t.Parallel()
-		claim := &document.ReferenceClaim{
-			CoreClaim: makeCoreClaim(document.HighConfidence, nil),
-			Prop:      document.Reference{ID: testPropID},
-			To:        document.Reference{ID: testTargetDocID},
-		}
-		_, subs, errE := c.convertReference(ctx, claim)
-		require.NoError(t, errE, "% -+#.1v", errE)
-		assert.Empty(t, subs.Refs)
-	})
+	// No sub-claims at all.
+	subTypes, errE := c.convertSubClaimTypes(ctx, nil)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Nil(t, subTypes)
 
-	t.Run("Has", func(t *testing.T) {
-		t.Parallel()
-		claim := &document.HasClaim{
-			CoreClaim: makeCoreClaim(document.HighConfidence, nil),
-			Prop:      document.Reference{ID: testPropID},
-		}
-		result, subs, errE := c.convertHas(ctx, claim)
-		require.NoError(t, errE, "% -+#.1v", errE)
-		// Has claim without sub-claims IS indexed.
-		require.Len(t, result, 1)
-		assert.Empty(t, subs.Refs)
-	})
+	// An empty container converts to no Sub container either.
+	subTypes, errE = c.convertSubClaimTypes(ctx, &document.ClaimTypes{})
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Nil(t, subTypes)
 
-	t.Run("None", func(t *testing.T) {
-		t.Parallel()
-		claim := &document.NoneClaim{
-			CoreClaim: makeCoreClaim(document.HighConfidence, nil),
-			Prop:      document.Reference{ID: testPropID},
-		}
-		_, subs, errE := c.convertNone(ctx, claim)
-		require.NoError(t, errE, "% -+#.1v", errE)
-		assert.Empty(t, subs.Refs)
+	// Sub-claims below the confidence threshold are skipped, so an all-low-confidence container
+	// converts to no Sub container.
+	subTypes, errE = c.convertSubClaimTypes(ctx, &document.ClaimTypes{
+		Has: []document.HasClaim{
+			{
+				CoreClaim: makeCoreClaim(document.Confidence(0.3), nil),
+				Prop:      document.Reference{ID: testPropID},
+			},
+		},
 	})
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Nil(t, subTypes)
+}
 
-	t.Run("Unknown", func(t *testing.T) {
-		t.Parallel()
-		claim := &document.UnknownClaim{
-			CoreClaim: makeCoreClaim(document.HighConfidence, nil),
-			Prop:      document.Reference{ID: testPropID},
-		}
-		_, subs, errE := c.convertUnknown(ctx, claim)
-		require.NoError(t, errE, "% -+#.1v", errE)
-		assert.Empty(t, subs.Refs)
+// TestConvertSubClaimTypesAllTypes verifies that every claim type is indexed when it appears as
+// a sub-claim: ref/has/none/unknown as claimType-discriminated rel records, amounts and times
+// (including intervals) as range records, and identifier/string/html/link as text records.
+// Records inside a Sub container carry no Sub of their own.
+func TestConvertSubClaimTypesAllTypes(t *testing.T) {
+	t.Parallel()
+
+	extraDocs := map[identifier.Identifier]*document.D{
+		testPropID:      makeNamingDoc(testPropID, "Sub Prop"),
+		testTargetDocID: makeNamingDoc(testTargetDocID, "Target"),
+	}
+	c := newTestConverter(t, nil, nil, extraDocs)
+
+	sub := makeDocWithAllClaimTypes(t, document.HighConfidence).Claims
+	out, errE := c.convertSubClaimTypes(t.Context(), sub)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	require.NotNil(t, out)
+
+	// Ref, has, none, and unknown sub-claims land in the rel collection, claimType-discriminated.
+	claimTypes := make([]string, 0, len(out.Rel))
+	for _, r := range out.Rel {
+		claimTypes = append(claimTypes, r.ClaimType)
+	}
+	assert.ElementsMatch(t, []string{ClaimTypeRef, ClaimTypeHas, ClaimTypeNone, ClaimTypeUnknown}, claimTypes)
+	// Point and interval claims each contribute one record.
+	assert.Len(t, out.Amount, 2)
+	assert.Len(t, out.Time, 2)
+	// Textual sub-claims are indexed too.
+	require.Len(t, out.Identifier, 1)
+	assert.Equal(t, "ID1", out.Identifier[0].Value)
+	require.Len(t, out.String, 1)
+	assert.Equal(t, "str", out.String[0].String["und"])
+	require.Len(t, out.HTML, 1)
+	assert.Equal(t, "html", out.HTML[0].HTML["und"])
+	require.Len(t, out.Link, 1)
+	assert.Equal(t, "https://example.com", out.Link[0].IRI)
+
+	// Records inside a Sub container carry no Sub of their own.
+	forEachSubContainer(out, func(*ClaimTypes) {
+		t.Error("no record inside a Sub container may carry a Sub container")
 	})
 }
 
@@ -5304,10 +5334,17 @@ func TestFromDocumentAllClaimTypesConfidence(t *testing.T) {
 			assert.Len(t, result.Claims.Amount, 2*tt.expected)
 			// Time + TimeInterval each contribute one claim.
 			assert.Len(t, result.Claims.Time, 2*tt.expected)
-			assert.Len(t, result.Claims.Reference, tt.expected)
-			assert.Len(t, result.Claims.Has, tt.expected)
-			assert.Len(t, result.Claims.None, tt.expected)
-			assert.Len(t, result.Claims.Unknown, tt.expected)
+			// Reference, has, none, and unknown claims each contribute one rel record.
+			assert.Len(t, result.Claims.Rel, 4*tt.expected)
+			for _, claimType := range []string{ClaimTypeRef, ClaimTypeHas, ClaimTypeNone, ClaimTypeUnknown} {
+				count := 0
+				for _, r := range result.Claims.Rel {
+					if r.ClaimType == claimType {
+						count++
+					}
+				}
+				assert.Equal(t, tt.expected, count, claimType)
+			}
 		})
 	}
 }
@@ -5996,7 +6033,7 @@ func TestConvertAmountIntervalPropagationError(t *testing.T) {
 	}
 	errE := claim.Validate()
 	require.NoError(t, errE, "% -+#.1v", errE)
-	_, _, _, errE = c.convertAmountInterval(ctx, claim) //nolint:dogsled
+	_, _, errE = c.convertAmountInterval(ctx, claim)
 	assert.EqualError(t, errE, "document not found")
 }
 
@@ -6020,7 +6057,7 @@ func TestConvertAmountIntervalInvalidFromAmount(t *testing.T) {
 	}
 	// Intentionally NO claim.Validate() call here - claim is deliberately
 	// invalid and would not pass Validate().
-	_, _, _, errE := c.convertAmountInterval(ctx, claim) //nolint:dogsled
+	_, _, errE := c.convertAmountInterval(ctx, claim)
 	assert.EqualError(t, errE, "unable to parse amount")
 }
 
@@ -6048,7 +6085,7 @@ func TestConvertAmountIntervalInvalidToAmount(t *testing.T) {
 	}
 	// Intentionally NO claim.Validate() call here - claim is deliberately
 	// invalid and would not pass Validate().
-	_, _, _, errE := c.convertAmountInterval(ctx, claim) //nolint:dogsled
+	_, _, errE := c.convertAmountInterval(ctx, claim)
 	assert.EqualError(t, errE, "unable to parse amount")
 }
 
@@ -6130,7 +6167,7 @@ func TestConvertTimeIntervalPropagationError(t *testing.T) {
 	}
 	errE := claim.Validate()
 	require.NoError(t, errE, "% -+#.1v", errE)
-	_, _, _, errE = c.convertTimeInterval(ctx, claim) //nolint:dogsled
+	_, _, errE = c.convertTimeInterval(ctx, claim)
 	assert.EqualError(t, errE, "document not found")
 }
 
@@ -6154,7 +6191,7 @@ func TestConvertTimeIntervalInvalidFromTime(t *testing.T) {
 	}
 	// Intentionally NO claim.Validate() call here - claim is deliberately
 	// invalid and would not pass Validate().
-	_, _, _, errE := c.convertTimeInterval(ctx, claim) //nolint:dogsled
+	_, _, errE := c.convertTimeInterval(ctx, claim)
 	assert.EqualError(t, errE, "unable to parse time")
 }
 
@@ -6182,11 +6219,11 @@ func TestConvertTimeIntervalInvalidToTime(t *testing.T) {
 	}
 	// Intentionally NO claim.Validate() call here - claim is deliberately
 	// invalid and would not pass Validate().
-	_, _, _, errE := c.convertTimeInterval(ctx, claim) //nolint:dogsled
+	_, _, errE := c.convertTimeInterval(ctx, claim)
 	assert.EqualError(t, errE, "unable to parse time")
 }
 
-func TestConvertRelationSubPropError(t *testing.T) {
+func TestConvertSubClaimTypesSubPropError(t *testing.T) {
 	t.Parallel()
 
 	// Sub-claim relation has unknown prop ID.
@@ -6206,18 +6243,11 @@ func TestConvertRelationSubPropError(t *testing.T) {
 			},
 		},
 	}
-	claim := &document.ReferenceClaim{
-		CoreClaim: makeCoreClaim(document.HighConfidence, sub),
-		Prop:      document.Reference{ID: testPropID},
-		To:        document.Reference{ID: testTargetDocID},
-	}
-	errE := claim.Validate()
-	require.NoError(t, errE, "% -+#.1v", errE)
-	_, _, errE = c.convertReference(ctx, claim)
+	_, errE := c.convertSubClaimTypes(ctx, sub)
 	assert.EqualError(t, errE, "document not found")
 }
 
-func TestConvertRelationSubToError(t *testing.T) {
+func TestConvertSubClaimTypesSubToError(t *testing.T) {
 	t.Parallel()
 
 	subPropDoc := makeNamingDoc(testPropID2, "Sub Prop")
@@ -6236,14 +6266,7 @@ func TestConvertRelationSubToError(t *testing.T) {
 			},
 		},
 	}
-	claim := &document.ReferenceClaim{
-		CoreClaim: makeCoreClaim(document.HighConfidence, sub),
-		Prop:      document.Reference{ID: testPropID},
-		To:        document.Reference{ID: testTargetDocID},
-	}
-	errE := claim.Validate()
-	require.NoError(t, errE, "% -+#.1v", errE)
-	_, _, errE = c.convertReference(ctx, claim)
+	_, errE := c.convertSubClaimTypes(ctx, sub)
 	assert.EqualError(t, errE, "document not found")
 }
 
@@ -6265,11 +6288,13 @@ func TestConvertRelationToDisplayError(t *testing.T) {
 	}
 	errE := claim.Validate()
 	require.NoError(t, errE, "% -+#.1v", errE)
-	_, _, errE = c.convertReference(ctx, claim)
+	_, errE = c.convertReference(ctx, claim)
 	assert.EqualError(t, errE, "document not found")
 }
 
-func TestConvertHasSubPropError(t *testing.T) {
+// TestFromDocumentHasSubPropError verifies that a failure to convert a has claim's sub-claims
+// (here an unresolvable sub-claim property) propagates out of FromDocument.
+func TestFromDocumentHasSubPropError(t *testing.T) {
 	t.Parallel()
 
 	extraDocs := map[identifier.Identifier]*document.D{}
@@ -6285,17 +6310,24 @@ func TestConvertHasSubPropError(t *testing.T) {
 			},
 		},
 	}
-	claim := &document.HasClaim{
-		CoreClaim: makeCoreClaim(document.HighConfidence, sub),
-		Prop:      document.Reference{ID: testPropID},
+	doc := &document.D{
+		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
+		Claims: &document.ClaimTypes{
+			Has: []document.HasClaim{
+				{
+					CoreClaim: makeCoreClaim(document.HighConfidence, sub),
+					Prop:      document.Reference{ID: testPropID},
+				},
+			},
+		},
 	}
-	errE := claim.Validate()
-	require.NoError(t, errE, "% -+#.1v", errE)
-	_, _, errE = c.convertHas(ctx, claim)
+	_, errE := c.FromDocument(ctx, doc, nil, nil, nil)
 	assert.EqualError(t, errE, "document not found")
 }
 
-func TestConvertHasSubToError(t *testing.T) {
+// TestFromDocumentHasSubToError verifies that a failure to convert a has claim's sub-claims
+// (here an unresolvable sub-reference target) propagates out of FromDocument.
+func TestFromDocumentHasSubToError(t *testing.T) {
 	t.Parallel()
 
 	subPropDoc := makeNamingDoc(testPropID2, "Sub Prop")
@@ -6314,13 +6346,18 @@ func TestConvertHasSubToError(t *testing.T) {
 			},
 		},
 	}
-	claim := &document.HasClaim{
-		CoreClaim: makeCoreClaim(document.HighConfidence, sub),
-		Prop:      document.Reference{ID: testPropID},
+	doc := &document.D{
+		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
+		Claims: &document.ClaimTypes{
+			Has: []document.HasClaim{
+				{
+					CoreClaim: makeCoreClaim(document.HighConfidence, sub),
+					Prop:      document.Reference{ID: testPropID},
+				},
+			},
+		},
 	}
-	errE := claim.Validate()
-	require.NoError(t, errE, "% -+#.1v", errE)
-	_, _, errE = c.convertHas(ctx, claim)
+	_, errE := c.FromDocument(ctx, doc, nil, nil, nil)
 	assert.EqualError(t, errE, "document not found")
 }
 
@@ -6345,7 +6382,7 @@ func TestConvertHasPropagationError(t *testing.T) {
 	}
 	errE := claim.Validate()
 	require.NoError(t, errE, "% -+#.1v", errE)
-	_, _, errE = c.convertHas(ctx, claim)
+	_, errE = c.relRecordsSimple(ctx, ClaimTypeHas, claim.Prop.ID)
 	assert.EqualError(t, errE, "document not found")
 }
 
@@ -6373,7 +6410,7 @@ func TestConvertRelationPropagationPropError(t *testing.T) {
 	}
 	errE := claim.Validate()
 	require.NoError(t, errE, "% -+#.1v", errE)
-	_, _, errE = c.convertReference(ctx, claim)
+	_, errE = c.convertReference(ctx, claim)
 	assert.EqualError(t, errE, "document not found")
 }
 
@@ -6398,7 +6435,7 @@ func TestConvertNonePropagationError(t *testing.T) {
 	}
 	errE := claim.Validate()
 	require.NoError(t, errE, "% -+#.1v", errE)
-	_, _, errE = c.convertNone(ctx, claim)
+	_, errE = c.relRecordsSimple(ctx, ClaimTypeNone, claim.Prop.ID)
 	assert.EqualError(t, errE, "document not found")
 }
 
@@ -6423,7 +6460,7 @@ func TestConvertUnknownPropagationError(t *testing.T) {
 	}
 	errE := claim.Validate()
 	require.NoError(t, errE, "% -+#.1v", errE)
-	_, _, errE = c.convertUnknown(ctx, claim)
+	_, errE = c.relRecordsSimple(ctx, ClaimTypeUnknown, claim.Prop.ID)
 	assert.EqualError(t, errE, "document not found")
 }
 
@@ -6446,7 +6483,7 @@ func TestConvertAmountIntervalFromUnknownToError(t *testing.T) {
 	}
 	errE := claim.Validate()
 	require.NoError(t, errE, "% -+#.1v", errE)
-	_, _, _, errE = c.convertAmountInterval(ctx, claim) //nolint:dogsled
+	_, _, errE = c.convertAmountInterval(ctx, claim)
 	assert.EqualError(t, errE, "document not found")
 }
 
@@ -6468,7 +6505,7 @@ func TestConvertAmountIntervalToUnknownFromError(t *testing.T) {
 	}
 	errE := claim.Validate()
 	require.NoError(t, errE, "% -+#.1v", errE)
-	_, _, _, errE = c.convertAmountInterval(ctx, claim) //nolint:dogsled
+	_, _, errE = c.convertAmountInterval(ctx, claim)
 	assert.EqualError(t, errE, "document not found")
 }
 
@@ -6489,7 +6526,7 @@ func TestConvertTimeIntervalFromUnknownToError(t *testing.T) {
 	}
 	errE := claim.Validate()
 	require.NoError(t, errE, "% -+#.1v", errE)
-	_, _, _, errE = c.convertTimeInterval(ctx, claim) //nolint:dogsled
+	_, _, errE = c.convertTimeInterval(ctx, claim)
 	assert.EqualError(t, errE, "document not found")
 }
 
@@ -6510,24 +6547,19 @@ func TestConvertTimeIntervalToUnknownFromError(t *testing.T) {
 	}
 	errE := claim.Validate()
 	require.NoError(t, errE, "% -+#.1v", errE)
-	_, _, _, errE = c.convertTimeInterval(ctx, claim) //nolint:dogsled
+	_, _, errE = c.convertTimeInterval(ctx, claim)
 	assert.EqualError(t, errE, "document not found")
 }
 
-// TestConvertReferenceWithSubAmountClaim verifies that an amount sub-claim on
-// a reference parent claim is flattened into SubAmountClaim entries with the
-// parent's prop/target as parentProp/parentTo.
-func TestConvertReferenceWithSubAmountClaim(t *testing.T) {
+// TestConvertSubClaimTypesAmount verifies that an amount sub-claim converts into an amount
+// record in the parent's Sub container, mapped to its precision window.
+func TestConvertSubClaimTypesAmount(t *testing.T) {
 	t.Parallel()
 
 	subPropID := identifier.New()
-	propDoc := makeNamingDoc(testPropID, "Rel Prop")
-	targetDoc := makeNamingDoc(testTargetDocID, "Target")
 	subPropDoc := makeNamingDoc(subPropID, "Sub Amount Prop")
 	extraDocs := map[identifier.Identifier]*document.D{
-		testPropID:      propDoc,
-		testTargetDocID: targetDoc,
-		subPropID:       subPropDoc,
+		subPropID: subPropDoc,
 	}
 	c := newTestConverter(t, nil, nil, extraDocs)
 
@@ -6542,43 +6574,28 @@ func TestConvertReferenceWithSubAmountClaim(t *testing.T) {
 			},
 		},
 	}
-	claim := &document.ReferenceClaim{
-		CoreClaim: makeCoreClaim(document.HighConfidence, sub),
-		Prop:      document.Reference{ID: testPropID},
-		To:        document.Reference{ID: testTargetDocID},
-	}
-	errE := claim.Validate()
+	subTypes, errE := c.convertSubClaimTypes(ctx, sub)
 	require.NoError(t, errE, "% -+#.1v", errE)
-
-	_, subs, errE := c.convertReference(ctx, claim)
-	require.NoError(t, errE, "% -+#.1v", errE)
-	require.Len(t, subs.Amounts, 1)
-	assert.Equal(t, testPropID, subs.Amounts[0].ParentProp)
-	assert.Equal(t, testTargetDocID.String(), subs.Amounts[0].ParentTo)
-	assert.Equal(t, subPropID, subs.Amounts[0].Prop)
-	require.NotNil(t, subs.Amounts[0].From)
-	assert.Equal(t, 41.5, *subs.Amounts[0].From) //nolint:testifylint
-	require.NotNil(t, subs.Amounts[0].To)
-	assert.Equal(t, 42.5, *subs.Amounts[0].To) //nolint:testifylint
-	assert.Empty(t, subs.Refs)
-	assert.Empty(t, subs.Times)
-	assert.Empty(t, subs.Has)
+	require.NotNil(t, subTypes)
+	require.Len(t, subTypes.Amount, 1)
+	assert.Equal(t, subPropID, subTypes.Amount[0].Prop)
+	require.NotNil(t, subTypes.Amount[0].From)
+	assert.Equal(t, 41.5, *subTypes.Amount[0].From) //nolint:testifylint
+	require.NotNil(t, subTypes.Amount[0].To)
+	assert.Equal(t, 42.5, *subTypes.Amount[0].To) //nolint:testifylint
+	assert.Empty(t, subTypes.Rel)
+	assert.Empty(t, subTypes.Time)
 }
 
-// TestConvertReferenceWithSubTimeIntervalClaim verifies that a time-interval
-// sub-claim on a reference parent claim is flattened into a SubTimeClaim
-// (mapped to a range) with the parent's prop/target as parentProp/parentTo.
-func TestConvertReferenceWithSubTimeIntervalClaim(t *testing.T) {
+// TestConvertSubClaimTypesTimeInterval verifies that a time-interval sub-claim converts into a
+// time record (mapped to a range) in the parent's Sub container.
+func TestConvertSubClaimTypesTimeInterval(t *testing.T) {
 	t.Parallel()
 
 	subPropID := identifier.New()
-	propDoc := makeNamingDoc(testPropID, "Rel Prop")
-	targetDoc := makeNamingDoc(testTargetDocID, "Target")
 	subPropDoc := makeNamingDoc(subPropID, "Period")
 	extraDocs := map[identifier.Identifier]*document.D{
-		testPropID:      propDoc,
-		testTargetDocID: targetDoc,
-		subPropID:       subPropDoc,
+		subPropID: subPropDoc,
 	}
 	c := newTestConverter(t, nil, nil, extraDocs)
 
@@ -6605,43 +6622,28 @@ func TestConvertReferenceWithSubTimeIntervalClaim(t *testing.T) {
 			},
 		},
 	}
-	claim := &document.ReferenceClaim{
-		CoreClaim: makeCoreClaim(document.HighConfidence, sub),
-		Prop:      document.Reference{ID: testPropID},
-		To:        document.Reference{ID: testTargetDocID},
-	}
-	errE := claim.Validate()
+	subTypes, errE := c.convertSubClaimTypes(ctx, sub)
 	require.NoError(t, errE, "% -+#.1v", errE)
-
-	_, subs, errE := c.convertReference(ctx, claim)
-	require.NoError(t, errE, "% -+#.1v", errE)
-	require.Len(t, subs.Times, 1)
-	assert.Equal(t, testPropID, subs.Times[0].ParentProp)
-	assert.Equal(t, testTargetDocID.String(), subs.Times[0].ParentTo)
-	assert.Equal(t, subPropID, subs.Times[0].Prop)
-	require.NotNil(t, subs.Times[0].From)
-	require.NotNil(t, subs.Times[0].To)
+	require.NotNil(t, subTypes)
+	require.Len(t, subTypes.Time, 1)
+	assert.Equal(t, subPropID, subTypes.Time[0].Prop)
+	require.NotNil(t, subTypes.Time[0].From)
+	require.NotNil(t, subTypes.Time[0].To)
 	// From is start of 2020, To is start of 2023 (exclusive end of 2022).
-	assert.Less(t, *subs.Times[0].From, *subs.Times[0].To)
-	assert.Empty(t, subs.Refs)
-	assert.Empty(t, subs.Amounts)
-	assert.Empty(t, subs.Has)
+	assert.Less(t, *subTypes.Time[0].From, *subTypes.Time[0].To)
+	assert.Empty(t, subTypes.Rel)
+	assert.Empty(t, subTypes.Amount)
 }
 
-// TestConvertReferenceWithSubHasClaim verifies that a simple has sub-claim on
-// a reference parent claim is flattened into a SubHasClaim with the parent's
-// prop/target as parentProp/parentTo.
-func TestConvertReferenceWithSubHasClaim(t *testing.T) {
+// TestConvertSubClaimTypesHas verifies that a has sub-claim converts into a has rel record in
+// the parent's Sub container.
+func TestConvertSubClaimTypesHas(t *testing.T) {
 	t.Parallel()
 
 	subPropID := identifier.New()
-	propDoc := makeNamingDoc(testPropID, "Rel Prop")
-	targetDoc := makeNamingDoc(testTargetDocID, "Target")
 	subPropDoc := makeNamingDoc(subPropID, "Has Prop")
 	extraDocs := map[identifier.Identifier]*document.D{
-		testPropID:      propDoc,
-		testTargetDocID: targetDoc,
-		subPropID:       subPropDoc,
+		subPropID: subPropDoc,
 	}
 	c := newTestConverter(t, nil, nil, extraDocs)
 
@@ -6654,63 +6656,245 @@ func TestConvertReferenceWithSubHasClaim(t *testing.T) {
 			},
 		},
 	}
-	claim := &document.ReferenceClaim{
-		CoreClaim: makeCoreClaim(document.HighConfidence, sub),
-		Prop:      document.Reference{ID: testPropID},
-		To:        document.Reference{ID: testTargetDocID},
-	}
-	errE := claim.Validate()
+	subTypes, errE := c.convertSubClaimTypes(ctx, sub)
 	require.NoError(t, errE, "% -+#.1v", errE)
-
-	_, subs, errE := c.convertReference(ctx, claim)
-	require.NoError(t, errE, "% -+#.1v", errE)
-	require.Len(t, subs.Has, 1)
-	assert.Equal(t, testPropID, subs.Has[0].ParentProp)
-	assert.Equal(t, testTargetDocID.String(), subs.Has[0].ParentTo)
-	assert.Equal(t, subPropID, subs.Has[0].Prop)
-	assert.Empty(t, subs.Refs)
-	assert.Empty(t, subs.Amounts)
-	assert.Empty(t, subs.Times)
+	require.NotNil(t, subTypes)
+	require.Len(t, subTypes.Rel, 1)
+	assert.Equal(t, ClaimTypeHas, subTypes.Rel[0].ClaimType)
+	assert.Equal(t, subPropID, subTypes.Rel[0].Prop)
+	assert.Nil(t, subTypes.Rel[0].To)
+	assert.Empty(t, subTypes.Amount)
+	assert.Empty(t, subTypes.Time)
 }
 
-// TestConvertHasWithSubHasClaim verifies that a has sub-claim under a has
-// parent claim is flattened into a SubHasClaim with ParentTo=ParentToHas.
-func TestConvertHasWithSubHasClaim(t *testing.T) {
+// TestFromDocumentHasWithNestedHas verifies that a has sub-claim under a has parent claim is
+// indexed as a has record in the parent's Sub container, even when the nested has claim carries
+// its own sub-claims; those depth-2 sub-claims are not indexed but still count toward
+// counts.claims.
+func TestFromDocumentHasWithNestedHas(t *testing.T) {
 	t.Parallel()
 
 	subPropID := identifier.New()
+	depth2PropID := identifier.New()
 	propDoc := makeNamingDoc(testPropID, "Has Prop")
 	subPropDoc := makeNamingDoc(subPropID, "Sub Has Prop")
 	extraDocs := map[identifier.Identifier]*document.D{
-		testPropID: propDoc,
-		subPropID:  subPropDoc,
+		testPropID:   propDoc,
+		subPropID:    subPropDoc,
+		depth2PropID: makeNamingDoc(depth2PropID, "Depth 2 Prop"),
 	}
 	c := newTestConverter(t, nil, nil, extraDocs)
 
 	ctx := t.Context()
+	depth2 := &document.ClaimTypes{
+		String: []document.StringClaim{
+			{
+				CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+				Prop:      document.Reference{ID: depth2PropID},
+				String:    "nested",
+			},
+		},
+	}
 	sub := &document.ClaimTypes{
 		Has: []document.HasClaim{
 			{
-				CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+				CoreClaim: makeCoreClaim(document.HighConfidence, depth2),
 				Prop:      document.Reference{ID: subPropID},
 			},
 		},
 	}
-	claim := &document.HasClaim{
-		CoreClaim: makeCoreClaim(document.HighConfidence, sub),
-		Prop:      document.Reference{ID: testPropID},
+	doc := &document.D{
+		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
+		Claims: &document.ClaimTypes{
+			Has: []document.HasClaim{
+				{
+					CoreClaim: makeCoreClaim(document.HighConfidence, sub),
+					Prop:      document.Reference{ID: testPropID},
+				},
+			},
+		},
 	}
-	errE := claim.Validate()
+	result, errE := c.FromDocument(ctx, doc, nil, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	result, subs, errE := c.convertHas(ctx, claim)
+	require.Len(t, result.Claims.Rel, 1)
+	rec := result.Claims.Rel[0]
+	assert.Equal(t, ClaimTypeHas, rec.ClaimType)
+	assert.Equal(t, testPropID, rec.Prop)
+	// The nested has claim is indexed as a has record in the Sub container even though it carries
+	// its own sub-claims; its depth-2 sub-claims are not indexed.
+	require.NotNil(t, rec.Sub)
+	require.Len(t, rec.Sub.Rel, 1)
+	assert.Equal(t, ClaimTypeHas, rec.Sub.Rel[0].ClaimType)
+	assert.Equal(t, subPropID, rec.Sub.Rel[0].Prop)
+	assert.Nil(t, rec.Sub.Rel[0].Sub)
+	assert.Empty(t, rec.Sub.String)
+	// The depth-2 sub-claim still counts toward counts.claims.
+	require.NotNil(t, result.Counts.Claims)
+	assert.Equal(t, 3, *result.Counts.Claims)
+}
+
+// TestFromDocumentIntervalSubClaims verifies that interval claims' sub-claims are indexed: the
+// amount/time records converted from interval claims carry their sub-claims in Sub, and the
+// degenerate all-unknown interval's unknown rel record carries them too.
+func TestFromDocumentIntervalSubClaims(t *testing.T) {
+	t.Parallel()
+
+	subPropID := identifier.New()
+	subTargetID := identifier.New()
+	extraDocs := map[identifier.Identifier]*document.D{
+		testPropID:  makeNamingDoc(testPropID, "Interval Prop"),
+		subPropID:   makeNamingDoc(subPropID, "Sub Prop"),
+		subTargetID: makeNamingDoc(subTargetID, "Sub Target"),
+	}
+	c := newTestConverter(t, nil, nil, extraDocs)
+
+	refSub := func() *document.ClaimTypes {
+		return &document.ClaimTypes{
+			Reference: []document.ReferenceClaim{
+				{
+					CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+					Prop:      document.Reference{ID: subPropID},
+					To:        document.Reference{ID: subTargetID},
+				},
+			},
+		}
+	}
+
+	fromAmount := document.Amount("10")
+	toAmount := document.Amount("20")
+	fromPrec := 1.0
+	toPrec := 1.0
+	fromTS := document.Time("2024-01-01")
+	toTS := document.Time("2024-12-31")
+	fromTSPrec := document.TimePrecisionDay
+	toTSPrec := document.TimePrecisionDay
+
+	doc := &document.D{
+		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
+		Claims: &document.ClaimTypes{
+			AmountInterval: []document.AmountIntervalClaim{
+				{ //nolint:exhaustruct
+					CoreClaim:     makeCoreClaim(document.HighConfidence, refSub()),
+					Prop:          document.Reference{ID: testPropID},
+					From:          &fromAmount,
+					FromPrecision: &fromPrec,
+					To:            &toAmount,
+					ToPrecision:   &toPrec,
+				},
+				{ //nolint:exhaustruct
+					// The degenerate all-unknown shape converts to an unknown rel record instead.
+					CoreClaim:     makeCoreClaim(document.HighConfidence, refSub()),
+					Prop:          document.Reference{ID: testPropID},
+					FromIsUnknown: true,
+					ToIsUnknown:   true,
+				},
+			},
+			TimeInterval: []document.TimeIntervalClaim{
+				{ //nolint:exhaustruct
+					CoreClaim:     makeCoreClaim(document.HighConfidence, refSub()),
+					Prop:          document.Reference{ID: testPropID},
+					From:          &fromTS,
+					FromPrecision: &fromTSPrec,
+					To:            &toTS,
+					ToPrecision:   &toTSPrec,
+				},
+			},
+		},
+	}
+
+	result, errE := c.FromDocument(t.Context(), doc, nil, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
-	// Has claim with sub-claims is not indexed as a HasClaim entry.
-	require.Empty(t, result)
-	require.Len(t, subs.Has, 1)
-	assert.Equal(t, testPropID, subs.Has[0].ParentProp)
-	assert.Equal(t, ParentToHas, subs.Has[0].ParentTo)
-	assert.Equal(t, subPropID, subs.Has[0].Prop)
+
+	assertRefSub := func(sub *ClaimTypes) {
+		t.Helper()
+		require.NotNil(t, sub)
+		require.Len(t, sub.Rel, 1)
+		assert.Equal(t, ClaimTypeRef, sub.Rel[0].ClaimType)
+		assert.Equal(t, subPropID, sub.Rel[0].Prop)
+		require.NotNil(t, sub.Rel[0].To)
+		assert.Equal(t, subTargetID, *sub.Rel[0].To)
+	}
+
+	require.Len(t, result.Claims.Amount, 1)
+	assertRefSub(result.Claims.Amount[0].Sub)
+	require.Len(t, result.Claims.Time, 1)
+	assertRefSub(result.Claims.Time[0].Sub)
+	// The degenerate interval became an unknown rel record, still carrying its sub-claims.
+	require.Len(t, result.Claims.Rel, 1)
+	assert.Equal(t, ClaimTypeUnknown, result.Claims.Rel[0].ClaimType)
+	assertRefSub(result.Claims.Rel[0].Sub)
+}
+
+// TestFromDocumentDepth2SubClaimsNotIndexed verifies that sub-claims of sub-claims are not
+// indexed (records inside a Sub container carry no Sub of their own), while they still count
+// toward counts.claims and contribute the document's earliest time.
+func TestFromDocumentDepth2SubClaimsNotIndexed(t *testing.T) {
+	t.Parallel()
+
+	subPropID := identifier.New()
+	subTargetID := identifier.New()
+	timePropID := identifier.New()
+	target := identifier.New()
+	extraDocs := map[identifier.Identifier]*document.D{
+		testPropID:  makeNamingDoc(testPropID, "Rel Prop"),
+		target:      makeNamingDoc(target, "Target"),
+		subPropID:   makeNamingDoc(subPropID, "Sub Prop"),
+		subTargetID: makeNamingDoc(subTargetID, "Sub Target"),
+		timePropID:  makeNamingDoc(timePropID, "Time Prop"),
+	}
+	c := newTestConverter(t, nil, nil, extraDocs)
+
+	// Depth 2: a time claim nested under the reference sub-claim.
+	depth2 := &document.ClaimTypes{
+		Time: []document.TimeClaim{
+			{
+				CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+				Prop:      document.Reference{ID: timePropID},
+				Time:      document.Time("1900-01-01"),
+				Precision: document.TimePrecisionDay,
+			},
+		},
+	}
+	sub := &document.ClaimTypes{
+		Reference: []document.ReferenceClaim{
+			{
+				CoreClaim: makeCoreClaim(document.HighConfidence, depth2),
+				Prop:      document.Reference{ID: subPropID},
+				To:        document.Reference{ID: subTargetID},
+			},
+		},
+	}
+	doc := &document.D{
+		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
+		Claims: &document.ClaimTypes{
+			Reference: []document.ReferenceClaim{
+				{
+					CoreClaim: makeCoreClaim(document.HighConfidence, sub),
+					Prop:      document.Reference{ID: testPropID},
+					To:        document.Reference{ID: target},
+				},
+			},
+		},
+	}
+
+	result, errE := c.FromDocument(t.Context(), doc, nil, nil, nil)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// The sub-reference is indexed, but its own sub-claims are not: no Sub on a sub record and no
+	// time records anywhere.
+	require.Len(t, result.Claims.Rel, 1)
+	require.NotNil(t, result.Claims.Rel[0].Sub)
+	require.Len(t, result.Claims.Rel[0].Sub.Rel, 1)
+	assert.Nil(t, result.Claims.Rel[0].Sub.Rel[0].Sub)
+	assert.Empty(t, result.Claims.Time)
+	assert.Empty(t, result.Claims.Rel[0].Sub.Time)
+
+	// The depth-2 claim still counts toward counts.claims and sets the document's earliest time.
+	require.NotNil(t, result.Counts.Claims)
+	assert.Equal(t, 3, *result.Counts.Claims)
+	require.NotNil(t, result.Time)
+	assert.Equal(t, 1900, x.TimeFromFloat64(*result.Time).UTC().Year())
 }
 
 // makeClassDocWithTemplate creates a class document with an INSTANCE_OF PROPERTY
@@ -8643,11 +8827,13 @@ func TestFromDocumentIncomingInverseRelation(t *testing.T) {
 	result, errE := c.FromDocument(ctx, doc, nil, &store.DocumentMetadata{At: store.Time{}, Users: nil}, inverseRelations)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	// Should have a reverse relation claim with property Y pointing to source document.
-	require.Len(t, result.Claims.Reference, 1)
-	rel := result.Claims.Reference[0]
+	// Should have a reverse relation rel record with property Y pointing to source document.
+	require.Len(t, result.Claims.Rel, 1)
+	rel := result.Claims.Rel[0]
+	assert.Equal(t, ClaimTypeRef, rel.ClaimType)
 	assert.Equal(t, propY, rel.Prop)
-	assert.Equal(t, sourceDocID, rel.To)
+	require.NotNil(t, rel.To)
+	assert.Equal(t, sourceDocID, *rel.To)
 }
 
 func TestFromDocumentIncomingInverseRelationMultipleInverses(t *testing.T) {
@@ -8686,17 +8872,19 @@ func TestFromDocumentIncomingInverseRelationMultipleInverses(t *testing.T) {
 	result, errE := c.FromDocument(ctx, doc, nil, &store.DocumentMetadata{At: store.Time{}, Users: nil}, inverseRelations)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	// Should have two reverse relation claims: one for A and one for C.
-	require.Len(t, result.Claims.Reference, 2)
+	// Should have two reverse relation rel records: one for A and one for C.
+	require.Len(t, result.Claims.Rel, 2)
 	relProps := map[identifier.Identifier]bool{
-		result.Claims.Reference[0].Prop: true,
-		result.Claims.Reference[1].Prop: true,
+		result.Claims.Rel[0].Prop: true,
+		result.Claims.Rel[1].Prop: true,
 	}
 	assert.True(t, relProps[propA], "expected reverse claim with property A")
 	assert.True(t, relProps[propC], "expected reverse claim with property C")
 	// Both should point to the source document.
-	assert.Equal(t, sourceDocID, result.Claims.Reference[0].To)
-	assert.Equal(t, sourceDocID, result.Claims.Reference[1].To)
+	for _, rel := range result.Claims.Rel {
+		require.NotNil(t, rel.To)
+		assert.Equal(t, sourceDocID, *rel.To)
+	}
 }
 
 func TestFromDocumentIncomingInverseRelationBidirectional(t *testing.T) {
@@ -8732,9 +8920,10 @@ func TestFromDocumentIncomingInverseRelationBidirectional(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Should produce a reverse claim with property B.
-	require.Len(t, result.Claims.Reference, 1)
-	assert.Equal(t, propB, result.Claims.Reference[0].Prop)
-	assert.Equal(t, sourceDocID, result.Claims.Reference[0].To)
+	require.Len(t, result.Claims.Rel, 1)
+	assert.Equal(t, propB, result.Claims.Rel[0].Prop)
+	require.NotNil(t, result.Claims.Rel[0].To)
+	assert.Equal(t, sourceDocID, *result.Claims.Rel[0].To)
 }
 
 func TestDiffOutgoingInverseRelationsBothEmpty(t *testing.T) {
@@ -9216,19 +9405,21 @@ func TestFromDocumentEmbed(t *testing.T) {
 	result, errE := c.FromDocument(t.Context(), doc, nil, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	// The embedded claim appears as a sub-reference under A's reference to B, carrying the destination
-	// property and B's value.
-	found := false
-	for _, sub := range result.Claims.SubRef {
-		if sub.Prop == destProp && sub.To == valueID && sub.ParentProp == fieldProp && sub.ParentTo == testTargetDocID.String() {
-			found = true
-			break
-		}
-	}
-	assert.True(t, found, "expected embedded sub-reference not found in %+v", result.Claims.SubRef)
+	// The embedded claim appears as a ref record in the Sub container of A's reference to B,
+	// carrying the destination property and B's value.
+	parentRec := findRefTo(result.Claims.Rel, testTargetDocID)
+	require.NotNil(t, parentRec, "reference record for the embedding field missing")
+	assert.Equal(t, fieldProp, parentRec.Prop)
+	require.NotNil(t, parentRec.Sub)
+	embedded := findRefTo(parentRec.Sub.Rel, valueID)
+	require.NotNil(t, embedded, "expected embedded sub-reference not found in %+v", parentRec.Sub.Rel)
+	assert.Equal(t, destProp, embedded.Prop)
 }
 
-func TestFromDocumentEmbedStringDropped(t *testing.T) {
+// TestFromDocumentEmbedStringNotInText verifies that an embedded string sub-claim is indexed as
+// a structured string record in the reference record's Sub container but, like native string
+// sub-claims, is not folded into the document's top-level text.
+func TestFromDocumentEmbedStringNotInText(t *testing.T) {
 	t.Parallel()
 
 	classID := identifier.New()
@@ -9281,10 +9472,16 @@ func TestFromDocumentEmbedStringDropped(t *testing.T) {
 	result, errE := c.FromDocument(t.Context(), doc, nil, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	// An embedded string becomes an ordinary string sub-claim of the reference. Textual sub-claims have no
-	// structured record and are not folded into text (the same as a native string sub-claim), so the value is
-	// not searchable. Folding textual sub-claims into text in the conversion would later make both native and
-	// embedded ones searchable at once.
+	// An embedded string becomes an ordinary string sub-claim of the reference, indexed as a
+	// structured string record in the reference record's Sub container.
+	parentRec := findRefTo(result.Claims.Rel, testTargetDocID)
+	require.NotNil(t, parentRec, "reference record for the embedding field missing")
+	require.NotNil(t, parentRec.Sub)
+	require.Len(t, parentRec.Sub.String, 1)
+	assert.Equal(t, destProp, parentRec.Sub.String[0].Prop)
+	assert.Equal(t, "embedded text value", parentRec.Sub.String[0].String["und"])
+
+	// Like native string sub-claims, it is not folded into the document's top-level text.
 	found := false
 	for _, values := range result.Text {
 		for _, value := range values {
@@ -9814,7 +10011,7 @@ func TestFromDocumentFinalizeHooks(t *testing.T) {
 	result, errE := c.FromDocument(t.Context(), doc, nil, &store.DocumentMetadata{At: store.Time{}, Users: nil}, inverseRelations)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.True(t, sawInverse)
-	assert.Empty(t, result.Claims.Reference)
+	assert.Empty(t, result.Claims.Rel)
 
 	// A finalize hook alone (no embeds, no inverse relations) still runs on a private copy: the claim it
 	// adds is converted, but the caller's document stays unchanged.
@@ -9830,7 +10027,7 @@ func TestFromDocumentFinalizeHooks(t *testing.T) {
 	}
 	result, errE = c.FromDocument(t.Context(), doc, nil, &store.DocumentMetadata{At: store.Time{}, Users: nil}, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
-	require.Len(t, result.Claims.Reference, 1)
-	assert.Equal(t, propX, result.Claims.Reference[0].Prop)
+	require.Len(t, result.Claims.Rel, 1)
+	assert.Equal(t, propX, result.Claims.Rel[0].Prop)
 	assert.Nil(t, doc.Claims)
 }

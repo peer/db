@@ -1,10 +1,12 @@
 package search_test
 
 import (
+	"context"
 	"math"
 	"strings"
 	"testing"
 
+	"github.com/elastic/go-elasticsearch/v9/typedapi/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gitlab.com/tozd/identifier"
@@ -20,6 +22,22 @@ func assertIntervalPrefix(t *testing.T, expected string, metadata map[string]any
 	interval, ok := metadata["interval"].(string)
 	require.True(t, ok, "interval metadata should be a string")
 	assert.True(t, strings.HasPrefix(interval, expected), "interval %q should start with %q", interval, expected)
+}
+
+// missingSpecialsFacetQuery creates a session whose only filter selects the missing special for
+// prop and returns the facet query for the path's facets: the session query with the path's
+// specials filter excluded, as the facet endpoints build it, so the path's own selections do not
+// narrow the facet's available values.
+func missingSpecialsFacetQuery(t *testing.T, ctx context.Context, prop identifier.Identifier) types.QueryVariant { //nolint:revive,ireturn
+	t.Helper()
+
+	session := createSession(t, ctx, search.SessionData{ //nolint:exhaustruct
+		Filters: []search.Filter{{ //nolint:exhaustruct
+			Prop:     []identifier.Identifier{prop},
+			Specials: &search.SpecialsFilter{Missing: true, None: false, Unknown: false, HasProperty: false},
+		}},
+	})
+	return session.ToQueryExcluding(session.FacetExcludeIDs(session.Filters[0].Prop, nil), nil)
 }
 
 func TestAmountFilterGetIntegration(t *testing.T) {
@@ -47,23 +65,12 @@ func TestAmountFilterGetIntegration(t *testing.T) {
 	}
 	refreshIndex(t, ctx, esClient, index)
 
-	// Create a session with an amount filter.
-	session := createSession(t, ctx, search.SessionData{
-		Sort:     nil,
-		Language: "",
-		View:     "",
-		Query:    "",
-		Filters: []search.Filter{{ //nolint:exhaustruct
-			Prop:   []identifier.Identifier{amountProp},
-			Amount: &search.AmountFilter{Unit: &unitID, Gte: nil, Lte: nil, Missing: true, Exists: false},
-		}},
-		Prefilters:    nil,
-		Reverse:       nil,
-		ReverseExpand: false,
-		IDs:           nil,
-	})
+	// A session with an active missing selection on the property: the facet excludes the path's
+	// specials filter, so the histogram still spans all values.
+	query := missingSpecialsFacetQuery(t, ctx, amountProp)
 
-	results, metadata, errE := session.Filters[0].Amount.Get(ctx, getSearchService, session.ToQueryExcluding(*session.Filters[0].ID, nil), session.Filters[0].Prop[0])
+	f := search.AmountFilter{Unit: &unitID, Gte: nil, Lte: nil, Exists: false}
+	results, metadata, errE := f.Get(ctx, getSearchService, query, amountProp)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// The histogram spans the known endpoint window edges [9.5, 90.5).
@@ -72,6 +79,11 @@ func TestAmountFilterGetIntegration(t *testing.T) {
 	assertIntervalPrefix(t, "0.8", metadata)
 	assert.Equal(t, "100", metadata["total"])
 	require.Len(t, results, 100)
+
+	// The identity counts: every document has a value record and none is missing.
+	assert.Equal(t, int64(3), metadata["exists"])
+	assert.Equal(t, int64(0), metadata["missing"])
+	assert.Equal(t, int64(3), metadata["universe"])
 
 	// Each precision window is wider than a bucket so every value is counted in two buckets.
 	var totalCount int64
@@ -92,6 +104,10 @@ func TestAmountFilterGetIntegration(t *testing.T) {
 	assert.Equal(t, int64(1), results[99].Count)
 }
 
+// Missing counts documents that state nothing facetable for the property: no rel record of any
+// claimType, no amount record, and no time record. A text-only claim for the property does not block
+// missing, while a none record does (it counts under none and, for the amount facet, under the
+// other-value-types remainder).
 func TestAmountFilterGetMissingIntegration(t *testing.T) {
 	t.Parallel()
 
@@ -105,58 +121,25 @@ func TestAmountFilterGetMissingIntegration(t *testing.T) {
 
 	// Doc with the amount prop.
 	indexAmountDoc(t, ctx, esClient, index, "amountDoc1", amountProp, unitID, &ten)
-	// Doc without the amount prop.
-	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		DisplaySort: nil,
-		ID:          identifier.From("amountDoc2"),
-		Display:     nil,
-		Text:        nil,
-		Time:        nil,
-		LastUpdated: nil,
-		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
-		Claims: internalSearch.ClaimTypes{
-			Identifier: nil,
-			String:     nil,
-			HTML:       nil,
-			Amount:     nil,
-			Time:       nil,
-			Link:       nil,
-			Reference:  nil,
-			Has:        nil,
-			None:       nil,
-			Unknown:    nil,
-			SubRef:     nil,
-			SubAmount:  nil,
-			SubTime:    nil,
-			SubHas:     nil,
-		},
-	})
-	// Another doc without the amount prop.
-	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		DisplaySort: nil,
-		ID:          identifier.From("amountDoc3"),
-		Display:     nil,
-		Text:        nil,
-		Time:        nil,
-		LastUpdated: nil,
-		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
-		Claims: internalSearch.ClaimTypes{
-			Identifier: nil,
-			String:     nil,
-			HTML:       nil,
-			Amount:     nil,
-			Time:       nil,
-			Link:       nil,
-			Reference:  nil,
-			Has:        nil,
-			None:       nil,
-			Unknown:    nil,
-			SubRef:     nil,
-			SubAmount:  nil,
-			SubTime:    nil,
-			SubHas:     nil,
-		},
-	})
+	// Docs without any claims at all.
+	indexDocument(t, ctx, esClient, index, claimsDoc("amountDoc2", internalSearch.ClaimTypes{
+		Rel: nil, Amount: nil, Time: nil, Identifier: nil, String: nil, HTML: nil, Link: nil,
+	}))
+	indexDocument(t, ctx, esClient, index, claimsDoc("amountDoc3", internalSearch.ClaimTypes{
+		Rel: nil, Amount: nil, Time: nil, Identifier: nil, String: nil, HTML: nil, Link: nil,
+	}))
+	// Doc with only a text (string) claim for the property: still missing.
+	indexDocument(t, ctx, esClient, index, claimsDoc("amountDoc4", internalSearch.ClaimTypes{ //nolint:exhaustruct
+		String: internalSearch.StringClaims{{
+			Prop: amountProp, PropDisplay: nil, PropNaming: nil, PropSortKey: nil,
+			String: map[string]string{"en": "ten"},
+			Sub:    nil,
+		}},
+	}))
+	// Doc with a none record for the property: not missing.
+	indexDocument(t, ctx, esClient, index, claimsDoc("amountDoc5", internalSearch.ClaimTypes{ //nolint:exhaustruct
+		Rel: internalSearch.RelClaims{simpleRelRecord(internalSearch.ClaimTypeNone, amountProp, nil)},
+	}))
 	refreshIndex(t, ctx, esClient, index)
 
 	session := createSession(t, ctx, search.SessionData{})
@@ -165,8 +148,15 @@ func TestAmountFilterGetMissingIntegration(t *testing.T) {
 	_, metadata, errE := f.Get(ctx, getSearchService, session.ToQuery(nil), amountProp)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	// Missing count should be 2 (two documents without the amount prop).
-	assert.Equal(t, int64(2), metadata["missing"])
+	// Missing counts the two empty documents and the text-only document; the none document counts
+	// under none and under the other-value-types remainder instead.
+	assert.Equal(t, int64(3), metadata["missing"])
+	assert.Equal(t, int64(1), metadata["exists"])
+	assert.Equal(t, int64(1), metadata["none"])
+	assert.Equal(t, int64(0), metadata["unknown"])
+	assert.Equal(t, int64(0), metadata["has_property"])
+	assert.Equal(t, int64(1), metadata["other_types"])
+	assert.Equal(t, int64(5), metadata["universe"])
 }
 
 func TestAmountFilterGetNoMissingIntegration(t *testing.T) {
@@ -192,6 +182,8 @@ func TestAmountFilterGetNoMissingIntegration(t *testing.T) {
 
 	// No missing documents.
 	assert.Equal(t, int64(0), metadata["missing"])
+	assert.Equal(t, int64(1), metadata["exists"])
+	assert.Equal(t, int64(1), metadata["universe"])
 }
 
 func TestAmountFilterGetInactiveIntegration(t *testing.T) {
@@ -258,22 +250,10 @@ func TestAmountFilterGetSameValuesIntegration(t *testing.T) {
 	indexAmountIntervalDoc(t, ctx, esClient, index, "sameDoc1", amountProp, &unitID, &fortyTwo, nil)
 	refreshIndex(t, ctx, esClient, index)
 
-	session := createSession(t, ctx, search.SessionData{
-		Sort:     nil,
-		Language: "",
-		View:     "",
-		Query:    "",
-		Filters: []search.Filter{{ //nolint:exhaustruct
-			Prop:   []identifier.Identifier{amountProp},
-			Amount: &search.AmountFilter{Unit: &unitID, Gte: nil, Lte: nil, Missing: true, Exists: false},
-		}},
-		Prefilters:    nil,
-		Reverse:       nil,
-		ReverseExpand: false,
-		IDs:           nil,
-	})
+	query := missingSpecialsFacetQuery(t, ctx, amountProp)
 
-	results, metadata, errE := session.Filters[0].Amount.Get(ctx, getSearchService, session.ToQueryExcluding(*session.Filters[0].ID, nil), session.Filters[0].Prop[0])
+	f := search.AmountFilter{Unit: &unitID, Gte: nil, Lte: nil, Exists: false}
+	results, metadata, errE := f.Get(ctx, getSearchService, query, amountProp)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// All values the same -> single bucket.
@@ -292,22 +272,10 @@ func TestAmountFilterGetEmptyIntegration(t *testing.T) {
 	amountProp := identifier.From("amountProp")
 	unitID := identifier.From("unit")
 
-	session := createSession(t, ctx, search.SessionData{
-		Sort:     nil,
-		Language: "",
-		View:     "",
-		Query:    "",
-		Filters: []search.Filter{{ //nolint:exhaustruct
-			Prop:   []identifier.Identifier{amountProp},
-			Amount: &search.AmountFilter{Unit: &unitID, Gte: nil, Lte: nil, Missing: true, Exists: false},
-		}},
-		Prefilters:    nil,
-		Reverse:       nil,
-		ReverseExpand: false,
-		IDs:           nil,
-	})
+	query := missingSpecialsFacetQuery(t, ctx, amountProp)
 
-	results, metadata, errE := session.Filters[0].Amount.Get(ctx, getSearchService, session.ToQueryExcluding(*session.Filters[0].ID, nil), session.Filters[0].Prop[0])
+	f := search.AmountFilter{Unit: &unitID, Gte: nil, Lte: nil, Exists: false}
+	results, metadata, errE := f.Get(ctx, getSearchService, query, amountProp)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, []search.HistogramResult{}, results)
 	assert.Equal(t, "0", metadata["total"])
@@ -327,22 +295,10 @@ func TestAmountFilterGetWithoutUnitIntegration(t *testing.T) {
 	indexAmountIntervalDoc(t, ctx, esClient, index, "noUnitDoc", amountProp, nil, &twentyFive, nil)
 	refreshIndex(t, ctx, esClient, index)
 
-	session := createSession(t, ctx, search.SessionData{
-		Sort:     nil,
-		Language: "",
-		View:     "",
-		Query:    "",
-		Filters: []search.Filter{{ //nolint:exhaustruct
-			Prop:   []identifier.Identifier{amountProp},
-			Amount: &search.AmountFilter{Unit: nil, Gte: nil, Lte: nil, Missing: true, Exists: false},
-		}},
-		Prefilters:    nil,
-		Reverse:       nil,
-		ReverseExpand: false,
-		IDs:           nil,
-	})
+	query := missingSpecialsFacetQuery(t, ctx, amountProp)
 
-	results, metadata, errE := session.Filters[0].Amount.Get(ctx, getSearchService, session.ToQueryExcluding(*session.Filters[0].ID, nil), session.Filters[0].Prop[0])
+	f := search.AmountFilter{Unit: nil, Gte: nil, Lte: nil, Exists: false}
+	results, metadata, errE := f.Get(ctx, getSearchService, query, amountProp)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, "1", metadata["total"])
 	assert.Equal(t, "25", metadata["from"])
@@ -377,22 +333,10 @@ func TestAmountFilterGetGapIntegration(t *testing.T) {
 	}
 	refreshIndex(t, ctx, esClient, index)
 
-	session := createSession(t, ctx, search.SessionData{
-		Sort:     nil,
-		Language: "",
-		View:     "",
-		Query:    "",
-		Filters: []search.Filter{{ //nolint:exhaustruct
-			Prop:   []identifier.Identifier{amountProp},
-			Amount: &search.AmountFilter{Unit: &unitID, Gte: nil, Lte: nil, Missing: true, Exists: false},
-		}},
-		Prefilters:    nil,
-		Reverse:       nil,
-		ReverseExpand: false,
-		IDs:           nil,
-	})
+	query := missingSpecialsFacetQuery(t, ctx, amountProp)
 
-	results, metadata, errE := session.Filters[0].Amount.Get(ctx, getSearchService, session.ToQueryExcluding(*session.Filters[0].ID, nil), session.Filters[0].Prop[0])
+	f := search.AmountFilter{Unit: &unitID, Gte: nil, Lte: nil, Exists: false}
+	results, metadata, errE := f.Get(ctx, getSearchService, query, amountProp)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// The histogram spans the known endpoint window edges [-0.5, 100.5).
@@ -453,24 +397,15 @@ func TestAmountFilterGetExtendedBoundsIntegration(t *testing.T) {
 	// Session filter with wider range [0, 100] than data [40, 60].
 	gte := 0.0
 	lte := 100.0
-	session := createSession(t, ctx, search.SessionData{
-		Sort:     nil,
-		Language: "",
-		View:     "",
-		Query:    "",
+	session := createSession(t, ctx, search.SessionData{ //nolint:exhaustruct
 		Filters: []search.Filter{{ //nolint:exhaustruct
-			Prop: []identifier.Identifier{amountProp},
-			Amount: &search.AmountFilter{
-				Unit: &unitID, Gte: &gte, Lte: &lte, Missing: false, Exists: false,
-			},
+			Prop:   []identifier.Identifier{amountProp},
+			Amount: &search.AmountFilter{Unit: &unitID, Gte: &gte, Lte: &lte, Exists: false},
 		}},
-		Prefilters:    nil,
-		Reverse:       nil,
-		ReverseExpand: false,
-		IDs:           nil,
 	})
 
-	results, metadata, errE := session.Filters[0].Amount.Get(ctx, getSearchService, session.ToQueryExcluding(*session.Filters[0].ID, nil), session.Filters[0].Prop[0])
+	query := session.ToQueryExcluding(session.FacetExcludeIDs(session.Filters[0].Prop, session.Filters[0].ID), nil)
+	results, metadata, errE := session.Filters[0].Amount.Get(ctx, getSearchService, query, session.Filters[0].Prop[0])
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Histogram uses session bounds [0, 100], not data bounds [40, 60].
@@ -518,24 +453,15 @@ func TestAmountFilterGetHardBoundsIntegration(t *testing.T) {
 	// Both documents match because their ranges overlap [10, 90].
 	gte := 10.0
 	lte := 90.0
-	session := createSession(t, ctx, search.SessionData{
-		Sort:     nil,
-		Language: "",
-		View:     "",
-		Query:    "",
+	session := createSession(t, ctx, search.SessionData{ //nolint:exhaustruct
 		Filters: []search.Filter{{ //nolint:exhaustruct
-			Prop: []identifier.Identifier{amountProp},
-			Amount: &search.AmountFilter{
-				Unit: &unitID, Gte: &gte, Lte: &lte, Missing: false, Exists: false,
-			},
+			Prop:   []identifier.Identifier{amountProp},
+			Amount: &search.AmountFilter{Unit: &unitID, Gte: &gte, Lte: &lte, Exists: false},
 		}},
-		Prefilters:    nil,
-		Reverse:       nil,
-		ReverseExpand: false,
-		IDs:           nil,
 	})
 
-	results, metadata, errE := session.Filters[0].Amount.Get(ctx, getSearchService, session.ToQueryExcluding(*session.Filters[0].ID, nil), session.Filters[0].Prop[0])
+	query := session.ToQueryExcluding(session.FacetExcludeIDs(session.Filters[0].Prop, session.Filters[0].ID), nil)
+	results, metadata, errE := session.Filters[0].Amount.Get(ctx, getSearchService, query, session.Filters[0].Prop[0])
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// The session bounds [10, 90] are widened by 10% of the selected span (8) on each side so the
@@ -588,22 +514,10 @@ func TestAmountFilterGetWideRangeIntegration(t *testing.T) {
 	indexAmountDoc(t, ctx, esClient, index, "wideDoc3", amountProp, unitID, &ninetyFive)
 	refreshIndex(t, ctx, esClient, index)
 
-	session := createSession(t, ctx, search.SessionData{
-		Sort:     nil,
-		Language: "",
-		View:     "",
-		Query:    "",
-		Filters: []search.Filter{{ //nolint:exhaustruct
-			Prop:   []identifier.Identifier{amountProp},
-			Amount: &search.AmountFilter{Unit: &unitID, Gte: nil, Lte: nil, Missing: true, Exists: false},
-		}},
-		Prefilters:    nil,
-		Reverse:       nil,
-		ReverseExpand: false,
-		IDs:           nil,
-	})
+	query := missingSpecialsFacetQuery(t, ctx, amountProp)
 
-	results, metadata, errE := session.Filters[0].Amount.Get(ctx, getSearchService, session.ToQueryExcluding(*session.Filters[0].ID, nil), session.Filters[0].Prop[0])
+	f := search.AmountFilter{Unit: &unitID, Gte: nil, Lte: nil, Exists: false}
+	results, metadata, errE := f.Get(ctx, getSearchService, query, amountProp)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// The histogram spans the known endpoint window edges [4.5, 95.5).
@@ -693,24 +607,14 @@ func TestAmountFilterGetPointBoundsIntegration(t *testing.T) {
 	// A point inside the window [9.5, 10.5) of the first document.
 	gte := 10.0
 	lte := 10.0
-	session := createSession(t, ctx, search.SessionData{
-		Sort:     nil,
-		Language: "",
-		View:     "",
-		Query:    "",
+	session := createSession(t, ctx, search.SessionData{ //nolint:exhaustruct
 		Filters: []search.Filter{{ //nolint:exhaustruct
-			Prop: []identifier.Identifier{amountProp},
-			Amount: &search.AmountFilter{
-				Unit: &unitID, Gte: &gte, Lte: &lte, Missing: false, Exists: false,
-			},
+			Prop:   []identifier.Identifier{amountProp},
+			Amount: &search.AmountFilter{Unit: &unitID, Gte: &gte, Lte: &lte, Exists: false},
 		}},
-		Prefilters:    nil,
-		Reverse:       nil,
-		ReverseExpand: false,
-		IDs:           nil,
 	})
 
-	query := session.ToQueryExcluding(*session.Filters[0].ID, nil)
+	query := session.ToQueryExcluding(session.FacetExcludeIDs(session.Filters[0].Prop, session.Filters[0].ID), nil)
 	results, metadata, errE := session.Filters[0].Amount.Get(ctx, getSearchService, query, session.Filters[0].Prop[0])
 	require.NoError(t, errE, "% -+#.1v", errE)
 
@@ -722,24 +626,14 @@ func TestAmountFilterGetPointBoundsIntegration(t *testing.T) {
 	// A point in the gap between the documents matches nothing.
 	gapGte := 30.0
 	gapLte := 30.0
-	gapSession := createSession(t, ctx, search.SessionData{
-		Sort:     nil,
-		Language: "",
-		View:     "",
-		Query:    "",
+	gapSession := createSession(t, ctx, search.SessionData{ //nolint:exhaustruct
 		Filters: []search.Filter{{ //nolint:exhaustruct
-			Prop: []identifier.Identifier{amountProp},
-			Amount: &search.AmountFilter{
-				Unit: &unitID, Gte: &gapGte, Lte: &gapLte, Missing: false, Exists: false,
-			},
+			Prop:   []identifier.Identifier{amountProp},
+			Amount: &search.AmountFilter{Unit: &unitID, Gte: &gapGte, Lte: &gapLte, Exists: false},
 		}},
-		Prefilters:    nil,
-		Reverse:       nil,
-		ReverseExpand: false,
-		IDs:           nil,
 	})
 
-	gapQuery := gapSession.ToQueryExcluding(*gapSession.Filters[0].ID, nil)
+	gapQuery := gapSession.ToQueryExcluding(gapSession.FacetExcludeIDs(gapSession.Filters[0].Prop, gapSession.Filters[0].ID), nil)
 	results, metadata, errE = gapSession.Filters[0].Amount.Get(ctx, getSearchService, gapQuery, gapSession.Filters[0].Prop[0])
 	require.NoError(t, errE, "% -+#.1v", errE)
 
@@ -769,24 +663,14 @@ func TestAmountFilterGetSingleValueActiveIntegration(t *testing.T) {
 	// is the value stepped down by its apparent decimal precision (ten).
 	gte := 0.0
 	lte := 10.0
-	session := createSession(t, ctx, search.SessionData{
-		Sort:     nil,
-		Language: "",
-		View:     "",
-		Query:    "",
+	session := createSession(t, ctx, search.SessionData{ //nolint:exhaustruct
 		Filters: []search.Filter{{ //nolint:exhaustruct
-			Prop: []identifier.Identifier{amountProp},
-			Amount: &search.AmountFilter{
-				Unit: &unitID, Gte: &gte, Lte: &lte, Missing: false, Exists: false,
-			},
+			Prop:   []identifier.Identifier{amountProp},
+			Amount: &search.AmountFilter{Unit: &unitID, Gte: &gte, Lte: &lte, Exists: false},
 		}},
-		Prefilters:    nil,
-		Reverse:       nil,
-		ReverseExpand: false,
-		IDs:           nil,
 	})
 
-	query := session.ToQueryExcluding(*session.Filters[0].ID, nil)
+	query := session.ToQueryExcluding(session.FacetExcludeIDs(session.Filters[0].Prop, session.Filters[0].ID), nil)
 	results, metadata, errE := session.Filters[0].Amount.Get(ctx, getSearchService, query, session.Filters[0].Prop[0])
 	require.NoError(t, errE, "% -+#.1v", errE)
 
@@ -810,55 +694,26 @@ func TestAmountFilterGetExistsIntegration(t *testing.T) {
 
 	// A document with a fully unbounded claim and a document without the property.
 	indexAmountIntervalDoc(t, ctx, esClient, index, "existsDoc1", amountProp, &unitID, nil, nil)
-	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		DisplaySort: nil,
-		ID:          identifier.From("existsDoc2"),
-		Display:     nil,
-		Text:        nil,
-		Time:        nil,
-		LastUpdated: nil,
-		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
-		Claims: internalSearch.ClaimTypes{
-			Identifier: nil,
-			String:     nil,
-			HTML:       nil,
-			Amount:     nil,
-			Time:       nil,
-			Link:       nil,
-			Reference:  nil,
-			Has:        nil,
-			None:       nil,
-			Unknown:    nil,
-			SubRef:     nil,
-			SubAmount:  nil,
-			SubTime:    nil,
-			SubHas:     nil,
-		},
-	})
+	indexDocument(t, ctx, esClient, index, claimsDoc("existsDoc2", internalSearch.ClaimTypes{
+		Rel: nil, Amount: nil, Time: nil, Identifier: nil, String: nil, HTML: nil, Link: nil,
+	}))
 	refreshIndex(t, ctx, esClient, index)
 
-	session := createSession(t, ctx, search.SessionData{
-		Sort:     nil,
-		Language: "",
-		View:     "",
-		Query:    "",
+	session := createSession(t, ctx, search.SessionData{ //nolint:exhaustruct
 		Filters: []search.Filter{{ //nolint:exhaustruct
 			Prop:   []identifier.Identifier{amountProp},
-			Amount: &search.AmountFilter{Unit: &unitID, Gte: nil, Lte: nil, Missing: false, Exists: true},
+			Amount: &search.AmountFilter{Unit: &unitID, Gte: nil, Lte: nil, Exists: true},
 		}},
-		Prefilters:    nil,
-		Reverse:       nil,
-		ReverseExpand: false,
-		IDs:           nil,
 	})
 
 	// The active exists filter round-trips to the counts-only response.
-	query := session.ToQueryExcluding(*session.Filters[0].ID, nil)
+	query := session.ToQueryExcluding(session.FacetExcludeIDs(session.Filters[0].Prop, session.Filters[0].ID), nil)
 	results, metadata, errE := session.Filters[0].Amount.Get(ctx, getSearchService, query, session.Filters[0].Prop[0])
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	assert.Equal(t, "0", metadata["total"])
 	assert.Equal(t, int64(1), metadata["missing"])
+	assert.Equal(t, int64(1), metadata["exists"])
 	assert.Empty(t, results)
 
 	// With the exists filter applied to the query, only the document with the property
@@ -868,6 +723,93 @@ func TestAmountFilterGetExistsIntegration(t *testing.T) {
 
 	assert.Equal(t, "0", metadata["total"])
 	assert.Equal(t, int64(0), metadata["missing"])
+}
+
+// A sub amount facet (parentProp > subProp): sub value records live in the parent record's Sub
+// container, the histogram merges across the parent collections, and sub missing counts documents
+// with a qualifying parent claim but no facetable sub-claim for the sub property. A document
+// without any parent claim is outside the facet's universe and counts toward neither.
+func TestAmountFilterGetSubAmountIntegration(t *testing.T) {
+	t.Parallel()
+
+	ctx := t.Context()
+	esClient, getSearchService, index := initES(t)
+
+	parentProp := identifier.From("parentProp")
+	subProp := identifier.From("subAmountProp")
+	target := identifier.From("target")
+	unitID := identifier.From("unit")
+	fortyTwo := 42.0
+	parentFrom := 5.0
+	parentTo := 6.0
+
+	// An open-ended sub amount claim: the single known endpoint value 42 collapses the
+	// histogram to a single bucket, keeping the merge assertions simple.
+	subClaims := func() *internalSearch.ClaimTypes {
+		return &internalSearch.ClaimTypes{ //nolint:exhaustruct
+			Amount: internalSearch.AmountClaims{amountRecord(subProp, &unitID, &fortyTwo, nil, nil)},
+		}
+	}
+
+	// A parent ref claim carrying the sub amount in its Sub container.
+	indexDocument(t, ctx, esClient, index, claimsDoc("subAmountDoc1", internalSearch.ClaimTypes{ //nolint:exhaustruct
+		Rel: internalSearch.RelClaims{refRecord(parentProp, target, subClaims())},
+	}))
+	// A parent claim without the sub amount: missing for the sub facet.
+	indexDocument(t, ctx, esClient, index, claimsDoc("subAmountDoc2", internalSearch.ClaimTypes{ //nolint:exhaustruct
+		Rel: internalSearch.RelClaims{refRecord(parentProp, target, nil)},
+	}))
+	// No parent claim at all: outside the sub facet's universe.
+	indexDocument(t, ctx, esClient, index, claimsDoc("subAmountDoc3", internalSearch.ClaimTypes{
+		Rel: nil, Amount: nil, Time: nil, Identifier: nil, String: nil, HTML: nil, Link: nil,
+	}))
+	// A parent amount claim (a different parent collection) carrying the same sub amount: the
+	// histogram and the counts merge across parent collections.
+	indexDocument(t, ctx, esClient, index, claimsDoc("subAmountDoc4", internalSearch.ClaimTypes{ //nolint:exhaustruct
+		Amount: internalSearch.AmountClaims{amountRecord(parentProp, nil, &parentFrom, &parentTo, subClaims())},
+	}))
+	refreshIndex(t, ctx, esClient, index)
+
+	session := createSession(t, ctx, search.SessionData{})
+
+	f := search.AmountFilter{Unit: &unitID, Gte: nil, Lte: nil, Exists: false}
+	parentCtx := session.ParentContextFor(parentProp, subProp)
+	results, metadata, errE := f.GetSubAmount(ctx, getSearchService, session.ToQuery(nil), subProp, parentCtx)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// The single known endpoint value collapses to a single bucket counting both documents with
+	// the sub amount, across both parent collections.
+	assert.Equal(t, "1", metadata["total"])
+	assert.Equal(t, "42", metadata["from"])
+	assert.Equal(t, "42", metadata["to"])
+	assert.Equal(t, []search.HistogramResult{{From: 42.0, Count: 2}}, results)
+	assert.Equal(t, int64(2), metadata["exists"])
+	assert.Equal(t, int64(1), metadata["missing"])
+	assert.Equal(t, int64(3), metadata["universe"])
+	assert.Equal(t, int64(0), metadata["none"])
+	assert.Equal(t, int64(0), metadata["unknown"])
+	assert.Equal(t, int64(0), metadata["has_property"])
+	assert.Equal(t, int64(0), metadata["other_types"])
+
+	// A top-level ref selection on the parent property constrains the sub facet's parent context:
+	// only rel parent claims pointing at the selected value participate (the amount-parent document
+	// also no longer matches the session query), so the merged counts drop to the rel-parent side.
+	constrained := createSession(t, ctx, search.SessionData{ //nolint:exhaustruct
+		Filters: []search.Filter{{ //nolint:exhaustruct
+			Prop: []identifier.Identifier{parentProp},
+			Ref:  &search.RefFilter{To: []search.ToValue{{ID: target}}, Direct: nil},
+		}},
+	})
+
+	parentCtx = constrained.ParentContextFor(parentProp, subProp)
+	results, metadata, errE = f.GetSubAmount(ctx, getSearchService, constrained.ToQuery(nil), subProp, parentCtx)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	assert.Equal(t, "1", metadata["total"])
+	assert.Equal(t, []search.HistogramResult{{From: 42.0, Count: 1}}, results)
+	assert.Equal(t, int64(1), metadata["exists"])
+	assert.Equal(t, int64(1), metadata["missing"])
+	assert.Equal(t, int64(2), metadata["universe"])
 }
 
 func TestComputeInterval(t *testing.T) {
@@ -923,19 +865,19 @@ func TestComputeInterval(t *testing.T) {
 	}
 }
 
-func TestAmountUnitFilter(t *testing.T) {
+func TestUnitTerm(t *testing.T) {
 	t.Parallel()
 
 	t.Run("WithUnit", func(t *testing.T) {
 		t.Parallel()
 		unit := identifier.From("unit")
-		got := testutils.QueryJSON(t, search.TestingAmountUnitFilter(&unit))
+		got := testutils.QueryJSON(t, search.TestingUnitTerm("claims.amount", &unit))
 		assert.Equal(t, `{"term":{"claims.amount.unit":{"value":"7xgMSp3wauK811A8Fwk3rY"}}}`, got) //nolint:testifylint
 	})
 
 	t.Run("WithoutUnit", func(t *testing.T) {
 		t.Parallel()
-		got := testutils.QueryJSON(t, search.TestingAmountUnitFilter(nil))
+		got := testutils.QueryJSON(t, search.TestingUnitTerm("claims.amount", nil))
 		assert.Equal(t, `{"bool":{"must_not":[{"exists":{"field":"claims.amount.unit"}}]}}`, got) //nolint:testifylint
 	})
 }

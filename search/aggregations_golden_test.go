@@ -152,7 +152,7 @@ func aggregationsGoldenSession() *search.Session {
 				ID:   &filterID,
 				Base: filterBase,
 				Prop: []identifier.Identifier{prop},
-				Ref:  &search.RefFilter{To: []search.ToValue{{ID: value}}, Direct: nil, Missing: false},
+				Ref:  &search.RefFilter{To: []search.ToValue{{ID: value}}, Direct: nil},
 			}},
 		},
 		ID:      identifier.From(sessionBase...),
@@ -172,7 +172,7 @@ func TestFiltersGetAggregationsGolden(t *testing.T) {
 
 		ctx := siteContext(t.Context())
 		body := captureAggregationRequest(t, func(getSearchService func() *esSearch.Search) {
-			_, _, _ = search.FiltersGet(ctx, getSearchService, session, enabledLanguages, "", search.PrefilterExcludes{})
+			_, _, _ = search.FiltersGet(ctx, getSearchService, session, enabledLanguages, "")
 		})
 		assertAggregationsGolden(t, "filters_get_no_query", body)
 	})
@@ -182,7 +182,7 @@ func TestFiltersGetAggregationsGolden(t *testing.T) {
 
 		ctx := siteContext(t.Context())
 		body := captureAggregationRequest(t, func(getSearchService func() *esSearch.Search) {
-			_, _, _ = search.FiltersGet(ctx, getSearchService, session, enabledLanguages, "col*", search.PrefilterExcludes{})
+			_, _, _ = search.FiltersGet(ctx, getSearchService, session, enabledLanguages, "col*")
 		})
 		assertAggregationsGolden(t, "filters_get_value_query", body)
 	})
@@ -200,7 +200,7 @@ func TestRefFilterGetAggregationsGolden(t *testing.T) {
 		t.Parallel()
 
 		ctx := siteContext(t.Context())
-		f := &search.RefFilter{To: nil, Direct: nil, Missing: false}
+		f := &search.RefFilter{To: nil, Direct: nil}
 		body := captureAggregationRequest(t, func(getSearchService func() *esSearch.Search) {
 			_, _, _ = f.Get(ctx, getSearchService, esdsl.NewMatchAllQuery(), prop, nil, "", enabledLanguages, nil)
 		})
@@ -214,7 +214,7 @@ func TestRefFilterGetAggregationsGolden(t *testing.T) {
 		// An active filter with a selected value plus a resolver that surfaces it, so the selectedMatch and
 		// propMatch augment aggregations appear. The resolver returns a single-segment hierarchy path, so the
 		// augment is exactly the selected value (one id) and the captured terms query is deterministic.
-		f := &search.RefFilter{To: []search.ToValue{{ID: value}}, Direct: nil, Missing: false}
+		f := &search.RefFilter{To: []search.ToValue{{ID: value}}, Direct: nil}
 		resolver := newPathResolver(map[identifier.Identifier][]string{
 			value: {hierProp.String() + ":" + value.String()},
 		})
@@ -235,12 +235,16 @@ func TestRefFilterGetSubRefAggregationsGolden(t *testing.T) {
 	enabledLanguages := internalSearch.EnabledLanguages(nil)
 
 	ctx := siteContext(t.Context())
-	f := &search.RefFilter{To: []search.ToValue{{ID: value}}, Direct: nil, Missing: false}
+	f := &search.RefFilter{To: []search.ToValue{{ID: value}}, Direct: nil}
 	resolver := newPathResolver(map[identifier.Identifier][]string{
 		value: {hierProp.String() + ":" + value.String()},
 	})
+	// An empty session gives an unconstrained parent context: every parent collection participates,
+	// scoped only by the parent property term.
+	var sessionData search.SessionData
+	parentCtx := sessionData.ParentContextFor(parentProp, prop)
 	body := captureAggregationRequest(t, func(getSearchService func() *esSearch.Search) {
-		_, _, _ = f.GetSubRef(ctx, getSearchService, esdsl.NewMatchAllQuery(), parentProp, prop, nil, nil, "col*", enabledLanguages, resolver)
+		_, _, _ = f.GetSubRef(ctx, getSearchService, esdsl.NewMatchAllQuery(), prop, parentCtx, nil, "col*", enabledLanguages, resolver)
 	})
 	assertAggregationsGolden(t, "ref_filter_get_subref_value_query", body)
 }
@@ -268,8 +272,86 @@ func TestHasFilterGetSubHasAggregationsGolden(t *testing.T) {
 
 	ctx := siteContext(t.Context())
 	f := &search.HasFilter{Props: []search.HasValue{{ID: prop}}}
+	// An empty session gives an unconstrained parent context; the pooled sub-has member is keyed by
+	// the zero identifier, matching how the has facet endpoints build it.
+	var sessionData search.SessionData
+	parentCtx := sessionData.ParentContextFor(parentProp, identifier.Identifier{})
 	body := captureAggregationRequest(t, func(getSearchService func() *esSearch.Search) {
-		_, _, _ = f.GetSubHas(ctx, getSearchService, esdsl.NewMatchAllQuery(), parentProp, nil, "col*", enabledLanguages)
+		_, _, _ = f.GetSubHas(ctx, getSearchService, esdsl.NewMatchAllQuery(), parentCtx, "col*", enabledLanguages)
 	})
 	assertAggregationsGolden(t, "has_filter_get_subhas_value_query", body)
+}
+
+// TestSessionToQueryGoldenCorrelatedGroup snapshots the query of a session with a top-level ref
+// selection on a parent property plus two sub filters (a ref and an amount) under it. The sub
+// conditions compile into one nested query per participating parent collection, correlating all
+// conditions on the same parent claim; because the top-level selection is a rel constraint, only
+// the claims.rel parent collection participates and the parent claim itself must point at the
+// selected value.
+func TestSessionToQueryGoldenCorrelatedGroup(t *testing.T) {
+	t.Parallel()
+
+	parentProp := identifier.From("parentProp")
+	parentValue := identifier.From("parentValue")
+	subRefProp := identifier.From("subRefProp")
+	subRefValue := identifier.From("subRefValue")
+	subAmountProp := identifier.From("subAmountProp")
+	unit := identifier.From("unit")
+	gte := 10.0
+	lte := 20.0
+
+	data := search.SessionData{ //nolint:exhaustruct
+		Filters: []search.Filter{
+			{ //nolint:exhaustruct
+				Prop: []identifier.Identifier{parentProp},
+				Ref:  &search.RefFilter{To: []search.ToValue{{ID: parentValue}}, Direct: nil},
+			},
+			{ //nolint:exhaustruct
+				Prop: []identifier.Identifier{parentProp, subRefProp},
+				Ref:  &search.RefFilter{To: []search.ToValue{{ID: subRefValue}}, Direct: nil},
+			},
+			{ //nolint:exhaustruct
+				Prop:   []identifier.Identifier{parentProp, subAmountProp},
+				Amount: &search.AmountFilter{Unit: &unit, Gte: &gte, Lte: &lte, Exists: false},
+			},
+		},
+	}
+	assertQueryGolden(t, data.ToQuery(nil))
+}
+
+// TestSessionToQueryGoldenSubMissing snapshots the query of a standalone sub missing selection (a
+// specials filter on a two-element path): a parent claim for the parent property must exist, and no
+// parent claim may carry a facetable sub-claim for the sub property, across every parent
+// collection. A document without any parent claim is outside the path's universe and must not
+// match.
+func TestSessionToQueryGoldenSubMissing(t *testing.T) {
+	t.Parallel()
+
+	parentProp := identifier.From("parentProp")
+	subProp := identifier.From("subProp")
+
+	data := search.SessionData{ //nolint:exhaustruct
+		Filters: []search.Filter{{ //nolint:exhaustruct
+			Prop:     []identifier.Identifier{parentProp, subProp},
+			Specials: &search.SpecialsFilter{Missing: true, None: false, Unknown: false, HasProperty: false},
+		}},
+	}
+	assertQueryGolden(t, data.ToQuery(nil))
+}
+
+// TestSessionToQueryGoldenTopSpecials snapshots the query of a top-level specials selection with
+// every special set: the none, unknown, and has-property arms are claimType terms on rel records
+// for the property, OR'd with the missing arm (no rel, amount, or time record for the property).
+func TestSessionToQueryGoldenTopSpecials(t *testing.T) {
+	t.Parallel()
+
+	prop := identifier.From("prop")
+
+	data := search.SessionData{ //nolint:exhaustruct
+		Filters: []search.Filter{{ //nolint:exhaustruct
+			Prop:     []identifier.Identifier{prop},
+			Specials: &search.SpecialsFilter{Missing: true, None: true, Unknown: true, HasProperty: true},
+		}},
+	}
+	assertQueryGolden(t, data.ToQuery(nil))
 }

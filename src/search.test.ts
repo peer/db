@@ -22,9 +22,12 @@ describe("queryToPrefilterPayloads", () => {
 })
 
 describe("prefiltersMatch", () => {
-  test("matches a to/direct/missing prefilter against its payload", () => {
+  test("matches to/direct ref and missing specials prefilters against their payload", () => {
     const payloads = queryToPrefilterPayloads({ prop: ["a", "direct:b", "missing"] })
-    const prefilters: Filter[] = [{ id: "f", base: [], prop: ["prop"], ref: { to: [{ id: "a" }], direct: [{ id: "b" }], missing: true } }]
+    const prefilters: Filter[] = [
+      { id: "f", base: [], prop: ["prop"], ref: { to: [{ id: "a" }], direct: [{ id: "b" }] } },
+      { id: "g", base: [], prop: ["prop"], specials: { missing: true } },
+    ]
     assert.isTrue(prefiltersMatch(prefilters, payloads))
   })
 
@@ -36,7 +39,10 @@ describe("prefiltersMatch", () => {
 
   test("does not match when missing differs", () => {
     const payloads = queryToPrefilterPayloads({ prop: ["a"] })
-    const prefilters: Filter[] = [{ id: "f", base: [], prop: ["prop"], ref: { to: [{ id: "a" }], missing: true } }]
+    const prefilters: Filter[] = [
+      { id: "f", base: [], prop: ["prop"], ref: { to: [{ id: "a" }] } },
+      { id: "g", base: [], prop: ["prop"], specials: { missing: true } },
+    ]
     assert.isFalse(prefiltersMatch(prefilters, payloads))
   })
 

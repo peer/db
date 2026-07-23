@@ -1800,19 +1800,18 @@ func (b *Bridge) ConvertDocument(ctx context.Context, doc *document.D, metadata 
 	return nil, errors.WithStack(store.ErrAccessDenied)
 }
 
-// DocumentFullPaths returns the document's hierarchy paths in the same "<hierarchyProp>:<root>/.../<id>"
-// form that convertReference stamps onto a reference claim's toFullPath. A value reached through several
+// DocumentHierarchyPaths returns the document's full hierarchy paths in the indexed toPath form
+// ("<hierarchyProp>:<root>/.../<id>", ending with the document itself). A value reached through several
 // parents or several value hierarchies has more than one path; a value in no value hierarchy gets a single
-// self path ("__SELF__:<id>"). These are computed exactly as the stored toFullPath is, so they identify
-// every indexed record that expanded from this document as a stated (leaf) value.
+// self path ("__SELF__:<id>").
 //
 // The paths reflect the level's own converter, so an ancestor hidden at that level does not appear in
 // them. It returns store.ErrAccessDenied when the caller resolves to no level.
-func (b *Bridge) DocumentFullPaths(ctx context.Context, id identifier.Identifier) ([]string, errors.E) {
+func (b *Bridge) DocumentHierarchyPaths(ctx context.Context, id identifier.Identifier) ([]string, errors.E) {
 	level := auth.Visibility(ctx)
 	for _, t := range b.targets {
 		if t.Level == level {
-			return t.Converter.DocumentFullPaths(ctx, id)
+			return t.Converter.DocumentHierarchyPaths(ctx, id)
 		}
 	}
 	return nil, errors.WithStack(store.ErrAccessDenied)
@@ -1827,17 +1826,23 @@ func (b *Bridge) CountReferencesFunc(index string) func(ctx context.Context, id 
 }
 
 // countReferences returns how many documents in the given index reference the document with the given ID
-// via a top-level ref claim or a sub-ref claim. It runs an ElasticSearch count against the index, so it
-// reflects whatever is indexed at call time.
+// via a top-level ref record or a sub-ref record under any parent collection. It runs an ElasticSearch
+// count against the index, so it reflects whatever is indexed at call time. A term on the "to" field
+// matches only rel records with the ref claimType (the other claim types have no "to"), so no claimType term is needed.
 func (b *Bridge) countReferences(ctx context.Context, id identifier.Identifier, index string) (int, errors.E) {
-	query := esdsl.NewBoolQuery().Should(
-		esdsl.NewNestedQuery(
-			esdsl.NewTermQuery("claims.ref.to", esdsl.NewFieldValue().String(id.String())),
-		).Path("claims.ref"),
-		esdsl.NewNestedQuery(
-			esdsl.NewTermQuery("claims.subRef.to", esdsl.NewFieldValue().String(id.String())),
-		).Path("claims.subRef"),
-	).MinimumShouldMatch(esdsl.NewMinimumShouldMatch().Int(1))
+	shoulds := make([]types.QueryVariant, 0, 8) //nolint:mnd
+	shoulds = append(shoulds, esdsl.NewNestedQuery(
+		esdsl.NewTermQuery("claims.rel.to", esdsl.NewFieldValue().String(id.String())),
+	).Path("claims.rel"))
+	for _, parent := range ParentCollections() {
+		subPath := "claims." + parent + ".sub.rel"
+		shoulds = append(shoulds, esdsl.NewNestedQuery(
+			esdsl.NewNestedQuery(
+				esdsl.NewTermQuery(subPath+".to", esdsl.NewFieldValue().String(id.String())),
+			).Path(subPath),
+		).Path("claims."+parent))
+	}
+	query := esdsl.NewBoolQuery().Should(shoulds...).MinimumShouldMatch(esdsl.NewMinimumShouldMatch().Int(1))
 
 	res, err := b.ESClient.Count().Index(index).Query(query).Do(ctx)
 	if err != nil {

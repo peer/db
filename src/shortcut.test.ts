@@ -153,7 +153,7 @@ describe("shortcutToFilters", () => {
   test("builds a missing selection from a 'missing' value", async () => {
     const payload = await shortcutToFilters("ns.example.com,KIND=missing")
     const prop = (await Identifier.from("ns.example.com", "KIND")).toString()
-    assert.deepEqual(payload.filters, [{ prop: [prop], ref: { missing: true } }])
+    assert.deepEqual(payload.filters, [{ prop: [prop], specials: { missing: true } }])
   })
 
   test("builds a direct selection from a 'direct:' value", async () => {
@@ -163,12 +163,15 @@ describe("shortcutToFilters", () => {
     assert.deepEqual(payload.filters, [{ prop: [prop], ref: { direct: [{ id: value }] } }])
   })
 
-  test("groups to, direct, and missing for the same property into one filter", async () => {
+  test("groups to and direct into one ref filter and missing into the property's specials filter", async () => {
     const payload = await shortcutToFilters("ns.example.com,KIND=ns.example.com,A&ns.example.com,KIND=direct:ns.example.com,B&ns.example.com,KIND=missing")
     const prop = (await Identifier.from("ns.example.com", "KIND")).toString()
     const a = (await Identifier.from("ns.example.com", "A")).toString()
     const b = (await Identifier.from("ns.example.com", "B")).toString()
-    assert.deepEqual(payload.filters, [{ prop: [prop], ref: { to: [{ id: a }], direct: [{ id: b }], missing: true } }])
+    assert.deepEqual(payload.filters, [
+      { prop: [prop], ref: { to: [{ id: a }], direct: [{ id: b }] } },
+      { prop: [prop], specials: { missing: true } },
+    ])
   })
 
   test("substitutes 'self' inside a direct value", async () => {

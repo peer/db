@@ -1,0 +1,27 @@
+{
+  "bool": {
+    "must": [
+      {
+        "nested": {
+          "path": "claims.time",
+          "query": {
+            "bool": {
+              "must": [
+                {
+                  "term": {
+                    "claims.time.prop": {
+                      "value": "Vg7NV61DJJ5HS2nheTZrQE"
+                    }
+                  }
+                },
+                {
+                  "match_all": {}
+                }
+              ]
+            }
+          }
+        }
+      }
+    ]
+  }
+}

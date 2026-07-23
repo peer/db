@@ -2,6 +2,7 @@ package search_test
 
 import (
 	"sort"
+	"strconv"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -11,6 +12,35 @@ import (
 	internalSearch "gitlab.com/peerdb/peerdb/internal/search"
 	"gitlab.com/peerdb/peerdb/search"
 )
+
+// TestFiltersGetTotalSaturationIntegration verifies that the available-filters total is marked as a
+// lower bound ("<n>+") when a discovery terms aggregation drops distinct facet keys past its cap: a
+// document with more than MaxResultsCount distinct ref properties yields more facets than are seen.
+func TestFiltersGetTotalSaturationIntegration(t *testing.T) {
+	t.Parallel()
+
+	ctx := t.Context()
+	esClient, getSearchService, index := initES(t)
+
+	// One document with MaxResultsCount+1 distinct ref properties: the rel discovery terms returns the
+	// top MaxResultsCount and drops the rest, so totalFacets is a lower bound.
+	records := make(internalSearch.RelClaims, 0, search.MaxResultsCount+1)
+	for i := range search.MaxResultsCount + 1 {
+		records = append(records, refRecord(identifier.From("satProp", strconv.Itoa(i)), identifier.From("satTarget", strconv.Itoa(i)), nil))
+	}
+	indexDocument(t, ctx, esClient, index, relDoc("satDoc", records))
+	refreshIndex(t, ctx, esClient, index)
+
+	session := createSession(t, ctx, search.SessionData{})
+
+	results, metadata, errE := search.FiltersGet(ctx, getSearchService, session, nil, "")
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// The total is the seen facet count marked as a lower bound; the returned facet slice is itself
+	// capped at MaxResultsCount.
+	assert.Equal(t, strconv.Itoa(search.MaxResultsCount)+"+", metadata["total"])
+	assert.Len(t, results, search.MaxResultsCount)
+}
 
 func TestFiltersGetIntegration(t *testing.T) {
 	t.Parallel()
@@ -25,167 +55,29 @@ func TestFiltersGetIntegration(t *testing.T) {
 	timeProp := identifier.From("timeProp")
 
 	ten := 10.0
+	eleven := 11.0
 	twenty := 20.0
+	twentyOne := 21.0
 	t1000 := float64(1000)
+	t1001 := float64(1001)
 	t2000 := float64(2000)
+	t2001 := float64(2001)
 
-	indexDocument(t, ctx, esClient, index, internalSearch.Document{ //nolint:dupl
-		DisplaySort: nil,
-		ID:          identifier.From("filterDoc1"),
-		Display:     nil,
-		Text:        nil,
-		Time:        nil,
-		LastUpdated: nil,
-		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
-		Claims: internalSearch.ClaimTypes{
-			Identifier: nil,
-			String:     nil,
-			HTML:       nil,
-			Amount: internalSearch.AmountClaims{{
-				Prop:        amountProp,
-				PropDisplay: nil,
-				PropNaming:  nil,
-				PropSortKey: nil,
-				Unit:        &unitID,
-				Range: internalSearch.RangeFloat{
-					GreaterThan:        nil,
-					GreaterThanOrEqual: &ten,
-					LessThan:           nil,
-					LessThanOrEqual:    &ten,
-				},
-				From:        &ten,
-				FromDisplay: "",
-				To:          &ten,
-				ToDisplay:   "",
-			}},
-			Time: internalSearch.TimeClaims{{
-				Prop:        timeProp,
-				PropDisplay: nil,
-				PropNaming:  nil,
-				PropSortKey: nil,
-				Range: internalSearch.RangeFloat{
-					GreaterThan:        nil,
-					GreaterThanOrEqual: &t1000,
-					LessThan:           nil,
-					LessThanOrEqual:    &t1000,
-				},
-				From:        &t1000,
-				FromDisplay: "",
-				To:          &t1000,
-				ToDisplay:   "",
-			}},
-			Link: nil,
-			Reference: internalSearch.ReferenceClaims{{
-				Prop:          refProp,
-				PropDisplay:   nil,
-				PropNaming:    nil,
-				PropSortKey:   nil,
-				To:            refTarget,
-				ToDisplay:     nil,
-				ToNaming:      nil,
-				ToSortKey:     nil,
-				ToPath:        nil,
-				ToFullPath:    nil,
-				ToParent:      nil,
-				ToDisplayPath: nil,
-				ToPathSortKey: nil,
-				IsLeaf:        false,
-			}},
-			Has:       nil,
-			None:      nil,
-			Unknown:   nil,
-			SubRef:    nil,
-			SubAmount: nil,
-			SubTime:   nil,
-			SubHas:    nil,
-		},
-	})
-	indexDocument(t, ctx, esClient, index, internalSearch.Document{ //nolint:dupl
-		DisplaySort: nil,
-		ID:          identifier.From("filterDoc2"),
-		Display:     nil,
-		Text:        nil,
-		Time:        nil,
-		LastUpdated: nil,
-		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
-		Claims: internalSearch.ClaimTypes{
-			Identifier: nil,
-			String:     nil,
-			HTML:       nil,
-			Amount: internalSearch.AmountClaims{{
-				Prop:        amountProp,
-				PropDisplay: nil,
-				PropNaming:  nil,
-				PropSortKey: nil,
-				Unit:        &unitID,
-				Range: internalSearch.RangeFloat{
-					GreaterThan:        nil,
-					GreaterThanOrEqual: &twenty,
-					LessThan:           nil,
-					LessThanOrEqual:    &twenty,
-				},
-				From:        &twenty,
-				FromDisplay: "",
-				To:          &twenty,
-				ToDisplay:   "",
-			}},
-			Time: internalSearch.TimeClaims{{
-				Prop:        timeProp,
-				PropDisplay: nil,
-				PropNaming:  nil,
-				PropSortKey: nil,
-				Range: internalSearch.RangeFloat{
-					GreaterThan:        nil,
-					GreaterThanOrEqual: &t2000,
-					LessThan:           nil,
-					LessThanOrEqual:    &t2000,
-				},
-				From:        &t2000,
-				FromDisplay: "",
-				To:          &t2000,
-				ToDisplay:   "",
-			}},
-			Link: nil,
-			Reference: internalSearch.ReferenceClaims{{
-				Prop:          refProp,
-				PropDisplay:   nil,
-				PropNaming:    nil,
-				PropSortKey:   nil,
-				To:            refTarget,
-				ToDisplay:     nil,
-				ToNaming:      nil,
-				ToSortKey:     nil,
-				ToPath:        nil,
-				ToFullPath:    nil,
-				ToParent:      nil,
-				ToDisplayPath: nil,
-				ToPathSortKey: nil,
-				IsLeaf:        false,
-			}},
-			Has:       nil,
-			None:      nil,
-			Unknown:   nil,
-			SubRef:    nil,
-			SubAmount: nil,
-			SubTime:   nil,
-			SubHas:    nil,
-		},
-	})
+	indexDocument(t, ctx, esClient, index, claimsDoc("filterDoc1", internalSearch.ClaimTypes{ //nolint:exhaustruct
+		Rel:    internalSearch.RelClaims{refRecord(refProp, refTarget, nil)},
+		Amount: internalSearch.AmountClaims{amountRecord(amountProp, &unitID, &ten, &eleven, nil)},
+		Time:   internalSearch.TimeClaims{timeRecord(timeProp, &t1000, &t1001, nil)},
+	}))
+	indexDocument(t, ctx, esClient, index, claimsDoc("filterDoc2", internalSearch.ClaimTypes{ //nolint:exhaustruct
+		Rel:    internalSearch.RelClaims{refRecord(refProp, refTarget, nil)},
+		Amount: internalSearch.AmountClaims{amountRecord(amountProp, &unitID, &twenty, &twentyOne, nil)},
+		Time:   internalSearch.TimeClaims{timeRecord(timeProp, &t2000, &t2001, nil)},
+	}))
 	refreshIndex(t, ctx, esClient, index)
 
-	session := createSession(t, ctx, search.SessionData{
-		Sort:          nil,
-		Language:      "",
-		View:          "",
-		Query:         "",
-		Filters:       nil,
-		Prefilters:    nil,
-		Reverse:       nil,
-		ReverseExpand: false,
-		IDs:           nil,
-	})
+	session := createSession(t, ctx, search.SessionData{})
 
-	filterResults, metadata, errE := search.FiltersGet(ctx, getSearchService, session, nil, "", search.PrefilterExcludes{})
+	filterResults, metadata, errE := search.FiltersGet(ctx, getSearchService, session, nil, "")
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// We should have 3 filters: ref, amount, and time.
@@ -228,101 +120,21 @@ func TestFiltersGetWithQueryIntegration(t *testing.T) {
 	refProp := identifier.From("refProp")
 	refTarget := identifier.From("refTarget")
 
-	indexDocument(t, ctx, esClient, index, internalSearch.Document{ //nolint:dupl
-		DisplaySort: nil,
-		ID:          identifier.From("queryDoc1"),
-		Display:     nil,
-		Text:        map[string][]string{"en": {"searchable text"}},
-		Time:        nil,
-		LastUpdated: nil,
-		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
-		Claims: internalSearch.ClaimTypes{
-			Identifier: nil,
-			String:     nil,
-			HTML:       nil,
-			Amount:     nil,
-			Time:       nil,
-			Link:       nil,
-			Reference: internalSearch.ReferenceClaims{{
-				Prop:          refProp,
-				PropDisplay:   nil,
-				PropNaming:    nil,
-				PropSortKey:   nil,
-				To:            refTarget,
-				ToDisplay:     nil,
-				ToNaming:      nil,
-				ToSortKey:     nil,
-				ToPath:        nil,
-				ToFullPath:    nil,
-				ToParent:      nil,
-				ToDisplayPath: nil,
-				ToPathSortKey: nil,
-				IsLeaf:        false,
-			}},
-			Has:       nil,
-			None:      nil,
-			Unknown:   nil,
-			SubRef:    nil,
-			SubAmount: nil,
-			SubTime:   nil,
-			SubHas:    nil,
-		},
-	})
-	indexDocument(t, ctx, esClient, index, internalSearch.Document{ //nolint:dupl
-		DisplaySort: nil,
-		ID:          identifier.From("queryDoc2"),
-		Display:     nil,
-		Text:        map[string][]string{"en": {"other content"}},
-		Time:        nil,
-		LastUpdated: nil,
-		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
-		Claims: internalSearch.ClaimTypes{
-			Identifier: nil,
-			String:     nil,
-			HTML:       nil,
-			Amount:     nil,
-			Time:       nil,
-			Link:       nil,
-			Reference: internalSearch.ReferenceClaims{{
-				Prop:          refProp,
-				PropDisplay:   nil,
-				PropNaming:    nil,
-				PropSortKey:   nil,
-				To:            refTarget,
-				ToDisplay:     nil,
-				ToNaming:      nil,
-				ToSortKey:     nil,
-				ToPath:        nil,
-				ToFullPath:    nil,
-				ToParent:      nil,
-				ToDisplayPath: nil,
-				ToPathSortKey: nil,
-				IsLeaf:        false,
-			}},
-			Has:       nil,
-			None:      nil,
-			Unknown:   nil,
-			SubRef:    nil,
-			SubAmount: nil,
-			SubTime:   nil,
-			SubHas:    nil,
-		},
-	})
+	queryDoc := func(id, text string) internalSearch.Document {
+		doc := relDoc(id, internalSearch.RelClaims{refRecord(refProp, refTarget, nil)})
+		doc.Text = map[string][]string{"en": {text}}
+		return doc
+	}
+
+	indexDocument(t, ctx, esClient, index, queryDoc("queryDoc1", "searchable text"))
+	indexDocument(t, ctx, esClient, index, queryDoc("queryDoc2", "other content"))
 	refreshIndex(t, ctx, esClient, index)
 
-	session := createSession(t, ctx, search.SessionData{
-		Sort:          nil,
-		Language:      "",
-		View:          "",
-		Query:         "searchable",
-		Filters:       nil,
-		Prefilters:    nil,
-		Reverse:       nil,
-		ReverseExpand: false,
-		IDs:           nil,
+	session := createSession(t, ctx, search.SessionData{ //nolint:exhaustruct
+		Query: "searchable",
 	})
 
-	filterResults, _, errE := search.FiltersGet(ctx, getSearchService, session, nil, "", search.PrefilterExcludes{})
+	filterResults, _, errE := search.FiltersGet(ctx, getSearchService, session, nil, "")
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// With query "searchable", only 1 doc matches, so ref filter should have count 1.
@@ -344,79 +156,25 @@ func TestFiltersGetAmountTimeValueDisplayQueryIntegration(t *testing.T) {
 	timeProp := identifier.From("timeProp")
 
 	amountVal := float64(1500)
+	amountValTo := float64(1501)
 	timeVal := float64(1577836800)
+	timeValTo := float64(1577836801)
 
 	// The amount and time value bounds carry a formatted display label (from/toDisplay). The property names
 	// are left unset, so a query can only match through a value-bound display.
-	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		DisplaySort: nil,
-		ID:          identifier.From("amountTimeDoc"),
-		Display:     nil,
-		Text:        nil,
-		Time:        nil,
-		LastUpdated: nil,
-		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
-		Claims: internalSearch.ClaimTypes{
-			Identifier: nil,
-			String:     nil,
-			HTML:       nil,
-			Amount: internalSearch.AmountClaims{{
-				Prop:        amountProp,
-				PropDisplay: nil,
-				PropNaming:  nil,
-				PropSortKey: nil,
-				Unit:        &unitID,
-				Range: internalSearch.RangeFloat{
-					GreaterThan:        nil,
-					GreaterThanOrEqual: &amountVal,
-					LessThan:           nil,
-					LessThanOrEqual:    &amountVal,
-				},
-				From:        &amountVal,
-				FromDisplay: "1500",
-				To:          &amountVal,
-				ToDisplay:   "1500",
-			}},
-			Time: internalSearch.TimeClaims{{
-				Prop:        timeProp,
-				PropDisplay: nil,
-				PropNaming:  nil,
-				PropSortKey: nil,
-				Range: internalSearch.RangeFloat{
-					GreaterThan:        nil,
-					GreaterThanOrEqual: &timeVal,
-					LessThan:           nil,
-					LessThanOrEqual:    &timeVal,
-				},
-				From:        &timeVal,
-				FromDisplay: "2020-01-01 00:00:00",
-				To:          &timeVal,
-				ToDisplay:   "2020-01-01 00:00:00",
-			}},
-			Link:      nil,
-			Reference: nil,
-			Has:       nil,
-			None:      nil,
-			Unknown:   nil,
-			SubRef:    nil,
-			SubAmount: nil,
-			SubTime:   nil,
-			SubHas:    nil,
-		},
-	})
+	amountClaim := amountRecord(amountProp, &unitID, &amountVal, &amountValTo, nil)
+	amountClaim.FromDisplay = "1500"
+	amountClaim.ToDisplay = "1500"
+	timeClaim := timeRecord(timeProp, &timeVal, &timeValTo, nil)
+	timeClaim.FromDisplay = "2020-01-01 00:00:00"
+	timeClaim.ToDisplay = "2020-01-01 00:00:00"
+	indexDocument(t, ctx, esClient, index, claimsDoc("amountTimeDoc", internalSearch.ClaimTypes{ //nolint:exhaustruct
+		Amount: internalSearch.AmountClaims{amountClaim},
+		Time:   internalSearch.TimeClaims{timeClaim},
+	}))
 	refreshIndex(t, ctx, esClient, index)
 
-	session := createSession(t, ctx, search.SessionData{
-		Sort:          nil,
-		Language:      "",
-		View:          "",
-		Query:         "",
-		Filters:       nil,
-		Prefilters:    nil,
-		Reverse:       nil,
-		ReverseExpand: false,
-		IDs:           nil,
-	})
+	session := createSession(t, ctx, search.SessionData{})
 
 	// hasFacet reports whether a facet of the given type for the given prop is in the results.
 	hasFacet := func(results []search.FilterResult, facetType, prop string) bool {
@@ -429,13 +187,13 @@ func TestFiltersGetAmountTimeValueDisplayQueryIntegration(t *testing.T) {
 	}
 
 	// A query matching the amount value-bound display surfaces the amount facet but not the time facet.
-	amountResults, _, errE := search.FiltersGet(ctx, getSearchService, session, nil, "1500*", search.PrefilterExcludes{})
+	amountResults, _, errE := search.FiltersGet(ctx, getSearchService, session, nil, "1500*")
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.True(t, hasFacet(amountResults, "amount", amountProp.String()), "amount facet should match its value display")
 	assert.False(t, hasFacet(amountResults, "time", timeProp.String()), "time facet should not match the amount value")
 
 	// A query matching the time value-bound display surfaces the time facet but not the amount facet.
-	timeResults, _, errE := search.FiltersGet(ctx, getSearchService, session, nil, "2020*", search.PrefilterExcludes{})
+	timeResults, _, errE := search.FiltersGet(ctx, getSearchService, session, nil, "2020*")
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.True(t, hasFacet(timeResults, "time", timeProp.String()), "time facet should match its value display")
 	assert.False(t, hasFacet(timeResults, "amount", amountProp.String()), "amount facet should not match the time value")
@@ -448,97 +206,34 @@ func TestFiltersGetSubAmountTimeValueDisplayQueryIntegration(t *testing.T) {
 	esClient, getSearchService, index := initES(t)
 
 	parentProp := identifier.From("parentProp")
-	parentTo := identifier.From("parentTo")
+	parentTarget := identifier.From("parentTo")
 	subAmountProp := identifier.From("subAmountProp")
 	subTimeProp := identifier.From("subTimeProp")
 	unitID := identifier.From("unitID")
 
 	amountVal := float64(1500)
+	amountValTo := float64(1501)
 	timeVal := float64(1577836800)
+	timeValTo := float64(1577836801)
 
 	// Sub-amount and sub-time value bounds carry the same flat from/toDisplay labels as their top-level
-	// counterparts. The property names are left unset, so a query can only match through a value-bound display.
-	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		DisplaySort: nil,
-		ID:          identifier.From("subAmountTimeDoc"),
-		Display:     nil,
-		Text:        nil,
-		Time:        nil,
-		LastUpdated: nil,
-		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
-		Claims: internalSearch.ClaimTypes{
-			Identifier: nil,
-			String:     nil,
-			HTML:       nil,
-			Amount:     nil,
-			Time:       nil,
-			Link:       nil,
-			Reference:  nil,
-			Has:        nil,
-			None:       nil,
-			Unknown:    nil,
-			SubRef:     nil,
-			SubAmount: internalSearch.SubAmountClaims{{
-				AmountClaim: internalSearch.AmountClaim{
-					Prop:        subAmountProp,
-					PropDisplay: nil,
-					PropNaming:  nil,
-					PropSortKey: nil,
-					Unit:        &unitID,
-					Range: internalSearch.RangeFloat{
-						GreaterThan:        nil,
-						GreaterThanOrEqual: &amountVal,
-						LessThan:           nil,
-						LessThanOrEqual:    &amountVal,
-					},
-					From:        &amountVal,
-					FromDisplay: "1500",
-					To:          &amountVal,
-					ToDisplay:   "1500",
-				},
-				ParentProp:        parentProp,
-				ParentPropDisplay: nil,
-				ParentPropNaming:  nil,
-				ParentTo:          parentTo.String(),
-			}},
-			SubTime: internalSearch.SubTimeClaims{{
-				TimeClaim: internalSearch.TimeClaim{
-					Prop:        subTimeProp,
-					PropDisplay: nil,
-					PropNaming:  nil,
-					PropSortKey: nil,
-					Range: internalSearch.RangeFloat{
-						GreaterThan:        nil,
-						GreaterThanOrEqual: &timeVal,
-						LessThan:           nil,
-						LessThanOrEqual:    &timeVal,
-					},
-					From:        &timeVal,
-					FromDisplay: "2020-01-01 00:00:00",
-					To:          &timeVal,
-					ToDisplay:   "2020-01-01 00:00:00",
-				},
-				ParentProp:        parentProp,
-				ParentPropDisplay: nil,
-				ParentPropNaming:  nil,
-				ParentTo:          parentTo.String(),
-			}},
-			SubHas: nil,
-		},
-	})
+	// counterparts. The property names are left unset, so a query can only match through a value-bound
+	// display. Both sub-claims live in the same parent claim's Sub container.
+	subAmount := amountRecord(subAmountProp, &unitID, &amountVal, &amountValTo, nil)
+	subAmount.FromDisplay = "1500"
+	subAmount.ToDisplay = "1500"
+	subTime := timeRecord(subTimeProp, &timeVal, &timeValTo, nil)
+	subTime.FromDisplay = "2020-01-01 00:00:00"
+	subTime.ToDisplay = "2020-01-01 00:00:00"
+	indexDocument(t, ctx, esClient, index, relDoc("subAmountTimeDoc", internalSearch.RelClaims{
+		refRecord(parentProp, parentTarget, &internalSearch.ClaimTypes{ //nolint:exhaustruct
+			Amount: internalSearch.AmountClaims{subAmount},
+			Time:   internalSearch.TimeClaims{subTime},
+		}),
+	}))
 	refreshIndex(t, ctx, esClient, index)
 
-	session := createSession(t, ctx, search.SessionData{
-		Sort:          nil,
-		Language:      "",
-		View:          "",
-		Query:         "",
-		Filters:       nil,
-		Prefilters:    nil,
-		Reverse:       nil,
-		ReverseExpand: false,
-		IDs:           nil,
-	})
+	session := createSession(t, ctx, search.SessionData{})
 
 	// hasSubFacet reports whether a sub-facet (keyed by parentProp + prop) of the given type is in the results.
 	// Sub-amount and sub-time facets are returned with type "amount"/"time" and a two-element Props slice.
@@ -552,13 +247,13 @@ func TestFiltersGetSubAmountTimeValueDisplayQueryIntegration(t *testing.T) {
 	}
 
 	// A query matching the sub-amount value-bound display surfaces the sub-amount facet but not sub-time.
-	amountResults, _, errE := search.FiltersGet(ctx, getSearchService, session, nil, "1500*", search.PrefilterExcludes{})
+	amountResults, _, errE := search.FiltersGet(ctx, getSearchService, session, nil, "1500*")
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.True(t, hasSubFacet(amountResults, "amount", parentProp.String(), subAmountProp.String()), "sub-amount facet should match its value display")
 	assert.False(t, hasSubFacet(amountResults, "time", parentProp.String(), subTimeProp.String()), "sub-time facet should not match the amount value")
 
 	// A query matching the sub-time value-bound display surfaces the sub-time facet but not sub-amount.
-	timeResults, _, errE := search.FiltersGet(ctx, getSearchService, session, nil, "2020*", search.PrefilterExcludes{})
+	timeResults, _, errE := search.FiltersGet(ctx, getSearchService, session, nil, "2020*")
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.True(t, hasSubFacet(timeResults, "time", parentProp.String(), subTimeProp.String()), "sub-time facet should match its value display")
 	assert.False(t, hasSubFacet(timeResults, "amount", parentProp.String(), subAmountProp.String()), "sub-amount facet should not match the time value")
@@ -572,63 +267,16 @@ func TestFiltersGetAmountMissingUnitIntegration(t *testing.T) {
 
 	amountProp := identifier.From("amountProp")
 	ten := 10.0
+	eleven := 11.0
 
-	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		DisplaySort: nil,
-		ID:          identifier.From("noUnitDoc"),
-		Display:     nil,
-		Text:        nil,
-		Time:        nil,
-		LastUpdated: nil,
-		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
-		Claims: internalSearch.ClaimTypes{
-			Identifier: nil,
-			String:     nil,
-			HTML:       nil,
-			Amount: internalSearch.AmountClaims{{
-				Prop:        amountProp,
-				PropDisplay: nil,
-				PropNaming:  nil,
-				PropSortKey: nil,
-				Unit:        nil,
-				Range: internalSearch.RangeFloat{
-					GreaterThan:        nil,
-					GreaterThanOrEqual: &ten,
-					LessThan:           nil,
-					LessThanOrEqual:    &ten,
-				},
-				From:        &ten,
-				FromDisplay: "",
-				To:          &ten,
-				ToDisplay:   "",
-			}},
-			Time:      nil,
-			Link:      nil,
-			Reference: nil,
-			Has:       nil,
-			None:      nil,
-			Unknown:   nil,
-			SubRef:    nil,
-			SubAmount: nil,
-			SubTime:   nil,
-			SubHas:    nil,
-		},
-	})
+	indexDocument(t, ctx, esClient, index, claimsDoc("noUnitDoc", internalSearch.ClaimTypes{ //nolint:exhaustruct
+		Amount: internalSearch.AmountClaims{amountRecord(amountProp, nil, &ten, &eleven, nil)},
+	}))
 	refreshIndex(t, ctx, esClient, index)
 
-	session := createSession(t, ctx, search.SessionData{
-		Sort:          nil,
-		Language:      "",
-		View:          "",
-		Query:         "",
-		Filters:       nil,
-		Prefilters:    nil,
-		Reverse:       nil,
-		ReverseExpand: false,
-		IDs:           nil,
-	})
+	session := createSession(t, ctx, search.SessionData{})
 
-	filterResults, _, errE := search.FiltersGet(ctx, getSearchService, session, nil, "", search.PrefilterExcludes{})
+	filterResults, _, errE := search.FiltersGet(ctx, getSearchService, session, nil, "")
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Should have exactly one amount filter with empty unit and count 1.
@@ -653,28 +301,18 @@ func TestFiltersGetValueQueryIntegration(t *testing.T) {
 	height := identifier.From("height")
 	unitID := identifier.From("unitID")
 	ten := 10.0
+	eleven := 11.0
 
 	// A reference facet "instance of" with a value "Germany".
-	indexDocument(t, ctx, esClient, index, internalSearch.Document{ //nolint:exhaustruct
-		ID: identifier.From("facetDoc1"),
-		Claims: internalSearch.ClaimTypes{ //nolint:exhaustruct
-			Reference: internalSearch.ReferenceClaims{{ //nolint:exhaustruct
-				Prop: instanceOf, PropDisplay: map[string]string{"en": "instance of"},
-				To: germany, ToDisplay: map[string]string{"en": "Germany"},
-			}},
-		},
-	})
+	instanceOfRecord := namedRefRecord(instanceOf, germany, "Germany", nil)
+	instanceOfRecord.PropDisplay = map[string]string{"en": "instance of"}
+	indexDocument(t, ctx, esClient, index, relDoc("facetDoc1", internalSearch.RelClaims{instanceOfRecord}))
 	// An amount facet "Height"; amounts have no value label, so this facet is reachable only by its name.
-	indexDocument(t, ctx, esClient, index, internalSearch.Document{ //nolint:exhaustruct
-		ID: identifier.From("facetDoc2"),
-		Claims: internalSearch.ClaimTypes{ //nolint:exhaustruct
-			Amount: internalSearch.AmountClaims{{ //nolint:exhaustruct
-				Prop: height, PropDisplay: map[string]string{"en": "Height"}, Unit: &unitID,
-				Range: internalSearch.RangeFloat{GreaterThanOrEqual: &ten, LessThanOrEqual: &ten}, //nolint:exhaustruct
-				From:  &ten, To: &ten,
-			}},
-		},
-	})
+	heightClaim := amountRecord(height, &unitID, &ten, &eleven, nil)
+	heightClaim.PropDisplay = map[string]string{"en": "Height"}
+	indexDocument(t, ctx, esClient, index, claimsDoc("facetDoc2", internalSearch.ClaimTypes{ //nolint:exhaustruct
+		Amount: internalSearch.AmountClaims{heightClaim},
+	}))
 	refreshIndex(t, ctx, esClient, index)
 
 	session := createSession(t, ctx, search.SessionData{})
@@ -690,7 +328,7 @@ func TestFiltersGetValueQueryIntegration(t *testing.T) {
 	}
 
 	// Without a query both facets are available.
-	results, metadata, errE := search.FiltersGet(ctx, getSearchService, session, enabledLanguages, "", search.PrefilterExcludes{})
+	results, metadata, errE := search.FiltersGet(ctx, getSearchService, session, enabledLanguages, "")
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.True(t, has(results, "ref", instanceOf))
 	assert.True(t, has(results, "amount", height))
@@ -698,28 +336,28 @@ func TestFiltersGetValueQueryIntegration(t *testing.T) {
 	assert.Equal(t, "2", metadata["total"])
 
 	// Matching a facet by its own property name keeps only that facet, but the total stays the same.
-	results, metadata, errE = search.FiltersGet(ctx, getSearchService, session, enabledLanguages, "instance*", search.PrefilterExcludes{})
+	results, metadata, errE = search.FiltersGet(ctx, getSearchService, session, enabledLanguages, "instance*")
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.True(t, has(results, "ref", instanceOf))
 	assert.False(t, has(results, "amount", height))
 	assert.Equal(t, "2", metadata["total"])
 
 	// Matching a reference facet by one of its value names keeps that facet too.
-	results, metadata, errE = search.FiltersGet(ctx, getSearchService, session, enabledLanguages, "germ*", search.PrefilterExcludes{})
+	results, metadata, errE = search.FiltersGet(ctx, getSearchService, session, enabledLanguages, "germ*")
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.True(t, has(results, "ref", instanceOf))
 	assert.False(t, has(results, "amount", height))
 	assert.Equal(t, "2", metadata["total"])
 
 	// An amount facet is reachable by its name even though its values (numbers) cannot be searched.
-	results, metadata, errE = search.FiltersGet(ctx, getSearchService, session, enabledLanguages, "heig*", search.PrefilterExcludes{})
+	results, metadata, errE = search.FiltersGet(ctx, getSearchService, session, enabledLanguages, "heig*")
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.True(t, has(results, "amount", height))
 	assert.False(t, has(results, "ref", instanceOf))
 	assert.Equal(t, "2", metadata["total"])
 
 	// A query that matches no facet name or value returns no facets, yet the total still reports both.
-	results, metadata, errE = search.FiltersGet(ctx, getSearchService, session, enabledLanguages, "zzz*", search.PrefilterExcludes{})
+	results, metadata, errE = search.FiltersGet(ctx, getSearchService, session, enabledLanguages, "zzz*")
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.False(t, has(results, "ref", instanceOf))
 	assert.False(t, has(results, "amount", height))
@@ -739,25 +377,19 @@ func TestFiltersGetRefDiscoveryCountValueQueryIntegration(t *testing.T) {
 	spain := identifier.From("spain")
 	red := identifier.From("red")
 
-	// refDoc builds a document with a single reference claim under prop with the given value label.
-	refDoc := func(id string, prop, to identifier.Identifier, propLabel, toLabel string) internalSearch.Document {
-		return internalSearch.Document{ //nolint:exhaustruct
-			ID: identifier.From(id),
-			Claims: internalSearch.ClaimTypes{ //nolint:exhaustruct
-				Reference: internalSearch.ReferenceClaims{{ //nolint:exhaustruct
-					Prop: prop, PropDisplay: map[string]string{"en": propLabel},
-					To: to, ToDisplay: map[string]string{"en": toLabel},
-				}},
-			},
-		}
+	// labeledRefDoc builds a document with a single ref record under prop with the given property and value labels.
+	labeledRefDoc := func(id string, prop, to identifier.Identifier, propLabel, toLabel string) internalSearch.Document {
+		rec := namedRefRecord(prop, to, toLabel, nil)
+		rec.PropDisplay = map[string]string{"en": propLabel}
+		return relDoc(id, internalSearch.RelClaims{rec})
 	}
 
 	// The "instance of" reference facet has three documents but only one value ("Germany") matches "germ*".
-	indexDocument(t, ctx, esClient, index, refDoc("refDoc1", instanceOf, germany, "instance of", "Germany"))
-	indexDocument(t, ctx, esClient, index, refDoc("refDoc2", instanceOf, france, "instance of", "France"))
-	indexDocument(t, ctx, esClient, index, refDoc("refDoc3", instanceOf, spain, "instance of", "Spain"))
+	indexDocument(t, ctx, esClient, index, labeledRefDoc("refDoc1", instanceOf, germany, "instance of", "Germany"))
+	indexDocument(t, ctx, esClient, index, labeledRefDoc("refDoc2", instanceOf, france, "instance of", "France"))
+	indexDocument(t, ctx, esClient, index, labeledRefDoc("refDoc3", instanceOf, spain, "instance of", "Spain"))
 	// The "color" reference facet matches neither "germ*" by value nor by its own property name.
-	indexDocument(t, ctx, esClient, index, refDoc("refDoc4", color, red, "color", "red"))
+	indexDocument(t, ctx, esClient, index, labeledRefDoc("refDoc4", color, red, "color", "red"))
 	refreshIndex(t, ctx, esClient, index)
 
 	session := createSession(t, ctx, search.SessionData{})
@@ -774,7 +406,7 @@ func TestFiltersGetRefDiscoveryCountValueQueryIntegration(t *testing.T) {
 	}
 
 	// Without a value query both facets are available at their full document counts.
-	results, metadata, errE := search.FiltersGet(ctx, getSearchService, session, enabledLanguages, "", search.PrefilterExcludes{})
+	results, metadata, errE := search.FiltersGet(ctx, getSearchService, session, enabledLanguages, "")
 	require.NoError(t, errE, "% -+#.1v", errE)
 	c, ok := count(results, instanceOf)
 	assert.True(t, ok, "instance of facet present without query")
@@ -786,7 +418,7 @@ func TestFiltersGetRefDiscoveryCountValueQueryIntegration(t *testing.T) {
 
 	// A value query matching only one of the three values keeps the facet at its full count (3, not 1) and
 	// drops the facet that matches nothing, while the available-filters total is unchanged.
-	results, metadata, errE = search.FiltersGet(ctx, getSearchService, session, enabledLanguages, "germ*", search.PrefilterExcludes{})
+	results, metadata, errE = search.FiltersGet(ctx, getSearchService, session, enabledLanguages, "germ*")
 	require.NoError(t, errE, "% -+#.1v", errE)
 	c, ok = count(results, instanceOf)
 	assert.True(t, ok, "instance of facet present under matching query")
@@ -796,7 +428,7 @@ func TestFiltersGetRefDiscoveryCountValueQueryIntegration(t *testing.T) {
 	assert.Equal(t, "2", metadata["total"])
 
 	// A query that matches nothing drops both facets but still reports the full total.
-	results, metadata, errE = search.FiltersGet(ctx, getSearchService, session, enabledLanguages, "zzz*", search.PrefilterExcludes{})
+	results, metadata, errE = search.FiltersGet(ctx, getSearchService, session, enabledLanguages, "zzz*")
 	require.NoError(t, errE, "% -+#.1v", errE)
 	_, ok = count(results, instanceOf)
 	assert.False(t, ok, "instance of facet absent under non-matching query")
@@ -814,28 +446,17 @@ func TestFiltersGetHasDiscoveryCountValueQueryIntegration(t *testing.T) {
 	colorProp := identifier.From("colorProp")
 	shapeProp := identifier.From("shapeProp")
 
-	// hasDoc builds a document with a single has claim under prop with the given property label.
-	hasDoc := func(id string, prop identifier.Identifier, propLabel string) internalSearch.Document {
-		return internalSearch.Document{ //nolint:exhaustruct
-			ID: identifier.From(id),
-			Claims: internalSearch.ClaimTypes{ //nolint:exhaustruct
-				Has: internalSearch.HasClaims{{ //nolint:exhaustruct
-					Prop: prop, PropDisplay: map[string]string{"en": propLabel},
-				}},
-			},
-		}
-	}
-
-	// Three documents have a has claim, but only one of them carries the "color" has-property.
-	indexDocument(t, ctx, esClient, index, hasDoc("hasDoc1", colorProp, "color"))
-	indexDocument(t, ctx, esClient, index, hasDoc("hasDoc2", shapeProp, "shape"))
-	indexDocument(t, ctx, esClient, index, hasDoc("hasDoc3", shapeProp, "shape"))
+	// Three documents have a has claim, but only one of them carries the "color" has-property. Both
+	// properties are has-only, so they pool into the single has facet.
+	indexDocument(t, ctx, esClient, index, relDoc("hasDoc1", internalSearch.RelClaims{namedHasRecord(colorProp, "color", nil, nil)}))
+	indexDocument(t, ctx, esClient, index, relDoc("hasDoc2", internalSearch.RelClaims{namedHasRecord(shapeProp, "shape", nil, nil)}))
+	indexDocument(t, ctx, esClient, index, relDoc("hasDoc3", internalSearch.RelClaims{namedHasRecord(shapeProp, "shape", nil, nil)}))
 	refreshIndex(t, ctx, esClient, index)
 
 	session := createSession(t, ctx, search.SessionData{})
 	enabledLanguages := internalSearch.EnabledLanguages(nil)
 
-	// hasCount returns the single has facet's count (has facets carry no Props) and whether it is present.
+	// hasCount returns the pooled has facet's count (the facet carries no Props) and whether it is present.
 	hasCount := func(results []search.FilterResult) (int64, bool) {
 		for _, r := range results {
 			if r.Type == "has" && len(r.Props) == 0 {
@@ -846,7 +467,7 @@ func TestFiltersGetHasDiscoveryCountValueQueryIntegration(t *testing.T) {
 	}
 
 	// Without a value query the has facet reports all documents with any has claim.
-	results, metadata, errE := search.FiltersGet(ctx, getSearchService, session, enabledLanguages, "", search.PrefilterExcludes{})
+	results, metadata, errE := search.FiltersGet(ctx, getSearchService, session, enabledLanguages, "")
 	require.NoError(t, errE, "% -+#.1v", errE)
 	c, ok := hasCount(results)
 	assert.True(t, ok, "has facet present without query")
@@ -855,7 +476,7 @@ func TestFiltersGetHasDiscoveryCountValueQueryIntegration(t *testing.T) {
 
 	// A value query matching only one has-property keeps the facet at its full document count (3, not 1),
 	// while the available-filters total is unchanged.
-	results, metadata, errE = search.FiltersGet(ctx, getSearchService, session, enabledLanguages, "color*", search.PrefilterExcludes{})
+	results, metadata, errE = search.FiltersGet(ctx, getSearchService, session, enabledLanguages, "color*")
 	require.NoError(t, errE, "% -+#.1v", errE)
 	c, ok = hasCount(results)
 	assert.True(t, ok, "has facet present under matching query")
@@ -863,10 +484,306 @@ func TestFiltersGetHasDiscoveryCountValueQueryIntegration(t *testing.T) {
 	assert.Equal(t, "1", metadata["total"])
 
 	// A query matching no has-property drops the facet but still reports it in the total.
-	results, metadata, errE = search.FiltersGet(ctx, getSearchService, session, enabledLanguages, "zzz*", search.PrefilterExcludes{})
+	results, metadata, errE = search.FiltersGet(ctx, getSearchService, session, enabledLanguages, "zzz*")
 	require.NoError(t, errE, "% -+#.1v", errE)
 	_, ok = hasCount(results)
 	assert.False(t, ok, "has facet absent under non-matching query")
+	assert.Equal(t, "1", metadata["total"])
+}
+
+// TestFiltersGetPooledHasDistinctCountIntegration verifies that the pooled has facet counts distinct
+// documents: a document with several pooled has-properties (boolean flags) counts once, not once per
+// property, at both the top level and the sub level.
+func TestFiltersGetPooledHasDistinctCountIntegration(t *testing.T) {
+	t.Parallel()
+
+	ctx := t.Context()
+	esClient, getSearchService, index := initES(t)
+
+	flagA := identifier.From("flagA")
+	flagB := identifier.From("flagB")
+	flagC := identifier.From("flagC")
+	parentProp := identifier.From("parentProp")
+	parentTarget := identifier.From("parentTarget")
+	subFlagA := identifier.From("subFlagA")
+	subFlagB := identifier.From("subFlagB")
+
+	// One document carrying three top-level flags and, under one parent claim, two sub-flags.
+	indexDocument(t, ctx, esClient, index, relDoc("multiFlagDoc", internalSearch.RelClaims{
+		simpleRelRecord(internalSearch.ClaimTypeHas, flagA, nil),
+		simpleRelRecord(internalSearch.ClaimTypeHas, flagB, nil),
+		simpleRelRecord(internalSearch.ClaimTypeHas, flagC, nil),
+		refRecord(parentProp, parentTarget, relSub(
+			simpleRelRecord(internalSearch.ClaimTypeHas, subFlagA, nil),
+			simpleRelRecord(internalSearch.ClaimTypeHas, subFlagB, nil),
+		)),
+	}))
+	refreshIndex(t, ctx, esClient, index)
+
+	session := createSession(t, ctx, search.SessionData{})
+
+	results, _, errE := search.FiltersGet(ctx, getSearchService, session, nil, "")
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	find := func(typ string, props []string) (search.FilterResult, bool) {
+		for _, r := range results {
+			if r.Type != typ || len(r.Props) != len(props) {
+				continue
+			}
+			match := true
+			for i := range props {
+				if r.Props[i] != props[i] {
+					match = false
+					break
+				}
+			}
+			if match {
+				return r, true
+			}
+		}
+		return search.FilterResult{}, false
+	}
+
+	// The one document counts once in the top-level pooled has facet, not three times.
+	pooled, ok := find("has", nil)
+	require.True(t, ok, "pooled has facet present")
+	assert.Equal(t, int64(1), pooled.Count)
+
+	// And once in the parent property's pooled sub-has facet, not twice.
+	subPooled, ok := find("has", []string{parentProp.String()})
+	require.True(t, ok, "pooled sub-has facet present")
+	assert.Equal(t, int64(1), subPooled.Count)
+}
+
+// TestFiltersGetHasPoolingMigrationIntegration verifies which facet a property with has claims surfaces
+// through: a has-only property joins the pooled has facet (even when its has claim carries sub-claims); a
+// property that also has ref records gets its own value-list facet; a property with only valueless statements
+// (here has beside none) gets a specials-only value-list facet; and a property with has claims beside an
+// amount facet surfaces through that facet, whose count adds the documents reachable only through the
+// specials.
+func TestFiltersGetHasPoolingMigrationIntegration(t *testing.T) {
+	t.Parallel()
+
+	ctx := t.Context()
+	esClient, getSearchService, index := initES(t)
+
+	pooledProp := identifier.From("pooledProp")
+	refMixProp := identifier.From("refMixProp")
+	amountMixProp := identifier.From("amountMixProp")
+	noneMixProp := identifier.From("noneMixProp")
+	unitID := identifier.From("unitID")
+	refTarget := identifier.From("refTarget")
+	subProp := identifier.From("subProp")
+	subTarget := identifier.From("subTarget")
+
+	ten := 10.0
+	eleven := 11.0
+
+	// pooledProp is has-only; the sub-claims on its has claim do not affect pooling.
+	indexDocument(t, ctx, esClient, index, relDoc("pooledDoc", internalSearch.RelClaims{
+		simpleRelRecord(internalSearch.ClaimTypeHas, pooledProp, relSub(refRecord(subProp, subTarget, nil))),
+	}))
+	// refMixProp has a has claim and a ref claim: its own value-list facet, counting both documents.
+	indexDocument(t, ctx, esClient, index, relDoc("refMixHasDoc", internalSearch.RelClaims{
+		simpleRelRecord(internalSearch.ClaimTypeHas, refMixProp, nil),
+	}))
+	indexDocument(t, ctx, esClient, index, relDoc("refMixRefDoc", internalSearch.RelClaims{refRecord(refMixProp, refTarget, nil)}))
+	// amountMixProp has a has claim and an amount claim: the amount facet counts the amount document plus the
+	// has document (reachable only through the shared specials).
+	indexDocument(t, ctx, esClient, index, relDoc("amountMixHasDoc", internalSearch.RelClaims{
+		simpleRelRecord(internalSearch.ClaimTypeHas, amountMixProp, nil),
+	}))
+	indexDocument(t, ctx, esClient, index, claimsDoc("amountMixAmountDoc", internalSearch.ClaimTypes{ //nolint:exhaustruct
+		Amount: internalSearch.AmountClaims{amountRecord(amountMixProp, &unitID, &ten, &eleven, nil)},
+	}))
+	// noneMixProp has a has claim and a none claim and no valued facet anywhere: a specials-only value-list
+	// facet.
+	indexDocument(t, ctx, esClient, index, relDoc("noneMixHasDoc", internalSearch.RelClaims{
+		simpleRelRecord(internalSearch.ClaimTypeHas, noneMixProp, nil),
+	}))
+	indexDocument(t, ctx, esClient, index, relDoc("noneMixNoneDoc", internalSearch.RelClaims{
+		simpleRelRecord(internalSearch.ClaimTypeNone, noneMixProp, nil),
+	}))
+	refreshIndex(t, ctx, esClient, index)
+
+	session := createSession(t, ctx, search.SessionData{})
+
+	results, metadata, errE := search.FiltersGet(ctx, getSearchService, session, nil, "")
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	find := func(typ string, props []string) (search.FilterResult, bool) {
+		for _, r := range results {
+			if r.Type != typ || len(r.Props) != len(props) {
+				continue
+			}
+			match := true
+			for i := range props {
+				if r.Props[i] != props[i] {
+					match = false
+					break
+				}
+			}
+			if match {
+				return r, true
+			}
+		}
+		return search.FilterResult{}, false
+	}
+
+	// The pooled has facet's count is distinct documents with any has claim: pooledDoc plus the has
+	// documents of the migrated and mixed properties (refMixHasDoc, amountMixHasDoc, noneMixHasDoc),
+	// which are shown in their own facets. This is the documented upper bound (it matches the active
+	// pooled-has availability count), not the count of documents with the pooled member property alone.
+	pooled, ok := find("has", nil)
+	require.True(t, ok, "pooled has facet present")
+	assert.Equal(t, int64(4), pooled.Count)
+
+	// refMixProp gets its own value-list facet counting both its documents; it must not be pooled.
+	refMix, ok := find("ref", []string{refMixProp.String()})
+	require.True(t, ok, "refMixProp value-list facet present")
+	assert.Equal(t, int64(2), refMix.Count)
+
+	// noneMixProp gets a specials-only value-list facet counting both its documents.
+	noneMix, ok := find("ref", []string{noneMixProp.String()})
+	require.True(t, ok, "noneMixProp specials-only facet present")
+	assert.Equal(t, int64(2), noneMix.Count)
+
+	// amountMixProp surfaces only through its amount facet, whose count adds the has-only document.
+	amountMix, ok := find("amount", []string{amountMixProp.String()})
+	require.True(t, ok, "amountMixProp amount facet present")
+	assert.Equal(t, unitID.String(), amountMix.Unit)
+	assert.Equal(t, int64(2), amountMix.Count)
+	_, ok = find("ref", []string{amountMixProp.String()})
+	assert.False(t, ok, "amountMixProp has no value-list facet")
+
+	// The sub-claims of pooledProp's has claim are discovered as a sub facet under it, so the pooled
+	// property still acts as a parent property even though it has no facet of its own at the top level.
+	subFacet, ok := find("ref", []string{pooledProp.String(), subProp.String()})
+	require.True(t, ok, "sub facet under the pooled has claim present")
+	assert.Equal(t, int64(1), subFacet.Count)
+
+	// No pooled property surfaces as its own top-level facet and no migrated property is pooled, so the
+	// discovered facets are exactly the five above.
+	_, ok = find("ref", []string{pooledProp.String()})
+	assert.False(t, ok, "pooledProp has no top-level value-list facet")
+	assert.Len(t, results, 5)
+	assert.Equal(t, "5", metadata["total"])
+}
+
+// TestFiltersGetSubHasPooledIntegration verifies sub-level facet discovery of has claims: a has-only
+// sub-property joins the parent property's pooled sub-has facet (Props carries just the parent property),
+// while a sub-property that also has ref sub records gets its own sub value-list facet (Props carries the
+// parent property and the sub-property).
+func TestFiltersGetSubHasPooledIntegration(t *testing.T) {
+	t.Parallel()
+
+	ctx := t.Context()
+	esClient, getSearchService, index := initES(t)
+
+	parentProp := identifier.From("parentProp")
+	parentTarget := identifier.From("parentTo")
+	colorProp := identifier.From("colorProp")
+	mixedProp := identifier.From("mixedProp")
+	mixedTarget := identifier.From("mixedTarget")
+
+	// colorProp is a has-only sub-property: pooled into the parent property's sub-has facet.
+	indexDocument(t, ctx, esClient, index, relDoc("subPooledDoc", internalSearch.RelClaims{
+		refRecord(parentProp, parentTarget, relSub(simpleRelRecord(internalSearch.ClaimTypeHas, colorProp, nil))),
+	}))
+	// mixedProp has both a has and a ref sub record: its own sub value-list facet.
+	indexDocument(t, ctx, esClient, index, relDoc("subMixedDoc", internalSearch.RelClaims{
+		refRecord(parentProp, parentTarget, relSub(
+			simpleRelRecord(internalSearch.ClaimTypeHas, mixedProp, nil),
+			refRecord(mixedProp, mixedTarget, nil),
+		)),
+	}))
+	refreshIndex(t, ctx, esClient, index)
+
+	session := createSession(t, ctx, search.SessionData{})
+
+	results, metadata, errE := search.FiltersGet(ctx, getSearchService, session, nil, "")
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	find := func(typ string, props []string) (search.FilterResult, bool) {
+		for _, r := range results {
+			if r.Type != typ || len(r.Props) != len(props) {
+				continue
+			}
+			match := true
+			for i := range props {
+				if r.Props[i] != props[i] {
+					match = false
+					break
+				}
+			}
+			if match {
+				return r, true
+			}
+		}
+		return search.FilterResult{}, false
+	}
+
+	// The parent property itself is a top-level value-list facet over both documents.
+	parentFacet, ok := find("ref", []string{parentProp.String()})
+	require.True(t, ok, "parent property value-list facet present")
+	assert.Equal(t, int64(2), parentFacet.Count)
+
+	// The pooled sub-has facet's count is distinct documents with any sub-has under parentProp:
+	// subPooledDoc (via colorProp) and subMixedDoc (via the mixed mixedProp, shown in its own sub
+	// facet). This is the documented upper bound, not the count of documents with the pooled member
+	// sub-property alone.
+	subPooled, ok := find("has", []string{parentProp.String()})
+	require.True(t, ok, "pooled sub-has facet present")
+	assert.Equal(t, int64(2), subPooled.Count)
+
+	// mixedProp migrated to its own sub value-list facet.
+	subMixed, ok := find("ref", []string{parentProp.String(), mixedProp.String()})
+	require.True(t, ok, "mixedProp sub value-list facet present")
+	assert.Equal(t, int64(1), subMixed.Count)
+
+	// colorProp has no sub value-list facet of its own.
+	_, ok = find("ref", []string{parentProp.String(), colorProp.String()})
+	assert.False(t, ok, "colorProp has no sub value-list facet")
+
+	assert.Len(t, results, 3)
+	assert.Equal(t, "3", metadata["total"])
+}
+
+// TestFiltersGetActiveFilterIntegration verifies that active filters are appended to the results with their
+// FilterID set and an availability count, ahead of the inactive discovery entries.
+func TestFiltersGetActiveFilterIntegration(t *testing.T) {
+	t.Parallel()
+
+	ctx := t.Context()
+	esClient, getSearchService, index := initES(t)
+
+	refProp := identifier.From("refProp")
+	target1 := identifier.From("target1")
+	target2 := identifier.From("target2")
+
+	indexDocument(t, ctx, esClient, index, relDoc("activeDoc1", internalSearch.RelClaims{refRecord(refProp, target1, nil)}))
+	indexDocument(t, ctx, esClient, index, relDoc("activeDoc2", internalSearch.RelClaims{refRecord(refProp, target2, nil)}))
+	refreshIndex(t, ctx, esClient, index)
+
+	session := createSession(t, ctx, search.SessionData{ //nolint:exhaustruct
+		Filters: []search.Filter{{ //nolint:exhaustruct
+			Prop: []identifier.Identifier{refProp},
+			Ref:  &search.RefFilter{To: []search.ToValue{{ID: target1}}, Direct: nil},
+		}},
+	})
+
+	results, metadata, errE := search.FiltersGet(ctx, getSearchService, session, nil, "")
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// The active entry comes first with the filter's ID; its count is the facet's availability in
+	// the rest-of-search scope (excluding the filter's own selection), so both documents count.
+	// The discovery entry for the same facet follows without an ID, computed within the filtered
+	// search scope (one matching document).
+	assert.Equal(t, []search.FilterResult{
+		{Props: []string{refProp.String()}, Type: "ref", Unit: "", FilterID: session.Filters[0].ID.String(), Count: 2},
+		{Props: []string{refProp.String()}, Type: "ref", Unit: "", FilterID: "", Count: 1},
+	}, results)
+	// The total counts only the discovered facets, not the active-filter entries.
 	assert.Equal(t, "1", metadata["total"])
 }
 
@@ -877,7 +794,7 @@ func TestFiltersGetSubRefDiscoveryCountValueQueryIntegration(t *testing.T) {
 	esClient, getSearchService, index := initES(t)
 
 	parentProp := identifier.From("parentProp")
-	parentTo := identifier.From("parentTo")
+	parentTarget := identifier.From("parentTo")
 	instanceOf := identifier.From("instanceOf")
 	color := identifier.From("color")
 	germany := identifier.From("germany")
@@ -885,19 +802,12 @@ func TestFiltersGetSubRefDiscoveryCountValueQueryIntegration(t *testing.T) {
 	spain := identifier.From("spain")
 	red := identifier.From("red")
 
-	// subRefDoc builds a document with a single sub-reference claim under (parentProp, prop) with the value label.
+	// subRefDoc builds a document with a single sub ref record under (parentProp, prop) with the value label,
+	// nested in a parent claim's Sub container.
 	subRefDoc := func(id string, prop, to identifier.Identifier, toLabel string) internalSearch.Document {
-		return internalSearch.Document{ //nolint:exhaustruct
-			ID: identifier.From(id),
-			Claims: internalSearch.ClaimTypes{ //nolint:exhaustruct
-				SubRef: internalSearch.SubRefClaims{{ //nolint:exhaustruct
-					ReferenceClaim: internalSearch.ReferenceClaim{ //nolint:exhaustruct
-						Prop: prop, To: to, ToDisplay: map[string]string{"en": toLabel},
-					},
-					ParentProp: parentProp, ParentTo: parentTo.String(),
-				}},
-			},
-		}
+		return relDoc(id, internalSearch.RelClaims{
+			refRecord(parentProp, parentTarget, relSub(namedRefRecord(prop, to, toLabel, nil))),
+		})
 	}
 
 	// The (parentProp, "instance of") sub-reference facet has three documents but only one value matches "germ*".
@@ -921,8 +831,9 @@ func TestFiltersGetSubRefDiscoveryCountValueQueryIntegration(t *testing.T) {
 		return 0, false
 	}
 
-	// Without a value query both sub-facets are available at their full document counts.
-	results, metadata, errE := search.FiltersGet(ctx, getSearchService, session, enabledLanguages, "", search.PrefilterExcludes{})
+	// Without a value query both sub-facets are available at their full document counts. The parent claims
+	// also surface as a top-level value-list facet, so the total counts three facets.
+	results, metadata, errE := search.FiltersGet(ctx, getSearchService, session, enabledLanguages, "")
 	require.NoError(t, errE, "% -+#.1v", errE)
 	c, ok := count(results, instanceOf)
 	assert.True(t, ok, "instance of sub-facet present without query")
@@ -930,16 +841,103 @@ func TestFiltersGetSubRefDiscoveryCountValueQueryIntegration(t *testing.T) {
 	c, ok = count(results, color)
 	assert.True(t, ok, "color sub-facet present without query")
 	assert.Equal(t, int64(1), c)
-	assert.Equal(t, "2", metadata["total"])
+	assert.Equal(t, "3", metadata["total"])
 
 	// A value query matching only one value keeps the sub-facet at its full count (3, not 1) and drops the
 	// sub-facet that matches nothing, while the available-filters total is unchanged.
-	results, metadata, errE = search.FiltersGet(ctx, getSearchService, session, enabledLanguages, "germ*", search.PrefilterExcludes{})
+	results, metadata, errE = search.FiltersGet(ctx, getSearchService, session, enabledLanguages, "germ*")
 	require.NoError(t, errE, "% -+#.1v", errE)
 	c, ok = count(results, instanceOf)
 	assert.True(t, ok, "instance of sub-facet present under matching query")
 	assert.Equal(t, int64(3), c)
 	_, ok = count(results, color)
 	assert.False(t, ok, "color sub-facet absent under non-matching query")
-	assert.Equal(t, "2", metadata["total"])
+	assert.Equal(t, "3", metadata["total"])
+}
+
+// TestFiltersGetSpecialsActiveValuedFacetIntegration verifies that an active specials filter
+// renders its path's real valued facet with correct availability counts: selecting the unknown
+// special on an amount property keeps the amount facet (with its unit and full reachable-through
+// count) instead of degrading to a specials-only value-list facet, and active entry counts are
+// computed excluding the path's own selections.
+func TestFiltersGetSpecialsActiveValuedFacetIntegration(t *testing.T) {
+	t.Parallel()
+
+	ctx := t.Context()
+	esClient, getSearchService, index := initES(t)
+
+	amountProp := identifier.From("priceProp")
+	unitID := identifier.From("unitEur")
+
+	v10 := float64(10)
+	v20 := float64(20)
+	v30 := float64(30)
+	indexAmountDoc(t, ctx, esClient, index, "priceDoc1", amountProp, unitID, &v10)
+	indexAmountDoc(t, ctx, esClient, index, "priceDoc2", amountProp, unitID, &v20)
+	indexAmountDoc(t, ctx, esClient, index, "priceDoc3", amountProp, unitID, &v30)
+	indexDocument(t, ctx, esClient, index, claimsDoc("priceDocUnknown", internalSearch.ClaimTypes{ //nolint:exhaustruct
+		Rel: internalSearch.RelClaims{simpleRelRecord(internalSearch.ClaimTypeUnknown, amountProp, nil)},
+	}))
+	refreshIndex(t, ctx, esClient, index)
+
+	// With nothing selected, discovery offers the amount facet with the reachable-through count:
+	// the three value documents plus the valueless one.
+	emptySession := createSession(t, ctx, search.SessionData{}) //nolint:exhaustruct
+	results, _, errE := search.FiltersGet(ctx, getSearchService, emptySession, nil, "")
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, []search.FilterResult{
+		{Props: []string{amountProp.String()}, Type: "amount", Unit: unitID.String(), FilterID: "", Count: 4},
+	}, results)
+
+	unknownFilter := search.Filter{ //nolint:exhaustruct
+		Prop:     []identifier.Identifier{amountProp},
+		Specials: &search.SpecialsFilter{Missing: false, None: false, Unknown: true, HasProperty: false},
+	}
+	gte := float64(9)
+	lte := float64(31)
+	rangeFilter := search.Filter{ //nolint:exhaustruct
+		Prop:   []identifier.Identifier{amountProp},
+		Amount: &search.AmountFilter{Unit: &unitID, Gte: &gte, Lte: &lte, Exists: false},
+	}
+
+	// With only the unknown special selected, the active entry still renders the property's real
+	// facet (the amount facet with its unit) with the full reachable-through count, and no
+	// specials-only value-list facet is offered beside it.
+	unknownSession := createSession(t, ctx, search.SessionData{Filters: []search.Filter{unknownFilter}}) //nolint:exhaustruct
+	results, _, errE = search.FiltersGet(ctx, getSearchService, unknownSession, nil, "")
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, []search.FilterResult{
+		{Props: []string{amountProp.String()}, Type: "amount", Unit: unitID.String(), FilterID: unknownSession.Filters[0].ID.String(), Count: 4},
+	}, results)
+
+	// With only the range selected, the active amount entry's count stays the facet's full
+	// reachable-through count, not the count within its own selection.
+	rangeSession := createSession(t, ctx, search.SessionData{Filters: []search.Filter{rangeFilter}}) //nolint:exhaustruct
+	results, _, errE = search.FiltersGet(ctx, getSearchService, rangeSession, nil, "")
+	require.NoError(t, errE, "% -+#.1v", errE)
+	require.NotEmpty(t, results)
+	assert.Equal(t, search.FilterResult{
+		Props: []string{amountProp.String()}, Type: "amount", Unit: unitID.String(),
+		FilterID: rangeSession.Filters[0].ID.String(), Count: 4,
+	}, results[0])
+
+	// With the range and the unknown special selected together, documents match through either
+	// (OR within the path) and both active entries render the amount facet with the same count.
+	bothSession := createSession(t, ctx, search.SessionData{Filters: []search.Filter{rangeFilter, unknownFilter}}) //nolint:exhaustruct
+	searchResults, _, errE := search.ResultsGet(ctx, getSearchService, &bothSession.SessionData, nil, 0)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Len(t, searchResults, 4)
+	results, _, errE = search.FiltersGet(ctx, getSearchService, bothSession, nil, "")
+	require.NoError(t, errE, "% -+#.1v", errE)
+	activeEntries := 0
+	for _, r := range results {
+		if r.FilterID == "" {
+			continue
+		}
+		activeEntries++
+		assert.Equal(t, "amount", r.Type, "entry %+v", r)
+		assert.Equal(t, unitID.String(), r.Unit, "entry %+v", r)
+		assert.Equal(t, int64(4), r.Count, "entry %+v", r)
+	}
+	assert.Equal(t, 2, activeEntries)
 }

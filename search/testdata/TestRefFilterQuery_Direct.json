@@ -1,0 +1,44 @@
+{
+  "bool": {
+    "must": [
+      {
+        "nested": {
+          "path": "claims.rel",
+          "query": {
+            "bool": {
+              "must": [
+                {
+                  "term": {
+                    "claims.rel.prop": {
+                      "value": "Vg7NV61DJJ5HS2nheTZrQE"
+                    }
+                  }
+                },
+                {
+                  "bool": {
+                    "must": [
+                      {
+                        "term": {
+                          "claims.rel.to": {
+                            "value": "SM5iogb5kamoWQ2S65rzHz"
+                          }
+                        }
+                      },
+                      {
+                        "term": {
+                          "claims.rel.isLeaf": {
+                            "value": true
+                          }
+                        }
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          }
+        }
+      }
+    ]
+  }
+}

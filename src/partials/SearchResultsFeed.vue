@@ -2,7 +2,7 @@
 import type { ComponentPublicInstance, DeepReadonly } from "vue"
 
 import type { D } from "@/document"
-import type { Filter, Result, SearchSession, SortKey, ViewType } from "@/types"
+import type { Filter, FilterUpdate, Result, SearchSession, SortKey, ViewType } from "@/types"
 
 import { ChevronUpDownIcon, FunnelIcon, XMarkIcon } from "@heroicons/vue/20/solid"
 import { ChevronDownUpIcon } from "@sidekickicons/vue/20/solid"
@@ -57,7 +57,7 @@ const props = defineProps<{
 }>()
 
 const $emit = defineEmits<{
-  filterUpdate: [filterId: string, filter: Filter]
+  filterUpdates: [updates: FilterUpdate[]]
   viewChange: [value: ViewType]
   downloadZip: []
   downloadFiles: []
@@ -285,6 +285,7 @@ const busy = useBusy()
 const {
   results: filtersResults,
   total: filtersTotal,
+  moreThanTotal: filtersMoreThanTotal,
   error: filtersError,
   url: filtersURL,
 } = useFilters(
@@ -727,7 +728,10 @@ const WithDocumentD = WithDocument<D>
               own name), never the search itself. When only active filters are shown (none available to add), the
               label counts those instead.
             -->
-            <div v-if="filtersTotal > 0" class="mb-1 text-sm">{{ t("partials.SearchResultsFeed.filtersAvailable", { count: filtersTotal }) }}</div>
+            <div v-if="filtersTotal > 0 && filtersMoreThanTotal" class="mb-1 text-sm">
+              {{ t("partials.SearchResultsFeed.filtersAvailableMoreThan", { count: filtersTotal }) }}
+            </div>
+            <div v-else-if="filtersTotal > 0" class="mb-1 text-sm">{{ t("partials.SearchResultsFeed.filtersAvailable", { count: filtersTotal }) }}</div>
             <div v-else-if="hasActiveFilters" class="mb-1 text-sm">{{ t("partials.SearchResultsFeed.filtersAvailable", { count: activeFiltersCount }) }}</div>
 
             <WithLock :lock="getFilterBoxLock">
@@ -742,7 +746,7 @@ const WithDocumentD = WithDocument<D>
               :filters="filters"
               :query="filterQuery"
               class="rounded-sm border border-gray-200 bg-white p-4 shadow-sm"
-              @filter-update="(filterId, filter) => $emit('filterUpdate', filterId, filter)"
+              @filter-updates="(updates) => $emit('filterUpdates', updates)"
             />
           </template>
 

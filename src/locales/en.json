@@ -69,6 +69,7 @@
     "values": {
       "direct": "direct",
       "exists": "exists",
+      "hasProperty": "has property",
       "missing": "missing",
       "noName": "no name",
       "none": "none",
@@ -216,6 +217,7 @@
       "resultsNotShown": "1 of {total} result not shown. | {count} of {total} results not shown.",
       "noFilters": "No filters available.",
       "filtersAvailable": "Search 1 available filter: | Search {count} available filters:",
+      "filtersAvailableMoreThan": "Search more than 1 available filter: | Search more than {count} available filters:",
       "filtersSearchLabel": "Search filters and filter values",
       "filtersNoMatch": "No filters match your search.",
       "determiningFilters": "Determining filters...",

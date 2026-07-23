@@ -2,7 +2,7 @@
 import type { API } from "nouislider"
 import type { DeepReadonly } from "vue"
 
-import type { SearchSession, TimeFilterEntry, TimeSearchResult } from "@/types"
+import type { FilterUpdate, SearchSession, SpecialsFilter, SpecialsFilterEntry, TimeFilterEntry, TimeSearchResult } from "@/types"
 
 import noUiSlider from "nouislider"
 import { computed, onBeforeUnmount, toRef, useId, useTemplateRef, watchEffect } from "vue"
@@ -21,12 +21,13 @@ const props = defineProps<{
   searchSession: DeepReadonly<SearchSession>
   result: TimeSearchResult
   filter?: TimeFilterEntry
+  specials?: SpecialsFilterEntry
 }>()
 
 const locked = useLocked()
 
 const emit = defineEmits<{
-  filterUpdate: [filterId: string, filter: TimeFilterEntry]
+  filterUpdates: [updates: FilterUpdate[]]
 }>()
 
 const { t } = useI18n({ useScope: "global" })
@@ -51,6 +52,9 @@ const {
   results,
   total,
   missing: missingCount,
+  none: noneCount,
+  unknown: unknownCount,
+  hasProperty: hasPropertyCount,
   from,
   to,
   error,
@@ -69,15 +73,23 @@ const { laterLoad } = useInitialLoad(progress)
 useReportFilterVisibility(() => true)
 
 function clearFilter() {
-  if (abortController.signal.aborted || !props.filter) {
+  if (abortController.signal.aborted || (!props.filter && !props.specials)) {
     return
   }
-  emit("filterUpdate", props.filter.id, {
-    id: props.filter.id,
-    base: props.filter.base,
-    prop: props.filter.prop,
-    time: {},
-  })
+  const updates: FilterUpdate[] = []
+  if (props.filter) {
+    updates.push({
+      filterId: props.filter.id,
+      filter: { id: props.filter.id, base: props.filter.base, prop: props.filter.prop, time: {} },
+    })
+  }
+  if (props.specials) {
+    updates.push({
+      filterId: props.specials.id,
+      filter: { id: props.specials.id, base: props.specials.base, prop: props.specials.prop, specials: {} },
+    })
+  }
+  emit("filterUpdates", updates)
 }
 
 function onSliderChange(values: (number | string)[], handle: number, unencoded: number[], tap: boolean, positions: number[], noUiSlider: API) {
@@ -95,28 +107,67 @@ function onSliderChange(values: (number | string)[], handle: number, unencoded: 
     },
   }
   if (!equals(props.filter, updatedFilter)) {
-    emit("filterUpdate", updatedFilter.id, updatedFilter)
+    emit("filterUpdates", [{ filterId: updatedFilter.id, filter: updatedFilter }])
+  }
+}
+
+// setSpecial toggles one special selection in the path's specials filter, emitting the updated entry.
+// Clearing a special which is not set (and with no specials entry present) is a no-op.
+function setSpecial(key: keyof SpecialsFilter, value: boolean) {
+  if (abortController.signal.aborted || (!props.specials && !value)) {
+    return
+  }
+
+  const specials: SpecialsFilter = { ...props.specials?.specials }
+  if (value) {
+    specials[key] = true
+  } else {
+    delete specials[key]
+  }
+  const updatedSpecials: SpecialsFilterEntry = {
+    id: props.specials?.id ?? "",
+    base: props.specials?.base ?? [],
+    prop: props.specials?.prop ?? [...props.result.props],
+    specials,
+  }
+  if (!equals(props.specials, updatedSpecials)) {
+    emit("filterUpdates", [{ filterId: updatedSpecials.id, filter: updatedSpecials }])
   }
 }
 
 const missingState = computed({
   get(): boolean {
-    return props.filter?.time?.missing === true
+    return props.specials?.specials.missing === true
   },
   set(value: boolean) {
-    if (abortController.signal.aborted) {
-      return
-    }
+    setSpecial("missing", value)
+  },
+})
 
-    const updatedFilter: TimeFilterEntry = {
-      id: props.filter?.id ?? "",
-      base: props.filter?.base ?? [],
-      prop: props.filter?.prop ?? [...props.result.props],
-      time: value ? { missing: true } : {},
-    }
-    if (!equals(props.filter, updatedFilter)) {
-      emit("filterUpdate", updatedFilter.id, updatedFilter)
-    }
+const noneState = computed({
+  get(): boolean {
+    return props.specials?.specials.none === true
+  },
+  set(value: boolean) {
+    setSpecial("none", value)
+  },
+})
+
+const unknownState = computed({
+  get(): boolean {
+    return props.specials?.specials.unknown === true
+  },
+  set(value: boolean) {
+    setSpecial("unknown", value)
+  },
+})
+
+const hasPropertyState = computed({
+  get(): boolean {
+    return props.specials?.specials.hasProperty === true
+  },
+  set(value: boolean) {
+    setSpecial("hasProperty", value)
   },
 })
 
@@ -140,7 +191,7 @@ const existsState = computed({
       time: value ? { exists: true } : {},
     }
     if (!equals(props.filter, updatedFilter)) {
-      emit("filterUpdate", updatedFilter.id, updatedFilter)
+      emit("filterUpdates", [{ filterId: updatedFilter.id, filter: updatedFilter }])
     }
   },
 })
@@ -163,7 +214,7 @@ const singleValueState = computed({
       time: value && from.value !== null && to.value !== null ? { gte: from.value, lte: to.value } : {},
     }
     if (!equals(props.filter, updatedFilter)) {
-      emit("filterUpdate", updatedFilter.id, updatedFilter)
+      emit("filterUpdates", [{ filterId: updatedFilter.id, filter: updatedFilter }])
     }
   },
 })
@@ -188,7 +239,7 @@ const rangeState = computed({
       time: {},
     }
     if (!equals(props.filter, updatedFilter)) {
-      emit("filterUpdate", updatedFilter.id, updatedFilter)
+      emit("filterUpdates", [{ filterId: updatedFilter.id, filter: updatedFilter }])
     }
   },
 })
@@ -248,7 +299,6 @@ watchEffect(() => {
   }
   const gte = props.filter?.time?.gte ?? null
   const lte = props.filter?.time?.lte ?? null
-  const isMissing = props.filter?.time?.missing === true
   // The backend sends from/to as the slider track bounds (the full data range, or the current
   // selection widened by a margin and clamped to the data) and gte/lte as the handle positions,
   // so the handles can be dragged outward into the widened track to expand the selection.
@@ -264,7 +314,7 @@ watchEffect(() => {
         max: [rangeMax],
       },
       margin: (rangeMax - rangeMin) / results.value.length,
-      connect: [false, !isMissing, false],
+      connect: [false, true, false],
       // Range is divided by this number to get the keyboard step.
       keyboardDefaultStep: results.value.length,
       keyboardPageMultiplier: 10,
@@ -289,8 +339,6 @@ watchEffect(() => {
       },
       true,
     )
-    // Update connect to reflect whether missing is active (no range highlight) or not.
-    slider.updateOptions({ connect: [false, !isMissing, false] }, false)
   }
 })
 
@@ -318,7 +366,7 @@ onBeforeUnmount(() => {
   <div class="pd-timefiltersresult flex flex-col" :class="{ 'data-reloading': laterLoad }" :data-url="resultsUrl">
     <div :id="labelId">
       <Button
-        v-if="filter"
+        v-if="filter || specials"
         type="button"
         class="float-right ml-2 px-2.5 py-1"
         :title="t('partials.TimeFiltersResult.clearFilter')"
@@ -402,6 +450,37 @@ onBeforeUnmount(() => {
             ><i>{{ t("common.values.exists") }}</i></label
           >
           <label :for="'time/' + result.props.join('/') + '/exists'" :class="locked ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'">({{ result.count }})</label>
+        </div>
+      </li>
+      <li v-if="(hasPropertyCount != null && hasPropertyCount > 0) || hasPropertyState" class="contents">
+        <CheckBox :id="'time/' + result.props.join('/') + '/hasProperty'" v-model="hasPropertyState" />
+        <div class="flex items-baseline gap-x-1">
+          <label :for="'time/' + result.props.join('/') + '/hasProperty'" :class="locked ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
+            ><i>{{ t("common.values.hasProperty") }}</i></label
+          >
+          <label :for="'time/' + result.props.join('/') + '/hasProperty'" :class="locked ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
+            >({{ hasPropertyCount ?? 0 }})</label
+          >
+        </div>
+      </li>
+      <li v-if="(unknownCount != null && unknownCount > 0) || unknownState" class="contents">
+        <CheckBox :id="'time/' + result.props.join('/') + '/unknown'" v-model="unknownState" />
+        <div class="flex items-baseline gap-x-1">
+          <label :for="'time/' + result.props.join('/') + '/unknown'" :class="locked ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
+            ><i>{{ t("common.values.unknown") }}</i></label
+          >
+          <label :for="'time/' + result.props.join('/') + '/unknown'" :class="locked ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
+            >({{ unknownCount ?? 0 }})</label
+          >
+        </div>
+      </li>
+      <li v-if="(noneCount != null && noneCount > 0) || noneState" class="contents">
+        <CheckBox :id="'time/' + result.props.join('/') + '/none'" v-model="noneState" />
+        <div class="flex items-baseline gap-x-1">
+          <label :for="'time/' + result.props.join('/') + '/none'" :class="locked ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
+            ><i>{{ t("common.values.none") }}</i></label
+          >
+          <label :for="'time/' + result.props.join('/') + '/none'" :class="locked ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'">({{ noneCount ?? 0 }})</label>
         </div>
       </li>
       <li v-if="(missingCount != null && missingCount > 0) || missingState" class="contents">

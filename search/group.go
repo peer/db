@@ -38,15 +38,15 @@ const groupAggName = "group"
 func buildGroupAggregation(groupCols []SortKey, withinSort []types.SortCombinationsVariant, lang string) types.AggregationsVariant { //nolint:ireturn
 	top := esdsl.NewAggregations().Filter(esdsl.NewMatchAllQuery())
 	for _, b := range levelBranches(groupCols, 0, withinSort, lang) {
-		top = top.AddAggregation(b.key, b.agg)
+		top = top.AddAggregation(b.Key, b.Agg)
 	}
 	return top
 }
 
 // namedAgg is one keyed sub-aggregation to attach to a document-level aggregations container.
 type namedAgg struct {
-	key string
-	agg types.AggregationsVariant
+	Key string
+	Agg types.AggregationsVariant
 }
 
 // levelBranches returns the sub-aggregations to attach at a document-level point for the group columns
@@ -58,25 +58,27 @@ func levelBranches(cols []SortKey, idx int, withinSort []types.SortCombinationsV
 		if len(withinSort) > 0 {
 			topHits = topHits.Sort(withinSort...)
 		}
-		return []namedAgg{{key: "hits", agg: esdsl.NewAggregations().TopHits(topHits)}}
+		return []namedAgg{{Key: "hits", Agg: esdsl.NewAggregations().TopHits(topHits)}}
 	}
 	return []namedAgg{
-		{key: "g", agg: presentBranch(cols, idx, withinSort, lang)},
-		{key: "m", agg: missingBranch(cols, idx, withinSort, lang)},
+		{Key: "g", Agg: presentBranch(cols, idx, withinSort, lang)},
+		{Key: "m", Agg: missingBranch(cols, idx, withinSort, lang)},
 	}
 }
 
 // presentBranch groups the documents reaching this point by their leaf values of cols[idx]:
-// nested(claims.ref) -> filter(prop & isLeaf) -> terms(toPath) -> { display path, reverse_nested -> next
+// nested(claims.rel) -> filter(prop & isLeaf) -> terms(toPath) -> { display path, reverse_nested -> next
 // column or hits }. The reverse_nested "back" returns to the document level, where the next column's
 // branches (or the leaf hits) are attached. withinSort orders the documents inside each leaf group.
+// The isLeaf term matches only ref records (the other claim types never carry isLeaf true), so no
+// claimType term is needed.
 func presentBranch(cols []SortKey, idx int, withinSort []types.SortCombinationsVariant, lang string) types.AggregationsVariant { //nolint:ireturn
 	prop := cols[idx].Prop[0]
 
 	// The reverse_nested "back" returns to the document level: the next group level, or the leaf documents.
 	back := esdsl.NewAggregations().ReverseNested(esdsl.NewReverseNestedAggregation())
 	for _, b := range levelBranches(cols, idx+1, withinSort, lang) {
-		back = back.AddAggregation(b.key, b.agg)
+		back = back.AddAggregation(b.Key, b.Agg)
 	}
 
 	// The bucket key is the value's toPathSortKey (folded display path, then the hex-encoded id path). Ordering
@@ -84,33 +86,36 @@ func presentBranch(cols []SortKey, idx int, withinSort []types.SortCombinationsV
 	// is exact across shards, unlike _count), and the hex id half keeps distinct values that share a display
 	// label in separate buckets. parsePresent splits the key back into the id chain and display labels.
 	buckets := esdsl.NewAggregations().
-		Terms(esdsl.NewTermsAggregation().Field("claims.ref.toPathSortKey."+lang).Size(MaxResultsCount).
+		Terms(esdsl.NewTermsAggregation().Field(relPath+".toPathSortKey."+lang).Size(MaxResultsCount).
 			Order(esdsl.NewAggregateOrder().Map(map[string]sortorder.SortOrder{"_key": sortorder.Asc}))).
 		AddAggregation("back", back)
 
 	filterQuery := esdsl.NewBoolQuery().Must(
-		esdsl.NewTermQuery("claims.ref.prop", esdsl.NewFieldValue().String(prop)),
-		esdsl.NewTermQuery("claims.ref.isLeaf", esdsl.NewFieldValue().Bool(true)),
+		esdsl.NewTermQuery(relPath+".prop", esdsl.NewFieldValue().String(prop)),
+		esdsl.NewTermQuery(relPath+".isLeaf", esdsl.NewFieldValue().Bool(true)),
 	)
 
 	return esdsl.NewAggregations().
-		Nested(esdsl.NewNestedAggregation().Path("claims.ref")).
+		Nested(esdsl.NewNestedAggregation().Path(relPath)).
 		AddAggregation("f", esdsl.NewAggregations().Filter(filterQuery).AddAggregation("b", buckets))
 }
 
-// missingBranch holds the documents reaching this point that have no claim for cols[idx]: a filter that
-// excludes every document with any claims.ref under the property, then the next column's branches (or the
-// leaf hits). It mirrors the missing-property aggregation the facet filters use. isLeaf is not part of the
+// missingBranch holds the documents reaching this point that state nothing facetable for cols[idx]:
+// a filter that excludes every document with any rel, amount, or time record under the property,
+// then the next column's branches (or the leaf hits). It mirrors the missing definition the facet
+// filters use, so the missing group matches the facet's missing bucket. isLeaf is not part of the
 // exclusion: a document with any value for the property has at least one leaf record, so excluding by
 // property alone keeps present and missing disjoint and jointly exhaustive.
 func missingBranch(cols []SortKey, idx int, withinSort []types.SortCombinationsVariant, lang string) types.AggregationsVariant { //nolint:ireturn
 	prop := cols[idx].Prop[0]
 
 	missing := esdsl.NewAggregations().Filter(esdsl.NewBoolQuery().MustNot(
-		esdsl.NewNestedQuery(esdsl.NewTermQuery("claims.ref.prop", esdsl.NewFieldValue().String(prop))).Path("claims.ref"),
+		esdsl.NewNestedQuery(esdsl.NewTermQuery(relPath+".prop", esdsl.NewFieldValue().String(prop))).Path(relPath),
+		esdsl.NewNestedQuery(esdsl.NewTermQuery(amountPath+".prop", esdsl.NewFieldValue().String(prop))).Path(amountPath),
+		esdsl.NewNestedQuery(esdsl.NewTermQuery(timePath+".prop", esdsl.NewFieldValue().String(prop))).Path(timePath),
 	))
 	for _, b := range levelBranches(cols, idx+1, withinSort, lang) {
-		missing = missing.AddAggregation(b.key, b.agg)
+		missing = missing.AddAggregation(b.Key, b.Agg)
 	}
 	return missing
 }
@@ -207,7 +212,7 @@ func foldDocLevel(docAggs map[string]types.Aggregate, cols []SortKey, idx int) (
 	return results, nil
 }
 
-// parsePresent reads the present branch ("g") at group level idx (nested(claims.ref) -> filter -> terms),
+// parsePresent reads the present branch ("g") at group level idx (nested(claims.rel) -> filter -> terms),
 // recursively folding each leaf-value bucket's documents through the deeper levels. The display path needs
 // no language here: the per-language toDisplayPath field was already selected when the aggregation was built.
 func parsePresent(docAggs map[string]types.Aggregate, cols []SortKey, idx int) ([]bucketEntry, errors.E) {
@@ -279,18 +284,18 @@ func foldHits(aggs map[string]types.Aggregate) ([]Result, errors.E) {
 
 // groupNode is a node in the per-column hierarchy trie used to fold leaf-value buckets into nested groups.
 type groupNode struct {
-	id    string
-	label string
-	// count is set when this node is itself a stated leaf value (a bucket); nil for synthesized ancestors.
-	count *int64
-	// direct is the content attached directly at this value (deeper-column groups, or documents).
-	direct   []Result
-	children map[string]*groupNode
-	order    []string
+	ID    string
+	Label string
+	// Count is set when this node is itself a stated leaf value (a bucket); nil for synthesized ancestors.
+	Count *int64
+	// Direct is the content attached directly at this value (deeper-column groups, or documents).
+	Direct   []Result
+	Children map[string]*groupNode
+	Order    []string
 }
 
 func newGroupNode(id string) *groupNode {
-	return &groupNode{id: id, label: "", count: nil, direct: nil, children: map[string]*groupNode{}, order: nil}
+	return &groupNode{ID: id, Label: "", Count: nil, Direct: nil, Children: map[string]*groupNode{}, Order: nil}
 }
 
 // foldLevel builds the hierarchy trie from one group level's leaf-value buckets and returns the ordered
@@ -301,41 +306,41 @@ func foldLevel(entries []bucketEntry, desc bool, col int) []Result {
 	for _, e := range entries {
 		node := root
 		for i, id := range e.IDs {
-			child, ok := node.children[id]
+			child, ok := node.Children[id]
 			if !ok {
 				child = newGroupNode(id)
-				node.children[id] = child
-				node.order = append(node.order, id)
+				node.Children[id] = child
+				node.Order = append(node.Order, id)
 			}
-			if child.label == "" && i < len(e.Labels) {
-				child.label = e.Labels[i]
+			if child.Label == "" && i < len(e.Labels) {
+				child.Label = e.Labels[i]
 			}
 			node = child
 		}
 		count := e.Count
-		node.count = &count
-		node.direct = append(node.direct, e.Direct...)
+		node.Count = &count
+		node.Direct = append(node.Direct, e.Direct...)
 	}
-	return root.results(desc, col)
+	return root.Results(desc, col)
 }
 
-// results returns this node's children as ordered group headings followed by this node's own direct
+// Results returns this node's children as ordered group headings followed by this node's own direct
 // content. Children are ordered by display label (ascending, or descending when desc).
-func (n *groupNode) results(desc bool, col int) []Result {
-	order := slices.Clone(n.order)
+func (n *groupNode) Results(desc bool, col int) []Result {
+	order := slices.Clone(n.Order)
 	slices.SortStableFunc(order, func(a, b string) int {
-		c := strings.Compare(n.children[a].label, n.children[b].label)
+		c := strings.Compare(n.Children[a].Label, n.Children[b].Label)
 		if desc {
 			return -c
 		}
 		return c
 	})
-	out := make([]Result, 0, len(order)+len(n.direct))
+	out := make([]Result, 0, len(order)+len(n.Direct))
 	for _, id := range order {
-		child := n.children[id]
-		out = append(out, Result{ID: child.id, Count: child.count, Col: col, Group: child.results(desc, col)})
+		child := n.Children[id]
+		out = append(out, Result{ID: child.ID, Count: child.Count, Col: col, Group: child.Results(desc, col)})
 	}
-	return append(out, n.direct...)
+	return append(out, n.Direct...)
 }
 
 // parseSortKey splits a toPathSortKey bucket key ("<displayPath>\x01<hex(raw id chain)>") into the value's

@@ -327,18 +327,18 @@ func FetchDocumentIDs(ctx context.Context, esClient *elasticsearch.TypedClient, 
 		query = esdsl.NewMatchAllQuery()
 	} else if len(classIDs) == 1 {
 		boolQ := esdsl.NewBoolQuery().Must(
-			esdsl.NewTermQuery("claims.ref.prop", esdsl.NewFieldValue().String(internalCore.InstanceOfPropID.String())),
-			esdsl.NewTermQuery("claims.ref.to", esdsl.NewFieldValue().String(classIDs[0].String())),
+			esdsl.NewTermQuery("claims.rel.prop", esdsl.NewFieldValue().String(internalCore.InstanceOfPropID.String())),
+			esdsl.NewTermQuery("claims.rel.to", esdsl.NewFieldValue().String(classIDs[0].String())),
 		)
-		query = esdsl.NewNestedQuery(boolQ).Path("claims.ref")
+		query = esdsl.NewNestedQuery(boolQ).Path("claims.rel")
 	} else {
 		shoulds := make([]types.QueryVariant, 0, len(classIDs))
 		for _, classID := range classIDs {
 			boolQ := esdsl.NewBoolQuery().Must(
-				esdsl.NewTermQuery("claims.ref.prop", esdsl.NewFieldValue().String(internalCore.InstanceOfPropID.String())),
-				esdsl.NewTermQuery("claims.ref.to", esdsl.NewFieldValue().String(classID.String())),
+				esdsl.NewTermQuery("claims.rel.prop", esdsl.NewFieldValue().String(internalCore.InstanceOfPropID.String())),
+				esdsl.NewTermQuery("claims.rel.to", esdsl.NewFieldValue().String(classID.String())),
 			)
-			shoulds = append(shoulds, esdsl.NewNestedQuery(boolQ).Path("claims.ref"))
+			shoulds = append(shoulds, esdsl.NewNestedQuery(boolQ).Path("claims.rel"))
 		}
 		query = esdsl.NewBoolQuery().Should(shoulds...)
 	}

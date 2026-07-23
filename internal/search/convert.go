@@ -1269,24 +1269,6 @@ func (c *Converter) getDisplayStrings(ctx context.Context, id identifier.Identif
 	return info.Display, nil
 }
 
-// resolveParentPropDisplays resolves the display and naming labels of each parent property, deduplicated, so
-// they can be denormalized onto the sub-claim records a parent claim produces. This lets a sub-facet
-// ("parentProp > prop") be matched by its parent property's name.
-func (c *Converter) resolveParentPropDisplays(ctx context.Context, parentProps []identifier.Identifier) (map[identifier.Identifier]displayStrings, errors.E) {
-	out := make(map[identifier.Identifier]displayStrings, len(parentProps))
-	for _, pp := range parentProps {
-		if _, ok := out[pp]; ok {
-			continue
-		}
-		ds, errE := c.getDisplayStrings(ctx, pp)
-		if errE != nil {
-			return nil, errE
-		}
-		out[pp] = ds
-	}
-	return out, nil
-}
-
 // displayLabelTemplate returns the best display label template for each supported
 // language by looking at the document's INSTANCE_OF class documents. Templates can
 // have IN_LANGUAGE sub-claims to specify which language they apply to; templates
@@ -1799,65 +1781,98 @@ func immediateParents(toPaths []string) []string {
 	return out
 }
 
-// markReferenceLeaves sets IsLeaf on the document's reference and sub-reference claims. A target
-// is a leaf (most-specific) when no other claim under the same property (and, for sub-refs, the
-// same parent) has it as an ancestor in its hierarchy paths, i.e. the document references the
-// value but none of its narrower values. This lets the reference filter count and select
-// documents that are exactly a value, with none of its narrower values ("direct").
-func (v *convertVisitor) markReferenceLeaves() {
-	refAncestors := map[identifier.Identifier]map[identifier.Identifier]bool{}
-	for i := range v.result.Claims.Reference {
-		c := &v.result.Claims.Reference[i]
-		anc := refAncestors[c.Prop]
-		if anc == nil {
-			anc = map[identifier.Identifier]bool{}
-			refAncestors[c.Prop] = anc
+// forEachSubContainer calls fn once for every distinct Sub container reachable from the given
+// collections. Hierarchy-expanded copies of one claim share a single Sub container pointer, so the
+// pointer-keyed seen set visits each parent claim's sub-claims exactly once.
+func forEachSubContainer(claims *ClaimTypes, fn func(sub *ClaimTypes)) {
+	seen := map[*ClaimTypes]bool{}
+	visit := func(sub *ClaimTypes) {
+		if sub == nil || seen[sub] {
+			return
 		}
-		referencePathAncestors(c.ToPath, anc)
+		seen[sub] = true
+		fn(sub)
 	}
-	for i := range v.result.Claims.Reference {
-		c := &v.result.Claims.Reference[i]
-		c.IsLeaf = !refAncestors[c.Prop][c.To]
+	for i := range claims.Rel {
+		visit(claims.Rel[i].Sub)
 	}
+	for i := range claims.Amount {
+		visit(claims.Amount[i].Sub)
+	}
+	for i := range claims.Time {
+		visit(claims.Time[i].Sub)
+	}
+	for i := range claims.Identifier {
+		visit(claims.Identifier[i].Sub)
+	}
+	for i := range claims.String {
+		visit(claims.String[i].Sub)
+	}
+	for i := range claims.HTML {
+		visit(claims.HTML[i].Sub)
+	}
+	for i := range claims.Link {
+		visit(claims.Link[i].Sub)
+	}
+}
 
-	type subRefKey struct {
-		parentProp identifier.Identifier
-		parentTo   string
-		prop       identifier.Identifier
-	}
-	subAncestors := map[subRefKey]map[identifier.Identifier]bool{}
-	for i := range v.result.Claims.SubRef {
-		c := &v.result.Claims.SubRef[i]
-		key := subRefKey{parentProp: c.ParentProp, parentTo: c.ParentTo, prop: c.Prop}
-		anc := subAncestors[key]
+// markRelLeaves sets IsLeaf on the ref records of one rel collection (one leaf-marking
+// scope). A target is a leaf (most-specific) when no other ref record under the same property
+// has it as an ancestor in its hierarchy paths, i.e. the scope references the value but none
+// of its narrower values. Non-ref records keep IsLeaf false.
+func markRelLeaves(recs []RelClaim) {
+	ancestors := map[identifier.Identifier]map[identifier.Identifier]bool{}
+	for i := range recs {
+		c := &recs[i]
+		if c.ClaimType != ClaimTypeRef {
+			continue
+		}
+		anc := ancestors[c.Prop]
 		if anc == nil {
 			anc = map[identifier.Identifier]bool{}
-			subAncestors[key] = anc
+			ancestors[c.Prop] = anc
 		}
 		referencePathAncestors(c.ToPath, anc)
 	}
-	for i := range v.result.Claims.SubRef {
-		c := &v.result.Claims.SubRef[i]
-		c.IsLeaf = !subAncestors[subRefKey{parentProp: c.ParentProp, parentTo: c.ParentTo, prop: c.Prop}][c.To]
+	for i := range recs {
+		c := &recs[i]
+		if c.ClaimType != ClaimTypeRef || c.To == nil {
+			continue
+		}
+		c.IsLeaf = !ancestors[c.Prop][*c.To]
 	}
+}
+
+// markReferenceLeaves sets IsLeaf on the document's ref records, so the reference filter can
+// count and select documents that are exactly a value, with none of its narrower values
+// ("direct"). Top-level records are one scope; each parent claim's Sub container is its own
+// scope, so leaf-ness among sub-references is computed per parent claim.
+func (v *convertVisitor) markReferenceLeaves() {
+	markRelLeaves(v.result.Claims.Rel)
+	forEachSubContainer(&v.result.Claims, func(sub *ClaimTypes) {
+		markRelLeaves(sub.Rel)
+	})
 }
 
 // appendClaimDisplaysToText folds claim values into the document's top-level
 // text bucket so the text-search query can match against referenced-document
 // names (including their ancestor hierarchy labels), numeric/temporal boundary
-// strings, and has-claim property labels.
+// strings, and has-claim property labels. Top-level records and every Sub
+// container fold the same way (each parent claim's shared container once).
 //
-// For value claims (Amount, Time, Reference, and their Sub* counterparts) the
-// property label (PropDisplay/PropNaming) is deliberately not folded: a property
-// name like "date of birth" is structural, not document content, and folding it
-// would make every document with such a claim match a search for the property
-// name. Only the values fold: referenced-document labels (ToDisplay/ToNaming)
-// and numeric/temporal bounds (FromDisplay/ToDisplay).
+// For value claims (Amount, Time, and rel records with the ref claimType) the property label
+// (PropDisplay/PropNaming) is deliberately not folded: a property name like
+// "date of birth" is structural, not document content, and folding it would
+// make every document with such a claim match a search for the property name.
+// Only the values fold: referenced-document labels (ToDisplay/ToNaming) and
+// numeric/temporal bounds (FromDisplay/ToDisplay).
 //
-// Has claims (and their SubHas counterparts) are property-only: the assertion
-// that the document "has" the property is itself the content, so their property
-// labels do fold. None and Unknown claims, which assert the absence or
-// ignorance of a value, are not folded.
+// Has records are property-only: the assertion that the document "has" the
+// property is itself the content, so their property labels do fold. None and
+// unknown records, which assert the absence or ignorance of a value, are not
+// folded. Sub identifier, string, html, and link records are not folded either:
+// they are indexed for structured queries only, matching how their values do
+// not participate in facets.
 //
 // Display labels (ToDisplay, and the language-neutral FromDisplay/ToDisplay) are
 // fallback-resolved and may mix languages, so they fold into the "und" bucket
@@ -1879,40 +1894,36 @@ func (v *convertVisitor) appendClaimDisplaysToText() {
 			}
 		}
 	}
-	for _, c := range v.result.Claims.Amount {
-		v.addText(document.UndeterminedLanguage, c.FromDisplay)
-		v.addText(document.UndeterminedLanguage, c.ToDisplay)
+	fold := func(claims *ClaimTypes) {
+		for _, c := range claims.Amount {
+			v.addText(document.UndeterminedLanguage, c.FromDisplay)
+			v.addText(document.UndeterminedLanguage, c.ToDisplay)
+		}
+		for _, c := range claims.Time {
+			v.addText(document.UndeterminedLanguage, c.FromDisplay)
+			v.addText(document.UndeterminedLanguage, c.ToDisplay)
+		}
+		for _, c := range claims.Rel {
+			switch c.ClaimType {
+			case ClaimTypeRef:
+				addDisplay(c.ToDisplay)
+				addNaming(c.ToNaming)
+				v.addDisplayPathLabels(c.ToDisplayPath)
+			case ClaimTypeHas:
+				addDisplay(c.PropDisplay)
+				addNaming(c.PropNaming)
+			}
+		}
 	}
-	for _, c := range v.result.Claims.Time {
-		v.addText(document.UndeterminedLanguage, c.FromDisplay)
-		v.addText(document.UndeterminedLanguage, c.ToDisplay)
-	}
-	for _, c := range v.result.Claims.Reference {
-		addDisplay(c.ToDisplay)
-		addNaming(c.ToNaming)
-		v.addDisplayPathLabels(c.ToDisplayPath)
-	}
-	for _, c := range v.result.Claims.Has {
-		addDisplay(c.PropDisplay)
-		addNaming(c.PropNaming)
-	}
-	for _, c := range v.result.Claims.SubRef {
-		addDisplay(c.ToDisplay)
-		addNaming(c.ToNaming)
-		v.addDisplayPathLabels(c.ToDisplayPath)
-	}
-	for _, c := range v.result.Claims.SubHas {
-		addDisplay(c.PropDisplay)
-		addNaming(c.PropNaming)
-	}
-	for _, c := range v.result.Claims.SubAmount {
-		v.addText(document.UndeterminedLanguage, c.FromDisplay)
-		v.addText(document.UndeterminedLanguage, c.ToDisplay)
-	}
-	for _, c := range v.result.Claims.SubTime {
-		v.addText(document.UndeterminedLanguage, c.FromDisplay)
-		v.addText(document.UndeterminedLanguage, c.ToDisplay)
-	}
+	fold(&v.result.Claims)
+	forEachSubContainer(&v.result.Claims, fold)
+}
+
+// subContainer converts a claim's direct sub-claims into their shared Sub container. The container
+// is attached to every record the claim expands into (hierarchy-expanded copies share the pointer),
+// so it is built once per stated claim.
+func (v *convertVisitor) subContainer(sub *document.ClaimTypes) (*ClaimTypes, errors.E) {
+	return v.converter.convertSubClaimTypes(v.ctx, sub)
 }
 
 // VisitIdentifier indexes the identifier as a nested id claim for structured per-property queries
@@ -1927,8 +1938,15 @@ func (v *convertVisitor) VisitIdentifier(claim *document.IdentifierClaim) (docum
 	if errE != nil {
 		return document.Keep, errE
 	}
+	sub, errE := v.subContainer(claim.Sub)
+	if errE != nil {
+		return document.Keep, errE
+	}
+	for i := range claims {
+		claims[i].Sub = sub
+	}
 	v.result.Claims.Identifier = append(v.result.Claims.Identifier, claims...)
-	return document.Keep, v.appendNotReferenceSubClaims(claim.Prop.ID, claim.Sub, ParentToIdentifier)
+	return document.Keep, nil
 }
 
 // VisitString indexes the string as a nested string claim for structured per-property queries and
@@ -1946,8 +1964,15 @@ func (v *convertVisitor) VisitString(claim *document.StringClaim) (document.Visi
 	if errE != nil {
 		return document.Keep, errE
 	}
+	sub, errE := v.subContainer(claim.Sub)
+	if errE != nil {
+		return document.Keep, errE
+	}
+	for i := range claims {
+		claims[i].Sub = sub
+	}
 	v.result.Claims.String = append(v.result.Claims.String, claims...)
-	return document.Keep, v.appendNotReferenceSubClaims(claim.Prop.ID, claim.Sub, ParentToString)
+	return document.Keep, nil
 }
 
 // VisitHTML converts the claim's HTML to plain text in Go, indexes it as a nested html
@@ -1979,8 +2004,15 @@ func (v *convertVisitor) VisitHTML(claim *document.HTMLClaim) (document.VisitRes
 	if errE != nil {
 		return document.Keep, errE
 	}
+	sub, errE := v.subContainer(claim.Sub)
+	if errE != nil {
+		return document.Keep, errE
+	}
+	for i := range claims {
+		claims[i].Sub = sub
+	}
 	v.result.Claims.HTML = append(v.result.Claims.HTML, claims...)
-	return document.Keep, v.appendNotReferenceSubClaims(claim.Prop.ID, claim.Sub, ParentToHTML)
+	return document.Keep, nil
 }
 
 // VisitAmount converts an amount claim to search amount claims.
@@ -1992,22 +2024,39 @@ func (v *convertVisitor) VisitAmount(claim *document.AmountClaim) (document.Visi
 	if errE != nil {
 		return document.Keep, errE
 	}
+	sub, errE := v.subContainer(claim.Sub)
+	if errE != nil {
+		return document.Keep, errE
+	}
+	for i := range claims {
+		claims[i].Sub = sub
+	}
 	v.result.Claims.Amount = append(v.result.Claims.Amount, claims...)
-	return document.Keep, v.appendNotReferenceSubClaims(claim.Prop.ID, claim.Sub, ParentToAmount)
+	return document.Keep, nil
 }
 
-// VisitAmountInterval converts an amount interval claim to search amount claims.
+// VisitAmountInterval converts an amount interval claim to search amount claims (or, for the
+// degenerate all-unknown shape, an unknown rel record).
 func (v *convertVisitor) VisitAmountInterval(claim *document.AmountIntervalClaim) (document.VisitResult, errors.E) {
 	if claim.GetConfidence() < document.LowConfidence {
 		return document.Keep, nil
 	}
-	amountClaims, unknownClaims, subs, errE := v.converter.convertAmountInterval(v.ctx, claim)
+	amountClaims, unknownClaims, errE := v.converter.convertAmountInterval(v.ctx, claim)
 	if errE != nil {
 		return document.Keep, errE
 	}
+	sub, errE := v.subContainer(claim.Sub)
+	if errE != nil {
+		return document.Keep, errE
+	}
+	for i := range amountClaims {
+		amountClaims[i].Sub = sub
+	}
+	for i := range unknownClaims {
+		unknownClaims[i].Sub = sub
+	}
 	v.result.Claims.Amount = append(v.result.Claims.Amount, amountClaims...)
-	v.result.Claims.Unknown = append(v.result.Claims.Unknown, unknownClaims...)
-	v.appendSubClaims(subs)
+	v.result.Claims.Rel = append(v.result.Claims.Rel, unknownClaims...)
 	return document.Keep, nil
 }
 
@@ -2020,22 +2069,39 @@ func (v *convertVisitor) VisitTime(claim *document.TimeClaim) (document.VisitRes
 	if errE != nil {
 		return document.Keep, errE
 	}
+	sub, errE := v.subContainer(claim.Sub)
+	if errE != nil {
+		return document.Keep, errE
+	}
+	for i := range claims {
+		claims[i].Sub = sub
+	}
 	v.result.Claims.Time = append(v.result.Claims.Time, claims...)
-	return document.Keep, v.appendNotReferenceSubClaims(claim.Prop.ID, claim.Sub, ParentToTime)
+	return document.Keep, nil
 }
 
-// VisitTimeInterval converts a time interval claim to search time claims.
+// VisitTimeInterval converts a time interval claim to search time claims (or, for the degenerate
+// all-unknown shape, an unknown rel record).
 func (v *convertVisitor) VisitTimeInterval(claim *document.TimeIntervalClaim) (document.VisitResult, errors.E) {
 	if claim.GetConfidence() < document.LowConfidence {
 		return document.Keep, nil
 	}
-	timeClaims, unknownClaims, subs, errE := v.converter.convertTimeInterval(v.ctx, claim)
+	timeClaims, unknownClaims, errE := v.converter.convertTimeInterval(v.ctx, claim)
 	if errE != nil {
 		return document.Keep, errE
 	}
+	sub, errE := v.subContainer(claim.Sub)
+	if errE != nil {
+		return document.Keep, errE
+	}
+	for i := range timeClaims {
+		timeClaims[i].Sub = sub
+	}
+	for i := range unknownClaims {
+		unknownClaims[i].Sub = sub
+	}
 	v.result.Claims.Time = append(v.result.Claims.Time, timeClaims...)
-	v.result.Claims.Unknown = append(v.result.Claims.Unknown, unknownClaims...)
-	v.appendSubClaims(subs)
+	v.result.Claims.Rel = append(v.result.Claims.Rel, unknownClaims...)
 	return document.Keep, nil
 }
 
@@ -2051,88 +2117,95 @@ func (v *convertVisitor) VisitLink(claim *document.LinkClaim) (document.VisitRes
 	if errE != nil {
 		return document.Keep, errE
 	}
+	sub, errE := v.subContainer(claim.Sub)
+	if errE != nil {
+		return document.Keep, errE
+	}
+	for i := range claims {
+		claims[i].Sub = sub
+	}
 	v.result.Claims.Link = append(v.result.Claims.Link, claims...)
-	return document.Keep, v.appendNotReferenceSubClaims(claim.Prop.ID, claim.Sub, ParentToLink)
+	return document.Keep, nil
 }
 
-// VisitReference converts a reference claim to search reference claims.
+// VisitReference converts a reference claim to search ref rel records.
 func (v *convertVisitor) VisitReference(claim *document.ReferenceClaim) (document.VisitResult, errors.E) {
 	if claim.GetConfidence() < document.LowConfidence {
 		return document.Keep, nil
 	}
-	claims, subs, errE := v.converter.convertReference(v.ctx, claim)
+	claims, errE := v.converter.convertReference(v.ctx, claim)
 	if errE != nil {
 		return document.Keep, errE
 	}
-	v.result.Claims.Reference = append(v.result.Claims.Reference, claims...)
-	v.appendSubClaims(subs)
-
+	sub, errE := v.subContainer(claim.Sub)
+	if errE != nil {
+		return document.Keep, errE
+	}
+	for i := range claims {
+		claims[i].Sub = sub
+	}
+	v.result.Claims.Rel = append(v.result.Claims.Rel, claims...)
 	return document.Keep, nil
 }
 
-// VisitHas converts a has claim to search has claims.
+// VisitHas converts a has claim to search has rel records.
 func (v *convertVisitor) VisitHas(claim *document.HasClaim) (document.VisitResult, errors.E) {
 	if claim.GetConfidence() < document.LowConfidence {
 		return document.Keep, nil
 	}
-	claims, subs, errE := v.converter.convertHas(v.ctx, claim)
+	claims, errE := v.converter.relRecordsSimple(v.ctx, ClaimTypeHas, claim.Prop.ID)
 	if errE != nil {
 		return document.Keep, errE
 	}
-	v.result.Claims.Has = append(v.result.Claims.Has, claims...)
-	v.appendSubClaims(subs)
+	sub, errE := v.subContainer(claim.Sub)
+	if errE != nil {
+		return document.Keep, errE
+	}
+	for i := range claims {
+		claims[i].Sub = sub
+	}
+	v.result.Claims.Rel = append(v.result.Claims.Rel, claims...)
 	return document.Keep, nil
 }
 
-// VisitNone converts a none claim to search none claims.
+// VisitNone converts a none claim to search none rel records.
 func (v *convertVisitor) VisitNone(claim *document.NoneClaim) (document.VisitResult, errors.E) {
 	if claim.GetConfidence() < document.LowConfidence {
 		return document.Keep, nil
 	}
-	claims, subs, errE := v.converter.convertNone(v.ctx, claim)
+	claims, errE := v.converter.relRecordsSimple(v.ctx, ClaimTypeNone, claim.Prop.ID)
 	if errE != nil {
 		return document.Keep, errE
 	}
-	v.result.Claims.None = append(v.result.Claims.None, claims...)
-	v.appendSubClaims(subs)
+	sub, errE := v.subContainer(claim.Sub)
+	if errE != nil {
+		return document.Keep, errE
+	}
+	for i := range claims {
+		claims[i].Sub = sub
+	}
+	v.result.Claims.Rel = append(v.result.Claims.Rel, claims...)
 	return document.Keep, nil
 }
 
-// VisitUnknown converts an unknown claim to search unknown claims.
+// VisitUnknown converts an unknown claim to search unknown rel records.
 func (v *convertVisitor) VisitUnknown(claim *document.UnknownClaim) (document.VisitResult, errors.E) {
 	if claim.GetConfidence() < document.LowConfidence {
 		return document.Keep, nil
 	}
-	claims, subs, errE := v.converter.convertUnknown(v.ctx, claim)
+	claims, errE := v.converter.relRecordsSimple(v.ctx, ClaimTypeUnknown, claim.Prop.ID)
 	if errE != nil {
 		return document.Keep, errE
 	}
-	v.result.Claims.Unknown = append(v.result.Claims.Unknown, claims...)
-	v.appendSubClaims(subs)
-	return document.Keep, nil
-}
-
-// appendSubClaims appends every Sub* slice from subs into the matching
-// claims.sub* slice on the visitor's result document.
-func (v *convertVisitor) appendSubClaims(subs subClaims) {
-	v.result.Claims.SubRef = append(v.result.Claims.SubRef, subs.Refs...)
-	v.result.Claims.SubAmount = append(v.result.Claims.SubAmount, subs.Amounts...)
-	v.result.Claims.SubTime = append(v.result.Claims.SubTime, subs.Times...)
-	v.result.Claims.SubHas = append(v.result.Claims.SubHas, subs.Has...)
-}
-
-// appendNotReferenceSubClaims extracts the sub-claims of a not-a-reference claim
-// and appends them under the given parentTo sentinel.
-func (v *convertVisitor) appendNotReferenceSubClaims(propID identifier.Identifier, sub *document.ClaimTypes, parentTo string) errors.E {
-	if sub == nil {
-		return nil
-	}
-	subs, errE := v.converter.extractSubClaims(v.ctx, sub, v.converter.propagateProp(propID), parentTo)
+	sub, errE := v.subContainer(claim.Sub)
 	if errE != nil {
-		return errE
+		return document.Keep, errE
 	}
-	v.appendSubClaims(subs)
-	return nil
+	for i := range claims {
+		claims[i].Sub = sub
+	}
+	v.result.Claims.Rel = append(v.result.Claims.Rel, claims...)
+	return document.Keep, nil
 }
 
 // FromDocument converts a document.D to a search Document.
@@ -3250,7 +3323,7 @@ func (c *Converter) earliestDocumentTime(ctx context.Context, doc *document.D) (
 			consider(from)
 			consider(to)
 		case *document.TimeIntervalClaim:
-			times, _, _, errE := c.convertTimeInterval(ctx, cl)
+			times, _, errE := c.convertTimeInterval(ctx, cl)
 			if errE != nil {
 				return nil, errE
 			}
@@ -3276,12 +3349,12 @@ func (c *Converter) ReferencesCountIgnored(ctx context.Context, id identifier.Id
 	return info.IgnoredForReferencesCount, nil
 }
 
-// DocumentFullPaths returns the document's hierarchy paths in the same "<hierarchyProp>:<root>/.../<id>"
-// form that convertReference stamps onto a reference claim's toFullPath. A value reached through several
+// DocumentHierarchyPaths returns the document's full hierarchy paths in the indexed toPath form
+// ("<hierarchyProp>:<root>/.../<id>", ending with the document itself). A value reached through several
 // parents or several value hierarchies has more than one path; a value in no value hierarchy gets a single
-// self path ("__SELF__:<id>"). These are computed exactly as the stored toFullPath is, so they identify
-// every indexed record that expanded from this document as a stated (leaf) value.
-func (c *Converter) DocumentFullPaths(ctx context.Context, id identifier.Identifier) ([]string, errors.E) {
+// self path ("__SELF__:<id>"). An active reference filter resolves a selected value's ancestors from these
+// at query time, without an ElasticSearch aggregation.
+func (c *Converter) DocumentHierarchyPaths(ctx context.Context, id identifier.Identifier) ([]string, errors.E) {
 	info, errE := c.getDocumentInfo(ctx, id)
 	if errE != nil {
 		return nil, errE
@@ -3305,6 +3378,7 @@ func (c *Converter) convertIdentifier(ctx context.Context, claim *document.Ident
 			PropSortKey: propDisplay.Display,
 			PropNaming:  propDisplay.Naming,
 			Value:       claim.Value,
+			Sub:         nil,
 		})
 	}
 	return result, nil
@@ -3331,6 +3405,7 @@ func (c *Converter) convertString(ctx context.Context, claim *document.StringCla
 			PropSortKey: propDisplay.Display,
 			PropNaming:  propDisplay.Naming,
 			String:      str,
+			Sub:         nil,
 		})
 	}
 	return result, nil
@@ -3353,6 +3428,7 @@ func (c *Converter) convertHTML(ctx context.Context, claim *document.HTMLClaim, 
 			PropSortKey: propDisplay.Display,
 			PropNaming:  propDisplay.Naming,
 			HTML:        stripped,
+			Sub:         nil,
 		})
 	}
 	return result, nil
@@ -3373,6 +3449,7 @@ func (c *Converter) convertLink(ctx context.Context, claim *document.LinkClaim) 
 			PropSortKey: propDisplay.Display,
 			PropNaming:  propDisplay.Naming,
 			IRI:         claim.IRI,
+			Sub:         nil,
 		})
 	}
 	return result, nil
@@ -3435,6 +3512,7 @@ func (c *Converter) convertAmount(ctx context.Context, claim *document.AmountCla
 			FromDisplay: display,
 			To:          &to,
 			ToDisplay:   display,
+			Sub:         nil,
 		})
 	}
 	return result, nil
@@ -3443,16 +3521,16 @@ func (c *Converter) convertAmount(ctx context.Context, claim *document.AmountCla
 //nolint:cyclop
 func (c *Converter) convertAmountInterval(
 	ctx context.Context, claim *document.AmountIntervalClaim,
-) ([]AmountClaim, []UnknownClaim, subClaims, errors.E) {
+) ([]AmountClaim, []RelClaim, errors.E) {
 	if claim.From != nil && claim.FromPrecision == nil {
 		errE := errors.New("missing from precision in claim")
 		errors.Details(errE)["claim"] = claim
-		return nil, nil, subClaims{}, errE
+		return nil, nil, errE
 	}
 	if claim.To != nil && claim.ToPrecision == nil {
 		errE := errors.New("missing to precision in claim")
 		errors.Details(errE)["claim"] = claim
-		return nil, nil, subClaims{}, errE
+		return nil, nil, errE
 	}
 
 	// Swap directed-decreasing input to ascending order, before computing
@@ -3471,24 +3549,24 @@ func (c *Converter) convertAmountInterval(
 			fromValue, errE := workClaim.From.Float64(*workClaim.FromPrecision)
 			if errE != nil {
 				errors.Details(errE)["claim"] = claim
-				return nil, nil, subClaims{}, errE
+				return nil, nil, errE
 			}
 			toValue, errE := workClaim.To.Float64(*workClaim.ToPrecision)
 			if errE != nil {
 				errors.Details(errE)["claim"] = claim
-				return nil, nil, subClaims{}, errE
+				return nil, nil, errE
 			}
 			swap = fromValue > toValue
 		} else {
 			start, errE := workClaim.From.WindowStartFloat64(*workClaim.FromPrecision, workClaim.FromIsOpen)
 			if errE != nil {
 				errors.Details(errE)["claim"] = claim
-				return nil, nil, subClaims{}, errE
+				return nil, nil, errE
 			}
 			end, errE := workClaim.To.WindowEndFloat64(*workClaim.ToPrecision, workClaim.ToIsOpen)
 			if errE != nil {
 				errors.Details(errE)["claim"] = claim
-				return nil, nil, subClaims{}, errE
+				return nil, nil, errE
 			}
 			swap = start >= end
 		}
@@ -3514,7 +3592,7 @@ func (c *Converter) convertAmountInterval(
 		f, errE := workClaim.From.WindowStartFloat64(*workClaim.FromPrecision, workClaim.FromIsOpen)
 		if errE != nil {
 			errors.Details(errE)["claim"] = claim
-			return nil, nil, subClaims{}, errE
+			return nil, nil, errE
 		}
 		from = &f
 		fromDisplay = workClaim.From.String()
@@ -3536,16 +3614,13 @@ func (c *Converter) convertAmountInterval(
 		if errE != nil {
 			errors.Details(errE)["claim"] = claim
 		}
-		return claims, nil, subClaims{}, errE
+		return claims, nil, errE
 	default:
 		// Unknown From with Unknown or None To. We cannot do much here,
-		// so we convert it as an unknown claim. This also handles the case
+		// so we convert it as an unknown rel record. This also handles the case
 		// of invalid claims (e.g., an empty claim without anything set).
-		claims, subs, errE := c.convertUnknown(ctx, &document.UnknownClaim{
-			CoreClaim: workClaim.CoreClaim,
-			Prop:      workClaim.Prop,
-		})
-		return nil, claims, subs, errE
+		claims, errE := c.relRecordsSimple(ctx, ClaimTypeUnknown, workClaim.Prop.ID)
+		return nil, claims, errE
 	}
 
 	switch {
@@ -3555,7 +3630,7 @@ func (c *Converter) convertAmountInterval(
 		t, errE := workClaim.To.WindowEndFloat64(*workClaim.ToPrecision, workClaim.ToIsOpen)
 		if errE != nil {
 			errors.Details(errE)["claim"] = claim
-			return nil, nil, subClaims{}, errE
+			return nil, nil, errE
 		}
 		to = &t
 		toDisplay = workClaim.To.String()
@@ -3577,15 +3652,12 @@ func (c *Converter) convertAmountInterval(
 		if errE != nil {
 			errors.Details(errE)["claim"] = claim
 		}
-		return claims, nil, subClaims{}, errE
+		return claims, nil, errE
 	default:
 		// Unknown To with None From. We cannot do much here,
-		// so we convert it as an unknown claim.
-		claims, subs, errE := c.convertUnknown(ctx, &document.UnknownClaim{
-			CoreClaim: workClaim.CoreClaim,
-			Prop:      workClaim.Prop,
-		})
-		return nil, claims, subs, errE
+		// so we convert it as an unknown rel record.
+		claims, errE := c.relRecordsSimple(ctx, ClaimTypeUnknown, workClaim.Prop.ID)
+		return nil, claims, errE
 	}
 
 	// Sanity check. A single-point amount interval does not collapse: AmountIntervalClaim.Validate
@@ -3594,7 +3666,7 @@ func (c *Converter) convertAmountInterval(
 	errE := rangeFloat.Validate()
 	if errE != nil {
 		errors.Details(errE)["claim"] = claim
-		return nil, nil, subClaims{}, errE
+		return nil, nil, errE
 	}
 
 	// TODO: Normalize amounts of units of same measure to same base unit (e.g., cm and mm to m).
@@ -3605,7 +3677,7 @@ func (c *Converter) convertAmountInterval(
 		propDisplay, errE := c.getDisplayStrings(ctx, pid)
 		if errE != nil {
 			errors.Details(errE)["claim"] = claim
-			return nil, nil, subClaims{}, errE
+			return nil, nil, errE
 		}
 		result = append(result, AmountClaim{
 			Prop:        pid,
@@ -3618,9 +3690,10 @@ func (c *Converter) convertAmountInterval(
 			FromDisplay: fromDisplay,
 			To:          to,
 			ToDisplay:   toDisplay,
+			Sub:         nil,
 		})
 	}
-	return result, nil, subClaims{}, nil
+	return result, nil, nil
 }
 
 func (c *Converter) convertTime(ctx context.Context, claim *document.TimeClaim) ([]TimeClaim, errors.E) {
@@ -3670,22 +3743,23 @@ func (c *Converter) convertTime(ctx context.Context, claim *document.TimeClaim) 
 			FromDisplay: display,
 			To:          &to,
 			ToDisplay:   display,
+			Sub:         nil,
 		})
 	}
 	return result, nil
 }
 
 //nolint:cyclop
-func (c *Converter) convertTimeInterval(ctx context.Context, claim *document.TimeIntervalClaim) ([]TimeClaim, []UnknownClaim, subClaims, errors.E) {
+func (c *Converter) convertTimeInterval(ctx context.Context, claim *document.TimeIntervalClaim) ([]TimeClaim, []RelClaim, errors.E) {
 	if claim.From != nil && claim.FromPrecision == nil {
 		errE := errors.New("missing from precision in claim")
 		errors.Details(errE)["claim"] = claim
-		return nil, nil, subClaims{}, errE
+		return nil, nil, errE
 	}
 	if claim.To != nil && claim.ToPrecision == nil {
 		errE := errors.New("missing to precision in claim")
 		errors.Details(errE)["claim"] = claim
-		return nil, nil, subClaims{}, errE
+		return nil, nil, errE
 	}
 
 	// Swap directed-decreasing input to ascending order, before computing
@@ -3700,24 +3774,24 @@ func (c *Converter) convertTimeInterval(ctx context.Context, claim *document.Tim
 			fromValue, errE := workClaim.From.Float64(*workClaim.FromPrecision, nil)
 			if errE != nil {
 				errors.Details(errE)["claim"] = claim
-				return nil, nil, subClaims{}, errE
+				return nil, nil, errE
 			}
 			toValue, errE := workClaim.To.Float64(*workClaim.ToPrecision, nil)
 			if errE != nil {
 				errors.Details(errE)["claim"] = claim
-				return nil, nil, subClaims{}, errE
+				return nil, nil, errE
 			}
 			swap = fromValue > toValue
 		} else {
 			start, errE := workClaim.From.WindowStartFloat64(*workClaim.FromPrecision, workClaim.FromIsOpen)
 			if errE != nil {
 				errors.Details(errE)["claim"] = claim
-				return nil, nil, subClaims{}, errE
+				return nil, nil, errE
 			}
 			end, errE := workClaim.To.WindowEndFloat64(*workClaim.ToPrecision, workClaim.ToIsOpen)
 			if errE != nil {
 				errors.Details(errE)["claim"] = claim
-				return nil, nil, subClaims{}, errE
+				return nil, nil, errE
 			}
 			swap = start >= end
 		}
@@ -3743,7 +3817,7 @@ func (c *Converter) convertTimeInterval(ctx context.Context, claim *document.Tim
 		f, errE := workClaim.From.WindowStartFloat64(*workClaim.FromPrecision, workClaim.FromIsOpen)
 		if errE != nil {
 			errors.Details(errE)["claim"] = claim
-			return nil, nil, subClaims{}, errE
+			return nil, nil, errE
 		}
 		from = &f
 		fromDisplay = workClaim.From.String()
@@ -3765,16 +3839,13 @@ func (c *Converter) convertTimeInterval(ctx context.Context, claim *document.Tim
 		if errE != nil {
 			errors.Details(errE)["claim"] = claim
 		}
-		return claims, nil, subClaims{}, errE
+		return claims, nil, errE
 	default:
 		// Unknown From with Unknown or None To. We cannot do much here,
-		// so we convert it as an unknown claim. This also handles the case
+		// so we convert it as an unknown rel record. This also handles the case
 		// of invalid claims (e.g., an empty claim without anything set).
-		claims, subs, errE := c.convertUnknown(ctx, &document.UnknownClaim{
-			CoreClaim: workClaim.CoreClaim,
-			Prop:      workClaim.Prop,
-		})
-		return nil, claims, subs, errE
+		claims, errE := c.relRecordsSimple(ctx, ClaimTypeUnknown, workClaim.Prop.ID)
+		return nil, claims, errE
 	}
 
 	switch {
@@ -3784,7 +3855,7 @@ func (c *Converter) convertTimeInterval(ctx context.Context, claim *document.Tim
 		t, errE := workClaim.To.WindowEndFloat64(*workClaim.ToPrecision, workClaim.ToIsOpen)
 		if errE != nil {
 			errors.Details(errE)["claim"] = claim
-			return nil, nil, subClaims{}, errE
+			return nil, nil, errE
 		}
 		to = &t
 		toDisplay = workClaim.To.String()
@@ -3806,15 +3877,12 @@ func (c *Converter) convertTimeInterval(ctx context.Context, claim *document.Tim
 		if errE != nil {
 			errors.Details(errE)["claim"] = claim
 		}
-		return claims, nil, subClaims{}, errE
+		return claims, nil, errE
 	default:
 		// Unknown To with None From. We cannot do much here,
-		// so we convert it as an unknown claim.
-		claims, subs, errE := c.convertUnknown(ctx, &document.UnknownClaim{
-			CoreClaim: workClaim.CoreClaim,
-			Prop:      workClaim.Prop,
-		})
-		return nil, claims, subs, errE
+		// so we convert it as an unknown rel record.
+		claims, errE := c.relRecordsSimple(ctx, ClaimTypeUnknown, workClaim.Prop.ID)
+		return nil, claims, errE
 	}
 
 	// Sanity check. A single-point time interval does not collapse: windowEndFloat64 widens the precision
@@ -3823,7 +3891,7 @@ func (c *Converter) convertTimeInterval(ctx context.Context, claim *document.Tim
 	errE := rangeFloat.Validate()
 	if errE != nil {
 		errors.Details(errE)["claim"] = claim
-		return nil, nil, subClaims{}, errE
+		return nil, nil, errE
 	}
 
 	props := c.propagateProp(workClaim.Prop.ID)
@@ -3832,7 +3900,7 @@ func (c *Converter) convertTimeInterval(ctx context.Context, claim *document.Tim
 		propDisplay, errE := c.getDisplayStrings(ctx, pid)
 		if errE != nil {
 			errors.Details(errE)["claim"] = claim
-			return nil, nil, subClaims{}, errE
+			return nil, nil, errE
 		}
 		result = append(result, TimeClaim{
 			Prop:        pid,
@@ -3844,368 +3912,59 @@ func (c *Converter) convertTimeInterval(ctx context.Context, claim *document.Tim
 			FromDisplay: fromDisplay,
 			To:          to,
 			ToDisplay:   toDisplay,
+			Sub:         nil,
 		})
 	}
-	return result, nil, subClaims{}, nil
+	return result, nil, nil
 }
 
-// Sentinel values for sub-claim ParentTo when the parent claim is not a reference claim.
-const (
-	ParentToHas        = "__HAS__"
-	ParentToNone       = "__NONE__"
-	ParentToUnknown    = "__UNKNOWN__"
-	ParentToIdentifier = "__IDENTIFIER__"
-	ParentToString     = "__STRING__"
-	ParentToHTML       = "__HTML__"
-	ParentToAmount     = "__AMOUNT__"
-	ParentToTime       = "__TIME__"
-	ParentToLink       = "__LINK__"
-)
-
-// subClaims aggregates every per-document Sub* record produced by extracting
-// sub-claims from a parent claim's sub-tree.
-type subClaims struct {
-	Refs    []SubRefClaim
-	Amounts []SubAmountClaim
-	Times   []SubTimeClaim
-	Has     []SubHasClaim
-}
-
-func (s *subClaims) append(other subClaims) {
-	s.Refs = append(s.Refs, other.Refs...)
-	s.Amounts = append(s.Amounts, other.Amounts...)
-	s.Times = append(s.Times, other.Times...)
-	s.Has = append(s.Has, other.Has...)
-}
-
-// extractSubClaims walks a parent claim's sub-tree and produces every Sub*
-// record (reference, amount, time, has) keyed by the given parentProps and
-// parentTo. Each parent prop in parentProps yields its own copy of the
-// records, mirroring the property propagation behaviour the parent claim
-// already applied.
-func (c *Converter) extractSubClaims(
-	ctx context.Context, sub *document.ClaimTypes, parentProps []identifier.Identifier, parentTo string,
-) (subClaims, errors.E) {
-	var result subClaims
-	refs, errE := c.convertSubRefs(ctx, sub, parentProps, parentTo)
-	if errE != nil {
-		return subClaims{}, errE
-	}
-	result.Refs = refs
-	amounts, errE := c.convertSubAmounts(ctx, sub, parentProps, parentTo)
-	if errE != nil {
-		return subClaims{}, errE
-	}
-	result.Amounts = amounts
-	times, errE := c.convertSubTimes(ctx, sub, parentProps, parentTo)
-	if errE != nil {
-		return subClaims{}, errE
-	}
-	result.Times = times
-	has, errE := c.convertSubHas(ctx, sub, parentProps, parentTo)
-	if errE != nil {
-		return subClaims{}, errE
-	}
-	result.Has = has
-	return result, nil
-}
-
-// convertSubRefs extracts reference sub-claims from a claim's sub-claims and produces SubRefClaim
-// entries for each (parentProp, parentTo, subRef) combination. The sub-reference property is propagated
-// to its super-properties (when IndexAncestorProperties is set) and the sub-value is expanded across its
-// value hierarchies, the same way convertReference propagates top-level reference properties and expands
-// their targets: one record per (propagated property x stated value or ancestor), so a sub-reference
-// filter can count and select against ancestor properties and ancestor values too.
-func (c *Converter) convertSubRefs(
-	ctx context.Context, sub *document.ClaimTypes, parentProps []identifier.Identifier, parentTo string,
-) ([]SubRefClaim, errors.E) {
-	subRelations := document.GetAllClaimsOfTypeWithConfidence[document.ReferenceClaim](sub, document.LowConfidence)
-	if len(subRelations) == 0 {
-		return nil, nil
-	}
-
-	// Pre-resolve display strings and hierarchy paths for each sub-relation, expanding it across its
-	// propagated properties and its value hierarchies into one resolved entry per (property, stated
-	// value or ancestor).
-	type resolvedSubRef struct {
-		Prop          identifier.Identifier
-		PropDisplay   map[string]string
-		PropNaming    map[string][]string
-		PropSortKey   map[string]string
-		To            identifier.Identifier
-		ToDisplay     map[string]string
-		ToNaming      map[string][]string
-		ToSortKey     map[string]string
-		ToPath        []string
-		ToFullPath    []string
-		ToParent      []string
-		ToDisplayPath map[string][]string
-		ToPathSortKey map[string][]string
-	}
-	resolved := make([]resolvedSubRef, 0, len(subRelations))
-	for _, mr := range subRelations {
-		mrToInfo, errE := c.getDocumentInfo(ctx, mr.To.ID)
+// relRecordsSimple builds the has, none, or unknown rel records for a claim about propID: one
+// record per propagated property, carrying the given claimType discriminator and the property
+// labels. The To* fields stay unset: these claim types have no target.
+func (c *Converter) relRecordsSimple(ctx context.Context, claimType string, propID identifier.Identifier) ([]RelClaim, errors.E) {
+	props := c.propagateProp(propID)
+	result := make([]RelClaim, 0, len(props))
+	for _, pid := range props {
+		propDisplay, errE := c.getDisplayStrings(ctx, pid)
 		if errE != nil {
 			return nil, errE
 		}
-
-		// fullPath is the stated sub-value's own (leaf) hierarchy path, stamped onto every record this
-		// sub-value expands into (the value itself and each of its ancestors). A flat sub-value gets a self path.
-		fullPath, _, _ := mrToInfo.HierarchyPathsOrSelf(mr.To.ID)
-
-		// targets is the stated sub-value plus its ancestors from all value hierarchies.
-		targets := []identifier.Identifier{mr.To.ID}
-		seen := map[identifier.Identifier]bool{mr.To.ID: true}
-		for _, ancestors := range mrToInfo.Ancestors {
-			for _, aid := range ancestors {
-				if !seen[aid] {
-					seen[aid] = true
-					targets = append(targets, aid)
-				}
-			}
-		}
-
-		// The sub-reference property is propagated to its super-properties when IndexAncestorProperties
-		// is set; otherwise propagateProp returns only the stated property.
-		for _, pid := range c.propagateProp(mr.Prop.ID) {
-			propDisplay, errE := c.getDisplayStrings(ctx, pid)
-			if errE != nil {
-				return nil, errE
-			}
-			for _, tid := range targets {
-				tidInfo := mrToInfo
-				if tid != mr.To.ID {
-					// Ancestors were already computed during the hierarchy walk, so this hits cache.
-					tidInfo, errE = c.getDocumentInfo(ctx, tid)
-					if errE != nil {
-						return nil, errE
-					}
-				}
-				toPath, toDisplayPath, toPathSortKey := tidInfo.HierarchyPathsOrSelf(tid)
-				resolved = append(resolved, resolvedSubRef{
-					Prop:          pid,
-					PropDisplay:   propDisplay.Display,
-					PropSortKey:   propDisplay.Display,
-					PropNaming:    propDisplay.Naming,
-					To:            tid,
-					ToDisplay:     tidInfo.Display.Display,
-					ToSortKey:     tidInfo.Display.Display,
-					ToNaming:      tidInfo.Display.Naming,
-					ToPath:        toPath,
-					ToFullPath:    fullPath,
-					ToParent:      immediateParents(toPath),
-					ToDisplayPath: toDisplayPath,
-					ToPathSortKey: toPathSortKey,
-				})
-			}
-		}
-	}
-
-	// Cross product of parentProps x resolved sub-refs.
-	parentDisplays, errE := c.resolveParentPropDisplays(ctx, parentProps)
-	if errE != nil {
-		return nil, errE
-	}
-	result := make([]SubRefClaim, 0, len(parentProps)*len(resolved))
-	for _, pp := range parentProps {
-		for _, r := range resolved {
-			result = append(result, SubRefClaim{
-				ParentProp:        pp,
-				ParentPropDisplay: parentDisplays[pp].Display,
-				ParentPropNaming:  parentDisplays[pp].Naming,
-				ParentTo:          parentTo,
-				ReferenceClaim: ReferenceClaim{
-					Prop:          r.Prop,
-					PropDisplay:   r.PropDisplay,
-					PropSortKey:   r.PropSortKey,
-					PropNaming:    r.PropNaming,
-					To:            r.To,
-					ToDisplay:     r.ToDisplay,
-					ToSortKey:     r.ToSortKey,
-					ToNaming:      r.ToNaming,
-					ToPath:        r.ToPath,
-					ToFullPath:    r.ToFullPath,
-					ToParent:      r.ToParent,
-					ToDisplayPath: r.ToDisplayPath,
-					ToPathSortKey: r.ToPathSortKey,
-					// Set by markReferenceLeaves once all of the document's sub-ref claims are collected.
-					IsLeaf: false,
-				},
-			})
-		}
-	}
-
-	return result, nil
-}
-
-// buildSubValueClaims denormalizes a parent claim's single-point and interval value sub-claims of one
-// kind (amounts or times) into Sub* records. points and intervals are the parent's already-collected
-// source claims, convertPoint and convertInterval index each source shape into the shared Indexed value
-// type, and wrap attaches a parentProp and parentTo to one indexed value. It returns nil when nothing is
-// indexed.
-func buildSubValueClaims[Point, Interval, Indexed, Out any](
-	ctx context.Context,
-	parentProps []identifier.Identifier,
-	parentTo string,
-	points []*Point,
-	intervals []*Interval,
-	convertPoint func(context.Context, *Point) ([]Indexed, errors.E),
-	convertInterval func(context.Context, *Interval) ([]Indexed, errors.E),
-	wrap func(parentProp identifier.Identifier, parentTo string, value Indexed) Out,
-) ([]Out, errors.E) {
-	var indexed []Indexed
-	for _, p := range points {
-		ic, errE := convertPoint(ctx, p)
-		if errE != nil {
-			return nil, errE
-		}
-		indexed = append(indexed, ic...)
-	}
-	for _, iv := range intervals {
-		ic, errE := convertInterval(ctx, iv)
-		if errE != nil {
-			return nil, errE
-		}
-		indexed = append(indexed, ic...)
-	}
-	if len(indexed) == 0 {
-		return nil, nil
-	}
-
-	result := make([]Out, 0, len(parentProps)*len(indexed))
-	for _, pp := range parentProps {
-		for _, v := range indexed {
-			result = append(result, wrap(pp, parentTo, v))
-		}
+		result = append(result, RelClaim{
+			ClaimType:     claimType,
+			Prop:          pid,
+			PropDisplay:   propDisplay.Display,
+			PropSortKey:   propDisplay.Display,
+			PropNaming:    propDisplay.Naming,
+			To:            nil,
+			ToDisplay:     nil,
+			ToNaming:      nil,
+			ToSortKey:     nil,
+			ToPath:        nil,
+			ToParent:      nil,
+			ToDisplayPath: nil,
+			ToPathSortKey: nil,
+			IsLeaf:        false,
+			Sub:           nil,
+		})
 	}
 	return result, nil
 }
 
-// convertSubAmounts extracts amount and amount-interval sub-claims from a parent claim's sub-tree and
-// produces SubAmountClaim entries for each (parentProp, parentTo, sub-claim) combination. Source claims
-// are passed through convertAmount/convertAmountInterval so single-point and interval values use the same
-// indexed range shape as the top-level amounts.
-func (c *Converter) convertSubAmounts( //nolint:dupl
-	ctx context.Context, sub *document.ClaimTypes, parentProps []identifier.Identifier, parentTo string,
-) ([]SubAmountClaim, errors.E) {
-	parentDisplays, errE := c.resolveParentPropDisplays(ctx, parentProps)
-	if errE != nil {
-		return nil, errE
-	}
-	return buildSubValueClaims(
-		ctx, parentProps, parentTo,
-		document.GetAllClaimsOfTypeWithConfidence[document.AmountClaim](sub, document.LowConfidence),
-		document.GetAllClaimsOfTypeWithConfidence[document.AmountIntervalClaim](sub, document.LowConfidence),
-		c.convertAmount,
-		func(ctx context.Context, aic *document.AmountIntervalClaim) ([]AmountClaim, errors.E) {
-			// Sub-claims do not carry the fallback UnknownClaim or nested sub-claims that convertAmountInterval also returns.
-			ic, _, _, errE := c.convertAmountInterval(ctx, aic)
-			return ic, errE
-		},
-		func(pp identifier.Identifier, parentTo string, a AmountClaim) SubAmountClaim {
-			return SubAmountClaim{
-				ParentProp: pp, ParentPropDisplay: parentDisplays[pp].Display, ParentPropNaming: parentDisplays[pp].Naming,
-				ParentTo: parentTo, AmountClaim: a,
-			}
-		},
-	)
-}
-
-// convertSubTimes extracts time and time-interval sub-claims from a parent claim's sub-tree and produces
-// SubTimeClaim entries for each (parentProp, parentTo, sub-claim) combination. Source claims are passed
-// through convertTime/convertTimeInterval for the same single-point-or-interval range mapping the
-// top-level times use.
-func (c *Converter) convertSubTimes( //nolint:dupl
-	ctx context.Context, sub *document.ClaimTypes, parentProps []identifier.Identifier, parentTo string,
-) ([]SubTimeClaim, errors.E) {
-	parentDisplays, errE := c.resolveParentPropDisplays(ctx, parentProps)
-	if errE != nil {
-		return nil, errE
-	}
-	return buildSubValueClaims(
-		ctx, parentProps, parentTo,
-		document.GetAllClaimsOfTypeWithConfidence[document.TimeClaim](sub, document.LowConfidence),
-		document.GetAllClaimsOfTypeWithConfidence[document.TimeIntervalClaim](sub, document.LowConfidence),
-		c.convertTime,
-		func(ctx context.Context, tic *document.TimeIntervalClaim) ([]TimeClaim, errors.E) {
-			ic, _, _, errE := c.convertTimeInterval(ctx, tic)
-			return ic, errE
-		},
-		func(pp identifier.Identifier, parentTo string, t TimeClaim) SubTimeClaim {
-			return SubTimeClaim{
-				ParentProp: pp, ParentPropDisplay: parentDisplays[pp].Display, ParentPropNaming: parentDisplays[pp].Naming,
-				ParentTo: parentTo, TimeClaim: t,
-			}
-		},
-	)
-}
-
-// convertSubHas extracts simple has sub-claims (those with no further
-// sub-claims) from a parent claim's sub-tree and produces SubHasClaim entries
-// for each (parentProp, parentTo, hasProp) combination. Has sub-claims that
-// have their own sub-claims contribute to the Sub* records of their content
-// types but do not themselves appear here.
-func (c *Converter) convertSubHas(
-	ctx context.Context, sub *document.ClaimTypes, parentProps []identifier.Identifier, parentTo string,
-) ([]SubHasClaim, errors.E) {
-	subHas := document.GetAllClaimsOfTypeWithConfidence[document.HasClaim](sub, document.LowConfidence)
-	if len(subHas) == 0 {
-		return nil, nil
-	}
-
-	resolved := make([]HasClaim, 0, len(subHas))
-	for _, hc := range subHas {
-		if hc.Sub != nil && hc.Sub.Size() > 0 {
-			continue
-		}
-		for _, pid := range c.propagateProp(hc.Prop.ID) {
-			propDisplay, errE := c.getDisplayStrings(ctx, pid)
-			if errE != nil {
-				return nil, errE
-			}
-			resolved = append(resolved, HasClaim{
-				Prop:        pid,
-				PropDisplay: propDisplay.Display,
-				PropSortKey: propDisplay.Display,
-				PropNaming:  propDisplay.Naming,
-			})
-		}
-	}
-	if len(resolved) == 0 {
-		return nil, nil
-	}
-
-	parentDisplays, errE := c.resolveParentPropDisplays(ctx, parentProps)
-	if errE != nil {
-		return nil, errE
-	}
-	result := make([]SubHasClaim, 0, len(parentProps)*len(resolved))
-	for _, pp := range parentProps {
-		for _, r := range resolved {
-			result = append(result, SubHasClaim{
-				ParentProp:        pp,
-				ParentPropDisplay: parentDisplays[pp].Display,
-				ParentPropNaming:  parentDisplays[pp].Naming,
-				ParentTo:          parentTo,
-				HasClaim:          r,
-			})
-		}
-	}
-	return result, nil
-}
-
-func (c *Converter) convertReference(ctx context.Context, claim *document.ReferenceClaim) ([]ReferenceClaim, subClaims, errors.E) {
-	// Cross product of propagated properties x (target + value hierarchy ancestors).
-	props := c.propagateProp(claim.Prop.ID)
+// relRecordsForRef builds the ref rel records for a reference from propID to targetID: the cross
+// product of the propagated properties (when IndexAncestorProperties is set) and the target plus
+// its value-hierarchy ancestors, so a reference filter can count and select against ancestor
+// properties and ancestor values too. Hierarchy paths, sort keys, and immediate parents are
+// resolved per expanded target.
+func (c *Converter) relRecordsForRef(ctx context.Context, propID, targetID identifier.Identifier) ([]RelClaim, errors.E) {
+	props := c.propagateProp(propID)
 
 	// Compute target IDs: the target itself plus ancestors from all value hierarchies.
-	targetInfo, errE := c.getDocumentInfo(ctx, claim.To.ID)
+	targetInfo, errE := c.getDocumentInfo(ctx, targetID)
 	if errE != nil {
-		errors.Details(errE)["claim"] = claim
-		return nil, subClaims{}, errE
+		return nil, errE
 	}
-	targets := []identifier.Identifier{claim.To.ID}
-	seen := map[identifier.Identifier]bool{claim.To.ID: true}
+	targets := []identifier.Identifier{targetID}
+	seen := map[identifier.Identifier]bool{targetID: true}
 	for _, ancestors := range targetInfo.Ancestors {
 		for _, aid := range ancestors {
 			if !seen[aid] {
@@ -4215,150 +3974,178 @@ func (c *Converter) convertReference(ctx context.Context, claim *document.Refere
 		}
 	}
 
-	// fullPath is the original (leaf) target's hierarchy path. It is stamped onto every record this
-	// claim expands into (the target and each of its ancestors), so a prefilter can identify and drop
-	// all records derived from a given leaf value. A flat target (in no hierarchy) gets a self path.
-	fullPath, _, _ := targetInfo.HierarchyPathsOrSelf(claim.To.ID)
-
-	result := make([]ReferenceClaim, 0, len(props)*len(targets))
+	result := make([]RelClaim, 0, len(props)*len(targets))
 	for _, pid := range props {
 		propDisplay, errE := c.getDisplayStrings(ctx, pid)
 		if errE != nil {
-			errors.Details(errE)["claim"] = claim
-			return nil, subClaims{}, errE
+			return nil, errE
 		}
 		for _, tid := range targets {
 			var tidInfo documentInfo
-			if tid == claim.To.ID {
+			if tid == targetID {
 				tidInfo = targetInfo
 			} else {
 				// Ancestors were already computed during the hierarchy walk, so this hits cache.
 				tidInfo, errE = c.getDocumentInfo(ctx, tid)
 				if errE != nil {
-					errors.Details(errE)["claim"] = claim
-					return nil, subClaims{}, errE
+					return nil, errE
 				}
 			}
 			// Collect hierarchy paths across all value hierarchy types, or a self path for a flat value.
 			toPath, toDisplayPath, toPathSortKey := tidInfo.HierarchyPathsOrSelf(tid)
-			result = append(result, ReferenceClaim{
+			result = append(result, RelClaim{
+				ClaimType:     ClaimTypeRef,
 				Prop:          pid,
 				PropDisplay:   propDisplay.Display,
 				PropSortKey:   propDisplay.Display,
 				PropNaming:    propDisplay.Naming,
-				To:            tid,
+				To:            &tid,
 				ToDisplay:     tidInfo.Display.Display,
 				ToSortKey:     tidInfo.Display.Display,
 				ToNaming:      tidInfo.Display.Naming,
 				ToPath:        toPath,
-				ToFullPath:    fullPath,
 				ToParent:      immediateParents(toPath),
 				ToDisplayPath: toDisplayPath,
 				ToPathSortKey: toPathSortKey,
-				// Set by markReferenceLeaves once all of the document's reference claims are collected.
+				// Set by markReferenceLeaves once all of the scope's ref records are collected.
 				IsLeaf: false,
+				Sub:    nil,
 			})
 		}
 	}
+	return result, nil
+}
 
-	// Generate Sub* entries for each (expandedProp, expandedTarget) x sub-claim combination.
-	var allSubs subClaims
-	for _, pid := range props {
-		for _, tid := range targets {
-			subs, errE := c.extractSubClaims(ctx, claim.Sub, []identifier.Identifier{pid}, tid.String())
-			if errE != nil {
-				errors.Details(errE)["claim"] = claim
-				return nil, subClaims{}, errE
+// convertReference builds the ref rel records for a reference claim.
+func (c *Converter) convertReference(ctx context.Context, claim *document.ReferenceClaim) ([]RelClaim, errors.E) {
+	result, errE := c.relRecordsForRef(ctx, claim.Prop.ID, claim.To.ID)
+	if errE != nil {
+		errors.Details(errE)["claim"] = claim
+		return nil, errE
+	}
+	return result, nil
+}
+
+// convertSubClaimTypes converts a claim's direct sub-claims into a Sub container, running each
+// sub-claim through the same per-type conversion its top-level counterpart uses: ref sub-claims
+// expand across propagated properties and value hierarchies, interval values map to ranges (with
+// the degenerate all-unknown shape becoming an unknown rel record), and textual sub-claims resolve
+// their languages from their own IN_LANGUAGE sub-claims. Records inside the container carry no Sub
+// of their own: the mapping indexes a single sub level, so sub-claims of sub-claims are not indexed
+// (they still count toward counts.claims and the document time). It returns nil when there is
+// nothing to index.
+func (c *Converter) convertSubClaimTypes(ctx context.Context, sub *document.ClaimTypes) (*ClaimTypes, errors.E) { //nolint:cyclop
+	if sub == nil {
+		return nil, nil //nolint:nilnil
+	}
+	out := &ClaimTypes{}
+
+	for _, mr := range document.GetAllClaimsOfTypeWithConfidence[document.ReferenceClaim](sub, document.LowConfidence) {
+		recs, errE := c.relRecordsForRef(ctx, mr.Prop.ID, mr.To.ID)
+		if errE != nil {
+			errors.Details(errE)["claim"] = mr
+			return nil, errE
+		}
+		out.Rel = append(out.Rel, recs...)
+	}
+	for _, hc := range document.GetAllClaimsOfTypeWithConfidence[document.HasClaim](sub, document.LowConfidence) {
+		recs, errE := c.relRecordsSimple(ctx, ClaimTypeHas, hc.Prop.ID)
+		if errE != nil {
+			errors.Details(errE)["claim"] = hc
+			return nil, errE
+		}
+		out.Rel = append(out.Rel, recs...)
+	}
+	for _, nc := range document.GetAllClaimsOfTypeWithConfidence[document.NoneClaim](sub, document.LowConfidence) {
+		recs, errE := c.relRecordsSimple(ctx, ClaimTypeNone, nc.Prop.ID)
+		if errE != nil {
+			errors.Details(errE)["claim"] = nc
+			return nil, errE
+		}
+		out.Rel = append(out.Rel, recs...)
+	}
+	for _, uc := range document.GetAllClaimsOfTypeWithConfidence[document.UnknownClaim](sub, document.LowConfidence) {
+		recs, errE := c.relRecordsSimple(ctx, ClaimTypeUnknown, uc.Prop.ID)
+		if errE != nil {
+			errors.Details(errE)["claim"] = uc
+			return nil, errE
+		}
+		out.Rel = append(out.Rel, recs...)
+	}
+	for _, ac := range document.GetAllClaimsOfTypeWithConfidence[document.AmountClaim](sub, document.LowConfidence) {
+		recs, errE := c.convertAmount(ctx, ac)
+		if errE != nil {
+			return nil, errE
+		}
+		out.Amount = append(out.Amount, recs...)
+	}
+	for _, aic := range document.GetAllClaimsOfTypeWithConfidence[document.AmountIntervalClaim](sub, document.LowConfidence) {
+		amounts, unknowns, errE := c.convertAmountInterval(ctx, aic)
+		if errE != nil {
+			return nil, errE
+		}
+		out.Amount = append(out.Amount, amounts...)
+		out.Rel = append(out.Rel, unknowns...)
+	}
+	for _, tc := range document.GetAllClaimsOfTypeWithConfidence[document.TimeClaim](sub, document.LowConfidence) {
+		recs, errE := c.convertTime(ctx, tc)
+		if errE != nil {
+			return nil, errE
+		}
+		out.Time = append(out.Time, recs...)
+	}
+	for _, tic := range document.GetAllClaimsOfTypeWithConfidence[document.TimeIntervalClaim](sub, document.LowConfidence) {
+		times, unknowns, errE := c.convertTimeInterval(ctx, tic)
+		if errE != nil {
+			return nil, errE
+		}
+		out.Time = append(out.Time, times...)
+		out.Rel = append(out.Rel, unknowns...)
+	}
+	for _, ic := range document.GetAllClaimsOfTypeWithConfidence[document.IdentifierClaim](sub, document.LowConfidence) {
+		recs, errE := c.convertIdentifier(ctx, ic)
+		if errE != nil {
+			return nil, errE
+		}
+		out.Identifier = append(out.Identifier, recs...)
+	}
+	for _, sc := range document.GetAllClaimsOfTypeWithConfidence[document.StringClaim](sub, document.LowConfidence) {
+		langs := c.textLanguages(sc.Sub, sc.String)
+		recs, errE := c.convertString(ctx, sc, langs)
+		if errE != nil {
+			return nil, errE
+		}
+		out.String = append(out.String, recs...)
+	}
+	for _, hc := range document.GetAllClaimsOfTypeWithConfidence[document.HTMLClaim](sub, document.LowConfidence) {
+		doc, errE := document.ParseHTML(hc.HTML)
+		if errE != nil {
+			errors.Details(errE)["claim"] = hc
+			return nil, errE
+		}
+		langs := c.textLanguages(hc.Sub, stripDoc(doc, document.UndeterminedLanguage))
+		stripped := make(map[string]string, len(langs))
+		for _, lang := range langs {
+			if s := stripDoc(doc, lang); s != "" {
+				stripped[lang] = s
 			}
-			allSubs.append(subs)
 		}
-	}
-
-	return result, allSubs, nil
-}
-
-func (c *Converter) convertHas(ctx context.Context, claim *document.HasClaim) ([]HasClaim, subClaims, errors.E) {
-	props := c.propagateProp(claim.Prop.ID)
-
-	subs, errE := c.extractSubClaims(ctx, claim.Sub, props, ParentToHas)
-	if errE != nil {
-		errors.Details(errE)["claim"] = claim
-		return nil, subClaims{}, errE
-	}
-
-	// A has claim that carries any sub-claims is not indexed in claims.has;
-	// its content is already reachable through the Sub* records produced
-	// above with ParentTo=ParentToHas. The has filter that queries claims.has
-	// therefore naturally sees only simple has claims.
-	if claim.Sub != nil && claim.Sub.Size() > 0 {
-		return nil, subs, nil
-	}
-
-	result := make([]HasClaim, 0, len(props))
-	for _, pid := range props {
-		propDisplay, errE := c.getDisplayStrings(ctx, pid)
+		recs, errE := c.convertHTML(ctx, hc, stripped)
 		if errE != nil {
-			errors.Details(errE)["claim"] = claim
-			return nil, subClaims{}, errE
+			return nil, errE
 		}
-		result = append(result, HasClaim{
-			Prop:        pid,
-			PropDisplay: propDisplay.Display,
-			PropSortKey: propDisplay.Display,
-			PropNaming:  propDisplay.Naming,
-		})
+		out.HTML = append(out.HTML, recs...)
 	}
-	return result, subs, nil
-}
-
-func (c *Converter) convertNone(ctx context.Context, claim *document.NoneClaim) ([]NoneClaim, subClaims, errors.E) {
-	props := c.propagateProp(claim.Prop.ID)
-
-	subs, errE := c.extractSubClaims(ctx, claim.Sub, props, ParentToNone)
-	if errE != nil {
-		errors.Details(errE)["claim"] = claim
-		return nil, subClaims{}, errE
-	}
-
-	result := make([]NoneClaim, 0, len(props))
-	for _, pid := range props {
-		propDisplay, errE := c.getDisplayStrings(ctx, pid)
+	for _, lc := range document.GetAllClaimsOfTypeWithConfidence[document.LinkClaim](sub, document.LowConfidence) {
+		recs, errE := c.convertLink(ctx, lc)
 		if errE != nil {
-			errors.Details(errE)["claim"] = claim
-			return nil, subClaims{}, errE
+			return nil, errE
 		}
-		result = append(result, NoneClaim{
-			Prop:        pid,
-			PropDisplay: propDisplay.Display,
-			PropSortKey: propDisplay.Display,
-			PropNaming:  propDisplay.Naming,
-		})
-	}
-	return result, subs, nil
-}
-
-func (c *Converter) convertUnknown(ctx context.Context, claim *document.UnknownClaim) ([]UnknownClaim, subClaims, errors.E) {
-	props := c.propagateProp(claim.Prop.ID)
-
-	subs, errE := c.extractSubClaims(ctx, claim.Sub, props, ParentToUnknown)
-	if errE != nil {
-		errors.Details(errE)["claim"] = claim
-		return nil, subClaims{}, errE
+		out.Link = append(out.Link, recs...)
 	}
 
-	result := make([]UnknownClaim, 0, len(props))
-	for _, pid := range props {
-		propDisplay, errE := c.getDisplayStrings(ctx, pid)
-		if errE != nil {
-			errors.Details(errE)["claim"] = claim
-			return nil, subClaims{}, errE
-		}
-		result = append(result, UnknownClaim{
-			Prop:        pid,
-			PropDisplay: propDisplay.Display,
-			PropSortKey: propDisplay.Display,
-			PropNaming:  propDisplay.Naming,
-		})
+	if out.Size() == 0 {
+		return nil, nil //nolint:nilnil
 	}
-	return result, subs, nil
+	return out, nil
 }

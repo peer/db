@@ -84,56 +84,70 @@ func refreshIndex(t *testing.T, ctx context.Context, esClient *elasticsearch.Typ
 	testutils.RequireNoESError(t, err)
 }
 
-// indexAmountDoc indexes a document carrying a single point-amount claim of the given
-// value with precision 1 under amountProp with unitID. It mirrors what convertAmount
-// produces: the endpoints are the edges of the symmetric precision window
-// [value-0.5, value+0.5) and the indexed range upper bound is exclusive.
-func indexAmountDoc(t *testing.T, ctx context.Context, esClient *elasticsearch.TypedClient, index, id string, amountProp, unitID identifier.Identifier, value *float64) { //nolint:revive,lll
-	t.Helper()
-
-	from := *value - 0.5
-	to := *value + 0.5
-	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		DisplaySort: nil,
+// claimsDoc builds a Document with the given ID and claims and nothing else.
+func claimsDoc(id string, claims internalSearch.ClaimTypes) internalSearch.Document {
+	return internalSearch.Document{
 		ID:          identifier.From(id),
 		Display:     nil,
+		DisplaySort: nil,
 		Text:        nil,
 		Time:        nil,
 		LastUpdated: nil,
 		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
-		Claims: internalSearch.ClaimTypes{
-			Identifier: nil,
-			String:     nil,
-			HTML:       nil,
-			Amount: internalSearch.AmountClaims{{
-				Prop: amountProp, PropDisplay: nil, PropNaming: nil, PropSortKey: nil, Unit: &unitID,
-				Range: internalSearch.RangeFloat{
-					GreaterThan: nil, GreaterThanOrEqual: &from, LessThan: &to, LessThanOrEqual: nil,
-				},
-				From: &from, FromDisplay: "", To: &to, ToDisplay: "",
-			}},
-			Time:      nil,
-			Link:      nil,
-			Reference: nil,
-			Has:       nil,
-			None:      nil,
-			Unknown:   nil,
-			SubRef:    nil,
-			SubAmount: nil,
-			SubTime:   nil,
-			SubHas:    nil,
-		},
-	})
+		Claims:      claims,
+	}
 }
 
-// indexAmountIntervalDoc indexes a document carrying a single interval amount claim under
-// amountProp with the given unit (possibly nil), with optionally open endpoints, mirroring
-// how the converter indexes them: from and to are window edges with from indexed as the
-// inclusive range lower bound and to as the exclusive range upper bound, while an open
-// (none) endpoint leaves its field absent and uses a MaxFloat64 sentinel range bound instead.
-func indexAmountIntervalDoc(t *testing.T, ctx context.Context, esClient *elasticsearch.TypedClient, index, id string, amountProp identifier.Identifier, unit *identifier.Identifier, from, to *float64) { //nolint:revive,lll
-	t.Helper()
+// refRecord builds a ref rel record for prop pointing at to, with a self hierarchy path and
+// IsLeaf true, matching what the converter produces for a flat (no hierarchy) target. sub is the
+// record's Sub container (nil for none).
+func refRecord(prop, to identifier.Identifier, sub *internalSearch.ClaimTypes) internalSearch.RelClaim {
+	target := to
+	return internalSearch.RelClaim{
+		ClaimType:     internalSearch.ClaimTypeRef,
+		Prop:          prop,
+		PropDisplay:   nil,
+		PropNaming:    nil,
+		PropSortKey:   nil,
+		To:            &target,
+		ToDisplay:     nil,
+		ToNaming:      nil,
+		ToSortKey:     nil,
+		ToPath:        []string{internalSearch.SelfHierarchyPathPrefix + to.String()},
+		ToParent:      nil,
+		ToDisplayPath: nil,
+		ToPathSortKey: nil,
+		IsLeaf:        true,
+		Sub:           sub,
+	}
+}
 
+// simpleRelRecord builds a has, none, or unknown rel record for prop, with the given Sub container.
+func simpleRelRecord(claimType string, prop identifier.Identifier, sub *internalSearch.ClaimTypes) internalSearch.RelClaim {
+	return internalSearch.RelClaim{
+		ClaimType:     claimType,
+		Prop:          prop,
+		PropDisplay:   nil,
+		PropNaming:    nil,
+		PropSortKey:   nil,
+		To:            nil,
+		ToDisplay:     nil,
+		ToNaming:      nil,
+		ToSortKey:     nil,
+		ToPath:        nil,
+		ToParent:      nil,
+		ToDisplayPath: nil,
+		ToPathSortKey: nil,
+		IsLeaf:        false,
+		Sub:           sub,
+	}
+}
+
+// amountRecord builds an amount record for prop with the given unit (possibly nil) and window
+// edges, mirroring the converter's point and interval shapes: a known from is the inclusive range
+// lower bound and a known to the exclusive range upper bound, while a nil endpoint leaves its
+// field absent and uses a MaxFloat64 sentinel range bound instead.
+func amountRecord(prop identifier.Identifier, unit *identifier.Identifier, from, to *float64, sub *internalSearch.ClaimTypes) internalSearch.AmountClaim {
 	rangeFloat := internalSearch.RangeFloat{
 		GreaterThan: nil, GreaterThanOrEqual: from, LessThan: to, LessThanOrEqual: nil,
 	}
@@ -146,36 +160,62 @@ func indexAmountIntervalDoc(t *testing.T, ctx context.Context, esClient *elastic
 		rangeFloat.LessThan = nil
 		rangeFloat.LessThanOrEqual = &upper
 	}
+	return internalSearch.AmountClaim{
+		Prop: prop, PropDisplay: nil, PropNaming: nil, PropSortKey: nil, Unit: unit,
+		Range: rangeFloat,
+		From:  from, FromDisplay: "", To: to, ToDisplay: "",
+		Sub: sub,
+	}
+}
 
-	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		DisplaySort: nil,
-		ID:          identifier.From(id),
-		Display:     nil,
-		Text:        nil,
-		Time:        nil,
-		LastUpdated: nil,
-		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
-		Claims: internalSearch.ClaimTypes{
-			Identifier: nil,
-			String:     nil,
-			HTML:       nil,
-			Amount: internalSearch.AmountClaims{{
-				Prop: amountProp, PropDisplay: nil, PropNaming: nil, PropSortKey: nil, Unit: unit,
-				Range: rangeFloat,
-				From:  from, FromDisplay: "", To: to, ToDisplay: "",
-			}},
-			Time:      nil,
-			Link:      nil,
-			Reference: nil,
-			Has:       nil,
-			None:      nil,
-			Unknown:   nil,
-			SubRef:    nil,
-			SubAmount: nil,
-			SubTime:   nil,
-			SubHas:    nil,
-		},
-	})
+// timeRecord builds a time record for prop with the given window edges, mirroring the converter's
+// point and interval shapes the same way amountRecord does.
+func timeRecord(prop identifier.Identifier, from, to *float64, sub *internalSearch.ClaimTypes) internalSearch.TimeClaim {
+	rangeFloat := internalSearch.RangeFloat{
+		GreaterThan: nil, GreaterThanOrEqual: from, LessThan: to, LessThanOrEqual: nil,
+	}
+	if from == nil {
+		lower := -math.MaxFloat64
+		rangeFloat.GreaterThanOrEqual = &lower
+	}
+	if to == nil {
+		upper := math.MaxFloat64
+		rangeFloat.LessThan = nil
+		rangeFloat.LessThanOrEqual = &upper
+	}
+	return internalSearch.TimeClaim{
+		Prop: prop, PropDisplay: nil, PropNaming: nil, PropSortKey: nil,
+		Range: rangeFloat,
+		From:  from, FromDisplay: "", To: to, ToDisplay: "",
+		Sub: sub,
+	}
+}
+
+// indexAmountDoc indexes a document carrying a single point-amount claim of the given
+// value with precision 1 under amountProp with unitID. It mirrors what convertAmount
+// produces: the endpoints are the edges of the symmetric precision window
+// [value-0.5, value+0.5) and the indexed range upper bound is exclusive.
+func indexAmountDoc(t *testing.T, ctx context.Context, esClient *elasticsearch.TypedClient, index, id string, amountProp, unitID identifier.Identifier, value *float64) { //nolint:revive,lll
+	t.Helper()
+
+	from := *value - 0.5
+	to := *value + 0.5
+	indexDocument(t, ctx, esClient, index, claimsDoc(id, internalSearch.ClaimTypes{ //nolint:exhaustruct
+		Amount: internalSearch.AmountClaims{amountRecord(amountProp, &unitID, &from, &to, nil)},
+	}))
+}
+
+// indexAmountIntervalDoc indexes a document carrying a single interval amount claim under
+// amountProp with the given unit (possibly nil), with optionally open endpoints, mirroring
+// how the converter indexes them: from and to are window edges with from indexed as the
+// inclusive range lower bound and to as the exclusive range upper bound, while an open
+// (none) endpoint leaves its field absent and uses a MaxFloat64 sentinel range bound instead.
+func indexAmountIntervalDoc(t *testing.T, ctx context.Context, esClient *elasticsearch.TypedClient, index, id string, amountProp identifier.Identifier, unit *identifier.Identifier, from, to *float64) { //nolint:revive,lll
+	t.Helper()
+
+	indexDocument(t, ctx, esClient, index, claimsDoc(id, internalSearch.ClaimTypes{ //nolint:exhaustruct
+		Amount: internalSearch.AmountClaims{amountRecord(amountProp, unit, from, to, nil)},
+	}))
 }
 
 // indexTimePointDoc indexes a document carrying a single point-time claim of the given
@@ -188,37 +228,9 @@ func indexTimePointDoc(t *testing.T, ctx context.Context, esClient *elasticsearc
 
 	from := *value
 	to := *value + 1
-	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		DisplaySort: nil,
-		ID:          identifier.From(id),
-		Display:     nil,
-		Text:        nil,
-		Time:        nil,
-		LastUpdated: nil,
-		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
-		Claims: internalSearch.ClaimTypes{
-			Identifier: nil,
-			String:     nil,
-			HTML:       nil,
-			Amount:     nil,
-			Time: internalSearch.TimeClaims{{
-				Prop: timeProp, PropDisplay: nil, PropNaming: nil, PropSortKey: nil,
-				Range: internalSearch.RangeFloat{
-					GreaterThan: nil, GreaterThanOrEqual: &from, LessThan: &to, LessThanOrEqual: nil,
-				},
-				From: &from, FromDisplay: "", To: &to, ToDisplay: "",
-			}},
-			Link:      nil,
-			Reference: nil,
-			Has:       nil,
-			None:      nil,
-			Unknown:   nil,
-			SubRef:    nil,
-			SubAmount: nil,
-			SubTime:   nil,
-			SubHas:    nil,
-		},
-	})
+	indexDocument(t, ctx, esClient, index, claimsDoc(id, internalSearch.ClaimTypes{ //nolint:exhaustruct
+		Time: internalSearch.TimeClaims{timeRecord(timeProp, &from, &to, nil)},
+	}))
 }
 
 // indexScoreDoc indexes a document carrying the given English text and counts.score.
@@ -227,29 +239,14 @@ func indexScoreDoc(t *testing.T, ctx context.Context, esClient *elasticsearch.Ty
 	t.Helper()
 
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		DisplaySort: nil,
 		ID:          id,
 		Display:     nil,
+		DisplaySort: nil,
 		Text:        map[string][]string{"en": {text}},
 		Time:        nil,
 		LastUpdated: nil,
 		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: score},
-		Claims: internalSearch.ClaimTypes{
-			Identifier: nil,
-			String:     nil,
-			HTML:       nil,
-			Amount:     nil,
-			Time:       nil,
-			Link:       nil,
-			Reference:  nil,
-			Has:        nil,
-			None:       nil,
-			Unknown:    nil,
-			SubRef:     nil,
-			SubAmount:  nil,
-			SubTime:    nil,
-			SubHas:     nil,
-		},
+		Claims:      internalSearch.ClaimTypes{Rel: nil, Amount: nil, Time: nil, Identifier: nil, String: nil, HTML: nil, Link: nil},
 	})
 }
 
@@ -277,48 +274,9 @@ func seedTimeFilterDocs(t *testing.T, ctx context.Context, esClient *elasticsear
 func indexTimeIntervalDoc(t *testing.T, ctx context.Context, esClient *elasticsearch.TypedClient, index, id string, timeProp identifier.Identifier, from, to *float64) { //nolint:revive,lll
 	t.Helper()
 
-	rangeFloat := internalSearch.RangeFloat{
-		GreaterThan: nil, GreaterThanOrEqual: from, LessThan: to, LessThanOrEqual: nil,
-	}
-	if from == nil {
-		lower := -math.MaxFloat64
-		rangeFloat.GreaterThanOrEqual = &lower
-	}
-	if to == nil {
-		upper := math.MaxFloat64
-		rangeFloat.LessThan = nil
-		rangeFloat.LessThanOrEqual = &upper
-	}
-
-	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		DisplaySort: nil,
-		ID:          identifier.From(id),
-		Display:     nil,
-		Text:        nil,
-		Time:        nil,
-		LastUpdated: nil,
-		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
-		Claims: internalSearch.ClaimTypes{
-			Identifier: nil,
-			String:     nil,
-			HTML:       nil,
-			Amount:     nil,
-			Time: internalSearch.TimeClaims{{
-				Prop: timeProp, PropDisplay: nil, PropNaming: nil, PropSortKey: nil,
-				Range: rangeFloat,
-				From:  from, FromDisplay: "", To: to, ToDisplay: "",
-			}},
-			Link:      nil,
-			Reference: nil,
-			Has:       nil,
-			None:      nil,
-			Unknown:   nil,
-			SubRef:    nil,
-			SubAmount: nil,
-			SubTime:   nil,
-			SubHas:    nil,
-		},
-	})
+	indexDocument(t, ctx, esClient, index, claimsDoc(id, internalSearch.ClaimTypes{ //nolint:exhaustruct
+		Time: internalSearch.TimeClaims{timeRecord(timeProp, from, to, nil)},
+	}))
 }
 
 // newPathResolver builds a search.HierarchyPathsResolver backed by a map from value id to its indexed
@@ -331,19 +289,21 @@ func newPathResolver(paths map[identifier.Identifier][]string) search.HierarchyP
 }
 
 // createSession is a test helper that creates a search session from SessionData.
-// It generates Base/ID for the session and any filters that lack them.
+// It generates Base/ID for the session and any filters or prefilters that lack them.
 func createSession(t *testing.T, ctx context.Context, data search.SessionData) *search.Session { //nolint:revive
 	t.Helper()
 
 	base := []string{"test.example.com", "SEARCH", identifier.New().String()}
 
 	// Generate Base/ID for filters that don't have them.
-	for i := range data.Filters {
-		if len(data.Filters[i].Base) == 0 {
-			filterBase := append(base, "FILTER", identifier.New().String()) //nolint:gocritic
-			data.Filters[i].Base = filterBase
-			filterID := identifier.From(filterBase...)
-			data.Filters[i].ID = &filterID
+	for _, filters := range [][]search.Filter{data.Filters, data.Prefilters} {
+		for i := range filters {
+			if len(filters[i].Base) == 0 {
+				filterBase := append(base, "FILTER", identifier.New().String()) //nolint:gocritic
+				filters[i].Base = filterBase
+				filterID := identifier.From(filterBase...)
+				filters[i].ID = &filterID
+			}
 		}
 	}
 

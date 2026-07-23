@@ -412,7 +412,7 @@ func (s *Service) DocumentCreateOptionsGetAPI(w http.ResponseWriter, req *http.R
 		return doc, errE
 	}
 
-	classes, errE := search.CreateOptions(ctx, s.getSearchServiceClosure(req, index), accessFilter, loadDocument, s.documentFullPaths, limit)
+	classes, errE := search.CreateOptions(ctx, s.getSearchServiceClosure(req, index), accessFilter, loadDocument, s.documentHierarchyPaths, limit)
 	if errE != nil {
 		s.InternalServerErrorWithError(w, req, errE)
 		return
