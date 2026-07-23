@@ -93,20 +93,8 @@ func TestingNewUserInfoCache(endpoint string, client *http.Client) *userInfoCach
 	return newUserInfoCache(endpoint, client)
 }
 
-func (s *flowStore) TestingDBPool() *pgxpool.Pool {
-	return s.dbpool
-}
-
 func (s *flowStore) TestingCleanupExpired(ctx context.Context) errors.E {
 	return s.cleanupExpired(ctx)
-}
-
-func (s *revocationStore) TestingDBPool() *pgxpool.Pool {
-	return s.dbpool
-}
-
-func (s *revocationStore) TestingSetNow(now func() time.Time) {
-	s.now = now
 }
 
 func (s *revocationStore) TestingCleanupExpired(ctx context.Context) errors.E {

@@ -102,7 +102,7 @@ func TestFlowStoreCleanupExpired(t *testing.T) {
 	require.NoError(t, fs.BeginFlow(ctx, fresh, auth.TestingFlowState{CodeVerifier: "v", Nonce: "n", Redirect: "/"}))
 
 	// Age the first row out of its window.
-	errE := internalStore.RetryTransaction(ctx, fs.TestingDBPool(), pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
+	errE := internalStore.RetryTransaction(ctx, fs.DBPool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
 		_, err := tx.Exec(ctx, `UPDATE "AuthFlows" SET "expiresAt" = now() - interval '1 second' WHERE "state" = $1`, expired)
 		return internalStore.WithPgxError(err)
 	})
