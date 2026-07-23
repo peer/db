@@ -941,3 +941,51 @@ func TestFiltersGetSpecialsActiveValuedFacetIntegration(t *testing.T) {
 	}
 	assert.Equal(t, 2, activeEntries)
 }
+
+// TestFiltersGetDiscoveryBeyondCapValueQueryIntegration verifies that the filtered value-query
+// discovery pass surfaces a facet that matches the typed text but ranks beyond the unfiltered
+// discovery's Size cap by document count. A low-document-count property whose name matches is found
+// even though a full cap's worth of higher-count filler properties rank ahead of it, and it does
+// not grow the value-query-independent total (which stays a saturated lower bound).
+func TestFiltersGetDiscoveryBeyondCapValueQueryIntegration(t *testing.T) {
+	t.Parallel()
+
+	ctx := t.Context()
+	esClient, getSearchService, index := initES(t)
+
+	// MaxResultsCount filler ref properties, each present in two documents (document count 2), so they
+	// all rank ahead of the target property (document count 1) and fill the unfiltered discovery cap.
+	fillers := make(internalSearch.RelClaims, 0, search.MaxResultsCount)
+	for i := range search.MaxResultsCount {
+		fillers = append(fillers, refRecord(identifier.From("filler", strconv.Itoa(i)), identifier.From("fillerTarget", strconv.Itoa(i)), nil))
+	}
+	indexDocument(t, ctx, esClient, index, relDoc("fillerDoc1", fillers))
+	indexDocument(t, ctx, esClient, index, relDoc("fillerDoc2", fillers))
+
+	// The target property: one document, and a distinctive property name to match by.
+	findMeProp := identifier.From("findMeProp")
+	findMe := refRecord(findMeProp, identifier.From("findMeTarget"), nil)
+	findMe.PropNaming = map[string][]string{"en": {"findmeuniquename"}}
+	findMe.PropDisplay = map[string]string{"en": "findmeuniquename"}
+	indexDocument(t, ctx, esClient, index, relDoc("findMeDoc", internalSearch.RelClaims{findMe}))
+	refreshIndex(t, ctx, esClient, index)
+
+	session := createSession(t, ctx, search.SessionData{})
+
+	// Searching the target property's name surfaces its facet, even though it ranks beyond the cap.
+	results, metadata, errE := search.FiltersGet(ctx, getSearchService, session, nil, "findmeuniquename*")
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	found := false
+	for _, r := range results {
+		if r.Type == "ref" && len(r.Props) == 1 && r.Props[0] == findMeProp.String() {
+			found = true
+			assert.Equal(t, int64(1), r.Count)
+		}
+	}
+	assert.True(t, found, "the beyond-cap target facet was surfaced by its name")
+
+	// The total stays the value-query-independent saturated lower bound: the cap's worth of filler
+	// facets, marked "+"; the beyond-cap surfaced facet does not grow it.
+	assert.Equal(t, strconv.Itoa(search.MaxResultsCount)+"+", metadata["total"])
+}

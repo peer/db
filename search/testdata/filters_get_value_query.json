@@ -152,6 +152,124 @@
       "path": "claims.amount"
     }
   },
+  "amountMatched": {
+    "aggregations": {
+      "filter": {
+        "aggregations": {
+          "props": {
+            "aggregations": {
+              "docs": {
+                "reverse_nested": {}
+              }
+            },
+            "multi_terms": {
+              "order": {
+                "docs": "desc"
+              },
+              "size": 1000,
+              "terms": [
+                {
+                  "field": "claims.amount.prop"
+                },
+                {
+                  "field": "claims.amount.unit",
+                  "missing": "__missing__"
+                }
+              ]
+            }
+          }
+        },
+        "filter": {
+          "bool": {
+            "minimum_should_match": 1,
+            "should": [
+              {
+                "simple_query_string": {
+                  "default_operator": "and",
+                  "fields": [
+                    "claims.amount.propNaming.en",
+                    "claims.amount.propNaming.und"
+                  ],
+                  "query": "col*"
+                }
+              },
+              {
+                "simple_query_string": {
+                  "default_operator": "and",
+                  "fields": [
+                    "claims.amount.propDisplay.en"
+                  ],
+                  "query": "col*",
+                  "quote_field_suffix": ".exact"
+                }
+              },
+              {
+                "simple_query_string": {
+                  "default_operator": "and",
+                  "fields": [
+                    "claims.amount.propDisplay.und"
+                  ],
+                  "query": "col*",
+                  "quote_field_suffix": ".exact"
+                }
+              },
+              {
+                "match_phrase_prefix": {
+                  "claims.amount.propNaming.en.unstemmed": {
+                    "query": "col"
+                  }
+                }
+              },
+              {
+                "match_phrase_prefix": {
+                  "claims.amount.propNaming.und": {
+                    "query": "col"
+                  }
+                }
+              },
+              {
+                "match_phrase_prefix": {
+                  "claims.amount.propDisplay.en": {
+                    "query": "col"
+                  }
+                }
+              },
+              {
+                "match_phrase_prefix": {
+                  "claims.amount.propDisplay.und": {
+                    "query": "col"
+                  }
+                }
+              },
+              {
+                "simple_query_string": {
+                  "analyze_wildcard": true,
+                  "default_operator": "and",
+                  "fields": [
+                    "claims.amount.fromDisplay"
+                  ],
+                  "query": "col*"
+                }
+              },
+              {
+                "simple_query_string": {
+                  "analyze_wildcard": true,
+                  "default_operator": "and",
+                  "fields": [
+                    "claims.amount.toDisplay"
+                  ],
+                  "query": "col*"
+                }
+              }
+            ]
+          }
+        }
+      }
+    },
+    "nested": {
+      "path": "claims.amount"
+    }
+  },
   "pooledHas": {
     "filter": {
       "nested": {
@@ -339,6 +457,183 @@
             "docs": "desc"
           },
           "size": 1000
+        }
+      }
+    },
+    "nested": {
+      "path": "claims.rel"
+    }
+  },
+  "relMatched": {
+    "aggregations": {
+      "filter": {
+        "aggregations": {
+          "props": {
+            "aggregations": {
+              "claimTypes": {
+                "terms": {
+                  "field": "claims.rel.claimType",
+                  "size": 4
+                }
+              },
+              "docs": {
+                "reverse_nested": {}
+              },
+              "valueless": {
+                "aggregations": {
+                  "docs": {
+                    "reverse_nested": {}
+                  }
+                },
+                "filter": {
+                  "bool": {
+                    "must_not": [
+                      {
+                        "term": {
+                          "claims.rel.claimType": {
+                            "value": "ref"
+                          }
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            },
+            "terms": {
+              "field": "claims.rel.prop",
+              "order": {
+                "docs": "desc"
+              },
+              "size": 1000
+            }
+          }
+        },
+        "filter": {
+          "bool": {
+            "minimum_should_match": 1,
+            "should": [
+              {
+                "simple_query_string": {
+                  "default_operator": "and",
+                  "fields": [
+                    "claims.rel.toNaming.en",
+                    "claims.rel.toNaming.und"
+                  ],
+                  "query": "col*"
+                }
+              },
+              {
+                "simple_query_string": {
+                  "default_operator": "and",
+                  "fields": [
+                    "claims.rel.toDisplay.en"
+                  ],
+                  "query": "col*",
+                  "quote_field_suffix": ".exact"
+                }
+              },
+              {
+                "simple_query_string": {
+                  "default_operator": "and",
+                  "fields": [
+                    "claims.rel.toDisplay.und"
+                  ],
+                  "query": "col*",
+                  "quote_field_suffix": ".exact"
+                }
+              },
+              {
+                "simple_query_string": {
+                  "analyze_wildcard": true,
+                  "default_operator": "and",
+                  "fields": [
+                    "claims.rel.toNaming.en.unstemmed",
+                    "claims.rel.toNaming.und"
+                  ],
+                  "query": "col*"
+                }
+              },
+              {
+                "simple_query_string": {
+                  "analyze_wildcard": true,
+                  "default_operator": "and",
+                  "fields": [
+                    "claims.rel.toDisplay.en"
+                  ],
+                  "query": "col*"
+                }
+              },
+              {
+                "simple_query_string": {
+                  "analyze_wildcard": true,
+                  "default_operator": "and",
+                  "fields": [
+                    "claims.rel.toDisplay.und"
+                  ],
+                  "query": "col*"
+                }
+              },
+              {
+                "simple_query_string": {
+                  "default_operator": "and",
+                  "fields": [
+                    "claims.rel.propNaming.en",
+                    "claims.rel.propNaming.und"
+                  ],
+                  "query": "col*"
+                }
+              },
+              {
+                "simple_query_string": {
+                  "default_operator": "and",
+                  "fields": [
+                    "claims.rel.propDisplay.en"
+                  ],
+                  "query": "col*",
+                  "quote_field_suffix": ".exact"
+                }
+              },
+              {
+                "simple_query_string": {
+                  "default_operator": "and",
+                  "fields": [
+                    "claims.rel.propDisplay.und"
+                  ],
+                  "query": "col*",
+                  "quote_field_suffix": ".exact"
+                }
+              },
+              {
+                "match_phrase_prefix": {
+                  "claims.rel.propNaming.en.unstemmed": {
+                    "query": "col"
+                  }
+                }
+              },
+              {
+                "match_phrase_prefix": {
+                  "claims.rel.propNaming.und": {
+                    "query": "col"
+                  }
+                }
+              },
+              {
+                "match_phrase_prefix": {
+                  "claims.rel.propDisplay.en": {
+                    "query": "col"
+                  }
+                }
+              },
+              {
+                "match_phrase_prefix": {
+                  "claims.rel.propDisplay.und": {
+                    "query": "col"
+                  }
+                }
+              }
+            ]
+          }
         }
       }
     },
@@ -4022,6 +4317,116 @@
             "docs": "desc"
           },
           "size": 1000
+        }
+      }
+    },
+    "nested": {
+      "path": "claims.time"
+    }
+  },
+  "timeMatched": {
+    "aggregations": {
+      "filter": {
+        "aggregations": {
+          "props": {
+            "aggregations": {
+              "docs": {
+                "reverse_nested": {}
+              }
+            },
+            "terms": {
+              "field": "claims.time.prop",
+              "order": {
+                "docs": "desc"
+              },
+              "size": 1000
+            }
+          }
+        },
+        "filter": {
+          "bool": {
+            "minimum_should_match": 1,
+            "should": [
+              {
+                "simple_query_string": {
+                  "default_operator": "and",
+                  "fields": [
+                    "claims.time.propNaming.en",
+                    "claims.time.propNaming.und"
+                  ],
+                  "query": "col*"
+                }
+              },
+              {
+                "simple_query_string": {
+                  "default_operator": "and",
+                  "fields": [
+                    "claims.time.propDisplay.en"
+                  ],
+                  "query": "col*",
+                  "quote_field_suffix": ".exact"
+                }
+              },
+              {
+                "simple_query_string": {
+                  "default_operator": "and",
+                  "fields": [
+                    "claims.time.propDisplay.und"
+                  ],
+                  "query": "col*",
+                  "quote_field_suffix": ".exact"
+                }
+              },
+              {
+                "match_phrase_prefix": {
+                  "claims.time.propNaming.en.unstemmed": {
+                    "query": "col"
+                  }
+                }
+              },
+              {
+                "match_phrase_prefix": {
+                  "claims.time.propNaming.und": {
+                    "query": "col"
+                  }
+                }
+              },
+              {
+                "match_phrase_prefix": {
+                  "claims.time.propDisplay.en": {
+                    "query": "col"
+                  }
+                }
+              },
+              {
+                "match_phrase_prefix": {
+                  "claims.time.propDisplay.und": {
+                    "query": "col"
+                  }
+                }
+              },
+              {
+                "simple_query_string": {
+                  "analyze_wildcard": true,
+                  "default_operator": "and",
+                  "fields": [
+                    "claims.time.fromDisplay"
+                  ],
+                  "query": "col*"
+                }
+              },
+              {
+                "simple_query_string": {
+                  "analyze_wildcard": true,
+                  "default_operator": "and",
+                  "fields": [
+                    "claims.time.toDisplay"
+                  ],
+                  "query": "col*"
+                }
+              }
+            ]
+          }
         }
       }
     },

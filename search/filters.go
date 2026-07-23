@@ -199,6 +199,21 @@ func timeDiscoveryAggregation(path string, match types.QueryVariant) types.Aggre
 	return agg
 }
 
+// filteredDiscoveryAggregation wraps a discovery aggregation in nested -> filter(match) -> props so
+// the terms enumerate only the facets with a record matching the value query. It surfaces facets
+// that match the query but rank beyond the unfiltered discovery's Size cap. The unfiltered pass
+// still provides the full, value-query-independent counts for the facets it covers; a facet found
+// only here (beyond the cap) takes its count and type from this pass, so its count is the matching
+// document count (equal to the full count when the facet was reached through its property name,
+// and a lower bound when reached through a value name).
+func filteredDiscoveryAggregation(path string, match types.QueryVariant, inner types.AggregationsVariant) types.AggregationsVariant { //nolint:ireturn
+	return esdsl.NewAggregations().
+		Nested(esdsl.NewNestedAggregation().Path(path)).
+		AddAggregation("filter", esdsl.NewAggregations().
+			Filter(match).
+			AddAggregation("props", inner))
+}
+
 // parseAmountFacetBuckets parses an amount discovery multi-terms aggregation into per-(prop, unit)
 // info, merged into out.
 func parseAmountFacetBuckets(buckets []types.MultiTermsBucket, valueQueryActive bool, out map[[2]string]*valueFacetInfo, order *[][2]string) errors.E {
@@ -276,6 +291,129 @@ func parseTimeFacetBuckets(buckets []types.StringTermsBucket, valueQueryActive b
 	return nil
 }
 
+// mergeMatchedRelFacets folds a filtered rel discovery pass (nested -> filter -> props terms under
+// name) into set: a facet already present from the unfiltered pass keeps its full value-query-
+// independent info; a facet present only here (matched but beyond the unfiltered cap) is added with
+// its Matched forced positive so it renders, and marked in RelBeyond so it does not count toward the
+// total.
+func mergeMatchedRelFacets(aggs map[string]types.Aggregate, name string, set *facetSet) errors.E {
+	nested, errE := internalSearch.AggAs[types.NestedAggregate](aggs, name)
+	if errE != nil {
+		return errE
+	}
+	filter, errE := internalSearch.AggAs[types.FilterAggregate](nested.Aggregations, "filter")
+	if errE != nil {
+		return errE
+	}
+	terms, errE := internalSearch.AggAs[types.StringTermsAggregate](filter.Aggregations, "props")
+	if errE != nil {
+		return errE
+	}
+	buckets, ok := terms.Buckets.([]types.StringTermsBucket)
+	if !ok {
+		errE := errors.New("unexpected bucket type for " + name)
+		errors.Details(errE)["type"] = fmt.Sprintf("%T", terms.Buckets)
+		return errE
+	}
+	tmp := map[string]*relFacetInfo{}
+	var tmpOrder []string
+	errE = parseRelFacetBuckets(buckets, false, tmp, &tmpOrder)
+	if errE != nil {
+		return errE
+	}
+	for _, prop := range tmpOrder {
+		if _, present := set.Rel[prop]; present {
+			continue
+		}
+		info := tmp[prop]
+		info.Matched = info.Docs
+		set.Rel[prop] = info
+		set.RelOrder = append(set.RelOrder, prop)
+		set.RelBeyond[prop] = true
+	}
+	return nil
+}
+
+// mergeMatchedAmountFacets folds a filtered amount discovery pass into set, adding (prop, unit)
+// facets present only there, mirroring mergeMatchedRelFacets.
+func mergeMatchedAmountFacets(aggs map[string]types.Aggregate, name string, set *facetSet) errors.E {
+	nested, errE := internalSearch.AggAs[types.NestedAggregate](aggs, name)
+	if errE != nil {
+		return errE
+	}
+	filter, errE := internalSearch.AggAs[types.FilterAggregate](nested.Aggregations, "filter")
+	if errE != nil {
+		return errE
+	}
+	terms, errE := internalSearch.AggAs[types.MultiTermsAggregate](filter.Aggregations, "props")
+	if errE != nil {
+		return errE
+	}
+	buckets, ok := terms.Buckets.([]types.MultiTermsBucket)
+	if !ok {
+		errE := errors.New("unexpected bucket type for " + name)
+		errors.Details(errE)["type"] = fmt.Sprintf("%T", terms.Buckets)
+		return errE
+	}
+	tmp := map[[2]string]*valueFacetInfo{}
+	var tmpOrder [][2]string
+	errE = parseAmountFacetBuckets(buckets, false, tmp, &tmpOrder)
+	if errE != nil {
+		return errE
+	}
+	for _, key := range tmpOrder {
+		if _, present := set.Amount[key]; present {
+			continue
+		}
+		info := tmp[key]
+		info.Matched = info.Docs
+		set.Amount[key] = info
+		set.AmountOrder = append(set.AmountOrder, key)
+		set.AmountBeyond[key] = true
+	}
+	return nil
+}
+
+// mergeMatchedTimeFacets folds a filtered time discovery pass into set, adding prop facets present
+// only there, mirroring mergeMatchedRelFacets.
+func mergeMatchedTimeFacets(aggs map[string]types.Aggregate, name string, set *facetSet) errors.E {
+	nested, errE := internalSearch.AggAs[types.NestedAggregate](aggs, name)
+	if errE != nil {
+		return errE
+	}
+	filter, errE := internalSearch.AggAs[types.FilterAggregate](nested.Aggregations, "filter")
+	if errE != nil {
+		return errE
+	}
+	terms, errE := internalSearch.AggAs[types.StringTermsAggregate](filter.Aggregations, "props")
+	if errE != nil {
+		return errE
+	}
+	buckets, ok := terms.Buckets.([]types.StringTermsBucket)
+	if !ok {
+		errE := errors.New("unexpected bucket type for " + name)
+		errors.Details(errE)["type"] = fmt.Sprintf("%T", terms.Buckets)
+		return errE
+	}
+	tmp := map[string]*valueFacetInfo{}
+	var tmpOrder []string
+	errE = parseTimeFacetBuckets(buckets, false, tmp, &tmpOrder)
+	if errE != nil {
+		return errE
+	}
+	for _, prop := range tmpOrder {
+		if _, present := set.Time[prop]; present {
+			continue
+		}
+		info := tmp[prop]
+		info.Matched = info.Docs
+		set.Time[prop] = info
+		set.TimeOrder = append(set.TimeOrder, prop)
+		set.TimeBeyond[prop] = true
+	}
+	return nil
+}
+
 // facetSet assembles the discovered facets of one level (top-level, or one parent property's sub
 // level) from its rel, amount, and time discovery data. propsPrefix is prepended to every facet's
 // Props (the parent property for a sub level).
@@ -295,6 +433,14 @@ type facetSet struct {
 	// collections: a document with such a sub-has under the same parent property in two parent
 	// collections is the documented cross-collection overcount.
 	PooledHasDocs int64
+	// RelBeyond, AmountBeyond and TimeBeyond mark facets surfaced only by the filtered value-query
+	// discovery pass, beyond the unfiltered discovery's Size cap (see the matched-discovery merge in
+	// FiltersGet). They are emitted like any other facet, but do not count toward totalFacets, which
+	// stays value-query-independent (the available-filters total is already a lower bound, marked
+	// "+", when the cap is saturated).
+	RelBeyond    map[string]bool
+	AmountBeyond map[[2]string]bool
+	TimeBeyond   map[string]bool
 }
 
 func newFacetSet() *facetSet {
@@ -307,6 +453,9 @@ func newFacetSet() *facetSet {
 		Time:          map[string]*valueFacetInfo{},
 		ParentMatched: 0,
 		PooledHasDocs: 0,
+		RelBeyond:     map[string]bool{},
+		AmountBeyond:  map[[2]string]bool{},
+		TimeBeyond:    map[string]bool{},
 	}
 }
 
@@ -326,9 +475,11 @@ func newFacetSet() *facetSet {
 // per-property buckets): the caller reads it from a document-level aggregation. Results only reports
 // which properties are its members (pooledHasProps) and includes it in totalFacets when it exists.
 //
-// The value query gates only which facets are returned, never their counts or the totals: hidden
-// entries stay out of the returned slice, but totalFacets always counts every discovered facet
-// (including the pooled has facet when it has any member), so it stays stable as the box is typed in.
+// The value query gates only which facets are returned, never their counts or the total: hidden
+// entries stay out of the returned slice, and totalFacets counts every discovered facet found by
+// the unfiltered pass (including the pooled has facet when it has any member) but not the ones the
+// filtered pass surfaced beyond the cap (marked in the *Beyond sets), so it stays value-query-
+// independent (stable as the box is typed in).
 func (s *facetSet) Results(propsPrefix []string, valueQueryActive bool) ([]FilterResult, []string, int) {
 	var out []FilterResult
 	var pooledHasProps []string
@@ -351,9 +502,14 @@ func (s *facetSet) Results(propsPrefix []string, valueQueryActive bool) ([]Filte
 	for _, prop := range s.RelOrder {
 		info := s.Rel[prop]
 		hasValuedElsewhere := amountProps[prop] || timeProps[prop]
+		// A facet surfaced only by the filtered value-query pass (beyond the cap) is emitted but does
+		// not count toward the value-query-independent total.
+		countsToTotal := !s.RelBeyond[prop]
 		switch {
 		case info.ClaimTypes.Ref:
-			totalFacets++
+			if countsToTotal {
+				totalFacets++
+			}
 			if passes(info.Matched) {
 				out = append(out, FilterResult{
 					Props:    append(slices.Clone(propsPrefix), prop),
@@ -364,14 +520,18 @@ func (s *facetSet) Results(propsPrefix []string, valueQueryActive bool) ([]Filte
 				})
 			}
 		case info.ClaimTypes.PooledHas() && !hasValuedElsewhere:
-			pooledHasExists = true
+			if countsToTotal {
+				pooledHasExists = true
+			}
 			if passes(info.Matched) {
 				pooledHasProps = append(pooledHasProps, prop)
 			}
 		case !hasValuedElsewhere:
 			// Valueless statements (none, unknown, or has beside them) with no valued facet anywhere:
 			// a specials-only value-list facet.
-			totalFacets++
+			if countsToTotal {
+				totalFacets++
+			}
 			if passes(info.Matched) {
 				out = append(out, FilterResult{
 					Props:    append(slices.Clone(propsPrefix), prop),
@@ -394,7 +554,9 @@ func (s *facetSet) Results(propsPrefix []string, valueQueryActive bool) ([]Filte
 		if relInfo, ok := s.Rel[key[0]]; ok && !relInfo.ClaimTypes.Ref {
 			count += relInfo.ValuelessDocs
 		}
-		totalFacets++
+		if !s.AmountBeyond[key] {
+			totalFacets++
+		}
 		if passes(info.Matched) {
 			out = append(out, FilterResult{
 				Props:    append(slices.Clone(propsPrefix), key[0]),
@@ -411,7 +573,9 @@ func (s *facetSet) Results(propsPrefix []string, valueQueryActive bool) ([]Filte
 		if relInfo, ok := s.Rel[prop]; ok && !relInfo.ClaimTypes.Ref {
 			count += relInfo.ValuelessDocs
 		}
-		totalFacets++
+		if !s.TimeBeyond[prop] {
+			totalFacets++
+		}
 		if passes(info.Matched) {
 			out = append(out, FilterResult{
 				Props:    append(slices.Clone(propsPrefix), prop),
@@ -479,6 +643,17 @@ func FiltersGet( //nolint:maintidx
 		// heading and the active count agree by construction.
 		AddAggregation("pooledHas", esdsl.NewAggregations().
 			Filter(esdsl.NewNestedQuery(claimTypeTerm(relPath, internalSearch.ClaimTypeHas)).Path(relPath)))
+
+	// When a value query is active, a second filtered discovery pass per top-level collection
+	// enumerates only the facets with a matching record, surfacing facets that match the query but
+	// rank beyond the unfiltered discovery's Size cap by document count. The unfiltered pass above
+	// still provides the full, value-query-independent counts for the facets it covers.
+	if valueQueryActive {
+		searchService = searchService.
+			AddAggregation("relMatched", filteredDiscoveryAggregation(relPath, relMatch, relDiscoveryAggregation(relPath, nil))).
+			AddAggregation("amountMatched", filteredDiscoveryAggregation(amountPath, amountMatch, amountDiscoveryAggregation(amountPath, nil))).
+			AddAggregation("timeMatched", filteredDiscoveryAggregation(timePath, timeMatch, timeDiscoveryAggregation(timePath, nil)))
+	}
 
 	// Sub-level discovery: per parent collection, parent-property buckets holding the same
 	// per-collection discovery aggregations one level down, plus the parent-name match gate.
@@ -623,6 +798,24 @@ func FiltersGet( //nolint:maintidx
 	errE = parseTimeFacetBuckets(timeBuckets, valueQueryActive, topSet.Time, &topSet.TimeOrder)
 	if errE != nil {
 		return nil, nil, errE
+	}
+
+	// Fold in the filtered value-query passes: facets matching the query but beyond the unfiltered
+	// cap by document count are added to the set (marked as beyond so they render without growing
+	// the value-query-independent total).
+	if valueQueryActive {
+		errE = mergeMatchedRelFacets(res.Aggregations, "relMatched", topSet)
+		if errE != nil {
+			return nil, nil, errE
+		}
+		errE = mergeMatchedAmountFacets(res.Aggregations, "amountMatched", topSet)
+		if errE != nil {
+			return nil, nil, errE
+		}
+		errE = mergeMatchedTimeFacets(res.Aggregations, "timeMatched", topSet)
+		if errE != nil {
+			return nil, nil, errE
+		}
 	}
 
 	results, pooledHasProps, totalFacets := topSet.Results(nil, valueQueryActive)
