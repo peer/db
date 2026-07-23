@@ -1094,3 +1094,50 @@ func TestFiltersGetSubDiscoveryBeyondCapValueQueryIntegration(t *testing.T) {
 	}
 	assert.True(t, found, "the beyond-cap target sub facet was surfaced by its name")
 }
+
+// TestFiltersGetBeyondParentCapValueQueryIntegration verifies that the filtered parent enumeration
+// surfaces a sub facet under a parent property that itself ranks beyond the parent-property Size cap
+// by document count: the parent has no bucket in the unfiltered sub discovery, yet its matching sub
+// facet is still found.
+func TestFiltersGetBeyondParentCapValueQueryIntegration(t *testing.T) {
+	t.Parallel()
+
+	ctx := t.Context()
+	esClient, getSearchService, index := initES(t)
+
+	// MaxResultsCount filler parent properties, each with a sub-claim, present in two documents
+	// (parent document count 2), filling the parent-property cap ahead of the target (document count 1).
+	fillerParents := make(internalSearch.RelClaims, 0, search.MaxResultsCount)
+	for i := range search.MaxResultsCount {
+		sub := refRecord(identifier.From("pFillerSub", strconv.Itoa(i)), identifier.From("pFillerSubTarget", strconv.Itoa(i)), nil)
+		fillerParents = append(fillerParents, refRecord(identifier.From("pFiller", strconv.Itoa(i)), identifier.From("pFillerTarget", strconv.Itoa(i)), relSub(sub)))
+	}
+	indexDocument(t, ctx, esClient, index, relDoc("pFillerDoc1", fillerParents))
+	indexDocument(t, ctx, esClient, index, relDoc("pFillerDoc2", fillerParents))
+
+	// The target parent property: one document (so it ranks beyond the parent cap), with a sub-claim
+	// whose distinctive name we search by.
+	targetParentProp := identifier.From("targetParentProp")
+	targetSubProp := identifier.From("targetSubProp")
+	targetSub := refRecord(targetSubProp, identifier.From("targetSubTarget"), nil)
+	targetSub.PropNaming = map[string][]string{"en": {"findmeparentbeyonduniquename"}}
+	targetSub.PropDisplay = map[string]string{"en": "findmeparentbeyonduniquename"}
+	indexDocument(t, ctx, esClient, index, relDoc("targetParentDoc", internalSearch.RelClaims{refRecord(targetParentProp, identifier.From("targetParentTarget"), relSub(targetSub))}))
+	refreshIndex(t, ctx, esClient, index)
+
+	session := createSession(t, ctx, search.SessionData{})
+
+	// Searching the target sub-property's name surfaces its (parentProp, subProp) sub facet, even
+	// though the parent property ranks beyond the parent-property cap.
+	results, _, errE := search.FiltersGet(ctx, getSearchService, session, nil, "findmeparentbeyonduniquename*")
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	found := false
+	for _, r := range results {
+		if r.Type == "ref" && len(r.Props) == 2 && r.Props[0] == targetParentProp.String() && r.Props[1] == targetSubProp.String() {
+			found = true
+			assert.Equal(t, int64(1), r.Count)
+		}
+	}
+	assert.True(t, found, "the sub facet under the beyond-parent-cap property was surfaced by its name")
+}
