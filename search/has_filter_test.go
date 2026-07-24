@@ -51,7 +51,7 @@ func TestHasFilterGetIntegration(t *testing.T) {
 	f := search.HasFilter{Props: nil}
 
 	// Without a value query both has-properties are listed.
-	results, metadata, errE := f.Get(ctx, getSearchService, session.ToQuery(nil), "", enabledLanguages)
+	results, metadata, errE := f.Get(ctx, getSearchService, session.ToQuery(nil), "", searchLangs(enabledLanguages))
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.ElementsMatch(t, []search.HasFilterResult{
 		{ID: color.String(), Count: 1},
@@ -60,7 +60,7 @@ func TestHasFilterGetIntegration(t *testing.T) {
 	assert.Equal(t, "2", metadata["total"])
 
 	// The value query (a prefix wildcard, as the frontend appends) narrows the facet to the matching property.
-	results, metadata, errE = f.Get(ctx, getSearchService, session.ToQuery(nil), "col*", enabledLanguages)
+	results, metadata, errE = f.Get(ctx, getSearchService, session.ToQuery(nil), "col*", searchLangs(enabledLanguages))
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, []search.HasFilterResult{
 		{ID: color.String(), Count: 1},
@@ -120,7 +120,7 @@ func TestHasFilterGetPooledOnlyIntegration(t *testing.T) {
 	enabledLanguages := internalSearch.EnabledLanguages(nil)
 	f := search.HasFilter{Props: nil}
 
-	results, metadata, errE := f.Get(ctx, getSearchService, session.ToQuery(nil), "", enabledLanguages)
+	results, metadata, errE := f.Get(ctx, getSearchService, session.ToQuery(nil), "", searchLangs(enabledLanguages))
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, []search.HasFilterResult{
 		{ID: color.String(), Count: 1},
@@ -148,7 +148,7 @@ func TestHasFilterGetSelectedPropShownIntegration(t *testing.T) {
 	// shape is selected but no matching document has it, so the bucket aggregation drops it; it must still be
 	// returned at count 0 alongside the matching color property.
 	f := search.HasFilter{Props: []search.HasValue{{ID: shape}}}
-	results, _, errE := f.Get(ctx, getSearchService, session.ToQuery(nil), "", enabledLanguages)
+	results, _, errE := f.Get(ctx, getSearchService, session.ToQuery(nil), "", searchLangs(enabledLanguages))
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.ElementsMatch(t, []search.HasFilterResult{
 		{ID: color.String(), Count: 1},
@@ -177,7 +177,7 @@ func TestHasFilterGetSelectedPropNotForcedDuringSearchIntegration(t *testing.T) 
 
 	// Searching "col*" matches color but not the selected shape, so only color is returned (shape is not
 	// force-shown during a search).
-	results, _, errE := f.Get(ctx, getSearchService, session.ToQuery(nil), "col*", enabledLanguages)
+	results, _, errE := f.Get(ctx, getSearchService, session.ToQuery(nil), "col*", searchLangs(enabledLanguages))
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, []search.HasFilterResult{
 		{ID: color.String(), Count: 1},
@@ -211,7 +211,7 @@ func TestHasFilterGetSelectedAugmentValueSearchIntegration(t *testing.T) {
 	f := search.HasFilter{Props: []search.HasValue{{ID: shape}}}
 
 	// Searching shape's display label surfaces it at count 0, even though it has no document in scope.
-	results, _, errE := f.Get(ctx, getSearchService, restOfSearch, "shape*", enabledLanguages)
+	results, _, errE := f.Get(ctx, getSearchService, restOfSearch, "shape*", searchLangs(enabledLanguages))
 	require.NoError(t, errE, "% -+#.1v", errE)
 	byID := hasResultsByID(results)
 	require.Contains(t, byID, shape.String())
@@ -220,13 +220,13 @@ func TestHasFilterGetSelectedAugmentValueSearchIntegration(t *testing.T) {
 
 	// Searching shape by its naming string ("form") surfaces it too, since the augment uses the same prop-label
 	// matcher real properties use.
-	results, _, errE = f.Get(ctx, getSearchService, restOfSearch, "form*", enabledLanguages)
+	results, _, errE = f.Get(ctx, getSearchService, restOfSearch, "form*", searchLangs(enabledLanguages))
 	require.NoError(t, errE, "% -+#.1v", errE)
 	byID = hasResultsByID(results)
 	require.Contains(t, byID, shape.String())
 
 	// Searching "color" matches the real in-scope color property and hides the selected shape.
-	results, _, errE = f.Get(ctx, getSearchService, restOfSearch, "color*", enabledLanguages)
+	results, _, errE = f.Get(ctx, getSearchService, restOfSearch, "color*", searchLangs(enabledLanguages))
 	require.NoError(t, errE, "% -+#.1v", errE)
 	byID = hasResultsByID(results)
 	require.Contains(t, byID, color.String())
@@ -234,7 +234,7 @@ func TestHasFilterGetSelectedAugmentValueSearchIntegration(t *testing.T) {
 	assert.NotContains(t, byID, shape.String())
 
 	// Outside a value search shape is force-shown at count 0 alongside the in-scope color.
-	results, _, errE = f.Get(ctx, getSearchService, restOfSearch, "", enabledLanguages)
+	results, _, errE = f.Get(ctx, getSearchService, restOfSearch, "", searchLangs(enabledLanguages))
 	require.NoError(t, errE, "% -+#.1v", errE)
 	byID = hasResultsByID(results)
 	require.Contains(t, byID, shape.String())
@@ -294,7 +294,7 @@ func TestHasFilterGetSubHasPooledOnlyIntegration(t *testing.T) {
 	f := search.HasFilter{Props: nil}
 	parentCtx := session.ParentContextFor(parentProp, identifier.Identifier{})
 
-	results, metadata, errE := f.GetSubHas(ctx, getSearchService, session.ToQuery(nil), parentCtx, "", enabledLanguages)
+	results, metadata, errE := f.GetSubHas(ctx, getSearchService, session.ToQuery(nil), parentCtx, "", searchLangs(enabledLanguages))
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, []search.HasFilterResult{
 		{ID: color.String(), Count: 1},
@@ -338,7 +338,7 @@ func TestHasFilterGetSubHasSelectedAugmentValueSearchIntegration(t *testing.T) {
 	parentCtx := sessionData.ParentContextFor(parentProp, identifier.Identifier{})
 
 	// Searching shape's display label surfaces it at count 0, even though it has no document in scope.
-	results, _, errE := f.GetSubHas(ctx, getSearchService, restOfSearch, parentCtx, "shape*", enabledLanguages)
+	results, _, errE := f.GetSubHas(ctx, getSearchService, restOfSearch, parentCtx, "shape*", searchLangs(enabledLanguages))
 	require.NoError(t, errE, "% -+#.1v", errE)
 	byID := hasResultsByID(results)
 	require.Contains(t, byID, shape.String())
@@ -346,13 +346,13 @@ func TestHasFilterGetSubHasSelectedAugmentValueSearchIntegration(t *testing.T) {
 	assert.NotContains(t, byID, color.String())
 
 	// Searching shape by its naming string ("form") surfaces it too.
-	results, _, errE = f.GetSubHas(ctx, getSearchService, restOfSearch, parentCtx, "form*", enabledLanguages)
+	results, _, errE = f.GetSubHas(ctx, getSearchService, restOfSearch, parentCtx, "form*", searchLangs(enabledLanguages))
 	require.NoError(t, errE, "% -+#.1v", errE)
 	byID = hasResultsByID(results)
 	require.Contains(t, byID, shape.String())
 
 	// Searching "color" matches the real in-scope color sub-property and hides the selected shape.
-	results, _, errE = f.GetSubHas(ctx, getSearchService, restOfSearch, parentCtx, "color*", enabledLanguages)
+	results, _, errE = f.GetSubHas(ctx, getSearchService, restOfSearch, parentCtx, "color*", searchLangs(enabledLanguages))
 	require.NoError(t, errE, "% -+#.1v", errE)
 	byID = hasResultsByID(results)
 	require.Contains(t, byID, color.String())
@@ -360,7 +360,7 @@ func TestHasFilterGetSubHasSelectedAugmentValueSearchIntegration(t *testing.T) {
 	assert.NotContains(t, byID, shape.String())
 
 	// Outside a value search shape is force-shown at count 0 alongside the in-scope color.
-	results, _, errE = f.GetSubHas(ctx, getSearchService, restOfSearch, parentCtx, "", enabledLanguages)
+	results, _, errE = f.GetSubHas(ctx, getSearchService, restOfSearch, parentCtx, "", searchLangs(enabledLanguages))
 	require.NoError(t, errE, "% -+#.1v", errE)
 	byID = hasResultsByID(results)
 	require.Contains(t, byID, shape.String())

@@ -849,7 +849,7 @@ func TestRefFilterGetValueQueryIntegration(t *testing.T) {
 	// The value query (a prefix wildcard, as the frontend appends) narrows the facet to the matching value
 	// under this property only. Germanium matches "germ*" too but belongs to otherProp, so it must not leak.
 	// The missing entry is dropped because it has no display label to match.
-	results, metadata, errE := f.Get(ctx, getSearchService, session.ToQuery(nil), refProp, nil, "germ*", enabledLanguages, nil)
+	results, metadata, errE := f.Get(ctx, getSearchService, session.ToQuery(nil), refProp, nil, "germ*", searchLangs(enabledLanguages), nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, []search.RefFilterResult{
 		{ID: germany.String(), Count: 1, ChildCount: 0, Paths: nil},
@@ -858,7 +858,7 @@ func TestRefFilterGetValueQueryIntegration(t *testing.T) {
 
 	// Matching is over all naming strings, not just the display label: Germany's alternative name
 	// "Deutschland" is found even though its display label is "Germany".
-	results, _, errE = f.Get(ctx, getSearchService, session.ToQuery(nil), refProp, nil, "deutsch*", enabledLanguages, nil)
+	results, _, errE = f.Get(ctx, getSearchService, session.ToQuery(nil), refProp, nil, "deutsch*", searchLangs(enabledLanguages), nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, []search.RefFilterResult{
 		{ID: germany.String(), Count: 1, ChildCount: 0, Paths: nil},
@@ -866,7 +866,7 @@ func TestRefFilterGetValueQueryIntegration(t *testing.T) {
 
 	// A bare "*" matches everything, including this property's own name, so the whole facet is shown (all
 	// values plus the missing entry), still scoped to this property.
-	results, metadata, errE = f.Get(ctx, getSearchService, session.ToQuery(nil), refProp, nil, "*", enabledLanguages, nil)
+	results, metadata, errE = f.Get(ctx, getSearchService, session.ToQuery(nil), refProp, nil, "*", searchLangs(enabledLanguages), nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.ElementsMatch(t, []search.RefFilterResult{
 		{ID: germany.String(), Count: 1, ChildCount: 0, Paths: nil},
@@ -876,7 +876,7 @@ func TestRefFilterGetValueQueryIntegration(t *testing.T) {
 	assert.Equal(t, "3", metadata["total"])
 
 	// An empty value query restores all values, including the missing entry.
-	results, metadata, errE = f.Get(ctx, getSearchService, session.ToQuery(nil), refProp, nil, "", enabledLanguages, nil)
+	results, metadata, errE = f.Get(ctx, getSearchService, session.ToQuery(nil), refProp, nil, "", searchLangs(enabledLanguages), nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.ElementsMatch(t, []search.RefFilterResult{
 		{ID: germany.String(), Count: 1, ChildCount: 0, Paths: nil},
@@ -915,22 +915,22 @@ func TestRefFilterGetSubRefParentNameQueryIntegration(t *testing.T) {
 	expected := []search.RefFilterResult{{ID: alice.String(), Count: 1, ChildCount: 0, Paths: nil}}
 
 	// Matched by the parent property's name ("has location").
-	results, _, errE := f.GetSubRef(ctx, getSearchService, session.ToQuery(nil), subProp, parentCtx, nil, "has location*", enabledLanguages, nil)
+	results, _, errE := f.GetSubRef(ctx, getSearchService, session.ToQuery(nil), subProp, parentCtx, nil, "has location*", searchLangs(enabledLanguages), nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, expected, results)
 
 	// Matched by the sub-property's name ("has user").
-	results, _, errE = f.GetSubRef(ctx, getSearchService, session.ToQuery(nil), subProp, parentCtx, nil, "has user*", enabledLanguages, nil)
+	results, _, errE = f.GetSubRef(ctx, getSearchService, session.ToQuery(nil), subProp, parentCtx, nil, "has user*", searchLangs(enabledLanguages), nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, expected, results)
 
 	// Matched by the value's name ("Alice").
-	results, _, errE = f.GetSubRef(ctx, getSearchService, session.ToQuery(nil), subProp, parentCtx, nil, "alic*", enabledLanguages, nil)
+	results, _, errE = f.GetSubRef(ctx, getSearchService, session.ToQuery(nil), subProp, parentCtx, nil, "alic*", searchLangs(enabledLanguages), nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, expected, results)
 
 	// A query that matches neither the parent, sub-property, nor value names returns nothing.
-	results, _, errE = f.GetSubRef(ctx, getSearchService, session.ToQuery(nil), subProp, parentCtx, nil, "zzz*", enabledLanguages, nil)
+	results, _, errE = f.GetSubRef(ctx, getSearchService, session.ToQuery(nil), subProp, parentCtx, nil, "zzz*", searchLangs(enabledLanguages), nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Empty(t, results)
 }
@@ -1185,7 +1185,7 @@ func TestRefFilterGetValueSearchHierarchyIntegration(t *testing.T) {
 
 	// Searching the value name "unit" shows unit and, for tree context, its ancestor vocabulary with its real
 	// (no-search) count of 3, not 0. The sibling language and the unrelated class are not shown.
-	results, metadata, errE := f.Get(ctx, getSearchService, query, instanceOf, nil, "unit*", enabledLanguages, resolver)
+	results, metadata, errE := f.Get(ctx, getSearchService, query, instanceOf, nil, "unit*", searchLangs(enabledLanguages), resolver)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	byID := refResultsByID(results)
 	require.Contains(t, byID, unit.String())
@@ -1199,7 +1199,7 @@ func TestRefFilterGetValueSearchHierarchyIntegration(t *testing.T) {
 
 	// Searching "voca" shows vocabulary (real count 3). unit does not match and is not force-shown, even though
 	// it is the active selection; vocabulary's other descendants are not shown either.
-	results, metadata, errE = f.Get(ctx, getSearchService, query, instanceOf, nil, "voca*", enabledLanguages, resolver)
+	results, metadata, errE = f.Get(ctx, getSearchService, query, instanceOf, nil, "voca*", searchLangs(enabledLanguages), resolver)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	byID = refResultsByID(results)
 	require.Contains(t, byID, vocabulary.String())
@@ -1210,7 +1210,7 @@ func TestRefFilterGetValueSearchHierarchyIntegration(t *testing.T) {
 	assert.Equal(t, "1", metadata["total"])
 
 	// Searching "class" shows only class. The selected unit and its ancestor vocabulary are not force-shown.
-	results, _, errE = f.Get(ctx, getSearchService, query, instanceOf, nil, "class*", enabledLanguages, resolver)
+	results, _, errE = f.Get(ctx, getSearchService, query, instanceOf, nil, "class*", searchLangs(enabledLanguages), resolver)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	byID = refResultsByID(results)
 	require.Contains(t, byID, class.String())
@@ -1274,7 +1274,7 @@ func TestRefFilterGetSelectedAugmentValueSearchIntegration(t *testing.T) {
 
 	// Searching unit's display label surfaces unit (at count 0) and its ancestor vocabulary for tree context,
 	// even though neither is in the search scope. The in-scope class value does not match and is not shown.
-	results, _, errE := f.Get(ctx, getSearchService, restOfSearch, instanceOf, nil, "unit*", enabledLanguages, resolver)
+	results, _, errE := f.Get(ctx, getSearchService, restOfSearch, instanceOf, nil, "unit*", searchLangs(enabledLanguages), resolver)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	byID := refResultsByID(results)
 	require.Contains(t, byID, unit.String())
@@ -1286,7 +1286,7 @@ func TestRefFilterGetSelectedAugmentValueSearchIntegration(t *testing.T) {
 
 	// Searching unit by one of its naming strings ("metre") surfaces it too: the augment is matched by the full
 	// value matcher (display plus naming), not only the display label.
-	results, _, errE = f.Get(ctx, getSearchService, restOfSearch, instanceOf, nil, "metr*", enabledLanguages, resolver)
+	results, _, errE = f.Get(ctx, getSearchService, restOfSearch, instanceOf, nil, "metr*", searchLangs(enabledLanguages), resolver)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	byID = refResultsByID(results)
 	require.Contains(t, byID, unit.String())
@@ -1294,7 +1294,7 @@ func TestRefFilterGetSelectedAugmentValueSearchIntegration(t *testing.T) {
 
 	// Searching the ancestor's label ("voca") surfaces vocabulary only because its descendant unit is selected;
 	// unit itself does not match and is not pulled in.
-	results, _, errE = f.Get(ctx, getSearchService, restOfSearch, instanceOf, nil, "voca*", enabledLanguages, resolver)
+	results, _, errE = f.Get(ctx, getSearchService, restOfSearch, instanceOf, nil, "voca*", searchLangs(enabledLanguages), resolver)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	byID = refResultsByID(results)
 	require.Contains(t, byID, vocabulary.String())
@@ -1302,7 +1302,7 @@ func TestRefFilterGetSelectedAugmentValueSearchIntegration(t *testing.T) {
 	assert.NotContains(t, byID, unit.String())
 
 	// Searching "class" matches the real in-scope class value and hides the augment entirely.
-	results, _, errE = f.Get(ctx, getSearchService, restOfSearch, instanceOf, nil, "class*", enabledLanguages, resolver)
+	results, _, errE = f.Get(ctx, getSearchService, restOfSearch, instanceOf, nil, "class*", searchLangs(enabledLanguages), resolver)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	byID = refResultsByID(results)
 	require.Contains(t, byID, class.String())
@@ -1312,7 +1312,7 @@ func TestRefFilterGetSelectedAugmentValueSearchIntegration(t *testing.T) {
 
 	// Outside a value search the whole augment (unit plus vocabulary) is force-shown at count 0 alongside the
 	// in-scope class value.
-	results, _, errE = f.Get(ctx, getSearchService, restOfSearch, instanceOf, nil, "", enabledLanguages, resolver)
+	results, _, errE = f.Get(ctx, getSearchService, restOfSearch, instanceOf, nil, "", searchLangs(enabledLanguages), resolver)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	byID = refResultsByID(results)
 	require.Contains(t, byID, unit.String())
@@ -1387,7 +1387,7 @@ func TestRefFilterGetSubRefSelectedAugmentValueSearchIntegration(t *testing.T) {
 
 	// Searching dog's display label surfaces dog (count 0) with its full ancestor chain, even though dog is not
 	// in scope.
-	results, _, errE := f.GetSubRef(ctx, getSearchService, restOfSearch, subProp, parentCtx, nil, "dog*", enabledLanguages, resolver)
+	results, _, errE := f.GetSubRef(ctx, getSearchService, restOfSearch, subProp, parentCtx, nil, "dog*", searchLangs(enabledLanguages), resolver)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	byID := refResultsByID(results)
 	require.Contains(t, byID, dog.String())
@@ -1398,14 +1398,14 @@ func TestRefFilterGetSubRefSelectedAugmentValueSearchIntegration(t *testing.T) {
 	assert.NotContains(t, byID, other.String())
 
 	// Searching dog by a naming string ("canine") surfaces it too.
-	results, _, errE = f.GetSubRef(ctx, getSearchService, restOfSearch, subProp, parentCtx, nil, "canin*", enabledLanguages, resolver)
+	results, _, errE = f.GetSubRef(ctx, getSearchService, restOfSearch, subProp, parentCtx, nil, "canin*", searchLangs(enabledLanguages), resolver)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	byID = refResultsByID(results)
 	require.Contains(t, byID, dog.String())
 
 	// Searching the ancestor's label ("anim") surfaces animal only because its descendant dog is selected; dog
 	// and the intermediate mammal are not pulled in.
-	results, _, errE = f.GetSubRef(ctx, getSearchService, restOfSearch, subProp, parentCtx, nil, "anim*", enabledLanguages, resolver)
+	results, _, errE = f.GetSubRef(ctx, getSearchService, restOfSearch, subProp, parentCtx, nil, "anim*", searchLangs(enabledLanguages), resolver)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	byID = refResultsByID(results)
 	require.Contains(t, byID, animal.String())
@@ -1414,7 +1414,7 @@ func TestRefFilterGetSubRefSelectedAugmentValueSearchIntegration(t *testing.T) {
 	assert.NotContains(t, byID, mammal.String())
 
 	// Searching "other" matches the real in-scope value and hides the augment.
-	results, _, errE = f.GetSubRef(ctx, getSearchService, restOfSearch, subProp, parentCtx, nil, "other*", enabledLanguages, resolver)
+	results, _, errE = f.GetSubRef(ctx, getSearchService, restOfSearch, subProp, parentCtx, nil, "other*", searchLangs(enabledLanguages), resolver)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	byID = refResultsByID(results)
 	require.Contains(t, byID, other.String())
@@ -1423,7 +1423,7 @@ func TestRefFilterGetSubRefSelectedAugmentValueSearchIntegration(t *testing.T) {
 	assert.NotContains(t, byID, animal.String())
 
 	// Outside a value search the whole augment (dog plus its ancestors) is force-shown at count 0.
-	results, _, errE = f.GetSubRef(ctx, getSearchService, restOfSearch, subProp, parentCtx, nil, "", enabledLanguages, resolver)
+	results, _, errE = f.GetSubRef(ctx, getSearchService, restOfSearch, subProp, parentCtx, nil, "", searchLangs(enabledLanguages), resolver)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	byID = refResultsByID(results)
 	require.Contains(t, byID, dog.String())
@@ -1475,7 +1475,7 @@ func TestRefFilterGetSubRefChildCountAtLeastIntegration(t *testing.T) {
 	}))
 	refreshIndex(t, ctx, esClient, index)
 
-	session := createSession(t, ctx, search.SessionData{}) //nolint:exhaustruct
+	session := createSession(t, ctx, search.SessionData{})
 
 	f := search.RefFilter{To: nil, Direct: nil}
 	parentCtx := session.ParentContextFor(locationProp, artistProp)

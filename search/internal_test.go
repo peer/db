@@ -15,6 +15,7 @@ var (
 	TestingDuplicatesQuery         = duplicatesQuery
 	TestingFoldLevel               = foldLevel
 	TestingLimitGroups             = limitGroups
+	TestingMatchedSpecials         = matchedSpecials
 	TestingTimePrecisionForValue   = timePrecisionForValue
 	TestingTimeStepDown            = timeStepDown
 	TestingUnitTerm                = unitTerm

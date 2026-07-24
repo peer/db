@@ -91,6 +91,7 @@ func (r RefFilterResult) MarshalJSON() ([]byte, error) {
 	}
 	return x.MarshalWithoutEscapeHTML(struct {
 		plain
+
 		ChildCount string `json:"childCount"`
 	}{plain(r), strconv.FormatInt(r.ChildCount, 10) + "+"})
 }
@@ -380,24 +381,25 @@ func parseSpecialCounts(aggs map[string]types.Aggregate, withOtherTypes bool) (s
 }
 
 // specialEntries appends the special-value entries (has property, unknown, none, missing) whose
-// count is positive and which pass the value-search gate (includeSpecials: outside a value search
-// always, during one only when the facet was reached by a property name). Selected specials are
-// merged later so they stay deselectable even at zero.
-func specialEntries(results []RefFilterResult, counts specialCounts, includeSpecials bool) ([]RefFilterResult, int) {
-	if !includeSpecials {
-		return results, 0
-	}
+// count is positive and which pass the value-search gate: includeSpecials (outside a value search
+// always, during one only when the facet was reached by a property name), or, per entry, when the
+// value query matched that special's own label (spec). Selected specials are merged later so they
+// stay deselectable even at zero.
+func specialEntries(results []RefFilterResult, counts specialCounts, includeSpecials bool, spec requestedSpecials) ([]RefFilterResult, int) {
 	added := 0
 	for _, entry := range []struct {
-		id    string
-		count int64
+		id        string
+		count     int64
+		requested bool
 	}{
-		{HasPropertyValueID, counts.HasProperty},
-		{UnknownValueID, counts.Unknown},
-		{NoneValueID, counts.None},
-		{MissingValueID, counts.Missing},
+		{HasPropertyValueID, counts.HasProperty, spec.HasProperty},
+		{UnknownValueID, counts.Unknown, spec.Unknown},
+		{NoneValueID, counts.None, spec.None},
+		{MissingValueID, counts.Missing, spec.Missing},
 	} {
-		if entry.count > 0 {
+		// A special row is shown when the whole facet's specials are included (no value search, or the
+		// facet's property name matched), or when the value query matched that special's own label.
+		if entry.count > 0 && (includeSpecials || entry.requested) {
 			results = append(results, RefFilterResult{ID: entry.id, Count: entry.count, ChildCount: 0, ChildCountAtLeast: false, Paths: nil})
 			added++
 		}
@@ -766,9 +768,11 @@ func parseSelectedMatchIDs(globalAgg *types.GlobalAggregate, nestedDepth int, ma
 func (f *RefFilter) Get( //nolint:maintidx
 	ctx context.Context, getSearchService func() *esSearch.Search,
 	query types.QueryVariant, prop identifier.Identifier, specials *SpecialsFilter,
-	valueQuery string, enabledLanguages []string, resolver HierarchyPathsResolver,
+	valueQuery string, languages *Languages, resolver HierarchyPathsResolver,
 ) ([]RefFilterResult, map[string]any, errors.E) {
 	metrics, _ := waf.GetMetrics(ctx)
+
+	enabledLanguages := languages.enabled()
 
 	searchService := getSearchService()
 
@@ -787,6 +791,11 @@ func (f *RefFilter) Get( //nolint:maintidx
 	// pane can be narrowed without changing the search; it never alters which documents match.
 	// Because the property name is the same on every record, when it matches the query the whole facet
 	// passes (all values are shown), which is what a user searching for the facet by name wants.
+	// The value query also matches the special value labels, so a facet's missing/none/unknown/has
+	// property rows and its direct entries can be found by name even when the typed text matches none
+	// of the real values.
+	spec := matchedSpecials(valueQuery, languages.special())
+
 	refFilterMusts := []types.QueryVariant{propTerm(relPath, prop)}
 	var valueLabelMatch types.QueryVariant
 	if valueQuery != "" {
@@ -947,15 +956,23 @@ func (f *RefFilter) Get( //nolint:maintidx
 	results = append(results, direct...)
 
 	var specialsAdded int
-	results, specialsAdded = specialEntries(results, counts, includeSpecials)
+	results, specialsAdded = specialEntries(results, counts, includeSpecials, spec)
 
 	addedAncestors := 0
 	if valueQuery == "" {
 		results = mergeSelectedEntries(results, augment, selectedIDs, f.Direct, specials)
 	} else {
-		allValues, errE := parseAllRefValues(res.Aggregations, "allRef")
+		allValues, allMerge, errE := parseAllRefValues(res.Aggregations, "allRef")
 		if errE != nil {
 			return nil, nil, errE
+		}
+		// When the query matched the "direct" label, surface every value's direct entry across the whole
+		// facet (not only the text-matched values), each with the value it hangs under; the parents'
+		// ancestors are then added by addMatchedAncestors below.
+		if spec.Direct {
+			var directSearchAdded int
+			results, directSearchAdded = mergeDirectSearch(results, allMerge, allValues)
+			specialsAdded += directSearchAdded
 		}
 		results, addedAncestors = addMatchedAncestors(results, allValues)
 		if len(augment) > 0 {
@@ -1027,37 +1044,71 @@ func parseChildCardinality(aggs map[string]types.Aggregate, name string) (map[st
 // parseAllRefValues parses an unfiltered top-level value aggregation (nested -> filter -> props) into a map
 // of value id to its result (real document count and hierarchy paths), used during a filter-pane value
 // search to recover the ancestors of matched values with their unchanged (no-search) counts.
-func parseAllRefValues(aggs map[string]types.Aggregate, name string) (map[string]RefFilterResult, errors.E) {
+func parseAllRefValues(aggs map[string]types.Aggregate, name string) (map[string]RefFilterResult, *refValueMerge, errors.E) {
 	nested, errE := internalSearch.AggAs[types.NestedAggregate](aggs, name)
 	if errE != nil {
-		return nil, errE
+		return nil, nil, errE
 	}
 	filter, errE := internalSearch.AggAs[types.FilterAggregate](nested.Aggregations, "filter")
 	if errE != nil {
-		return nil, errE
+		return nil, nil, errE
 	}
 	terms, errE := internalSearch.AggAs[types.StringTermsAggregate](filter.Aggregations, "props")
 	if errE != nil {
-		return nil, errE
+		return nil, nil, errE
 	}
 	buckets, ok := terms.Buckets.([]types.StringTermsBucket)
 	if !ok {
 		errE := errors.New("unexpected bucket type for " + name)
 		errors.Details(errE)["type"] = fmt.Sprintf("%T", terms.Buckets)
-		return nil, errE
+		return nil, nil, errE
 	}
 	merge := newRefValueMerge()
 	for _, bucket := range buckets {
 		errE = merge.AddBucket(bucket, name)
 		if errE != nil {
-			return nil, errE
+			return nil, nil, errE
 		}
 	}
 	out := map[string]RefFilterResult{}
 	for _, r := range merge.Results() {
 		out[r.ID] = r
 	}
-	return out, nil
+	return out, merge, nil
+}
+
+// mergeDirectSearch adds, during a value search that matched the "direct" label, every value's direct
+// entry across the whole facet (not only the text-matched values), each together with the value it
+// hangs under so the tree has a parent to render it below. Direct rows are synthetic and carry no
+// hierarchy for addMatchedAncestors to walk, so the parent value is added here explicitly; that
+// parent's own ancestors are then pulled in by addMatchedAncestors. Entries already present are
+// skipped. It returns the updated results and the number of entries appended. allMerge and allValues
+// come from the unfiltered (no value-query) value aggregation, so counts and paths are the unchanged
+// no-search ones.
+func mergeDirectSearch(results []RefFilterResult, allMerge *refValueMerge, allValues map[string]RefFilterResult) ([]RefFilterResult, int) {
+	present := make(map[string]bool, len(results))
+	for _, r := range results {
+		present[r.ID] = true
+	}
+	added := 0
+	allList := allMerge.Results()
+	for _, entry := range allMerge.DirectEntries(allList) {
+		if !present[entry.ID] {
+			results = append(results, entry)
+			present[entry.ID] = true
+			added++
+		}
+		parentID := strings.TrimPrefix(entry.ID, DirectRefFilterPrefix)
+		if present[parentID] {
+			continue
+		}
+		if value, ok := allValues[parentID]; ok {
+			results = append(results, value)
+			present[parentID] = true
+			added++
+		}
+	}
+	return results, added
 }
 
 // GetSubRef retrieves reference filter data for a sub facet (parentProp > prop): the value tree
@@ -1072,9 +1123,11 @@ func (f *RefFilter) GetSubRef( //nolint:maintidx
 	ctx context.Context, getSearchService func() *esSearch.Search,
 	query types.QueryVariant, prop identifier.Identifier,
 	parentCtx *ParentContext, specials *SpecialsFilter,
-	valueQuery string, enabledLanguages []string, resolver HierarchyPathsResolver,
+	valueQuery string, languages *Languages, resolver HierarchyPathsResolver,
 ) ([]RefFilterResult, map[string]any, errors.E) {
 	metrics, _ := waf.GetMetrics(ctx)
+
+	enabledLanguages := languages.enabled()
 
 	searchService := getSearchService()
 
@@ -1083,6 +1136,11 @@ func (f *RefFilter) GetSubRef( //nolint:maintidx
 	if errE != nil {
 		return nil, nil, errE
 	}
+
+	// The value query also matches the special value labels, so a sub facet's missing/none/unknown/has
+	// property rows and its direct entries can be found by name even when the typed text matches none
+	// of the real values.
+	spec := matchedSpecials(valueQuery, languages.special())
 
 	// valueQuery restricts the facet to records whose value name or this sub-property's own name matches the
 	// user-typed text. The parent property's name is matched at parent level (parentPropMatch below); when
@@ -1304,7 +1362,7 @@ func (f *RefFilter) GetSubRef( //nolint:maintidx
 	results = append(results, direct...)
 
 	var specialsAdded int
-	results, specialsAdded = specialEntries(results, counts, includeSpecials)
+	results, specialsAdded = specialEntries(results, counts, includeSpecials, spec)
 
 	addedAncestors := 0
 	if valueQuery == "" {
@@ -1326,6 +1384,13 @@ func (f *RefFilter) GetSubRef( //nolint:maintidx
 		}
 		for _, r := range allMerge.Results() {
 			allValues[r.ID] = r
+		}
+		// When the query matched the "direct" label, surface every value's direct entry across the whole
+		// facet, each with the value it hangs under; the parents' ancestors are then added below.
+		if spec.Direct {
+			var directSearchAdded int
+			results, directSearchAdded = mergeDirectSearch(results, allMerge, allValues)
+			specialsAdded += directSearchAdded
 		}
 		results, addedAncestors = addMatchedAncestors(results, allValues)
 		if len(augment) > 0 {

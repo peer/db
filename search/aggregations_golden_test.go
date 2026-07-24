@@ -172,7 +172,7 @@ func TestFiltersGetAggregationsGolden(t *testing.T) {
 
 		ctx := siteContext(t.Context())
 		body := captureAggregationRequest(t, func(getSearchService func() *esSearch.Search) {
-			_, _, _ = search.FiltersGet(ctx, getSearchService, session, enabledLanguages, "")
+			_, _, _ = search.FiltersGet(ctx, getSearchService, session, searchLangs(enabledLanguages), "")
 		})
 		assertAggregationsGolden(t, "filters_get_no_query", body)
 	})
@@ -182,7 +182,7 @@ func TestFiltersGetAggregationsGolden(t *testing.T) {
 
 		ctx := siteContext(t.Context())
 		body := captureAggregationRequest(t, func(getSearchService func() *esSearch.Search) {
-			_, _, _ = search.FiltersGet(ctx, getSearchService, session, enabledLanguages, "col*")
+			_, _, _ = search.FiltersGet(ctx, getSearchService, session, searchLangs(enabledLanguages), "col*")
 		})
 		assertAggregationsGolden(t, "filters_get_value_query", body)
 	})
@@ -202,7 +202,7 @@ func TestRefFilterGetAggregationsGolden(t *testing.T) {
 		ctx := siteContext(t.Context())
 		f := &search.RefFilter{To: nil, Direct: nil}
 		body := captureAggregationRequest(t, func(getSearchService func() *esSearch.Search) {
-			_, _, _ = f.Get(ctx, getSearchService, esdsl.NewMatchAllQuery(), prop, nil, "", enabledLanguages, nil)
+			_, _, _ = f.Get(ctx, getSearchService, esdsl.NewMatchAllQuery(), prop, nil, "", searchLangs(enabledLanguages), nil)
 		})
 		assertAggregationsGolden(t, "ref_filter_get_no_query", body)
 	})
@@ -219,7 +219,7 @@ func TestRefFilterGetAggregationsGolden(t *testing.T) {
 			value: {hierProp.String() + ":" + value.String()},
 		})
 		body := captureAggregationRequest(t, func(getSearchService func() *esSearch.Search) {
-			_, _, _ = f.Get(ctx, getSearchService, esdsl.NewMatchAllQuery(), prop, nil, "col*", enabledLanguages, resolver)
+			_, _, _ = f.Get(ctx, getSearchService, esdsl.NewMatchAllQuery(), prop, nil, "col*", searchLangs(enabledLanguages), resolver)
 		})
 		assertAggregationsGolden(t, "ref_filter_get_value_query", body)
 	})
@@ -244,7 +244,7 @@ func TestRefFilterGetSubRefAggregationsGolden(t *testing.T) {
 	var sessionData search.SessionData
 	parentCtx := sessionData.ParentContextFor(parentProp, prop)
 	body := captureAggregationRequest(t, func(getSearchService func() *esSearch.Search) {
-		_, _, _ = f.GetSubRef(ctx, getSearchService, esdsl.NewMatchAllQuery(), prop, parentCtx, nil, "col*", enabledLanguages, resolver)
+		_, _, _ = f.GetSubRef(ctx, getSearchService, esdsl.NewMatchAllQuery(), prop, parentCtx, nil, "col*", searchLangs(enabledLanguages), resolver)
 	})
 	assertAggregationsGolden(t, "ref_filter_get_subref_value_query", body)
 }
@@ -258,7 +258,7 @@ func TestHasFilterGetAggregationsGolden(t *testing.T) {
 	ctx := siteContext(t.Context())
 	f := &search.HasFilter{Props: []search.HasValue{{ID: prop}}}
 	body := captureAggregationRequest(t, func(getSearchService func() *esSearch.Search) {
-		_, _, _ = f.Get(ctx, getSearchService, esdsl.NewMatchAllQuery(), "col*", enabledLanguages)
+		_, _, _ = f.Get(ctx, getSearchService, esdsl.NewMatchAllQuery(), "col*", searchLangs(enabledLanguages))
 	})
 	assertAggregationsGolden(t, "has_filter_get_value_query", body)
 }
@@ -277,7 +277,7 @@ func TestHasFilterGetSubHasAggregationsGolden(t *testing.T) {
 	var sessionData search.SessionData
 	parentCtx := sessionData.ParentContextFor(parentProp, identifier.Identifier{})
 	body := captureAggregationRequest(t, func(getSearchService func() *esSearch.Search) {
-		_, _, _ = f.GetSubHas(ctx, getSearchService, esdsl.NewMatchAllQuery(), parentCtx, "col*", enabledLanguages)
+		_, _, _ = f.GetSubHas(ctx, getSearchService, esdsl.NewMatchAllQuery(), parentCtx, "col*", searchLangs(enabledLanguages))
 	})
 	assertAggregationsGolden(t, "has_filter_get_subhas_value_query", body)
 }

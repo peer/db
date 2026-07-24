@@ -328,7 +328,7 @@ func TestFiltersGetValueQueryIntegration(t *testing.T) {
 	}
 
 	// Without a query both facets are available.
-	results, metadata, errE := search.FiltersGet(ctx, getSearchService, session, enabledLanguages, "")
+	results, metadata, errE := search.FiltersGet(ctx, getSearchService, session, searchLangs(enabledLanguages), "")
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.True(t, has(results, "ref", instanceOf))
 	assert.True(t, has(results, "amount", height))
@@ -336,28 +336,28 @@ func TestFiltersGetValueQueryIntegration(t *testing.T) {
 	assert.Equal(t, "2", metadata["total"])
 
 	// Matching a facet by its own property name keeps only that facet, but the total stays the same.
-	results, metadata, errE = search.FiltersGet(ctx, getSearchService, session, enabledLanguages, "instance*")
+	results, metadata, errE = search.FiltersGet(ctx, getSearchService, session, searchLangs(enabledLanguages), "instance*")
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.True(t, has(results, "ref", instanceOf))
 	assert.False(t, has(results, "amount", height))
 	assert.Equal(t, "2", metadata["total"])
 
 	// Matching a reference facet by one of its value names keeps that facet too.
-	results, metadata, errE = search.FiltersGet(ctx, getSearchService, session, enabledLanguages, "germ*")
+	results, metadata, errE = search.FiltersGet(ctx, getSearchService, session, searchLangs(enabledLanguages), "germ*")
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.True(t, has(results, "ref", instanceOf))
 	assert.False(t, has(results, "amount", height))
 	assert.Equal(t, "2", metadata["total"])
 
 	// An amount facet is reachable by its name even though its values (numbers) cannot be searched.
-	results, metadata, errE = search.FiltersGet(ctx, getSearchService, session, enabledLanguages, "heig*")
+	results, metadata, errE = search.FiltersGet(ctx, getSearchService, session, searchLangs(enabledLanguages), "heig*")
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.True(t, has(results, "amount", height))
 	assert.False(t, has(results, "ref", instanceOf))
 	assert.Equal(t, "2", metadata["total"])
 
 	// A query that matches no facet name or value returns no facets, yet the total still reports both.
-	results, metadata, errE = search.FiltersGet(ctx, getSearchService, session, enabledLanguages, "zzz*")
+	results, metadata, errE = search.FiltersGet(ctx, getSearchService, session, searchLangs(enabledLanguages), "zzz*")
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.False(t, has(results, "ref", instanceOf))
 	assert.False(t, has(results, "amount", height))
@@ -406,7 +406,7 @@ func TestFiltersGetRefDiscoveryCountValueQueryIntegration(t *testing.T) {
 	}
 
 	// Without a value query both facets are available at their full document counts.
-	results, metadata, errE := search.FiltersGet(ctx, getSearchService, session, enabledLanguages, "")
+	results, metadata, errE := search.FiltersGet(ctx, getSearchService, session, searchLangs(enabledLanguages), "")
 	require.NoError(t, errE, "% -+#.1v", errE)
 	c, ok := count(results, instanceOf)
 	assert.True(t, ok, "instance of facet present without query")
@@ -418,7 +418,7 @@ func TestFiltersGetRefDiscoveryCountValueQueryIntegration(t *testing.T) {
 
 	// A value query matching only one of the three values keeps the facet at its full count (3, not 1) and
 	// drops the facet that matches nothing, while the available-filters total is unchanged.
-	results, metadata, errE = search.FiltersGet(ctx, getSearchService, session, enabledLanguages, "germ*")
+	results, metadata, errE = search.FiltersGet(ctx, getSearchService, session, searchLangs(enabledLanguages), "germ*")
 	require.NoError(t, errE, "% -+#.1v", errE)
 	c, ok = count(results, instanceOf)
 	assert.True(t, ok, "instance of facet present under matching query")
@@ -428,7 +428,7 @@ func TestFiltersGetRefDiscoveryCountValueQueryIntegration(t *testing.T) {
 	assert.Equal(t, "2", metadata["total"])
 
 	// A query that matches nothing drops both facets but still reports the full total.
-	results, metadata, errE = search.FiltersGet(ctx, getSearchService, session, enabledLanguages, "zzz*")
+	results, metadata, errE = search.FiltersGet(ctx, getSearchService, session, searchLangs(enabledLanguages), "zzz*")
 	require.NoError(t, errE, "% -+#.1v", errE)
 	_, ok = count(results, instanceOf)
 	assert.False(t, ok, "instance of facet absent under non-matching query")
@@ -467,7 +467,7 @@ func TestFiltersGetHasDiscoveryCountValueQueryIntegration(t *testing.T) {
 	}
 
 	// Without a value query the has facet reports all documents with any has claim.
-	results, metadata, errE := search.FiltersGet(ctx, getSearchService, session, enabledLanguages, "")
+	results, metadata, errE := search.FiltersGet(ctx, getSearchService, session, searchLangs(enabledLanguages), "")
 	require.NoError(t, errE, "% -+#.1v", errE)
 	c, ok := hasCount(results)
 	assert.True(t, ok, "has facet present without query")
@@ -476,7 +476,7 @@ func TestFiltersGetHasDiscoveryCountValueQueryIntegration(t *testing.T) {
 
 	// A value query matching only one has-property keeps the facet at its full document count (3, not 1),
 	// while the available-filters total is unchanged.
-	results, metadata, errE = search.FiltersGet(ctx, getSearchService, session, enabledLanguages, "color*")
+	results, metadata, errE = search.FiltersGet(ctx, getSearchService, session, searchLangs(enabledLanguages), "color*")
 	require.NoError(t, errE, "% -+#.1v", errE)
 	c, ok = hasCount(results)
 	assert.True(t, ok, "has facet present under matching query")
@@ -484,7 +484,7 @@ func TestFiltersGetHasDiscoveryCountValueQueryIntegration(t *testing.T) {
 	assert.Equal(t, "1", metadata["total"])
 
 	// A query matching no has-property drops the facet but still reports it in the total.
-	results, metadata, errE = search.FiltersGet(ctx, getSearchService, session, enabledLanguages, "zzz*")
+	results, metadata, errE = search.FiltersGet(ctx, getSearchService, session, searchLangs(enabledLanguages), "zzz*")
 	require.NoError(t, errE, "% -+#.1v", errE)
 	_, ok = hasCount(results)
 	assert.False(t, ok, "has facet absent under non-matching query")
@@ -833,7 +833,7 @@ func TestFiltersGetSubRefDiscoveryCountValueQueryIntegration(t *testing.T) {
 
 	// Without a value query both sub-facets are available at their full document counts. The parent claims
 	// also surface as a top-level value-list facet, so the total counts three facets.
-	results, metadata, errE := search.FiltersGet(ctx, getSearchService, session, enabledLanguages, "")
+	results, metadata, errE := search.FiltersGet(ctx, getSearchService, session, searchLangs(enabledLanguages), "")
 	require.NoError(t, errE, "% -+#.1v", errE)
 	c, ok := count(results, instanceOf)
 	assert.True(t, ok, "instance of sub-facet present without query")
@@ -845,7 +845,7 @@ func TestFiltersGetSubRefDiscoveryCountValueQueryIntegration(t *testing.T) {
 
 	// A value query matching only one value keeps the sub-facet at its full count (3, not 1) and drops the
 	// sub-facet that matches nothing, while the available-filters total is unchanged.
-	results, metadata, errE = search.FiltersGet(ctx, getSearchService, session, enabledLanguages, "germ*")
+	results, metadata, errE = search.FiltersGet(ctx, getSearchService, session, searchLangs(enabledLanguages), "germ*")
 	require.NoError(t, errE, "% -+#.1v", errE)
 	c, ok = count(results, instanceOf)
 	assert.True(t, ok, "instance of sub-facet present under matching query")
@@ -882,7 +882,7 @@ func TestFiltersGetSpecialsActiveValuedFacetIntegration(t *testing.T) {
 
 	// With nothing selected, discovery offers the amount facet with the reachable-through count:
 	// the three value documents plus the valueless one.
-	emptySession := createSession(t, ctx, search.SessionData{}) //nolint:exhaustruct
+	emptySession := createSession(t, ctx, search.SessionData{})
 	results, _, errE := search.FiltersGet(ctx, getSearchService, emptySession, nil, "")
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, []search.FilterResult{

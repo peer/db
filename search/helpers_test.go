@@ -5,6 +5,7 @@ import (
 	"context"
 	"math"
 	"os"
+	"slices"
 	"strings"
 	"testing"
 
@@ -19,6 +20,7 @@ import (
 	"gitlab.com/tozd/identifier"
 	"gitlab.com/tozd/waf"
 
+	"gitlab.com/peerdb/peerdb/document"
 	internalSearch "gitlab.com/peerdb/peerdb/internal/search"
 	internalSite "gitlab.com/peerdb/peerdb/internal/site"
 	"gitlab.com/peerdb/peerdb/internal/testutils"
@@ -30,6 +32,18 @@ import (
 // LanguagePriority, so the session language resolves to the package default language.
 func siteContext(ctx context.Context) context.Context {
 	return waf.WithSite[*internalSite.Site](ctx, &internalSite.Site{})
+}
+
+// searchLangs builds the *search.Languages a filter-search entry point takes: the given enabled
+// languages for the indexed-text queries, and the same set minus the undetermined language (which has no
+// special-value labels) for the special-value label search. For these default-language test sites that
+// makes the special set [en], matching what a default-language request produces, so the special search
+// scopes to English.
+func searchLangs(enabledLanguages []string) *search.Languages {
+	special := slices.DeleteFunc(slices.Clone(enabledLanguages), func(lang string) bool {
+		return lang == document.UndeterminedLanguage
+	})
+	return &search.Languages{Enabled: enabledLanguages, Special: special}
 }
 
 // initES creates and configures an ES client and a test index.

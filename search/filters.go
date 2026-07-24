@@ -75,7 +75,11 @@ type relFacetInfo struct {
 	Docs          int64
 	ValuelessDocs int64
 	ClaimTypes    relClaimTypeSet
-	Matched       int64
+	// HasHierarchy is true when the property has a non-leaf ref record (a value expanded as an ancestor
+	// of a narrower value), the marker of a hierarchy that can carry a direct entry. It gates the direct
+	// special so that search surfaces only the ref facets that can show a direct row, not every ref facet.
+	HasHierarchy bool
+	Matched      int64
 }
 
 // parseRelFacetBuckets parses a rel discovery terms aggregation (buckets keyed by prop, each with
@@ -106,14 +110,23 @@ func parseRelFacetBuckets(buckets []types.StringTermsBucket, valueQueryActive bo
 		if errE != nil {
 			return errE
 		}
+		hierarchy, errE := internalSearch.AggAs[types.FilterAggregate](bucket.Aggregations, "hierarchy")
+		if errE != nil {
+			return errE
+		}
 		info := out[key]
 		if info == nil {
-			info = &relFacetInfo{Docs: 0, ValuelessDocs: 0, ClaimTypes: relClaimTypeSet{Ref: false, Has: false, None: false, Unknown: false}, Matched: 0}
+			info = &relFacetInfo{
+				Docs: 0, ValuelessDocs: 0,
+				ClaimTypes:   relClaimTypeSet{Ref: false, Has: false, None: false, Unknown: false},
+				HasHierarchy: false, Matched: 0,
+			}
 			out[key] = info
 			*order = append(*order, key)
 		}
 		info.Docs += bucketDocs.DocCount
 		info.ValuelessDocs += valuelessDocs.DocCount
+		info.HasHierarchy = info.HasHierarchy || hierarchy.DocCount > 0
 		if claimTypeBuckets, ok := claimTypesAgg.Buckets.([]types.StringTermsBucket); ok {
 			for _, ctb := range claimTypeBuckets {
 				switch ctb.Key {
@@ -148,9 +161,15 @@ type valueFacetInfo struct {
 
 // relDiscoveryAggregation builds the rel discovery terms aggregation over path: per-property
 // buckets with the full document count, the valueless (has/none/unknown) document count, the claim
-// types present, and the value-query match gate.
+// types present, the hierarchy marker (a non-leaf ref record, so the property can carry a direct
+// entry), and the value-query match gate.
 func relDiscoveryAggregation(path string, match types.QueryVariant) types.AggregationsVariant { //nolint:ireturn
 	valuelessQuery := esdsl.NewBoolQuery().MustNot(claimTypeTerm(path, internalSearch.ClaimTypeRef))
+	// A non-leaf ref record marks a value expanded as an ancestor of a narrower value. isLeaf is indexed
+	// omitempty, so non-leaf records have no isLeaf field: match ref AND NOT isLeaf==true.
+	hierarchyQuery := esdsl.NewBoolQuery().
+		Must(claimTypeTerm(path, internalSearch.ClaimTypeRef)).
+		MustNot(esdsl.NewTermQuery(path+".isLeaf", esdsl.NewFieldValue().Bool(true)))
 	agg := esdsl.NewAggregations().
 		Terms(esdsl.NewTermsAggregation().Field(path+".prop").Size(MaxResultsCount).
 			Order(esdsl.NewAggregateOrder().Map(map[string]sortorder.SortOrder{"docs": sortorder.Desc}))).
@@ -161,7 +180,9 @@ func relDiscoveryAggregation(path string, match types.QueryVariant) types.Aggreg
 			AddAggregation("docs", esdsl.NewAggregations().
 				ReverseNested(esdsl.NewReverseNestedAggregation()))).
 		AddAggregation("claimTypes", esdsl.NewAggregations().
-			Terms(esdsl.NewTermsAggregation().Field(path+".claimType").Size(4))) //nolint:mnd
+			Terms(esdsl.NewTermsAggregation().Field(path+".claimType").Size(4))). //nolint:mnd
+		AddAggregation("hierarchy", esdsl.NewAggregations().
+			Filter(hierarchyQuery))
 	if match != nil {
 		agg = agg.AddAggregation("matched", matchedDocsAggregation(match))
 	}
@@ -214,6 +235,41 @@ func filteredDiscoveryAggregation(path string, match types.QueryVariant, inner t
 			AddAggregation("props", inner))
 }
 
+// relSpecialPresenceQuery builds the rel-record query over path matching the claim-type special values
+// a value query requested: none, unknown and has property are rel records of that claim type; direct is
+// a non-leaf ref record (isLeaf false), the marker that a value has narrower values and so can carry a
+// direct entry. It drives the beyond-cap special discovery pass, the analogue of the text-match
+// beyond-cap passes, letting a property whose only match is one of these specials surface even when it
+// ranks beyond the unfiltered discovery's Size cap by document count. path is the rel collection (the
+// top-level rel path or a sub rel path). It returns nil when no such special was requested. Missing has
+// no rel-record signal (it is an absence relative to the universe) and is near-universal, so it is
+// deliberately left scoped to the in-cap pass.
+func relSpecialPresenceQuery(path string, specials requestedSpecials) types.QueryVariant { //nolint:ireturn
+	var shoulds []types.QueryVariant
+	if specials.None {
+		shoulds = append(shoulds, claimTypeTerm(path, internalSearch.ClaimTypeNone))
+	}
+	if specials.Unknown {
+		shoulds = append(shoulds, claimTypeTerm(path, internalSearch.ClaimTypeUnknown))
+	}
+	if specials.HasProperty {
+		shoulds = append(shoulds, claimTypeTerm(path, internalSearch.ClaimTypeHas))
+	}
+	if specials.Direct {
+		// A non-leaf ref record (a value expanded as an ancestor of a narrower value) is the marker of a
+		// property with hierarchy, the only kind that can carry a direct entry. isLeaf is indexed
+		// omitempty, so non-leaf records have no isLeaf field: match ref records that are not leaves as
+		// ref AND NOT isLeaf==true rather than isLeaf==false.
+		shoulds = append(shoulds, esdsl.NewBoolQuery().
+			Must(claimTypeTerm(path, internalSearch.ClaimTypeRef)).
+			MustNot(esdsl.NewTermQuery(path+".isLeaf", esdsl.NewFieldValue().Bool(true))))
+	}
+	if len(shoulds) == 0 {
+		return nil
+	}
+	return esdsl.NewBoolQuery().Should(shoulds...).MinimumShouldMatch(esdsl.NewMinimumShouldMatch().Int(1))
+}
+
 // parentDiscoveryBuckets builds the per-parent-property terms aggregation used by the sub-level
 // discovery: parent-property buckets, each holding the unfiltered sub-collection discovery
 // (subRel/subAmount/subTime, with the pooled sub-has count under subRel) and, when a value query is
@@ -222,8 +278,10 @@ func filteredDiscoveryAggregation(path string, match types.QueryVariant, inner t
 // parent enumeration (sub:<parent>) and under the filtered parent enumeration (sub:<parent>:beyondParents),
 // so a parent property beyond the parent cap gets the same sub facets as one within it.
 func parentDiscoveryBuckets(
-	parent, subRel, subAmount, subTime string, subRelMatch, subAmountMatch, subTimeMatch types.QueryVariant, valueQuery string, enabledLanguages []string,
-) types.AggregationsVariant { //nolint:ireturn
+	parent, subRel, subAmount, subTime string,
+	subRelMatch, subAmountMatch, subTimeMatch, subRelSpecialMatch types.QueryVariant,
+	valueQuery string, enabledLanguages []string,
+) types.AggregationsVariant {
 	buckets := esdsl.NewAggregations().
 		Terms(esdsl.NewTermsAggregation().Field(parentPath(parent)+".prop").Size(MaxResultsCount)).
 		AddAggregation("subRel", esdsl.NewAggregations().
@@ -251,6 +309,12 @@ func parentDiscoveryBuckets(
 			AddAggregation("subRelMatched", filteredDiscoveryAggregation(subRel, subRelMatch, relDiscoveryAggregation(subRel, nil))).
 			AddAggregation("subAmountMatched", filteredDiscoveryAggregation(subAmount, subAmountMatch, amountDiscoveryAggregation(subAmount, nil))).
 			AddAggregation("subTimeMatched", filteredDiscoveryAggregation(subTime, subTimeMatch, timeDiscoveryAggregation(subTime, nil)))
+		// A matched claim-type special surfaces sub properties that carry it but rank beyond the sub cap,
+		// the analogue of subRelMatched. Folded by mergeMatchedSubFacets like the text sub pass.
+		if subRelSpecialMatch != nil {
+			buckets = buckets.
+				AddAggregation("subRelSpecialMatched", filteredDiscoveryAggregation(subRel, subRelSpecialMatch, relDiscoveryAggregation(subRel, nil)))
+		}
 	}
 	return buckets
 }
@@ -526,8 +590,9 @@ func parseParentBucket(parentBucket types.StringTermsBucket, set *facetSet, valu
 
 // mergeMatchedSubFacets folds the filtered sub passes (subRelMatched/subAmountMatched/subTimeMatched)
 // of one parent-property bucket into set, adding sub facets beyond the unfiltered sub cap and marking
-// them beyond.
-func mergeMatchedSubFacets(parentBucket types.StringTermsBucket, set *facetSet) errors.E {
+// them beyond. When foldSpecial is true a subRelSpecialMatched pass is present (a claim-type special was
+// matched) and is folded too, surfacing special-bearing sub properties beyond the sub cap.
+func mergeMatchedSubFacets(parentBucket types.StringTermsBucket, set *facetSet, foldSpecial bool) errors.E {
 	errE := mergeMatchedRelFacets(parentBucket.Aggregations, "subRelMatched", set)
 	if errE != nil {
 		return errE
@@ -536,7 +601,14 @@ func mergeMatchedSubFacets(parentBucket types.StringTermsBucket, set *facetSet) 
 	if errE != nil {
 		return errE
 	}
-	return mergeMatchedTimeFacets(parentBucket.Aggregations, "subTimeMatched", set)
+	errE = mergeMatchedTimeFacets(parentBucket.Aggregations, "subTimeMatched", set)
+	if errE != nil {
+		return errE
+	}
+	if foldSpecial {
+		return mergeMatchedRelFacets(parentBucket.Aggregations, "subRelSpecialMatched", set)
+	}
+	return nil
 }
 
 // markAllBeyond marks every facet in set as beyond, used for a parent property surfaced only by the
@@ -620,7 +692,7 @@ func newFacetSet() *facetSet {
 // the unfiltered pass (including the pooled has facet when it has any member) but not the ones the
 // filtered pass surfaced beyond the cap (marked in the *Beyond sets), so it stays value-query-
 // independent (stable as the box is typed in).
-func (s *facetSet) Results(propsPrefix []string, valueQueryActive bool) ([]FilterResult, []string, int) {
+func (s *facetSet) Results(propsPrefix []string, valueQueryActive bool, specials requestedSpecials) ([]FilterResult, []string, int) {
 	var out []FilterResult
 	var pooledHasProps []string
 	pooledHasExists := false
@@ -630,6 +702,11 @@ func (s *facetSet) Results(propsPrefix []string, valueQueryActive bool) ([]Filte
 			return true
 		}
 		return matched > 0 || s.ParentMatched > 0
+	}
+	// keep folds the text-match gate together with the special-label gate: a facet is returned when its
+	// records match the typed text, or when the query matched a special value label that applies to it.
+	keep := func(matched int64, ct relClaimTypeSet, isRef, hasHierarchy bool) bool {
+		return passes(matched) || specialFacetPasses(specials, ct, isRef, hasHierarchy)
 	}
 	amountProps := map[string]bool{}
 	for _, key := range s.AmountOrder {
@@ -650,7 +727,7 @@ func (s *facetSet) Results(propsPrefix []string, valueQueryActive bool) ([]Filte
 			if countsToTotal {
 				totalFacets++
 			}
-			if passes(info.Matched) {
+			if keep(info.Matched, info.ClaimTypes, true, info.HasHierarchy) {
 				out = append(out, FilterResult{
 					Props:    append(slices.Clone(propsPrefix), prop),
 					Type:     "ref",
@@ -663,16 +740,19 @@ func (s *facetSet) Results(propsPrefix []string, valueQueryActive bool) ([]Filte
 			if countsToTotal {
 				pooledHasExists = true
 			}
-			if passes(info.Matched) {
+			// The pooled has facet is a property list with no missing/none/unknown/direct rows, so of the
+			// special labels only "has property" surfaces it.
+			if passes(info.Matched) || specials.HasProperty {
 				pooledHasProps = append(pooledHasProps, prop)
 			}
 		case !hasValuedElsewhere:
 			// Valueless statements (none, unknown, or has beside them) with no valued facet anywhere:
-			// a specials-only value-list facet.
+			// a specials-only value-list facet. It carries no ref values, so the direct special never
+			// surfaces it (isRef is false).
 			if countsToTotal {
 				totalFacets++
 			}
-			if passes(info.Matched) {
+			if keep(info.Matched, info.ClaimTypes, false, info.HasHierarchy) {
 				out = append(out, FilterResult{
 					Props:    append(slices.Clone(propsPrefix), prop),
 					Type:     "ref",
@@ -691,13 +771,17 @@ func (s *facetSet) Results(propsPrefix []string, valueQueryActive bool) ([]Filte
 	for _, key := range s.AmountOrder {
 		info := s.Amount[key]
 		count := info.Docs
-		if relInfo, ok := s.Rel[key[0]]; ok && !relInfo.ClaimTypes.Ref {
-			count += relInfo.ValuelessDocs
+		var ct relClaimTypeSet
+		if relInfo, ok := s.Rel[key[0]]; ok {
+			ct = relInfo.ClaimTypes
+			if !relInfo.ClaimTypes.Ref {
+				count += relInfo.ValuelessDocs
+			}
 		}
 		if !s.AmountBeyond[key] {
 			totalFacets++
 		}
-		if passes(info.Matched) {
+		if keep(info.Matched, ct, false, false) {
 			out = append(out, FilterResult{
 				Props:    append(slices.Clone(propsPrefix), key[0]),
 				Type:     "amount",
@@ -710,13 +794,17 @@ func (s *facetSet) Results(propsPrefix []string, valueQueryActive bool) ([]Filte
 	for _, prop := range s.TimeOrder {
 		info := s.Time[prop]
 		count := info.Docs
-		if relInfo, ok := s.Rel[prop]; ok && !relInfo.ClaimTypes.Ref {
-			count += relInfo.ValuelessDocs
+		var ct relClaimTypeSet
+		if relInfo, ok := s.Rel[prop]; ok {
+			ct = relInfo.ClaimTypes
+			if !relInfo.ClaimTypes.Ref {
+				count += relInfo.ValuelessDocs
+			}
 		}
 		if !s.TimeBeyond[prop] {
 			totalFacets++
 		}
-		if passes(info.Matched) {
+		if keep(info.Matched, ct, false, false) {
 			out = append(out, FilterResult{
 				Props:    append(slices.Clone(propsPrefix), prop),
 				Type:     "time",
@@ -729,14 +817,40 @@ func (s *facetSet) Results(propsPrefix []string, valueQueryActive bool) ([]Filte
 	return out, pooledHasProps, totalFacets
 }
 
+// specialFacetPasses reports whether a facet must be kept because the value query matched a special
+// value label that applies to it. Missing applies to every facet (nearly every property is missing on
+// some documents, and the exact per-facet count then drops facets with none). None, unknown and has
+// property apply when the facet's property has that rel claim type. Direct applies to a value-list
+// (ref) facet that has hierarchy (hasHierarchy), the only kind that can carry a per-value direct entry;
+// gating on hierarchy keeps the direct search from flooding the pane with every ref facet. It is
+// additive to the text-match gate and is inert when no special was matched.
+func specialFacetPasses(specials requestedSpecials, ct relClaimTypeSet, isRef, hasHierarchy bool) bool {
+	switch {
+	case specials.Missing:
+		return true
+	case specials.None && ct.None:
+		return true
+	case specials.Unknown && ct.Unknown:
+		return true
+	case specials.HasProperty && ct.Has:
+		return true
+	case specials.Direct && isRef && hasHierarchy:
+		return true
+	default:
+		return false
+	}
+}
+
 // FiltersGet retrieves all available filters for the current search: one entry per discovered
 // facet (value-list, amount per unit, time), the pooled has facet (top-level and per parent
 // property), and one entry per active filter with its availability count.
 func FiltersGet( //nolint:maintidx
-	ctx context.Context, getSearchService func() *esSearch.Search, searchSession *Session, enabledLanguages []string,
+	ctx context.Context, getSearchService func() *esSearch.Search, searchSession *Session, languages *Languages,
 	valueQuery string, extraFilters ...types.QueryVariant,
 ) ([]FilterResult, map[string]any, errors.E) {
 	metrics, _ := waf.GetMetrics(ctx)
+
+	enabledLanguages := languages.enabled()
 
 	// The access filter goes on the top-level query; ES scopes every non-global aggregation to
 	// the documents it matches, so facet counts never include documents the caller cannot
@@ -747,6 +861,15 @@ func FiltersGet( //nolint:maintidx
 	searchService := getSearchService().Size(0).Query(query)
 
 	valueQueryActive := valueQuery != ""
+
+	// The value query also matches the special value labels (missing, none, unknown, has property,
+	// direct) so those facet rows can be found by name. A matched special keeps the facets it applies
+	// to (in facetSet.Results) even when the typed text matches none of their real records.
+	specials := matchedSpecials(valueQuery, languages.special())
+
+	// The rel-record query for a matched claim-type special (none/unknown/has/direct), or nil. It drives
+	// a beyond-cap discovery pass surfacing special-bearing properties that rank beyond the cap.
+	relSpecialMatch := relSpecialPresenceQuery(relPath, specials)
 
 	// When a value query is active, each discovery aggregation decides which facets to return, but never their
 	// counts: a facet is kept when at least one of its records matches the query, either through one of the
@@ -793,6 +916,13 @@ func FiltersGet( //nolint:maintidx
 			AddAggregation("relMatched", filteredDiscoveryAggregation(relPath, relMatch, relDiscoveryAggregation(relPath, nil))).
 			AddAggregation("amountMatched", filteredDiscoveryAggregation(amountPath, amountMatch, amountDiscoveryAggregation(amountPath, nil))).
 			AddAggregation("timeMatched", filteredDiscoveryAggregation(timePath, timeMatch, timeDiscoveryAggregation(timePath, nil)))
+		// A matched claim-type special (none/unknown/has/direct) surfaces the rel properties that carry it
+		// but rank beyond the cap, the analogue of the text passes above. The inner aggregation is the same
+		// rel discovery, so mergeMatchedRelFacets folds it in exactly like the text pass.
+		if relSpecialMatch != nil {
+			searchService = searchService.
+				AddAggregation("relSpecialMatched", filteredDiscoveryAggregation(relPath, relSpecialMatch, relDiscoveryAggregation(relPath, nil)))
+		}
 	}
 
 	// Sub-level discovery: per parent collection, parent-property buckets holding the same
@@ -801,7 +931,7 @@ func FiltersGet( //nolint:maintidx
 		subRel := subPath(parent, "rel")
 		subAmount := subPath(parent, "amount")
 		subTime := subPath(parent, "time")
-		var subRelMatch, subAmountMatch, subTimeMatch types.QueryVariant
+		var subRelMatch, subAmountMatch, subTimeMatch, subRelSpecialMatch types.QueryVariant
 		if valueQueryActive {
 			subRelMatch = labelMatchQuery(
 				[]string{subRel + ".toNaming"}, []string{subRel + ".toDisplay"},
@@ -812,10 +942,12 @@ func FiltersGet( //nolint:maintidx
 			subTimeMatch = amountTimeMatchQuery(
 				[]string{subTime + ".propNaming"}, []string{subTime + ".propDisplay"},
 				[]string{subTime + ".fromDisplay", subTime + ".toDisplay"}, valueQuery, enabledLanguages)
+			subRelSpecialMatch = relSpecialPresenceQuery(subRel, specials)
 		}
 		searchService = searchService.AddAggregation("sub:"+parent, esdsl.NewAggregations().
 			Nested(esdsl.NewNestedAggregation().Path(parentPath(parent))).
-			AddAggregation("parents", parentDiscoveryBuckets(parent, subRel, subAmount, subTime, subRelMatch, subAmountMatch, subTimeMatch, valueQuery, enabledLanguages)))
+			AddAggregation("parents", parentDiscoveryBuckets(
+				parent, subRel, subAmount, subTime, subRelMatch, subAmountMatch, subTimeMatch, subRelSpecialMatch, valueQuery, enabledLanguages)))
 
 		// When a value query is active, a filtered parent enumeration surfaces parent properties that
 		// match the query but rank beyond the parent-property Size cap by document count. A parent
@@ -823,18 +955,26 @@ func FiltersGet( //nolint:maintidx
 		// set of sub facets (identical structure to the unfiltered enumeration) becomes reachable. The
 		// parser only keeps parent properties from here that the unfiltered enumeration missed.
 		if valueQueryActive {
-			parentMatchFilter := esdsl.NewBoolQuery().Should(
+			// A parent matches when its own name matches, or when it has a sub-claim matching the query by
+			// text or, for a claim-type special, by presence, so a parent beyond the parent cap whose only
+			// match is a special sub-claim still surfaces its sub facets.
+			parentShoulds := []types.QueryVariant{
 				propLabelMatchQuery(
 					[]string{parentPath(parent) + ".propNaming"}, []string{parentPath(parent) + ".propDisplay"}, valueQuery, enabledLanguages),
 				esdsl.NewNestedQuery(subRelMatch).Path(subRel),
 				esdsl.NewNestedQuery(subAmountMatch).Path(subAmount),
 				esdsl.NewNestedQuery(subTimeMatch).Path(subTime),
-			).MinimumShouldMatch(esdsl.NewMinimumShouldMatch().Int(1))
+			}
+			if subRelSpecialMatch != nil {
+				parentShoulds = append(parentShoulds, esdsl.NewNestedQuery(subRelSpecialMatch).Path(subRel))
+			}
+			parentMatchFilter := esdsl.NewBoolQuery().Should(parentShoulds...).MinimumShouldMatch(esdsl.NewMinimumShouldMatch().Int(1))
 			searchService = searchService.AddAggregation("sub:"+parent+":beyondParents", esdsl.NewAggregations().
 				Nested(esdsl.NewNestedAggregation().Path(parentPath(parent))).
 				AddAggregation("filter", esdsl.NewAggregations().
 					Filter(parentMatchFilter).
-					AddAggregation("parents", parentDiscoveryBuckets(parent, subRel, subAmount, subTime, subRelMatch, subAmountMatch, subTimeMatch, valueQuery, enabledLanguages))))
+					AddAggregation("parents", parentDiscoveryBuckets(
+						parent, subRel, subAmount, subTime, subRelMatch, subAmountMatch, subTimeMatch, subRelSpecialMatch, valueQuery, enabledLanguages))))
 		}
 	}
 
@@ -952,9 +1092,20 @@ func FiltersGet( //nolint:maintidx
 		if errE != nil {
 			return nil, nil, errE
 		}
+		// The beyond-cap special pass surfaces special-bearing rel properties (a value-list facet, or a
+		// specials-only one). It also enriches the claim types of a property already present through its
+		// amount or time facet, so that facet passes the special gate when its valueless special record
+		// ranked beyond the rel cap. A property beyond both the rel and its amount/time cap renders as a
+		// specials-only value-list facet (its amount/time facet is not enumerated here).
+		if relSpecialMatch != nil {
+			errE = mergeMatchedRelFacets(res.Aggregations, "relSpecialMatched", topSet)
+			if errE != nil {
+				return nil, nil, errE
+			}
+		}
 	}
 
-	results, pooledHasProps, totalFacets := topSet.Results(nil, valueQueryActive)
+	results, pooledHasProps, totalFacets := topSet.Results(nil, valueQueryActive, specials)
 
 	// The pooled top-level has facet: a single filter over the properties whose only facetable
 	// statements are has claims. Its count is distinct documents with any has claim (the pooledHas
@@ -1042,7 +1193,7 @@ func FiltersGet( //nolint:maintidx
 				if set == nil {
 					continue
 				}
-				errE = mergeMatchedSubFacets(parentBucket, set)
+				errE = mergeMatchedSubFacets(parentBucket, set, relSpecialMatch != nil)
 				if errE != nil {
 					return nil, nil, errE
 				}
@@ -1086,7 +1237,7 @@ func FiltersGet( //nolint:maintidx
 				if errE != nil {
 					return nil, nil, errE
 				}
-				errE = mergeMatchedSubFacets(parentBucket, set)
+				errE = mergeMatchedSubFacets(parentBucket, set, relSpecialMatch != nil)
 				if errE != nil {
 					return nil, nil, errE
 				}
@@ -1099,7 +1250,7 @@ func FiltersGet( //nolint:maintidx
 
 	for _, parentProp := range subOrder {
 		set := subSets[parentProp]
-		subResults, subPooledProps, subTotalFacets := set.Results([]string{parentProp}, valueQueryActive)
+		subResults, subPooledProps, subTotalFacets := set.Results([]string{parentProp}, valueQueryActive, specials)
 		results = append(results, subResults...)
 		totalFacets += subTotalFacets
 		// The pooled sub-has facet of this parent property. Its count is distinct documents with any
