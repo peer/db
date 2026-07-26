@@ -4,6 +4,10 @@ const TestingScoreBoostMax = scoreBoostMax
 
 type TestingBucketEntry = bucketEntry
 
+type TestingFacetSet = facetSet
+
+type TestingRequestedSpecials = requestedSpecials
+
 //nolint:gochecknoglobals
 var (
 	TestingAmountStepDown          = amountStepDown

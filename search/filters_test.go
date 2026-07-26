@@ -1,6 +1,7 @@
 package search_test
 
 import (
+	"encoding/json"
 	"sort"
 	"strconv"
 	"testing"
@@ -12,6 +13,21 @@ import (
 	internalSearch "gitlab.com/peerdb/peerdb/internal/search"
 	"gitlab.com/peerdb/peerdb/search"
 )
+
+// TestFacetSetResultsEmptyIsNonNil pins that facetSet.Results returns a non-nil empty slice when there are
+// no facets, so FiltersGet serializes an empty facet list as a JSON [] rather than null.
+func TestFacetSetResultsEmptyIsNonNil(t *testing.T) {
+	t.Parallel()
+
+	var set search.TestingFacetSet
+	results, _, _ := set.Results(nil, false, search.TestingRequestedSpecials{})
+	assert.NotNil(t, results)
+	assert.Empty(t, results)
+
+	data, err := json.Marshal(results)
+	require.NoError(t, err)
+	assert.Equal(t, "[]", string(data))
+}
 
 // TestFiltersGetTotalSaturationIntegration verifies that the available-filters total is marked as a
 // lower bound ("<n>+") when a discovery terms aggregation drops distinct facet keys past its cap: a

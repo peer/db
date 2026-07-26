@@ -693,7 +693,7 @@ func newFacetSet() *facetSet {
 // filtered pass surfaced beyond the cap (marked in the *Beyond sets), so it stays value-query-
 // independent (stable as the box is typed in).
 func (s *facetSet) Results(propsPrefix []string, valueQueryActive bool, specials requestedSpecials) ([]FilterResult, []string, int) {
-	var out []FilterResult
+	out := []FilterResult{}
 	var pooledHasProps []string
 	pooledHasExists := false
 	totalFacets := 0
