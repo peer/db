@@ -136,8 +136,8 @@ func TestRefFilterGetIntegration(t *testing.T) {
 
 	// Results are sorted by count descending: target1 (count 2) first, target2 (count 1) second.
 	assert.Equal(t, []search.RefFilterResult{
-		{ID: target1.String(), Count: 2, ChildCount: 0, Paths: nil},
-		{ID: target2.String(), Count: 1, ChildCount: 0, Paths: nil},
+		{ID: target1.String(), Count: 2, ChildCount: 0, ChildCountAtLeast: false, Paths: nil},
+		{ID: target2.String(), Count: 1, ChildCount: 0, ChildCountAtLeast: false, Paths: nil},
 	}, results)
 	assert.Equal(t, "2", metadata["total"])
 	// All three documents are in the facet's universe and none has an amount or time claim for the property.
@@ -169,8 +169,8 @@ func TestRefFilterGetInactiveIntegration(t *testing.T) {
 
 	// Results order is non-deterministic when counts are equal.
 	assert.ElementsMatch(t, []search.RefFilterResult{
-		{ID: target1.String(), Count: 1, ChildCount: 0, Paths: nil},
-		{ID: target2.String(), Count: 1, ChildCount: 0, Paths: nil},
+		{ID: target1.String(), Count: 1, ChildCount: 0, ChildCountAtLeast: false, Paths: nil},
+		{ID: target2.String(), Count: 1, ChildCount: 0, ChildCountAtLeast: false, Paths: nil},
 	}, results)
 	assert.Equal(t, "2", metadata["total"])
 	assert.Equal(t, "2", metadata["universe"])
@@ -200,8 +200,8 @@ func TestRefFilterGetMissingIntegration(t *testing.T) {
 
 	// Results should include target1 (count 1) and __MISSING__ (count 2), sorted by count descending.
 	assert.Equal(t, []search.RefFilterResult{
-		{ID: search.MissingValueID, Count: 2, ChildCount: 0, Paths: nil},
-		{ID: target1.String(), Count: 1, ChildCount: 0, Paths: nil},
+		{ID: search.MissingValueID, Count: 2, ChildCount: 0, ChildCountAtLeast: false, Paths: nil},
+		{ID: target1.String(), Count: 1, ChildCount: 0, ChildCountAtLeast: false, Paths: nil},
 	}, results)
 	// Total includes the missing entry.
 	assert.Equal(t, "2", metadata["total"])
@@ -248,8 +248,8 @@ func TestRefFilterGetMissingUniverseRuleIntegration(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	assert.Equal(t, []search.RefFilterResult{
-		{ID: target1.String(), Count: 1, ChildCount: 0, Paths: nil},
-		{ID: search.MissingValueID, Count: 1, ChildCount: 0, Paths: nil},
+		{ID: target1.String(), Count: 1, ChildCount: 0, ChildCountAtLeast: false, Paths: nil},
+		{ID: search.MissingValueID, Count: 1, ChildCount: 0, ChildCountAtLeast: false, Paths: nil},
 	}, results)
 	assert.Equal(t, "2", metadata["total"])
 	assert.Equal(t, "4", metadata["universe"])
@@ -278,7 +278,7 @@ func TestRefFilterGetNoMissingIntegration(t *testing.T) {
 
 	// No missing entry since all documents have the prop.
 	assert.Equal(t, []search.RefFilterResult{
-		{ID: target1.String(), Count: 1, ChildCount: 0, Paths: nil},
+		{ID: target1.String(), Count: 1, ChildCount: 0, ChildCountAtLeast: false, Paths: nil},
 	}, results)
 	assert.Equal(t, "1", metadata["total"])
 }
@@ -321,11 +321,11 @@ func TestRefFilterGetSpecialEntriesIntegration(t *testing.T) {
 	// All entries have count 1; the value entry precedes the special entries, which keep their fixed order
 	// (has property, unknown, none, missing).
 	assert.Equal(t, []search.RefFilterResult{
-		{ID: target1.String(), Count: 1, ChildCount: 0, Paths: nil},
-		{ID: search.HasPropertyValueID, Count: 1, ChildCount: 0, Paths: nil},
-		{ID: search.UnknownValueID, Count: 1, ChildCount: 0, Paths: nil},
-		{ID: search.NoneValueID, Count: 1, ChildCount: 0, Paths: nil},
-		{ID: search.MissingValueID, Count: 1, ChildCount: 0, Paths: nil},
+		{ID: target1.String(), Count: 1, ChildCount: 0, ChildCountAtLeast: false, Paths: nil},
+		{ID: search.HasPropertyValueID, Count: 1, ChildCount: 0, ChildCountAtLeast: false, Paths: nil},
+		{ID: search.UnknownValueID, Count: 1, ChildCount: 0, ChildCountAtLeast: false, Paths: nil},
+		{ID: search.NoneValueID, Count: 1, ChildCount: 0, ChildCountAtLeast: false, Paths: nil},
+		{ID: search.MissingValueID, Count: 1, ChildCount: 0, ChildCountAtLeast: false, Paths: nil},
 	}, results)
 	assert.Equal(t, "5", metadata["total"])
 	// The identity closes: value (1) + has (1) + unknown (1) + none (1) + missing (1) = universe (5).
@@ -384,9 +384,9 @@ func TestRefFilterGetHierarchyIntegration(t *testing.T) {
 	// depth ascending, so ancestors precede their descendants. Each value's ChildCount is its number of
 	// distinct child values: animal has one child (mammal), mammal has one child (dog), dog is a leaf.
 	assert.Equal(t, []search.RefFilterResult{
-		{ID: animal.String(), Count: 1, ChildCount: 1, Paths: nil},
-		{ID: mammal.String(), Count: 1, ChildCount: 1, Paths: [][]string{{animal.String()}}},
-		{ID: dog.String(), Count: 1, ChildCount: 0, Paths: [][]string{{animal.String(), mammal.String()}}},
+		{ID: animal.String(), Count: 1, ChildCount: 1, ChildCountAtLeast: false, Paths: nil},
+		{ID: mammal.String(), Count: 1, ChildCount: 1, ChildCountAtLeast: false, Paths: [][]string{{animal.String()}}},
+		{ID: dog.String(), Count: 1, ChildCount: 0, ChildCountAtLeast: false, Paths: [][]string{{animal.String(), mammal.String()}}},
 	}, results)
 	assert.Equal(t, "3", metadata["total"])
 }
@@ -459,10 +459,10 @@ func TestRefFilterDirectIntegration(t *testing.T) {
 	// distinct child values (painter and sculptor), so its ChildCount is 2; the leaves and the synthetic
 	// "direct" entry have none.
 	assert.Equal(t, []search.RefFilterResult{
-		{ID: artist.String(), Count: 9, ChildCount: 2, Paths: nil},
-		{ID: sculptor.String(), Count: 4, ChildCount: 0, Paths: [][]string{{artist.String()}}},
-		{ID: search.DirectRefFilterPrefix + artist.String(), Count: 3, ChildCount: 0, Paths: [][]string{{artist.String()}}},
-		{ID: painter.String(), Count: 2, ChildCount: 0, Paths: [][]string{{artist.String()}}},
+		{ID: artist.String(), Count: 9, ChildCount: 2, ChildCountAtLeast: false, Paths: nil},
+		{ID: sculptor.String(), Count: 4, ChildCount: 0, ChildCountAtLeast: false, Paths: [][]string{{artist.String()}}},
+		{ID: search.DirectRefFilterPrefix + artist.String(), Count: 3, ChildCount: 0, ChildCountAtLeast: false, Paths: [][]string{{artist.String()}}},
+		{ID: painter.String(), Count: 2, ChildCount: 0, ChildCountAtLeast: false, Paths: [][]string{{artist.String()}}},
 	}, results)
 	// Three distinct values (artist, painter, sculptor) plus the one "direct" entry.
 	assert.Equal(t, "4", metadata["total"])
@@ -660,9 +660,9 @@ func TestRefFilterGetSubRefHierarchyIntegration(t *testing.T) {
 	// descendants. Each value's ChildCount is its number of distinct child values: animal has one child
 	// (mammal), mammal has one child (dog), dog is a leaf.
 	assert.Equal(t, []search.RefFilterResult{
-		{ID: animal.String(), Count: 1, ChildCount: 1, Paths: nil},
-		{ID: mammal.String(), Count: 1, ChildCount: 1, Paths: [][]string{{animal.String()}}},
-		{ID: dog.String(), Count: 1, ChildCount: 0, Paths: [][]string{{animal.String(), mammal.String()}}},
+		{ID: animal.String(), Count: 1, ChildCount: 1, ChildCountAtLeast: false, Paths: nil},
+		{ID: mammal.String(), Count: 1, ChildCount: 1, ChildCountAtLeast: false, Paths: [][]string{{animal.String()}}},
+		{ID: dog.String(), Count: 1, ChildCount: 0, ChildCountAtLeast: false, Paths: [][]string{{animal.String(), mammal.String()}}},
 	}, results)
 	assert.Equal(t, "3", metadata["total"])
 	// The sub facet's universe is the documents with a parent claim.
@@ -698,7 +698,7 @@ func TestRefFilterGetSubRefValuelessParentsIntegration(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	assert.Equal(t, []search.RefFilterResult{
-		{ID: valueA.String(), Count: 2, ChildCount: 0, Paths: nil},
+		{ID: valueA.String(), Count: 2, ChildCount: 0, ChildCountAtLeast: false, Paths: nil},
 	}, results)
 	assert.Equal(t, "1", metadata["total"])
 	assert.Equal(t, "2", metadata["universe"])
@@ -742,8 +742,8 @@ func TestRefFilterGetSubRefMissingIntegration(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	assert.Equal(t, []search.RefFilterResult{
-		{ID: valueA.String(), Count: 1, ChildCount: 0, Paths: nil},
-		{ID: search.MissingValueID, Count: 1, ChildCount: 0, Paths: nil},
+		{ID: valueA.String(), Count: 1, ChildCount: 0, ChildCountAtLeast: false, Paths: nil},
+		{ID: search.MissingValueID, Count: 1, ChildCount: 0, ChildCountAtLeast: false, Paths: nil},
 	}, results)
 	assert.Equal(t, "2", metadata["total"])
 	// Only the two documents with a parent claim are in the universe; value (1) plus missing (1) covers it.
@@ -852,7 +852,7 @@ func TestRefFilterGetValueQueryIntegration(t *testing.T) {
 	results, metadata, errE := f.Get(ctx, getSearchService, session.ToQuery(nil), refProp, nil, "germ*", searchLangs(enabledLanguages), nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, []search.RefFilterResult{
-		{ID: germany.String(), Count: 1, ChildCount: 0, Paths: nil},
+		{ID: germany.String(), Count: 1, ChildCount: 0, ChildCountAtLeast: false, Paths: nil},
 	}, results)
 	assert.Equal(t, "1", metadata["total"])
 
@@ -861,7 +861,7 @@ func TestRefFilterGetValueQueryIntegration(t *testing.T) {
 	results, _, errE = f.Get(ctx, getSearchService, session.ToQuery(nil), refProp, nil, "deutsch*", searchLangs(enabledLanguages), nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, []search.RefFilterResult{
-		{ID: germany.String(), Count: 1, ChildCount: 0, Paths: nil},
+		{ID: germany.String(), Count: 1, ChildCount: 0, ChildCountAtLeast: false, Paths: nil},
 	}, results)
 
 	// A bare "*" matches everything, including this property's own name, so the whole facet is shown (all
@@ -869,9 +869,9 @@ func TestRefFilterGetValueQueryIntegration(t *testing.T) {
 	results, metadata, errE = f.Get(ctx, getSearchService, session.ToQuery(nil), refProp, nil, "*", searchLangs(enabledLanguages), nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.ElementsMatch(t, []search.RefFilterResult{
-		{ID: germany.String(), Count: 1, ChildCount: 0, Paths: nil},
-		{ID: france.String(), Count: 1, ChildCount: 0, Paths: nil},
-		{ID: search.MissingValueID, Count: 2, ChildCount: 0, Paths: nil},
+		{ID: germany.String(), Count: 1, ChildCount: 0, ChildCountAtLeast: false, Paths: nil},
+		{ID: france.String(), Count: 1, ChildCount: 0, ChildCountAtLeast: false, Paths: nil},
+		{ID: search.MissingValueID, Count: 2, ChildCount: 0, ChildCountAtLeast: false, Paths: nil},
 	}, results)
 	assert.Equal(t, "3", metadata["total"])
 
@@ -879,9 +879,9 @@ func TestRefFilterGetValueQueryIntegration(t *testing.T) {
 	results, metadata, errE = f.Get(ctx, getSearchService, session.ToQuery(nil), refProp, nil, "", searchLangs(enabledLanguages), nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.ElementsMatch(t, []search.RefFilterResult{
-		{ID: germany.String(), Count: 1, ChildCount: 0, Paths: nil},
-		{ID: france.String(), Count: 1, ChildCount: 0, Paths: nil},
-		{ID: search.MissingValueID, Count: 2, ChildCount: 0, Paths: nil},
+		{ID: germany.String(), Count: 1, ChildCount: 0, ChildCountAtLeast: false, Paths: nil},
+		{ID: france.String(), Count: 1, ChildCount: 0, ChildCountAtLeast: false, Paths: nil},
+		{ID: search.MissingValueID, Count: 2, ChildCount: 0, ChildCountAtLeast: false, Paths: nil},
 	}, results)
 	assert.Equal(t, "3", metadata["total"])
 }
@@ -912,7 +912,7 @@ func TestRefFilterGetSubRefParentNameQueryIntegration(t *testing.T) {
 	f := search.RefFilter{To: nil, Direct: nil}
 	parentCtx := session.ParentContextFor(parentProp, subProp)
 
-	expected := []search.RefFilterResult{{ID: alice.String(), Count: 1, ChildCount: 0, Paths: nil}}
+	expected := []search.RefFilterResult{{ID: alice.String(), Count: 1, ChildCount: 0, ChildCountAtLeast: false, Paths: nil}}
 
 	// Matched by the parent property's name ("has location").
 	results, _, errE := f.GetSubRef(ctx, getSearchService, session.ToQuery(nil), subProp, parentCtx, nil, "has location*", searchLangs(enabledLanguages), nil)
@@ -1455,7 +1455,8 @@ func TestRefFilterGetSubRefChildCountAtLeastIntegration(t *testing.T) {
 		rec.ToParent = []string{parent.String()}
 		return rec
 	}
-	records := internalSearch.RelClaims{refRecord(artistProp, bigParent, nil), refRecord(artistProp, smallParent, nil)}
+	records := make(internalSearch.RelClaims, 0, 2+(search.MaxResultsCount+1)+2)
+	records = append(records, refRecord(artistProp, bigParent, nil), refRecord(artistProp, smallParent, nil))
 	for i := range search.MaxResultsCount + 1 {
 		records = append(records, childRecord(identifier.From("bigChild", strconv.Itoa(i)), bigParent))
 	}

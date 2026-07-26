@@ -277,7 +277,7 @@ func relSpecialPresenceQuery(path string, specials requestedSpecials) types.Quer
 // subTimeMatched) that surface sub facets beyond the sub cap. It is used both under the unfiltered
 // parent enumeration (sub:<parent>) and under the filtered parent enumeration (sub:<parent>:beyondParents),
 // so a parent property beyond the parent cap gets the same sub facets as one within it.
-func parentDiscoveryBuckets(
+func parentDiscoveryBuckets( //nolint:ireturn
 	parent, subRel, subAmount, subTime string,
 	subRelMatch, subAmountMatch, subTimeMatch, subRelSpecialMatch types.QueryVariant,
 	valueQuery string, enabledLanguages []string,
@@ -401,7 +401,7 @@ func parseTimeFacetBuckets(buckets []types.StringTermsBucket, valueQueryActive b
 // independent info; a facet present only here (matched but beyond the unfiltered cap) is added with
 // its Matched forced positive so it renders, and marked in RelBeyond so it does not count toward the
 // total.
-func mergeMatchedRelFacets(aggs map[string]types.Aggregate, name string, set *facetSet) errors.E {
+func mergeMatchedRelFacets(aggs map[string]types.Aggregate, name string, set *facetSet) errors.E { //nolint:dupl
 	nested, errE := internalSearch.AggAs[types.NestedAggregate](aggs, name)
 	if errE != nil {
 		return errE
@@ -481,7 +481,7 @@ func mergeMatchedAmountFacets(aggs map[string]types.Aggregate, name string, set 
 
 // mergeMatchedTimeFacets folds a filtered time discovery pass into set, adding prop facets present
 // only there, mirroring mergeMatchedRelFacets.
-func mergeMatchedTimeFacets(aggs map[string]types.Aggregate, name string, set *facetSet) errors.E {
+func mergeMatchedTimeFacets(aggs map[string]types.Aggregate, name string, set *facetSet) errors.E { //nolint:dupl
 	nested, errE := internalSearch.AggAs[types.NestedAggregate](aggs, name)
 	if errE != nil {
 		return errE
@@ -1422,7 +1422,7 @@ func relValuelessQuery(prop identifier.Identifier) types.QueryVariant { //nolint
 // collection, restricted to the valued claim type (valued true, the ref claim type) or to the
 // valueless claim types (valued false, has/none/unknown).
 func subRelValuedQuery(parentProp, prop identifier.Identifier, valued bool) types.QueryVariant { //nolint:ireturn
-	var arms []types.QueryVariant
+	arms := make([]types.QueryVariant, 0, len(parentCollections))
 	for _, parent := range parentCollections {
 		subRel := subPath(parent, "rel")
 		inner := esdsl.NewBoolQuery().Must(propTerm(subRel, prop))
@@ -1442,7 +1442,7 @@ func subRelValuedQuery(parentProp, prop identifier.Identifier, valued bool) type
 // subTimePresenceQuery matches documents with a time sub record for (parentProp, prop) under any
 // parent collection.
 func subTimePresenceQuery(parentProp, prop identifier.Identifier) types.QueryVariant { //nolint:ireturn
-	var arms []types.QueryVariant
+	arms := make([]types.QueryVariant, 0, len(parentCollections))
 	for _, parent := range parentCollections {
 		subTime := subPath(parent, "time")
 		arms = append(arms, esdsl.NewNestedQuery(esdsl.NewBoolQuery().Must(

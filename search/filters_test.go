@@ -1122,7 +1122,9 @@ func TestFiltersGetBeyondParentCapValueQueryIntegration(t *testing.T) {
 	targetSub := refRecord(targetSubProp, identifier.From("targetSubTarget"), nil)
 	targetSub.PropNaming = map[string][]string{"en": {"findmeparentbeyonduniquename"}}
 	targetSub.PropDisplay = map[string]string{"en": "findmeparentbeyonduniquename"}
-	indexDocument(t, ctx, esClient, index, relDoc("targetParentDoc", internalSearch.RelClaims{refRecord(targetParentProp, identifier.From("targetParentTarget"), relSub(targetSub))}))
+	indexDocument(t, ctx, esClient, index, relDoc("targetParentDoc", internalSearch.RelClaims{
+		refRecord(targetParentProp, identifier.From("targetParentTarget"), relSub(targetSub)),
+	}))
 	refreshIndex(t, ctx, esClient, index)
 
 	session := createSession(t, ctx, search.SessionData{})
