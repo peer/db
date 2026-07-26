@@ -373,7 +373,6 @@ onBeforeUnmount(() => {
 
 const searchMoreButton = useTemplateRef<ComponentPublicInstance>("searchMoreButton")
 const filtersMoreButton = useTemplateRef<ComponentPublicInstance>("filtersMoreButton")
-const supportPageOffset = window.pageYOffset !== undefined
 
 // orderedResults is the results in display order, used to pick the topmost visible result for the "at" query
 // parameter: the flat list as-is, or the grouped tree's leaf results flattened into traversal order (each
@@ -404,38 +403,40 @@ useLocationAt(
   visibles,
 )
 
-const content = useTemplateRef<HTMLElement>("content")
+const resultsEl = useTemplateRef<HTMLElement>("resultsEl")
 
-useOnScrollOrResize(content, onScrollOrResize)
+// Both columns are observed instead of the row holding them: the two grow independently, and the row (like the
+// page) is only ever as tall as the taller of them, so growth of the shorter one would go unnoticed. Growing here
+// means both revealing a batch and results already revealed getting taller as their documents arrive, which is why
+// the observer, and not a check right after revealing, drives this: each reveal is measured once it has rendered.
+useOnScrollOrResize([resultsEl, filtersEl], onScrollOrResize)
+
+// fillColumn reveals another batch into a column while the column ends less than one viewport below the fold,
+// which both fills the first screen after a search and keeps loading while scrolling. Each column is measured on
+// its own because the page is as tall as the taller of them: measuring the page instead lets a long filter pane
+// keep the results at their initial batch, with nothing but an empty stretch of page below them (and the other
+// way around). A column which is not rendered (below the two-column breakpoint only one of them is shown) has no
+// boxes and is skipped, so it does not load out of view.
+function fillColumn(el: HTMLElement | null, moreButton: ComponentPublicInstance | null) {
+  if (el === null || moreButton === null || el.getClientRects().length === 0) {
+    return
+  }
+
+  const viewportHeight = document.documentElement.clientHeight || document.body.clientHeight
+  if (el.getBoundingClientRect().bottom < 2 * viewportHeight) {
+    // We load more by clicking the button so that we have one place to disable loading more (by disabling the button).
+    // This assures that UX is consistent and that user cannot load more through any interaction (click or scroll).
+    ;(moreButton.$el as HTMLButtonElement).click()
+  }
+}
 
 function onScrollOrResize() {
   if (abortController.signal.aborted) {
     return
   }
 
-  if (searchMoreButton.value || filtersMoreButton.value) {
-    const viewportHeight = document.documentElement.clientHeight || document.body.clientHeight
-    const scrollHeight = Math.max(
-      document.body.scrollHeight,
-      document.documentElement.scrollHeight,
-      document.body.offsetHeight,
-      document.documentElement.offsetHeight,
-      document.body.clientHeight,
-      document.documentElement.clientHeight,
-    )
-    const currentScrollYPosition = supportPageOffset ? window.pageYOffset : document.documentElement.scrollTop
-
-    if (currentScrollYPosition > scrollHeight - 2 * viewportHeight) {
-      // We load more by clicking the button so that we have one place to disable loading more (by disabling the button).
-      // This assures that UX is consistent and that user cannot load more through any interaction (click or scroll).
-      if (searchMoreButton.value) {
-        ;(searchMoreButton.value.$el as HTMLButtonElement).click()
-      }
-      if (filtersMoreButton.value) {
-        ;(filtersMoreButton.value.$el as HTMLButtonElement).click()
-      }
-    }
-  }
+  fillColumn(resultsEl.value, searchMoreButton.value)
+  fillColumn(filtersEl.value, filtersMoreButton.value)
 }
 
 // Keep the initial filter page filled: reveal more facets until at least FILTERS_INITIAL_LIMIT of them are
@@ -476,7 +477,8 @@ const WithDocumentD = WithDocument<D>
     </Button>
   </Teleport>
 
-  <div ref="content" class="pd-searchresultsfeed relative flex w-full gap-x-1 p-1 sm:gap-x-4 sm:p-4">
+  <!-- The columns are aligned to the start so that each of them is only as tall as its own contents, which is what drives revealing more into them. -->
+  <div class="pd-searchresultsfeed relative flex w-full items-start gap-x-1 p-1 sm:gap-x-4 sm:p-4">
     <a
       href="#search-filters"
       class="sr-only focus:not-sr-only focus:absolute focus:top-1 focus:left-1 focus:z-50 focus:rounded-sm focus:bg-primary-600 focus:px-4 focus:py-2 focus:font-medium focus:text-white focus:shadow-lg focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 focus:outline-none sm:focus:top-4 sm:focus:left-4"
@@ -492,6 +494,7 @@ const WithDocumentD = WithDocument<D>
     <!-- Search results column -->
     <div
       id="search-results"
+      ref="resultsEl"
       tabindex="-1"
       class="pd-searchresults flex-auto basis-3/4 flex-col gap-y-1 rounded-sm [--pd-indent:calc(var(--spacing)*4)] focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-1 focus-visible:outline-none sm:gap-y-4 sm:[--pd-indent:calc(var(--spacing)*6)] min-[56rem]:flex"
       :class="filtersEnabled ? 'hidden' : 'flex'"

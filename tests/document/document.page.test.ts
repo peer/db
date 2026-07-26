@@ -6,10 +6,11 @@ import { test } from "../utils"
 
 const BYTE_UNIT = (await Identifier.from(Namespace, "UNIT", "B")).toString()
 
-// testDocumentPage navigates via an empty search, whose results are ordered by display label. The feed
-// renders only an initial page and lazy-loads more as the page scrolls, so these documents must sort
-// within that initially rendered page to be clickable without scrolling. Pick ones early in the alphabet
-// while keeping a mix of types (property, class, value type, unit, language).
+// testDocumentPage navigates via an empty search, whose results are ordered by display label. The feed renders
+// one batch at a time and keeps revealing more until the results column fills the first screen, so these
+// documents must sort within what that fills to be clickable without scrolling. Pick ones early in the alphabet
+// while keeping a mix of types (property, class, value type, unit). The tests deliberately do not reveal more
+// results themselves: a document which stops being reachable means the feed stopped filling the first screen.
 const DOCUMENTS = [
   { id: VT_AMOUNT, title: "amount" },
   { id: BYTE_UNIT, title: "byte" },

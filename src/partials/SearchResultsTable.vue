@@ -60,7 +60,7 @@ const {
   SEARCH_INCREASE,
 )
 
-const content = useTemplateRef<HTMLElement>("content")
+const tableEl = useTemplateRef<HTMLElement>("tableEl")
 
 // Data loading and controls for data loading.
 const busy = useBusy()
@@ -74,9 +74,9 @@ const {
   // The table view lists filter columns for the whole table and has no filter-pane search box, so the
   // value query is always empty here.
   toRef(() => ""),
-  // We use the content element because data about filters is needed to display columns for the whole table.
+  // We use the table element because data about filters is needed to display columns for the whole table.
   // Using only <tr> element inside <thead> (where data-url attribute is set for filters) would not convey that requirement.
-  content,
+  tableEl,
   busy,
 )
 
@@ -113,7 +113,6 @@ onBeforeUnmount(() => {
 
 const searchMoreButton = useTemplateRef<ComponentPublicInstance>("searchMoreButton")
 const filtersMoreButton = useTemplateRef<ComponentPublicInstance>("filtersMoreButton")
-const supportPageOffset = window.pageYOffset !== undefined
 
 useLocationAt(
   toRef(() => props.searchResults),
@@ -121,50 +120,37 @@ useLocationAt(
   visibles,
 )
 
-useOnScrollOrResize(content, onScrollOrResize)
+useOnScrollOrResize([tableEl], onScrollOrResize)
+
+// fill reveals another batch while the table ends less than one viewport past the fold in the direction that batch
+// extends it, which both fills the first screen after a search and keeps loading while scrolling. More results add
+// rows (so the table ends lower) and more filters add columns (so it ends further right), and each direction is
+// therefore measured on its own end of the table.
+function fill(moreButton: ComponentPublicInstance | null, end: number, viewport: number) {
+  if (moreButton === null || end >= 2 * viewport) {
+    return
+  }
+
+  // We load more by clicking the button so that we have one place to disable loading more (by disabling the button).
+  // This assures that UX is consistent and that user cannot load more through any interaction (click or scroll).
+  ;(moreButton.$el as HTMLButtonElement).click()
+}
 
 function onScrollOrResize() {
   if (abortController.signal.aborted) {
     return
   }
 
-  if (searchMoreButton.value) {
-    const viewportHeight = document.documentElement.clientHeight || document.body.clientHeight
-    const scrollHeight = Math.max(
-      document.body.scrollHeight,
-      document.documentElement.scrollHeight,
-      document.body.offsetHeight,
-      document.documentElement.offsetHeight,
-      document.body.clientHeight,
-      document.documentElement.clientHeight,
-    )
-    const currentScrollYPosition = supportPageOffset ? window.pageYOffset : document.documentElement.scrollTop
-
-    if (currentScrollYPosition > scrollHeight - 2 * viewportHeight) {
-      // We load more by clicking the button so that we have one place to disable loading more (by disabling the button).
-      // This assures that UX is consistent and that user cannot load more through any interaction (click or scroll).
-      ;(searchMoreButton.value.$el as HTMLButtonElement).click()
-    }
+  // The table is measured instead of the page because the page is also as tall as everything around the table, and
+  // as wide as its widest element, while the two buttons extend the table itself. It is rendered only once there
+  // are results, and then it always has a box.
+  if (tableEl.value === null) {
+    return
   }
 
-  if (filtersMoreButton.value) {
-    const viewportWidth = document.documentElement.clientWidth || document.body.clientWidth
-    const scrollWidth = Math.max(
-      document.body.scrollWidth,
-      document.documentElement.scrollWidth,
-      document.body.offsetWidth,
-      document.documentElement.offsetWidth,
-      document.body.clientWidth,
-      document.documentElement.clientWidth,
-    )
-    const currentScrollXPosition = supportPageOffset ? window.pageXOffset : document.documentElement.scrollLeft
-
-    if (currentScrollXPosition > scrollWidth - 2 * viewportWidth) {
-      // We load more by clicking the button so that we have one place to disable loading more (by disabling the button).
-      // This assures that UX is consistent and that user cannot load more through any interaction (click or scroll).
-      ;(filtersMoreButton.value.$el as HTMLButtonElement).click()
-    }
-  }
+  const { bottom, right } = tableEl.value.getBoundingClientRect()
+  fill(searchMoreButton.value, bottom, document.documentElement.clientHeight || document.body.clientHeight)
+  fill(filtersMoreButton.value, right, document.documentElement.clientWidth || document.body.clientWidth)
 }
 
 const headerAttrs = ref<{ style: { top: string } }>({ style: { top: "-1px" } })
@@ -282,9 +268,9 @@ function onCloseFilterModal() {
   </div>
 
   <template v-else-if="searchTotal !== null && searchTotal > 0">
-    <div ref="content" class="pd-searchresultstable flex flex-row gap-x-1 px-1 sm:gap-x-4 sm:px-4">
+    <div class="pd-searchresultstable flex flex-row gap-x-1 px-1 sm:gap-x-4 sm:px-4">
       <!-- TODO: Make table have rounded corners. -->
-      <table class="border border-gray-200 shadow-sm">
+      <table ref="tableEl" class="border border-gray-200 shadow-sm">
         <!-- Headers -->
         <!--
           We use -top-px because we have a 1px border on the table which we want to offset. Otherwise there

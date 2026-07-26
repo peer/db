@@ -1119,17 +1119,22 @@ export function anySignal(...signals: AbortSignal[]): AbortSignal {
   return controller.signal
 }
 
-export function useOnScrollOrResize(el: Ref<Element | null>, callback: () => void) {
+// useOnScrollOrResize calls the callback on window scroll and resize, and whenever any of the observed elements
+// changes size. Several elements are observed when parts of the layout grow independently of each other, so that
+// the callback runs for whichever of them grew.
+export function useOnScrollOrResize(els: Ref<Element | null>[], callback: () => void) {
   const resizeObserver = new ResizeObserver(callback)
 
-  watch(el, (newEl, oldEl) => {
-    if (oldEl) {
-      resizeObserver.unobserve(oldEl)
-    }
-    if (newEl) {
-      resizeObserver.observe(newEl)
-    }
-  })
+  for (const el of els) {
+    watch(el, (newEl, oldEl) => {
+      if (oldEl) {
+        resizeObserver.unobserve(oldEl)
+      }
+      if (newEl) {
+        resizeObserver.observe(newEl)
+      }
+    })
+  }
 
   onMounted(() => {
     window.addEventListener("scroll", callback, { passive: true })
