@@ -275,6 +275,10 @@ const singleValueDisplay = computed(() => {
 })
 
 let slider: API | null = null
+// Whether the slider currently draws the connected segment between the handles. It follows whether a range
+// is actively selected; we track it so the connect option is only updated (which rebuilds the connect
+// element) when it actually changes.
+let sliderConnected = false
 const sliderEl = useTemplateRef<HTMLElement>("sliderEl")
 
 const tooltipFormat = {
@@ -288,6 +292,7 @@ watchEffect(() => {
   if (slider && slider.target != sliderEl.value) {
     slider.destroy()
     slider = null
+    sliderConnected = false
   }
   // When sliderEl exists we know that from and to is set as well, and that from != to.
   // Still, we check it here to satisfy type checking.
@@ -296,6 +301,9 @@ watchEffect(() => {
   }
   const gte = props.filter?.amount?.gte ?? null
   const lte = props.filter?.amount?.lte ?? null
+  // The connected segment between the handles is drawn only while a range is actively selected (a lower bound
+  // is set). Until then the slider is a plain track.
+  const connected = gte != null
   // The backend sends from/to as the slider track bounds (the full data range, or the current
   // selection widened by a margin and clamped to the data) and gte/lte as the handle positions,
   // so the handles can be dragged outward into the widened track to expand the selection.
@@ -311,7 +319,7 @@ watchEffect(() => {
         max: [rangeMax],
       },
       margin: (rangeMax - rangeMin) / results.value.length,
-      connect: [false, true, false],
+      connect: [false, connected, false],
       // Range is divided by this number to get the keyboard step.
       keyboardDefaultStep: results.value.length,
       keyboardPageMultiplier: 10,
@@ -321,6 +329,7 @@ watchEffect(() => {
       tooltips: [tooltipFormat, tooltipFormat],
       ariaFormat: tooltipFormat,
     })
+    sliderConnected = connected
     slider.on("change", onSliderChange)
   } else if (slider) {
     slider.updateOptions(
@@ -331,11 +340,14 @@ watchEffect(() => {
           max: [rangeMax],
         },
         margin: (rangeMax - rangeMin) / results.value.length,
+        // Updating connect rebuilds the connect element, so only pass it when it actually changed.
+        ...(connected !== sliderConnected ? { connect: [false, connected, false] } : {}),
         // TODO: Uncomment when supported. See: https://github.com/leongersen/noUiSlider/issues/1226
         // keyboardDefaultStep: results.value.length,
       },
       true,
     )
+    sliderConnected = connected
   }
 })
 
