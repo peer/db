@@ -1,0 +1,80 @@
+package peerdb_test
+
+import (
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"gitlab.com/tozd/identifier"
+	"gitlab.com/tozd/waf"
+
+	"gitlab.com/peerdb/peerdb"
+	"gitlab.com/peerdb/peerdb/document"
+	internalSite "gitlab.com/peerdb/peerdb/internal/site"
+)
+
+// newTestDoc builds a minimal document with a valid ID derived from its Base.
+func newTestDoc() *document.D {
+	base := []string{"test", identifier.New().String()}
+	return &document.D{
+		CoreDocument: document.CoreDocument{ID: identifier.From(base...), Base: base},
+	}
+}
+
+// TestListReadableDocuments exercises the documents listing that DocumentListGetAPI serves: it returns the
+// documents the caller may read, keyset-paginated by the last returned ID, and it excludes documents a read
+// would not return (here, a deleted one) even though the store's raw listing still contains them.
+func TestListReadableDocuments(t *testing.T) {
+	t.Parallel()
+
+	var globals *peerdb.Globals
+	// The started site (with its base) lives on globals.Sites, which serve.Init populates in place.
+	startTestServer(t, func(g *peerdb.Globals, _ *peerdb.ServeCommand) {
+		globals = g
+		g.Sites = []internalSite.Site{
+			{ //nolint:exhaustruct
+				Site: waf.Site{Domain: "localhost"}, //nolint:exhaustruct
+			},
+		}
+	})
+
+	site := &globals.Sites[0]
+	ctx := peerdb.WithFallbackDBContext(t.Context(), site.Schema, "test")
+
+	// Insert two documents on top of the core documents startTestServer already inserted.
+	doc1 := newTestDoc()
+	doc2 := newTestDoc()
+	for _, doc := range []*document.D{doc1, doc2} {
+		errE := site.Base.InsertOrReplaceDocument(ctx, doc)
+		require.NoError(t, errE, "% -+#.1v", errE)
+	}
+
+	// With no read-path permission hooks and nothing deleted, the readable listing is exactly the store's
+	// committed documents, in the same (ID) order.
+	storeIDs, errE := site.Base.Documents().List(ctx, nil)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	readable, errE := peerdb.TestingListReadableDocuments(ctx, site, nil)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, storeIDs, readable)
+	assert.Contains(t, readable, doc1.ID)
+	assert.Contains(t, readable, doc2.ID)
+
+	// Pagination: requesting "after" the first ID excludes it and returns the remaining documents.
+	require.NotEmpty(t, readable)
+	afterFirst, errE := peerdb.TestingListReadableDocuments(ctx, site, &readable[0])
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, readable[1:], afterFirst)
+
+	// A deleted document drops out of the readable listing, even though the store's raw listing keeps its ID.
+	errE = site.Base.DeleteDocument(ctx, doc1.ID)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	afterDelete, errE := peerdb.TestingListReadableDocuments(ctx, site, nil)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.NotContains(t, afterDelete, doc1.ID)
+	assert.Contains(t, afterDelete, doc2.ID)
+
+	rawAfterDelete, errE := site.Base.Documents().List(ctx, nil)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Contains(t, rawAfterDelete, doc1.ID)
+}

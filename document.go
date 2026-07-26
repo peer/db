@@ -295,6 +295,78 @@ func (s *Service) DocumentHistoryGetAPI(w http.ResponseWriter, req *http.Request
 	s.WriteJSON(w, req, history, nil)
 }
 
+// documentListItem is one entry in the readable-documents listing: a document's ID.
+type documentListItem struct {
+	ID identifier.Identifier `json:"id"`
+}
+
+// listReadableDocuments returns the documents in the site that the caller (identified by ctx) may read,
+// starting after the given document ID (nil for the first page). It walks the store's committed document IDs
+// and keeps only those a read by ID would return, skipping deleted documents (ErrValueNotFound, which includes
+// ErrValueDeleted) and ones the read-path permission hooks deny (ErrAccessDenied), so it applies the same
+// access semantics as viewing a document. A fully unreadable store page does not end the listing: it keeps
+// scanning so the result is empty only when no readable document remains after the cursor. The returned slice
+// is never nil, and its last item's ID is the cursor to pass as "after" for the next page.
+func listReadableDocuments(ctx context.Context, site *internalSite.Site, after *identifier.Identifier) ([]documentListItem, errors.E) {
+	documents := []documentListItem{}
+	for {
+		ids, errE := site.Base.Documents().List(ctx, after)
+		if errE != nil {
+			return nil, errE
+		}
+		for _, id := range ids {
+			// TODO: Add API to store to just check if the value exists.
+			_, _, _, _, errE := site.Base.GetDocumentLatest(ctx, id)
+			if errors.Is(errE, store.ErrValueNotFound) || errors.Is(errE, store.ErrAccessDenied) {
+				continue
+			} else if errE != nil {
+				return nil, errE
+			}
+			documents = append(documents, documentListItem{ID: id})
+		}
+		// Stop once this scan produced something to return, or once the store has no more pages (a page shorter
+		// than a full one is the last). Otherwise keep scanning from the last id, so a fully unreadable page does
+		// not end the listing early: the caller pages by the last returned id and stops only on an empty result.
+		if len(documents) > 0 || len(ids) < store.MaxPageLength {
+			return documents, nil
+		}
+		after = &ids[len(ids)-1]
+	}
+}
+
+// DocumentListGetAPI is a GET/HEAD HTTP request handler which lists the documents the caller may read, as a
+// JSON array of document IDs. It uses keyset pagination via the "after" query parameter: to fetch the next
+// page, request again with "after" set to the ID of the last item in the returned array; an empty array means
+// there are no more. Each entry is a document a read by ID would return, applying the same access semantics as
+// viewing a document (see listReadableDocuments). It is intentionally not wired into PeerDB's own routes. A
+// library consumer can expose it (for example under /d).
+func (s *Service) DocumentListGetAPI(w http.ResponseWriter, req *http.Request, _ waf.Params) {
+	ctx := req.Context()
+	metrics := waf.MustGetMetrics(ctx)
+
+	var after *identifier.Identifier
+	if req.Form.Has("after") {
+		a, errE := identifier.MaybeString(req.Form.Get("after"))
+		if errE != nil {
+			s.BadRequestWithError(w, req, errors.WithMessage(errE, `"after" is not a valid identifier`))
+			return
+		}
+		after = &a
+	}
+
+	site := waf.MustGetSite[*internalSite.Site](ctx)
+
+	m := metrics.Duration(internalStore.MetricDatabase).Start()
+	documents, errE := listReadableDocuments(ctx, site, after)
+	m.Stop()
+	if errE != nil {
+		s.InternalServerErrorWithError(w, req, errE)
+		return
+	}
+
+	s.WriteJSON(w, req, documents, nil)
+}
+
 type documentCreateResponse struct {
 	ID      identifier.Identifier `json:"id"`
 	Base    []string              `json:"base"`
