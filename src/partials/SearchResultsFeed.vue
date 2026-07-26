@@ -6,7 +6,7 @@ import type { Filter, FilterUpdate, Result, SearchSession, SortKey, ViewType } f
 
 import { ChevronUpDownIcon, FunnelIcon, XMarkIcon } from "@heroicons/vue/20/solid"
 import { ChevronDownUpIcon } from "@sidekickicons/vue/20/solid"
-import { computed, onBeforeUnmount, onMounted, provide, reactive, ref, toRaw, toRef, useTemplateRef, watch } from "vue"
+import { computed, onBeforeUnmount, onMounted, provide, reactive, ref, toRaw, toRef, useTemplateRef, watch, watchEffect } from "vue"
 import { useI18n } from "vue-i18n"
 
 import Button from "@/components/Button.vue"
@@ -342,6 +342,19 @@ const anyFilterVisible = computed(() => {
   return false
 })
 
+// Number of filter facets currently visible on screen. Reference and has facets hide themselves when the
+// pane search matches none of their values (see filterVisibility), so the number of rendered facets
+// (limitedFiltersResults) can exceed what the user actually sees.
+const visibleFilterCount = computed(() => {
+  let count = 0
+  for (const visible of filterVisibility.values()) {
+    if (visible) {
+      count++
+    }
+  }
+  return count
+})
+
 const { track, visibles } = useVisibilityTracking()
 // The grouped result tree renders leaf results deep in SearchResultGroup, so the tracker is provided for
 // those leaves to register the same way the flat results do here.
@@ -424,6 +437,22 @@ function onScrollOrResize() {
     }
   }
 }
+
+// Keep the initial filter page filled: reveal more facets until at least FILTERS_INITIAL_LIMIT of them are
+// actually visible (or none remain to reveal). A filter-pane search whose matches are sparse among the first
+// facets would otherwise show only a few of them while "load more" still points at matching facets behind the
+// limit. A facet counts as visible while its values are still loading (a reference or has facet only hides
+// itself once its match results arrive), so we wait until every rendered facet has reported before deciding,
+// revealing another batch only after the current ones have settled and too few remain visible. The load-more
+// button exists only while filtersHasMore, so this stops once the limit reaches the returned facets.
+watchEffect(() => {
+  if (filterVisibility.size < limitedFiltersResults.value.length) {
+    return
+  }
+  if (visibleFilterCount.value < FILTERS_INITIAL_LIMIT && filtersMoreButton.value) {
+    ;(filtersMoreButton.value.$el as HTMLButtonElement).click()
+  }
+})
 
 function onFilters() {
   if (abortController.signal.aborted) {
