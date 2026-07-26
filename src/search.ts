@@ -85,22 +85,32 @@ function prefilterSignature(prop: readonly string[], to: readonly string[], dire
 }
 
 // prefiltersMatch reports whether the session's prefilters are exactly the set of reference prefilters
-// described by payloads (order-independent). Non-reference prefilters never match a shortcut payload.
+// described by payloads (order-independent). A payload's values live in a ref prefilter and its missing
+// selection in the path's specials prefilter, so the session's ref and specials prefilters are merged by
+// property path before comparing. Prefilters of any other shape (amount, time, has, or specials beyond
+// missing) never match a shortcut payload.
 export function prefiltersMatch(prefilters: DeepReadonly<Filter[]> | undefined, payloads: PrefilterPayload[]): boolean {
-  const have: string[] = []
+  const merged = new Map<string, { prop: readonly string[]; to: string[]; direct: string[]; missing: boolean }>()
   for (const f of prefilters ?? []) {
-    if (!("ref" in f)) {
+    const key = f.prop.join(":")
+    let entry = merged.get(key)
+    if (!entry) {
+      entry = { prop: f.prop, to: [], direct: [], missing: false }
+      merged.set(key, entry)
+    }
+    if ("ref" in f) {
+      entry.to.push(...(f.ref.to ?? []).map((t) => t.id))
+      entry.direct.push(...(f.ref.direct ?? []).map((t) => t.id))
+    } else if ("specials" in f) {
+      if (f.specials.none || f.specials.unknown || f.specials.hasProperty) {
+        return false
+      }
+      entry.missing = f.specials.missing === true
+    } else {
       return false
     }
-    have.push(
-      prefilterSignature(
-        f.prop,
-        (f.ref.to ?? []).map((t) => t.id),
-        (f.ref.direct ?? []).map((t) => t.id),
-        f.ref.missing === true,
-      ),
-    )
   }
+  const have = [...merged.values()].map((e) => prefilterSignature(e.prop, e.to, e.direct, e.missing))
   const want = payloads.map((p) =>
     prefilterSignature(
       p.prop,
@@ -246,6 +256,7 @@ export function useFilters(
 ): {
   results: DeepReadonly<Ref<FilterResult[]>>
   total: DeepReadonly<Ref<number | null>>
+  moreThanTotal: DeepReadonly<Ref<boolean>>
   error: DeepReadonly<Ref<string | null>>
   url: DeepReadonly<Ref<string | null>>
 } {
@@ -254,6 +265,7 @@ export function useFilters(
   const {
     results: rawResults,
     total,
+    moreThanTotal,
     error,
     url,
   } = useSearchResults<FilterResult>(el, progress, () => {
@@ -286,7 +298,7 @@ export function useFilters(
     return [...best.values()]
   })
 
-  return { results, total, error, url }
+  return { results, total, moreThanTotal, error, url }
 }
 
 function useSearchResults<T extends Result | FilterResult | RefFilterResult | HasFilterResult>(
@@ -434,8 +446,25 @@ export function useRefFilters(
 
   // valueQuery narrows the listed facet values to those whose display label matches the typed text; it is
   // sent as the "q" parameter (with a prefix wildcard appended) so a keystroke re-fetches the limited values.
-  return useSearchResults<RefFilterResult>(el, progress, () =>
+  const { results, total, error, url } = useSearchResults<RefFilterResult>(el, progress, () =>
     refFilterURL(router, searchSessionRef.value, filterId.value, props.value, valueQuery.value ? addPrefixWildcard(valueQuery.value) : undefined),
+  )
+
+  return { results: normalizeRefFilterResults(results), total, error, url }
+}
+
+// normalizeRefFilterResults converts wire results to the internal shape: a childCount of the form "<n>+"
+// (a lower bound, the same convention as the search results total) becomes the numeric n with
+// childCountAtLeast set.
+function normalizeRefFilterResults(results: DeepReadonly<Ref<RefFilterResult[]>>): DeepReadonly<Ref<RefFilterResult[]>> {
+  return computed(() =>
+    results.value.map((result) => {
+      const childCount = result.childCount as number | string
+      if (typeof childCount === "string" && childCount.endsWith("+")) {
+        return { ...result, childCount: parseInt(childCount.substring(0, childCount.length - 1)), childCountAtLeast: true }
+      }
+      return result
+    }),
   )
 }
 
@@ -468,7 +497,7 @@ export function useRefFilterMatches(
     return refFilterURL(router, searchSessionRef.value, filterId.value, props.value, addPrefixWildcard(valueQuery.value))
   })
 
-  return { results, total, error, url }
+  return { results: normalizeRefFilterResults(results), total, error, url }
 }
 
 // hasFilterURL builds the API URL for a has filter facet: the active-filter route when a filter id is set,
@@ -567,6 +596,9 @@ export function useAmountHistogramValues(
   results: DeepReadonly<Ref<HistogramAmountResult[]>>
   total: DeepReadonly<Ref<number | null>>
   missing: DeepReadonly<Ref<number | null>>
+  none: DeepReadonly<Ref<number | null>>
+  unknown: DeepReadonly<Ref<number | null>>
+  hasProperty: DeepReadonly<Ref<number | null>>
   from: DeepReadonly<Ref<number | null>>
   to: DeepReadonly<Ref<number | null>>
   interval: DeepReadonly<Ref<number | null>>
@@ -579,6 +611,9 @@ export function useAmountHistogramValues(
   const _results = ref<HistogramAmountResult[]>([])
   const _total = ref<number | null>(null)
   const _missing = ref<number | null>(null)
+  const _none = ref<number | null>(null)
+  const _unknown = ref<number | null>(null)
+  const _hasProperty = ref<number | null>(null)
   const _from = ref<number | null>(null)
   const _to = ref<number | null>(null)
   const _interval = ref<number | null>(null)
@@ -587,6 +622,9 @@ export function useAmountHistogramValues(
   const results = process.env.NODE_ENV !== "production" ? readonly(_results) : _results
   const total = process.env.NODE_ENV !== "production" ? readonly(_total) : _total
   const missing = process.env.NODE_ENV !== "production" ? readonly(_missing) : _missing
+  const none = process.env.NODE_ENV !== "production" ? readonly(_none) : _none
+  const unknown = process.env.NODE_ENV !== "production" ? readonly(_unknown) : _unknown
+  const hasProperty = process.env.NODE_ENV !== "production" ? readonly(_hasProperty) : _hasProperty
   const from = process.env.NODE_ENV !== "production" ? readonly(_from) : _from
   const to = process.env.NODE_ENV !== "production" ? readonly(_to) : _to
   const interval = process.env.NODE_ENV !== "production" ? readonly(_interval) : _interval
@@ -652,6 +690,9 @@ export function useAmountHistogramValues(
         _results.value = []
         _total.value = null
         _missing.value = null
+        _none.value = null
+        _unknown.value = null
+        _hasProperty.value = null
         _from.value = null
         _to.value = null
         _interval.value = null
@@ -671,6 +712,9 @@ export function useAmountHistogramValues(
         _results.value = []
         _total.value = null
         _missing.value = null
+        _none.value = null
+        _unknown.value = null
+        _hasProperty.value = null
         _from.value = null
         _to.value = null
         _interval.value = null
@@ -684,6 +728,9 @@ export function useAmountHistogramValues(
       _results.value = data.results
       _total.value = data.total
       _missing.value = data.missing != null ? data.missing : null
+      _none.value = data.none != null ? data.none : null
+      _unknown.value = data.unknown != null ? data.unknown : null
+      _hasProperty.value = data.hasProperty != null ? data.hasProperty : null
       _from.value = data.from != null ? parseFloat(data.from) : null
       _to.value = data.to != null ? parseFloat(data.to) : null
       _interval.value = data.interval != null ? parseFloat(data.interval) : null
@@ -697,6 +744,9 @@ export function useAmountHistogramValues(
     results,
     total,
     missing,
+    none,
+    unknown,
+    hasProperty,
     from,
     to,
     interval,
@@ -715,6 +765,9 @@ export function useTimeHistogramValues(
   results: DeepReadonly<Ref<HistogramTimeResult[]>>
   total: DeepReadonly<Ref<number | null>>
   missing: DeepReadonly<Ref<number | null>>
+  none: DeepReadonly<Ref<number | null>>
+  unknown: DeepReadonly<Ref<number | null>>
+  hasProperty: DeepReadonly<Ref<number | null>>
   from: DeepReadonly<Ref<number | null>>
   to: DeepReadonly<Ref<number | null>>
   interval: DeepReadonly<Ref<number | null>>
@@ -727,6 +780,9 @@ export function useTimeHistogramValues(
   const _results = ref<HistogramTimeResult[]>([])
   const _total = ref<number | null>(null)
   const _missing = ref<number | null>(null)
+  const _none = ref<number | null>(null)
+  const _unknown = ref<number | null>(null)
+  const _hasProperty = ref<number | null>(null)
   const _from = ref<number | null>(null)
   const _to = ref<number | null>(null)
   const _interval = ref<number | null>(null)
@@ -735,6 +791,9 @@ export function useTimeHistogramValues(
   const results = process.env.NODE_ENV !== "production" ? readonly(_results) : _results
   const total = process.env.NODE_ENV !== "production" ? readonly(_total) : _total
   const missing = process.env.NODE_ENV !== "production" ? readonly(_missing) : _missing
+  const none = process.env.NODE_ENV !== "production" ? readonly(_none) : _none
+  const unknown = process.env.NODE_ENV !== "production" ? readonly(_unknown) : _unknown
+  const hasProperty = process.env.NODE_ENV !== "production" ? readonly(_hasProperty) : _hasProperty
   const from = process.env.NODE_ENV !== "production" ? readonly(_from) : _from
   const to = process.env.NODE_ENV !== "production" ? readonly(_to) : _to
   const interval = process.env.NODE_ENV !== "production" ? readonly(_interval) : _interval
@@ -788,6 +847,9 @@ export function useTimeHistogramValues(
         _results.value = []
         _total.value = null
         _missing.value = null
+        _none.value = null
+        _unknown.value = null
+        _hasProperty.value = null
         _from.value = null
         _to.value = null
         _interval.value = null
@@ -807,6 +869,9 @@ export function useTimeHistogramValues(
         _results.value = []
         _total.value = null
         _missing.value = null
+        _none.value = null
+        _unknown.value = null
+        _hasProperty.value = null
         _from.value = null
         _to.value = null
         _interval.value = null
@@ -820,6 +885,9 @@ export function useTimeHistogramValues(
       _results.value = data.results
       _total.value = data.total
       _missing.value = data.missing != null ? data.missing : null
+      _none.value = data.none != null ? data.none : null
+      _unknown.value = data.unknown != null ? data.unknown : null
+      _hasProperty.value = data.hasProperty != null ? data.hasProperty : null
       _from.value = data.from != null ? parseFloat(data.from) : null
       _to.value = data.to != null ? parseFloat(data.to) : null
       _interval.value = data.interval != null ? parseFloat(data.interval) : null
@@ -833,6 +901,9 @@ export function useTimeHistogramValues(
     results,
     total,
     missing,
+    none,
+    unknown,
+    hasProperty,
     from,
     to,
     interval,
@@ -868,6 +939,9 @@ async function getHistogramValues<T extends HistogramAmountResult | HistogramTim
   results: T[]
   total: number
   missing?: number
+  none?: number
+  unknown?: number
+  hasProperty?: number
   from?: string
   to?: string
   interval?: string
@@ -885,12 +959,24 @@ async function getHistogramValues<T extends HistogramAmountResult | HistogramTim
     results: T[]
     total: number
     missing?: number
+    none?: number
+    unknown?: number
+    hasProperty?: number
     from?: string
     to?: string
     interval?: string
   }
   if ("missing" in metadata) {
     res.missing = metadata["missing"] as number
+  }
+  if ("none" in metadata) {
+    res.none = metadata["none"] as number
+  }
+  if ("unknown" in metadata) {
+    res.unknown = metadata["unknown"] as number
+  }
+  if ("has_property" in metadata) {
+    res.hasProperty = metadata["has_property"] as number
   }
   if ("from" in metadata) {
     res.from = String(metadata["from"])

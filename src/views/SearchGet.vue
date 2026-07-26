@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { PrefilterPayload } from "@/search"
-import type { Filter, SearchSessionData, SortKey, ViewType } from "@/types"
+import type { Filter, FilterUpdate, SearchSessionData, SortKey, ViewType } from "@/types"
 import type { DeepReadonly } from "vue"
 
 import { Identifier } from "@tozd/identifier"
@@ -112,19 +112,32 @@ async function applyPrefilters(payloads: PrefilterPayload[] | null) {
   let prefilters: Filter[] | undefined
   if (payloads && payloads.length > 0) {
     prefilters = []
+    // A payload's values become a ref prefilter and its missing selection the path's specials
+    // prefilter (a filter carries exactly one selection kind), each with its own generated Base/ID.
     for (const payload of payloads) {
-      const filterBase = [...searchSession.value.base, "FILTER", Identifier.new().toString()]
-      const id = (await Identifier.from(...filterBase)).toString()
-      prefilters.push({
-        id,
-        base: filterBase,
-        prop: payload.prop,
-        ref: {
-          to: payload.to.length > 0 ? payload.to : undefined,
-          direct: payload.direct.length > 0 ? payload.direct : undefined,
-          missing: payload.missing ? true : undefined,
-        },
-      })
+      if (payload.to.length > 0 || payload.direct.length > 0) {
+        const filterBase = [...searchSession.value.base, "FILTER", Identifier.new().toString()]
+        const id = (await Identifier.from(...filterBase)).toString()
+        prefilters.push({
+          id,
+          base: filterBase,
+          prop: payload.prop,
+          ref: {
+            to: payload.to.length > 0 ? payload.to : undefined,
+            direct: payload.direct.length > 0 ? payload.direct : undefined,
+          },
+        })
+      }
+      if (payload.missing) {
+        const filterBase = [...searchSession.value.base, "FILTER", Identifier.new().toString()]
+        const id = (await Identifier.from(...filterBase)).toString()
+        prefilters.push({
+          id,
+          base: filterBase,
+          prop: payload.prop,
+          specials: { missing: true },
+        })
+      }
     }
   }
   await onSearchSessionUpdate({
@@ -192,38 +205,44 @@ async function onFiltersUpdate(updatedFilters: Filter[]) {
 // isFilterEmpty returns true if the filter has no active selection.
 function isFilterEmpty(f: Filter): boolean {
   if ("ref" in f) {
-    return (!f.ref.to || f.ref.to.length === 0) && (!f.ref.direct || f.ref.direct.length === 0) && !f.ref.missing
+    return (!f.ref.to || f.ref.to.length === 0) && (!f.ref.direct || f.ref.direct.length === 0)
   }
   if ("amount" in f) {
-    return f.amount.gte == null && f.amount.lte == null && !f.amount.missing && !f.amount.exists
+    return f.amount.gte == null && f.amount.lte == null && !f.amount.exists
   }
   if ("time" in f) {
-    return f.time.gte == null && f.time.lte == null && !f.time.missing && !f.time.exists
+    return f.time.gte == null && f.time.lte == null && !f.time.exists
   }
   if ("has" in f) {
     return !f.has.props || f.has.props.length === 0
   }
+  if ("specials" in f) {
+    return !f.specials.missing && !f.specials.none && !f.specials.unknown && !f.specials.hasProperty
+  }
   return true
 }
 
-async function onFilterUpdate(filterId: string, updatedFilter: Filter) {
+async function onFilterUpdates(updates: FilterUpdate[]) {
   // Checking abortController is done inside onSearchSessionUpdate.
 
-  if (isFilterEmpty(updatedFilter)) {
-    // Filter has no active selection: remove it from the session.
-    const updatedFilters = filters.value.filter((f) => f.id !== filterId)
-    await onFiltersUpdate(updatedFilters)
-  } else if (filterId && filters.value.some((f) => f.id === filterId)) {
-    // Existing filter: replace it.
-    const updatedFilters = filters.value.map((f) => (f.id === filterId ? updatedFilter : f))
-    await onFiltersUpdate(updatedFilters)
-  } else {
-    // New filter: generate Base/ID and add it.
-    const filterBase = [...searchSession.value!.base, "FILTER", Identifier.new().toString()]
-    const id = (await Identifier.from(...filterBase)).toString()
-    const newFilter = { ...updatedFilter, base: filterBase, id }
-    await onFiltersUpdate([...filters.value, newFilter])
+  // A facet interaction can change several filters at once (its typed filter and the path's specials
+  // filter), so the whole batch is applied to the filter list first and the session is updated once.
+  let updatedFilters = [...filters.value]
+  for (const { filterId, filter } of updates) {
+    if (isFilterEmpty(filter)) {
+      // Filter has no active selection: remove it from the session.
+      updatedFilters = updatedFilters.filter((f) => f.id !== filterId)
+    } else if (filterId && updatedFilters.some((f) => f.id === filterId)) {
+      // Existing filter: replace it.
+      updatedFilters = updatedFilters.map((f) => (f.id === filterId ? filter : f))
+    } else {
+      // New filter: generate Base/ID and add it.
+      const filterBase = [...searchSession.value!.base, "FILTER", Identifier.new().toString()]
+      const id = (await Identifier.from(...filterBase)).toString()
+      updatedFilters.push({ ...filter, base: filterBase, id })
+    }
   }
+  await onFiltersUpdate(updatedFilters)
 }
 
 async function onQueryChange(query: string) {
@@ -377,7 +396,7 @@ async function onDownloadFiles() {
       :search-session="searchSession"
       :filters="filters"
       :is-downloading="downloadingPhase !== null"
-      @filter-update="onFilterUpdate"
+      @filter-updates="onFilterUpdates"
       @view-change="onViewChange"
       @download-zip="onDownloadZip"
       @download-files="onDownloadFiles"
@@ -396,7 +415,7 @@ async function onDownloadFiles() {
       :search-session="searchSession"
       :filters="filters"
       :is-downloading="downloadingPhase !== null"
-      @filter-update="onFilterUpdate"
+      @filter-updates="onFilterUpdates"
       @view-change="onViewChange"
       @download-zip="onDownloadZip"
       @download-files="onDownloadFiles"

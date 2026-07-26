@@ -48,7 +48,7 @@ func TestDuplicatesQuery(t *testing.T) {
 	// reverse is the must_not clause excluding candidates that assert they are distinct from this
 	// document (the symmetric direction of DISTINCT_FROM); it is present in every query.
 	reverse := fmt.Sprintf(
-		`{"nested":{"path":"claims.ref","query":{"bool":{"must":[{"term":{"claims.ref.prop":{"value":%q}}},{"term":{"claims.ref.to":{"value":%q}}}]}}}}`,
+		`{"nested":{"path":"claims.rel","query":{"bool":{"must":[{"term":{"claims.rel.prop":{"value":%q}}},{"term":{"claims.rel.to":{"value":%q}}}]}}}}`,
 		internalCore.DistinctFromPropID.String(), exclude.String(),
 	)
 
@@ -67,8 +67,8 @@ func TestDuplicatesQuery(t *testing.T) {
 			},
 			Want: fmt.Sprintf(
 				`{"bool":{"minimum_should_match":1,"must_not":[{"term":{"id":{"value":%q}}},%s],`+
-					`"should":[{"constant_score":{"boost":2,"filter":{"nested":{"path":"claims.ref","query":{"bool":{"must":[`+
-					`{"term":{"claims.ref.prop":{"value":%q}}},{"term":{"claims.ref.to":{"value":%q}}}]}}}}}}]}}`,
+					`"should":[{"constant_score":{"boost":2,"filter":{"nested":{"path":"claims.rel","query":{"bool":{"must":[`+
+					`{"term":{"claims.rel.prop":{"value":%q}}},{"term":{"claims.rel.to":{"value":%q}}}]}}}}}}]}}`,
 				exclude.String(), reverse, instanceOf.String(), class.String(),
 			),
 		},
@@ -157,9 +157,30 @@ func TestDuplicatesQuery(t *testing.T) {
 			},
 			Want: fmt.Sprintf(
 				`{"bool":{"minimum_should_match":1,"must_not":[{"term":{"id":{"value":%q}}},%s],`+
-					`"should":[{"constant_score":{"boost":2,"filter":{"nested":{"path":"claims.ref","query":{"bool":{"must":[`+
-					`{"term":{"claims.ref.prop":{"value":%q}}},{"term":{"claims.ref.to":{"value":%q}}}]}}}}}}]}}`,
+					`"should":[{"constant_score":{"boost":2,"filter":{"nested":{"path":"claims.rel","query":{"bool":{"must":[`+
+					`{"term":{"claims.rel.prop":{"value":%q}}},{"term":{"claims.rel.to":{"value":%q}}}]}}}}}}]}}`,
 				exclude.String(), reverse, instanceOf.String(), class.String(),
+			),
+		},
+		{
+			// A has claim matches rel records with the has claimType for the same property: the clause carries the
+			// claimType discriminator because a bare property term would also match ref, none, and
+			// unknown records.
+			Name: "has claim matched by claim type and property",
+			Doc: &document.D{
+				CoreDocument: document.CoreDocument{ID: exclude, Base: []string{"x", "doc"}},
+				Claims: &document.ClaimTypes{
+					Has: document.HasClaims{{
+						CoreClaim: document.CoreClaim{ID: identifier.New(), Confidence: document.HighConfidence},
+						Prop:      document.Reference{ID: other},
+					}},
+				},
+			},
+			Want: fmt.Sprintf(
+				`{"bool":{"minimum_should_match":1,"must_not":[{"term":{"id":{"value":%q}}},%s],`+
+					`"should":[{"constant_score":{"boost":1,"filter":{"nested":{"path":"claims.rel","query":{"bool":{"must":[`+
+					`{"term":{"claims.rel.claimType":{"value":"has"}}},{"term":{"claims.rel.prop":{"value":%q}}}]}}}}}}]}}`,
+				exclude.String(), reverse, other.String(),
 			),
 		},
 	}

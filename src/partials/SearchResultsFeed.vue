@@ -2,11 +2,11 @@
 import type { ComponentPublicInstance, DeepReadonly } from "vue"
 
 import type { D } from "@/document"
-import type { Filter, Result, SearchSession, SortKey, ViewType } from "@/types"
+import type { Filter, FilterUpdate, Result, SearchSession, SortKey, ViewType } from "@/types"
 
 import { ChevronUpDownIcon, FunnelIcon, XMarkIcon } from "@heroicons/vue/20/solid"
 import { ChevronDownUpIcon } from "@sidekickicons/vue/20/solid"
-import { computed, onBeforeUnmount, onMounted, provide, reactive, ref, toRaw, toRef, useTemplateRef, watch } from "vue"
+import { computed, onBeforeUnmount, onMounted, provide, reactive, ref, toRaw, toRef, useTemplateRef, watch, watchEffect } from "vue"
 import { useI18n } from "vue-i18n"
 
 import Button from "@/components/Button.vue"
@@ -57,7 +57,7 @@ const props = defineProps<{
 }>()
 
 const $emit = defineEmits<{
-  filterUpdate: [filterId: string, filter: Filter]
+  filterUpdates: [updates: FilterUpdate[]]
   viewChange: [value: ViewType]
   downloadZip: []
   downloadFiles: []
@@ -285,6 +285,7 @@ const busy = useBusy()
 const {
   results: filtersResults,
   total: filtersTotal,
+  moreThanTotal: filtersMoreThanTotal,
   error: filtersError,
   url: filtersURL,
 } = useFilters(
@@ -339,6 +340,19 @@ const anyFilterVisible = computed(() => {
     }
   }
   return false
+})
+
+// Number of filter facets currently visible on screen. Reference and has facets hide themselves when the
+// pane search matches none of their values (see filterVisibility), so the number of rendered facets
+// (limitedFiltersResults) can exceed what the user actually sees.
+const visibleFilterCount = computed(() => {
+  let count = 0
+  for (const visible of filterVisibility.values()) {
+    if (visible) {
+      count++
+    }
+  }
+  return count
 })
 
 const { track, visibles } = useVisibilityTracking()
@@ -423,6 +437,22 @@ function onScrollOrResize() {
     }
   }
 }
+
+// Keep the initial filter page filled: reveal more facets until at least FILTERS_INITIAL_LIMIT of them are
+// actually visible (or none remain to reveal). A filter-pane search whose matches are sparse among the first
+// facets would otherwise show only a few of them while "load more" still points at matching facets behind the
+// limit. A facet counts as visible while its values are still loading (a reference or has facet only hides
+// itself once its match results arrive), so we wait until every rendered facet has reported before deciding,
+// revealing another batch only after the current ones have settled and too few remain visible. The load-more
+// button exists only while filtersHasMore, so this stops once the limit reaches the returned facets.
+watchEffect(() => {
+  if (filterVisibility.size < limitedFiltersResults.value.length) {
+    return
+  }
+  if (visibleFilterCount.value < FILTERS_INITIAL_LIMIT && filtersMoreButton.value) {
+    ;(filtersMoreButton.value.$el as HTMLButtonElement).click()
+  }
+})
 
 function onFilters() {
   if (abortController.signal.aborted) {
@@ -727,11 +757,24 @@ const WithDocumentD = WithDocument<D>
               own name), never the search itself. When only active filters are shown (none available to add), the
               label counts those instead.
             -->
-            <div v-if="filtersTotal > 0" class="mb-1 text-sm">{{ t("partials.SearchResultsFeed.filtersAvailable", { count: filtersTotal }) }}</div>
+            <div v-if="filtersTotal > 0 && filtersMoreThanTotal" class="mb-1 text-sm">
+              {{ t("partials.SearchResultsFeed.filtersAvailableMoreThan", { count: filtersTotal }) }}
+            </div>
+            <div v-else-if="filtersTotal > 0" class="mb-1 text-sm">{{ t("partials.SearchResultsFeed.filtersAvailable", { count: filtersTotal }) }}</div>
             <div v-else-if="hasActiveFilters" class="mb-1 text-sm">{{ t("partials.SearchResultsFeed.filtersAvailable", { count: activeFiltersCount }) }}</div>
 
             <WithLock :lock="getFilterBoxLock">
-              <InputText v-model="filterQuery" class="pd-searchfilters-search pd-print-hidden w-full" :aria-label="t('partials.SearchResultsFeed.filtersSearchLabel')" />
+              <div class="relative">
+                <InputText
+                  v-model="filterQuery"
+                  class="pd-searchfilters-search pd-print-hidden w-full"
+                  :class="{ 'pr-20': filterQuery }"
+                  :aria-label="t('partials.SearchResultsFeed.filtersSearchLabel')"
+                />
+                <div v-if="filterQuery" class="absolute inset-y-0 right-0 flex items-center pr-2">
+                  <Button type="button" class="px-2.5 py-1" @click.prevent="filterQuery = ''">{{ t("common.buttons.clear") }}</Button>
+                </div>
+              </div>
             </WithLock>
           </div>
 
@@ -742,7 +785,7 @@ const WithDocumentD = WithDocument<D>
               :filters="filters"
               :query="filterQuery"
               class="rounded-sm border border-gray-200 bg-white p-4 shadow-sm"
-              @filter-update="(filterId, filter) => $emit('filterUpdate', filterId, filter)"
+              @filter-updates="(updates) => $emit('filterUpdates', updates)"
             />
           </template>
 

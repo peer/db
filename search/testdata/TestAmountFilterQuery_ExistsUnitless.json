@@ -1,0 +1,41 @@
+{
+  "bool": {
+    "must": [
+      {
+        "nested": {
+          "path": "claims.amount",
+          "query": {
+            "bool": {
+              "must": [
+                {
+                  "term": {
+                    "claims.amount.prop": {
+                      "value": "Vg7NV61DJJ5HS2nheTZrQE"
+                    }
+                  }
+                },
+                {
+                  "bool": {
+                    "must": [
+                      {
+                        "bool": {
+                          "must_not": [
+                            {
+                              "exists": {
+                                "field": "claims.amount.unit"
+                              }
+                            }
+                          ]
+                        }
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          }
+        }
+      }
+    ]
+  }
+}

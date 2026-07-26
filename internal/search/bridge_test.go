@@ -259,7 +259,26 @@ func TestBridgeStartupDrainsReindexQueueBacklog(t *testing.T) {
 	}, 30*time.Second, 50*time.Millisecond, "reindex queue backlog should be drained on startup")
 }
 
-// docExists returns true if the document with the given ID exists in Elasticsearch.
+// docHasReference reports whether the ES document with the given ID has a top-level rel record
+// with the given prop and target. A term on "to" matches only ref records (the other claim types
+// have no "to"), so no claimType term is needed.
+func docHasReference(ctx context.Context, t *testing.T, esClient *elasticsearch.TypedClient, index string, docID, propID, targetID identifier.Identifier) bool {
+	t.Helper()
+
+	nestedQuery := esdsl.NewNestedQuery(
+		esdsl.NewBoolQuery().Must(
+			esdsl.NewTermQuery("claims.rel.prop", esdsl.NewFieldValue().String(propID.String())),
+			esdsl.NewTermQuery("claims.rel.to", esdsl.NewFieldValue().String(targetID.String())),
+		),
+	).Path("claims.rel")
+	query := esdsl.NewBoolQuery().Must(
+		esdsl.NewTermQuery("id", esdsl.NewFieldValue().String(docID.String())),
+		nestedQuery,
+	)
+	res, err := esClient.Search().Index(index).Query(query).Size(1).Do(ctx)
+	testutils.RequireNoESError(t, err)
+	return res.Hits.Total.Value > 0
+}
 
 func TestBridgeRealTime(t *testing.T) {
 	t.Parallel()
@@ -521,6 +540,40 @@ func makeDocWithRelationJSON(t *testing.T, docID, propID, targetID identifier.Id
 					CoreClaim: document.CoreClaim{ID: identifier.New(), Confidence: document.HighConfidence},
 					Prop:      document.Reference{ID: propID},
 					To:        document.Reference{ID: targetID},
+				},
+			},
+		},
+	}
+	data, errE := x.MarshalWithoutEscapeHTML(doc)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	return data
+}
+
+// makeDocWithSubRelationJSON creates a document whose only reference to targetID is a sub-claim: a
+// top-level string claim on parentProp carrying a reference sub-claim refProp --> targetID. The
+// reference is indexed as a rel record inside the string record's sub container.
+func makeDocWithSubRelationJSON(t *testing.T, docID, parentProp, refProp, targetID identifier.Identifier) json.RawMessage {
+	t.Helper()
+	doc := document.D{
+		CoreDocument: document.CoreDocument{ID: docID}, //nolint:exhaustruct
+		Claims: &document.ClaimTypes{
+			String: []document.StringClaim{
+				{
+					CoreClaim: document.CoreClaim{
+						ID:         identifier.New(),
+						Confidence: document.HighConfidence,
+						Sub: &document.ClaimTypes{
+							Reference: []document.ReferenceClaim{
+								{
+									CoreClaim: document.CoreClaim{ID: identifier.New(), Confidence: document.HighConfidence},
+									Prop:      document.Reference{ID: refProp},
+									To:        document.Reference{ID: targetID},
+								},
+							},
+						},
+					},
+					Prop:   document.Reference{ID: parentProp},
+					String: "sub referrer",
 				},
 			},
 		},
@@ -1063,15 +1116,15 @@ func TestBridgePerLevelReindexPresence(t *testing.T) {
 				return
 			}
 		}
-		assert.True(c, testutils.DocHasReference(ctx, t, esClient, indexEditor, docB, propY, docA),
+		assert.True(c, docHasReference(ctx, t, esClient, indexEditor, docB, propY, docA),
 			"docB should carry the inverse relation B --Y--> A in the editor index after reindex")
 		assert.False(c, testutils.DocExists(ctx, t, esClient, indexPublic, docB.String()),
 			"docB must stay absent from the public index after reindex (hidden there)")
 	}, 10*time.Second, 100*time.Millisecond)
 
 	// The source A is visible everywhere: present in both indexes with its forward relation.
-	assert.True(t, testutils.DocHasReference(ctx, t, esClient, indexEditor, docA, propX, docB), "docA should have the forward relation in the editor index")
-	assert.True(t, testutils.DocHasReference(ctx, t, esClient, indexPublic, docA, propX, docB), "docA should have the forward relation in the public index")
+	assert.True(t, docHasReference(ctx, t, esClient, indexEditor, docA, propX, docB), "docA should have the forward relation in the editor index")
+	assert.True(t, docHasReference(ctx, t, esClient, indexPublic, docA, propX, docB), "docA should have the forward relation in the public index")
 }
 
 // syncBuffer is a goroutine-safe io.Writer used to capture the bridge's logs from its run goroutine.
@@ -1205,12 +1258,12 @@ func TestBridgeInverseRelationReindexing(t *testing.T) {
 		if !testutils.AssertNoESError(c, err) {
 			return
 		}
-		assert.True(c, testutils.DocHasReference(ctx, t, esClient, b.IndexPrefix, docB, propY, docA),
+		assert.True(c, docHasReference(ctx, t, esClient, b.IndexPrefix, docB, propY, docA),
 			"docB should have inverse relation B --Y--> A")
 	}, 10*time.Second, 100*time.Millisecond)
 
 	// Doc A should have the forward relation A --X--> B.
-	assert.True(t, testutils.DocHasReference(ctx, t, esClient, b.IndexPrefix, docA, propX, docB),
+	assert.True(t, docHasReference(ctx, t, esClient, b.IndexPrefix, docA, propX, docB),
 		"docA should have forward relation A --X--> B")
 }
 
@@ -1320,7 +1373,7 @@ func TestBridgeReindexContinuation(t *testing.T) {
 			return
 		}
 		for _, rel := range rels {
-			assert.True(c, testutils.DocHasReference(ctx, t, esClient, b.IndexPrefix, rel.b, propY, rel.a),
+			assert.True(c, docHasReference(ctx, t, esClient, b.IndexPrefix, rel.b, propY, rel.a),
 				"docB should have inverse relation B --Y--> A")
 		}
 	}, 15*time.Second, 200*time.Millisecond)
@@ -1402,7 +1455,7 @@ func TestBridgeReindexSplitsBulkBySize(t *testing.T) {
 			return
 		}
 		for _, rel := range rels {
-			assert.True(c, testutils.DocHasReference(ctx, t, esClient, b.IndexPrefix, rel.b, propY, rel.a),
+			assert.True(c, docHasReference(ctx, t, esClient, b.IndexPrefix, rel.b, propY, rel.a),
 				"docB should have inverse relation B --Y--> A")
 		}
 	}, 15*time.Second, 200*time.Millisecond)
@@ -1448,14 +1501,14 @@ func TestBridgeInverseRelationMutual(t *testing.T) {
 			return
 		}
 		// A should have forward A --X--> B and inverse A --Y--> B (from B --X--> A).
-		assert.True(c, testutils.DocHasReference(ctx, t, esClient, b.IndexPrefix, docA, propX, docB),
+		assert.True(c, docHasReference(ctx, t, esClient, b.IndexPrefix, docA, propX, docB),
 			"docA should have forward A --X--> B")
-		assert.True(c, testutils.DocHasReference(ctx, t, esClient, b.IndexPrefix, docA, propY, docB),
+		assert.True(c, docHasReference(ctx, t, esClient, b.IndexPrefix, docA, propY, docB),
 			"docA should have inverse A --Y--> B")
 		// B should have forward B --X--> A and inverse B --Y--> A (from A --X--> B).
-		assert.True(c, testutils.DocHasReference(ctx, t, esClient, b.IndexPrefix, docB, propX, docA),
+		assert.True(c, docHasReference(ctx, t, esClient, b.IndexPrefix, docB, propX, docA),
 			"docB should have forward B --X--> A")
-		assert.True(c, testutils.DocHasReference(ctx, t, esClient, b.IndexPrefix, docB, propY, docA),
+		assert.True(c, docHasReference(ctx, t, esClient, b.IndexPrefix, docB, propY, docA),
 			"docB should have inverse B --Y--> A")
 	}, 10*time.Second, 100*time.Millisecond)
 }
@@ -1501,9 +1554,9 @@ func TestBridgeInverseRelationMultipleSources(t *testing.T) {
 		if !testutils.AssertNoESError(c, err) {
 			return
 		}
-		assert.True(c, testutils.DocHasReference(ctx, t, esClient, b.IndexPrefix, docB, propY, docA),
+		assert.True(c, docHasReference(ctx, t, esClient, b.IndexPrefix, docB, propY, docA),
 			"docB should have inverse B --Y--> A")
-		assert.True(c, testutils.DocHasReference(ctx, t, esClient, b.IndexPrefix, docB, propY, docC),
+		assert.True(c, docHasReference(ctx, t, esClient, b.IndexPrefix, docB, propY, docC),
 			"docB should have inverse B --Y--> C")
 	}, 10*time.Second, 100*time.Millisecond)
 }
@@ -1546,7 +1599,7 @@ func TestBridgeInverseRelationRemoval(t *testing.T) {
 		if !testutils.AssertNoESError(c, err) {
 			return
 		}
-		assert.True(c, testutils.DocHasReference(ctx, t, esClient, b.IndexPrefix, docB, propY, docA),
+		assert.True(c, docHasReference(ctx, t, esClient, b.IndexPrefix, docB, propY, docA),
 			"docB should have inverse B --Y--> A")
 	}, 10*time.Second, 100*time.Millisecond)
 
@@ -1574,7 +1627,7 @@ func TestBridgeInverseRelationRemoval(t *testing.T) {
 		if !testutils.AssertNoESError(c, err) {
 			return
 		}
-		assert.False(c, testutils.DocHasReference(ctx, t, esClient, b.IndexPrefix, docB, propY, docA),
+		assert.False(c, docHasReference(ctx, t, esClient, b.IndexPrefix, docB, propY, docA),
 			"docB should no longer have inverse B --Y--> A")
 	}, 10*time.Second, 100*time.Millisecond)
 }
@@ -1620,7 +1673,7 @@ func TestBridgeInverseRelationChange(t *testing.T) {
 		if !testutils.AssertNoESError(c, err) {
 			return
 		}
-		assert.True(c, testutils.DocHasReference(ctx, t, esClient, b.IndexPrefix, docB, propY, docA),
+		assert.True(c, docHasReference(ctx, t, esClient, b.IndexPrefix, docB, propY, docA),
 			"docB should have inverse B --Y--> A")
 	}, 10*time.Second, 100*time.Millisecond)
 
@@ -1640,10 +1693,10 @@ func TestBridgeInverseRelationChange(t *testing.T) {
 			return
 		}
 		// C should have the inverse relation.
-		assert.True(c, testutils.DocHasReference(ctx, t, esClient, b.IndexPrefix, docC, propY, docA),
+		assert.True(c, docHasReference(ctx, t, esClient, b.IndexPrefix, docC, propY, docA),
 			"docC should have inverse C --Y--> A")
 		// B should no longer have the inverse relation.
-		assert.False(c, testutils.DocHasReference(ctx, t, esClient, b.IndexPrefix, docB, propY, docA),
+		assert.False(c, docHasReference(ctx, t, esClient, b.IndexPrefix, docB, propY, docA),
 			"docB should no longer have inverse B --Y--> A")
 	}, 10*time.Second, 100*time.Millisecond)
 
@@ -1706,8 +1759,10 @@ func TestBridgeReferencesCountIncremental(t *testing.T) {
 
 	target := identifier.New()
 	prop := identifier.New()
+	strProp := identifier.New()
 	ref1 := identifier.New()
 	ref2 := identifier.New()
+	ref3 := identifier.New()
 
 	// The target starts with no referrers.
 	_, errE := s.Insert(ctx, target, makeDocJSON(t, target), dummyMetadata(), dummyCommitMetadata())
@@ -1745,6 +1800,17 @@ func TestBridgeReferencesCountIncremental(t *testing.T) {
 	count, ok = esReferencesCount(ctx, t, esClient, b.IndexPrefix, target.String())
 	require.True(t, ok)
 	assert.Equal(t, 1, count, "one referrer after deletion")
+
+	// A referrer that references the target only via a sub-claim (a rel record inside a parent
+	// record's sub container) counts as well: the references count matches sub rel records under
+	// every parent collection, here a string parent.
+	_, errE = s.Insert(ctx, ref3, makeDocWithSubRelationJSON(t, ref3, strProp, prop, target), dummyMetadata(), dummyCommitMetadata())
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	waitAndRefresh()
+	count, ok = esReferencesCount(ctx, t, esClient, b.IndexPrefix, target.String())
+	require.True(t, ok)
+	assert.Equal(t, 2, count, "a sub-claim referrer counts too")
 }
 
 // makeClassDocWithFieldInverse builds a class document whose field schema defines sourceProp
@@ -1903,7 +1969,7 @@ func TestBridgeFieldInverseRelationFoldsSourceLabelIntoText(t *testing.T) {
 		}
 		// The field-level inverse materializes the reverse reference artist --hasEvent--> exhibition.
 		assert.True(
-			c, testutils.DocHasReference(ctx, t, esClient, b.IndexPrefix, artist, hasEvent, exhibition),
+			c, docHasReference(ctx, t, esClient, b.IndexPrefix, artist, hasEvent, exhibition),
 			"artist should have inverse reference artist --hasEvent--> exhibition",
 		)
 		// The exhibition's display label is folded into the artist's text, so the artist is findable by it.
@@ -1915,7 +1981,7 @@ func TestBridgeFieldInverseRelationFoldsSourceLabelIntoText(t *testing.T) {
 
 	// Sanity: the exhibition itself carries the forward reference exhibition --hasArtist--> artist.
 	assert.True(
-		t, testutils.DocHasReference(ctx, t, esClient, b.IndexPrefix, exhibition, hasArtist, artist),
+		t, docHasReference(ctx, t, esClient, b.IndexPrefix, exhibition, hasArtist, artist),
 		"exhibition should have forward reference exhibition --hasArtist--> artist",
 	)
 }

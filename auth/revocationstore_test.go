@@ -85,7 +85,7 @@ func TestRevocationStoreNotRevokedCacheRefreshesAfterTTL(t *testing.T) {
 	exp := time.Now().Add(time.Hour)
 
 	clock := time.Now()
-	rs.TestingSetNow(func() time.Time { return clock })
+	rs.Now = func() time.Time { return clock }
 
 	// Cold lookup: not revoked, cached as "not revoked" for an hour.
 	revoked, errE := rs.IsRevoked(ctx, token, exp)
@@ -95,7 +95,7 @@ func TestRevocationStoreNotRevokedCacheRefreshesAfterTTL(t *testing.T) {
 	// Out-of-band write directly into the table, bypassing the store
 	// (so the store's cache does not learn about it). This simulates
 	// a revocation written by another process.
-	errE = internalStore.RetryTransaction(ctx, rs.TestingDBPool(), pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
+	errE = internalStore.RetryTransaction(ctx, rs.DBPool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
 		_, err := tx.Exec(ctx, `INSERT INTO "RevokedTokens" ("tokenHash", "expiresAt") VALUES ($1, $2)`, auth.TestingHashToken(token), exp)
 		return internalStore.WithPgxError(err)
 	})
@@ -140,7 +140,7 @@ func TestRevocationStoreRevokePrimesCache(t *testing.T) {
 	// would make any SQL fail. We Close after IsRevoked so the
 	// deferred t.Cleanup pool-close still works (it's a no-op the
 	// second time).
-	rs.TestingDBPool().Close()
+	rs.DBPool.Close()
 
 	revoked, errE = rs.IsRevoked(ctx, token, exp)
 	require.NoError(t, errE, "% -+#.1v", errE)
@@ -165,7 +165,7 @@ func TestRevocationStoreCleanupExpired(t *testing.T) {
 	require.NoError(t, rs.Revoke(ctx, freshToken, exp), "% -+#.1v")
 
 	// Age the first row out of its window.
-	errE := internalStore.RetryTransaction(ctx, rs.TestingDBPool(), pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
+	errE := internalStore.RetryTransaction(ctx, rs.DBPool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
 		_, err := tx.Exec(ctx, `UPDATE "RevokedTokens" SET "expiresAt" = now() - interval '1 second' WHERE "tokenHash" = $1`, auth.TestingHashToken(expiredToken))
 		return internalStore.WithPgxError(err)
 	})
@@ -176,7 +176,7 @@ func TestRevocationStoreCleanupExpired(t *testing.T) {
 
 	// Verify directly via SQL: the aged row is gone, the fresh row stays.
 	var expiredCount, freshCount int
-	errE = internalStore.RetryTransaction(ctx, rs.TestingDBPool(), pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
+	errE = internalStore.RetryTransaction(ctx, rs.DBPool, pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
 		err := tx.QueryRow(ctx, `SELECT COUNT(*) FROM "RevokedTokens" WHERE "tokenHash" = $1`, auth.TestingHashToken(expiredToken)).Scan(&expiredCount)
 		if err != nil {
 			return internalStore.WithPgxError(err)

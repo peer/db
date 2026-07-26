@@ -2,7 +2,7 @@
 import type { DeepReadonly } from "vue"
 
 import type { D } from "@/document"
-import type { HasFilterEntry, HasFilterResult, HasSearchResult, HasValue, SearchSession } from "@/types"
+import type { FilterUpdate, HasFilterEntry, HasFilterResult, HasSearchResult, HasValue, SearchSession } from "@/types"
 
 import { ArrowTopRightOnSquareIcon } from "@heroicons/vue/20/solid"
 import { computed, onBeforeUnmount, ref, toRef, useId, useTemplateRef } from "vue"
@@ -34,7 +34,7 @@ const props = withDefaults(
 const locked = useLocked()
 
 const emit = defineEmits<{
-  filterUpdate: [filterId: string, filter: HasFilterEntry]
+  filterUpdates: [updates: FilterUpdate[]]
 }>()
 
 const { t } = useI18n({ useScope: "global" })
@@ -137,12 +137,12 @@ function clearFilter() {
   if (abortController.signal.aborted || !props.filter) {
     return
   }
-  emit("filterUpdate", props.filter.id, {
-    id: props.filter.id,
-    base: props.filter.base,
-    prop: props.filter.prop,
-    has: { props: undefined },
-  })
+  emit("filterUpdates", [
+    {
+      filterId: props.filter.id,
+      filter: { id: props.filter.id, base: props.filter.base, prop: props.filter.prop, has: { props: undefined } },
+    },
+  ])
 }
 
 const checkboxState = computed({
@@ -166,7 +166,7 @@ const checkboxState = computed({
     }
 
     if (!equals(props.filter, updatedFilter)) {
-      emit("filterUpdate", updatedFilter.id, updatedFilter)
+      emit("filterUpdates", [{ filterId: updatedFilter.id, filter: updatedFilter }])
     }
   },
 })

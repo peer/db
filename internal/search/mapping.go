@@ -70,7 +70,9 @@ type field struct {
 	Definition string
 }
 
-type claimType struct {
+// collection describes one nested claims collection in the mapping: its name under
+// "claims" (and under a parent record's "sub") and its field definitions.
+type collection struct {
 	Name   string
 	Fields []field
 }
@@ -78,6 +80,12 @@ type claimType struct {
 // We do not use any normalizer here because we store only identifiers here.
 // We do not need to trim it nor we want to lowercase it. We also do not worry about value length.
 const relationID = `{
+	"type": "keyword"
+}`
+
+// keywordField is a plain keyword mapping for small controlled vocabularies (e.g., the claimType
+// discriminator values).
+const keywordField = `{
 	"type": "keyword"
 }`
 
@@ -98,12 +106,14 @@ func langProperties(langs []string, perLang func(lang string) string) string {
 // multiLanguageText builds a per-language text property using each language's own analyzer
 // (en_text, sl_text, ...). Used for naming-string fields. It mirrors the top-level text field's prefix setup
 // (see textProperties): the stemmed main field does full-word recall, and an unstemmed sub-field (und_text)
-// with index_prefixes carries analyze_wildcard prefix-as-you-type. "und" is already unstemmed, so it takes
-// index_prefixes on the main field instead of a sub-field.
+// with index_prefixes carries analyze_wildcard prefix-as-you-type and quoted-phrase matching without stop
+// words. "und" is already unstemmed on its main field, but it still carries the unstemmed sub-field so that
+// the label-match query can route quoted phrases to a "<field>.unstemmed" sub-field uniformly across the
+// per-language and language-neutral buckets.
 func multiLanguageText(langs []string) string {
 	return langProperties(langs, func(lang string) string {
 		if lang == document.UndeterminedLanguage {
-			return `{"type":"text","analyzer":"und_text",` + indexPrefixes + `}`
+			return `{"type":"text","analyzer":"und_text",` + indexPrefixes + `,"fields":{"unstemmed":{"type":"text","analyzer":"und_text",` + indexPrefixes + `}}}`
 		}
 
 		return fmt.Sprintf(`{"type":"text","analyzer":"%s_text","fields":{"unstemmed":{"type":"text","analyzer":"und_text",`+indexPrefixes+`}}}`, lang)
@@ -201,594 +211,174 @@ func textProperties(langs []string) string {
 	})
 }
 
-// TODO: Generate automatically from the Document struct.
-func buildClaimTypes(langs []string) []claimType { //nolint:maintidx
-	return []claimType{
-		{
-			"id",
-			[]field{
-				{
-					"prop",
-					relationID,
-				},
-				{
-					"propDisplay",
-					propDisplay(langs),
-				},
-				{
-					"propSortKey",
-					sortKey(langs),
-				},
-				{
-					"propNaming",
-					multiLanguageText(langs),
-				},
-				{
-					// Identifier values have no language, so they use the und_text analyzer, matching
-					// the "und" bucket of the top-level text field they are also folded into.
-					"value",
-					`{
-						"type": "text",
-						"analyzer": "und_text"
-					}`,
-				},
-			},
-		},
-		{
-			"string",
-			[]field{
-				{
-					"prop",
-					relationID,
-				},
-				{
-					"propDisplay",
-					propDisplay(langs),
-				},
-				{
-					"propSortKey",
-					sortKey(langs),
-				},
-				{
-					"propNaming",
-					multiLanguageText(langs),
-				},
-				{
-					"string",
-					multiLanguageText(langs),
-				},
-			},
-		},
-		{
-			"html",
-			[]field{
-				{
-					"prop",
-					relationID,
-				},
-				{
-					"propDisplay",
-					propDisplay(langs),
-				},
-				{
-					"propSortKey",
-					sortKey(langs),
-				},
-				{
-					"propNaming",
-					multiLanguageText(langs),
-				},
-				{
-					// HTML is converted to plain text in Go before indexing, so it uses the
-					// per-language text analyzers like string, not an HTML-stripping analyzer.
-					"html",
-					multiLanguageText(langs),
-				},
-			},
-		},
-		{
-			"amount",
-			[]field{
-				{
-					"prop",
-					relationID,
-				},
-				{
-					"propDisplay",
-					propDisplay(langs),
-				},
-				{
-					"propSortKey",
-					sortKey(langs),
-				},
-				{
-					"propNaming",
-					multiLanguageText(langs),
-				},
-				{
-					"unit",
-					relationID,
-				},
-				{
-					"range",
-					`{
-						"type": "double_range"
-					}`,
-				},
-				{
-					"from",
-					//nolint:goconst
-					`{
-						"type": "double"
-					}`,
-				},
-				{
-					"fromDisplay",
-					valueBoundDisplay,
-				},
-				{
-					"to",
-					`{
-						"type": "double"
-					}`,
-				},
-				{
-					"toDisplay",
-					valueBoundDisplay,
-				},
-			},
-		},
-		{
-			"time",
-			[]field{
-				{
-					"prop",
-					relationID,
-				},
-				{
-					"propDisplay",
-					propDisplay(langs),
-				},
-				{
-					"propSortKey",
-					sortKey(langs),
-				},
-				{
-					"propNaming",
-					multiLanguageText(langs),
-				},
-				{
-					"range",
-					`{
-						"type": "double_range"
-					}`,
-				},
-				{
-					"from",
-					`{
-						"type": "double"
-					}`,
-				},
-				{
-					"fromDisplay",
-					valueBoundDisplay,
-				},
-				{
-					"to",
-					`{
-						"type": "double"
-					}`,
-				},
-				{
-					"toDisplay",
-					valueBoundDisplay,
-				},
-			},
-		},
-		{
-			"link",
-			[]field{
-				{
-					"prop",
-					relationID,
-				},
-				{
-					"propDisplay",
-					propDisplay(langs),
-				},
-				{
-					"propSortKey",
-					sortKey(langs),
-				},
-				{
-					"propNaming",
-					multiLanguageText(langs),
-				},
-				{
-					// IRIs have no language, so they use the und_text analyzer, matching the "und" bucket
-					// of the top-level text field they are also folded into.
-					"iri",
-					`{
-						"type": "text",
-						"analyzer": "und_text"
-					}`,
-				},
-			},
-		},
-		{
-			"ref",
-			[]field{
-				{
-					"prop",
-					relationID,
-				},
-				{
-					"propDisplay",
-					propDisplay(langs),
-				},
-				{
-					"propSortKey",
-					sortKey(langs),
-				},
-				{
-					"propNaming",
-					multiLanguageText(langs),
-				},
-				{
-					"to",
-					relationID,
-				},
-				{
-					"toDisplay",
-					propDisplay(langs),
-				},
-				{
-					"toSortKey",
-					sortKey(langs),
-				},
-				{
-					"toNaming",
-					multiLanguageText(langs),
-				},
-				{
-					"toPath",
-					idPath,
-				},
-				{
-					"toFullPath",
-					idPath,
-				},
-				{
-					// toParent is a value id (a value's immediate parents), so it uses the same relationID mapping as "to".
-					"toParent",
-					relationID,
-				},
-				{
-					"toPathSortKey",
-					sortKey(langs),
-				},
-				{
-					"isLeaf",
-					boolean,
-				},
-			},
-		},
-		{
-			// claims.has only contains simple has claims (those with no
-			// sub-claims). Sub-claims of a has claim are flattened into the
-			// matching claims.sub* records with parentTo=__HAS__.
-			"has",
-			[]field{
-				{
-					"prop",
-					relationID,
-				},
-				{
-					"propDisplay",
-					propDisplay(langs),
-				},
-				{
-					"propSortKey",
-					sortKey(langs),
-				},
-				{
-					"propNaming",
-					multiLanguageText(langs),
-				},
-			},
-		},
-		{
-			"none",
-			[]field{
-				{
-					"prop",
-					relationID,
-				},
-				{
-					"propDisplay",
-					propDisplay(langs),
-				},
-				{
-					"propSortKey",
-					sortKey(langs),
-				},
-				{
-					"propNaming",
-					multiLanguageText(langs),
-				},
-			},
-		},
-		{
-			"unknown",
-			[]field{
-				{
-					"prop",
-					relationID,
-				},
-				{
-					"propDisplay",
-					propDisplay(langs),
-				},
-				{
-					"propSortKey",
-					sortKey(langs),
-				},
-				{
-					"propNaming",
-					multiLanguageText(langs),
-				},
-			},
-		},
-		{
-			// Synthetic claim type indexing nested reference sub-claims from
-			// parent claims (ref, has, none, unknown).
-			"subRef",
-			[]field{
-				{
-					"parentProp",
-					relationID,
-				},
-				{
-					"parentPropDisplay",
-					propDisplay(langs),
-				},
-				{
-					"parentPropNaming",
-					multiLanguageText(langs),
-				},
-				{
-					"parentTo",
-					relationID,
-				},
-				{
-					"prop",
-					relationID,
-				},
-				{
-					"propDisplay",
-					propDisplay(langs),
-				},
-				{
-					"propSortKey",
-					sortKey(langs),
-				},
-				{
-					"propNaming",
-					multiLanguageText(langs),
-				},
-				{
-					"to",
-					relationID,
-				},
-				{
-					"toDisplay",
-					propDisplay(langs),
-				},
-				{
-					"toSortKey",
-					sortKey(langs),
-				},
-				{
-					"toNaming",
-					multiLanguageText(langs),
-				},
-				{
-					"toPath",
-					idPath,
-				},
-				{
-					"toFullPath",
-					idPath,
-				},
-				{
-					// toParent is a value id (a value's immediate parents), so it uses the same relationID mapping as "to".
-					"toParent",
-					relationID,
-				},
-				{
-					"toPathSortKey",
-					sortKey(langs),
-				},
-				{
-					"isLeaf",
-					boolean,
-				},
-			},
-		},
-		{
-			// Synthetic claim type indexing nested amount sub-claims (including
-			// AmountInterval sources mapped to a range) from parent claims.
-			"subAmount",
-			[]field{
-				{
-					"parentProp",
-					relationID,
-				},
-				{
-					"parentPropDisplay",
-					propDisplay(langs),
-				},
-				{
-					"parentPropNaming",
-					multiLanguageText(langs),
-				},
-				{
-					"parentTo",
-					relationID,
-				},
-				{
-					"prop",
-					relationID,
-				},
-				{
-					"propDisplay",
-					propDisplay(langs),
-				},
-				{
-					"propSortKey",
-					sortKey(langs),
-				},
-				{
-					"propNaming",
-					multiLanguageText(langs),
-				},
-				{
-					"unit",
-					relationID,
-				},
-				{
-					"range",
-					`{
-						"type": "double_range"
-					}`,
-				},
-				{
-					"from",
-					`{
-						"type": "double"
-					}`,
-				},
-				{
-					"fromDisplay",
-					valueBoundDisplay,
-				},
-				{
-					"to",
-					`{
-						"type": "double"
-					}`,
-				},
-				{
-					"toDisplay",
-					valueBoundDisplay,
-				},
-			},
-		},
-		{
-			// Synthetic claim type indexing nested time sub-claims (including
-			// TimeInterval sources mapped to a range) from parent claims.
-			"subTime",
-			[]field{
-				{
-					"parentProp",
-					relationID,
-				},
-				{
-					"parentPropDisplay",
-					propDisplay(langs),
-				},
-				{
-					"parentPropNaming",
-					multiLanguageText(langs),
-				},
-				{
-					"parentTo",
-					relationID,
-				},
-				{
-					"prop",
-					relationID,
-				},
-				{
-					"propDisplay",
-					propDisplay(langs),
-				},
-				{
-					"propSortKey",
-					sortKey(langs),
-				},
-				{
-					"propNaming",
-					multiLanguageText(langs),
-				},
-				{
-					"range",
-					`{
-						"type": "double_range"
-					}`,
-				},
-				{
-					"from",
-					`{
-						"type": "double"
-					}`,
-				},
-				{
-					"fromDisplay",
-					valueBoundDisplay,
-				},
-				{
-					"to",
-					`{
-						"type": "double"
-					}`,
-				},
-				{
-					"toDisplay",
-					valueBoundDisplay,
-				},
-			},
-		},
-		{
-			// Synthetic claim type indexing simple has sub-claims (those with no
-			// sub-claims of their own) from parent claims.
-			"subHas",
-			[]field{
-				{
-					"parentProp",
-					relationID,
-				},
-				{
-					"parentPropDisplay",
-					propDisplay(langs),
-				},
-				{
-					"parentPropNaming",
-					multiLanguageText(langs),
-				},
-				{
-					"parentTo",
-					relationID,
-				},
-				{
-					"prop",
-					relationID,
-				},
-				{
-					"propDisplay",
-					propDisplay(langs),
-				},
-				{
-					"propSortKey",
-					sortKey(langs),
-				},
-				{
-					"propNaming",
-					multiLanguageText(langs),
-				},
-			},
-		},
+// propIdentityFields returns the field definitions every claims collection shares: the property id
+// and its denormalized display, sort-key, and naming labels.
+func propIdentityFields(langs []string) []field {
+	return []field{
+		{"prop", relationID},
+		{"propDisplay", propDisplay(langs)},
+		{"propSortKey", sortKey(langs)},
+		{"propNaming", multiLanguageText(langs)},
 	}
+}
+
+// relCollectionFields returns the field definitions of the rel collection: the four
+// target-or-nothing claim types (ref, has, none, unknown) discriminated by claimType,
+// with the To* fields present only on ref records.
+func relCollectionFields(langs []string) []field {
+	fields := []field{
+		{"claimType", keywordField},
+	}
+	fields = append(fields, propIdentityFields(langs)...)
+	return append(fields,
+		field{"to", relationID},
+		field{"toDisplay", propDisplay(langs)},
+		field{"toSortKey", sortKey(langs)},
+		field{"toNaming", multiLanguageText(langs)},
+		field{"toPath", idPath},
+		// toParent is a value id (a value's immediate parents), so it uses the same relationID mapping as "to".
+		field{"toParent", relationID},
+		field{"toPathSortKey", sortKey(langs)},
+		field{"isLeaf", boolean},
+	)
+}
+
+// valueBoundFields returns the range and boundary field definitions shared by the amount and time
+// collections.
+func valueBoundFields() []field {
+	return []field{
+		{"range", `{
+			"type": "double_range"
+		}`},
+		{"from", `{
+			"type": "double"
+		}`},
+		{"fromDisplay", valueBoundDisplay},
+		{"to", `{
+			"type": "double"
+		}`},
+		{"toDisplay", valueBoundDisplay},
+	}
+}
+
+// amountCollectionFields returns the field definitions of the amount collection.
+func amountCollectionFields(langs []string) []field {
+	fields := propIdentityFields(langs)
+	fields = append(fields, field{"unit", relationID})
+	return append(fields, valueBoundFields()...)
+}
+
+// timeCollectionFields returns the field definitions of the time collection.
+func timeCollectionFields(langs []string) []field {
+	return append(propIdentityFields(langs), valueBoundFields()...)
+}
+
+// identifierCollectionFields returns the field definitions of the id collection.
+func identifierCollectionFields(langs []string) []field {
+	return append(propIdentityFields(langs), field{
+		// Identifier values have no language, so they use the und_text analyzer, matching
+		// the "und" bucket of the top-level text field they are also folded into.
+		"value",
+		`{
+			"type": "text",
+			"analyzer": "und_text"
+		}`,
+	})
+}
+
+// stringCollectionFields returns the field definitions of the string collection.
+func stringCollectionFields(langs []string) []field {
+	return append(propIdentityFields(langs), field{"string", multiLanguageText(langs)})
+}
+
+// htmlCollectionFields returns the field definitions of the html collection.
+func htmlCollectionFields(langs []string) []field {
+	return append(propIdentityFields(langs), field{
+		// HTML is converted to plain text in Go before indexing, so it uses the
+		// per-language text analyzers like string, not an HTML-stripping analyzer.
+		"html",
+		multiLanguageText(langs),
+	})
+}
+
+// linkCollectionFields returns the field definitions of the link collection.
+func linkCollectionFields(langs []string) []field {
+	return append(propIdentityFields(langs), field{
+		// IRIs have no language, so they use the und_text analyzer, matching the "und" bucket
+		// of the top-level text field they are also folded into.
+		"iri",
+		`{
+			"type": "text",
+			"analyzer": "und_text"
+		}`,
+	})
+}
+
+// collectionFieldBuilders maps each claims collection name to its field builder, in the order the
+// collections appear in the mapping.
+func collectionFieldBuilders() []struct {
+	Name   string
+	Fields func(langs []string) []field
+} {
+	return []struct {
+		Name   string
+		Fields func(langs []string) []field
+	}{
+		{"rel", relCollectionFields},
+		{"amount", amountCollectionFields},
+		{"time", timeCollectionFields},
+		{"id", identifierCollectionFields},
+		{"string", stringCollectionFields},
+		{"html", htmlCollectionFields},
+		{"link", linkCollectionFields},
+	}
+}
+
+// ParentCollections returns the names of the claims collections in mapping order. Each of them
+// hosts a "sub" container with the same collection shapes nested inside, so query builders that
+// must consider every possible parent of a sub-claim iterate this list.
+func ParentCollections() []string {
+	builders := collectionFieldBuilders()
+	out := make([]string, 0, len(builders))
+	for _, b := range builders {
+		out = append(out, b.Name)
+	}
+	return out
+}
+
+// fieldsProperties renders a field list into a JSON properties object ({"name":definition,...}).
+func fieldsProperties(fields []field) string {
+	parts := make([]string, 0, len(fields))
+	for _, f := range fields {
+		parts = append(parts, fmt.Sprintf("%q:%s", f.Name, f.Definition))
+	}
+	return `{` + strings.Join(parts, ",") + `}`
+}
+
+// subFieldDefinition builds the definition of a parent record's "sub" field: an object holding one
+// nested collection per claims collection shape, so a record's sub-claims are nested one level
+// inside it (ElasticSearch multi-level nested). Sub collections have the same fields as their
+// top-level counterparts and no "sub" field of their own: the mapping indexes a single sub level.
+func subFieldDefinition(langs []string) string {
+	parts := make([]string, 0, len(collectionFieldBuilders()))
+	for _, b := range collectionFieldBuilders() {
+		parts = append(parts, fmt.Sprintf(`%q:{"type":"nested","properties":%s}`, b.Name, fieldsProperties(b.Fields(langs))))
+	}
+	return `{"properties":{` + strings.Join(parts, ",") + `}}`
+}
+
+// buildCollections builds the claims collections for the mapping: each of the seven collection
+// shapes at the top level, every one carrying a "sub" field with all seven shapes nested inside.
+func buildCollections(langs []string) []collection {
+	sub := subFieldDefinition(langs)
+	builders := collectionFieldBuilders()
+	out := make([]collection, 0, len(builders))
+	for _, b := range builders {
+		fields := b.Fields(langs)
+		fields = append(fields, field{"sub", sub})
+		out = append(out, collection{Name: b.Name, Fields: fields})
+	}
+	return out
 }
 
 // TODO: Generate index configuration automatically from document structs?
@@ -834,14 +424,27 @@ func ResolveLanguage(language string, languagePriority map[string][]string, defa
 // default is 100.
 const MaxInnerResultWindow = 1000
 
+// NestedFieldsLimit is the index.mapping.nested_fields.limit setting. The mapping defines 7 top-level
+// nested collections plus 7 x 7 sub collections (56 nested types), above ElasticSearch's default of 50,
+// so the limit is raised with headroom.
+const NestedFieldsLimit = 128
+
+// TotalFieldsLimit is the index.mapping.total_fields.limit setting. The sub mirror multiplies the
+// per-collection field definitions (each with per-language sub-fields) well past ElasticSearch's default
+// of 1000, so the limit is raised with headroom. Unused sparse fields cost cluster state only, not
+// per-document storage.
+const TotalFieldsLimit = 6000
+
 // mappingData is the data passed to the mapping template. Display and Text hold the
-// prebuilt per-language top-level property blocks; ClaimTypes drives the claims block.
+// prebuilt per-language top-level property blocks; Collections drives the claims block.
 type mappingData struct {
 	Display              string
 	DisplaySort          string
 	Text                 string
-	ClaimTypes           []claimType
+	Collections          []collection
 	MaxInnerResultWindow int
+	NestedFieldsLimit    int
+	TotalFieldsLimit     int
 }
 
 // Mapping generates PeerDB ElasticSearch mapping for the languages a site enables, derived
@@ -860,8 +463,10 @@ func Mapping(languagePriority map[string][]string) ([]byte, errors.E) {
 		Display:              displayProperties(langs),
 		DisplaySort:          displaySortProperties(langs),
 		Text:                 textProperties(langs),
-		ClaimTypes:           buildClaimTypes(langs),
+		Collections:          buildCollections(langs),
 		MaxInnerResultWindow: MaxInnerResultWindow,
+		NestedFieldsLimit:    NestedFieldsLimit,
+		TotalFieldsLimit:     TotalFieldsLimit,
 	})
 	if err != nil {
 		return nil, errors.WithStack(err)

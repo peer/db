@@ -10,16 +10,9 @@ import (
 	"github.com/elastic/go-elasticsearch/v9/typedapi/types"
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/identifier"
-)
 
-// amountUnitFilter returns a query that matches the unit field.
-// If unit is provided, it matches the exact value. If nil, it matches documents where unit does not exist.
-func amountUnitFilter(unit *identifier.Identifier) types.QueryVariant { //nolint:ireturn
-	if unit != nil {
-		return esdsl.NewTermQuery("claims.amount.unit", esdsl.NewFieldValue().String(unit.String()))
-	}
-	return esdsl.NewBoolQuery().MustNot(esdsl.NewExistsQuery().Field("claims.amount.unit"))
-}
+	internalSearch "gitlab.com/peerdb/peerdb/internal/search"
+)
 
 // computeInterval computes the histogram interval.
 //
@@ -41,61 +34,130 @@ func computeInterval(from, to float64) (float64, float64, string) {
 	return interval, to, strconv.FormatFloat(interval, 'f', -1, 64)
 }
 
-// Get retrieves amount filter data for search results.
+// histogramCountsOrder is the order the identity and special-value counts fold into histogram facet
+// metadata: the exists count (documents with an actual value record for the facet), the specials,
+// the missing count, and the universe size, whose identity is exists + unknown + none + missing =
+// universe (with the usual multi-statement caveat) plus the other-value-types remainder.
+var histogramCountsOrder = []string{existsKey, hasPropertyKey, unknownKey, noneKey, missingKey, universeKey, otherTypesKey} //nolint:gochecknoglobals
+
+// topHistogramCounts builds the identity and special-value count queries of a top-level amount or
+// time facet. existsQuery matches documents with an actual value record for the facet (including
+// its unit condition for amounts).
+func topHistogramCounts(prop identifier.Identifier, collection string, existsQuery types.QueryVariant) map[string]types.QueryVariant {
+	return map[string]types.QueryVariant{
+		existsKey:      existsQuery,
+		hasPropertyKey: TopSpecialQuery(prop, internalSearch.ClaimTypeHas),
+		unknownKey:     TopSpecialQuery(prop, internalSearch.ClaimTypeUnknown),
+		noneKey:        TopSpecialQuery(prop, internalSearch.ClaimTypeNone),
+		missingKey:     TopMissingQuery(prop),
+		universeKey:    esdsl.NewMatchAllQuery(),
+		otherTypesKey:  TopOtherTypesQuery(prop, collection),
+	}
+}
+
+// subHistogramCounts builds the identity and special-value count queries of a sub amount or time
+// facet under the given parent context.
+func subHistogramCounts(parentCtx *ParentContext, prop identifier.Identifier, collection string, existsQuery types.QueryVariant) map[string]types.QueryVariant {
+	return map[string]types.QueryVariant{
+		existsKey:      existsQuery,
+		hasPropertyKey: parentCtx.SpecialQuery(prop, internalSearch.ClaimTypeHas),
+		unknownKey:     parentCtx.SpecialQuery(prop, internalSearch.ClaimTypeUnknown),
+		noneKey:        parentCtx.SpecialQuery(prop, internalSearch.ClaimTypeNone),
+		missingKey:     parentCtx.MissingQuery(prop),
+		universeKey:    parentCtx.ExistsQuery(),
+		otherTypesKey:  parentCtx.OtherTypesQuery(prop, collection),
+	}
+}
+
+// subValueExistsQuery matches documents with a value record for the sub facet (prop, with the
+// per-collection valueFilter applied at the value level, for example the amount unit condition)
+// under a qualifying parent claim. valueFilter receives the value collection's path (which differs
+// per parent collection) and may be nil.
+//
+//nolint:ireturn
+func subValueExistsQuery(
+	parentCtx *ParentContext, collection string, prop identifier.Identifier, valueFilter func(path string) types.QueryVariant,
+) types.QueryVariant {
+	var arms []types.QueryVariant
+	for _, parent := range parentCtx.Collections() {
+		pf, ok := parentCtx.CollectionFilter(parent)
+		if !ok {
+			continue
+		}
+		path := subPath(parent, collection)
+		musts := []types.QueryVariant{propTerm(path, prop)}
+		if valueFilter != nil {
+			if vf := valueFilter(path); vf != nil {
+				musts = append(musts, vf)
+			}
+		}
+		arms = append(arms, esdsl.NewNestedQuery(esdsl.NewBoolQuery().Must(
+			pf,
+			esdsl.NewNestedQuery(esdsl.NewBoolQuery().Must(musts...)).Path(path),
+		)).Path(parentPath(parent)))
+	}
+	if len(arms) == 0 {
+		return matchNone()
+	}
+	return oneOrShould(arms)
+}
+
+// Get retrieves amount filter data for a top-level property facet: the histogram (or single
+// bucket), the identity counts (exists, specials, missing, universe, other value types), and the
+// range metadata.
 func (f *AmountFilter) Get(
 	ctx context.Context, getSearchService func() *esSearch.Search,
 	query types.QueryVariant, prop identifier.Identifier,
 ) ([]HistogramResult, map[string]any, errors.E) {
 	filter := esdsl.NewBoolQuery().Must(
-		esdsl.NewTermQuery("claims.amount.prop", esdsl.NewFieldValue().String(prop.String())),
-		amountUnitFilter(f.Unit),
+		propTerm(amountPath, prop),
+		unitTerm(amountPath, f.Unit),
 	)
-	missingNestedQuery := esdsl.NewTermQuery("claims.amount.prop", esdsl.NewFieldValue().String(prop.String()))
-	return histogramFilterGet(
-		ctx, getSearchService, query,
-		missingNestedQuery, "claims.amount", filter,
-		"claims.amount.from", "claims.amount.to", "claims.amount.range",
+	contexts := []histContext{{
+		Name:         "amount",
+		Parent:       "",
+		Path:         amountPath,
+		ParentFilter: nil,
+		Filter:       filter,
+	}}
+	existsQuery := esdsl.NewNestedQuery(filter).Path(amountPath)
+	return histogramGet(
+		ctx, getSearchService, query, contexts,
 		f.Gte, f.Lte,
 		amountStepDown,
+		topHistogramCounts(prop, "amount", existsQuery), histogramCountsOrder,
 	)
 }
 
-// subAmountUnitFilter returns a query that matches the unit field of a
-// sub-amount entry.
-func subAmountUnitFilter(unit *identifier.Identifier) types.QueryVariant { //nolint:ireturn
-	if unit != nil {
-		return esdsl.NewTermQuery("claims.subAmount.unit", esdsl.NewFieldValue().String(unit.String()))
-	}
-	return esdsl.NewBoolQuery().MustNot(esdsl.NewExistsQuery().Field("claims.subAmount.unit"))
-}
-
-// GetSubAmount retrieves sub-amount filter data for search results. It
-// aggregates claims.subAmount values for a given (parentProp, prop)
-// combination, optionally restricted to listed parentTo values for
-// cross-filtering with a sibling parent ref filter.
+// GetSubAmount retrieves amount filter data for a sub facet: the histogram merged across the
+// parent collections the context allows, the identity counts, and the range metadata. parentCtx
+// scopes every aggregation to qualifying parent claims.
 func (f *AmountFilter) GetSubAmount(
 	ctx context.Context, getSearchService func() *esSearch.Search,
-	query types.QueryVariant, parentProp, prop identifier.Identifier,
-	parentToRestrictions []identifier.Identifier,
+	query types.QueryVariant, prop identifier.Identifier, parentCtx *ParentContext,
 ) ([]HistogramResult, map[string]any, errors.E) {
-	filterMusts := []types.QueryVariant{
-		esdsl.NewTermQuery("claims.subAmount.parentProp", esdsl.NewFieldValue().String(parentProp.String())),
-		esdsl.NewTermQuery("claims.subAmount.prop", esdsl.NewFieldValue().String(prop.String())),
-		subAmountUnitFilter(f.Unit),
-	}
-	if len(parentToRestrictions) > 0 {
-		shoulds := make([]types.QueryVariant, 0, len(parentToRestrictions))
-		for _, pto := range parentToRestrictions {
-			shoulds = append(shoulds, esdsl.NewTermQuery("claims.subAmount.parentTo", esdsl.NewFieldValue().String(pto.String())))
+	var contexts []histContext
+	for _, parent := range parentCtx.Collections() {
+		pf, ok := parentCtx.CollectionFilter(parent)
+		if !ok {
+			continue
 		}
-		filterMusts = append(filterMusts, esdsl.NewBoolQuery().Should(shoulds...).MinimumShouldMatch(esdsl.NewMinimumShouldMatch().Int(1)))
+		path := subPath(parent, "amount")
+		contexts = append(contexts, histContext{
+			Name:         "amount:" + parent,
+			Parent:       parent,
+			Path:         path,
+			ParentFilter: pf,
+			Filter:       esdsl.NewBoolQuery().Must(propTerm(path, prop), unitTerm(path, f.Unit)),
+		})
 	}
-	filter := esdsl.NewBoolQuery().Must(filterMusts...)
-	return histogramSubFilterGet(
-		ctx, getSearchService, query,
-		parentProp, prop, "claims.subAmount", filter,
-		"claims.subAmount.from", "claims.subAmount.to", "claims.subAmount.range",
+	existsQuery := subValueExistsQuery(parentCtx, "amount", prop, func(path string) types.QueryVariant {
+		return unitTerm(path, f.Unit)
+	})
+	return histogramGet(
+		ctx, getSearchService, query, contexts,
 		f.Gte, f.Lte,
 		amountStepDown,
+		subHistogramCounts(parentCtx, prop, "amount", existsQuery), histogramCountsOrder,
 	)
 }

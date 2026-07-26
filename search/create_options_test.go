@@ -39,18 +39,17 @@ func TestCreateOptionsIntegration(t *testing.T) {
 	classD := identifier.From("createClassD")
 	classE := identifier.From("createClassE")
 
-	// indexInstanceOf indexes a document whose only claims are INSTANCE_OF reference claims to each of tos.
+	// indexInstanceOf indexes a document whose only claims are INSTANCE_OF ref records to each of tos.
 	// Listing every ancestor explicitly mirrors the converter's index-time ancestor expansion, so the
 	// instance-count aggregation rolls a document up under each of its class's ancestors.
 	indexInstanceOf := func(id identifier.Identifier, tos ...identifier.Identifier) {
-		refs := make(internalSearch.ReferenceClaims, 0, len(tos))
+		rels := make(internalSearch.RelClaims, 0, len(tos))
 		for _, to := range tos {
-			refs = append(refs, internalSearch.ReferenceClaim{Prop: internalCore.InstanceOfPropID, To: to}) //nolint:exhaustruct
+			rels = append(rels, refRecord(internalCore.InstanceOfPropID, to, nil))
 		}
-		indexDocument(t, ctx, esClient, index, internalSearch.Document{ //nolint:exhaustruct
-			ID:     id,
-			Claims: internalSearch.ClaimTypes{Reference: refs}, //nolint:exhaustruct
-		})
+		indexDocument(t, ctx, esClient, index, idClaimsDoc(id, internalSearch.ClaimTypes{ //nolint:exhaustruct
+			Rel: rels,
+		}))
 	}
 
 	// makeClassDoc builds a class document carrying just the claims classCreatable inspects: an
@@ -114,11 +113,11 @@ func TestCreateOptionsIntegration(t *testing.T) {
 	loadDocument := func(_ context.Context, id identifier.Identifier) (*document.D, errors.E) {
 		return docs[id], nil
 	}
-	documentFullPaths := func(_ context.Context, id identifier.Identifier) ([]string, errors.E) {
+	documentHierarchyPaths := func(_ context.Context, id identifier.Identifier) ([]string, errors.E) {
 		return fullPaths[id], nil
 	}
 
-	options, errE := search.CreateOptions(ctx, getSearchService, nil, loadDocument, documentFullPaths, "")
+	options, errE := search.CreateOptions(ctx, getSearchService, nil, loadDocument, documentHierarchyPaths, "")
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	ids := make([]string, 0, len(options))
@@ -144,7 +143,7 @@ func TestCreateOptionsIntegration(t *testing.T) {
 
 	// With a limit on classB, only classB and its descendant classE are offered; the limit's ancestor classA
 	// is kept as a non-creatable label, and the unrelated classC and classD are dropped.
-	limited, errE := search.CreateOptions(ctx, getSearchService, nil, loadDocument, documentFullPaths, classB.String())
+	limited, errE := search.CreateOptions(ctx, getSearchService, nil, loadDocument, documentHierarchyPaths, classB.String())
 	require.NoError(t, errE, "% -+#.1v", errE)
 	limitedIDs := make([]string, 0, len(limited))
 	limitedCanCreate := map[string]bool{}
@@ -158,7 +157,7 @@ func TestCreateOptionsIntegration(t *testing.T) {
 	assert.True(t, limitedCanCreate[classE.String()])
 
 	// An unknown limit id yields nothing.
-	none, errE := search.CreateOptions(ctx, getSearchService, nil, loadDocument, documentFullPaths, identifier.From("createClassMissing").String())
+	none, errE := search.CreateOptions(ctx, getSearchService, nil, loadDocument, documentHierarchyPaths, identifier.From("createClassMissing").String())
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Empty(t, none)
 }

@@ -50,9 +50,9 @@ func classCreatable(cls *document.D) bool {
 	return false
 }
 
-// ancestorChains parses a document's indexed full hierarchy paths (the documentFullPaths form
+// ancestorChains parses a document's indexed full hierarchy paths (the documentHierarchyPaths form
 // "<hierProp>:<root>/.../<this>") into ancestor chains (root to immediate parent), dropping paths
-// without ancestors. It is the documentFullPaths analogue of collectPaths.
+// without ancestors. It is the documentHierarchyPaths analogue of collectPaths.
 func ancestorChains(fullPaths []string) [][]string {
 	if len(fullPaths) == 0 {
 		return nil
@@ -91,7 +91,7 @@ func pathsContain(paths [][]string, id string) bool {
 //
 // accessFilter, when non-nil, scopes both the enumerated classes and the counts to the documents the
 // caller may access. loadDocument reads a class document (returning a nil document, no error, when it is
-// not found or not accessible, so the class is skipped) to determine createability, and documentFullPaths
+// not found or not accessible, so the class is skipped) to determine createability, and documentHierarchyPaths
 // resolves its SUBCLASS_OF ancestor paths.
 //
 // When limit is non-empty, the offering is restricted to that class id and its descendants: only they keep
@@ -103,7 +103,7 @@ func CreateOptions(
 	getSearchService func() *esSearch.Search,
 	accessFilter types.QueryVariant,
 	loadDocument func(context.Context, identifier.Identifier) (*document.D, errors.E),
-	documentFullPaths func(context.Context, identifier.Identifier) ([]string, errors.E),
+	documentHierarchyPaths func(context.Context, identifier.Identifier) ([]string, errors.E),
 	limit string,
 ) ([]ClassCreateOption, errors.E) {
 	counts, errE := instanceCounts(ctx, getSearchService, accessFilter)
@@ -116,8 +116,8 @@ func CreateOptions(
 	}
 
 	type classEntry struct {
-		res       RefFilterResult
-		canCreate bool
+		Res       RefFilterResult
+		CanCreate bool
 	}
 	entries := make([]classEntry, 0, len(ids))
 	for _, id := range ids {
@@ -133,18 +133,19 @@ func CreateOptions(
 		if doc == nil {
 			continue
 		}
-		fullPaths, errE := documentFullPaths(ctx, id)
+		fullPaths, errE := documentHierarchyPaths(ctx, id)
 		if errE != nil {
 			return nil, errE
 		}
 		entries = append(entries, classEntry{
-			res: RefFilterResult{
-				ID:         id.String(),
-				Count:      counts[id.String()],
-				ChildCount: 0,
-				Paths:      ancestorChains(fullPaths),
+			Res: RefFilterResult{
+				ID:                id.String(),
+				Count:             counts[id.String()],
+				ChildCount:        0,
+				ChildCountAtLeast: false,
+				Paths:             ancestorChains(fullPaths),
 			},
-			canCreate: classCreatable(doc),
+			CanCreate: classCreatable(doc),
 		})
 	}
 
@@ -153,11 +154,11 @@ func CreateOptions(
 		// limit id is not a known class.
 		var limitAncestors map[string]bool
 		for i := range entries {
-			if entries[i].res.ID != limit {
+			if entries[i].Res.ID != limit {
 				continue
 			}
 			limitAncestors = map[string]bool{}
-			for _, path := range entries[i].res.Paths {
+			for _, path := range entries[i].Res.Paths {
 				for _, ancestor := range path {
 					limitAncestors[ancestor] = true
 				}
@@ -172,10 +173,10 @@ func CreateOptions(
 		scoped := make([]classEntry, 0, len(entries))
 		for _, e := range entries {
 			switch {
-			case e.res.ID == limit:
-			case limitAncestors[e.res.ID]:
-				e.canCreate = false
-			case pathsContain(e.res.Paths, limit):
+			case e.Res.ID == limit:
+			case limitAncestors[e.Res.ID]:
+				e.CanCreate = false
+			case pathsContain(e.Res.Paths, limit):
 			default:
 				continue
 			}
@@ -187,10 +188,10 @@ func CreateOptions(
 	// Collect every class that is an ancestor of a creatable class; these are kept as structural nodes.
 	creatableAncestors := map[string]bool{}
 	for _, e := range entries {
-		if !e.canCreate {
+		if !e.CanCreate {
 			continue
 		}
-		for _, path := range e.res.Paths {
+		for _, path := range e.Res.Paths {
 			for _, ancestor := range path {
 				creatableAncestors[ancestor] = true
 			}
@@ -202,7 +203,7 @@ func CreateOptions(
 	// ancestors are all marked above), so no kept class ever references a dropped parent.
 	kept := make([]classEntry, 0, len(entries))
 	for _, e := range entries {
-		if e.canCreate || creatableAncestors[e.res.ID] {
+		if e.CanCreate || creatableAncestors[e.Res.ID] {
 			kept = append(kept, e)
 		}
 	}
@@ -210,15 +211,15 @@ func CreateOptions(
 	// Order for tree rendering: by instance count descending, then hierarchy depth ascending, the same
 	// ordering the reference filter uses, so ancestors precede descendants and busier classes come first.
 	slices.SortStableFunc(kept, func(a, b classEntry) int {
-		return compareRefFilterResults(a.res, b.res)
+		return compareRefFilterResults(a.Res, b.Res)
 	})
 
 	options := make([]ClassCreateOption, 0, len(kept))
 	for _, e := range kept {
 		options = append(options, ClassCreateOption{
-			ID:        e.res.ID,
-			Paths:     e.res.Paths,
-			CanCreate: e.canCreate,
+			ID:        e.Res.ID,
+			Paths:     e.Res.Paths,
+			CanCreate: e.CanCreate,
 		})
 	}
 	return options, nil
@@ -236,11 +237,11 @@ func instanceCounts(ctx context.Context, getSearchService func() *esSearch.Searc
 	}
 
 	agg := esdsl.NewAggregations().
-		Nested(esdsl.NewNestedAggregation().Path("claims.ref")).
+		Nested(esdsl.NewNestedAggregation().Path("claims.rel")).
 		AddAggregation("filter", esdsl.NewAggregations().
-			Filter(esdsl.NewTermQuery("claims.ref.prop", esdsl.NewFieldValue().String(internalCore.InstanceOfPropID.String()))).
+			Filter(esdsl.NewTermQuery("claims.rel.prop", esdsl.NewFieldValue().String(internalCore.InstanceOfPropID.String()))).
 			AddAggregation("props", esdsl.NewAggregations().
-				Terms(esdsl.NewTermsAggregation().Field("claims.ref.to").Size(MaxResultsCount)).
+				Terms(esdsl.NewTermsAggregation().Field("claims.rel.to").Size(MaxResultsCount)).
 				AddAggregation("docs", esdsl.NewAggregations().
 					ReverseNested(esdsl.NewReverseNestedAggregation()))))
 
@@ -299,10 +300,10 @@ func classIDs(ctx context.Context, getSearchService func() *esSearch.Search, acc
 	filters := []types.QueryVariant{
 		esdsl.NewNestedQuery(
 			esdsl.NewBoolQuery().Must(
-				esdsl.NewTermQuery("claims.ref.prop", esdsl.NewFieldValue().String(internalCore.InstanceOfPropID.String())),
-				esdsl.NewTermQuery("claims.ref.to", esdsl.NewFieldValue().String(internalCore.ClassClassID.String())),
+				esdsl.NewTermQuery("claims.rel.prop", esdsl.NewFieldValue().String(internalCore.InstanceOfPropID.String())),
+				esdsl.NewTermQuery("claims.rel.to", esdsl.NewFieldValue().String(internalCore.ClassClassID.String())),
 			),
-		).Path("claims.ref"),
+		).Path("claims.rel"),
 	}
 	if accessFilter != nil {
 		filters = append(filters, accessFilter)

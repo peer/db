@@ -80,6 +80,7 @@ declare module "vue-i18n" {
       values: {
         direct: string
         exists: string
+        hasProperty: string
         missing: string
         noName: string
         none: string
@@ -227,6 +228,7 @@ declare module "vue-i18n" {
         resultsNotShown: string
         noFilters: string
         filtersAvailable: string
+        filtersAvailableMoreThan: string
         filtersSearchLabel: string
         filtersNoMatch: string
         determiningFilters: string

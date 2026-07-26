@@ -1,0 +1,32 @@
+{
+  "bool": {
+    "must": [
+      {
+        "nested": {
+          "path": "claims.rel",
+          "query": {
+            "bool": {
+              "must": [
+                {
+                  "term": {
+                    "claims.rel.claimType": {
+                      "value": "has"
+                    }
+                  }
+                },
+                {
+                  "terms": {
+                    "claims.rel.prop": [
+                      "SM5iogb5kamoWQ2S65rzHz",
+                      "1eNbijZLjE6RCP9J3v6yz1"
+                    ]
+                  }
+                }
+              ]
+            }
+          }
+        }
+      }
+    ]
+  }
+}

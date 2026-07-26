@@ -1,0 +1,132 @@
+{
+  "bool": {
+    "must": [
+      {
+        "nested": {
+          "path": "claims.rel",
+          "query": {
+            "bool": {
+              "must": [
+                {
+                  "term": {
+                    "claims.rel.prop": {
+                      "value": "XHaC94kLmNZ5NtifgrStop"
+                    }
+                  }
+                },
+                {
+                  "term": {
+                    "claims.rel.to": {
+                      "value": "5wcicJDf5uKNrgb9LAod5E"
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "bool": {
+          "must": [
+            {
+              "nested": {
+                "path": "claims.rel",
+                "query": {
+                  "bool": {
+                    "must": [
+                      {
+                        "term": {
+                          "claims.rel.prop": {
+                            "value": "XHaC94kLmNZ5NtifgrStop"
+                          }
+                        }
+                      },
+                      {
+                        "term": {
+                          "claims.rel.to": {
+                            "value": "5wcicJDf5uKNrgb9LAod5E"
+                          }
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          ],
+          "must_not": [
+            {
+              "nested": {
+                "path": "claims.rel",
+                "query": {
+                  "bool": {
+                    "must": [
+                      {
+                        "term": {
+                          "claims.rel.prop": {
+                            "value": "XHaC94kLmNZ5NtifgrStop"
+                          }
+                        }
+                      },
+                      {
+                        "term": {
+                          "claims.rel.to": {
+                            "value": "5wcicJDf5uKNrgb9LAod5E"
+                          }
+                        }
+                      },
+                      {
+                        "bool": {
+                          "minimum_should_match": 1,
+                          "should": [
+                            {
+                              "nested": {
+                                "path": "claims.rel.sub.rel",
+                                "query": {
+                                  "term": {
+                                    "claims.rel.sub.rel.prop": {
+                                      "value": "BdPHADUy9rAaqkQDrp41xq"
+                                    }
+                                  }
+                                }
+                              }
+                            },
+                            {
+                              "nested": {
+                                "path": "claims.rel.sub.amount",
+                                "query": {
+                                  "term": {
+                                    "claims.rel.sub.amount.prop": {
+                                      "value": "BdPHADUy9rAaqkQDrp41xq"
+                                    }
+                                  }
+                                }
+                              }
+                            },
+                            {
+                              "nested": {
+                                "path": "claims.rel.sub.time",
+                                "query": {
+                                  "term": {
+                                    "claims.rel.sub.time.prop": {
+                                      "value": "BdPHADUy9rAaqkQDrp41xq"
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          ]
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          ]
+        }
+      }
+    ]
+  }
+}

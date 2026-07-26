@@ -183,7 +183,9 @@
   },
   "overrides": {
     "uuid": "^14.0.0",
-    "esbuild": "^0.28.1",
-    "js-yaml": "^4.2.0"
+    "esbuild": "^0.28.1"
+  },
+  "allowScripts": {
+    "esbuild@0.28.1": true
   }
 }

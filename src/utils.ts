@@ -15,6 +15,7 @@ import type {
   RefValueLike,
   RefValueWithCounts,
   Result,
+  SpecialsFilter,
   TreeNode,
 } from "@/types"
 
@@ -254,15 +255,17 @@ function isRealChildId(id: string): boolean {
 //
 // The all-children promotion (the "all children checked, so the parent is full" clause) is gated: it
 // fires only when the value is a real value with documents of its own (count > 0) and all of its
-// children are actually loaded (childCount <= realLoadedChildren). So a count-0 augment ancestor and a
-// parent whose children were truncated by the server cap never render full from their children alone,
-// they fall through to indeterminate and stay clickable to fully select. When count/childCount are
-// absent the value is treated as promotable, preserving the prior behavior.
+// children are actually loaded (childCount <= realLoadedChildren). A childCount that is only a lower
+// bound (childCountAtLeast) never promotes: the child set is known to be incomplete. So a count-0
+// augment ancestor and a parent whose children were truncated by the server cap never render full from
+// their children alone, they fall through to indeterminate and stay clickable to fully select. When
+// count/childCount are absent the value is treated as promotable, preserving the prior behavior.
 export function computeRefCheckStates(values: readonly RefValueWithCounts[], selected: ReadonlySet<string>): Map<string, RefCheckState> {
   const children = refChildrenByValue(values)
   const pathsById = new Map<string, string[][]>()
   const countById = new Map<string, number>()
   const childCountById = new Map<string, number>()
+  const childCountAtLeastById = new Map<string, boolean>()
   for (const value of values) {
     pathsById.set(value.id, value.paths ?? [])
     if (value.count !== undefined) {
@@ -270,6 +273,9 @@ export function computeRefCheckStates(values: readonly RefValueWithCounts[], sel
     }
     if (value.childCount !== undefined) {
       childCountById.set(value.id, value.childCount)
+      if (value.childCountAtLeast) {
+        childCountAtLeastById.set(value.id, true)
+      }
     }
   }
 
@@ -282,7 +288,7 @@ export function computeRefCheckStates(values: readonly RefValueWithCounts[], sel
     if (count === undefined || childCount === undefined) {
       return true
     }
-    return count > 0 && childCount <= realLoadedChildren(id)
+    return count > 0 && !childCountAtLeastById.get(id) && childCount <= realLoadedChildren(id)
   }
 
   const ancestorSelected = (id: string): boolean => (pathsById.get(id) ?? []).some((path) => path.some((ancestor) => selected.has(ancestor)))
@@ -368,8 +374,76 @@ export function toggleRefSelection(values: readonly RefValueWithCounts[], id: st
 // way MISSING_VALUE_ID carries the missing selection.
 export const DIRECT_REF_FILTER_PREFIX = "__DIRECT__:"
 
-// MISSING_VALUE_ID is the synthetic id for the "missing" entry, the documents that lack the property.
+// MISSING_VALUE_ID is the synthetic id for the "missing" entry, the documents in the facet's universe
+// that state nothing facetable for the property path.
 export const MISSING_VALUE_ID = "__MISSING__"
+
+// NONE_VALUE_ID is the synthetic id for the "none" entry, the documents with an explicit none statement
+// for the property path.
+export const NONE_VALUE_ID = "__NONE__"
+
+// UNKNOWN_VALUE_ID is the synthetic id for the "unknown" entry, the documents stating that a value for
+// the property path exists but is unknown.
+export const UNKNOWN_VALUE_ID = "__UNKNOWN__"
+
+// HAS_PROPERTY_VALUE_ID is the synthetic id for the "has property" entry, the documents with a bare has
+// statement for the property path. It appears in a property's own facet when the property's has claims
+// migrated out of the pooled has facet.
+export const HAS_PROPERTY_VALUE_ID = "__HAS__"
+
+// specialValueLabelKey maps a special entry's synthetic id to its translation key, or returns null for a
+// regular value id.
+export function specialValueLabelKey(id: string): string | null {
+  switch (id) {
+    case MISSING_VALUE_ID:
+      return "common.values.missing"
+    case NONE_VALUE_ID:
+      return "common.values.none"
+    case UNKNOWN_VALUE_ID:
+      return "common.values.unknown"
+    case HAS_PROPERTY_VALUE_ID:
+      return "common.values.hasProperty"
+    default:
+      return null
+  }
+}
+
+// specialsToIds flattens a specials selection into the synthetic ids the checkbox state carries.
+export function specialsToIds(specials: DeepReadonly<SpecialsFilter> | undefined): string[] {
+  const ids: string[] = []
+  if (specials?.hasProperty) {
+    ids.push(HAS_PROPERTY_VALUE_ID)
+  }
+  if (specials?.unknown) {
+    ids.push(UNKNOWN_VALUE_ID)
+  }
+  if (specials?.none) {
+    ids.push(NONE_VALUE_ID)
+  }
+  if (specials?.missing) {
+    ids.push(MISSING_VALUE_ID)
+  }
+  return ids
+}
+
+// specialsFromIds builds a specials selection from the synthetic ids present in a checkbox state, or
+// undefined when none is selected.
+export function specialsFromIds(ids: readonly string[]): SpecialsFilter | undefined {
+  const specials: SpecialsFilter = {}
+  if (ids.includes(HAS_PROPERTY_VALUE_ID)) {
+    specials.hasProperty = true
+  }
+  if (ids.includes(UNKNOWN_VALUE_ID)) {
+    specials.unknown = true
+  }
+  if (ids.includes(NONE_VALUE_ID)) {
+    specials.none = true
+  }
+  if (ids.includes(MISSING_VALUE_ID)) {
+    specials.missing = true
+  }
+  return Object.keys(specials).length > 0 ? specials : undefined
+}
 
 // VALUES_NOT_SHOWN_PREFIX marks a "values not shown" marker node, a synthetic, non-selectable child
 // appended under a value whose children were truncated by the server's value cap (the value list is
@@ -379,8 +453,10 @@ export const MISSING_VALUE_ID = "__MISSING__"
 export const VALUES_NOT_SHOWN_PREFIX = "__MORE__:"
 
 // valuesNotShownMarkers builds the "values not shown" marker nodes for a reference filter value list. For
-// each value P whose exact child-value count (childCount) exceeds how many of its children are actually
-// loaded as real values (realLoadedChildren, excluding the "direct" entry and any marker), it produces one
+// each value P whose child-value count (childCount) exceeds how many of its children are actually
+// loaded as real values (realLoadedChildren, excluding the "direct" entry and any marker), or whose
+// childCount is only a lower bound (childCountAtLeast, so children are missing no matter how many are
+// loaded), it produces one
 // synthetic child node carrying the document gap: count(P) minus the sum of the counts of P's loaded
 // children (including its "direct" entry, excluding the marker), clamped at zero. For single inheritance
 // that gap is exactly the number of documents in P's not-loaded child values. The result is a flat list of
@@ -396,7 +472,7 @@ export function valuesNotShownMarkers(results: readonly RefFilterResult[]): RefF
   for (const value of results) {
     const childIds = children.get(value.id) ?? []
     const realLoaded = childIds.filter(isRealChildId).length
-    if (value.childCount <= realLoaded) {
+    if (!value.childCountAtLeast && value.childCount <= realLoaded) {
       continue
     }
     let loadedDocs = 0
@@ -431,20 +507,20 @@ export function mergeRefOverlay<T extends RefValueLike>(primary: readonly T[], m
   return combined
 }
 
-// refFilterValueTokens flattens a reference filter's active selection into a single ordered list: each To
-// value, then each Direct value (marked direct), then the missing entry when set. It lets a flat summary
-// (the print filter list, a prefilter label) render every part of the selection, direct-only selections
-// included, with correct separators.
-export function refFilterValueTokens(ref: DeepReadonly<RefFilter>): RefFilterValueToken[] {
+// refFilterValueTokens flattens a reference selection and the path's specials into a single ordered list:
+// each To value, then each Direct value (marked direct), then each selected special entry. It lets a flat
+// summary (the print filter list, a prefilter label) render every part of the selection, direct-only
+// selections included, with correct separators.
+export function refFilterValueTokens(ref: DeepReadonly<RefFilter> | undefined, specials?: DeepReadonly<SpecialsFilter>): RefFilterValueToken[] {
   const tokens: RefFilterValueToken[] = []
-  for (const value of ref.to ?? []) {
+  for (const value of ref?.to ?? []) {
     tokens.push({ kind: "value", id: value.id, direct: false })
   }
-  for (const value of ref.direct ?? []) {
+  for (const value of ref?.direct ?? []) {
     tokens.push({ kind: "value", id: value.id, direct: true })
   }
-  if (ref.missing) {
-    tokens.push({ kind: "missing" })
+  for (const id of specialsToIds(specials)) {
+    tokens.push({ kind: "special", id })
   }
   return tokens
 }

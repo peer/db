@@ -174,20 +174,20 @@
       },
       {
         "nested": {
-          "path": "claims.ref",
+          "path": "claims.rel",
           "query": {
             "bool": {
               "must": [
                 {
                   "term": {
-                    "claims.ref.prop": {
+                    "claims.rel.prop": {
                       "value": "Vg7NV61DJJ5HS2nheTZrQE"
                     }
                   }
                 },
                 {
                   "term": {
-                    "claims.ref.to": {
+                    "claims.rel.to": {
                       "value": "SM5iogb5kamoWQ2S65rzHz"
                     }
                   }

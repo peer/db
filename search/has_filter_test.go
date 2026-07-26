@@ -21,6 +21,17 @@ func hasResultsByID(results []search.HasFilterResult) map[string]search.HasFilte
 	return out
 }
 
+// namedHasRecord builds a has rel record for prop carrying an English display label and optional
+// naming strings, so property-label matching can find it. sub is the record's Sub container.
+func namedHasRecord(prop identifier.Identifier, display string, naming []string, sub *internalSearch.ClaimTypes) internalSearch.RelClaim {
+	rec := simpleRelRecord(internalSearch.ClaimTypeHas, prop, sub)
+	rec.PropDisplay = map[string]string{"en": display}
+	if naming != nil {
+		rec.PropNaming = map[string][]string{"en": naming}
+	}
+	return rec
+}
+
 func TestHasFilterGetIntegration(t *testing.T) {
 	t.Parallel()
 
@@ -30,27 +41,17 @@ func TestHasFilterGetIntegration(t *testing.T) {
 	color := identifier.From("color")
 	shape := identifier.From("shape")
 
-	indexDocument(t, ctx, esClient, index, internalSearch.Document{ //nolint:exhaustruct
-		ID: identifier.From("hasDoc1"),
-		Claims: internalSearch.ClaimTypes{ //nolint:exhaustruct
-			Has: internalSearch.HasClaims{{Prop: color, PropDisplay: map[string]string{"en": "Color"}}}, //nolint:exhaustruct
-		},
-	})
-	indexDocument(t, ctx, esClient, index, internalSearch.Document{ //nolint:exhaustruct
-		ID: identifier.From("hasDoc2"),
-		Claims: internalSearch.ClaimTypes{ //nolint:exhaustruct
-			Has: internalSearch.HasClaims{{Prop: shape, PropDisplay: map[string]string{"en": "Shape"}}}, //nolint:exhaustruct
-		},
-	})
+	indexDocument(t, ctx, esClient, index, relDoc("hasDoc1", internalSearch.RelClaims{namedHasRecord(color, "Color", nil, nil)}))
+	indexDocument(t, ctx, esClient, index, relDoc("hasDoc2", internalSearch.RelClaims{namedHasRecord(shape, "Shape", nil, nil)}))
 	refreshIndex(t, ctx, esClient, index)
 
 	session := createSession(t, ctx, search.SessionData{})
 
 	enabledLanguages := internalSearch.EnabledLanguages(nil)
-	f := search.HasFilter{}
+	f := search.HasFilter{Props: nil}
 
 	// Without a value query both has-properties are listed.
-	results, metadata, errE := f.Get(ctx, getSearchService, session.ToQuery(nil), "", enabledLanguages)
+	results, metadata, errE := f.Get(ctx, getSearchService, session.ToQuery(nil), "", searchLangs(enabledLanguages))
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.ElementsMatch(t, []search.HasFilterResult{
 		{ID: color.String(), Count: 1},
@@ -59,7 +60,67 @@ func TestHasFilterGetIntegration(t *testing.T) {
 	assert.Equal(t, "2", metadata["total"])
 
 	// The value query (a prefix wildcard, as the frontend appends) narrows the facet to the matching property.
-	results, metadata, errE = f.Get(ctx, getSearchService, session.ToQuery(nil), "col*", enabledLanguages)
+	results, metadata, errE = f.Get(ctx, getSearchService, session.ToQuery(nil), "col*", searchLangs(enabledLanguages))
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, []search.HasFilterResult{
+		{ID: color.String(), Count: 1},
+	}, results)
+	assert.Equal(t, "1", metadata["total"])
+}
+
+// TestHasFilterGetPooledOnlyIntegration verifies that the pooled has facet lists ONLY properties whose
+// facetable claims in scope are all has claims: a property with a ref or none rel record, an amount claim,
+// or a time claim migrates to its own facet (where its has claims surface as the has-property special) and
+// is subtracted here. A has claim with sub-claims still pools when the property is otherwise has-only.
+func TestHasFilterGetPooledOnlyIntegration(t *testing.T) {
+	t.Parallel()
+
+	ctx := t.Context()
+	esClient, getSearchService, index := initES(t)
+
+	color := identifier.From("color")
+	shape := identifier.From("shape")
+	size := identifier.From("size")
+	date := identifier.From("date")
+	mood := identifier.From("mood")
+	shapeTarget := identifier.From("shapeTarget")
+	subProp := identifier.From("subProp")
+	subTarget := identifier.From("subTarget")
+
+	amountFrom := 9.5
+	amountTo := 10.5
+	timeFrom := float64(1000)
+	timeTo := float64(1001)
+
+	// color is has-only; its has claim carries sub-claims, which does not affect pooling.
+	indexDocument(t, ctx, esClient, index, relDoc("colorDoc", internalSearch.RelClaims{
+		namedHasRecord(color, "Color", nil, relSub(refRecord(subProp, subTarget, nil))),
+	}))
+	// shape also has a ref record in scope: migrated out.
+	indexDocument(t, ctx, esClient, index, relDoc("shapeHasDoc", internalSearch.RelClaims{namedHasRecord(shape, "Shape", nil, nil)}))
+	indexDocument(t, ctx, esClient, index, relDoc("shapeRefDoc", internalSearch.RelClaims{refRecord(shape, shapeTarget, nil)}))
+	// size also has an amount claim in scope: migrated out.
+	indexDocument(t, ctx, esClient, index, relDoc("sizeHasDoc", internalSearch.RelClaims{namedHasRecord(size, "Size", nil, nil)}))
+	indexDocument(t, ctx, esClient, index, claimsDoc("sizeAmountDoc", internalSearch.ClaimTypes{ //nolint:exhaustruct
+		Amount: internalSearch.AmountClaims{amountRecord(size, nil, &amountFrom, &amountTo, nil)},
+	}))
+	// date also has a time claim in scope: migrated out.
+	indexDocument(t, ctx, esClient, index, relDoc("dateHasDoc", internalSearch.RelClaims{namedHasRecord(date, "Date", nil, nil)}))
+	indexDocument(t, ctx, esClient, index, claimsDoc("dateTimeDoc", internalSearch.ClaimTypes{ //nolint:exhaustruct
+		Time: internalSearch.TimeClaims{timeRecord(date, &timeFrom, &timeTo, nil)},
+	}))
+	// mood also has a none record in scope: migrated out.
+	indexDocument(t, ctx, esClient, index, relDoc("moodHasDoc", internalSearch.RelClaims{namedHasRecord(mood, "Mood", nil, nil)}))
+	indexDocument(t, ctx, esClient, index, relDoc("moodNoneDoc", internalSearch.RelClaims{
+		simpleRelRecord(internalSearch.ClaimTypeNone, mood, nil),
+	}))
+	refreshIndex(t, ctx, esClient, index)
+
+	session := createSession(t, ctx, search.SessionData{})
+	enabledLanguages := internalSearch.EnabledLanguages(nil)
+	f := search.HasFilter{Props: nil}
+
+	results, metadata, errE := f.Get(ctx, getSearchService, session.ToQuery(nil), "", searchLangs(enabledLanguages))
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, []search.HasFilterResult{
 		{ID: color.String(), Count: 1},
@@ -78,12 +139,7 @@ func TestHasFilterGetSelectedPropShownIntegration(t *testing.T) {
 	color := identifier.From("color")
 	shape := identifier.From("shape")
 
-	indexDocument(t, ctx, esClient, index, internalSearch.Document{ //nolint:exhaustruct
-		ID: identifier.From("hasDoc1"),
-		Claims: internalSearch.ClaimTypes{ //nolint:exhaustruct
-			Has: internalSearch.HasClaims{{Prop: color, PropDisplay: map[string]string{"en": "Color"}}}, //nolint:exhaustruct
-		},
-	})
+	indexDocument(t, ctx, esClient, index, relDoc("hasDoc1", internalSearch.RelClaims{namedHasRecord(color, "Color", nil, nil)}))
 	refreshIndex(t, ctx, esClient, index)
 
 	session := createSession(t, ctx, search.SessionData{})
@@ -92,7 +148,7 @@ func TestHasFilterGetSelectedPropShownIntegration(t *testing.T) {
 	// shape is selected but no matching document has it, so the bucket aggregation drops it; it must still be
 	// returned at count 0 alongside the matching color property.
 	f := search.HasFilter{Props: []search.HasValue{{ID: shape}}}
-	results, _, errE := f.Get(ctx, getSearchService, session.ToQuery(nil), "", enabledLanguages)
+	results, _, errE := f.Get(ctx, getSearchService, session.ToQuery(nil), "", searchLangs(enabledLanguages))
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.ElementsMatch(t, []search.HasFilterResult{
 		{ID: color.String(), Count: 1},
@@ -112,12 +168,7 @@ func TestHasFilterGetSelectedPropNotForcedDuringSearchIntegration(t *testing.T) 
 	color := identifier.From("color")
 	shape := identifier.From("shape")
 
-	indexDocument(t, ctx, esClient, index, internalSearch.Document{ //nolint:exhaustruct
-		ID: identifier.From("hasDoc1"),
-		Claims: internalSearch.ClaimTypes{ //nolint:exhaustruct
-			Has: internalSearch.HasClaims{{Prop: color, PropDisplay: map[string]string{"en": "Color"}}}, //nolint:exhaustruct
-		},
-	})
+	indexDocument(t, ctx, esClient, index, relDoc("hasDoc1", internalSearch.RelClaims{namedHasRecord(color, "Color", nil, nil)}))
 	refreshIndex(t, ctx, esClient, index)
 
 	session := createSession(t, ctx, search.SessionData{})
@@ -126,7 +177,7 @@ func TestHasFilterGetSelectedPropNotForcedDuringSearchIntegration(t *testing.T) 
 
 	// Searching "col*" matches color but not the selected shape, so only color is returned (shape is not
 	// force-shown during a search).
-	results, _, errE := f.Get(ctx, getSearchService, session.ToQuery(nil), "col*", enabledLanguages)
+	results, _, errE := f.Get(ctx, getSearchService, session.ToQuery(nil), "col*", searchLangs(enabledLanguages))
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, []search.HasFilterResult{
 		{ID: color.String(), Count: 1},
@@ -148,31 +199,19 @@ func TestHasFilterGetSelectedAugmentValueSearchIntegration(t *testing.T) {
 
 	// doc1 has color; doc2 has shape (with a display label and a naming string). The search scope below matches
 	// only doc1, so the selected shape has zero documents in scope yet exists globally.
-	indexDocument(t, ctx, esClient, index, internalSearch.Document{ //nolint:exhaustruct
-		ID: identifier.From("hasDoc1"),
-		Claims: internalSearch.ClaimTypes{ //nolint:exhaustruct
-			Has: internalSearch.HasClaims{{Prop: color, PropDisplay: map[string]string{"en": "Color"}}}, //nolint:exhaustruct
-		},
-	})
-	indexDocument(t, ctx, esClient, index, internalSearch.Document{ //nolint:exhaustruct
-		ID: identifier.From("hasDoc2"),
-		Claims: internalSearch.ClaimTypes{ //nolint:exhaustruct
-			Has: internalSearch.HasClaims{{ //nolint:exhaustruct
-				Prop: shape, PropDisplay: map[string]string{"en": "Shape"}, PropNaming: map[string][]string{"en": {"form"}},
-			}},
-		},
-	})
+	indexDocument(t, ctx, esClient, index, relDoc("hasDoc1", internalSearch.RelClaims{namedHasRecord(color, "Color", nil, nil)}))
+	indexDocument(t, ctx, esClient, index, relDoc("hasDoc2", internalSearch.RelClaims{namedHasRecord(shape, "Shape", []string{"form"}, nil)}))
 	refreshIndex(t, ctx, esClient, index)
 
 	enabledLanguages := internalSearch.EnabledLanguages(nil)
 	// The rest of the search matches only doc1, so the selected shape is not in scope.
 	restOfSearch := esdsl.NewNestedQuery(
-		esdsl.NewTermQuery("claims.has.prop", esdsl.NewFieldValue().String(color.String())),
-	).Path("claims.has")
+		esdsl.NewTermQuery("claims.rel.prop", esdsl.NewFieldValue().String(color.String())),
+	).Path("claims.rel")
 	f := search.HasFilter{Props: []search.HasValue{{ID: shape}}}
 
 	// Searching shape's display label surfaces it at count 0, even though it has no document in scope.
-	results, _, errE := f.Get(ctx, getSearchService, restOfSearch, "shape*", enabledLanguages)
+	results, _, errE := f.Get(ctx, getSearchService, restOfSearch, "shape*", searchLangs(enabledLanguages))
 	require.NoError(t, errE, "% -+#.1v", errE)
 	byID := hasResultsByID(results)
 	require.Contains(t, byID, shape.String())
@@ -181,13 +220,13 @@ func TestHasFilterGetSelectedAugmentValueSearchIntegration(t *testing.T) {
 
 	// Searching shape by its naming string ("form") surfaces it too, since the augment uses the same prop-label
 	// matcher real properties use.
-	results, _, errE = f.Get(ctx, getSearchService, restOfSearch, "form*", enabledLanguages)
+	results, _, errE = f.Get(ctx, getSearchService, restOfSearch, "form*", searchLangs(enabledLanguages))
 	require.NoError(t, errE, "% -+#.1v", errE)
 	byID = hasResultsByID(results)
 	require.Contains(t, byID, shape.String())
 
 	// Searching "color" matches the real in-scope color property and hides the selected shape.
-	results, _, errE = f.Get(ctx, getSearchService, restOfSearch, "color*", enabledLanguages)
+	results, _, errE = f.Get(ctx, getSearchService, restOfSearch, "color*", searchLangs(enabledLanguages))
 	require.NoError(t, errE, "% -+#.1v", errE)
 	byID = hasResultsByID(results)
 	require.Contains(t, byID, color.String())
@@ -195,13 +234,72 @@ func TestHasFilterGetSelectedAugmentValueSearchIntegration(t *testing.T) {
 	assert.NotContains(t, byID, shape.String())
 
 	// Outside a value search shape is force-shown at count 0 alongside the in-scope color.
-	results, _, errE = f.Get(ctx, getSearchService, restOfSearch, "", enabledLanguages)
+	results, _, errE = f.Get(ctx, getSearchService, restOfSearch, "", searchLangs(enabledLanguages))
 	require.NoError(t, errE, "% -+#.1v", errE)
 	byID = hasResultsByID(results)
 	require.Contains(t, byID, shape.String())
 	assert.Equal(t, int64(0), byID[shape.String()].Count)
 	require.Contains(t, byID, color.String())
 	assert.Equal(t, int64(1), byID[color.String()].Count)
+}
+
+// TestHasFilterGetSubHasPooledOnlyIntegration verifies the pooled sub-has facet one level down: it lists the
+// has-properties nested under qualifying parent claims whose only facetable sub-claims are has records; a
+// sub-property with a non-has sub rel record or a sub amount claim migrates out, and sub-claims under a
+// different parent property are out of scope entirely.
+func TestHasFilterGetSubHasPooledOnlyIntegration(t *testing.T) {
+	t.Parallel()
+
+	ctx := t.Context()
+	esClient, getSearchService, index := initES(t)
+
+	parentProp := identifier.From("parentProp")
+	parentTarget := identifier.From("parentToValue")
+	otherParentProp := identifier.From("otherParentProp")
+	color := identifier.From("color")
+	mixed := identifier.From("mixed")
+	size := identifier.From("size")
+	otherColor := identifier.From("otherColor")
+	mixedTarget := identifier.From("mixedTarget")
+
+	amountFrom := 9.5
+	amountTo := 10.5
+
+	// color is has-only under parentProp: pooled.
+	indexDocument(t, ctx, esClient, index, relDoc("subHasDoc1", internalSearch.RelClaims{
+		refRecord(parentProp, parentTarget, relSub(namedHasRecord(color, "Color", nil, nil))),
+	}))
+	// mixed also has a ref sub record under a qualifying parent claim: migrated out.
+	indexDocument(t, ctx, esClient, index, relDoc("subHasDoc2", internalSearch.RelClaims{
+		refRecord(parentProp, parentTarget, relSub(
+			namedHasRecord(mixed, "Mixed", nil, nil),
+			refRecord(mixed, mixedTarget, nil),
+		)),
+	}))
+	// size also has a sub amount claim under a qualifying parent claim: migrated out.
+	indexDocument(t, ctx, esClient, index, relDoc("subHasDoc3", internalSearch.RelClaims{
+		refRecord(parentProp, parentTarget, &internalSearch.ClaimTypes{ //nolint:exhaustruct
+			Rel:    internalSearch.RelClaims{namedHasRecord(size, "Size", nil, nil)},
+			Amount: internalSearch.AmountClaims{amountRecord(size, nil, &amountFrom, &amountTo, nil)},
+		}),
+	}))
+	// otherColor is a has sub record under a DIFFERENT parent property: out of this facet's scope.
+	indexDocument(t, ctx, esClient, index, relDoc("subHasDoc4", internalSearch.RelClaims{
+		refRecord(otherParentProp, parentTarget, relSub(namedHasRecord(otherColor, "Other color", nil, nil))),
+	}))
+	refreshIndex(t, ctx, esClient, index)
+
+	session := createSession(t, ctx, search.SessionData{})
+	enabledLanguages := internalSearch.EnabledLanguages(nil)
+	f := search.HasFilter{Props: nil}
+	parentCtx := session.ParentContextFor(parentProp, identifier.Identifier{})
+
+	results, metadata, errE := f.GetSubHas(ctx, getSearchService, session.ToQuery(nil), parentCtx, "", searchLangs(enabledLanguages))
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, []search.HasFilterResult{
+		{ID: color.String(), Count: 1},
+	}, results)
+	assert.Equal(t, "1", metadata["total"])
 }
 
 // TestHasFilterGetSubHasSelectedAugmentValueSearchIntegration verifies the same augment searchability for
@@ -215,47 +313,32 @@ func TestHasFilterGetSubHasSelectedAugmentValueSearchIntegration(t *testing.T) {
 	esClient, getSearchService, index := initES(t)
 
 	parentProp := identifier.From("parentProp")
-	parentTo := identifier.From("parentToValue").String()
+	parentTarget := identifier.From("parentToValue")
 	color := identifier.From("color")
 	shape := identifier.From("shape")
 
-	subHasClaim := func(prop identifier.Identifier, display string, naming []string) internalSearch.SubHasClaim {
-		var propNaming map[string][]string
-		if naming != nil {
-			propNaming = map[string][]string{"en": naming}
-		}
-		return internalSearch.SubHasClaim{ //nolint:exhaustruct
-			ParentProp: parentProp, ParentTo: parentTo,
-			HasClaim: internalSearch.HasClaim{ //nolint:exhaustruct
-				Prop: prop, PropDisplay: map[string]string{"en": display}, PropNaming: propNaming,
-			},
-		}
-	}
-
 	// subDoc1 has the color sub-property; subDoc2 has the shape sub-property (with a naming string). The search
 	// scope below matches only subDoc1, so the selected shape has zero documents in scope yet exists globally.
-	indexDocument(t, ctx, esClient, index, internalSearch.Document{ //nolint:exhaustruct
-		ID: identifier.From("subHasDoc1"),
-		Claims: internalSearch.ClaimTypes{ //nolint:exhaustruct
-			SubHas: internalSearch.SubHasClaims{subHasClaim(color, "Color", nil)},
-		},
-	})
-	indexDocument(t, ctx, esClient, index, internalSearch.Document{ //nolint:exhaustruct
-		ID: identifier.From("subHasDoc2"),
-		Claims: internalSearch.ClaimTypes{ //nolint:exhaustruct
-			SubHas: internalSearch.SubHasClaims{subHasClaim(shape, "Shape", []string{"form"})},
-		},
-	})
+	indexDocument(t, ctx, esClient, index, relDoc("subHasDoc1", internalSearch.RelClaims{
+		refRecord(parentProp, parentTarget, relSub(namedHasRecord(color, "Color", nil, nil))),
+	}))
+	indexDocument(t, ctx, esClient, index, relDoc("subHasDoc2", internalSearch.RelClaims{
+		refRecord(parentProp, parentTarget, relSub(namedHasRecord(shape, "Shape", []string{"form"}, nil))),
+	}))
 	refreshIndex(t, ctx, esClient, index)
 
 	enabledLanguages := internalSearch.EnabledLanguages(nil)
 	restOfSearch := esdsl.NewNestedQuery(
-		esdsl.NewTermQuery("claims.subHas.prop", esdsl.NewFieldValue().String(color.String())),
-	).Path("claims.subHas")
+		esdsl.NewNestedQuery(
+			esdsl.NewTermQuery("claims.rel.sub.rel.prop", esdsl.NewFieldValue().String(color.String())),
+		).Path("claims.rel.sub.rel"),
+	).Path("claims.rel")
 	f := search.HasFilter{Props: []search.HasValue{{ID: shape}}}
+	var sessionData search.SessionData
+	parentCtx := sessionData.ParentContextFor(parentProp, identifier.Identifier{})
 
 	// Searching shape's display label surfaces it at count 0, even though it has no document in scope.
-	results, _, errE := f.GetSubHas(ctx, getSearchService, restOfSearch, parentProp, nil, "shape*", enabledLanguages)
+	results, _, errE := f.GetSubHas(ctx, getSearchService, restOfSearch, parentCtx, "shape*", searchLangs(enabledLanguages))
 	require.NoError(t, errE, "% -+#.1v", errE)
 	byID := hasResultsByID(results)
 	require.Contains(t, byID, shape.String())
@@ -263,13 +346,13 @@ func TestHasFilterGetSubHasSelectedAugmentValueSearchIntegration(t *testing.T) {
 	assert.NotContains(t, byID, color.String())
 
 	// Searching shape by its naming string ("form") surfaces it too.
-	results, _, errE = f.GetSubHas(ctx, getSearchService, restOfSearch, parentProp, nil, "form*", enabledLanguages)
+	results, _, errE = f.GetSubHas(ctx, getSearchService, restOfSearch, parentCtx, "form*", searchLangs(enabledLanguages))
 	require.NoError(t, errE, "% -+#.1v", errE)
 	byID = hasResultsByID(results)
 	require.Contains(t, byID, shape.String())
 
 	// Searching "color" matches the real in-scope color sub-property and hides the selected shape.
-	results, _, errE = f.GetSubHas(ctx, getSearchService, restOfSearch, parentProp, nil, "color*", enabledLanguages)
+	results, _, errE = f.GetSubHas(ctx, getSearchService, restOfSearch, parentCtx, "color*", searchLangs(enabledLanguages))
 	require.NoError(t, errE, "% -+#.1v", errE)
 	byID = hasResultsByID(results)
 	require.Contains(t, byID, color.String())
@@ -277,7 +360,7 @@ func TestHasFilterGetSubHasSelectedAugmentValueSearchIntegration(t *testing.T) {
 	assert.NotContains(t, byID, shape.String())
 
 	// Outside a value search shape is force-shown at count 0 alongside the in-scope color.
-	results, _, errE = f.GetSubHas(ctx, getSearchService, restOfSearch, parentProp, nil, "", enabledLanguages)
+	results, _, errE = f.GetSubHas(ctx, getSearchService, restOfSearch, parentCtx, "", searchLangs(enabledLanguages))
 	require.NoError(t, errE, "% -+#.1v", errE)
 	byID = hasResultsByID(results)
 	require.Contains(t, byID, shape.String())

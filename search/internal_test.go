@@ -4,10 +4,13 @@ const TestingScoreBoostMax = scoreBoostMax
 
 type TestingBucketEntry = bucketEntry
 
+type TestingFacetSet = facetSet
+
+type TestingRequestedSpecials = requestedSpecials
+
 //nolint:gochecknoglobals
 var (
 	TestingAmountStepDown          = amountStepDown
-	TestingAmountUnitFilter        = amountUnitFilter
 	TestingAncestorChains          = ancestorChains
 	TestingClassCreatable          = classCreatable
 	TestingComputeInterval         = computeInterval
@@ -16,7 +19,9 @@ var (
 	TestingDuplicatesQuery         = duplicatesQuery
 	TestingFoldLevel               = foldLevel
 	TestingLimitGroups             = limitGroups
+	TestingMatchedSpecials         = matchedSpecials
 	TestingTimePrecisionForValue   = timePrecisionForValue
 	TestingTimeStepDown            = timeStepDown
+	TestingUnitTerm                = unitTerm
 	TestingValidateSort            = validateSort
 )

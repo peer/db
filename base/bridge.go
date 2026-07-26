@@ -38,13 +38,12 @@ func (b *B) IndexedDocument(ctx context.Context, dataJSON json.RawMessage, metad
 	return b.bridge.ConvertDocument(ctx, doc, metadata)
 }
 
-// DocumentFullPaths returns the document's hierarchy paths in the same "<hierarchyProp>:<root>/.../<id>"
-// form that convertReference stamps onto a reference claim's toFullPath. A value reached through several
-// parents or several value hierarchies has more than one path; a hierarchy root (a value with no parents)
-// has none. These are computed exactly as the stored toFullPath is, so they identify every indexed
-// record that expanded from this document as a stated (leaf) value.
-func (b *B) DocumentFullPaths(ctx context.Context, id identifier.Identifier) ([]string, errors.E) {
-	return b.bridge.DocumentFullPaths(ctx, id)
+// DocumentHierarchyPaths returns the document's full hierarchy paths in the indexed toPath form
+// ("<hierarchyProp>:<root>/.../<id>", ending with the document itself). A value reached through several
+// parents or several value hierarchies has more than one path; a value in no value hierarchy gets a single
+// self path ("__SELF__:<id>").
+func (b *B) DocumentHierarchyPaths(ctx context.Context, id identifier.Identifier) ([]string, errors.E) {
+	return b.bridge.DocumentHierarchyPaths(ctx, id)
 }
 
 // ResetBridgeProgress resets bridge progress so all commits are re-processed.

@@ -44,10 +44,10 @@ func DocHasReference(ctx context.Context, t *testing.T, esClient *elasticsearch.
 
 	nestedQuery := esdsl.NewNestedQuery(
 		esdsl.NewBoolQuery().Must(
-			esdsl.NewTermQuery("claims.ref.prop", esdsl.NewFieldValue().String(propID.String())),
-			esdsl.NewTermQuery("claims.ref.to", esdsl.NewFieldValue().String(targetID.String())),
+			esdsl.NewTermQuery("claims.rel.prop", esdsl.NewFieldValue().String(propID.String())),
+			esdsl.NewTermQuery("claims.rel.to", esdsl.NewFieldValue().String(targetID.String())),
 		),
-	).Path("claims.ref")
+	).Path("claims.rel")
 	query := esdsl.NewBoolQuery().Must(
 		esdsl.NewTermQuery("id", esdsl.NewFieldValue().String(docID.String())),
 		nestedQuery,

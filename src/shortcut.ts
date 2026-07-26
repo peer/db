@@ -161,8 +161,9 @@ async function resolveShortcut(s: string, self?: string): Promise<resolvedPair[]
 // whose own ID is one of them).
 export async function shortcutToFilters(s: string, self?: string): Promise<JustResultsFilters> {
   const payload: JustResultsFilters = {}
-  const filters: NonNullable<JustResultsFilters["filters"]> = []
-  const byProp = new Map<string, NonNullable<JustResultsFilters["filters"]>[number]>()
+  type group = { prop: string[]; to: { id: string }[]; direct: { id: string }[]; missing: boolean }
+  const groups: group[] = []
+  const byProp = new Map<string, group>()
   for (const r of await resolveShortcut(s, self)) {
     if (r.reverse) {
       payload.reverse = r.value
@@ -174,20 +175,36 @@ export async function shortcutToFilters(s: string, self?: string): Promise<JustR
       continue
     }
     const key = r.prop.join(":")
-    let filter = byProp.get(key)
-    if (!filter) {
-      filter = { prop: r.prop, ref: {} }
-      byProp.set(key, filter)
-      filters.push(filter)
+    let g = byProp.get(key)
+    if (!g) {
+      g = { prop: r.prop, to: [], direct: [], missing: false }
+      byProp.set(key, g)
+      groups.push(g)
     }
     if (r.kind === "missing") {
-      filter.ref.missing = true
+      g.missing = true
     } else if (r.kind === "direct") {
-      filter.ref.direct = filter.ref.direct ?? []
-      filter.ref.direct.push({ id: r.value })
+      g.direct.push({ id: r.value })
     } else {
-      filter.ref.to = filter.ref.to ?? []
-      filter.ref.to.push({ id: r.value })
+      g.to.push({ id: r.value })
+    }
+  }
+  // A group's values become a ref filter entry and its missing selection the path's specials filter
+  // entry; both may be present for one property (a filter carries exactly one selection kind).
+  const filters: NonNullable<JustResultsFilters["filters"]> = []
+  for (const g of groups) {
+    if (g.to.length > 0 || g.direct.length > 0) {
+      const ref: { to?: { id: string }[]; direct?: { id: string }[] } = {}
+      if (g.to.length > 0) {
+        ref.to = g.to
+      }
+      if (g.direct.length > 0) {
+        ref.direct = g.direct
+      }
+      filters.push({ prop: g.prop, ref })
+    }
+    if (g.missing) {
+      filters.push({ prop: g.prop, specials: { missing: true } })
     }
   }
   if (filters.length > 0) {

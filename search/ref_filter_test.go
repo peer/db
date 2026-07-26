@@ -2,17 +2,103 @@ package search_test
 
 import (
 	"os"
+	"strconv"
+	"strings"
 	"testing"
 
 	"github.com/elastic/go-elasticsearch/v9/typedapi/esdsl"
 	"github.com/elastic/go-elasticsearch/v9/typedapi/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"gitlab.com/tozd/go/x"
 	"gitlab.com/tozd/identifier"
 
 	internalSearch "gitlab.com/peerdb/peerdb/internal/search"
 	"gitlab.com/peerdb/peerdb/search"
 )
+
+// relDoc builds an indexable document carrying only the given rel records.
+func relDoc(id string, records internalSearch.RelClaims) internalSearch.Document {
+	return claimsDoc(id, internalSearch.ClaimTypes{ //nolint:exhaustruct
+		Rel: records,
+	})
+}
+
+// relSub builds a Sub container holding only the given rel records.
+func relSub(records ...internalSearch.RelClaim) *internalSearch.ClaimTypes {
+	return &internalSearch.ClaimTypes{ //nolint:exhaustruct
+		Rel: records,
+	}
+}
+
+// pathParents returns the immediate-parent value ids for hierarchy paths, matching what the converter stamps
+// as ToParent: for each path "<hierProp>:<root>/.../<self>" the id segment before the last; a self or root
+// path (a single id) contributes none. The result preserves first-seen order and is nil when none has a parent.
+func pathParents(toPath []string) []string {
+	var out []string
+	seen := map[string]bool{}
+	for _, raw := range toPath {
+		_, chain, ok := strings.Cut(raw, ":")
+		if !ok {
+			continue
+		}
+		parts := strings.Split(chain, "/")
+		if len(parts) < 2 {
+			continue
+		}
+		parent := parts[len(parts)-2]
+		if seen[parent] {
+			continue
+		}
+		seen[parent] = true
+		out = append(out, parent)
+	}
+	return out
+}
+
+// hierRelRecord builds one expanded ref rel record: the record for value to with its own hierarchy paths,
+// with ToParent derived from the paths, as convertReference produces at index time. isLeaf marks the value
+// as most-specific in its scope.
+func hierRelRecord(prop, to identifier.Identifier, toPath []string, isLeaf bool) internalSearch.RelClaim {
+	target := to
+	return internalSearch.RelClaim{
+		ClaimType:     internalSearch.ClaimTypeRef,
+		Prop:          prop,
+		PropDisplay:   nil,
+		PropNaming:    nil,
+		PropSortKey:   nil,
+		To:            &target,
+		ToDisplay:     nil,
+		ToNaming:      nil,
+		ToSortKey:     nil,
+		ToPath:        toPath,
+		ToParent:      pathParents(toPath),
+		ToDisplayPath: nil,
+		ToPathSortKey: nil,
+		IsLeaf:        isLeaf,
+		Sub:           nil,
+	}
+}
+
+// namedRefRecord builds a flat ref rel record for prop pointing at to, carrying an English display label
+// and optional naming strings so value-label matching can find the value.
+func namedRefRecord(prop, to identifier.Identifier, display string, naming []string) internalSearch.RelClaim {
+	rec := refRecord(prop, to, nil)
+	rec.ToDisplay = map[string]string{"en": display}
+	if naming != nil {
+		rec.ToNaming = map[string][]string{"en": naming}
+	}
+	return rec
+}
+
+// refResultsByID indexes reference filter results by their value id for assertions.
+func refResultsByID(results []search.RefFilterResult) map[string]search.RefFilterResult {
+	out := make(map[string]search.RefFilterResult, len(results))
+	for _, r := range results {
+		out[r.ID] = r
+	}
+	return out
+}
 
 func TestRefFilterGetIntegration(t *testing.T) {
 	t.Parallel()
@@ -24,124 +110,39 @@ func TestRefFilterGetIntegration(t *testing.T) {
 	target1 := identifier.From("target1")
 	target2 := identifier.From("target2")
 
-	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		DisplaySort: nil,
-		ID:          identifier.From("refDoc1"),
-		Display:     nil,
-		Text:        nil,
-		Time:        nil,
-		LastUpdated: nil,
-		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
-		Claims: internalSearch.ClaimTypes{
-			Identifier: nil,
-			String:     nil,
-			HTML:       nil,
-			Amount:     nil,
-			Time:       nil,
-			Link:       nil,
-			Reference: internalSearch.ReferenceClaims{{
-				Prop: refProp, PropDisplay: nil, PropNaming: nil, PropSortKey: nil,
-				To: target1, ToDisplay: nil, ToNaming: nil, ToSortKey: nil, ToPath: nil, ToFullPath: nil, ToParent: nil, ToDisplayPath: nil, ToPathSortKey: nil,
-				IsLeaf: false,
-			}},
-			Has: nil, None: nil, Unknown: nil,
-			SubRef:    nil,
-			SubAmount: nil,
-			SubTime:   nil,
-			SubHas:    nil,
-		},
-	})
-	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		DisplaySort: nil,
-		ID:          identifier.From("refDoc2"),
-		Display:     nil,
-		Text:        nil,
-		Time:        nil,
-		LastUpdated: nil,
-		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
-		Claims: internalSearch.ClaimTypes{
-			Identifier: nil,
-			String:     nil,
-			HTML:       nil,
-			Amount:     nil,
-			Time:       nil,
-			Link:       nil,
-			Reference: internalSearch.ReferenceClaims{{
-				Prop: refProp, PropDisplay: nil, PropNaming: nil, PropSortKey: nil,
-				To: target1, ToDisplay: nil, ToNaming: nil, ToSortKey: nil, ToPath: nil, ToFullPath: nil, ToParent: nil, ToDisplayPath: nil, ToPathSortKey: nil,
-				IsLeaf: false,
-			}},
-			Has:       nil,
-			None:      nil,
-			Unknown:   nil,
-			SubRef:    nil,
-			SubAmount: nil,
-			SubTime:   nil,
-			SubHas:    nil,
-		},
-	})
-	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		DisplaySort: nil,
-		ID:          identifier.From("refDoc3"),
-		Display:     nil,
-		Text:        nil,
-		Time:        nil,
-		LastUpdated: nil,
-		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
-		Claims: internalSearch.ClaimTypes{
-			Identifier: nil,
-			String:     nil,
-			HTML:       nil,
-			Amount:     nil,
-			Time:       nil,
-			Link:       nil,
-			Reference: internalSearch.ReferenceClaims{{
-				Prop: refProp, PropDisplay: nil, PropNaming: nil, PropSortKey: nil,
-				To: target2, ToDisplay: nil, ToNaming: nil, ToSortKey: nil, ToPath: nil, ToFullPath: nil, ToParent: nil, ToDisplayPath: nil, ToPathSortKey: nil,
-				IsLeaf: false,
-			}},
-			Has:       nil,
-			None:      nil,
-			Unknown:   nil,
-			SubRef:    nil,
-			SubAmount: nil,
-			SubTime:   nil,
-			SubHas:    nil,
-		},
-	})
+	indexDocument(t, ctx, esClient, index, relDoc("refDoc1", internalSearch.RelClaims{refRecord(refProp, target1, nil)}))
+	indexDocument(t, ctx, esClient, index, relDoc("refDoc2", internalSearch.RelClaims{refRecord(refProp, target1, nil)}))
+	indexDocument(t, ctx, esClient, index, relDoc("refDoc3", internalSearch.RelClaims{refRecord(refProp, target2, nil)}))
 	refreshIndex(t, ctx, esClient, index)
 
 	// Create a session with a ref filter so we can look up the filter by ID.
-	session := createSession(t, ctx, search.SessionData{
-		Sort:     nil,
-		Language: "",
-		View:     "",
-		Query:    "",
+	session := createSession(t, ctx, search.SessionData{ //nolint:exhaustruct
 		Filters: []search.Filter{{ //nolint:exhaustruct
 			Prop: []identifier.Identifier{refProp},
 			Ref: &search.RefFilter{
-				Direct:  nil,
-				To:      []search.ToValue{{ID: target1}},
-				Missing: false,
+				To:     []search.ToValue{{ID: target1}},
+				Direct: nil,
 			},
 		}},
-		Prefilters:    nil,
-		Reverse:       nil,
-		ReverseExpand: false,
-		IDs:           nil,
 	})
 
+	// The facet's own filter (and the path's specials filter, of which there is none) is excluded from the
+	// query, exactly as the handler does, so the facet lists all available values.
+	excludeIDs := session.FacetExcludeIDs(session.Filters[0].Prop, session.Filters[0].ID)
 	results, metadata, errE := session.Filters[0].Ref.Get(
-		ctx, getSearchService, session.ToQueryExcluding(*session.Filters[0].ID, nil), session.Filters[0].Prop[0], nil, "", nil, nil,
+		ctx, getSearchService, session.ToQueryExcluding(excludeIDs, nil), session.Filters[0].Prop[0], nil, "", nil, nil,
 	)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Results are sorted by count descending: target1 (count 2) first, target2 (count 1) second.
 	assert.Equal(t, []search.RefFilterResult{
-		{ID: target1.String(), Count: 2, ChildCount: 0, Paths: nil},
-		{ID: target2.String(), Count: 1, ChildCount: 0, Paths: nil},
+		{ID: target1.String(), Count: 2, ChildCount: 0, ChildCountAtLeast: false, Paths: nil},
+		{ID: target2.String(), Count: 1, ChildCount: 0, ChildCountAtLeast: false, Paths: nil},
 	}, results)
 	assert.Equal(t, "2", metadata["total"])
+	// All three documents are in the facet's universe and none has an amount or time claim for the property.
+	assert.Equal(t, "3", metadata["universe"])
+	assert.Equal(t, "0", metadata["other_types"])
 }
 
 func TestRefFilterGetInactiveIntegration(t *testing.T) {
@@ -154,80 +155,25 @@ func TestRefFilterGetInactiveIntegration(t *testing.T) {
 	target1 := identifier.From("target1")
 	target2 := identifier.From("target2")
 
-	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		DisplaySort: nil,
-		ID:          identifier.From("refDoc1"),
-		Display:     nil,
-		Text:        nil,
-		Time:        nil,
-		LastUpdated: nil,
-		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
-		Claims: internalSearch.ClaimTypes{
-			Identifier: nil,
-			String:     nil,
-			HTML:       nil,
-			Amount:     nil,
-			Time:       nil,
-			Link:       nil,
-			Reference: internalSearch.ReferenceClaims{{
-				Prop: refProp, PropDisplay: nil, PropNaming: nil, PropSortKey: nil,
-				To: target1, ToDisplay: nil, ToNaming: nil, ToSortKey: nil, ToPath: nil, ToFullPath: nil, ToParent: nil, ToDisplayPath: nil, ToPathSortKey: nil,
-				IsLeaf: false,
-			}},
-			Has:       nil,
-			None:      nil,
-			Unknown:   nil,
-			SubRef:    nil,
-			SubAmount: nil,
-			SubTime:   nil,
-			SubHas:    nil,
-		},
-	})
-	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		DisplaySort: nil,
-		ID:          identifier.From("refDoc2"),
-		Display:     nil,
-		Text:        nil,
-		Time:        nil,
-		LastUpdated: nil,
-		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
-		Claims: internalSearch.ClaimTypes{
-			Identifier: nil,
-			String:     nil,
-			HTML:       nil,
-			Amount:     nil,
-			Time:       nil,
-			Link:       nil,
-			Reference: internalSearch.ReferenceClaims{{
-				Prop: refProp, PropDisplay: nil, PropNaming: nil, PropSortKey: nil,
-				To: target2, ToDisplay: nil, ToNaming: nil, ToSortKey: nil, ToPath: nil, ToFullPath: nil, ToParent: nil, ToDisplayPath: nil, ToPathSortKey: nil,
-				IsLeaf: false,
-			}},
-			Has:       nil,
-			None:      nil,
-			Unknown:   nil,
-			SubRef:    nil,
-			SubAmount: nil,
-			SubTime:   nil,
-			SubHas:    nil,
-		},
-	})
+	indexDocument(t, ctx, esClient, index, relDoc("refDoc1", internalSearch.RelClaims{refRecord(refProp, target1, nil)}))
+	indexDocument(t, ctx, esClient, index, relDoc("refDoc2", internalSearch.RelClaims{refRecord(refProp, target2, nil)}))
 	refreshIndex(t, ctx, esClient, index)
 
 	// Create a session without any filters (inactive filter scenario).
 	session := createSession(t, ctx, search.SessionData{})
 
 	// Query for ref filter values using the session's full query and prop from outside the session.
-	f := search.RefFilter{}
+	f := search.RefFilter{To: nil, Direct: nil}
 	results, metadata, errE := f.Get(ctx, getSearchService, session.ToQuery(nil), refProp, nil, "", nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Results order is non-deterministic when counts are equal.
 	assert.ElementsMatch(t, []search.RefFilterResult{
-		{ID: target1.String(), Count: 1, ChildCount: 0, Paths: nil},
-		{ID: target2.String(), Count: 1, ChildCount: 0, Paths: nil},
+		{ID: target1.String(), Count: 1, ChildCount: 0, ChildCountAtLeast: false, Paths: nil},
+		{ID: target2.String(), Count: 1, ChildCount: 0, ChildCountAtLeast: false, Paths: nil},
 	}, results)
 	assert.Equal(t, "2", metadata["total"])
+	assert.Equal(t, "2", metadata["universe"])
 }
 
 func TestRefFilterGetMissingIntegration(t *testing.T) {
@@ -240,102 +186,75 @@ func TestRefFilterGetMissingIntegration(t *testing.T) {
 	target1 := identifier.From("target1")
 
 	// Doc with the ref prop.
-	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		DisplaySort: nil,
-		ID:          identifier.From("refDoc1"),
-		Display:     nil,
-		Text:        nil,
-		Time:        nil,
-		LastUpdated: nil,
-		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
-		Claims: internalSearch.ClaimTypes{
-			Identifier: nil,
-			String:     nil,
-			HTML:       nil,
-			Amount:     nil,
-			Time:       nil,
-			Link:       nil,
-			Reference: internalSearch.ReferenceClaims{{
-				Prop: refProp, PropDisplay: nil, PropNaming: nil, PropSortKey: nil,
-				To: target1, ToDisplay: nil, ToNaming: nil, ToSortKey: nil, ToPath: nil, ToFullPath: nil, ToParent: nil, ToDisplayPath: nil, ToPathSortKey: nil,
-				IsLeaf: false,
-			}},
-			Has:       nil,
-			None:      nil,
-			Unknown:   nil,
-			SubRef:    nil,
-			SubAmount: nil,
-			SubTime:   nil,
-			SubHas:    nil,
-		},
-	})
-	// Doc without the ref prop.
-	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		DisplaySort: nil,
-		ID:          identifier.From("refDoc2"),
-		Display:     nil,
-		Text:        nil,
-		Time:        nil,
-		LastUpdated: nil,
-		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
-		Claims: internalSearch.ClaimTypes{
-			Identifier: nil,
-			String:     nil,
-			HTML:       nil,
-			Amount:     nil,
-			Time:       nil,
-			Link:       nil,
-			Reference:  nil,
-			Has:        nil,
-			None:       nil,
-			Unknown:    nil,
-			SubRef:     nil,
-			SubAmount:  nil,
-			SubTime:    nil,
-			SubHas:     nil,
-		},
-	})
-	// Another doc without the ref prop.
-	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		DisplaySort: nil,
-		ID:          identifier.From("refDoc3"),
-		Display:     nil,
-		Text:        nil,
-		Time:        nil,
-		LastUpdated: nil,
-		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
-		Claims: internalSearch.ClaimTypes{
-			Identifier: nil,
-			String:     nil,
-			HTML:       nil,
-			Amount:     nil,
-			Time:       nil,
-			Link:       nil,
-			Reference:  nil,
-			Has:        nil,
-			None:       nil,
-			Unknown:    nil,
-			SubRef:     nil,
-			SubAmount:  nil,
-			SubTime:    nil,
-			SubHas:     nil,
-		},
-	})
+	indexDocument(t, ctx, esClient, index, relDoc("refDoc1", internalSearch.RelClaims{refRecord(refProp, target1, nil)}))
+	// Two docs without any claim for the ref prop.
+	indexDocument(t, ctx, esClient, index, claimsDoc("refDoc2", internalSearch.ClaimTypes{}))
+	indexDocument(t, ctx, esClient, index, claimsDoc("refDoc3", internalSearch.ClaimTypes{}))
 	refreshIndex(t, ctx, esClient, index)
 
 	session := createSession(t, ctx, search.SessionData{})
 
-	f := search.RefFilter{}
+	f := search.RefFilter{To: nil, Direct: nil}
 	results, metadata, errE := f.Get(ctx, getSearchService, session.ToQuery(nil), refProp, nil, "", nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Results should include target1 (count 1) and __MISSING__ (count 2), sorted by count descending.
 	assert.Equal(t, []search.RefFilterResult{
-		{ID: search.MissingValueID, Count: 2, ChildCount: 0, Paths: nil},
-		{ID: target1.String(), Count: 1, ChildCount: 0, Paths: nil},
+		{ID: search.MissingValueID, Count: 2, ChildCount: 0, ChildCountAtLeast: false, Paths: nil},
+		{ID: target1.String(), Count: 1, ChildCount: 0, ChildCountAtLeast: false, Paths: nil},
 	}, results)
-	// Total includes the missing bucket.
+	// Total includes the missing entry.
 	assert.Equal(t, "2", metadata["total"])
+	// The identity closes: value (1) plus missing (2) equals the universe (3).
+	assert.Equal(t, "3", metadata["universe"])
+}
+
+// TestRefFilterGetMissingUniverseRuleIntegration verifies the universe rule for the top-level missing count:
+// a document is missing the property only when it has no rel, no amount, and no time claim for it. Documents
+// stating the property in another value type are not missing; they are surfaced through the otherTypes
+// metadata instead, closing the facet's identity.
+func TestRefFilterGetMissingUniverseRuleIntegration(t *testing.T) {
+	t.Parallel()
+
+	ctx := t.Context()
+	esClient, getSearchService, index := initES(t)
+
+	refProp := identifier.From("refProp")
+	target1 := identifier.From("target1")
+
+	amountFrom := 9.5
+	amountTo := 10.5
+	timeFrom := float64(1000)
+	timeTo := float64(1001)
+
+	// A doc with a ref claim for the property.
+	indexDocument(t, ctx, esClient, index, relDoc("refDoc1", internalSearch.RelClaims{refRecord(refProp, target1, nil)}))
+	// A doc stating the property only as an amount claim: not missing, counted in otherTypes.
+	indexDocument(t, ctx, esClient, index, claimsDoc("amountDoc", internalSearch.ClaimTypes{ //nolint:exhaustruct
+		Amount: internalSearch.AmountClaims{amountRecord(refProp, nil, &amountFrom, &amountTo, nil)},
+	}))
+	// A doc stating the property only as a time claim: not missing, counted in otherTypes.
+	indexDocument(t, ctx, esClient, index, claimsDoc("timeDoc", internalSearch.ClaimTypes{ //nolint:exhaustruct
+		Time: internalSearch.TimeClaims{timeRecord(refProp, &timeFrom, &timeTo, nil)},
+	}))
+	// A doc with no claim for the property at all: the only missing one.
+	indexDocument(t, ctx, esClient, index, claimsDoc("emptyDoc", internalSearch.ClaimTypes{}))
+	refreshIndex(t, ctx, esClient, index)
+
+	session := createSession(t, ctx, search.SessionData{})
+
+	f := search.RefFilter{To: nil, Direct: nil}
+	results, metadata, errE := f.Get(ctx, getSearchService, session.ToQuery(nil), refProp, nil, "", nil, nil)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	assert.Equal(t, []search.RefFilterResult{
+		{ID: target1.String(), Count: 1, ChildCount: 0, ChildCountAtLeast: false, Paths: nil},
+		{ID: search.MissingValueID, Count: 1, ChildCount: 0, ChildCountAtLeast: false, Paths: nil},
+	}, results)
+	assert.Equal(t, "2", metadata["total"])
+	assert.Equal(t, "4", metadata["universe"])
+	// The amount-only and time-only documents are reachable through the property's other value types.
+	assert.Equal(t, "2", metadata["other_types"])
 }
 
 func TestRefFilterGetNoMissingIntegration(t *testing.T) {
@@ -348,48 +267,70 @@ func TestRefFilterGetNoMissingIntegration(t *testing.T) {
 	target1 := identifier.From("target1")
 
 	// All docs have the ref prop.
-	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		DisplaySort: nil,
-		ID:          identifier.From("refDoc1"),
-		Display:     nil,
-		Text:        nil,
-		Time:        nil,
-		LastUpdated: nil,
-		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
-		Claims: internalSearch.ClaimTypes{
-			Identifier: nil,
-			String:     nil,
-			HTML:       nil,
-			Amount:     nil,
-			Time:       nil,
-			Link:       nil,
-			Reference: internalSearch.ReferenceClaims{{
-				Prop: refProp, PropDisplay: nil, PropNaming: nil, PropSortKey: nil,
-				To: target1, ToDisplay: nil, ToNaming: nil, ToSortKey: nil, ToPath: nil, ToFullPath: nil, ToParent: nil, ToDisplayPath: nil, ToPathSortKey: nil,
-				IsLeaf: false,
-			}},
-			Has:       nil,
-			None:      nil,
-			Unknown:   nil,
-			SubRef:    nil,
-			SubAmount: nil,
-			SubTime:   nil,
-			SubHas:    nil,
-		},
-	})
+	indexDocument(t, ctx, esClient, index, relDoc("refDoc1", internalSearch.RelClaims{refRecord(refProp, target1, nil)}))
 	refreshIndex(t, ctx, esClient, index)
 
 	session := createSession(t, ctx, search.SessionData{})
 
-	f := search.RefFilter{}
+	f := search.RefFilter{To: nil, Direct: nil}
 	results, metadata, errE := f.Get(ctx, getSearchService, session.ToQuery(nil), refProp, nil, "", nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	// No missing bucket since all documents have the prop.
+	// No missing entry since all documents have the prop.
 	assert.Equal(t, []search.RefFilterResult{
-		{ID: target1.String(), Count: 1, ChildCount: 0, Paths: nil},
+		{ID: target1.String(), Count: 1, ChildCount: 0, ChildCountAtLeast: false, Paths: nil},
 	}, results)
 	assert.Equal(t, "1", metadata["total"])
+}
+
+// TestRefFilterGetSpecialEntriesIntegration verifies the special-value entries of a value-list facet: has
+// (a has claim, here one with sub-claims, which is indexed as a has rel record), unknown, none, and missing
+// each surface as their synthetic entry, and together with the value entries they partition the universe.
+func TestRefFilterGetSpecialEntriesIntegration(t *testing.T) {
+	t.Parallel()
+
+	ctx := t.Context()
+	esClient, getSearchService, index := initES(t)
+
+	refProp := identifier.From("refProp")
+	target1 := identifier.From("target1")
+	subProp := identifier.From("subProp")
+	subTarget := identifier.From("subTarget")
+
+	indexDocument(t, ctx, esClient, index, relDoc("refClaimTypeDoc", internalSearch.RelClaims{refRecord(refProp, target1, nil)}))
+	// A has claim WITH sub-claims: indexed as a has rel record with a Sub container, so it counts toward the
+	// property's has special (and toward its sub facets), not toward a pooled facet of another property.
+	indexDocument(t, ctx, esClient, index, relDoc("hasClaimTypeDoc", internalSearch.RelClaims{
+		simpleRelRecord(internalSearch.ClaimTypeHas, refProp, relSub(refRecord(subProp, subTarget, nil))),
+	}))
+	indexDocument(t, ctx, esClient, index, relDoc("unknownClaimTypeDoc", internalSearch.RelClaims{
+		simpleRelRecord(internalSearch.ClaimTypeUnknown, refProp, nil),
+	}))
+	indexDocument(t, ctx, esClient, index, relDoc("noneClaimTypeDoc", internalSearch.RelClaims{
+		simpleRelRecord(internalSearch.ClaimTypeNone, refProp, nil),
+	}))
+	indexDocument(t, ctx, esClient, index, claimsDoc("missingDoc", internalSearch.ClaimTypes{}))
+	refreshIndex(t, ctx, esClient, index)
+
+	session := createSession(t, ctx, search.SessionData{})
+
+	f := search.RefFilter{To: nil, Direct: nil}
+	results, metadata, errE := f.Get(ctx, getSearchService, session.ToQuery(nil), refProp, nil, "", nil, nil)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// All entries have count 1; the value entry precedes the special entries, which keep their fixed order
+	// (has property, unknown, none, missing).
+	assert.Equal(t, []search.RefFilterResult{
+		{ID: target1.String(), Count: 1, ChildCount: 0, ChildCountAtLeast: false, Paths: nil},
+		{ID: search.HasPropertyValueID, Count: 1, ChildCount: 0, ChildCountAtLeast: false, Paths: nil},
+		{ID: search.UnknownValueID, Count: 1, ChildCount: 0, ChildCountAtLeast: false, Paths: nil},
+		{ID: search.NoneValueID, Count: 1, ChildCount: 0, ChildCountAtLeast: false, Paths: nil},
+		{ID: search.MissingValueID, Count: 1, ChildCount: 0, ChildCountAtLeast: false, Paths: nil},
+	}, results)
+	assert.Equal(t, "5", metadata["total"])
+	// The identity closes: value (1) + has (1) + unknown (1) + none (1) + missing (1) = universe (5).
+	assert.Equal(t, "5", metadata["universe"])
+	assert.Equal(t, "0", metadata["other_types"])
 }
 
 func TestRefFilterGetNotFoundIntegration(t *testing.T) {
@@ -424,57 +365,18 @@ func TestRefFilterGetHierarchyIntegration(t *testing.T) {
 	mammalPath := hierProp.String() + ":" + animal.String() + "/" + mammal.String()
 	dogPath := hierProp.String() + ":" + animal.String() + "/" + mammal.String() + "/" + dog.String()
 
-	// One source doc with three reference claims, one per target in the chain, as
-	// produced at index time by ancestor expansion in convertReference.
-	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		DisplaySort: nil,
-		ID:          identifier.From("dogDoc"),
-		Display:     nil,
-		Text:        nil,
-		Time:        nil,
-		LastUpdated: nil,
-		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
-		Claims: internalSearch.ClaimTypes{
-			Identifier: nil,
-			String:     nil,
-			HTML:       nil,
-			Amount:     nil,
-			Time:       nil,
-			Link:       nil,
-			Reference: internalSearch.ReferenceClaims{
-				{
-					Prop: refProp, PropDisplay: nil, PropNaming: nil, PropSortKey: nil,
-					To: dog, ToDisplay: nil, ToNaming: nil, ToSortKey: nil,
-					ToPath: []string{dogPath}, ToFullPath: []string{dogPath}, ToParent: []string{mammal.String()}, ToDisplayPath: nil, ToPathSortKey: nil,
-					IsLeaf: false,
-				},
-				{
-					Prop: refProp, PropDisplay: nil, PropNaming: nil, PropSortKey: nil,
-					To: mammal, ToDisplay: nil, ToNaming: nil, ToSortKey: nil,
-					ToPath: []string{mammalPath}, ToFullPath: []string{dogPath}, ToParent: []string{animal.String()}, ToDisplayPath: nil, ToPathSortKey: nil,
-					IsLeaf: false,
-				},
-				{
-					Prop: refProp, PropDisplay: nil, PropNaming: nil, PropSortKey: nil,
-					To: animal, ToDisplay: nil, ToNaming: nil, ToSortKey: nil,
-					ToPath: []string{animalPath}, ToFullPath: []string{dogPath}, ToParent: nil, ToDisplayPath: nil, ToPathSortKey: nil,
-					IsLeaf: false,
-				},
-			},
-			Has:       nil,
-			None:      nil,
-			Unknown:   nil,
-			SubRef:    nil,
-			SubAmount: nil,
-			SubTime:   nil,
-			SubHas:    nil,
-		},
-	})
+	// One source doc with three ref records, one per target in the chain, as produced at index time by
+	// ancestor expansion in convertReference; the stated value dog is the scope's leaf.
+	indexDocument(t, ctx, esClient, index, relDoc("dogDoc", internalSearch.RelClaims{
+		hierRelRecord(refProp, dog, []string{dogPath}, true),
+		hierRelRecord(refProp, mammal, []string{mammalPath}, false),
+		hierRelRecord(refProp, animal, []string{animalPath}, false),
+	}))
 	refreshIndex(t, ctx, esClient, index)
 
 	session := createSession(t, ctx, search.SessionData{})
 
-	f := search.RefFilter{}
+	f := search.RefFilter{To: nil, Direct: nil}
 	results, metadata, errE := f.Get(ctx, getSearchService, session.ToQuery(nil), refProp, nil, "", nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
@@ -482,9 +384,9 @@ func TestRefFilterGetHierarchyIntegration(t *testing.T) {
 	// depth ascending, so ancestors precede their descendants. Each value's ChildCount is its number of
 	// distinct child values: animal has one child (mammal), mammal has one child (dog), dog is a leaf.
 	assert.Equal(t, []search.RefFilterResult{
-		{ID: animal.String(), Count: 1, ChildCount: 1, Paths: nil},
-		{ID: mammal.String(), Count: 1, ChildCount: 1, Paths: [][]string{{animal.String()}}},
-		{ID: dog.String(), Count: 1, ChildCount: 0, Paths: [][]string{{animal.String(), mammal.String()}}},
+		{ID: animal.String(), Count: 1, ChildCount: 1, ChildCountAtLeast: false, Paths: nil},
+		{ID: mammal.String(), Count: 1, ChildCount: 1, ChildCountAtLeast: false, Paths: [][]string{{animal.String()}}},
+		{ID: dog.String(), Count: 1, ChildCount: 0, ChildCountAtLeast: false, Paths: [][]string{{animal.String(), mammal.String()}}},
 	}, results)
 	assert.Equal(t, "3", metadata["total"])
 }
@@ -517,90 +419,37 @@ func TestRefFilterDirectIntegration(t *testing.T) {
 	artistDoc3 := identifier.From("artistDoc3")
 
 	// A painter document is most-specific painter (isLeaf), and also an artist via ancestor
-	// expansion (not most-specific, so isLeaf is false on the artist claim).
-	painterClaims := internalSearch.ReferenceClaims{
-		{
-			Prop: refProp, PropDisplay: nil, PropNaming: nil, PropSortKey: nil,
-			To: painter, ToDisplay: nil, ToNaming: nil, ToSortKey: nil,
-			ToPath: []string{painterPath}, ToFullPath: []string{painterPath}, ToParent: []string{artist.String()}, ToDisplayPath: nil, ToPathSortKey: nil,
-			IsLeaf: true,
-		},
-		{
-			Prop: refProp, PropDisplay: nil, PropNaming: nil, PropSortKey: nil,
-			To: artist, ToDisplay: nil, ToNaming: nil, ToSortKey: nil,
-			ToPath: []string{artistPath}, ToFullPath: []string{painterPath}, ToParent: nil, ToDisplayPath: nil, ToPathSortKey: nil,
-			IsLeaf: false,
-		},
+	// expansion (not most-specific, so isLeaf is false on the artist record).
+	painterClaims := internalSearch.RelClaims{
+		hierRelRecord(refProp, painter, []string{painterPath}, true),
+		hierRelRecord(refProp, artist, []string{artistPath}, false),
 	}
 	// A sculptor document is most-specific sculptor (isLeaf), and also an artist via ancestor
 	// expansion. There are more sculptors than artist-only documents, so the sculptor value
 	// outcounts the artist "direct" entry, while painter undercounts it.
-	sculptorClaims := internalSearch.ReferenceClaims{
-		{
-			Prop: refProp, PropDisplay: nil, PropNaming: nil, PropSortKey: nil,
-			To: sculptor, ToDisplay: nil, ToNaming: nil, ToSortKey: nil,
-			ToPath: []string{sculptorPath}, ToFullPath: []string{sculptorPath}, ToParent: []string{artist.String()}, ToDisplayPath: nil, ToPathSortKey: nil,
-			IsLeaf: true,
-		},
-		{
-			Prop: refProp, PropDisplay: nil, PropNaming: nil, PropSortKey: nil,
-			To: artist, ToDisplay: nil, ToNaming: nil, ToSortKey: nil,
-			ToPath: []string{artistPath}, ToFullPath: []string{sculptorPath}, ToParent: nil, ToDisplayPath: nil, ToPathSortKey: nil,
-			IsLeaf: false,
-		},
+	sculptorClaims := internalSearch.RelClaims{
+		hierRelRecord(refProp, sculptor, []string{sculptorPath}, true),
+		hierRelRecord(refProp, artist, []string{artistPath}, false),
 	}
 	// An artist-only document is most-specific artist (isLeaf), with no narrower painter or sculptor.
-	artistClaims := internalSearch.ReferenceClaims{
-		{
-			Prop: refProp, PropDisplay: nil, PropNaming: nil, PropSortKey: nil,
-			To: artist, ToDisplay: nil, ToNaming: nil, ToSortKey: nil,
-			ToPath: []string{artistPath}, ToFullPath: []string{artistPath}, ToParent: nil, ToDisplayPath: nil, ToPathSortKey: nil,
-			IsLeaf: true,
-		},
+	artistClaims := internalSearch.RelClaims{
+		hierRelRecord(refProp, artist, []string{artistPath}, true),
 	}
 
-	indexRefDoc := func(id identifier.Identifier, claims internalSearch.ReferenceClaims) {
-		indexDocument(t, ctx, esClient, index, internalSearch.Document{
-			DisplaySort: nil,
-			ID:          id,
-			Display:     nil,
-			Text:        nil,
-			Time:        nil,
-			LastUpdated: nil,
-			Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
-			Claims: internalSearch.ClaimTypes{
-				Identifier: nil,
-				String:     nil,
-				HTML:       nil,
-				Amount:     nil,
-				Time:       nil,
-				Link:       nil,
-				Reference:  claims,
-				Has:        nil,
-				None:       nil,
-				Unknown:    nil,
-				SubRef:     nil,
-				SubAmount:  nil,
-				SubTime:    nil,
-				SubHas:     nil,
-			},
-		})
-	}
-
-	indexRefDoc(painterDoc1, painterClaims)
-	indexRefDoc(painterDoc2, painterClaims)
-	indexRefDoc(sculptorDoc1, sculptorClaims)
-	indexRefDoc(sculptorDoc2, sculptorClaims)
-	indexRefDoc(sculptorDoc3, sculptorClaims)
-	indexRefDoc(sculptorDoc4, sculptorClaims)
-	indexRefDoc(artistDoc1, artistClaims)
-	indexRefDoc(artistDoc2, artistClaims)
-	indexRefDoc(artistDoc3, artistClaims)
+	indexDocument(t, ctx, esClient, index, relDoc("painterDoc1", painterClaims))
+	indexDocument(t, ctx, esClient, index, relDoc("painterDoc2", painterClaims))
+	indexDocument(t, ctx, esClient, index, relDoc("sculptorDoc1", sculptorClaims))
+	indexDocument(t, ctx, esClient, index, relDoc("sculptorDoc2", sculptorClaims))
+	indexDocument(t, ctx, esClient, index, relDoc("sculptorDoc3", sculptorClaims))
+	indexDocument(t, ctx, esClient, index, relDoc("sculptorDoc4", sculptorClaims))
+	indexDocument(t, ctx, esClient, index, relDoc("artistDoc1", artistClaims))
+	indexDocument(t, ctx, esClient, index, relDoc("artistDoc2", artistClaims))
+	indexDocument(t, ctx, esClient, index, relDoc("artistDoc3", artistClaims))
 	refreshIndex(t, ctx, esClient, index)
 
 	session := createSession(t, ctx, search.SessionData{})
 
-	f := search.RefFilter{}
+	f := search.RefFilter{To: nil, Direct: nil}
 	results, metadata, errE := f.Get(ctx, getSearchService, session.ToQuery(nil), refProp, nil, "", nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
@@ -610,10 +459,10 @@ func TestRefFilterDirectIntegration(t *testing.T) {
 	// distinct child values (painter and sculptor), so its ChildCount is 2; the leaves and the synthetic
 	// "direct" entry have none.
 	assert.Equal(t, []search.RefFilterResult{
-		{ID: artist.String(), Count: 9, ChildCount: 2, Paths: nil},
-		{ID: sculptor.String(), Count: 4, ChildCount: 0, Paths: [][]string{{artist.String()}}},
-		{ID: search.DirectRefFilterPrefix + artist.String(), Count: 3, ChildCount: 0, Paths: [][]string{{artist.String()}}},
-		{ID: painter.String(), Count: 2, ChildCount: 0, Paths: [][]string{{artist.String()}}},
+		{ID: artist.String(), Count: 9, ChildCount: 2, ChildCountAtLeast: false, Paths: nil},
+		{ID: sculptor.String(), Count: 4, ChildCount: 0, ChildCountAtLeast: false, Paths: [][]string{{artist.String()}}},
+		{ID: search.DirectRefFilterPrefix + artist.String(), Count: 3, ChildCount: 0, ChildCountAtLeast: false, Paths: [][]string{{artist.String()}}},
+		{ID: painter.String(), Count: 2, ChildCount: 0, ChildCountAtLeast: false, Paths: [][]string{{artist.String()}}},
 	}, results)
 	// Three distinct values (artist, painter, sculptor) plus the one "direct" entry.
 	assert.Equal(t, "4", metadata["total"])
@@ -631,20 +480,30 @@ func TestRefFilterDirectIntegration(t *testing.T) {
 		return ids
 	}
 
-	// The "direct" filter selects exactly the artist-only documents (most-specific artist),
-	// none of the painters.
-	directFilter := search.RefFilter{To: nil, Direct: []search.ToValue{{ID: artist}}, Missing: false}
-	assert.ElementsMatch(t, []string{artistDoc1.String(), artistDoc2.String(), artistDoc3.String()}, hitIDs(directFilter.ToQuery(refProp)))
+	// Filter selections compile only through the session query. The "direct" selection selects exactly the
+	// artist-only documents (most-specific artist), none of the painters or sculptors.
+	directSession := createSession(t, ctx, search.SessionData{ //nolint:exhaustruct
+		Filters: []search.Filter{{ //nolint:exhaustruct
+			Prop: []identifier.Identifier{refProp},
+			Ref:  &search.RefFilter{To: nil, Direct: []search.ToValue{{ID: artist}}},
+		}},
+	})
+	assert.ElementsMatch(t, []string{artistDoc1.String(), artistDoc2.String(), artistDoc3.String()}, hitIDs(directSession.ToQuery(nil)))
 
-	// The plain value filter selects every artist, painters and sculptors included.
-	toFilter := search.RefFilter{To: []search.ToValue{{ID: artist}}, Direct: nil, Missing: false}
+	// The plain value selection selects every artist, painters and sculptors included.
+	toSession := createSession(t, ctx, search.SessionData{ //nolint:exhaustruct
+		Filters: []search.Filter{{ //nolint:exhaustruct
+			Prop: []identifier.Identifier{refProp},
+			Ref:  &search.RefFilter{To: []search.ToValue{{ID: artist}}, Direct: nil},
+		}},
+	})
 	assert.ElementsMatch(t,
 		[]string{
 			painterDoc1.String(), painterDoc2.String(),
 			sculptorDoc1.String(), sculptorDoc2.String(), sculptorDoc3.String(), sculptorDoc4.String(),
 			artistDoc1.String(), artistDoc2.String(), artistDoc3.String(),
 		},
-		hitIDs(toFilter.ToQuery(refProp)),
+		hitIDs(toSession.ToQuery(nil)),
 	)
 }
 
@@ -665,44 +524,14 @@ func TestRefFilterGetDiamondIntegration(t *testing.T) {
 	leafPathA := hierProp.String() + ":" + root.String() + "/" + parentA.String() + "/" + leaf.String()
 	leafPathB := hierProp.String() + ":" + root.String() + "/" + parentB.String() + "/" + leaf.String()
 
-	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		DisplaySort: nil,
-		ID:          identifier.From("leafDoc"),
-		Display:     nil,
-		Text:        nil,
-		Time:        nil,
-		LastUpdated: nil,
-		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
-		Claims: internalSearch.ClaimTypes{
-			Identifier: nil,
-			String:     nil,
-			HTML:       nil,
-			Amount:     nil,
-			Time:       nil,
-			Link:       nil,
-			Reference: internalSearch.ReferenceClaims{
-				{
-					Prop: refProp, PropDisplay: nil, PropNaming: nil, PropSortKey: nil,
-					To: leaf, ToDisplay: nil, ToNaming: nil, ToSortKey: nil,
-					ToPath: []string{leafPathA, leafPathB}, ToFullPath: []string{leafPathA, leafPathB},
-					ToParent: []string{parentA.String(), parentB.String()}, ToDisplayPath: nil, ToPathSortKey: nil,
-					IsLeaf: false,
-				},
-			},
-			Has:       nil,
-			None:      nil,
-			Unknown:   nil,
-			SubRef:    nil,
-			SubAmount: nil,
-			SubTime:   nil,
-			SubHas:    nil,
-		},
-	})
+	indexDocument(t, ctx, esClient, index, relDoc("leafDoc", internalSearch.RelClaims{
+		hierRelRecord(refProp, leaf, []string{leafPathA, leafPathB}, true),
+	}))
 	refreshIndex(t, ctx, esClient, index)
 
 	session := createSession(t, ctx, search.SessionData{})
 
-	f := search.RefFilter{}
+	f := search.RefFilter{To: nil, Direct: nil}
 	results, _, errE := f.Get(ctx, getSearchService, session.ToQuery(nil), refProp, nil, "", nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
@@ -744,76 +573,22 @@ func TestRefFilterGetMultipleInheritanceIntegration(t *testing.T) {
 	leafViaDeep := deepParentPath + "/" + leaf.String()
 	leafViaShallow := shallowParentPath + "/" + leaf.String()
 
-	// One source doc, instance of leaf, expanded to a reference claim per ancestor as
-	// convertReference does at index time. Every bucket therefore has the same single-
-	// document count, so ordering is decided entirely by hierarchy depth.
-	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		DisplaySort: nil,
-		ID:          identifier.From("leafDoc"),
-		Display:     nil,
-		Text:        nil,
-		Time:        nil,
-		LastUpdated: nil,
-		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
-		Claims: internalSearch.ClaimTypes{
-			Identifier: nil,
-			String:     nil,
-			HTML:       nil,
-			Amount:     nil,
-			Time:       nil,
-			Link:       nil,
-			Reference: internalSearch.ReferenceClaims{
-				{
-					Prop: refProp, PropDisplay: nil, PropNaming: nil, PropSortKey: nil,
-					To: leaf, ToDisplay: nil, ToNaming: nil, ToSortKey: nil, ToPath: []string{leafViaDeep, leafViaShallow},
-					ToFullPath: []string{leafViaDeep, leafViaShallow}, ToParent: []string{deepParent.String(), shallowParent.String()}, ToDisplayPath: nil, ToPathSortKey: nil,
-					IsLeaf: false,
-				},
-				{
-					Prop: refProp, PropDisplay: nil, PropNaming: nil, PropSortKey: nil,
-					To: deepParent, ToDisplay: nil, ToNaming: nil, ToSortKey: nil, ToPath: []string{deepParentPath},
-					ToFullPath: []string{leafViaDeep, leafViaShallow}, ToParent: []string{mid2.String()}, ToDisplayPath: nil, ToPathSortKey: nil,
-					IsLeaf: false,
-				},
-				{
-					Prop: refProp, PropDisplay: nil, PropNaming: nil, PropSortKey: nil,
-					To: shallowParent, ToDisplay: nil, ToNaming: nil, ToSortKey: nil, ToPath: []string{shallowParentPath},
-					ToFullPath: []string{leafViaDeep, leafViaShallow}, ToParent: []string{root.String()}, ToDisplayPath: nil, ToPathSortKey: nil,
-					IsLeaf: false,
-				},
-				{
-					Prop: refProp, PropDisplay: nil, PropNaming: nil, PropSortKey: nil,
-					To: mid2, ToDisplay: nil, ToNaming: nil, ToSortKey: nil,
-					ToPath: []string{mid2Path}, ToFullPath: []string{leafViaDeep, leafViaShallow}, ToParent: []string{mid1.String()}, ToDisplayPath: nil, ToPathSortKey: nil,
-					IsLeaf: false,
-				},
-				{
-					Prop: refProp, PropDisplay: nil, PropNaming: nil, PropSortKey: nil,
-					To: mid1, ToDisplay: nil, ToNaming: nil, ToSortKey: nil,
-					ToPath: []string{mid1Path}, ToFullPath: []string{leafViaDeep, leafViaShallow}, ToParent: []string{root.String()}, ToDisplayPath: nil, ToPathSortKey: nil,
-					IsLeaf: false,
-				},
-				{
-					Prop: refProp, PropDisplay: nil, PropNaming: nil, PropSortKey: nil,
-					To: root, ToDisplay: nil, ToNaming: nil, ToSortKey: nil,
-					ToPath: []string{rootPath}, ToFullPath: []string{leafViaDeep, leafViaShallow}, ToParent: nil, ToDisplayPath: nil, ToPathSortKey: nil,
-					IsLeaf: false,
-				},
-			},
-			Has:       nil,
-			None:      nil,
-			Unknown:   nil,
-			SubRef:    nil,
-			SubAmount: nil,
-			SubTime:   nil,
-			SubHas:    nil,
-		},
-	})
+	// One source doc, instance of leaf, expanded to a ref record per ancestor as convertReference
+	// does at index time. Every bucket therefore has the same single-document count, so ordering is
+	// decided entirely by hierarchy depth.
+	indexDocument(t, ctx, esClient, index, relDoc("leafDoc", internalSearch.RelClaims{
+		hierRelRecord(refProp, leaf, []string{leafViaDeep, leafViaShallow}, true),
+		hierRelRecord(refProp, deepParent, []string{deepParentPath}, false),
+		hierRelRecord(refProp, shallowParent, []string{shallowParentPath}, false),
+		hierRelRecord(refProp, mid2, []string{mid2Path}, false),
+		hierRelRecord(refProp, mid1, []string{mid1Path}, false),
+		hierRelRecord(refProp, root, []string{rootPath}, false),
+	}))
 	refreshIndex(t, ctx, esClient, index)
 
 	session := createSession(t, ctx, search.SessionData{})
 
-	f := search.RefFilter{}
+	f := search.RefFilter{To: nil, Direct: nil}
 	results, metadata, errE := f.Get(ctx, getSearchService, session.ToQuery(nil), refProp, nil, "", nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, results, 6)
@@ -853,7 +628,7 @@ func TestRefFilterGetSubRefHierarchyIntegration(t *testing.T) {
 	esClient, getSearchService, index := initES(t)
 
 	parentProp := identifier.From("parentProp")
-	parentTo := identifier.From("parentToValue").String()
+	parentTarget := identifier.From("parentToValue")
 	subProp := identifier.From("subProp")
 	hierProp := identifier.From("hierProp")
 	animal := identifier.From("animal")
@@ -864,77 +639,115 @@ func TestRefFilterGetSubRefHierarchyIntegration(t *testing.T) {
 	mammalPath := hierProp.String() + ":" + animal.String() + "/" + mammal.String()
 	dogPath := hierProp.String() + ":" + animal.String() + "/" + mammal.String() + "/" + dog.String()
 
-	// Three sub-reference claims on the same doc, one per target in the chain.
-	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		DisplaySort: nil,
-		ID:          identifier.From("subDog"),
-		Display:     nil,
-		Text:        nil,
-		Time:        nil,
-		LastUpdated: nil,
-		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
-		Claims: internalSearch.ClaimTypes{
-			Identifier: nil,
-			String:     nil,
-			HTML:       nil,
-			Amount:     nil,
-			Time:       nil,
-			Link:       nil,
-			Reference:  nil,
-			Has:        nil,
-			None:       nil,
-			Unknown:    nil,
-			SubRef: internalSearch.SubRefClaims{
-				{
-					ParentProp: parentProp, ParentPropDisplay: nil, ParentPropNaming: nil, ParentTo: parentTo,
-					ReferenceClaim: internalSearch.ReferenceClaim{
-						Prop: subProp, PropDisplay: nil, PropNaming: nil, PropSortKey: nil,
-						To: dog, ToDisplay: nil, ToNaming: nil, ToSortKey: nil,
-						ToPath: []string{dogPath}, ToFullPath: []string{dogPath}, ToParent: []string{mammal.String()}, ToDisplayPath: nil, ToPathSortKey: nil,
-						IsLeaf: false,
-					},
-				},
-				{
-					ParentProp: parentProp, ParentPropDisplay: nil, ParentPropNaming: nil, ParentTo: parentTo,
-					ReferenceClaim: internalSearch.ReferenceClaim{
-						Prop: subProp, PropDisplay: nil, PropNaming: nil, PropSortKey: nil,
-						To: mammal, ToDisplay: nil, ToNaming: nil, ToSortKey: nil,
-						ToPath: []string{mammalPath}, ToFullPath: []string{dogPath}, ToParent: []string{animal.String()}, ToDisplayPath: nil, ToPathSortKey: nil,
-						IsLeaf: false,
-					},
-				},
-				{
-					ParentProp: parentProp, ParentPropDisplay: nil, ParentPropNaming: nil, ParentTo: parentTo,
-					ReferenceClaim: internalSearch.ReferenceClaim{
-						Prop: subProp, PropDisplay: nil, PropNaming: nil, PropSortKey: nil,
-						To: animal, ToDisplay: nil, ToNaming: nil, ToSortKey: nil,
-						ToPath: []string{animalPath}, ToFullPath: []string{dogPath}, ToParent: nil, ToDisplayPath: nil, ToPathSortKey: nil,
-						IsLeaf: false,
-					},
-				},
-			},
-			SubAmount: nil,
-			SubTime:   nil,
-			SubHas:    nil,
-		},
-	})
+	// Three expanded sub ref records in the parent claim's Sub container, one per target in the chain.
+	indexDocument(t, ctx, esClient, index, relDoc("subDog", internalSearch.RelClaims{
+		refRecord(parentProp, parentTarget, relSub(
+			hierRelRecord(subProp, dog, []string{dogPath}, true),
+			hierRelRecord(subProp, mammal, []string{mammalPath}, false),
+			hierRelRecord(subProp, animal, []string{animalPath}, false),
+		)),
+	}))
 	refreshIndex(t, ctx, esClient, index)
 
 	session := createSession(t, ctx, search.SessionData{})
 
-	f := search.RefFilter{}
-	results, metadata, errE := f.GetSubRef(ctx, getSearchService, session.ToQuery(nil), parentProp, subProp, nil, nil, "", nil, nil)
+	f := search.RefFilter{To: nil, Direct: nil}
+	parentCtx := session.ParentContextFor(parentProp, subProp)
+	results, metadata, errE := f.GetSubRef(ctx, getSearchService, session.ToQuery(nil), subProp, parentCtx, nil, "", nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// On equal counts results are ordered by hierarchy depth ascending, so ancestors precede their
 	// descendants. Each value's ChildCount is its number of distinct child values: animal has one child
 	// (mammal), mammal has one child (dog), dog is a leaf.
 	assert.Equal(t, []search.RefFilterResult{
-		{ID: animal.String(), Count: 1, ChildCount: 1, Paths: nil},
-		{ID: mammal.String(), Count: 1, ChildCount: 1, Paths: [][]string{{animal.String()}}},
-		{ID: dog.String(), Count: 1, ChildCount: 0, Paths: [][]string{{animal.String(), mammal.String()}}},
+		{ID: animal.String(), Count: 1, ChildCount: 1, ChildCountAtLeast: false, Paths: nil},
+		{ID: mammal.String(), Count: 1, ChildCount: 1, ChildCountAtLeast: false, Paths: [][]string{{animal.String()}}},
+		{ID: dog.String(), Count: 1, ChildCount: 0, ChildCountAtLeast: false, Paths: [][]string{{animal.String(), mammal.String()}}},
 	}, results)
 	assert.Equal(t, "3", metadata["total"])
+	// The sub facet's universe is the documents with a parent claim.
+	assert.Equal(t, "1", metadata["universe"])
+}
+
+// TestRefFilterGetSubRefValuelessParentsIntegration verifies that sub facets aggregate sub-claims under
+// parent claims of any rel claimType: sub records nested in a has and in an unknown parent claim both
+// contribute to the (parentProp, subProp) facet, and both parents count toward its universe.
+func TestRefFilterGetSubRefValuelessParentsIntegration(t *testing.T) {
+	t.Parallel()
+
+	ctx := t.Context()
+	esClient, getSearchService, index := initES(t)
+
+	parentProp := identifier.From("parentProp")
+	subProp := identifier.From("subProp")
+	valueA := identifier.From("valueA")
+
+	indexDocument(t, ctx, esClient, index, relDoc("hasParentDoc", internalSearch.RelClaims{
+		simpleRelRecord(internalSearch.ClaimTypeHas, parentProp, relSub(refRecord(subProp, valueA, nil))),
+	}))
+	indexDocument(t, ctx, esClient, index, relDoc("unknownParentDoc", internalSearch.RelClaims{
+		simpleRelRecord(internalSearch.ClaimTypeUnknown, parentProp, relSub(refRecord(subProp, valueA, nil))),
+	}))
+	refreshIndex(t, ctx, esClient, index)
+
+	session := createSession(t, ctx, search.SessionData{})
+
+	f := search.RefFilter{To: nil, Direct: nil}
+	parentCtx := session.ParentContextFor(parentProp, subProp)
+	results, metadata, errE := f.GetSubRef(ctx, getSearchService, session.ToQuery(nil), subProp, parentCtx, nil, "", nil, nil)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	assert.Equal(t, []search.RefFilterResult{
+		{ID: valueA.String(), Count: 2, ChildCount: 0, ChildCountAtLeast: false, Paths: nil},
+	}, results)
+	assert.Equal(t, "1", metadata["total"])
+	assert.Equal(t, "2", metadata["universe"])
+}
+
+// TestRefFilterGetSubRefMissingIntegration verifies the sub facet's missing entry: it counts documents
+// whose parent claims all lack a facetable sub-claim for the sub property, and it requires a parent claim
+// to exist, so a document without any parent claim is outside the universe and is NOT missing.
+func TestRefFilterGetSubRefMissingIntegration(t *testing.T) {
+	t.Parallel()
+
+	ctx := t.Context()
+	esClient, getSearchService, index := initES(t)
+
+	parentProp := identifier.From("parentProp")
+	parentTarget := identifier.From("parentToValue")
+	otherProp := identifier.From("otherProp")
+	otherTarget := identifier.From("otherTarget")
+	subProp := identifier.From("subProp")
+	valueA := identifier.From("valueA")
+
+	// A parent claim carrying the sub property.
+	indexDocument(t, ctx, esClient, index, relDoc("withSubDoc", internalSearch.RelClaims{
+		refRecord(parentProp, parentTarget, relSub(refRecord(subProp, valueA, nil))),
+	}))
+	// A parent claim without any sub-claim for the sub property: missing.
+	indexDocument(t, ctx, esClient, index, relDoc("parentOnlyDoc", internalSearch.RelClaims{
+		refRecord(parentProp, parentTarget, nil),
+	}))
+	// No parent claim at all: outside the sub facet's universe, so not missing.
+	indexDocument(t, ctx, esClient, index, relDoc("unrelatedDoc", internalSearch.RelClaims{
+		refRecord(otherProp, otherTarget, nil),
+	}))
+	refreshIndex(t, ctx, esClient, index)
+
+	session := createSession(t, ctx, search.SessionData{})
+
+	f := search.RefFilter{To: nil, Direct: nil}
+	parentCtx := session.ParentContextFor(parentProp, subProp)
+	results, metadata, errE := f.GetSubRef(ctx, getSearchService, session.ToQuery(nil), subProp, parentCtx, nil, "", nil, nil)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	assert.Equal(t, []search.RefFilterResult{
+		{ID: valueA.String(), Count: 1, ChildCount: 0, ChildCountAtLeast: false, Paths: nil},
+		{ID: search.MissingValueID, Count: 1, ChildCount: 0, ChildCountAtLeast: false, Paths: nil},
+	}, results)
+	assert.Equal(t, "2", metadata["total"])
+	// Only the two documents with a parent claim are in the universe; value (1) plus missing (1) covers it.
+	assert.Equal(t, "2", metadata["universe"])
 }
 
 // TestRefFilterGetChildCountMultipleInheritanceIntegration verifies that ChildCount is the exact number of
@@ -965,21 +778,21 @@ func TestRefFilterGetChildCountMultipleInheritanceIntegration(t *testing.T) {
 	catViaMammal := mammalPath + "/" + cat.String()
 
 	// dogDoc references dog (expanded to dog plus its two parents mammal and pet, as convertReference does).
-	indexDocument(t, ctx, esClient, index, refDoc("dogDoc", internalSearch.ReferenceClaims{
-		hierRefClaim(refProp, dog, []string{dogViaMammal, dogViaPet}, []string{dogViaMammal, dogViaPet}),
-		hierRefClaim(refProp, mammal, []string{mammalPath}, []string{dogViaMammal, dogViaPet}),
-		hierRefClaim(refProp, pet, []string{petPath}, []string{dogViaMammal, dogViaPet}),
+	indexDocument(t, ctx, esClient, index, relDoc("dogDoc", internalSearch.RelClaims{
+		hierRelRecord(refProp, dog, []string{dogViaMammal, dogViaPet}, true),
+		hierRelRecord(refProp, mammal, []string{mammalPath}, false),
+		hierRelRecord(refProp, pet, []string{petPath}, false),
 	}))
 	// catDoc references cat (expanded to cat plus its single parent mammal).
-	indexDocument(t, ctx, esClient, index, refDoc("catDoc", internalSearch.ReferenceClaims{
-		hierRefClaim(refProp, cat, []string{catViaMammal}, []string{catViaMammal}),
-		hierRefClaim(refProp, mammal, []string{mammalPath}, []string{catViaMammal}),
+	indexDocument(t, ctx, esClient, index, relDoc("catDoc", internalSearch.RelClaims{
+		hierRelRecord(refProp, cat, []string{catViaMammal}, true),
+		hierRelRecord(refProp, mammal, []string{mammalPath}, false),
 	}))
 	refreshIndex(t, ctx, esClient, index)
 
 	session := createSession(t, ctx, search.SessionData{})
 
-	f := search.RefFilter{}
+	f := search.RefFilter{To: nil, Direct: nil}
 	results, _, errE := f.Get(ctx, getSearchService, session.ToQuery(nil), refProp, nil, "", nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
@@ -1013,80 +826,62 @@ func TestRefFilterGetValueQueryIntegration(t *testing.T) {
 	// Two documents referencing values with distinct display labels under refProp. Germany also carries an
 	// alternative naming string so the facet search can be exercised against the naming fields, not just the
 	// display label.
-	indexDocument(t, ctx, esClient, index, internalSearch.Document{ //nolint:exhaustruct
-		ID: identifier.From("refDoc1"),
-		Claims: internalSearch.ClaimTypes{ //nolint:exhaustruct
-			Reference: internalSearch.ReferenceClaims{{ //nolint:exhaustruct
-				Prop: refProp, To: germany, ToDisplay: map[string]string{"en": "Germany"}, ToNaming: map[string][]string{"en": {"Deutschland"}},
-			}},
-		},
-	})
-	indexDocument(t, ctx, esClient, index, internalSearch.Document{ //nolint:exhaustruct
-		ID: identifier.From("refDoc2"),
-		Claims: internalSearch.ClaimTypes{ //nolint:exhaustruct
-			Reference: internalSearch.ReferenceClaims{{ //nolint:exhaustruct
-				Prop: refProp, To: france, ToDisplay: map[string]string{"en": "France"},
-			}},
-		},
-	})
+	indexDocument(t, ctx, esClient, index, relDoc("refDoc1", internalSearch.RelClaims{
+		namedRefRecord(refProp, germany, "Germany", []string{"Deutschland"}),
+	}))
+	indexDocument(t, ctx, esClient, index, relDoc("refDoc2", internalSearch.RelClaims{
+		namedRefRecord(refProp, france, "France", nil),
+	}))
 	// A document referencing a value under a different property whose label also matches "germ*". The value
 	// query on refProp must not leak this value, which guards against the per-property scope being dropped.
-	indexDocument(t, ctx, esClient, index, internalSearch.Document{ //nolint:exhaustruct
-		ID: identifier.From("refDoc3"),
-		Claims: internalSearch.ClaimTypes{ //nolint:exhaustruct
-			Reference: internalSearch.ReferenceClaims{{ //nolint:exhaustruct
-				Prop: otherProp, To: germanium, ToDisplay: map[string]string{"en": "Germanium"},
-			}},
-		},
-	})
-	// A document without refProp contributes a missing bucket that the value query must drop.
-	indexDocument(t, ctx, esClient, index, internalSearch.Document{ //nolint:exhaustruct
-		ID:     identifier.From("refDoc4"),
-		Claims: internalSearch.ClaimTypes{},
-	})
+	indexDocument(t, ctx, esClient, index, relDoc("refDoc3", internalSearch.RelClaims{
+		namedRefRecord(otherProp, germanium, "Germanium", nil),
+	}))
+	// A document without refProp contributes a missing entry that the value query must drop.
+	indexDocument(t, ctx, esClient, index, claimsDoc("refDoc4", internalSearch.ClaimTypes{}))
 	refreshIndex(t, ctx, esClient, index)
 
 	session := createSession(t, ctx, search.SessionData{})
 
 	enabledLanguages := internalSearch.EnabledLanguages(nil)
-	f := search.RefFilter{}
+	f := search.RefFilter{To: nil, Direct: nil}
 
 	// The value query (a prefix wildcard, as the frontend appends) narrows the facet to the matching value
 	// under this property only. Germanium matches "germ*" too but belongs to otherProp, so it must not leak.
-	// The missing bucket is dropped because it has no display label to match.
-	results, metadata, errE := f.Get(ctx, getSearchService, session.ToQuery(nil), refProp, nil, "germ*", enabledLanguages, nil)
+	// The missing entry is dropped because it has no display label to match.
+	results, metadata, errE := f.Get(ctx, getSearchService, session.ToQuery(nil), refProp, nil, "germ*", searchLangs(enabledLanguages), nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, []search.RefFilterResult{
-		{ID: germany.String(), Count: 1, ChildCount: 0, Paths: nil},
+		{ID: germany.String(), Count: 1, ChildCount: 0, ChildCountAtLeast: false, Paths: nil},
 	}, results)
 	assert.Equal(t, "1", metadata["total"])
 
 	// Matching is over all naming strings, not just the display label: Germany's alternative name
 	// "Deutschland" is found even though its display label is "Germany".
-	results, _, errE = f.Get(ctx, getSearchService, session.ToQuery(nil), refProp, nil, "deutsch*", enabledLanguages, nil)
+	results, _, errE = f.Get(ctx, getSearchService, session.ToQuery(nil), refProp, nil, "deutsch*", searchLangs(enabledLanguages), nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, []search.RefFilterResult{
-		{ID: germany.String(), Count: 1, ChildCount: 0, Paths: nil},
+		{ID: germany.String(), Count: 1, ChildCount: 0, ChildCountAtLeast: false, Paths: nil},
 	}, results)
 
 	// A bare "*" matches everything, including this property's own name, so the whole facet is shown (all
-	// values plus the missing bucket), still scoped to this property.
-	results, metadata, errE = f.Get(ctx, getSearchService, session.ToQuery(nil), refProp, nil, "*", enabledLanguages, nil)
+	// values plus the missing entry), still scoped to this property.
+	results, metadata, errE = f.Get(ctx, getSearchService, session.ToQuery(nil), refProp, nil, "*", searchLangs(enabledLanguages), nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.ElementsMatch(t, []search.RefFilterResult{
-		{ID: germany.String(), Count: 1, ChildCount: 0, Paths: nil},
-		{ID: france.String(), Count: 1, ChildCount: 0, Paths: nil},
-		{ID: search.MissingValueID, Count: 2, ChildCount: 0, Paths: nil},
+		{ID: germany.String(), Count: 1, ChildCount: 0, ChildCountAtLeast: false, Paths: nil},
+		{ID: france.String(), Count: 1, ChildCount: 0, ChildCountAtLeast: false, Paths: nil},
+		{ID: search.MissingValueID, Count: 2, ChildCount: 0, ChildCountAtLeast: false, Paths: nil},
 	}, results)
 	assert.Equal(t, "3", metadata["total"])
 
-	// An empty value query restores all values, including the missing bucket.
-	results, metadata, errE = f.Get(ctx, getSearchService, session.ToQuery(nil), refProp, nil, "", enabledLanguages, nil)
+	// An empty value query restores all values, including the missing entry.
+	results, metadata, errE = f.Get(ctx, getSearchService, session.ToQuery(nil), refProp, nil, "", searchLangs(enabledLanguages), nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.ElementsMatch(t, []search.RefFilterResult{
-		{ID: germany.String(), Count: 1, ChildCount: 0, Paths: nil},
-		{ID: france.String(), Count: 1, ChildCount: 0, Paths: nil},
-		{ID: search.MissingValueID, Count: 2, ChildCount: 0, Paths: nil},
+		{ID: germany.String(), Count: 1, ChildCount: 0, ChildCountAtLeast: false, Paths: nil},
+		{ID: france.String(), Count: 1, ChildCount: 0, ChildCountAtLeast: false, Paths: nil},
+		{ID: search.MissingValueID, Count: 2, ChildCount: 0, ChildCountAtLeast: false, Paths: nil},
 	}, results)
 	assert.Equal(t, "3", metadata["total"])
 }
@@ -1098,62 +893,46 @@ func TestRefFilterGetSubRefParentNameQueryIntegration(t *testing.T) {
 	esClient, getSearchService, index := initES(t)
 
 	parentProp := identifier.From("hasLocation")
-	parentTo := identifier.From("venue").String()
+	parentTarget := identifier.From("venue")
 	subProp := identifier.From("hasUser")
 	alice := identifier.From("alice")
 
-	// A sub-reference facet "has location > has user" with value "Alice". The parent property's label is
-	// denormalized so the facet can be matched by it.
-	indexDocument(t, ctx, esClient, index, internalSearch.Document{ //nolint:exhaustruct
-		ID: identifier.From("subDoc1"),
-		Claims: internalSearch.ClaimTypes{ //nolint:exhaustruct
-			SubRef: internalSearch.SubRefClaims{{ //nolint:exhaustruct
-				ParentProp:        parentProp,
-				ParentPropDisplay: map[string]string{"en": "has location"},
-				ParentTo:          parentTo,
-				ReferenceClaim: internalSearch.ReferenceClaim{ //nolint:exhaustruct
-					Prop: subProp, PropDisplay: map[string]string{"en": "has user"},
-					To: alice, ToDisplay: map[string]string{"en": "Alice"},
-				},
-			}},
-		},
-	})
+	// A sub-reference facet "has location > has user" with value "Alice". The parent property's label lives
+	// on the parent record and the sub-property's label on the sub record, so the facet can be matched by
+	// either property name or by the value's name.
+	subRecord := namedRefRecord(subProp, alice, "Alice", nil)
+	subRecord.PropDisplay = map[string]string{"en": "has user"}
+	parentRecord := refRecord(parentProp, parentTarget, relSub(subRecord))
+	parentRecord.PropDisplay = map[string]string{"en": "has location"}
+	indexDocument(t, ctx, esClient, index, relDoc("subDoc1", internalSearch.RelClaims{parentRecord}))
 	refreshIndex(t, ctx, esClient, index)
 
 	session := createSession(t, ctx, search.SessionData{})
 	enabledLanguages := internalSearch.EnabledLanguages(nil)
-	f := search.RefFilter{}
+	f := search.RefFilter{To: nil, Direct: nil}
+	parentCtx := session.ParentContextFor(parentProp, subProp)
 
-	expected := []search.RefFilterResult{{ID: alice.String(), Count: 1, ChildCount: 0, Paths: nil}}
+	expected := []search.RefFilterResult{{ID: alice.String(), Count: 1, ChildCount: 0, ChildCountAtLeast: false, Paths: nil}}
 
 	// Matched by the parent property's name ("has location").
-	results, _, errE := f.GetSubRef(ctx, getSearchService, session.ToQuery(nil), parentProp, subProp, nil, nil, "has location*", enabledLanguages, nil)
+	results, _, errE := f.GetSubRef(ctx, getSearchService, session.ToQuery(nil), subProp, parentCtx, nil, "has location*", searchLangs(enabledLanguages), nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, expected, results)
 
 	// Matched by the sub-property's name ("has user").
-	results, _, errE = f.GetSubRef(ctx, getSearchService, session.ToQuery(nil), parentProp, subProp, nil, nil, "has user*", enabledLanguages, nil)
+	results, _, errE = f.GetSubRef(ctx, getSearchService, session.ToQuery(nil), subProp, parentCtx, nil, "has user*", searchLangs(enabledLanguages), nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, expected, results)
 
 	// Matched by the value's name ("Alice").
-	results, _, errE = f.GetSubRef(ctx, getSearchService, session.ToQuery(nil), parentProp, subProp, nil, nil, "alic*", enabledLanguages, nil)
+	results, _, errE = f.GetSubRef(ctx, getSearchService, session.ToQuery(nil), subProp, parentCtx, nil, "alic*", searchLangs(enabledLanguages), nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, expected, results)
 
 	// A query that matches neither the parent, sub-property, nor value names returns nothing.
-	results, _, errE = f.GetSubRef(ctx, getSearchService, session.ToQuery(nil), parentProp, subProp, nil, nil, "zzz*", enabledLanguages, nil)
+	results, _, errE = f.GetSubRef(ctx, getSearchService, session.ToQuery(nil), subProp, parentCtx, nil, "zzz*", searchLangs(enabledLanguages), nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Empty(t, results)
-}
-
-// refResultsByID indexes reference filter results by their value id for assertions.
-func refResultsByID(results []search.RefFilterResult) map[string]search.RefFilterResult {
-	out := make(map[string]search.RefFilterResult, len(results))
-	for _, r := range results {
-		out[r.ID] = r
-	}
-	return out
 }
 
 // TestRefFilterGetSelectedValuesWithAncestorsIntegration verifies that an active reference filter always shows
@@ -1178,22 +957,22 @@ func TestRefFilterGetSelectedValuesWithAncestorsIntegration(t *testing.T) {
 	classPath := vocabularyPath + "/" + class.String()
 
 	// unitDoc references unit (expanded to unit + vocabulary); classDoc references class (expanded likewise).
-	indexDocument(t, ctx, esClient, index, refDoc("unitDoc", internalSearch.ReferenceClaims{
-		hierRefClaim(instanceOf, unit, []string{unitPath}, []string{unitPath}),
-		hierRefClaim(instanceOf, vocabulary, []string{vocabularyPath}, []string{unitPath}),
+	indexDocument(t, ctx, esClient, index, relDoc("unitDoc", internalSearch.RelClaims{
+		hierRelRecord(instanceOf, unit, []string{unitPath}, true),
+		hierRelRecord(instanceOf, vocabulary, []string{vocabularyPath}, false),
 	}))
-	indexDocument(t, ctx, esClient, index, refDoc("classDoc", internalSearch.ReferenceClaims{
-		hierRefClaim(instanceOf, class, []string{classPath}, []string{classPath}),
-		hierRefClaim(instanceOf, vocabulary, []string{vocabularyPath}, []string{classPath}),
+	indexDocument(t, ctx, esClient, index, relDoc("classDoc", internalSearch.RelClaims{
+		hierRelRecord(instanceOf, class, []string{classPath}, true),
+		hierRelRecord(instanceOf, vocabulary, []string{vocabularyPath}, false),
 	}))
 	refreshIndex(t, ctx, esClient, index)
 
 	// The rest of the search matches only classDoc, so unit has zero documents here. Both unit and class are
 	// selected; unit must still appear (at count 0) together with its ancestor vocabulary.
 	restOfSearch := esdsl.NewNestedQuery(
-		esdsl.NewTermQuery("claims.ref.to", esdsl.NewFieldValue().String(class.String())),
-	).Path("claims.ref")
-	f := search.RefFilter{To: []search.ToValue{{ID: class}, {ID: unit}}} //nolint:exhaustruct
+		esdsl.NewTermQuery("claims.rel.to", esdsl.NewFieldValue().String(class.String())),
+	).Path("claims.rel")
+	f := search.RefFilter{To: []search.ToValue{{ID: class}, {ID: unit}}, Direct: nil}
 	resolver := newPathResolver(map[identifier.Identifier][]string{
 		unit:  {unitPath},
 		class: {classPath},
@@ -1232,9 +1011,9 @@ func TestRefFilterGetSelectedValueVanishedIntegration(t *testing.T) {
 	vocabularyPath := hierProp.String() + ":" + vocabulary.String()
 	classPath := vocabularyPath + "/" + class.String()
 
-	indexDocument(t, ctx, esClient, index, refDoc("classDoc", internalSearch.ReferenceClaims{
-		hierRefClaim(instanceOf, class, []string{classPath}, []string{classPath}),
-		hierRefClaim(instanceOf, vocabulary, []string{vocabularyPath}, []string{classPath}),
+	indexDocument(t, ctx, esClient, index, relDoc("classDoc", internalSearch.RelClaims{
+		hierRelRecord(instanceOf, class, []string{classPath}, true),
+		hierRelRecord(instanceOf, vocabulary, []string{vocabularyPath}, false),
 	}))
 	refreshIndex(t, ctx, esClient, index)
 
@@ -1242,7 +1021,7 @@ func TestRefFilterGetSelectedValueVanishedIntegration(t *testing.T) {
 
 	// ghost is selected but referenced by no document, so it has no indexed toPath. It must still be returned
 	// flat (no ancestors) at count 0.
-	f := search.RefFilter{To: []search.ToValue{{ID: ghost}}} //nolint:exhaustruct
+	f := search.RefFilter{To: []search.ToValue{{ID: ghost}}, Direct: nil}
 	results, _, errE := f.Get(ctx, getSearchService, session.ToQuery(nil), instanceOf, nil, "", nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
@@ -1253,8 +1032,8 @@ func TestRefFilterGetSelectedValueVanishedIntegration(t *testing.T) {
 }
 
 // TestRefFilterGetSubRefSelectedValueWithAncestorsIntegration verifies the same selected-value surfacing for
-// sub-reference filters: an active sub-ref selection is always shown together with its ancestor chain, even
-// when it matches no document under the rest of the search.
+// sub facets: an active sub-ref selection is always shown together with its ancestor chain, even when it
+// matches no document under the rest of the search.
 func TestRefFilterGetSubRefSelectedValueWithAncestorsIntegration(t *testing.T) {
 	t.Parallel()
 
@@ -1262,7 +1041,7 @@ func TestRefFilterGetSubRefSelectedValueWithAncestorsIntegration(t *testing.T) {
 	esClient, getSearchService, index := initES(t)
 
 	parentProp := identifier.From("parentProp")
-	parentTo := identifier.From("parentToValue").String()
+	parentTarget := identifier.From("parentToValue")
 	subProp := identifier.From("subProp")
 	hierProp := identifier.From("hierProp")
 	animal := identifier.From("animal")
@@ -1275,46 +1054,36 @@ func TestRefFilterGetSubRefSelectedValueWithAncestorsIntegration(t *testing.T) {
 	dogPath := mammalPath + "/" + dog.String()
 	catPath := mammalPath + "/" + cat.String()
 
-	subHierClaim := func(to identifier.Identifier, toPath, fullPath string) internalSearch.SubRefClaim {
-		return internalSearch.SubRefClaim{ //nolint:exhaustruct
-			ParentProp: parentProp, ParentTo: parentTo,
-			ReferenceClaim: internalSearch.ReferenceClaim{ //nolint:exhaustruct
-				Prop: subProp, To: to, ToPath: []string{toPath}, ToFullPath: []string{fullPath},
-			},
-		}
-	}
-
 	// subDog references dog (expanded to dog, mammal, animal); subCat references cat (expanded likewise).
-	indexDocument(t, ctx, esClient, index, internalSearch.Document{ //nolint:exhaustruct
-		ID: identifier.From("subDog"),
-		Claims: internalSearch.ClaimTypes{ //nolint:exhaustruct
-			SubRef: internalSearch.SubRefClaims{
-				subHierClaim(dog, dogPath, dogPath),
-				subHierClaim(mammal, mammalPath, dogPath),
-				subHierClaim(animal, animalPath, dogPath),
-			},
-		},
-	})
-	indexDocument(t, ctx, esClient, index, internalSearch.Document{ //nolint:exhaustruct
-		ID: identifier.From("subCat"),
-		Claims: internalSearch.ClaimTypes{ //nolint:exhaustruct
-			SubRef: internalSearch.SubRefClaims{
-				subHierClaim(cat, catPath, catPath),
-				subHierClaim(mammal, mammalPath, catPath),
-				subHierClaim(animal, animalPath, catPath),
-			},
-		},
-	})
+	// The expanded records live in the parent claim's Sub container.
+	indexDocument(t, ctx, esClient, index, relDoc("subDog", internalSearch.RelClaims{
+		refRecord(parentProp, parentTarget, relSub(
+			hierRelRecord(subProp, dog, []string{dogPath}, true),
+			hierRelRecord(subProp, mammal, []string{mammalPath}, false),
+			hierRelRecord(subProp, animal, []string{animalPath}, false),
+		)),
+	}))
+	indexDocument(t, ctx, esClient, index, relDoc("subCat", internalSearch.RelClaims{
+		refRecord(parentProp, parentTarget, relSub(
+			hierRelRecord(subProp, cat, []string{catPath}, true),
+			hierRelRecord(subProp, mammal, []string{mammalPath}, false),
+			hierRelRecord(subProp, animal, []string{animalPath}, false),
+		)),
+	}))
 	refreshIndex(t, ctx, esClient, index)
 
 	// The rest of the search matches only subCat, so dog has zero documents here. dog is selected; it must
 	// still appear at count 0 with its full ancestor chain (animal -> mammal -> dog).
 	restOfSearch := esdsl.NewNestedQuery(
-		esdsl.NewTermQuery("claims.subRef.to", esdsl.NewFieldValue().String(cat.String())),
-	).Path("claims.subRef")
-	f := search.RefFilter{To: []search.ToValue{{ID: dog}}} //nolint:exhaustruct
+		esdsl.NewNestedQuery(
+			esdsl.NewTermQuery("claims.rel.sub.rel.to", esdsl.NewFieldValue().String(cat.String())),
+		).Path("claims.rel.sub.rel"),
+	).Path("claims.rel")
+	f := search.RefFilter{To: []search.ToValue{{ID: dog}}, Direct: nil}
 	resolver := newPathResolver(map[identifier.Identifier][]string{dog: {dogPath}})
-	results, _, errE := f.GetSubRef(ctx, getSearchService, restOfSearch, parentProp, subProp, nil, nil, "", nil, resolver)
+	var sessionData search.SessionData
+	parentCtx := sessionData.ParentContextFor(parentProp, subProp)
+	results, _, errE := f.GetSubRef(ctx, getSearchService, restOfSearch, subProp, parentCtx, nil, "", nil, resolver)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	byID := refResultsByID(results)
@@ -1329,9 +1098,9 @@ func TestRefFilterGetSubRefSelectedValueWithAncestorsIntegration(t *testing.T) {
 	assert.Equal(t, int64(1), byID[cat.String()].Count)
 }
 
-// TestRefFilterGetMissingOnlySelectionIntegration verifies that a missing-only selection that matches nothing
-// still produces the missing row (at count 0) so it can be unchecked, without needing the selected-values
-// aggregation.
+// TestRefFilterGetMissingOnlySelectionIntegration verifies that a missing-only specials selection that
+// matches nothing still produces the missing row (at count 0) so it can be unchecked, without needing the
+// selected-values aggregation.
 func TestRefFilterGetMissingOnlySelectionIntegration(t *testing.T) {
 	t.Parallel()
 
@@ -1341,17 +1110,18 @@ func TestRefFilterGetMissingOnlySelectionIntegration(t *testing.T) {
 	instanceOf := identifier.From("instanceOf")
 	class := identifier.From("class")
 
-	// Every indexed document has the property, so the missing count is zero and the existing code would not add
-	// a missing row on its own.
-	indexDocument(t, ctx, esClient, index, refDoc("classDoc", internalSearch.ReferenceClaims{
-		hierRefClaim(instanceOf, class, nil, nil),
+	// Every indexed document has the property, so the missing count is zero and the missing row is added only
+	// because the path's specials selection selects it.
+	indexDocument(t, ctx, esClient, index, relDoc("classDoc", internalSearch.RelClaims{
+		refRecord(instanceOf, class, nil),
 	}))
 	refreshIndex(t, ctx, esClient, index)
 
 	session := createSession(t, ctx, search.SessionData{})
 
-	f := search.RefFilter{Missing: true} //nolint:exhaustruct
-	results, _, errE := f.Get(ctx, getSearchService, session.ToQuery(nil), instanceOf, nil, "", nil, nil)
+	f := search.RefFilter{To: nil, Direct: nil}
+	specials := &search.SpecialsFilter{Missing: true, None: false, Unknown: false, HasProperty: false}
+	results, _, errE := f.Get(ctx, getSearchService, session.ToQuery(nil), instanceOf, specials, "", nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	byID := refResultsByID(results)
@@ -1381,42 +1151,41 @@ func TestRefFilterGetValueSearchHierarchyIntegration(t *testing.T) {
 	languagePath := vocabularyPath + "/" + language.String()
 	classPath := hierProp.String() + ":" + class.String()
 
-	// A reference claim carrying a display label (so the value-query label match can find it) and its toPath.
-	hierClaim := func(to identifier.Identifier, display, toPath, fullPath string) internalSearch.ReferenceClaim {
-		return internalSearch.ReferenceClaim{ //nolint:exhaustruct
-			Prop: instanceOf, To: to, ToDisplay: map[string]string{"en": display},
-			ToPath: []string{toPath}, ToFullPath: []string{fullPath},
-		}
+	// A ref record carrying a display label (so the value-query label match can find it) and its toPath.
+	hierNamed := func(to identifier.Identifier, display, toPath string, isLeaf bool) internalSearch.RelClaim {
+		rec := hierRelRecord(instanceOf, to, []string{toPath}, isLeaf)
+		rec.ToDisplay = map[string]string{"en": display}
+		return rec
 	}
 
 	// Hierarchy: vocabulary > {unit, language}; class is a separate root. Counts: vocabulary 3 (two unit docs
 	// plus one language doc), unit 2, language 1, class 1.
-	indexDocument(t, ctx, esClient, index, refDoc("unitDoc1", internalSearch.ReferenceClaims{
-		hierClaim(unit, "unit", unitPath, unitPath),
-		hierClaim(vocabulary, "vocabulary", vocabularyPath, unitPath),
+	indexDocument(t, ctx, esClient, index, relDoc("unitDoc1", internalSearch.RelClaims{
+		hierNamed(unit, "unit", unitPath, true),
+		hierNamed(vocabulary, "vocabulary", vocabularyPath, false),
 	}))
-	indexDocument(t, ctx, esClient, index, refDoc("unitDoc2", internalSearch.ReferenceClaims{
-		hierClaim(unit, "unit", unitPath, unitPath),
-		hierClaim(vocabulary, "vocabulary", vocabularyPath, unitPath),
+	indexDocument(t, ctx, esClient, index, relDoc("unitDoc2", internalSearch.RelClaims{
+		hierNamed(unit, "unit", unitPath, true),
+		hierNamed(vocabulary, "vocabulary", vocabularyPath, false),
 	}))
-	indexDocument(t, ctx, esClient, index, refDoc("languageDoc", internalSearch.ReferenceClaims{
-		hierClaim(language, "language", languagePath, languagePath),
-		hierClaim(vocabulary, "vocabulary", vocabularyPath, languagePath),
+	indexDocument(t, ctx, esClient, index, relDoc("languageDoc", internalSearch.RelClaims{
+		hierNamed(language, "language", languagePath, true),
+		hierNamed(vocabulary, "vocabulary", vocabularyPath, false),
 	}))
-	indexDocument(t, ctx, esClient, index, refDoc("classDoc", internalSearch.ReferenceClaims{
-		hierClaim(class, "class", classPath, classPath),
+	indexDocument(t, ctx, esClient, index, relDoc("classDoc", internalSearch.RelClaims{
+		hierNamed(class, "class", classPath, true),
 	}))
 	refreshIndex(t, ctx, esClient, index)
 
 	enabledLanguages := internalSearch.EnabledLanguages(nil)
 	query := createSession(t, ctx, search.SessionData{}).ToQuery(enabledLanguages)
 	// unit is the active selection; this must not force it to show during a search that it does not match.
-	f := search.RefFilter{To: []search.ToValue{{ID: unit}}} //nolint:exhaustruct
+	f := search.RefFilter{To: []search.ToValue{{ID: unit}}, Direct: nil}
 	resolver := newPathResolver(map[identifier.Identifier][]string{unit: {unitPath}})
 
 	// Searching the value name "unit" shows unit and, for tree context, its ancestor vocabulary with its real
 	// (no-search) count of 3, not 0. The sibling language and the unrelated class are not shown.
-	results, metadata, errE := f.Get(ctx, getSearchService, query, instanceOf, nil, "unit*", enabledLanguages, resolver)
+	results, metadata, errE := f.Get(ctx, getSearchService, query, instanceOf, nil, "unit*", searchLangs(enabledLanguages), resolver)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	byID := refResultsByID(results)
 	require.Contains(t, byID, unit.String())
@@ -1430,7 +1199,7 @@ func TestRefFilterGetValueSearchHierarchyIntegration(t *testing.T) {
 
 	// Searching "voca" shows vocabulary (real count 3). unit does not match and is not force-shown, even though
 	// it is the active selection; vocabulary's other descendants are not shown either.
-	results, metadata, errE = f.Get(ctx, getSearchService, query, instanceOf, nil, "voca*", enabledLanguages, resolver)
+	results, metadata, errE = f.Get(ctx, getSearchService, query, instanceOf, nil, "voca*", searchLangs(enabledLanguages), resolver)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	byID = refResultsByID(results)
 	require.Contains(t, byID, vocabulary.String())
@@ -1441,7 +1210,7 @@ func TestRefFilterGetValueSearchHierarchyIntegration(t *testing.T) {
 	assert.Equal(t, "1", metadata["total"])
 
 	// Searching "class" shows only class. The selected unit and its ancestor vocabulary are not force-shown.
-	results, _, errE = f.Get(ctx, getSearchService, query, instanceOf, nil, "class*", enabledLanguages, resolver)
+	results, _, errE = f.Get(ctx, getSearchService, query, instanceOf, nil, "class*", searchLangs(enabledLanguages), resolver)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	byID = refResultsByID(results)
 	require.Contains(t, byID, class.String())
@@ -1472,42 +1241,40 @@ func TestRefFilterGetSelectedAugmentValueSearchIntegration(t *testing.T) {
 	unitPath := vocabularyPath + "/" + unit.String()
 	classPath := hierProp.String() + ":" + class.String()
 
-	// A reference claim carrying a display label and optional naming strings (so the value-query label match can
+	// A ref record carrying a display label and optional naming strings (so the value-query label match can
 	// find the value by either), plus its toPath.
-	hierNamedClaim := func(to identifier.Identifier, display string, naming []string, toPath, fullPath string) internalSearch.ReferenceClaim {
-		var toNaming map[string][]string
+	hierNamed := func(to identifier.Identifier, display string, naming []string, toPath string, isLeaf bool) internalSearch.RelClaim {
+		rec := hierRelRecord(instanceOf, to, []string{toPath}, isLeaf)
+		rec.ToDisplay = map[string]string{"en": display}
 		if naming != nil {
-			toNaming = map[string][]string{"en": naming}
+			rec.ToNaming = map[string][]string{"en": naming}
 		}
-		return internalSearch.ReferenceClaim{ //nolint:exhaustruct
-			Prop: instanceOf, To: to, ToDisplay: map[string]string{"en": display}, ToNaming: toNaming,
-			ToPath: []string{toPath}, ToFullPath: []string{fullPath},
-		}
+		return rec
 	}
 
 	// unitDoc references unit (expanded to unit + vocabulary); classDoc references class. The search scope below
 	// matches only classDoc, so unit and vocabulary have zero documents in scope, yet exist globally.
-	indexDocument(t, ctx, esClient, index, refDoc("unitDoc", internalSearch.ReferenceClaims{
-		hierNamedClaim(unit, "unit", []string{"metre"}, unitPath, unitPath),
-		hierNamedClaim(vocabulary, "vocabulary", nil, vocabularyPath, unitPath),
+	indexDocument(t, ctx, esClient, index, relDoc("unitDoc", internalSearch.RelClaims{
+		hierNamed(unit, "unit", []string{"metre"}, unitPath, true),
+		hierNamed(vocabulary, "vocabulary", nil, vocabularyPath, false),
 	}))
-	indexDocument(t, ctx, esClient, index, refDoc("classDoc", internalSearch.ReferenceClaims{
-		hierNamedClaim(class, "class", nil, classPath, classPath),
+	indexDocument(t, ctx, esClient, index, relDoc("classDoc", internalSearch.RelClaims{
+		hierNamed(class, "class", nil, classPath, true),
 	}))
 	refreshIndex(t, ctx, esClient, index)
 
 	enabledLanguages := internalSearch.EnabledLanguages(nil)
 	// The rest of the search matches only classDoc, so the selected unit is not in scope.
 	restOfSearch := esdsl.NewNestedQuery(
-		esdsl.NewTermQuery("claims.ref.to", esdsl.NewFieldValue().String(class.String())),
-	).Path("claims.ref")
+		esdsl.NewTermQuery("claims.rel.to", esdsl.NewFieldValue().String(class.String())),
+	).Path("claims.rel")
 	// unit is the active selection; its augment is unit plus its ancestor vocabulary.
-	f := search.RefFilter{To: []search.ToValue{{ID: unit}}} //nolint:exhaustruct
+	f := search.RefFilter{To: []search.ToValue{{ID: unit}}, Direct: nil}
 	resolver := newPathResolver(map[identifier.Identifier][]string{unit: {unitPath}})
 
 	// Searching unit's display label surfaces unit (at count 0) and its ancestor vocabulary for tree context,
 	// even though neither is in the search scope. The in-scope class value does not match and is not shown.
-	results, _, errE := f.Get(ctx, getSearchService, restOfSearch, instanceOf, nil, "unit*", enabledLanguages, resolver)
+	results, _, errE := f.Get(ctx, getSearchService, restOfSearch, instanceOf, nil, "unit*", searchLangs(enabledLanguages), resolver)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	byID := refResultsByID(results)
 	require.Contains(t, byID, unit.String())
@@ -1519,7 +1286,7 @@ func TestRefFilterGetSelectedAugmentValueSearchIntegration(t *testing.T) {
 
 	// Searching unit by one of its naming strings ("metre") surfaces it too: the augment is matched by the full
 	// value matcher (display plus naming), not only the display label.
-	results, _, errE = f.Get(ctx, getSearchService, restOfSearch, instanceOf, nil, "metr*", enabledLanguages, resolver)
+	results, _, errE = f.Get(ctx, getSearchService, restOfSearch, instanceOf, nil, "metr*", searchLangs(enabledLanguages), resolver)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	byID = refResultsByID(results)
 	require.Contains(t, byID, unit.String())
@@ -1527,7 +1294,7 @@ func TestRefFilterGetSelectedAugmentValueSearchIntegration(t *testing.T) {
 
 	// Searching the ancestor's label ("voca") surfaces vocabulary only because its descendant unit is selected;
 	// unit itself does not match and is not pulled in.
-	results, _, errE = f.Get(ctx, getSearchService, restOfSearch, instanceOf, nil, "voca*", enabledLanguages, resolver)
+	results, _, errE = f.Get(ctx, getSearchService, restOfSearch, instanceOf, nil, "voca*", searchLangs(enabledLanguages), resolver)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	byID = refResultsByID(results)
 	require.Contains(t, byID, vocabulary.String())
@@ -1535,7 +1302,7 @@ func TestRefFilterGetSelectedAugmentValueSearchIntegration(t *testing.T) {
 	assert.NotContains(t, byID, unit.String())
 
 	// Searching "class" matches the real in-scope class value and hides the augment entirely.
-	results, _, errE = f.Get(ctx, getSearchService, restOfSearch, instanceOf, nil, "class*", enabledLanguages, resolver)
+	results, _, errE = f.Get(ctx, getSearchService, restOfSearch, instanceOf, nil, "class*", searchLangs(enabledLanguages), resolver)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	byID = refResultsByID(results)
 	require.Contains(t, byID, class.String())
@@ -1545,7 +1312,7 @@ func TestRefFilterGetSelectedAugmentValueSearchIntegration(t *testing.T) {
 
 	// Outside a value search the whole augment (unit plus vocabulary) is force-shown at count 0 alongside the
 	// in-scope class value.
-	results, _, errE = f.Get(ctx, getSearchService, restOfSearch, instanceOf, nil, "", enabledLanguages, resolver)
+	results, _, errE = f.Get(ctx, getSearchService, restOfSearch, instanceOf, nil, "", searchLangs(enabledLanguages), resolver)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	byID = refResultsByID(results)
 	require.Contains(t, byID, unit.String())
@@ -1558,10 +1325,10 @@ func TestRefFilterGetSelectedAugmentValueSearchIntegration(t *testing.T) {
 }
 
 // TestRefFilterGetSubRefSelectedAugmentValueSearchIntegration verifies the same augment searchability for
-// sub-reference filters: an active sub-ref selection (plus its ancestors), which has zero documents in the
-// current search scope, is searchable by display label or naming string, an ancestor surfaces only because
-// its selected descendant pulls it into the augment, a non-matching term hides the augment, and outside a
-// search the whole augment is shown at count 0.
+// sub facets: an active sub-ref selection (plus its ancestors), which has zero documents in the current
+// search scope, is searchable by display label or naming string, an ancestor surfaces only because its
+// selected descendant pulls it into the augment, a non-matching term hides the augment, and outside a search
+// the whole augment is shown at count 0.
 func TestRefFilterGetSubRefSelectedAugmentValueSearchIntegration(t *testing.T) {
 	t.Parallel()
 
@@ -1569,7 +1336,7 @@ func TestRefFilterGetSubRefSelectedAugmentValueSearchIntegration(t *testing.T) {
 	esClient, getSearchService, index := initES(t)
 
 	parentProp := identifier.From("parentProp")
-	parentTo := identifier.From("parentToValue").String()
+	parentTarget := identifier.From("parentToValue")
 	subProp := identifier.From("subProp")
 	hierProp := identifier.From("hierProp")
 	animal := identifier.From("animal")
@@ -1582,52 +1349,45 @@ func TestRefFilterGetSubRefSelectedAugmentValueSearchIntegration(t *testing.T) {
 	dogPath := mammalPath + "/" + dog.String()
 	otherPath := hierProp.String() + ":" + other.String()
 
-	subNamedClaim := func(to identifier.Identifier, display string, naming []string, toPath, fullPath string) internalSearch.SubRefClaim {
-		var toNaming map[string][]string
+	subNamed := func(to identifier.Identifier, display string, naming []string, toPath string, isLeaf bool) internalSearch.RelClaim {
+		rec := hierRelRecord(subProp, to, []string{toPath}, isLeaf)
+		rec.ToDisplay = map[string]string{"en": display}
 		if naming != nil {
-			toNaming = map[string][]string{"en": naming}
+			rec.ToNaming = map[string][]string{"en": naming}
 		}
-		return internalSearch.SubRefClaim{ //nolint:exhaustruct
-			ParentProp: parentProp, ParentTo: parentTo,
-			ReferenceClaim: internalSearch.ReferenceClaim{ //nolint:exhaustruct
-				Prop: subProp, To: to, ToDisplay: map[string]string{"en": display}, ToNaming: toNaming,
-				ToPath: []string{toPath}, ToFullPath: []string{fullPath},
-			},
-		}
+		return rec
 	}
 
 	// subDog references dog (expanded to dog, mammal, animal); subOther references the unrelated other root. The
 	// search scope below matches only subOther, so dog and its ancestors have zero documents in scope.
-	indexDocument(t, ctx, esClient, index, internalSearch.Document{ //nolint:exhaustruct
-		ID: identifier.From("subDog"),
-		Claims: internalSearch.ClaimTypes{ //nolint:exhaustruct
-			SubRef: internalSearch.SubRefClaims{
-				subNamedClaim(dog, "dog", []string{"canine"}, dogPath, dogPath),
-				subNamedClaim(mammal, "mammal", nil, mammalPath, dogPath),
-				subNamedClaim(animal, "animal", nil, animalPath, dogPath),
-			},
-		},
-	})
-	indexDocument(t, ctx, esClient, index, internalSearch.Document{ //nolint:exhaustruct
-		ID: identifier.From("subOther"),
-		Claims: internalSearch.ClaimTypes{ //nolint:exhaustruct
-			SubRef: internalSearch.SubRefClaims{
-				subNamedClaim(other, "other", nil, otherPath, otherPath),
-			},
-		},
-	})
+	indexDocument(t, ctx, esClient, index, relDoc("subDog", internalSearch.RelClaims{
+		refRecord(parentProp, parentTarget, relSub(
+			subNamed(dog, "dog", []string{"canine"}, dogPath, true),
+			subNamed(mammal, "mammal", nil, mammalPath, false),
+			subNamed(animal, "animal", nil, animalPath, false),
+		)),
+	}))
+	indexDocument(t, ctx, esClient, index, relDoc("subOther", internalSearch.RelClaims{
+		refRecord(parentProp, parentTarget, relSub(
+			subNamed(other, "other", nil, otherPath, true),
+		)),
+	}))
 	refreshIndex(t, ctx, esClient, index)
 
 	enabledLanguages := internalSearch.EnabledLanguages(nil)
 	restOfSearch := esdsl.NewNestedQuery(
-		esdsl.NewTermQuery("claims.subRef.to", esdsl.NewFieldValue().String(other.String())),
-	).Path("claims.subRef")
-	f := search.RefFilter{To: []search.ToValue{{ID: dog}}} //nolint:exhaustruct
+		esdsl.NewNestedQuery(
+			esdsl.NewTermQuery("claims.rel.sub.rel.to", esdsl.NewFieldValue().String(other.String())),
+		).Path("claims.rel.sub.rel"),
+	).Path("claims.rel")
+	f := search.RefFilter{To: []search.ToValue{{ID: dog}}, Direct: nil}
 	resolver := newPathResolver(map[identifier.Identifier][]string{dog: {dogPath}})
+	var sessionData search.SessionData
+	parentCtx := sessionData.ParentContextFor(parentProp, subProp)
 
 	// Searching dog's display label surfaces dog (count 0) with its full ancestor chain, even though dog is not
 	// in scope.
-	results, _, errE := f.GetSubRef(ctx, getSearchService, restOfSearch, parentProp, subProp, nil, nil, "dog*", enabledLanguages, resolver)
+	results, _, errE := f.GetSubRef(ctx, getSearchService, restOfSearch, subProp, parentCtx, nil, "dog*", searchLangs(enabledLanguages), resolver)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	byID := refResultsByID(results)
 	require.Contains(t, byID, dog.String())
@@ -1638,14 +1398,14 @@ func TestRefFilterGetSubRefSelectedAugmentValueSearchIntegration(t *testing.T) {
 	assert.NotContains(t, byID, other.String())
 
 	// Searching dog by a naming string ("canine") surfaces it too.
-	results, _, errE = f.GetSubRef(ctx, getSearchService, restOfSearch, parentProp, subProp, nil, nil, "canin*", enabledLanguages, resolver)
+	results, _, errE = f.GetSubRef(ctx, getSearchService, restOfSearch, subProp, parentCtx, nil, "canin*", searchLangs(enabledLanguages), resolver)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	byID = refResultsByID(results)
 	require.Contains(t, byID, dog.String())
 
 	// Searching the ancestor's label ("anim") surfaces animal only because its descendant dog is selected; dog
 	// and the intermediate mammal are not pulled in.
-	results, _, errE = f.GetSubRef(ctx, getSearchService, restOfSearch, parentProp, subProp, nil, nil, "anim*", enabledLanguages, resolver)
+	results, _, errE = f.GetSubRef(ctx, getSearchService, restOfSearch, subProp, parentCtx, nil, "anim*", searchLangs(enabledLanguages), resolver)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	byID = refResultsByID(results)
 	require.Contains(t, byID, animal.String())
@@ -1654,7 +1414,7 @@ func TestRefFilterGetSubRefSelectedAugmentValueSearchIntegration(t *testing.T) {
 	assert.NotContains(t, byID, mammal.String())
 
 	// Searching "other" matches the real in-scope value and hides the augment.
-	results, _, errE = f.GetSubRef(ctx, getSearchService, restOfSearch, parentProp, subProp, nil, nil, "other*", enabledLanguages, resolver)
+	results, _, errE = f.GetSubRef(ctx, getSearchService, restOfSearch, subProp, parentCtx, nil, "other*", searchLangs(enabledLanguages), resolver)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	byID = refResultsByID(results)
 	require.Contains(t, byID, other.String())
@@ -1663,7 +1423,7 @@ func TestRefFilterGetSubRefSelectedAugmentValueSearchIntegration(t *testing.T) {
 	assert.NotContains(t, byID, animal.String())
 
 	// Outside a value search the whole augment (dog plus its ancestors) is force-shown at count 0.
-	results, _, errE = f.GetSubRef(ctx, getSearchService, restOfSearch, parentProp, subProp, nil, nil, "", enabledLanguages, resolver)
+	results, _, errE = f.GetSubRef(ctx, getSearchService, restOfSearch, subProp, parentCtx, nil, "", searchLangs(enabledLanguages), resolver)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	byID = refResultsByID(results)
 	require.Contains(t, byID, dog.String())
@@ -1671,4 +1431,79 @@ func TestRefFilterGetSubRefSelectedAugmentValueSearchIntegration(t *testing.T) {
 	require.Contains(t, byID, mammal.String())
 	require.Contains(t, byID, animal.String())
 	require.Contains(t, byID, other.String())
+}
+
+// TestRefFilterGetSubRefChildCountAtLeastIntegration verifies the childCount completeness marking of
+// sub facets: a value whose children terms were truncated (a positive sum_other_doc_count) reports
+// ChildCountAtLeast and serializes childCount as "<n>+", while a value with a complete child key set
+// reports a plain exact number.
+func TestRefFilterGetSubRefChildCountAtLeastIntegration(t *testing.T) {
+	t.Parallel()
+
+	ctx := t.Context()
+	esClient, getSearchService, index := initES(t)
+
+	locationProp := identifier.From("locationProp")
+	artistProp := identifier.From("artistProp")
+	venue := identifier.From("venue")
+	bigParent := identifier.From("bigParent")
+	smallParent := identifier.From("smallParent")
+
+	// bigParent has one more child value than the children terms can return; smallParent has two.
+	childRecord := func(child, parent identifier.Identifier) internalSearch.RelClaim {
+		rec := refRecord(artistProp, child, nil)
+		rec.ToParent = []string{parent.String()}
+		return rec
+	}
+	records := make(internalSearch.RelClaims, 0, 2+(search.MaxResultsCount+1)+2)
+	records = append(records, refRecord(artistProp, bigParent, nil), refRecord(artistProp, smallParent, nil))
+	for i := range search.MaxResultsCount + 1 {
+		records = append(records, childRecord(identifier.From("bigChild", strconv.Itoa(i)), bigParent))
+	}
+	records = append(records,
+		childRecord(identifier.From("smallChild1"), smallParent),
+		childRecord(identifier.From("smallChild2"), smallParent),
+	)
+	indexDocument(t, ctx, esClient, index, relDoc("childCountDoc1", internalSearch.RelClaims{
+		refRecord(locationProp, venue, &internalSearch.ClaimTypes{Rel: records}), //nolint:exhaustruct
+	}))
+	// A second document referencing only the two parents lifts them above the children in the
+	// document-count ordering, so both are within the value list cap.
+	indexDocument(t, ctx, esClient, index, relDoc("childCountDoc2", internalSearch.RelClaims{
+		refRecord(locationProp, venue, &internalSearch.ClaimTypes{Rel: internalSearch.RelClaims{ //nolint:exhaustruct
+			refRecord(artistProp, bigParent, nil), refRecord(artistProp, smallParent, nil),
+		}}),
+	}))
+	refreshIndex(t, ctx, esClient, index)
+
+	session := createSession(t, ctx, search.SessionData{})
+
+	f := search.RefFilter{To: nil, Direct: nil}
+	parentCtx := session.ParentContextFor(locationProp, artistProp)
+	results, _, errE := f.GetSubRef(ctx, getSearchService, session.ToQuery(nil), artistProp, parentCtx, nil, "", nil, nil)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	byID := map[string]search.RefFilterResult{}
+	for _, r := range results {
+		byID[r.ID] = r
+	}
+
+	// The truncated parent's key set holds the cap's worth of children and is marked as a lower
+	// bound; on the wire childCount becomes the string "<n>+".
+	big, ok := byID[bigParent.String()]
+	require.True(t, ok)
+	assert.Equal(t, int64(search.MaxResultsCount), big.ChildCount)
+	assert.True(t, big.ChildCountAtLeast)
+	data, errE := x.MarshalWithoutEscapeHTML(big)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Contains(t, string(data), `"childCount":"1000+"`)
+
+	// The complete parent stays exact and numeric.
+	small, ok := byID[smallParent.String()]
+	require.True(t, ok)
+	assert.Equal(t, int64(2), small.ChildCount)
+	assert.False(t, small.ChildCountAtLeast)
+	data, errE = x.MarshalWithoutEscapeHTML(small)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Contains(t, string(data), `"childCount":2`)
 }

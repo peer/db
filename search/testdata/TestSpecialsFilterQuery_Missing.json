@@ -1,0 +1,48 @@
+{
+  "bool": {
+    "must": [
+      {
+        "bool": {
+          "must_not": [
+            {
+              "nested": {
+                "path": "claims.rel",
+                "query": {
+                  "term": {
+                    "claims.rel.prop": {
+                      "value": "Vg7NV61DJJ5HS2nheTZrQE"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "nested": {
+                "path": "claims.amount",
+                "query": {
+                  "term": {
+                    "claims.amount.prop": {
+                      "value": "Vg7NV61DJJ5HS2nheTZrQE"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "nested": {
+                "path": "claims.time",
+                "query": {
+                  "term": {
+                    "claims.time.prop": {
+                      "value": "Vg7NV61DJJ5HS2nheTZrQE"
+                    }
+                  }
+                }
+              }
+            }
+          ]
+        }
+      }
+    ]
+  }
+}

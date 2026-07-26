@@ -51,7 +51,20 @@ func (s *Service) resolveReadIndex(w http.ResponseWriter, req *http.Request) (st
 // used to scope the text-search query to the languages the index actually has.
 func enabledSearchLanguages(ctx context.Context) []string {
 	site := waf.MustGetSite[*internalSite.Site](ctx)
-	return internalSearch.EnabledLanguages(site.LanguagePriority)
+	return site.EnabledLanguages()
+}
+
+// searchLanguages returns the resolved language sets a filter search uses on the request's site: the
+// site's enabled languages, and, for the session's resolved client language, the special-value
+// search languages (the client language followed by its fallback chain, from the site's configuration).
+// The special set is empty when clientLanguage is empty, so the special-value labels then match every
+// label language.
+func searchLanguages(ctx context.Context, clientLanguage string) *search.Languages {
+	site := waf.MustGetSite[*internalSite.Site](ctx)
+	return &search.Languages{
+		Enabled: site.EnabledLanguages(),
+		Special: internalSearch.SpecialSearchLanguages(clientLanguage, site.LanguageFallback()),
+	}
 }
 
 // searchAccessFilter returns the site's optional per-caller search restriction
@@ -77,19 +90,18 @@ func sessionQuery(ctx context.Context, session *search.Session) (types.QueryVari
 }
 
 // sessionQueryExcluding builds the session's ElasticSearch query excluding the
-// given filter, with the site's access filter applied.
-func sessionQueryExcluding(ctx context.Context, session *search.Session, excludeFilterID identifier.Identifier) (types.QueryVariant, errors.E) { //nolint:ireturn
+// given filters, with the site's access filter applied.
+func sessionQueryExcluding(ctx context.Context, session *search.Session, excludeFilterIDs []identifier.Identifier) (types.QueryVariant, errors.E) { //nolint:ireturn
 	accessFilter, errE := searchAccessFilter(ctx)
 	if errE != nil {
 		return nil, errE
 	}
-	return session.ToQueryExcluding(excludeFilterID, enabledSearchLanguages(ctx), accessFilter), nil
+	return session.ToQueryExcluding(excludeFilterIDs, enabledSearchLanguages(ctx), accessFilter), nil
 }
 
-// documentFullPaths resolves a value's full hierarchy paths (the indexed toFullPath form) for the caller's
-// visibility level.
-func (s *Service) documentFullPaths(ctx context.Context, id identifier.Identifier) ([]string, errors.E) {
-	return waf.MustGetSite[*internalSite.Site](ctx).Base.DocumentFullPaths(ctx, id)
+// documentHierarchyPaths resolves a value's full hierarchy paths for the caller's visibility level.
+func (s *Service) documentHierarchyPaths(ctx context.Context, id identifier.Identifier) ([]string, errors.E) {
+	return waf.MustGetSite[*internalSite.Site](ctx).Base.DocumentHierarchyPaths(ctx, id)
 }
 
 func (s *Service) getSearchService(req *http.Request, index string) *esSearch.Search {
@@ -160,25 +172,50 @@ func (s *Service) scoreFactor(ctx context.Context, req *http.Request, index stri
 	return factor, nil
 }
 
-// collectParentToFromSession returns the To values of any active top-level
-// ref filter on parentProp in the given filter set. These values supply
-// cross-filter parentTo restrictions for sub-claim filters and aggregations
-// keyed on the same parentProp.
-func collectParentToFromSession(filters []search.Filter, parentProp identifier.Identifier) []identifier.Identifier {
-	var out []identifier.Identifier
-	for _, f := range filters {
-		if f.Ref != nil && len(f.Prop) == 1 && f.Prop[0] == parentProp {
-			for _, to := range f.Ref.To {
-				out = append(out, to.ID)
+// facetFilters resolves the pieces the facet endpoints need for a property path: the filter IDs to
+// exclude from the session query (the facet's own valued filter and the path's specials filter), the
+// path's active valued filters, and the path's specials selection.
+func facetFilters(session *search.Session, prop []identifier.Identifier, ownFilterID *identifier.Identifier) ([]identifier.Identifier, *search.SpecialsFilter) {
+	excludeIDs := session.FacetExcludeIDs(prop, ownFilterID)
+	specials := session.SpecialsFor(prop)
+	return excludeIDs, specials
+}
+
+// facetTypeFor resolves the value type a specials filter's facet renders as: the type of a valued
+// sibling filter on the same path when one exists, and a value-list facet otherwise.
+func facetTypeFor(session *search.Session, prop []identifier.Identifier) string {
+	for i := range session.Filters {
+		sibling := &session.Filters[i]
+		if sibling.Specials != nil || len(sibling.Prop) != len(prop) {
+			continue
+		}
+		match := true
+		for j := range prop {
+			if sibling.Prop[j] != prop[j] {
+				match = false
+				break
 			}
 		}
+		if !match {
+			continue
+		}
+		switch {
+		case sibling.Ref != nil:
+			return "ref"
+		case sibling.Amount != nil:
+			return "amount"
+		case sibling.Time != nil:
+			return "time"
+		}
 	}
-	return out
+	return "ref"
 }
 
 // SearchFilterGetAPI handles GET requests for individual active (those in the session) filter search endpoint.
 //
-// It dispatches to the appropriate filter handler based on the filter type.
+// It dispatches to the appropriate filter handler based on the filter type. A specials filter
+// renders through the facet of its path's value type (a valued sibling filter's type, or a
+// value-list facet), with the valued sibling's selection when one exists.
 func (s *Service) SearchFilterGetAPI(w http.ResponseWriter, req *http.Request, params waf.Params) {
 	ctx := req.Context()
 
@@ -216,7 +253,9 @@ func (s *Service) SearchFilterGetAPI(w http.ResponseWriter, req *http.Request, p
 		return
 	}
 
-	query, errE := sessionQueryExcluding(ctx, searchSession, filterID)
+	excludeIDs, specials := facetFilters(searchSession, f.Prop, f.ID)
+
+	query, errE := sessionQueryExcluding(ctx, searchSession, excludeIDs)
 	if errE != nil {
 		s.InternalServerErrorWithError(w, req, errE)
 		return
@@ -224,7 +263,7 @@ func (s *Service) SearchFilterGetAPI(w http.ResponseWriter, req *http.Request, p
 
 	// valueQuery narrows a reference or has facet to the values whose display label matches the typed text.
 	valueQuery := req.URL.Query().Get("q")
-	enabledLanguages := enabledSearchLanguages(ctx)
+	languages := searchLanguages(ctx, searchSession.Language)
 
 	index, handled := s.resolveReadIndex(w, req)
 	if handled {
@@ -236,51 +275,75 @@ func (s *Service) SearchFilterGetAPI(w http.ResponseWriter, req *http.Request, p
 
 	searchService := s.getSearchServiceClosure(req, index)
 
-	excludes, errE := searchSession.PrefilterExcludeFullPaths(ctx, s.documentFullPaths)
-	if errE != nil {
-		s.InternalServerErrorWithError(w, req, errE)
-		return
-	}
-
+	// Resolve the filter into the facet it renders: a specials filter takes the path's valued
+	// sibling filter's shape (or a value-list facet), so its endpoint returns the same data the
+	// valued endpoint would.
+	facetType := ""
+	refFilter := f.Ref
+	amountFilter := f.Amount
+	timeFilter := f.Time
 	switch {
 	case f.Ref != nil:
-		if len(f.Prop) == 2 { //nolint:mnd
-			data, metadata, errE = f.Ref.GetSubRef(
-				ctx, searchService, query, f.Prop[0], f.Prop[1],
-				collectParentToFromSession(searchSession.Filters, f.Prop[0]),
-				excludes.SubRef(f.Prop[0], f.Prop[1]),
-				valueQuery, enabledLanguages, s.documentFullPaths,
-			)
-		} else {
-			data, metadata, errE = f.Ref.Get(ctx, searchService, query, f.Prop[0], excludes.Ref(f.Prop[0]), valueQuery, enabledLanguages, s.documentFullPaths)
-		}
+		facetType = "ref"
 	case f.Amount != nil:
-		if len(f.Prop) == 2 { //nolint:mnd
-			data, metadata, errE = f.Amount.GetSubAmount(
-				ctx, searchService, query, f.Prop[0], f.Prop[1],
-				collectParentToFromSession(searchSession.Filters, f.Prop[0]),
-			)
-		} else {
-			data, metadata, errE = f.Amount.Get(ctx, searchService, query, f.Prop[0])
-		}
+		facetType = "amount"
 	case f.Time != nil:
-		if len(f.Prop) == 2 { //nolint:mnd
-			data, metadata, errE = f.Time.GetSubTime(
-				ctx, searchService, query, f.Prop[0], f.Prop[1],
-				collectParentToFromSession(searchSession.Filters, f.Prop[0]),
-			)
-		} else {
-			data, metadata, errE = f.Time.Get(ctx, searchService, query, f.Prop[0])
-		}
+		facetType = "time"
 	case f.Has != nil:
-		if len(f.Prop) == 1 {
-			data, metadata, errE = f.Has.GetSubHas(
-				ctx, searchService, query, f.Prop[0],
-				collectParentToFromSession(searchSession.Filters, f.Prop[0]),
-				valueQuery, enabledLanguages,
+		facetType = "has"
+	case f.Specials != nil:
+		facetType = facetTypeFor(searchSession, f.Prop)
+		for i := range searchSession.Filters {
+			sibling := &searchSession.Filters[i]
+			if sibling.Specials == nil && search.SamePropPath(sibling.Prop, f.Prop) {
+				refFilter = sibling.Ref
+				amountFilter = sibling.Amount
+				timeFilter = sibling.Time
+			}
+		}
+	}
+	if refFilter == nil {
+		refFilter = &search.RefFilter{To: nil, Direct: nil}
+	}
+	if amountFilter == nil {
+		amountFilter = &search.AmountFilter{Unit: nil, Gte: nil, Lte: nil, Exists: false}
+	}
+	if timeFilter == nil {
+		timeFilter = &search.TimeFilter{Gte: nil, Lte: nil, Exists: false}
+	}
+
+	sub := len(f.Prop) == 2 //nolint:mnd
+	switch facetType {
+	case "ref":
+		if sub {
+			parentCtx := searchSession.ParentContextFor(f.Prop[0], f.Prop[1], excludeIDs...)
+			data, metadata, errE = refFilter.GetSubRef(
+				ctx, searchService, query, f.Prop[1], parentCtx, specials,
+				valueQuery, languages, s.documentHierarchyPaths,
 			)
 		} else {
-			data, metadata, errE = f.Has.Get(ctx, searchService, query, valueQuery, enabledLanguages)
+			data, metadata, errE = refFilter.Get(ctx, searchService, query, f.Prop[0], specials, valueQuery, languages, s.documentHierarchyPaths)
+		}
+	case "amount":
+		if sub {
+			parentCtx := searchSession.ParentContextFor(f.Prop[0], f.Prop[1], excludeIDs...)
+			data, metadata, errE = amountFilter.GetSubAmount(ctx, searchService, query, f.Prop[1], parentCtx)
+		} else {
+			data, metadata, errE = amountFilter.Get(ctx, searchService, query, f.Prop[0])
+		}
+	case "time":
+		if sub {
+			parentCtx := searchSession.ParentContextFor(f.Prop[0], f.Prop[1], excludeIDs...)
+			data, metadata, errE = timeFilter.GetSubTime(ctx, searchService, query, f.Prop[1], parentCtx)
+		} else {
+			data, metadata, errE = timeFilter.Get(ctx, searchService, query, f.Prop[0])
+		}
+	case "has":
+		if len(f.Prop) == 1 {
+			parentCtx := searchSession.ParentContextFor(f.Prop[0], identifier.Identifier{}, excludeIDs...)
+			data, metadata, errE = f.Has.GetSubHas(ctx, searchService, query, parentCtx, valueQuery, languages)
+		} else {
+			data, metadata, errE = f.Has.Get(ctx, searchService, query, valueQuery, languages)
 		}
 	default:
 		panic(errors.New("invalid filter"))
@@ -326,7 +389,10 @@ func (s *Service) SearchRefFilterGetAPI(w http.ResponseWriter, req *http.Request
 		return
 	}
 
-	query, errE := sessionQuery(ctx, searchSession)
+	// The path's specials selection is excluded from the query (so a selected special does not hide
+	// the facet's values) and merged into the returned entries (so it stays deselectable).
+	excludeIDs, specials := facetFilters(searchSession, []identifier.Identifier{prop}, nil)
+	query, errE := sessionQueryExcluding(ctx, searchSession, excludeIDs)
 	if errE != nil {
 		s.InternalServerErrorWithError(w, req, errE)
 		return
@@ -335,15 +401,10 @@ func (s *Service) SearchRefFilterGetAPI(w http.ResponseWriter, req *http.Request
 	if handled {
 		return
 	}
-	excludes, errE := searchSession.PrefilterExcludeFullPaths(ctx, s.documentFullPaths)
-	if errE != nil {
-		s.InternalServerErrorWithError(w, req, errE)
-		return
-	}
-	f := search.RefFilter{}
+	f := search.RefFilter{To: nil, Direct: nil}
 	data, metadata, errE := f.Get(
-		ctx, s.getSearchServiceClosure(req, index), query, prop, excludes.Ref(prop),
-		req.URL.Query().Get("q"), enabledSearchLanguages(ctx), s.documentFullPaths,
+		ctx, s.getSearchServiceClosure(req, index), query, prop, specials,
+		req.URL.Query().Get("q"), searchLanguages(ctx, searchSession.Language), s.documentHierarchyPaths,
 	)
 	if errE != nil {
 		s.InternalServerErrorWithError(w, req, errE)
@@ -393,7 +454,8 @@ func (s *Service) SearchAmountFilterGetAPI(w http.ResponseWriter, req *http.Requ
 		return
 	}
 
-	query, errE := sessionQuery(ctx, searchSession)
+	excludeIDs, _ := facetFilters(searchSession, []identifier.Identifier{prop}, nil)
+	query, errE := sessionQueryExcluding(ctx, searchSession, excludeIDs)
 	if errE != nil {
 		s.InternalServerErrorWithError(w, req, errE)
 		return
@@ -442,7 +504,8 @@ func (s *Service) SearchTimeFilterGetAPI(w http.ResponseWriter, req *http.Reques
 		return
 	}
 
-	query, errE := sessionQuery(ctx, searchSession)
+	excludeIDs, _ := facetFilters(searchSession, []identifier.Identifier{prop}, nil)
+	query, errE := sessionQueryExcluding(ctx, searchSession, excludeIDs)
 	if errE != nil {
 		s.InternalServerErrorWithError(w, req, errE)
 		return
@@ -451,7 +514,7 @@ func (s *Service) SearchTimeFilterGetAPI(w http.ResponseWriter, req *http.Reques
 	if handled {
 		return
 	}
-	f := search.TimeFilter{}
+	f := search.TimeFilter{Gte: nil, Lte: nil, Exists: false}
 	data, metadata, errE := f.Get(ctx, s.getSearchServiceClosure(req, index), query, prop)
 	if errE != nil {
 		s.InternalServerErrorWithError(w, req, errE)
@@ -497,9 +560,8 @@ func (s *Service) SearchSubRefFilterGetAPI(w http.ResponseWriter, req *http.Requ
 		return
 	}
 
-	parentToRestrictions := collectParentToFromSession(searchSession.Filters, parentProp)
-
-	query, errE := sessionQuery(ctx, searchSession)
+	excludeIDs, specials := facetFilters(searchSession, []identifier.Identifier{parentProp, prop}, nil)
+	query, errE := sessionQueryExcluding(ctx, searchSession, excludeIDs)
 	if errE != nil {
 		s.InternalServerErrorWithError(w, req, errE)
 		return
@@ -508,16 +570,11 @@ func (s *Service) SearchSubRefFilterGetAPI(w http.ResponseWriter, req *http.Requ
 	if handled {
 		return
 	}
-	excludes, errE := searchSession.PrefilterExcludeFullPaths(ctx, s.documentFullPaths)
-	if errE != nil {
-		s.InternalServerErrorWithError(w, req, errE)
-		return
-	}
-	f := search.RefFilter{}
+	parentCtx := searchSession.ParentContextFor(parentProp, prop, excludeIDs...)
+	f := search.RefFilter{To: nil, Direct: nil}
 	data, metadata, errE := f.GetSubRef(
-		ctx, s.getSearchServiceClosure(req, index), query, parentProp, prop, parentToRestrictions,
-		excludes.SubRef(parentProp, prop),
-		req.URL.Query().Get("q"), enabledSearchLanguages(ctx), s.documentFullPaths,
+		ctx, s.getSearchServiceClosure(req, index), query, prop, parentCtx, specials,
+		req.URL.Query().Get("q"), searchLanguages(ctx, searchSession.Language), s.documentHierarchyPaths,
 	)
 	if errE != nil {
 		s.InternalServerErrorWithError(w, req, errE)
@@ -570,9 +627,8 @@ func (s *Service) SearchSubAmountFilterGetAPI(w http.ResponseWriter, req *http.R
 		return
 	}
 
-	parentToRestrictions := collectParentToFromSession(searchSession.Filters, parentProp)
-
-	query, errE := sessionQuery(ctx, searchSession)
+	excludeIDs, _ := facetFilters(searchSession, []identifier.Identifier{parentProp, prop}, nil)
+	query, errE := sessionQueryExcluding(ctx, searchSession, excludeIDs)
 	if errE != nil {
 		s.InternalServerErrorWithError(w, req, errE)
 		return
@@ -581,8 +637,9 @@ func (s *Service) SearchSubAmountFilterGetAPI(w http.ResponseWriter, req *http.R
 	if handled {
 		return
 	}
+	parentCtx := searchSession.ParentContextFor(parentProp, prop, excludeIDs...)
 	f := search.AmountFilter{Unit: unit} //nolint:exhaustruct
-	data, metadata, errE := f.GetSubAmount(ctx, s.getSearchServiceClosure(req, index), query, parentProp, prop, parentToRestrictions)
+	data, metadata, errE := f.GetSubAmount(ctx, s.getSearchServiceClosure(req, index), query, prop, parentCtx)
 	if errE != nil {
 		s.InternalServerErrorWithError(w, req, errE)
 		return
@@ -624,9 +681,8 @@ func (s *Service) SearchSubTimeFilterGetAPI(w http.ResponseWriter, req *http.Req
 		return
 	}
 
-	parentToRestrictions := collectParentToFromSession(searchSession.Filters, parentProp)
-
-	query, errE := sessionQuery(ctx, searchSession)
+	excludeIDs, _ := facetFilters(searchSession, []identifier.Identifier{parentProp, prop}, nil)
+	query, errE := sessionQueryExcluding(ctx, searchSession, excludeIDs)
 	if errE != nil {
 		s.InternalServerErrorWithError(w, req, errE)
 		return
@@ -635,8 +691,9 @@ func (s *Service) SearchSubTimeFilterGetAPI(w http.ResponseWriter, req *http.Req
 	if handled {
 		return
 	}
-	f := search.TimeFilter{}
-	data, metadata, errE := f.GetSubTime(ctx, s.getSearchServiceClosure(req, index), query, parentProp, prop, parentToRestrictions)
+	parentCtx := searchSession.ParentContextFor(parentProp, prop, excludeIDs...)
+	f := search.TimeFilter{Gte: nil, Lte: nil, Exists: false}
+	data, metadata, errE := f.GetSubTime(ctx, s.getSearchServiceClosure(req, index), query, prop, parentCtx)
 	if errE != nil {
 		s.InternalServerErrorWithError(w, req, errE)
 		return
@@ -679,7 +736,7 @@ func (s *Service) SearchHasFilterGetAPI(w http.ResponseWriter, req *http.Request
 		return
 	}
 	f := search.HasFilter{}
-	data, metadata, errE := f.Get(ctx, s.getSearchServiceClosure(req, index), query, req.URL.Query().Get("q"), enabledSearchLanguages(ctx))
+	data, metadata, errE := f.Get(ctx, s.getSearchServiceClosure(req, index), query, req.URL.Query().Get("q"), searchLanguages(ctx, searchSession.Language))
 	if errE != nil {
 		s.InternalServerErrorWithError(w, req, errE)
 		return
@@ -715,8 +772,6 @@ func (s *Service) SearchSubHasFilterGetAPI(w http.ResponseWriter, req *http.Requ
 		return
 	}
 
-	parentToRestrictions := collectParentToFromSession(searchSession.Filters, parentProp)
-
 	query, errE := sessionQuery(ctx, searchSession)
 	if errE != nil {
 		s.InternalServerErrorWithError(w, req, errE)
@@ -726,10 +781,11 @@ func (s *Service) SearchSubHasFilterGetAPI(w http.ResponseWriter, req *http.Requ
 	if handled {
 		return
 	}
-	f := search.HasFilter{}
+	parentCtx := searchSession.ParentContextFor(parentProp, identifier.Identifier{})
+	f := search.HasFilter{Props: nil}
 	data, metadata, errE := f.GetSubHas(
-		ctx, s.getSearchServiceClosure(req, index), query, parentProp, parentToRestrictions,
-		req.URL.Query().Get("q"), enabledSearchLanguages(ctx),
+		ctx, s.getSearchServiceClosure(req, index), query, parentCtx,
+		req.URL.Query().Get("q"), searchLanguages(ctx, searchSession.Language),
 	)
 	if errE != nil {
 		s.InternalServerErrorWithError(w, req, errE)
@@ -816,15 +872,9 @@ func (s *Service) SearchFiltersGetAPI(w http.ResponseWriter, req *http.Request, 
 		return
 	}
 
-	excludes, errE := searchSession.PrefilterExcludeFullPaths(ctx, s.documentFullPaths)
-	if errE != nil {
-		s.InternalServerErrorWithError(w, req, errE)
-		return
-	}
-
 	data, metadata, errE := search.FiltersGet(
-		ctx, s.getSearchServiceClosure(req, index), searchSession, enabledSearchLanguages(ctx),
-		req.URL.Query().Get("q"), excludes, accessFilter,
+		ctx, s.getSearchServiceClosure(req, index), searchSession, searchLanguages(ctx, searchSession.Language),
+		req.URL.Query().Get("q"), accessFilter,
 	)
 	if errors.Is(errE, search.ErrValidationFailed) {
 		s.BadRequestWithError(w, req, errE)
@@ -1334,8 +1384,6 @@ func parseSearchShortcutQuery(ctx context.Context, query url.Values) (*search.Se
 	}
 
 	for key, group := range groups {
-		filterBase := append(slices.Clone(base), "FILTER", identifier.New().String())
-		filterID := identifier.From(filterBase...)
 		var props []identifier.Identifier
 		if key.Nested {
 			props = []identifier.Identifier{key.Parent, key.Prop}
@@ -1345,20 +1393,39 @@ func parseSearchShortcutQuery(ctx context.Context, query url.Values) (*search.Se
 		// Search shortcuts populate Prefilters (not Filters): the shortcut defines the scope the
 		// user is looking at, so it constrains results without contributing to ranking, and the
 		// original values are kept (not expanded to descendants) so the UI can show what the
-		// prefilter is on.
-		searchData.Prefilters = append(searchData.Prefilters, search.Filter{
-			ID:   &filterID,
-			Base: filterBase,
-			Prop: props,
-			Ref: &search.RefFilter{
-				To:      group.To,
-				Direct:  group.Direct,
-				Missing: group.Missing,
-			},
-			Amount: nil,
-			Time:   nil,
-			Has:    nil,
-		})
+		// prefilter is on. Selected values become a ref prefilter and the missing selection the
+		// path's specials prefilter; both may be present for one property.
+		if len(group.To) > 0 || len(group.Direct) > 0 {
+			filterBase := append(slices.Clone(base), "FILTER", identifier.New().String())
+			filterID := identifier.From(filterBase...)
+			searchData.Prefilters = append(searchData.Prefilters, search.Filter{
+				ID:   &filterID,
+				Base: filterBase,
+				Prop: props,
+				Ref: &search.RefFilter{
+					To:     group.To,
+					Direct: group.Direct,
+				},
+				Amount:   nil,
+				Time:     nil,
+				Has:      nil,
+				Specials: nil,
+			})
+		}
+		if group.Missing {
+			filterBase := append(slices.Clone(base), "FILTER", identifier.New().String())
+			filterID := identifier.From(filterBase...)
+			searchData.Prefilters = append(searchData.Prefilters, search.Filter{
+				ID:       &filterID,
+				Base:     filterBase,
+				Prop:     props,
+				Ref:      nil,
+				Amount:   nil,
+				Time:     nil,
+				Has:      nil,
+				Specials: &search.SpecialsFilter{Missing: true, None: false, Unknown: false, HasProperty: false},
+			})
+		}
 	}
 
 	searchSession := &search.Session{

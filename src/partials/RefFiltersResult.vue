@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { DeepReadonly } from "vue"
 
-import type { RefFilterEntry, RefFilterResult, RefFilterTreeNode, RefSearchResult, SearchSession, ToValue } from "@/types"
+import type { FilterUpdate, RefFilterEntry, RefFilterResult, RefFilterTreeNode, RefSearchResult, SearchSession, SpecialsFilterEntry, ToValue } from "@/types"
 
 import { computed, onBeforeUnmount, ref, toRef, useId, useTemplateRef } from "vue"
 import { useI18n } from "vue-i18n"
@@ -18,8 +18,10 @@ import {
   equals,
   loadingWidth,
   mergeRefOverlay,
-  MISSING_VALUE_ID,
   SKIP_TO_END,
+  specialsFromIds,
+  specialsToIds,
+  specialValueLabelKey,
   toggleRefSelection,
   useInitialLoad,
   useLimitResults,
@@ -35,18 +37,21 @@ const props = withDefaults(
     searchSession: DeepReadonly<SearchSession>
     result: RefSearchResult
     filter?: RefFilterEntry
+    // The property path's special-value selection (shared across the path's value-type facets).
+    specials?: SpecialsFilterEntry
     // Free-text query that narrows the listed values to those whose name matches it; when it matches this
     // facet's own property name instead, all values are shown. Empty means no narrowing.
     query?: string
   }>(),
   {
     filter: undefined,
+    specials: undefined,
     query: "",
   },
 )
 
 const emit = defineEmits<{
-  filterUpdate: [filterId: string, filter: RefFilterEntry]
+  filterUpdates: [updates: FilterUpdate[]]
 }>()
 
 const { t } = useI18n({ useScope: "global" })
@@ -139,19 +144,13 @@ const selectedDirectIds = computed((): string[] => {
   return props.filter.ref.direct.map((t: ToValue) => t.id)
 })
 
-const isMissingSelected = computed((): boolean => {
-  return props.filter?.ref?.missing === true
-})
-
 const checkboxState = computed({
   get(): string[] {
     const ids = [...selectedIds.value]
     for (const id of selectedDirectIds.value) {
       ids.push(DIRECT_REF_FILTER_PREFIX + id)
     }
-    if (isMissingSelected.value) {
-      ids.push(MISSING_VALUE_ID)
-    }
+    ids.push(...specialsToIds(props.specials?.specials))
     return ids
   },
   set(value: string[]) {
@@ -159,23 +158,35 @@ const checkboxState = computed({
       return
     }
 
-    const missingSelected = value.includes(MISSING_VALUE_ID)
+    // The selection splits into the path's two session filters: values and direct entries go into the
+    // typed reference filter, the special entries into the path's specials filter. Both updates travel
+    // in one batch so the session is updated once.
     const directIds = value.filter((v) => v.startsWith(DIRECT_REF_FILTER_PREFIX)).map((v) => v.slice(DIRECT_REF_FILTER_PREFIX.length))
-    const toIds = value.filter((v) => v !== MISSING_VALUE_ID && !v.startsWith(DIRECT_REF_FILTER_PREFIX))
+    const toIds = value.filter((v) => specialValueLabelKey(v) === null && !v.startsWith(DIRECT_REF_FILTER_PREFIX))
     const to: ToValue[] | undefined = toIds.length > 0 ? toIds.map((id) => ({ id })) : undefined
     const direct: ToValue[] | undefined = directIds.length > 0 ? directIds.map((id) => ({ id })) : undefined
-    const missing = missingSelected ? true : undefined
 
-    // Build the updated filter.
+    const updates: FilterUpdate[] = []
     const updatedFilter: RefFilterEntry = {
       id: props.filter?.id ?? "",
       base: props.filter?.base ?? [],
       prop: props.filter?.prop ?? [...props.result.props],
-      ref: { to, direct, missing },
+      ref: { to, direct },
     }
-
     if (!equals(props.filter, updatedFilter)) {
-      emit("filterUpdate", updatedFilter.id, updatedFilter)
+      updates.push({ filterId: updatedFilter.id, filter: updatedFilter })
+    }
+    const updatedSpecials: SpecialsFilterEntry = {
+      id: props.specials?.id ?? "",
+      base: props.specials?.base ?? [],
+      prop: props.specials?.prop ?? [...props.result.props],
+      specials: specialsFromIds(value) ?? {},
+    }
+    if (!equals(props.specials, updatedSpecials)) {
+      updates.push({ filterId: updatedSpecials.id, filter: updatedSpecials })
+    }
+    if (updates.length > 0) {
+      emit("filterUpdates", updates)
     }
   },
 })
@@ -356,15 +367,23 @@ const partialTree = computed((): RefFilterTreeNode[] => {
 const moreRowsAvailable = computed(() => effectiveLimited.value.length < visibleFlatTree.value.length)
 
 function clearFilter() {
-  if (abortController.signal.aborted || !props.filter) {
+  if (abortController.signal.aborted || (!props.filter && !props.specials)) {
     return
   }
-  emit("filterUpdate", props.filter.id, {
-    id: props.filter.id,
-    base: props.filter.base,
-    prop: props.filter.prop,
-    ref: { to: undefined, direct: undefined, missing: undefined },
-  })
+  const updates: FilterUpdate[] = []
+  if (props.filter) {
+    updates.push({
+      filterId: props.filter.id,
+      filter: { id: props.filter.id, base: props.filter.base, prop: props.filter.prop, ref: { to: undefined, direct: undefined } },
+    })
+  }
+  if (props.specials) {
+    updates.push({
+      filterId: props.specials.id,
+      filter: { id: props.specials.id, base: props.specials.base, prop: props.specials.prop, specials: {} },
+    })
+  }
+  emit("filterUpdates", updates)
 }
 
 // Per-value tri-state for rendering: a value is checked when its own value, or an ancestor, is
@@ -389,7 +408,7 @@ function onToggle(node: RefFilterTreeNode) {
   <div v-if="!hiddenByQuery" class="pd-reffiltersresult flex flex-col" :class="{ 'data-reloading': laterLoad }" :data-url="resultsUrl">
     <div :id="labelId">
       <Button
-        v-if="filter"
+        v-if="filter || specials"
         type="button"
         class="float-right ml-2 px-2.5 py-1"
         :title="t('partials.RefFiltersResult.clearFilter')"

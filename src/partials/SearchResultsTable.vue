@@ -2,7 +2,7 @@
 import type { ComponentPublicInstance, DeepReadonly } from "vue"
 
 import type { D } from "@/document"
-import type { Filter, FilterResult, Result, SearchSession, ViewType } from "@/types"
+import type { Filter, FilterResult, FilterUpdate, Result, SearchSession, ViewType } from "@/types"
 
 import { LocalScope } from "@all1ndev/vue-local-scope"
 import { Dialog, DialogPanel } from "@headlessui/vue"
@@ -39,7 +39,7 @@ const props = defineProps<{
 }>()
 
 const $emit = defineEmits<{
-  filterUpdate: [filterId: string, filter: Filter]
+  filterUpdates: [updates: FilterUpdate[]]
   viewChange: [value: ViewType]
   downloadZip: []
   downloadFiles: []
@@ -490,12 +490,7 @@ function onCloseFilterModal() {
       <DialogPanel
         class="flex h-full w-full flex-col overflow-y-auto rounded-none bg-white p-1 shadow-none sm:relative sm:inset-auto sm:h-auto sm:max-h-150 sm:max-w-xl sm:rounded-sm sm:p-4 sm:shadow-sm"
       >
-        <FiltersResult
-          :result="activeFilter!"
-          :search-session="searchSession"
-          :filters="filters"
-          @filter-update="(filterId, filter) => $emit('filterUpdate', filterId, filter)"
-        />
+        <FiltersResult :result="activeFilter!" :search-session="searchSession" :filters="filters" @filter-updates="(updates) => $emit('filterUpdates', updates)" />
 
         <Button class="absolute top-1 right-1 p-0 shadow-none inset-ring-0 sm:top-4 sm:right-4" title="Close" @click="onCloseFilterModal">
           <XMarkIcon class="size-5" />

@@ -42,7 +42,7 @@ type flowState struct {
 // schema. It is constructed once per Authenticator. Connections pick up the
 // right schema via the search_path that the request context configures.
 type flowStore struct {
-	dbpool *pgxpool.Pool
+	DBPool *pgxpool.Pool
 }
 
 // newFlowStore returns a flowStore backed by the given connection pool. The
@@ -50,14 +50,14 @@ type flowStore struct {
 // (typically via WithFallbackDBContext) when calling from the outside of
 // a WAF-routed request.
 func newFlowStore(dbpool *pgxpool.Pool) *flowStore {
-	return &flowStore{dbpool: dbpool}
+	return &flowStore{DBPool: dbpool}
 }
 
 // Init creates the AuthFlows table in the schema configured on the
 // connection. It is safe to call repeatedly: an already-existing table is
 // treated as success so that re-runs during a site re-Init do not error.
 func (s *flowStore) Init(ctx context.Context) errors.E {
-	errE := internalStore.RetryTransaction(ctx, s.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
+	errE := internalStore.RetryTransaction(ctx, s.DBPool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
 		_, err := tx.Exec(ctx, `
 			CREATE TABLE "AuthFlows" (
 				"state" text STORAGE PLAIN COLLATE "C" NOT NULL,
@@ -89,7 +89,7 @@ func (s *flowStore) Init(ctx context.Context) errors.E {
 // BeginFlow stores a new flow row keyed by state. The state value must be
 // unpredictable to a third party.
 func (s *flowStore) BeginFlow(ctx context.Context, state string, fs flowState) errors.E {
-	return internalStore.RetryTransaction(ctx, s.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
+	return internalStore.RetryTransaction(ctx, s.DBPool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
 		_, err := tx.Exec(ctx, `
 			INSERT INTO "AuthFlows" ("state", "codeVerifier", "nonce", "redirect", "expiresAt")
 			VALUES ($1, $2, $3, $4, now() + make_interval(secs => $5))
@@ -103,7 +103,7 @@ func (s *flowStore) BeginFlow(ctx context.Context, state string, fs flowState) e
 // errFlowNotFound. Expired rows are treated as absent.
 func (s *flowStore) ConsumeFlow(ctx context.Context, state string) (flowState, errors.E) {
 	var fs flowState
-	errE := internalStore.RetryTransaction(ctx, s.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
+	errE := internalStore.RetryTransaction(ctx, s.DBPool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
 		row := tx.QueryRow(ctx, `
 			DELETE FROM "AuthFlows"
 			WHERE "state" = $1 AND "expiresAt" > now()
@@ -125,7 +125,7 @@ func (s *flowStore) ConsumeFlow(ctx context.Context, state string) (flowState, e
 // concurrently with BeginFlow / ConsumeFlow because all writes go through
 // serializable transactions.
 func (s *flowStore) cleanupExpired(ctx context.Context) errors.E {
-	return internalStore.RetryTransaction(ctx, s.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
+	return internalStore.RetryTransaction(ctx, s.DBPool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
 		_, err := tx.Exec(ctx, `DELETE FROM "AuthFlows" WHERE "expiresAt" <= now()`)
 		return internalStore.WithPgxError(err)
 	})

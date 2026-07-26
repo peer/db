@@ -1679,7 +1679,7 @@ func TestPatchUnmarshalJSONWrongType(t *testing.T) {
 	t.Run("LinkClaimPatch", func(t *testing.T) {
 		t.Parallel()
 		var p document.LinkClaimPatch
-		assert.EqualError(t, x.UnmarshalWithoutUnknownFields([]byte(`{"type":"rel"}`), &p), "invalid type")
+		assert.EqualError(t, x.UnmarshalWithoutUnknownFields([]byte(`{"type":"ref"}`), &p), "invalid type")
 	})
 	t.Run("ReferenceClaimPatch", func(t *testing.T) {
 		t.Parallel()

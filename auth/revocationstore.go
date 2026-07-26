@@ -45,12 +45,12 @@ type revocationCacheEntry struct {
 // outcomes. Revoked rows are cached until the token expires anyway,
 // not-revoked answers for notRevokedCacheTTL.
 type revocationStore struct {
-	dbpool *pgxpool.Pool
+	DBPool *pgxpool.Pool
 
 	mu    sync.Mutex
 	items map[string]revocationCacheEntry
 
-	now func() time.Time
+	Now func() time.Time
 }
 
 // newRevocationStore returns a revocationStore backed by the given
@@ -59,16 +59,16 @@ type revocationStore struct {
 // WAF-routed request.
 func newRevocationStore(dbpool *pgxpool.Pool) *revocationStore {
 	return &revocationStore{ //nolint:exhaustruct // mu is a zero-value sync.Mutex.
-		dbpool: dbpool,
+		DBPool: dbpool,
 		items:  map[string]revocationCacheEntry{},
-		now:    time.Now,
+		Now:    time.Now,
 	}
 }
 
 // Init creates the RevokedTokens table in the schema configured on the
 // connection. Idempotent on re-init.
 func (s *revocationStore) Init(ctx context.Context) errors.E {
-	errE := internalStore.RetryTransaction(ctx, s.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
+	errE := internalStore.RetryTransaction(ctx, s.DBPool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
 		_, err := tx.Exec(ctx, `
 			CREATE TABLE "RevokedTokens" (
 				"tokenHash" text STORAGE PLAIN COLLATE "C" NOT NULL,
@@ -127,13 +127,13 @@ func (s *revocationStore) IsRevoked(ctx context.Context, token string, tokenExp 
 
 	// Hot path: cache hit and entry not yet stale.
 	entry, ok := s.get(hash)
-	if ok && s.now().Before(entry.expiresAt) {
+	if ok && s.Now().Before(entry.expiresAt) {
 		return entry.revoked, nil
 	}
 
 	// Cold path: ask the database.
 	var revoked bool
-	errE := internalStore.RetryTransaction(ctx, s.dbpool, pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
+	errE := internalStore.RetryTransaction(ctx, s.DBPool, pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
 		// We do not filter by expiresAt because once a token is revoked it is revoked
 		// and it does not matter if it is still in a database not cleaned up.
 		row := tx.QueryRow(ctx, `
@@ -158,7 +158,7 @@ func (s *revocationStore) IsRevoked(ctx context.Context, token string, tokenExp 
 	// Write the decision back to the cache. Revoked rows live until the
 	// JWT exp; not-revoked answers expire much sooner so a subsequent
 	// revocation propagates within notRevokedCacheTTL.
-	now := s.now()
+	now := s.Now()
 	cacheExp := tokenExp
 	if !revoked {
 		cacheExp = now.Add(notRevokedCacheTTL)
@@ -173,7 +173,7 @@ func (s *revocationStore) IsRevoked(ctx context.Context, token string, tokenExp 
 func (s *revocationStore) Revoke(ctx context.Context, token string, tokenExp time.Time) errors.E {
 	hash := hashToken(token)
 
-	errE := internalStore.RetryTransaction(ctx, s.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
+	errE := internalStore.RetryTransaction(ctx, s.DBPool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
 		_, err := tx.Exec(ctx, `
 			INSERT INTO "RevokedTokens" ("tokenHash", "expiresAt")
 			VALUES ($1, $2)
@@ -195,7 +195,7 @@ func (s *revocationStore) Revoke(ctx context.Context, token string, tokenExp tim
 // cleanupExpired removes rows for tokens that have already expired. Safe
 // to call concurrently with Revoke / IsRevoked.
 func (s *revocationStore) cleanupExpired(ctx context.Context) errors.E {
-	return internalStore.RetryTransaction(ctx, s.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
+	return internalStore.RetryTransaction(ctx, s.DBPool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
 		_, err := tx.Exec(ctx, `DELETE FROM "RevokedTokens" WHERE "expiresAt" <= now()`)
 		return internalStore.WithPgxError(err)
 	})

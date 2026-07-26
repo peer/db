@@ -117,6 +117,14 @@ type Site struct {
 	LanguagePriority map[string][]string `json:"languagePriority,omitempty" yaml:"languagePriority,omitempty"`
 	DefaultLanguage  string              `json:"defaultLanguage,omitempty"  yaml:"defaultLanguage,omitempty"`
 
+	// enabledLanguages and languageFallback cache EnabledLanguagesFromLanguagePriority (the sorted enabled
+	// languages and the per-language fallback chains) so request handling reads them without recomputing
+	// from LanguagePriority on every call. initLanguages populates them when the site starts; they are nil
+	// until then, and the EnabledLanguages and LanguageFallback accessors panic while unset, so a site must
+	// be started before it is used to serve requests.
+	enabledLanguages []string
+	languageFallback map[string][]string
+
 	// TODO: How to keep LanguageCodes in sync, if they are added or removed after initialization?
 	LanguageCodes map[identifier.Identifier]string `json:"languageCodes,omitempty" yaml:"-"`
 
@@ -307,12 +315,34 @@ func (s *Site) LevelNames() []string {
 	return names
 }
 
+// initLanguages precomputes and stores the site's enabled languages and per-language fallback chains
+// from LanguagePriority so request handling reads them through EnabledLanguages and LanguageFallback
+// without recomputing. It is idempotent and is called when the site starts.
+func (s *Site) initLanguages() {
+	enabled, fallback := internalSearch.EnabledLanguagesFromLanguagePriority(s.LanguagePriority)
+	s.enabledLanguages = slices.Sorted(maps.Keys(enabled))
+	s.languageFallback = fallback
+}
+
 // EnabledLanguages returns the sorted enabled languages of the site, derived from LanguagePriority the same
 // way the converter and the index mapping derive them: its keys plus the undetermined language, or the
-// default when no language priority is configured.
+// default when no language priority is configured. initLanguages computes it when the site starts, so this
+// panics if the site has not been started.
 func (s *Site) EnabledLanguages() []string {
-	enabled, _ := internalSearch.EnabledLanguagesFromLanguagePriority(s.LanguagePriority)
-	return slices.Sorted(maps.Keys(enabled))
+	if s.enabledLanguages == nil {
+		panic(errors.New("site enabled languages read before the site was started"))
+	}
+	return s.enabledLanguages
+}
+
+// LanguageFallback returns the per-language display-label fallback chains derived from LanguagePriority,
+// keyed by language. initLanguages computes it when the site starts, so this panics if the site has not
+// been started.
+func (s *Site) LanguageFallback() map[string][]string {
+	if s.languageFallback == nil {
+		panic(errors.New("site language fallback read before the site was started"))
+	}
+	return s.languageFallback
 }
 
 // IsEnabledUILanguage reports whether language is one of the site's enabled UI languages: a LanguagePriority key,
@@ -448,6 +478,8 @@ func (s *Site) Start(ctx context.Context, documents []base.StartDocument) (func(
 		return nil, errE
 	}
 
+	s.initLanguages()
+
 	if s.Base.LanguagePriority == nil {
 		s.Base.LanguagePriority = s.LanguagePriority
 	}
@@ -482,6 +514,8 @@ func (s *Site) PopulateAndStart(
 	if errE != nil {
 		return nil, errE
 	}
+
+	s.initLanguages()
 
 	if s.Base.LanguagePriority == nil {
 		s.Base.LanguagePriority = s.LanguagePriority

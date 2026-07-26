@@ -69,6 +69,7 @@
     "values": {
       "direct": "neposredno",
       "exists": "obstaja",
+      "hasProperty": "ima lastnost",
       "missing": "manjkajoče",
       "noName": "brez imena",
       "none": "brez",
@@ -216,6 +217,7 @@
       "resultsNotShown": "{count} od {total} rezultatov ni prikazan. | {count} od {total} rezultatov nista prikazana. | {count} od {total} rezultatov niso prikazani. | {count} od {total} rezultatov ni prikazanih.",
       "noFilters": "Ni filtrov na voljo.",
       "filtersAvailable": "Išči po {count} filtru na voljo: | Išči po {count} filtrih na voljo: | Išči po {count} filtrih na voljo: | Išči po {count} filtrih na voljo:",
+      "filtersAvailableMoreThan": "Išči po več kot {count} filtru na voljo: | Išči po več kot {count} filtrih na voljo: | Išči po več kot {count} filtrih na voljo: | Išči po več kot {count} filtrih na voljo:",
       "filtersSearchLabel": "Išči po filtrih in vrednostih filtrov",
       "filtersNoMatch": "Noben filter ne ustreza iskanju.",
       "determiningFilters": "Ugotavljanje filtrov...",

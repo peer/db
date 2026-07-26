@@ -1,14 +1,34 @@
 package peerdb
 
 import (
+	"context"
 	"net/url"
 
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/identifier"
+
+	internalSite "gitlab.com/peerdb/peerdb/internal/site"
 )
 
 //nolint:gochecknoglobals
-var TestingClearDirContents = clearDirContents
+var (
+	TestingClearDirContents         = clearDirContents
+	TestingParseSearchShortcutQuery = parseSearchShortcutQuery
+)
+
+// TestingListReadableDocuments re-exports listReadableDocuments for tests, returning the readable document
+// IDs directly.
+func TestingListReadableDocuments(ctx context.Context, site *internalSite.Site, after *identifier.Identifier) ([]identifier.Identifier, errors.E) {
+	documents, errE := listReadableDocuments(ctx, site, after)
+	if errE != nil {
+		return nil, errE
+	}
+	ids := make([]identifier.Identifier, len(documents))
+	for i, document := range documents {
+		ids[i] = document.ID
+	}
+	return ids, nil
+}
 
 // TestingRoutePaths returns the route name to path-template map that setRoutes configures,
 // including debugging routes when development is true.

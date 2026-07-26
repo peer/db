@@ -7,13 +7,13 @@
             "aggregations": {
               "children": {
                 "cardinality": {
-                  "field": "claims.ref.to",
+                  "field": "claims.rel.to",
                   "precision_threshold": 40000
                 }
               }
             },
             "terms": {
-              "field": "claims.ref.toParent",
+              "field": "claims.rel.toParent",
               "size": 1000
             }
           }
@@ -23,7 +23,7 @@
             "must": [
               {
                 "term": {
-                  "claims.ref.prop": {
+                  "claims.rel.prop": {
                     "value": "Vg7NV61DJJ5HS2nheTZrQE"
                   }
                 }
@@ -34,7 +34,7 @@
       }
     },
     "nested": {
-      "path": "claims.ref"
+      "path": "claims.rel"
     }
   },
   "missing": {
@@ -43,10 +43,67 @@
         "must_not": [
           {
             "nested": {
-              "path": "claims.ref",
+              "path": "claims.rel",
               "query": {
                 "term": {
-                  "claims.ref.prop": {
+                  "claims.rel.prop": {
+                    "value": "Vg7NV61DJJ5HS2nheTZrQE"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "nested": {
+              "path": "claims.amount",
+              "query": {
+                "term": {
+                  "claims.amount.prop": {
+                    "value": "Vg7NV61DJJ5HS2nheTZrQE"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "nested": {
+              "path": "claims.time",
+              "query": {
+                "term": {
+                  "claims.time.prop": {
+                    "value": "Vg7NV61DJJ5HS2nheTZrQE"
+                  }
+                }
+              }
+            }
+          }
+        ]
+      }
+    }
+  },
+  "other_types": {
+    "filter": {
+      "bool": {
+        "minimum_should_match": 1,
+        "should": [
+          {
+            "nested": {
+              "path": "claims.amount",
+              "query": {
+                "term": {
+                  "claims.amount.prop": {
+                    "value": "Vg7NV61DJJ5HS2nheTZrQE"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "nested": {
+              "path": "claims.time",
+              "query": {
+                "term": {
+                  "claims.time.prop": {
                     "value": "Vg7NV61DJJ5HS2nheTZrQE"
                   }
                 }
@@ -71,7 +128,7 @@
                 },
                 "filter": {
                   "term": {
-                    "claims.ref.isLeaf": {
+                    "claims.rel.isLeaf": {
                       "value": true
                     }
                   }
@@ -82,13 +139,13 @@
               },
               "paths": {
                 "terms": {
-                  "field": "claims.ref.toPath",
+                  "field": "claims.rel.toPath",
                   "size": 100
                 }
               }
             },
             "terms": {
-              "field": "claims.ref.to",
+              "field": "claims.rel.to",
               "order": {
                 "docs": "desc"
               },
@@ -97,7 +154,7 @@
           },
           "total": {
             "cardinality": {
-              "field": "claims.ref.to",
+              "field": "claims.rel.to",
               "precision_threshold": 40000
             }
           }
@@ -107,7 +164,7 @@
             "must": [
               {
                 "term": {
-                  "claims.ref.prop": {
+                  "claims.rel.prop": {
                     "value": "Vg7NV61DJJ5HS2nheTZrQE"
                   }
                 }
@@ -118,7 +175,93 @@
       }
     },
     "nested": {
-      "path": "claims.ref"
+      "path": "claims.rel"
+    }
+  },
+  "specialHas": {
+    "filter": {
+      "nested": {
+        "path": "claims.rel",
+        "query": {
+          "bool": {
+            "must": [
+              {
+                "term": {
+                  "claims.rel.claimType": {
+                    "value": "has"
+                  }
+                }
+              },
+              {
+                "term": {
+                  "claims.rel.prop": {
+                    "value": "Vg7NV61DJJ5HS2nheTZrQE"
+                  }
+                }
+              }
+            ]
+          }
+        }
+      }
+    }
+  },
+  "specialNone": {
+    "filter": {
+      "nested": {
+        "path": "claims.rel",
+        "query": {
+          "bool": {
+            "must": [
+              {
+                "term": {
+                  "claims.rel.claimType": {
+                    "value": "none"
+                  }
+                }
+              },
+              {
+                "term": {
+                  "claims.rel.prop": {
+                    "value": "Vg7NV61DJJ5HS2nheTZrQE"
+                  }
+                }
+              }
+            ]
+          }
+        }
+      }
+    }
+  },
+  "specialUnknown": {
+    "filter": {
+      "nested": {
+        "path": "claims.rel",
+        "query": {
+          "bool": {
+            "must": [
+              {
+                "term": {
+                  "claims.rel.claimType": {
+                    "value": "unknown"
+                  }
+                }
+              },
+              {
+                "term": {
+                  "claims.rel.prop": {
+                    "value": "Vg7NV61DJJ5HS2nheTZrQE"
+                  }
+                }
+              }
+            ]
+          }
+        }
+      }
+    }
+  },
+  "universe": {
+    "filter": {
+      "match_all": {}
     }
   }
 }

@@ -10,48 +10,57 @@ import (
 	"gitlab.com/tozd/identifier"
 )
 
-// Get retrieves time filter data for search results.
+// Get retrieves time filter data for a top-level property facet: the histogram (or single bucket),
+// the identity counts (exists, specials, missing, universe, other value types), and the range
+// metadata.
 func (f *TimeFilter) Get(
 	ctx context.Context, getSearchService func() *esSearch.Search,
 	query types.QueryVariant, prop identifier.Identifier,
 ) ([]HistogramResult, map[string]any, errors.E) {
-	filter := esdsl.NewTermQuery("claims.time.prop", esdsl.NewFieldValue().String(prop.String()))
-	missingNestedQuery := esdsl.NewTermQuery("claims.time.prop", esdsl.NewFieldValue().String(prop.String()))
-	return histogramFilterGet(
-		ctx, getSearchService, query,
-		missingNestedQuery, "claims.time", filter,
-		"claims.time.from", "claims.time.to", "claims.time.range",
+	filter := propTerm(timePath, prop)
+	contexts := []histContext{{
+		Name:         "time",
+		Parent:       "",
+		Path:         timePath,
+		ParentFilter: nil,
+		Filter:       filter,
+	}}
+	existsQuery := esdsl.NewNestedQuery(filter).Path(timePath)
+	return histogramGet(
+		ctx, getSearchService, query, contexts,
 		f.Gte, f.Lte,
 		timeStepDown,
+		topHistogramCounts(prop, "time", existsQuery), histogramCountsOrder,
 	)
 }
 
-// GetSubTime retrieves sub-time filter data for search results. It aggregates
-// claims.subTime values for a given (parentProp, prop) combination,
-// optionally restricted to listed parentTo values for cross-filtering with a
-// sibling parent ref filter.
+// GetSubTime retrieves time filter data for a sub facet (parentProp > prop): the histogram merged
+// across the parent collections the context allows, the identity counts, and the range metadata.
+// parentCtx scopes every aggregation to qualifying parent claims.
 func (f *TimeFilter) GetSubTime(
 	ctx context.Context, getSearchService func() *esSearch.Search,
-	query types.QueryVariant, parentProp, prop identifier.Identifier,
-	parentToRestrictions []identifier.Identifier,
+	query types.QueryVariant, prop identifier.Identifier, parentCtx *ParentContext,
 ) ([]HistogramResult, map[string]any, errors.E) {
-	filterMusts := []types.QueryVariant{
-		esdsl.NewTermQuery("claims.subTime.parentProp", esdsl.NewFieldValue().String(parentProp.String())),
-		esdsl.NewTermQuery("claims.subTime.prop", esdsl.NewFieldValue().String(prop.String())),
-	}
-	if len(parentToRestrictions) > 0 {
-		shoulds := make([]types.QueryVariant, 0, len(parentToRestrictions))
-		for _, pto := range parentToRestrictions {
-			shoulds = append(shoulds, esdsl.NewTermQuery("claims.subTime.parentTo", esdsl.NewFieldValue().String(pto.String())))
+	var contexts []histContext
+	for _, parent := range parentCtx.Collections() {
+		pf, ok := parentCtx.CollectionFilter(parent)
+		if !ok {
+			continue
 		}
-		filterMusts = append(filterMusts, esdsl.NewBoolQuery().Should(shoulds...).MinimumShouldMatch(esdsl.NewMinimumShouldMatch().Int(1)))
+		path := subPath(parent, "time")
+		contexts = append(contexts, histContext{
+			Name:         "time:" + parent,
+			Parent:       parent,
+			Path:         path,
+			ParentFilter: pf,
+			Filter:       propTerm(path, prop),
+		})
 	}
-	filter := esdsl.NewBoolQuery().Must(filterMusts...)
-	return histogramSubFilterGet(
-		ctx, getSearchService, query,
-		parentProp, prop, "claims.subTime", filter,
-		"claims.subTime.from", "claims.subTime.to", "claims.subTime.range",
+	existsQuery := subValueExistsQuery(parentCtx, "time", prop, nil)
+	return histogramGet(
+		ctx, getSearchService, query, contexts,
 		f.Gte, f.Lte,
 		timeStepDown,
+		subHistogramCounts(parentCtx, prop, "time", existsQuery), histogramCountsOrder,
 	)
 }

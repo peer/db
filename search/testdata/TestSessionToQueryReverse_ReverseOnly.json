@@ -7,10 +7,10 @@
           "should": [
             {
               "nested": {
-                "path": "claims.ref",
+                "path": "claims.rel",
                 "query": {
                   "term": {
-                    "claims.ref.to": {
+                    "claims.rel.to": {
                       "value": "RTZbV3UiK7F9XZAkE5Dt55"
                     }
                   }
@@ -19,11 +19,118 @@
             },
             {
               "nested": {
-                "path": "claims.subRef",
+                "path": "claims.rel",
                 "query": {
-                  "term": {
-                    "claims.subRef.to": {
-                      "value": "RTZbV3UiK7F9XZAkE5Dt55"
+                  "nested": {
+                    "path": "claims.rel.sub.rel",
+                    "query": {
+                      "term": {
+                        "claims.rel.sub.rel.to": {
+                          "value": "RTZbV3UiK7F9XZAkE5Dt55"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "nested": {
+                "path": "claims.amount",
+                "query": {
+                  "nested": {
+                    "path": "claims.amount.sub.rel",
+                    "query": {
+                      "term": {
+                        "claims.amount.sub.rel.to": {
+                          "value": "RTZbV3UiK7F9XZAkE5Dt55"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "nested": {
+                "path": "claims.time",
+                "query": {
+                  "nested": {
+                    "path": "claims.time.sub.rel",
+                    "query": {
+                      "term": {
+                        "claims.time.sub.rel.to": {
+                          "value": "RTZbV3UiK7F9XZAkE5Dt55"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "nested": {
+                "path": "claims.id",
+                "query": {
+                  "nested": {
+                    "path": "claims.id.sub.rel",
+                    "query": {
+                      "term": {
+                        "claims.id.sub.rel.to": {
+                          "value": "RTZbV3UiK7F9XZAkE5Dt55"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "nested": {
+                "path": "claims.string",
+                "query": {
+                  "nested": {
+                    "path": "claims.string.sub.rel",
+                    "query": {
+                      "term": {
+                        "claims.string.sub.rel.to": {
+                          "value": "RTZbV3UiK7F9XZAkE5Dt55"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "nested": {
+                "path": "claims.html",
+                "query": {
+                  "nested": {
+                    "path": "claims.html.sub.rel",
+                    "query": {
+                      "term": {
+                        "claims.html.sub.rel.to": {
+                          "value": "RTZbV3UiK7F9XZAkE5Dt55"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "nested": {
+                "path": "claims.link",
+                "query": {
+                  "nested": {
+                    "path": "claims.link.sub.rel",
+                    "query": {
+                      "term": {
+                        "claims.link.sub.rel.to": {
+                          "value": "RTZbV3UiK7F9XZAkE5Dt55"
+                        }
+                      }
                     }
                   }
                 }

@@ -21,23 +21,12 @@ func TestTimeFilterGetIntegration(t *testing.T) {
 
 	seedTimeFilterDocs(t, ctx, esClient, index, timeProp)
 
-	// Create a session with a time filter.
-	session := createSession(t, ctx, search.SessionData{
-		Sort:     nil,
-		Language: "",
-		View:     "",
-		Query:    "",
-		Filters: []search.Filter{{ //nolint:exhaustruct
-			Prop: []identifier.Identifier{timeProp},
-			Time: &search.TimeFilter{Gte: nil, Lte: nil, Missing: true, Exists: false},
-		}},
-		Prefilters:    nil,
-		Reverse:       nil,
-		ReverseExpand: false,
-		IDs:           nil,
-	})
+	// A session with an active missing selection on the property: the facet excludes the path's
+	// specials filter, so the histogram still spans all values.
+	query := missingSpecialsFacetQuery(t, ctx, timeProp)
 
-	results, metadata, errE := session.Filters[0].Time.Get(ctx, getSearchService, session.ToQueryExcluding(*session.Filters[0].ID, nil), session.Filters[0].Prop[0])
+	f := search.TimeFilter{Gte: nil, Lte: nil, Exists: false}
+	results, metadata, errE := f.Get(ctx, getSearchService, query, timeProp)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// The histogram spans the known endpoint window edges [1000, 9001).
@@ -46,6 +35,11 @@ func TestTimeFilterGetIntegration(t *testing.T) {
 	assertIntervalPrefix(t, "80.0", metadata)
 	assert.Equal(t, "100", metadata["total"])
 	require.Len(t, results, 100)
+
+	// The identity counts: every document has a value record and none is missing.
+	assert.Equal(t, int64(3), metadata["exists"])
+	assert.Equal(t, int64(0), metadata["missing"])
+	assert.Equal(t, int64(3), metadata["universe"])
 
 	// Window [1000, 1001) -> bucket[0], window [9000, 9001) -> bucket[99], while window
 	// [5000, 5001) straddles the boundary between buckets [49] and [50] and is counted
@@ -81,31 +75,9 @@ func TestTimeFilterGetMissingIntegration(t *testing.T) {
 	// Doc with the time prop.
 	indexTimePointDoc(t, ctx, esClient, index, "timeDoc1", timeProp, &t1000)
 	// Doc without the time prop.
-	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		DisplaySort: nil,
-		ID:          identifier.From("timeDoc2"),
-		Display:     nil,
-		Text:        nil,
-		Time:        nil,
-		LastUpdated: nil,
-		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
-		Claims: internalSearch.ClaimTypes{
-			Identifier: nil,
-			String:     nil,
-			HTML:       nil,
-			Amount:     nil,
-			Time:       nil,
-			Link:       nil,
-			Reference:  nil,
-			Has:        nil,
-			None:       nil,
-			Unknown:    nil,
-			SubRef:     nil,
-			SubAmount:  nil,
-			SubTime:    nil,
-			SubHas:     nil,
-		},
-	})
+	indexDocument(t, ctx, esClient, index, claimsDoc("timeDoc2", internalSearch.ClaimTypes{
+		Rel: nil, Amount: nil, Time: nil, Identifier: nil, String: nil, HTML: nil, Link: nil,
+	}))
 	refreshIndex(t, ctx, esClient, index)
 
 	session := createSession(t, ctx, search.SessionData{})
@@ -116,6 +88,8 @@ func TestTimeFilterGetMissingIntegration(t *testing.T) {
 
 	// Missing count should be 1 (one document without the time prop).
 	assert.Equal(t, int64(1), metadata["missing"])
+	assert.Equal(t, int64(1), metadata["exists"])
+	assert.Equal(t, int64(2), metadata["universe"])
 }
 
 func TestTimeFilterGetNoMissingIntegration(t *testing.T) {
@@ -190,22 +164,10 @@ func TestTimeFilterGetSameValuesIntegration(t *testing.T) {
 	indexTimeIntervalDoc(t, ctx, esClient, index, "sameTimeDoc1", timeProp, &t5000, nil)
 	refreshIndex(t, ctx, esClient, index)
 
-	session := createSession(t, ctx, search.SessionData{
-		Sort:     nil,
-		Language: "",
-		View:     "",
-		Query:    "",
-		Filters: []search.Filter{{ //nolint:exhaustruct
-			Prop: []identifier.Identifier{timeProp},
-			Time: &search.TimeFilter{Gte: nil, Lte: nil, Missing: true, Exists: false},
-		}},
-		Prefilters:    nil,
-		Reverse:       nil,
-		ReverseExpand: false,
-		IDs:           nil,
-	})
+	query := missingSpecialsFacetQuery(t, ctx, timeProp)
 
-	results, metadata, errE := session.Filters[0].Time.Get(ctx, getSearchService, session.ToQueryExcluding(*session.Filters[0].ID, nil), session.Filters[0].Prop[0])
+	f := search.TimeFilter{Gte: nil, Lte: nil, Exists: false}
+	results, metadata, errE := f.Get(ctx, getSearchService, query, timeProp)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, "1", metadata["total"])
 	assert.Equal(t, "5000", metadata["from"])
@@ -227,22 +189,10 @@ func TestTimeFilterGetNegativeValuesIntegration(t *testing.T) {
 	indexTimePointDoc(t, ctx, esClient, index, "negTimeDoc2", timeProp, &t500)
 	refreshIndex(t, ctx, esClient, index)
 
-	session := createSession(t, ctx, search.SessionData{
-		Sort:     nil,
-		Language: "",
-		View:     "",
-		Query:    "",
-		Filters: []search.Filter{{ //nolint:exhaustruct
-			Prop: []identifier.Identifier{timeProp},
-			Time: &search.TimeFilter{Gte: nil, Lte: nil, Missing: true, Exists: false},
-		}},
-		Prefilters:    nil,
-		Reverse:       nil,
-		ReverseExpand: false,
-		IDs:           nil,
-	})
+	query := missingSpecialsFacetQuery(t, ctx, timeProp)
 
-	results, metadata, errE := session.Filters[0].Time.Get(ctx, getSearchService, session.ToQueryExcluding(*session.Filters[0].ID, nil), session.Filters[0].Prop[0])
+	f := search.TimeFilter{Gte: nil, Lte: nil, Exists: false}
+	results, metadata, errE := f.Get(ctx, getSearchService, query, timeProp)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	assert.Equal(t, "-500", metadata["from"])
@@ -276,22 +226,10 @@ func TestTimeFilterGetEmptyIntegration(t *testing.T) {
 
 	timeProp := identifier.From("timeProp")
 
-	session := createSession(t, ctx, search.SessionData{
-		Sort:     nil,
-		Language: "",
-		View:     "",
-		Query:    "",
-		Filters: []search.Filter{{ //nolint:exhaustruct
-			Prop: []identifier.Identifier{timeProp},
-			Time: &search.TimeFilter{Gte: nil, Lte: nil, Missing: true, Exists: false},
-		}},
-		Prefilters:    nil,
-		Reverse:       nil,
-		ReverseExpand: false,
-		IDs:           nil,
-	})
+	query := missingSpecialsFacetQuery(t, ctx, timeProp)
 
-	results, metadata, errE := session.Filters[0].Time.Get(ctx, getSearchService, session.ToQueryExcluding(*session.Filters[0].ID, nil), session.Filters[0].Prop[0])
+	f := search.TimeFilter{Gte: nil, Lte: nil, Exists: false}
+	results, metadata, errE := f.Get(ctx, getSearchService, query, timeProp)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, []search.HistogramResult{}, results)
 	assert.Equal(t, "0", metadata["total"])
@@ -317,22 +255,15 @@ func TestTimeFilterGetExtendedBoundsIntegration(t *testing.T) {
 	// Session filter with wider range [0, 10000] than data [4000, 6000].
 	gte := float64(0)
 	lte := float64(10000)
-	session := createSession(t, ctx, search.SessionData{
-		Sort:     nil,
-		Language: "",
-		View:     "",
-		Query:    "",
+	session := createSession(t, ctx, search.SessionData{ //nolint:exhaustruct
 		Filters: []search.Filter{{ //nolint:exhaustruct
 			Prop: []identifier.Identifier{timeProp},
-			Time: &search.TimeFilter{Gte: &gte, Lte: &lte, Missing: false, Exists: false},
+			Time: &search.TimeFilter{Gte: &gte, Lte: &lte, Exists: false},
 		}},
-		Prefilters:    nil,
-		Reverse:       nil,
-		ReverseExpand: false,
-		IDs:           nil,
 	})
 
-	results, metadata, errE := session.Filters[0].Time.Get(ctx, getSearchService, session.ToQueryExcluding(*session.Filters[0].ID, nil), session.Filters[0].Prop[0])
+	query := session.ToQueryExcluding(session.FacetExcludeIDs(session.Filters[0].Prop, session.Filters[0].ID), nil)
+	results, metadata, errE := session.Filters[0].Time.Get(ctx, getSearchService, query, session.Filters[0].Prop[0])
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	assert.Equal(t, "0", metadata["from"])
@@ -381,22 +312,15 @@ func TestTimeFilterGetHardBoundsIntegration(t *testing.T) {
 	// Both documents match because their ranges overlap [1000, 9000].
 	gte := float64(1000)
 	lte := float64(9000)
-	session := createSession(t, ctx, search.SessionData{
-		Sort:     nil,
-		Language: "",
-		View:     "",
-		Query:    "",
+	session := createSession(t, ctx, search.SessionData{ //nolint:exhaustruct
 		Filters: []search.Filter{{ //nolint:exhaustruct
 			Prop: []identifier.Identifier{timeProp},
-			Time: &search.TimeFilter{Gte: &gte, Lte: &lte, Missing: false, Exists: false},
+			Time: &search.TimeFilter{Gte: &gte, Lte: &lte, Exists: false},
 		}},
-		Prefilters:    nil,
-		Reverse:       nil,
-		ReverseExpand: false,
-		IDs:           nil,
 	})
 
-	results, metadata, errE := session.Filters[0].Time.Get(ctx, getSearchService, session.ToQueryExcluding(*session.Filters[0].ID, nil), session.Filters[0].Prop[0])
+	query := session.ToQueryExcluding(session.FacetExcludeIDs(session.Filters[0].Prop, session.Filters[0].ID), nil)
+	results, metadata, errE := session.Filters[0].Time.Get(ctx, getSearchService, query, session.Filters[0].Prop[0])
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// The session bounds [1000, 9000] are widened by 10% of the selected span (800) on each side so
@@ -447,22 +371,10 @@ func TestTimeFilterGetWideRangeIntegration(t *testing.T) {
 	indexTimePointDoc(t, ctx, esClient, index, "wideTimeDoc3", timeProp, &t9500)
 	refreshIndex(t, ctx, esClient, index)
 
-	session := createSession(t, ctx, search.SessionData{
-		Sort:     nil,
-		Language: "",
-		View:     "",
-		Query:    "",
-		Filters: []search.Filter{{ //nolint:exhaustruct
-			Prop: []identifier.Identifier{timeProp},
-			Time: &search.TimeFilter{Gte: nil, Lte: nil, Missing: true, Exists: false},
-		}},
-		Prefilters:    nil,
-		Reverse:       nil,
-		ReverseExpand: false,
-		IDs:           nil,
-	})
+	query := missingSpecialsFacetQuery(t, ctx, timeProp)
 
-	results, metadata, errE := session.Filters[0].Time.Get(ctx, getSearchService, session.ToQueryExcluding(*session.Filters[0].ID, nil), session.Filters[0].Prop[0])
+	f := search.TimeFilter{Gte: nil, Lte: nil, Exists: false}
+	results, metadata, errE := f.Get(ctx, getSearchService, query, timeProp)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	assert.Equal(t, "500", metadata["from"])
@@ -603,22 +515,15 @@ func TestTimeFilterGetPointBoundsIntegration(t *testing.T) {
 	// A point inside the window [1000, 1001) of the first document.
 	gte := 1000.5
 	lte := 1000.5
-	session := createSession(t, ctx, search.SessionData{
-		Sort:     nil,
-		Language: "",
-		View:     "",
-		Query:    "",
+	session := createSession(t, ctx, search.SessionData{ //nolint:exhaustruct
 		Filters: []search.Filter{{ //nolint:exhaustruct
 			Prop: []identifier.Identifier{timeProp},
-			Time: &search.TimeFilter{Gte: &gte, Lte: &lte, Missing: false, Exists: false},
+			Time: &search.TimeFilter{Gte: &gte, Lte: &lte, Exists: false},
 		}},
-		Prefilters:    nil,
-		Reverse:       nil,
-		ReverseExpand: false,
-		IDs:           nil,
 	})
 
-	results, metadata, errE := session.Filters[0].Time.Get(ctx, getSearchService, session.ToQueryExcluding(*session.Filters[0].ID, nil), session.Filters[0].Prop[0])
+	query := session.ToQueryExcluding(session.FacetExcludeIDs(session.Filters[0].Prop, session.Filters[0].ID), nil)
+	results, metadata, errE := session.Filters[0].Time.Get(ctx, getSearchService, query, session.Filters[0].Prop[0])
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	assert.Equal(t, "1", metadata["total"])
@@ -629,22 +534,14 @@ func TestTimeFilterGetPointBoundsIntegration(t *testing.T) {
 	// A point in the gap between the documents matches nothing.
 	gapGte := float64(3000)
 	gapLte := float64(3000)
-	gapSession := createSession(t, ctx, search.SessionData{
-		Sort:     nil,
-		Language: "",
-		View:     "",
-		Query:    "",
+	gapSession := createSession(t, ctx, search.SessionData{ //nolint:exhaustruct
 		Filters: []search.Filter{{ //nolint:exhaustruct
 			Prop: []identifier.Identifier{timeProp},
-			Time: &search.TimeFilter{Gte: &gapGte, Lte: &gapLte, Missing: false, Exists: false},
+			Time: &search.TimeFilter{Gte: &gapGte, Lte: &gapLte, Exists: false},
 		}},
-		Prefilters:    nil,
-		Reverse:       nil,
-		ReverseExpand: false,
-		IDs:           nil,
 	})
 
-	gapQuery := gapSession.ToQueryExcluding(*gapSession.Filters[0].ID, nil)
+	gapQuery := gapSession.ToQueryExcluding(gapSession.FacetExcludeIDs(gapSession.Filters[0].Prop, gapSession.Filters[0].ID), nil)
 	results, metadata, errE = gapSession.Filters[0].Time.Get(ctx, getSearchService, gapQuery, gapSession.Filters[0].Prop[0])
 	require.NoError(t, errE, "% -+#.1v", errE)
 
@@ -671,22 +568,15 @@ func TestTimeFilterGetSingleValueActiveIntegration(t *testing.T) {
 
 	gte := float64(999)
 	lte := float64(1000)
-	session := createSession(t, ctx, search.SessionData{
-		Sort:     nil,
-		Language: "",
-		View:     "",
-		Query:    "",
+	session := createSession(t, ctx, search.SessionData{ //nolint:exhaustruct
 		Filters: []search.Filter{{ //nolint:exhaustruct
 			Prop: []identifier.Identifier{timeProp},
-			Time: &search.TimeFilter{Gte: &gte, Lte: &lte, Missing: false, Exists: false},
+			Time: &search.TimeFilter{Gte: &gte, Lte: &lte, Exists: false},
 		}},
-		Prefilters:    nil,
-		Reverse:       nil,
-		ReverseExpand: false,
-		IDs:           nil,
 	})
 
-	results, metadata, errE := session.Filters[0].Time.Get(ctx, getSearchService, session.ToQueryExcluding(*session.Filters[0].ID, nil), session.Filters[0].Prop[0])
+	query := session.ToQueryExcluding(session.FacetExcludeIDs(session.Filters[0].Prop, session.Filters[0].ID), nil)
+	results, metadata, errE := session.Filters[0].Time.Get(ctx, getSearchService, query, session.Filters[0].Prop[0])
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	assert.Equal(t, "1", metadata["total"])
@@ -775,55 +665,26 @@ func TestTimeFilterGetExistsIntegration(t *testing.T) {
 
 	// A document with a fully unbounded claim and a document without the property.
 	indexTimeIntervalDoc(t, ctx, esClient, index, "existsTimeDoc1", timeProp, nil, nil)
-	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		DisplaySort: nil,
-		ID:          identifier.From("existsTimeDoc2"),
-		Display:     nil,
-		Text:        nil,
-		Time:        nil,
-		LastUpdated: nil,
-		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
-		Claims: internalSearch.ClaimTypes{
-			Identifier: nil,
-			String:     nil,
-			HTML:       nil,
-			Amount:     nil,
-			Time:       nil,
-			Link:       nil,
-			Reference:  nil,
-			Has:        nil,
-			None:       nil,
-			Unknown:    nil,
-			SubRef:     nil,
-			SubAmount:  nil,
-			SubTime:    nil,
-			SubHas:     nil,
-		},
-	})
+	indexDocument(t, ctx, esClient, index, claimsDoc("existsTimeDoc2", internalSearch.ClaimTypes{
+		Rel: nil, Amount: nil, Time: nil, Identifier: nil, String: nil, HTML: nil, Link: nil,
+	}))
 	refreshIndex(t, ctx, esClient, index)
 
-	session := createSession(t, ctx, search.SessionData{
-		Sort:     nil,
-		Language: "",
-		View:     "",
-		Query:    "",
+	session := createSession(t, ctx, search.SessionData{ //nolint:exhaustruct
 		Filters: []search.Filter{{ //nolint:exhaustruct
 			Prop: []identifier.Identifier{timeProp},
-			Time: &search.TimeFilter{Gte: nil, Lte: nil, Missing: false, Exists: true},
+			Time: &search.TimeFilter{Gte: nil, Lte: nil, Exists: true},
 		}},
-		Prefilters:    nil,
-		Reverse:       nil,
-		ReverseExpand: false,
-		IDs:           nil,
 	})
 
 	// The active exists filter round-trips to the counts-only response.
-	query := session.ToQueryExcluding(*session.Filters[0].ID, nil)
+	query := session.ToQueryExcluding(session.FacetExcludeIDs(session.Filters[0].Prop, session.Filters[0].ID), nil)
 	results, metadata, errE := session.Filters[0].Time.Get(ctx, getSearchService, query, session.Filters[0].Prop[0])
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	assert.Equal(t, "0", metadata["total"])
 	assert.Equal(t, int64(1), metadata["missing"])
+	assert.Equal(t, int64(1), metadata["exists"])
 	assert.Empty(t, results)
 
 	// With the exists filter applied to the query, only the document with the property
@@ -877,9 +738,11 @@ func TestTimeFilterGetUnknownEndIntegration(t *testing.T) {
 	assert.Equal(t, int64(1), results[len(results)-1].Count)
 }
 
-// A claim with both endpoints unknown is converted to an unknown claim (see
-// TestConvertTimeIntervalBothUnknown) and is not indexed under claims.time at all, so
-// its document counts as missing for the filter and does not affect the histogram.
+// A claim with both endpoints unknown is converted to an unknown rel record (see
+// TestConvertTimeIntervalBothUnknown) and is not indexed under claims.time at all, so it
+// does not affect the histogram. Because the unknown record is a rel record for the
+// property, the document is not missing: it counts under unknown and under the
+// other-value-types remainder instead.
 func TestTimeFilterGetFullyUnknownIntegration(t *testing.T) {
 	t.Parallel()
 
@@ -890,33 +753,9 @@ func TestTimeFilterGetFullyUnknownIntegration(t *testing.T) {
 	t1000 := float64(1000)
 
 	// The indexed shape of an interval claim with both endpoints unknown after conversion.
-	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		DisplaySort: nil,
-		ID:          identifier.From("fullyUnknownTimeDoc1"),
-		Display:     nil,
-		Text:        nil,
-		Time:        nil,
-		LastUpdated: nil,
-		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
-		Claims: internalSearch.ClaimTypes{
-			Identifier: nil,
-			String:     nil,
-			HTML:       nil,
-			Amount:     nil,
-			Time:       nil,
-			Link:       nil,
-			Reference:  nil,
-			Has:        nil,
-			None:       nil,
-			Unknown: internalSearch.UnknownClaims{{
-				Prop: timeProp, PropDisplay: nil, PropNaming: nil, PropSortKey: nil,
-			}},
-			SubRef:    nil,
-			SubAmount: nil,
-			SubTime:   nil,
-			SubHas:    nil,
-		},
-	})
+	indexDocument(t, ctx, esClient, index, claimsDoc("fullyUnknownTimeDoc1", internalSearch.ClaimTypes{ //nolint:exhaustruct
+		Rel: internalSearch.RelClaims{simpleRelRecord(internalSearch.ClaimTypeUnknown, timeProp, nil)},
+	}))
 	indexTimeIntervalDoc(t, ctx, esClient, index, "fullyUnknownTimeDoc2", timeProp, &t1000, nil)
 	refreshIndex(t, ctx, esClient, index)
 
@@ -929,6 +768,75 @@ func TestTimeFilterGetFullyUnknownIntegration(t *testing.T) {
 	assert.Equal(t, "1", metadata["total"])
 	assert.Equal(t, "1000", metadata["from"])
 	assert.Equal(t, "1000", metadata["to"])
-	assert.Equal(t, int64(1), metadata["missing"])
+	assert.Equal(t, int64(0), metadata["missing"])
+	assert.Equal(t, int64(1), metadata["unknown"])
+	assert.Equal(t, int64(1), metadata["other_types"])
+	assert.Equal(t, int64(1), metadata["exists"])
 	assert.Equal(t, []search.HistogramResult{{From: 1000.0, Count: 1}}, results)
+}
+
+// A sub time facet (parentProp > subProp): sub value records live in the parent record's Sub
+// container, the histogram merges across the parent collections, and sub missing counts documents
+// with a qualifying parent claim but no facetable sub-claim for the sub property. A document
+// without any parent claim is outside the facet's universe and counts toward neither.
+func TestTimeFilterGetSubTimeIntegration(t *testing.T) {
+	t.Parallel()
+
+	ctx := t.Context()
+	esClient, getSearchService, index := initES(t)
+
+	parentProp := identifier.From("parentProp")
+	subProp := identifier.From("subTimeProp")
+	target := identifier.From("target")
+	t5000 := float64(5000)
+	parentFrom := float64(100)
+	parentTo := float64(200)
+
+	// An open-ended sub time claim: the single known endpoint value 5000 collapses the histogram
+	// to a single bucket, keeping the merge assertions simple.
+	subClaims := func() *internalSearch.ClaimTypes {
+		return &internalSearch.ClaimTypes{ //nolint:exhaustruct
+			Time: internalSearch.TimeClaims{timeRecord(subProp, &t5000, nil, nil)},
+		}
+	}
+
+	// A parent ref claim carrying the sub time in its Sub container.
+	indexDocument(t, ctx, esClient, index, claimsDoc("subTimeDoc1", internalSearch.ClaimTypes{ //nolint:exhaustruct
+		Rel: internalSearch.RelClaims{refRecord(parentProp, target, subClaims())},
+	}))
+	// A parent claim without the sub time: missing for the sub facet.
+	indexDocument(t, ctx, esClient, index, claimsDoc("subTimeDoc2", internalSearch.ClaimTypes{ //nolint:exhaustruct
+		Rel: internalSearch.RelClaims{refRecord(parentProp, target, nil)},
+	}))
+	// No parent claim at all: outside the sub facet's universe.
+	indexDocument(t, ctx, esClient, index, claimsDoc("subTimeDoc3", internalSearch.ClaimTypes{
+		Rel: nil, Amount: nil, Time: nil, Identifier: nil, String: nil, HTML: nil, Link: nil,
+	}))
+	// A parent time claim (a different parent collection) carrying the same sub time: the
+	// histogram and the counts merge across parent collections.
+	indexDocument(t, ctx, esClient, index, claimsDoc("subTimeDoc4", internalSearch.ClaimTypes{ //nolint:exhaustruct
+		Time: internalSearch.TimeClaims{timeRecord(parentProp, &parentFrom, &parentTo, subClaims())},
+	}))
+	refreshIndex(t, ctx, esClient, index)
+
+	session := createSession(t, ctx, search.SessionData{})
+
+	f := search.TimeFilter{Gte: nil, Lte: nil, Exists: false}
+	parentCtx := session.ParentContextFor(parentProp, subProp)
+	results, metadata, errE := f.GetSubTime(ctx, getSearchService, session.ToQuery(nil), subProp, parentCtx)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// The single known endpoint value collapses to a single bucket counting both documents with
+	// the sub time, across both parent collections.
+	assert.Equal(t, "1", metadata["total"])
+	assert.Equal(t, "5000", metadata["from"])
+	assert.Equal(t, "5000", metadata["to"])
+	assert.Equal(t, []search.HistogramResult{{From: 5000.0, Count: 2}}, results)
+	assert.Equal(t, int64(2), metadata["exists"])
+	assert.Equal(t, int64(1), metadata["missing"])
+	assert.Equal(t, int64(3), metadata["universe"])
+	assert.Equal(t, int64(0), metadata["none"])
+	assert.Equal(t, int64(0), metadata["unknown"])
+	assert.Equal(t, int64(0), metadata["has_property"])
+	assert.Equal(t, int64(0), metadata["other_types"])
 }
