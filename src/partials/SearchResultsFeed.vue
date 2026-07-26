@@ -764,7 +764,17 @@ const WithDocumentD = WithDocument<D>
             <div v-else-if="hasActiveFilters" class="mb-1 text-sm">{{ t("partials.SearchResultsFeed.filtersAvailable", { count: activeFiltersCount }) }}</div>
 
             <WithLock :lock="getFilterBoxLock">
-              <InputText v-model="filterQuery" class="pd-searchfilters-search pd-print-hidden w-full" :aria-label="t('partials.SearchResultsFeed.filtersSearchLabel')" />
+              <div class="relative">
+                <InputText
+                  v-model="filterQuery"
+                  class="pd-searchfilters-search pd-print-hidden w-full"
+                  :class="{ 'pr-20': filterQuery }"
+                  :aria-label="t('partials.SearchResultsFeed.filtersSearchLabel')"
+                />
+                <div v-if="filterQuery" class="absolute inset-y-0 right-0 flex items-center pr-2">
+                  <Button type="button" class="px-2.5 py-1" @click.prevent="filterQuery = ''">{{ t("common.buttons.clear") }}</Button>
+                </div>
+              </div>
             </WithLock>
           </div>
 
