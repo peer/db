@@ -34,9 +34,10 @@ const (
 	ActionCreateCode = "ACTION_CREATE"
 	// ActionReadCode allows fetching objects.
 	ActionReadCode = "ACTION_READ"
-	// ActionReadBulkCode allows bulk reading of objects. It supplements the read action: bulk
-	// reading fetches the objects through the ordinary read path, so the caller also has to be
-	// allowed to read the objects themselves.
+	// ActionReadBulkCode allows bulk reading of objects. It supplements the read action: bulk reading
+	// fetches the objects through the ordinary read path, so the caller also has to be allowed to
+	// read the objects themselves. Claim scopes are not supported: a bulk read is not about a
+	// particular document.
 	ActionReadBulkCode = "ACTION_READ_BULK"
 	// ActionReadHistoricCode allows reading versions of an object at which the caller did not have
 	// read access. It supplements the read action: a caller who is allowed to read the object (its
@@ -290,8 +291,8 @@ func ParseRoleGrants(actions map[string][]string) (Grants, errors.E) {
 				errors.Details(errE)["action"] = code
 				return nil, errE
 			}
-			if action == ActionReadBulk && scope.Literal != ScopeAll {
-				errE := errors.New("the bulk read action supports only the all scope")
+			if action == ActionReadBulk && scope.Literal == "" {
+				errE := errors.New("the bulk read action supports only literal scopes")
 				errors.Details(errE)["action"] = code
 				errors.Details(errE)["scope"] = scope.String()
 				return nil, errE

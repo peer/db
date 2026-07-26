@@ -111,6 +111,20 @@ func TestParseRoleGrants(t *testing.T) {
 	assert.Len(t, grants[auth.ActionRead], 3)
 	assert.Len(t, grants[auth.ActionReadBulk], 1)
 
+	// The bulk read action is granted per object kind, so it takes the documents and files scopes as
+	// well, allowing bulk reading of documents and of files to be granted independently.
+	grants, errE = auth.ParseRoleGrants(map[string][]string{auth.ActionReadBulkCode: {auth.ScopeDocuments}})
+	require.NoError(t, errE, "% -+#.1v", errE)
+	require.Len(t, grants[auth.ActionReadBulk], 1)
+	assert.True(t, grants[auth.ActionReadBulk][0].CoversDocuments())
+	assert.False(t, grants[auth.ActionReadBulk][0].MatchesFiles())
+
+	grants, errE = auth.ParseRoleGrants(map[string][]string{auth.ActionReadBulkCode: {auth.ScopeFiles}})
+	require.NoError(t, errE, "% -+#.1v", errE)
+	require.Len(t, grants[auth.ActionReadBulk], 1)
+	assert.False(t, grants[auth.ActionReadBulk][0].CoversDocuments())
+	assert.True(t, grants[auth.ActionReadBulk][0].MatchesFiles())
+
 	_, errE = auth.ParseRoleGrants(map[string][]string{"ACTION_UNKNOWN": {auth.ScopeAll}})
 	assert.EqualError(t, errE, "unknown permission action")
 
@@ -118,9 +132,11 @@ func TestParseRoleGrants(t *testing.T) {
 	_, errE = auth.ParseRoleGrants(map[string][]string{auth.ActionReadCode: {auth.ScopeSelf}})
 	assert.EqualError(t, errE, "the self scope is valid only in document-level permission claims")
 
-	// The bulk read action supports only the all scope.
-	_, errE = auth.ParseRoleGrants(map[string][]string{auth.ActionReadBulkCode: {auth.ScopeDocuments}})
-	assert.EqualError(t, errE, "the bulk read action supports only the all scope")
+	// A bulk read is not about a particular document, so claim scopes are not supported for it.
+	_, errE = auth.ParseRoleGrants(map[string][]string{
+		auth.ActionReadBulkCode: {identifier.New().String() + "=" + identifier.New().String()},
+	})
+	assert.EqualError(t, errE, "the bulk read action supports only literal scopes")
 }
 
 func TestHasPermissionClaim(t *testing.T) {

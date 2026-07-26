@@ -300,6 +300,14 @@ func (s *Service) setRoutes() { //nolint:maintidx
 				},
 			},
 		},
+		"DocumentList": {
+			Path: "/d",
+			API: waf.RouteOptions{
+				Handlers: map[string]waf.Handler{
+					http.MethodGet: s.DocumentListGetAPI,
+				},
+			},
+		},
 		"DocumentGet": {
 			RouteOptions: waf.RouteOptions{
 				Handlers: map[string]waf.Handler{

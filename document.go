@@ -370,11 +370,20 @@ func listReadableDocuments(ctx context.Context, site *internalSite.Site, after *
 // JSON array of document IDs. It uses keyset pagination via the "after" query parameter: to fetch the next
 // page, request again with "after" set to the ID of the last item in the returned array; an empty array means
 // there are no more. Each entry is a document a read by ID would return, applying the same access semantics as
-// viewing a document (see listReadableDocuments). It is intentionally not wired into PeerDB's own routes. A
-// library consumer can expose it (for example under /d).
+// viewing a document (see listReadableDocuments).
+//
+// Enumerating documents requires the bulk read action on documents, on top of the per-document read action
+// the listing itself applies: a caller who may read documents one by one does not thereby get to enumerate
+// them. Because the check is done up front, a caller without it does not make the listing scan the store.
 func (s *Service) DocumentListGetAPI(w http.ResponseWriter, req *http.Request, _ waf.Params) {
 	ctx := req.Context()
 	metrics := waf.MustGetMetrics(ctx)
+
+	errE := s.HasDocumentPermission(ctx, auth.ActionReadBulk, nil)
+	if errE != nil {
+		s.ForbiddenWithError(w, req, errE)
+		return
+	}
 
 	var after *identifier.Identifier
 	if req.Form.Has("after") {

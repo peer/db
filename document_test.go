@@ -1,6 +1,7 @@
 package peerdb_test
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -9,6 +10,7 @@ import (
 	"gitlab.com/tozd/waf"
 
 	"gitlab.com/peerdb/peerdb"
+	"gitlab.com/peerdb/peerdb/auth"
 	"gitlab.com/peerdb/peerdb/document"
 	internalSite "gitlab.com/peerdb/peerdb/internal/site"
 )
@@ -32,8 +34,33 @@ func TestListReadableDocuments(t *testing.T) {
 	startTestServer(t, func(g *peerdb.Globals, _ *peerdb.ServeCommand) {
 		globals = g
 		g.Sites = []internalSite.Site{
-			{ //nolint:exhaustruct
-				Site: waf.Site{Domain: "localhost"}, //nolint:exhaustruct
+			{
+				Site: waf.Site{
+					Domain:   "localhost",
+					CertFile: "",
+					KeyFile:  "",
+				},
+				Build:                nil,
+				IndexPrefix:          "",
+				Schema:               "",
+				Title:                "",
+				Logo:                 nil,
+				Favicon:              internalSite.Favicon{},
+				LanguagePriority:     nil,
+				DefaultLanguage:      "",
+				LanguageCodes:        nil,
+				Features:             internalSite.SiteFeatures{},
+				Roles:                nil,
+				ScopeProperties:      nil,
+				Visibility:           nil,
+				Auth:                 internalSite.SiteAuthConfig{},
+				MetadataHeaderPrefix: "",
+				Base:                 nil,
+				DBPool:               nil,
+				ESClient:             nil,
+				RiverClient:          nil,
+				Authenticator:        nil,
+				DebugRiverHandler:    nil,
 			},
 		}
 	})
@@ -49,8 +76,9 @@ func TestListReadableDocuments(t *testing.T) {
 		require.NoError(t, errE, "% -+#.1v", errE)
 	}
 
-	// With no read-path permission hooks and nothing deleted, the readable listing is exactly the store's
-	// committed documents, in the same (ID) order.
+	// The read-path permission hooks are registered (init.go does it for every site) but inert here: they
+	// need a site in ctx and this ctx carries only the schema, so nothing is denied. With nothing deleted
+	// the readable listing is then exactly the store's committed documents, in the same (ID) order.
 	storeIDs, errE := site.Base.Documents().List(ctx, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	readable, errE := peerdb.TestingListReadableDocuments(ctx, site, nil)
@@ -77,4 +105,84 @@ func TestListReadableDocuments(t *testing.T) {
 	rawAfterDelete, errE := site.Base.Documents().List(ctx, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Contains(t, rawAfterDelete, doc1.ID)
+}
+
+// TestDocumentListGetAPIRequiresBulkRead verifies the gate DocumentListGetAPI puts in front of the
+// listing: enumerating documents requires the bulk read action on documents, so the read action alone
+// (which allows fetching documents one by one) is not enough, and neither is the bulk read action
+// granted on files only.
+func TestDocumentListGetAPIRequiresBulkRead(t *testing.T) {
+	t.Parallel()
+
+	for _, tt := range []struct {
+		name       string
+		grants     map[string][]string
+		wantStatus int
+	}{
+		{
+			name:       "read alone does not allow enumerating",
+			grants:     map[string][]string{auth.ActionReadCode: {auth.ScopeAll}},
+			wantStatus: http.StatusForbidden,
+		},
+		{
+			name:       "bulk read on files does not allow enumerating documents",
+			grants:     map[string][]string{auth.ActionReadCode: {auth.ScopeAll}, auth.ActionReadBulkCode: {auth.ScopeFiles}},
+			wantStatus: http.StatusForbidden,
+		},
+		{
+			name:       "bulk read on documents allows enumerating",
+			grants:     map[string][]string{auth.ActionReadCode: {auth.ScopeAll}, auth.ActionReadBulkCode: {auth.ScopeDocuments}},
+			wantStatus: http.StatusOK,
+		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			ts, service := startTestServer(t, func(g *peerdb.Globals, _ *peerdb.ServeCommand) {
+				g.Sites = []internalSite.Site{
+					{
+						Site: waf.Site{
+							Domain:   "localhost",
+							CertFile: "",
+							KeyFile:  "",
+						},
+						Build:                nil,
+						IndexPrefix:          "",
+						Schema:               "",
+						Title:                "Example Site",
+						Logo:                 nil,
+						Favicon:              internalSite.Favicon{},
+						LanguagePriority:     nil,
+						DefaultLanguage:      "",
+						LanguageCodes:        nil,
+						Features:             internalSite.SiteFeatures{},
+						Roles:                map[string]auth.Grants{auth.RoleEveryone: auth.MustParseRoleGrants(tt.grants)},
+						ScopeProperties:      nil,
+						Visibility:           nil,
+						Auth:                 internalSite.SiteAuthConfig{},
+						MetadataHeaderPrefix: "",
+						Base:                 nil,
+						DBPool:               nil,
+						ESClient:             nil,
+						RiverClient:          nil,
+						Authenticator:        nil,
+						DebugRiverHandler:    nil,
+					},
+				}
+			})
+
+			apiPath, errE := service.ReverseAPI("DocumentList", nil, nil)
+			require.NoError(t, errE, "% -+#.1v", errE)
+
+			req, err := http.NewRequestWithContext(t.Context(), http.MethodGet, ts.URL+apiPath, nil)
+			require.NoError(t, err)
+			req.Host = "localhost"
+
+			resp, err := ts.Client().Do(req) //nolint:bodyclose
+			require.NoError(t, err)
+			t.Cleanup(func(r *http.Response) func() { return func() { r.Body.Close() } }(resp)) //nolint:errcheck,gosec
+
+			assert.Equal(t, tt.wantStatus, resp.StatusCode)
+		})
+	}
 }
