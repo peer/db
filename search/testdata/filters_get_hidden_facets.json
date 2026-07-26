@@ -83,10 +83,26 @@
       "nested": {
         "path": "claims.rel",
         "query": {
-          "term": {
-            "claims.rel.claimType": {
-              "value": "has"
-            }
+          "bool": {
+            "must": [
+              {
+                "term": {
+                  "claims.rel.claimType": {
+                    "value": "has"
+                  }
+                }
+              }
+            ],
+            "must_not": [
+              {
+                "terms": {
+                  "claims.rel.prop": [
+                    "4UNChpyCeNV1NtnUd6RNGp",
+                    "LgMtFKvXE3G8WYTSFBNSHX"
+                  ]
+                }
+              }
+            ]
           }
         }
       }
@@ -243,10 +259,26 @@
                       }
                     },
                     "filter": {
-                      "term": {
-                        "claims.amount.sub.rel.claimType": {
-                          "value": "has"
-                        }
+                      "bool": {
+                        "must": [
+                          {
+                            "term": {
+                              "claims.amount.sub.rel.claimType": {
+                                "value": "has"
+                              }
+                            }
+                          }
+                        ],
+                        "must_not": [
+                          {
+                            "terms": {
+                              "claims.amount.sub.rel.prop": [
+                                "4UNChpyCeNV1NtnUd6RNGp",
+                                "LgMtFKvXE3G8WYTSFBNSHX"
+                              ]
+                            }
+                          }
+                        ]
                       }
                     }
                   },
@@ -465,10 +497,26 @@
                       }
                     },
                     "filter": {
-                      "term": {
-                        "claims.html.sub.rel.claimType": {
-                          "value": "has"
-                        }
+                      "bool": {
+                        "must": [
+                          {
+                            "term": {
+                              "claims.html.sub.rel.claimType": {
+                                "value": "has"
+                              }
+                            }
+                          }
+                        ],
+                        "must_not": [
+                          {
+                            "terms": {
+                              "claims.html.sub.rel.prop": [
+                                "4UNChpyCeNV1NtnUd6RNGp",
+                                "LgMtFKvXE3G8WYTSFBNSHX"
+                              ]
+                            }
+                          }
+                        ]
                       }
                     }
                   },
@@ -687,10 +735,26 @@
                       }
                     },
                     "filter": {
-                      "term": {
-                        "claims.id.sub.rel.claimType": {
-                          "value": "has"
-                        }
+                      "bool": {
+                        "must": [
+                          {
+                            "term": {
+                              "claims.id.sub.rel.claimType": {
+                                "value": "has"
+                              }
+                            }
+                          }
+                        ],
+                        "must_not": [
+                          {
+                            "terms": {
+                              "claims.id.sub.rel.prop": [
+                                "4UNChpyCeNV1NtnUd6RNGp",
+                                "LgMtFKvXE3G8WYTSFBNSHX"
+                              ]
+                            }
+                          }
+                        ]
                       }
                     }
                   },
@@ -909,10 +973,26 @@
                       }
                     },
                     "filter": {
-                      "term": {
-                        "claims.link.sub.rel.claimType": {
-                          "value": "has"
-                        }
+                      "bool": {
+                        "must": [
+                          {
+                            "term": {
+                              "claims.link.sub.rel.claimType": {
+                                "value": "has"
+                              }
+                            }
+                          }
+                        ],
+                        "must_not": [
+                          {
+                            "terms": {
+                              "claims.link.sub.rel.prop": [
+                                "4UNChpyCeNV1NtnUd6RNGp",
+                                "LgMtFKvXE3G8WYTSFBNSHX"
+                              ]
+                            }
+                          }
+                        ]
                       }
                     }
                   },
@@ -1131,10 +1211,26 @@
                       }
                     },
                     "filter": {
-                      "term": {
-                        "claims.rel.sub.rel.claimType": {
-                          "value": "has"
-                        }
+                      "bool": {
+                        "must": [
+                          {
+                            "term": {
+                              "claims.rel.sub.rel.claimType": {
+                                "value": "has"
+                              }
+                            }
+                          }
+                        ],
+                        "must_not": [
+                          {
+                            "terms": {
+                              "claims.rel.sub.rel.prop": [
+                                "4UNChpyCeNV1NtnUd6RNGp",
+                                "LgMtFKvXE3G8WYTSFBNSHX"
+                              ]
+                            }
+                          }
+                        ]
                       }
                     }
                   },
@@ -1353,10 +1449,26 @@
                       }
                     },
                     "filter": {
-                      "term": {
-                        "claims.string.sub.rel.claimType": {
-                          "value": "has"
-                        }
+                      "bool": {
+                        "must": [
+                          {
+                            "term": {
+                              "claims.string.sub.rel.claimType": {
+                                "value": "has"
+                              }
+                            }
+                          }
+                        ],
+                        "must_not": [
+                          {
+                            "terms": {
+                              "claims.string.sub.rel.prop": [
+                                "4UNChpyCeNV1NtnUd6RNGp",
+                                "LgMtFKvXE3G8WYTSFBNSHX"
+                              ]
+                            }
+                          }
+                        ]
                       }
                     }
                   },
@@ -1575,10 +1687,26 @@
                       }
                     },
                     "filter": {
-                      "term": {
-                        "claims.time.sub.rel.claimType": {
-                          "value": "has"
-                        }
+                      "bool": {
+                        "must": [
+                          {
+                            "term": {
+                              "claims.time.sub.rel.claimType": {
+                                "value": "has"
+                              }
+                            }
+                          }
+                        ],
+                        "must_not": [
+                          {
+                            "terms": {
+                              "claims.time.sub.rel.prop": [
+                                "4UNChpyCeNV1NtnUd6RNGp",
+                                "LgMtFKvXE3G8WYTSFBNSHX"
+                              ]
+                            }
+                          }
+                        ]
                       }
                     }
                   },

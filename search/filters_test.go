@@ -1254,3 +1254,98 @@ func TestFiltersGetHiddenFacetsIntegration(t *testing.T) {
 	assert.Equal(t, int64(1), active.Count)
 	assert.Equal(t, "3", metadata["total"])
 }
+
+// TestFiltersGetHiddenPooledHasIntegration verifies the pooled has facets under hidden facet
+// properties: a hidden has-only property is neither a member nor counted in the facet's count, at the
+// top level and under a parent property, and the inactive facet's count and the active facet's
+// availability count stay equal. A hidden property the has filter selects counts again in both, so the
+// count never contradicts the selection the value list still shows.
+func TestFiltersGetHiddenPooledHasIntegration(t *testing.T) {
+	t.Parallel()
+
+	ctx := t.Context()
+	esClient, getSearchService, index := initES(t)
+
+	hiddenProp := identifier.From("hiddenPooledProp")
+	visibleProp := identifier.From("visiblePooledProp")
+	parentProp := identifier.From("pooledParentProp")
+	parentTarget := identifier.From("pooledParentTarget")
+
+	// Two documents whose only facetable statements are has claims, one per property, each also
+	// carrying the same has claim as a sub-claim under the parent property.
+	indexDocument(t, ctx, esClient, index, relDoc("pooledHiddenDoc", internalSearch.RelClaims{
+		simpleRelRecord(internalSearch.ClaimTypeHas, hiddenProp, nil),
+		refRecord(parentProp, parentTarget, relSub(simpleRelRecord(internalSearch.ClaimTypeHas, hiddenProp, nil))),
+	}))
+	indexDocument(t, ctx, esClient, index, relDoc("pooledVisibleDoc", internalSearch.RelClaims{
+		simpleRelRecord(internalSearch.ClaimTypeHas, visibleProp, nil),
+		refRecord(parentProp, parentTarget, relSub(simpleRelRecord(internalSearch.ClaimTypeHas, visibleProp, nil))),
+	}))
+	refreshIndex(t, ctx, esClient, index)
+
+	// hasCount returns the count of the pooled has facet at the given property path.
+	hasCount := func(results []search.FilterResult, props ...string) (int64, bool) {
+		for _, r := range results {
+			if r.Type == "has" && slices.Equal(r.Props, props) {
+				return r.Count, true
+			}
+		}
+		return 0, false
+	}
+
+	session := createSession(t, ctx, search.SessionData{})
+	hidden := map[string]bool{hiddenProp.String(): true}
+
+	// Without hiding, both documents are reachable through each pooled has facet.
+	results, _, errE := search.FiltersGet(ctx, getSearchService, session, nil, "", nil)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	count, ok := hasCount(results)
+	assert.True(t, ok, "top-level pooled has facet present")
+	assert.Equal(t, int64(2), count)
+	count, ok = hasCount(results, parentProp.String())
+	assert.True(t, ok, "pooled sub-has facet present")
+	assert.Equal(t, int64(2), count)
+
+	// Hiding one of the two properties leaves both facets (the visible property is still a member) but
+	// drops the hidden property's document from their counts.
+	results, _, errE = search.FiltersGet(ctx, getSearchService, session, nil, "", hidden)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	count, ok = hasCount(results)
+	assert.True(t, ok, "top-level pooled has facet still present")
+	assert.Equal(t, int64(1), count)
+	count, ok = hasCount(results, parentProp.String())
+	assert.True(t, ok, "pooled sub-has facet still present")
+	assert.Equal(t, int64(1), count)
+
+	// activeHasCount returns the availability count of the active pooled has filter selecting props at
+	// the given property path. Each session carries a single filter, so the availability count (which
+	// escapes only the counted filter's own selections) is not narrowed by a sibling filter.
+	activeHasCount := func(name string, prop []identifier.Identifier, props []search.HasValue) int64 {
+		t.Helper()
+
+		base := []string{"test", "FILTER", name}
+		id := identifier.From(base...)
+		activeSession := createSession(t, ctx, search.SessionData{ //nolint:exhaustruct
+			Filters: []search.Filter{{ID: &id, Base: base, Prop: prop, Has: &search.HasFilter{Props: props}}}, //nolint:exhaustruct
+		})
+		activeResults, _, errE := search.FiltersGet(ctx, getSearchService, activeSession, nil, "", hidden)
+		require.NoError(t, errE, "% -+#.1v", errE)
+		for _, r := range activeResults {
+			if r.Type == "has" && r.FilterID == id.String() {
+				return r.Count
+			}
+		}
+		require.Fail(t, "active pooled has filter not returned")
+		return 0
+	}
+
+	// An active has filter selecting only the visible property leaves the hidden property out of its
+	// availability count, exactly as the inactive facet's count above leaves it out.
+	assert.Equal(t, int64(1), activeHasCount("pooledTopVisible", nil, []search.HasValue{{ID: visibleProp}}))
+	assert.Equal(t, int64(1), activeHasCount("pooledSubVisible", []identifier.Identifier{parentProp}, []search.HasValue{{ID: visibleProp}}))
+
+	// Selecting the hidden property counts its document again: a selected property is offered again, so
+	// the count never contradicts the selection the facet's value list still shows.
+	assert.Equal(t, int64(2), activeHasCount("pooledTopHidden", nil, []search.HasValue{{ID: hiddenProp}}))
+	assert.Equal(t, int64(2), activeHasCount("pooledSubHidden", []identifier.Identifier{parentProp}, []search.HasValue{{ID: hiddenProp}}))
+}

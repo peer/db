@@ -409,12 +409,12 @@ func TestHasFilterGetHasPropertySearchIntegration(t *testing.T) {
 	f := search.HasFilter{Props: nil}
 
 	// A plain property-name search narrows to the matching property.
-	results, _, errE := f.Get(ctx, getSearchService, session.ToQuery(nil), "col*", searchLangs(enabledLanguages))
+	results, _, errE := f.Get(ctx, getSearchService, session.ToQuery(nil), "col*", nil, searchLangs(enabledLanguages))
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, []search.HasFilterResult{{ID: color.String(), Count: 1}}, results)
 
 	// The "has property" label shows the whole facet, both properties.
-	results, metadata, errE := f.Get(ctx, getSearchService, session.ToQuery(nil), "has property*", searchLangs(enabledLanguages))
+	results, metadata, errE := f.Get(ctx, getSearchService, session.ToQuery(nil), "has property*", nil, searchLangs(enabledLanguages))
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.ElementsMatch(t, []search.HasFilterResult{
 		{ID: color.String(), Count: 1},

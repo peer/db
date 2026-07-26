@@ -147,9 +147,13 @@ func notHasClaimTypeQuery(path string) types.QueryVariant { //nolint:ireturn
 // property" special value, so they are subtracted here. The subtraction sets are capped at
 // MaxResultsCount terms each; a migrated property past every cap would stay listed, matching the
 // cap philosophy of the value lists.
+//
+// hiddenFacetProperties are left out of the listing, matching the facet's count in FiltersGet, except
+// the ones this filter selects: a selected property stays listed with its count so the selection stays
+// visible and deselectable.
 func (f *HasFilter) Get(
 	ctx context.Context, getSearchService func() *esSearch.Search,
-	query types.QueryVariant, valueQuery string, languages *Languages,
+	query types.QueryVariant, valueQuery string, hiddenFacetProperties map[string]bool, languages *Languages,
 ) ([]HasFilterResult, map[string]any, errors.E) {
 	metrics, _ := waf.GetMetrics(ctx)
 
@@ -171,11 +175,12 @@ func (f *HasFilter) Get(
 		propLabelMatch = propLabelMatchQuery([]string{relPath + ".propNaming"}, []string{relPath + ".propDisplay"}, valueQuery, enabledLanguages)
 		hasFilterMusts = append(hasFilterMusts, propLabelMatch)
 	}
+	hidden := hiddenFacetClauses(hiddenExceptSelected(hiddenFacetProperties, f.Props), relPath+".prop")
 
 	hasAggregation := esdsl.NewAggregations().
 		Nested(esdsl.NewNestedAggregation().Path(relPath)).
 		AddAggregation("filter", esdsl.NewAggregations().
-			Filter(esdsl.NewBoolQuery().Must(hasFilterMusts...)).
+			Filter(esdsl.NewBoolQuery().Must(hasFilterMusts...).MustNot(hidden...)).
 			AddAggregation("props", hasPropsTermsAggregation(relPath)).
 			AddAggregation("total", esdsl.NewAggregations().
 				Cardinality(esdsl.NewCardinalityAggregation().Field(relPath+".prop").PrecisionThreshold(maxPrecisionThreshold))))
@@ -333,10 +338,13 @@ func parseExcludedProps(aggs map[string]types.Aggregate, name string, filtered b
 // claims whose only facetable sub-claims are has records. It runs once per parent collection the
 // context allows and merges in Go, mirroring Get's pooling subtraction one level down. parentCtx
 // scopes every aggregation to qualifying parent claims.
+//
+// hiddenFacetProperties are left out of the listing the same way Get does it, the ones this filter
+// selects excepted.
 func (f *HasFilter) GetSubHas(
 	ctx context.Context, getSearchService func() *esSearch.Search,
 	query types.QueryVariant, parentCtx *ParentContext,
-	valueQuery string, languages *Languages,
+	valueQuery string, hiddenFacetProperties map[string]bool, languages *Languages,
 ) ([]HasFilterResult, map[string]any, errors.E) {
 	metrics, _ := waf.GetMetrics(ctx)
 
@@ -363,6 +371,7 @@ func (f *HasFilter) GetSubHas(
 			propLabelMatch = propLabelMatchQuery([]string{subRel + ".propNaming"}, []string{subRel + ".propDisplay"}, valueQuery, enabledLanguages)
 			subMusts = append(subMusts, propLabelMatch)
 		}
+		hidden := hiddenFacetClauses(hiddenExceptSelected(hiddenFacetProperties, f.Props), subRel+".prop")
 		searchService = searchService.AddAggregation("has:"+parent, esdsl.NewAggregations().
 			Nested(esdsl.NewNestedAggregation().Path(parentPath(parent))).
 			AddAggregation("parentFilter", esdsl.NewAggregations().
@@ -370,7 +379,7 @@ func (f *HasFilter) GetSubHas(
 				AddAggregation("sub", esdsl.NewAggregations().
 					Nested(esdsl.NewNestedAggregation().Path(subRel)).
 					AddAggregation("filter", esdsl.NewAggregations().
-						Filter(esdsl.NewBoolQuery().Must(subMusts...)).
+						Filter(esdsl.NewBoolQuery().Must(subMusts...).MustNot(hidden...)).
 						AddAggregation("props", hasPropsTermsAggregation(subRel))))))
 		searchService = searchService.AddAggregation("otherClaimTypes:"+parent, esdsl.NewAggregations().
 			Nested(esdsl.NewNestedAggregation().Path(parentPath(parent))).

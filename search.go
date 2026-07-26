@@ -311,6 +311,8 @@ func (s *Service) SearchFilterGetAPI(w http.ResponseWriter, req *http.Request, p
 		timeFilter = &search.TimeFilter{Gte: nil, Lte: nil, Exists: false}
 	}
 
+	hiddenFacetProperties := waf.MustGetSite[*internalSite.Site](ctx).HiddenFacetPropertySet()
+
 	sub := len(f.Prop) == 2 //nolint:mnd
 	switch facetType {
 	case "ref":
@@ -340,9 +342,9 @@ func (s *Service) SearchFilterGetAPI(w http.ResponseWriter, req *http.Request, p
 	case "has":
 		if len(f.Prop) == 1 {
 			parentCtx := searchSession.ParentContextFor(f.Prop[0], identifier.Identifier{}, excludeIDs...)
-			data, metadata, errE = f.Has.GetSubHas(ctx, searchService, query, parentCtx, valueQuery, languages)
+			data, metadata, errE = f.Has.GetSubHas(ctx, searchService, query, parentCtx, valueQuery, hiddenFacetProperties, languages)
 		} else {
-			data, metadata, errE = f.Has.Get(ctx, searchService, query, valueQuery, languages)
+			data, metadata, errE = f.Has.Get(ctx, searchService, query, valueQuery, hiddenFacetProperties, languages)
 		}
 	default:
 		panic(errors.New("invalid filter"))
@@ -735,7 +737,11 @@ func (s *Service) SearchHasFilterGetAPI(w http.ResponseWriter, req *http.Request
 		return
 	}
 	f := search.HasFilter{}
-	data, metadata, errE := f.Get(ctx, s.getSearchServiceClosure(req, index), query, req.URL.Query().Get("q"), searchLanguages(ctx, searchSession.Language))
+	site := waf.MustGetSite[*internalSite.Site](ctx)
+	data, metadata, errE := f.Get(
+		ctx, s.getSearchServiceClosure(req, index), query,
+		req.URL.Query().Get("q"), site.HiddenFacetPropertySet(), searchLanguages(ctx, searchSession.Language),
+	)
 	if errE != nil {
 		s.InternalServerErrorWithError(w, req, errE)
 		return
@@ -782,9 +788,10 @@ func (s *Service) SearchSubHasFilterGetAPI(w http.ResponseWriter, req *http.Requ
 	}
 	parentCtx := searchSession.ParentContextFor(parentProp, identifier.Identifier{})
 	f := search.HasFilter{Props: nil}
+	site := waf.MustGetSite[*internalSite.Site](ctx)
 	data, metadata, errE := f.GetSubHas(
 		ctx, s.getSearchServiceClosure(req, index), query, parentCtx,
-		req.URL.Query().Get("q"), searchLanguages(ctx, searchSession.Language),
+		req.URL.Query().Get("q"), site.HiddenFacetPropertySet(), searchLanguages(ctx, searchSession.Language),
 	)
 	if errE != nil {
 		s.InternalServerErrorWithError(w, req, errE)

@@ -182,6 +182,55 @@ func hiddenFacetClauses(hidden map[string]bool, propFields ...string) []types.Qu
 	return clauses
 }
 
+// hiddenExceptSelected returns the hidden facet properties minus the given selected ones. Hiding removes
+// a property from what a facet offers, never from what the session already selected: a selected hidden
+// property keeps its value row and keeps counting towards the facet's count, so the count never
+// contradicts the selection the user can see. It is used by the pooled has facets, the only facets whose
+// values are properties and so the only ones where a hidden property can be a selected value.
+func hiddenExceptSelected(hidden map[string]bool, selected []HasValue) map[string]bool {
+	if len(hidden) == 0 || len(selected) == 0 {
+		return hidden
+	}
+	out := make(map[string]bool, len(hidden))
+	for id := range hidden {
+		out[id] = true
+	}
+	for _, value := range selected {
+		delete(out, value.ID.String())
+	}
+	return out
+}
+
+// selectedHasProps returns the has-properties the session's pooled has filters select: the top-level
+// facet's ones (a has filter with an empty property path) when sub is false, and the pooled sub-has
+// facets' ones (a has filter with a parent property) when sub is true. The sub set is the union across
+// parent properties, because one sub discovery aggregation serves every parent-property bucket: a hidden
+// property selected under one parent property therefore keeps counting under every parent property,
+// which only ever adds to an already upper-bound count.
+func selectedHasProps(filters []Filter, sub bool) []HasValue {
+	var out []HasValue
+	for i := range filters {
+		f := &filters[i]
+		if f.Has == nil {
+			continue
+		}
+		if sub != (len(f.Prop) == 1) {
+			continue
+		}
+		out = append(out, f.Has.Props...)
+	}
+	return out
+}
+
+// pooledHasQuery matches, at path, the has records of the properties a pooled has facet offers: the has
+// claim type, minus the hidden properties (see hiddenExceptSelected). Both the inactive facet's count and
+// the active facet's availability count are built from it, so they agree by construction.
+func pooledHasQuery(path string, hidden map[string]bool, selected []HasValue) types.QueryVariant { //nolint:ireturn
+	return esdsl.NewBoolQuery().
+		Must(claimTypeTerm(path, internalSearch.ClaimTypeHas)).
+		MustNot(hiddenFacetClauses(hiddenExceptSelected(hidden, selected), path+".prop")...)
+}
+
 // scopedDiscoveryAggregation wraps a discovery aggregation in a "scoped" filter dropping the records of
 // hidden facet properties before the terms are computed, so a hidden facet is neither discovered nor
 // counted. name is the aggregation name the discovery keeps inside the scope ("props" for a collection's
@@ -317,7 +366,7 @@ func relSpecialPresenceQuery(path string, specials requestedSpecials) types.Quer
 func parentDiscoveryBuckets( //nolint:ireturn
 	parent, subRel, subAmount, subTime string,
 	subRelMatch, subAmountMatch, subTimeMatch, subRelSpecialMatch types.QueryVariant,
-	valueQuery string, enabledLanguages []string, hidden map[string]bool,
+	valueQuery string, enabledLanguages []string, hidden map[string]bool, selectedSubHas []HasValue,
 ) types.AggregationsVariant {
 	buckets := esdsl.NewAggregations().
 		Terms(esdsl.NewTermsAggregation().Field(parentPath(parent)+".prop").Size(MaxResultsCount)).
@@ -325,11 +374,12 @@ func parentDiscoveryBuckets( //nolint:ireturn
 			Nested(esdsl.NewNestedAggregation().Path(subRel)).
 			AddAggregation("scoped", scopedDiscoveryAggregation(hidden, "props", relDiscoveryAggregation(subRel, subRelMatch), subRel+".prop")).
 			// The pooled sub-has facet's count for this parent property in this parent collection:
-			// distinct documents with any has sub-claim under a parent claim of this property. The
-			// nested(subRel) context scopes to sub-claims of the parent-property claims; reverse_nested
-			// counts the distinct root documents. Summed across parent collections by the parser.
+			// distinct documents with any has sub-claim, of a property the facet offers, under a parent
+			// claim of this property. The nested(subRel) context scopes to sub-claims of the
+			// parent-property claims; reverse_nested counts the distinct root documents. Summed across
+			// parent collections by the parser.
 			AddAggregation("pooledHasDocs", esdsl.NewAggregations().
-				Filter(claimTypeTerm(subRel, internalSearch.ClaimTypeHas)).
+				Filter(pooledHasQuery(subRel, hidden, selectedSubHas)).
 				AddAggregation("docs", esdsl.NewAggregations().
 					ReverseNested(esdsl.NewReverseNestedAggregation())))).
 		AddAggregation("subAmount", esdsl.NewAggregations().
@@ -958,11 +1008,13 @@ func FiltersGet( //nolint:maintidx
 		AddAggregation("time", esdsl.NewAggregations().
 			Nested(esdsl.NewNestedAggregation().Path(timePath)).
 			AddAggregation("scoped", scopedDiscoveryAggregation(hiddenFacetProperties, "props", timeDiscoveryAggregation(timePath, timeMatch), timePath+".prop"))).
-		// The pooled has facet's count: distinct documents with any has claim. It is a document-level
-		// root filter (the same query the active pooled-has availability count uses), so the inactive
-		// heading and the active count agree by construction.
+		// The pooled has facet's count: distinct documents with any has claim of a property the facet
+		// offers. It is a document-level root filter (the same query the active pooled-has availability
+		// count uses), so the inactive heading and the active count agree by construction.
 		AddAggregation("pooledHas", esdsl.NewAggregations().
-			Filter(esdsl.NewNestedQuery(claimTypeTerm(relPath, internalSearch.ClaimTypeHas)).Path(relPath)))
+			Filter(esdsl.NewNestedQuery(
+				pooledHasQuery(relPath, hiddenFacetProperties, selectedHasProps(searchSession.Filters, false)),
+			).Path(relPath)))
 
 	// When a value query is active, a second filtered discovery pass per top-level collection
 	// enumerates only the facets with a matching record, surfacing facets that match the query but
@@ -984,6 +1036,7 @@ func FiltersGet( //nolint:maintidx
 
 	// Sub-level discovery: per parent collection, parent-property buckets holding the same
 	// per-collection discovery aggregations one level down, plus the parent-name match gate.
+	selectedSubHas := selectedHasProps(searchSession.Filters, true)
 	for _, parent := range parentCollections {
 		subRel := subPath(parent, "rel")
 		subAmount := subPath(parent, "amount")
@@ -1007,7 +1060,7 @@ func FiltersGet( //nolint:maintidx
 			Nested(esdsl.NewNestedAggregation().Path(parentPath(parent))).
 			AddAggregation("scoped", scopedDiscoveryAggregation(hiddenFacetProperties, "parents", parentDiscoveryBuckets(
 				parent, subRel, subAmount, subTime, subRelMatch, subAmountMatch, subTimeMatch, subRelSpecialMatch,
-				valueQuery, enabledLanguages, hiddenFacetProperties), parentPath(parent)+".prop")))
+				valueQuery, enabledLanguages, hiddenFacetProperties, selectedSubHas), parentPath(parent)+".prop")))
 
 		// When a value query is active, a filtered parent enumeration surfaces parent properties that
 		// match the query but rank beyond the parent-property Size cap by document count. A parent
@@ -1038,7 +1091,7 @@ func FiltersGet( //nolint:maintidx
 					Filter(parentMatchFilter).
 					AddAggregation("parents", parentDiscoveryBuckets(
 						parent, subRel, subAmount, subTime, subRelMatch, subAmountMatch, subTimeMatch, subRelSpecialMatch,
-						valueQuery, enabledLanguages, hiddenFacetProperties))))
+						valueQuery, enabledLanguages, hiddenFacetProperties, selectedSubHas))))
 		}
 	}
 
@@ -1055,7 +1108,7 @@ func FiltersGet( //nolint:maintidx
 			// This should not be possible.
 			continue
 		}
-		presence := activeFilterPresenceQuery(&searchSession.Filters[i])
+		presence := activeFilterPresenceQuery(&searchSession.Filters[i], hiddenFacetProperties)
 		scoped := esdsl.NewAggregations().
 			Filter(searchSession.ToQueryExcluding(activeFilterExcludeIDs(searchSession, &searchSession.Filters[i]), enabledLanguages, extraFilters...)).
 			AddAggregation("count", esdsl.NewAggregations().Filter(presence))
@@ -1708,13 +1761,15 @@ func activeSpecialsResults(aggs map[string]types.Aggregate, f *Filter, props []s
 // documents with records in their collection for the property or with a valueless rel statement
 // for it (those documents are reachable through the facet's specials); ref filters count documents
 // with any rel record; a specials filter counts documents with any facetable statement for its
-// path; the pooled has filter counts documents with any has statement; sub filters count documents
-// with a matching sub record under any parent claim for the parent property.
-func activeFilterPresenceQuery(f *Filter) types.QueryVariant { //nolint:ireturn
+// path; the pooled has filter counts documents with any has statement of a property it offers (the
+// hidden ones it does not offer are dropped, except those the filter itself selects, exactly as in the
+// inactive facet's count); sub filters count documents with a matching sub record under any parent claim
+// for the parent property.
+func activeFilterPresenceQuery(f *Filter, hidden map[string]bool) types.QueryVariant { //nolint:ireturn
 	sub := len(f.Prop) == 2 //nolint:mnd
 	switch {
 	case f.Has != nil && len(f.Prop) == 0:
-		return esdsl.NewNestedQuery(claimTypeTerm(relPath, internalSearch.ClaimTypeHas)).Path(relPath)
+		return esdsl.NewNestedQuery(pooledHasQuery(relPath, hidden, f.Has.Props)).Path(relPath)
 	case f.Has != nil:
 		parentProp := f.Prop[0]
 		var arms []types.QueryVariant
@@ -1722,7 +1777,7 @@ func activeFilterPresenceQuery(f *Filter) types.QueryVariant { //nolint:ireturn
 			subRel := subPath(parent, "rel")
 			arms = append(arms, esdsl.NewNestedQuery(esdsl.NewBoolQuery().Must(
 				propTerm(parentPath(parent), parentProp),
-				esdsl.NewNestedQuery(claimTypeTerm(subRel, internalSearch.ClaimTypeHas)).Path(subRel),
+				esdsl.NewNestedQuery(pooledHasQuery(subRel, hidden, f.Has.Props)).Path(subRel),
 			)).Path(parentPath(parent)))
 		}
 		return oneOrShould(arms)
