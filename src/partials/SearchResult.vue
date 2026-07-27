@@ -33,10 +33,15 @@ const props = withDefaults(
     // duplicate is true when this result's document already appeared earlier in the grouped results; the card
     // then shows only its heading and a link back to the first occurrence instead of its contents.
     duplicate?: boolean
+    // flat drops the card the result renders on (its border, background, shadow, and padding), for a page
+    // which shows a single result on a card of its own. The pd-searchresult-flat class marks such a
+    // result, so a site's theme can leave out its own card styling there as well.
+    flat?: boolean
   }>(),
   {
     searchSessionId: undefined,
     duplicate: false,
+    flat: false,
   },
 )
 
@@ -175,7 +180,8 @@ const rowSpan = computed(() => {
   <div
     :id="`result-${result.id}`"
     ref="el"
-    class="pd-searchresult flex flex-col gap-y-2 rounded-sm border border-gray-200 bg-white p-4 shadow-sm"
+    class="pd-searchresult flex flex-col gap-y-2"
+    :class="flat ? 'pd-searchresult-flat' : 'rounded-sm border border-gray-200 bg-white p-4 shadow-sm'"
     :data-url="withDocument?.url"
   >
     <WithDocumentD :id="result.id" ref="withDocument" name="DocumentGet">
