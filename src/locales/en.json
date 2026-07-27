@@ -10,6 +10,10 @@
       "create": "Create",
       "upload": "Upload",
       "edit": "Edit",
+      "editPermissions": "Edit permissions",
+      "requestPermissions": "Request permissions",
+      "manageRequests": "Manage requests",
+      "permissions": "Permissions",
       "delete": "Delete",
       "save": "Save",
       "discard": "Discard",
@@ -36,6 +40,7 @@
     },
     "errors": {
       "unexpected": "Unexpected error. Please try again.",
+      "notAllowed": "This change is not allowed.",
       "upload": "Upload failed. Please try again."
     },
     "status": {
@@ -81,6 +86,20 @@
       "invalid": "Invalid value.",
       "invalidPrecision": "Invalid precision.",
       "unfinished": "Unfinished value."
+    },
+    "permissionActions": {
+      "read": "read",
+      "history": "history",
+      "update": "update",
+      "permissions": "permissions",
+      "delete": "delete"
+    },
+    "permissionActionHints": {
+      "read": "See the document and its content.",
+      "history": "See earlier versions of the document, including those from before this access was granted.",
+      "update": "Change the document and its content.",
+      "permissions": "Grant and remove access to the document for other users.",
+      "delete": "Delete the document."
     }
   },
   "partials": {
@@ -292,6 +311,24 @@
         "inMegaYears": "in 1M years | in {count}M years",
         "inGigaYears": "in 1G years | in {count}G years"
       }
+    },
+    "PermissionsForm": {
+      "approve": "Approve",
+      "deny": "Deny",
+      "noRequests": "There are no pending requests.",
+      "noUsers": "No users have been granted access.",
+      "removeAccess": "Remove access",
+      "requestsTitle": "Pending requests",
+      "usersTitle": "Users with access",
+      "requestedAction": "Requested permission",
+      "cannotGrant": "You cannot grant a permission which you do not hold yourself."
+    },
+    "PermissionsView": {
+      "usersTitle": "@:partials.PermissionsForm.usersTitle",
+      "noUsers": "@:partials.PermissionsForm.noUsers",
+      "requestsTitle": "@:partials.PermissionsForm.requestsTitle",
+      "noRequests": "@:partials.PermissionsForm.noRequests",
+      "requestedAction": "@:partials.PermissionsForm.requestedAction"
     }
   },
   "views": {
@@ -307,7 +344,8 @@
       "tabs": {
         "allProperties": "All properties",
         "content": "Content",
-        "history": "History"
+        "history": "History",
+        "permissions": "Permissions"
       },
       "history": {
         "author": "Author",
@@ -320,7 +358,8 @@
     },
     "DocumentEdit": {
       "tabs": {
-        "allProperties": "@:views.DocumentGet.tabs.allProperties"
+        "allProperties": "@:views.DocumentGet.tabs.allProperties",
+        "permissions": "@:views.DocumentGet.tabs.permissions"
       },
       "addClaim": "Add value",
       "editClaim": "Edit value",
@@ -352,6 +391,18 @@
         "from": "From",
         "to": "To"
       }
+    },
+    "DocumentRequest": {
+      "confirm": "Do you want to request access to the document?",
+      "notSignedIn": "You need to sign in to request access to the document.",
+      "request": "Request",
+      "requested": "Access to the document has been requested.",
+      "title": "Request access",
+      "note": "Note",
+      "notAvailable": "Requesting access to documents is not available.",
+      "permission": "Permission",
+      "noteHint": "Why do you need this access?",
+      "nothingToRequest": "You already have full access to the document (all permissions)."
     }
   }
 }

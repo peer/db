@@ -13,7 +13,9 @@ var systemSessionContextKey = &contextKey{"systemSession"} //nolint:gochecknoglo
 
 // WithSystemSession returns ctx marked so that operating on an edit session with it skips the
 // permission checks (ChangePermissionCheck when appending changes and EndEditPermissionCheck at
-// completion): the session is driven by the application itself and not on behalf of the caller.
+// completion): the operation is made by the application itself and not on behalf of the caller.
+// Beginning a session with it additionally marks the whole session as system-driven (see
+// DocumentBeginMetadata.System), so no caller can access it through the API.
 func WithSystemSession(ctx context.Context) context.Context {
 	return context.WithValue(ctx, systemSessionContextKey, true)
 }

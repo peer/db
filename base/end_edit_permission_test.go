@@ -21,8 +21,9 @@ import (
 
 // TestDocumentSessionEndEditPermissionCheck exercises EndEditPermissionCheck: a rejected completion
 // (a commit or a discard) completes the session as errored without committing anything, a session
-// ended through a context marked with WithSystemSession skips the check, and the check receives the
-// user and roles recorded when the session was ended.
+// ended through a context marked with WithSystemSession skips the check, a session begun through
+// such a context has to be ended through one as well, and the check receives the user and roles
+// recorded when the session was ended.
 func TestDocumentSessionEndEditPermissionCheck(t *testing.T) {
 	t.Parallel()
 
@@ -45,7 +46,9 @@ func TestDocumentSessionEndEditPermissionCheck(t *testing.T) {
 		return errors.New("completion rejected")
 	}
 
-	appendOneChange := func(docBase []string, session identifier.Identifier) {
+	// appendCtx is the context the change is appended with: a session the application owns has to be
+	// appended to with a system context, like it has to be ended with one.
+	appendOneChange := func(appendCtx context.Context, docBase []string, session identifier.Identifier) {
 		confidence := document.HighConfidence
 		propID := identifier.New()
 		changeBase := append(append([]string{}, docBase...), "SESSION", session.String(), "1")
@@ -58,7 +61,7 @@ func TestDocumentSessionEndEditPermissionCheck(t *testing.T) {
 				String:     "value",
 			},
 		})
-		_, errE := b.AppendDocumentChange(ctx, session, changeJSON, 1)
+		_, errE := b.AppendDocumentChange(appendCtx, session, changeJSON, 1)
 		require.NoError(t, errE, "% -+#.1v", errE)
 	}
 
@@ -66,7 +69,7 @@ func TestDocumentSessionEndEditPermissionCheck(t *testing.T) {
 	docID, docBase := newDocID()
 	session, errE := b.BeginCreateDocument(ctx, docBase)
 	require.NoError(t, errE, "% -+#.1v", errE)
-	appendOneChange(docBase, session)
+	appendOneChange(ctx, docBase, session)
 	endCtx := auth.WithRoles(auth.WithSubject(ctx, "committer"), []string{"tester"})
 	errE = b.EndEditDocument(endCtx, session, false)
 	require.NoError(t, errE, "% -+#.1v", errE)
@@ -99,7 +102,7 @@ func TestDocumentSessionEndEditPermissionCheck(t *testing.T) {
 	docID, docBase = newDocID()
 	session, errE = b.BeginCreateDocument(ctx, docBase)
 	require.NoError(t, errE, "% -+#.1v", errE)
-	appendOneChange(docBase, session)
+	appendOneChange(ctx, docBase, session)
 	errE = b.EndEditDocument(base.WithSystemSession(ctx), session, false)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.EventuallyWithT(t, func(c *assert.CollectT) {
@@ -117,6 +120,33 @@ func TestDocumentSessionEndEditPermissionCheck(t *testing.T) {
 	assert.Len(t, checks, 1)
 	mu.Unlock()
 
+	// A session begun through a context marked with WithSystemSession is the application's own and
+	// has to be ended through one as well: ending it with an ordinary context is a programming error,
+	// so the completion is rejected (the session completes as errored, nothing is committed) instead
+	// of being checked against whoever ended it.
+	systemDocID, systemDocBase := newDocID()
+	systemSession, errE := b.BeginCreateDocument(base.WithSystemSession(ctx), systemDocBase)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	appendOneChange(base.WithSystemSession(ctx), systemDocBase, systemSession)
+	errE = b.EndEditDocument(ctx, systemSession, false)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	require.EventuallyWithT(t, func(c *assert.CollectT) {
+		_, _, completeMetadata, errE := b.GetEditDocumentSession(ctx, systemSession)
+		if !assert.NoError(c, errE, "% -+#.1v", errE) {
+			return
+		}
+		if assert.NotNil(c, completeMetadata) {
+			assert.True(c, completeMetadata.Errored)
+			assert.Nil(c, completeMetadata.Changeset)
+		}
+	}, 30*time.Second, 100*time.Millisecond)
+	_, _, _, _, errE = b.GetDocumentLatest(ctx, systemDocID) //nolint:dogsled
+	require.ErrorIs(t, errE, store.ErrValueNotFound)
+	// The check never ran: the completion was rejected before it.
+	mu.Lock()
+	assert.Len(t, checks, 1)
+	mu.Unlock()
+
 	// An allowed edit session of the just created document commits, and the check sees an edit
 	// session ended by an unauthenticated caller.
 	mu.Lock()
@@ -124,7 +154,7 @@ func TestDocumentSessionEndEditPermissionCheck(t *testing.T) {
 	mu.Unlock()
 	session, _, errE = beginEditDocumentLatest(ctx, b, docID)
 	require.NoError(t, errE, "% -+#.1v", errE)
-	appendOneChange(docBase, session)
+	appendOneChange(ctx, docBase, session)
 	errE = b.EndEditDocument(ctx, session, false)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.EventuallyWithT(t, func(c *assert.CollectT) {
@@ -146,7 +176,7 @@ func TestDocumentSessionEndEditPermissionCheck(t *testing.T) {
 	// discarded.
 	session, _, errE = beginEditDocumentLatest(ctx, b, docID)
 	require.NoError(t, errE, "% -+#.1v", errE)
-	appendOneChange(docBase, session)
+	appendOneChange(ctx, docBase, session)
 	errE = b.EndEditDocument(ctx, session, true)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.EventuallyWithT(t, func(c *assert.CollectT) {
@@ -170,7 +200,7 @@ func TestDocumentSessionEndEditPermissionCheck(t *testing.T) {
 	// of as a clean discard, and nothing is committed.
 	session, _, errE = beginEditDocumentLatest(ctx, b, docID)
 	require.NoError(t, errE, "% -+#.1v", errE)
-	appendOneChange(docBase, session)
+	appendOneChange(ctx, docBase, session)
 	errE = b.EndEditDocument(ctx, session, true)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.EventuallyWithT(t, func(c *assert.CollectT) {
@@ -199,8 +229,9 @@ func beginEditDocumentLatest(ctx context.Context, b *base.B, id identifier.Ident
 }
 
 // TestDocumentSessionChangePermissionCheck exercises ChangePermissionCheck: a rejected change is not
-// appended, the check receives the states before and after the change, and changes appended through a
-// context marked with WithSystemSession skip the check.
+// appended, the check receives the states before and after the change, changes appended through a
+// context marked with WithSystemSession skip the check, and a session begun through such a context
+// has to be appended to through one as well.
 func TestDocumentSessionChangePermissionCheck(t *testing.T) {
 	t.Parallel()
 
@@ -261,5 +292,27 @@ func TestDocumentSessionChangePermissionCheck(t *testing.T) {
 
 	// A change appended through a system session context skips the check.
 	errE = appendChange(base.WithSystemSession(ctx), 2)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// A session begun through a system session context is the application's own and has to be
+	// appended to through one as well: appending with an ordinary context is a programming error and
+	// is rejected, rather than let through unchecked.
+	_, systemDocBase := newDocID()
+	systemSession, errE := b.BeginCreateDocument(base.WithSystemSession(ctx), systemDocBase)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	confidence := document.HighConfidence
+	changeBase := append(append([]string{}, systemDocBase...), "SESSION", systemSession.String(), "1")
+	changeJSON := marshalChange(t, document.AddClaimChange{ //nolint:exhaustruct
+		ID:   identifier.From(changeBase...),
+		Base: changeBase,
+		Patch: document.StringClaimPatch{
+			Confidence: &confidence,
+			Prop:       &propID,
+			String:     "value",
+		},
+	})
+	_, errE = b.AppendDocumentChange(ctx, systemSession, changeJSON, 1)
+	assert.EqualError(t, errE, "system session appended to without a system context")
+	_, errE = b.AppendDocumentChange(base.WithSystemSession(ctx), systemSession, changeJSON, 1)
 	require.NoError(t, errE, "% -+#.1v", errE)
 }

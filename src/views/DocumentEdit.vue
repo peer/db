@@ -24,14 +24,15 @@ import type {
 } from "@/types"
 
 import { Tab, TabGroup, TabList, TabPanel, TabPanels } from "@headlessui/vue"
-import { computed, nextTick, onBeforeUnmount, provide, readonly, ref, toRef, useTemplateRef, watch } from "vue"
+import { computed, nextTick, onBeforeUnmount, provide, readonly, ref, shallowReactive, toRef, useTemplateRef, watch } from "vue"
 import { useI18n } from "vue-i18n"
 import { useRoute, useRouter } from "vue-router"
 
 import { deleteFromCache, FetchError, getURL, getURLDirect, postJSON } from "@/api"
 import { hasDocumentPermission } from "@/auth"
+import siteContext from "@/context"
 import Button from "@/components/Button.vue"
-import { ACTION_UPDATE, INSTANCE_OF, PROPERTY } from "@/core"
+import { ACTION_UPDATE, ACTION_UPDATE_PERMISSIONS, INSTANCE_OF, PROPERTY } from "@/core"
 import {
   AmountClaim,
   AmountIntervalClaim,
@@ -51,6 +52,7 @@ import {
 import { changeFrom } from "@/document/patch"
 import {
   cardinalityViolations,
+  ChangeDeniedError,
   ChangeDroppedError,
   claimsEquivalent,
   computeCardinalityFills,
@@ -83,6 +85,7 @@ import InputField from "@/partials/InputField.vue"
 import InputMissing from "@/partials/InputMissing.vue"
 import NavBar from "@/partials/NavBar.vue"
 import NavBarSearch from "@/partials/NavBarSearch.vue"
+import PermissionsForm from "@/partials/PermissionsForm.vue"
 import PropertiesView from "@/partials/PropertiesView.vue"
 import TableOfContents from "@/partials/TableOfContents.vue"
 import { localCounter, pairCounters, useLock, useProgress } from "@/progress"
@@ -119,6 +122,10 @@ const claimToTimePrecision = ref<TimePrecision>("y")
 const claimToUnknown = ref(false)
 const claimToNone = ref(false)
 
+// The code of what the claim form ran into and can name, empty when it ran into nothing of the kind:
+// the server refusing a change the caller may not make ("notAllowed").
+const claimFormErrorCode = ref("")
+// Everything else the claim form ran into, as the error states it, empty when it ran into nothing.
 const claimFormError = ref("")
 const sessionError = ref("")
 // Null in add mode; the claim's ID in edit mode. Drives the form title,
@@ -214,6 +221,7 @@ const { resetAll, firstInputEl, allEmpty, anyDirty, anyError, inputs, validateAl
   // Any registered-input interaction clears stale form-level errors so the
   // user is not staring at an error message after they have moved on.
   sessionError.value = ""
+  claimFormErrorCode.value = ""
   claimFormError.value = ""
 })
 
@@ -301,7 +309,12 @@ const fieldsFormInvalid = ref(false)
 
 // Flush registry: all slot inputs register here so we can flush them before save and know
 // whether uncommitted local edits exist when the tab is being closed.
-const flushRegistry = new Set<FieldsFormFlush>()
+//
+// Shallow-reactive Set so that iterating it (in canSave) registers membership as a dependency:
+// an input registers while it is being set up, which is after the render iterating the registry,
+// so without tracking membership that render would never call the input's hasUncommitted and
+// would never depend on what it reads, leaving Save disabled however the input changes.
+const flushRegistry = shallowReactive(new Set<FieldsFormFlush>())
 
 // Handlers notified with the set of claim ids touched by remote changes the subscription
 // applied (including ancestors of every touched claim). Conflict handlers (slots resyncing
@@ -403,9 +416,16 @@ async function applyOwnChange(changeNumber: number, change: object): Promise<voi
 //   - On an invalid change (server-side validation failed): dropped with
 //     ChangeDroppedError. Client-side validation above mirrors the backend, so this is a
 //     safety net rather than an expected path.
+//   - On a denied change (the caller may not make it, e.g. a permission claim added by a
+//     caller without the permissions action): dropped with ChangeDeniedError. The denial
+//     is about the caller and the change, so posting it again could only be denied again.
 //   - On transient failures (network or server errors): retried at the same number after
 //     a pause. If the failed POST actually reached the server, the retry conflicts with
 //     it and the comparison above resolves it as committed.
+//
+// A dropped change is never applied to the local document (that happens only after the
+// server accepted it), so nothing has to be undone when one is dropped: what the user
+// typed stays in the form they typed it in.
 async function postChange(spec: SaveChangeSpec): Promise<SaveChangeResult> {
   while (true) {
     abortController.signal.throwIfAborted()
@@ -479,6 +499,9 @@ async function postChange(spec: SaveChangeSpec): Promise<SaveChangeResult> {
       }
       if (err instanceof FetchError && err.status === 400) {
         throw new ChangeDroppedError(`change rejected by the server: ${JSON.stringify(change)}`, { cause: err })
+      }
+      if (err instanceof FetchError && err.status === 403) {
+        throw new ChangeDeniedError(`change not allowed by the server: ${JSON.stringify(change)}`, { cause: err })
       }
       await delay(saveRetryInterval, abortController.signal)
       if (abortController.signal.aborted) {
@@ -566,20 +589,34 @@ const docRef = toRef(() => doc.value ?? null)
 const { classDocs, instanceOfClassIds, initialized: classesInitialized } = useParentClasses(docRef, el, busy)
 const { fieldsData: mergedFieldsData, classTabId } = useDocumentFields(classDocs, instanceOfClassIds)
 
+// The permissions tab manages the document's own permission claims, so it is shown only on a site
+// which has them, and there only to users holding the permissions action on the document. It works
+// the same in a create session, whose document already carries the permission claims the
+// create-session seeding granted the creator, so a document can be shared while it is being created;
+// only the pending requests are always empty there, because a document which does not exist yet
+// cannot have been requested access to.
+const showPermissionsTab = computed(() => !siteContext.features.disableDocumentPermissions && hasDocumentPermission(ACTION_UPDATE_PERMISSIONS, doc.value))
+
 // Tab slugs in the template's tab order, used to reflect the active tab in the URL. The class tab uses its class
-// document id as the slug; the All-properties tab uses a stable "properties" name, so links can target it (?tab=properties).
+// document id as the slug; the All-properties and permissions tabs use stable "properties" and "permissions"
+// names, so links can target them (?tab=properties, ?tab=permissions). The permissions tab comes last, so that
+// the first tab (which is the default one) is never it: it is only a linked or selected tab, never a silent
+// default.
 const mainTabSlugs = computed(() => {
   const slugs: string[] = []
   if (classTabId.value && mergedFieldsData.value) {
     slugs.push(classTabId.value)
   }
   slugs.push("properties")
+  if (showPermissionsTab.value) {
+    slugs.push("permissions")
+  }
   return slugs
 })
 
-// The selected index of the main tab group follows the "tab" query parameter (the first tab when absent or unknown),
-// so the active tab can be linked and survives reloads, like DocumentGet. The class tab is index 0 when present, so the
-// table of contents shows only while the FieldsForm is selected.
+// The selected index of the main tab group follows the "tab" query parameter (the first tab when absent or
+// unknown), so the active tab can be linked and survives reloads, like DocumentGet. The class tab is index 0
+// when present, so the table of contents shows only while the FieldsForm is selected.
 const selectedMainTab = computed(() => {
   const tab = Array.isArray(route.query.tab) ? route.query.tab[0] : route.query.tab
   if (!tab) {
@@ -1265,8 +1302,13 @@ async function onSubmit() {
       return
     }
     console.error("DocumentEdit.onSubmit", err)
-    // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
-    claimFormError.value = `${err}`
+
+    if (err instanceof ChangeDeniedError) {
+      claimFormErrorCode.value = "notAllowed"
+    } else {
+      // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
+      claimFormError.value = `${err}`
+    }
   }
 }
 
@@ -1274,6 +1316,7 @@ async function onReset() {
   // We do not use .prevent so the browser also resets plain inputs.
   // Here we reset registered input components.
   resetAll()
+  claimFormErrorCode.value = ""
   claimFormError.value = ""
   editingClaimId.value = null
   subClaimParentId.value = null
@@ -1312,6 +1355,7 @@ async function onEditClaim(id: string) {
   // Start from a clean slate so stale fields from a prior add/edit do not
   // leak into the patch sent on save.
   resetAll()
+  claimFormErrorCode.value = ""
   claimFormError.value = ""
 
   if (claim instanceof IdentifierClaim) {
@@ -1405,6 +1449,7 @@ async function onSubClaimAdd(id: string) {
   }
 
   resetAll()
+  claimFormErrorCode.value = ""
   claimFormError.value = ""
   editingClaimId.value = null
   subClaimParentId.value = id
@@ -1497,6 +1542,11 @@ function canSave(): boolean {
               <Tab
                 class="rounded-sm border border-gray-300 bg-white px-4 py-2 leading-tight font-medium text-gray-700 uppercase outline-none select-none not-aria-selected:hover:bg-gray-50 focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-1 aria-selected:border-primary-600 aria-selected:bg-primary-600 aria-selected:text-white"
                 >{{ t("views.DocumentEdit.tabs.allProperties") }}</Tab
+              >
+              <Tab
+                v-if="showPermissionsTab"
+                class="rounded-sm border border-gray-300 bg-white px-4 py-2 leading-tight font-medium text-gray-700 uppercase outline-none select-none not-aria-selected:hover:bg-gray-50 focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-1 aria-selected:border-primary-600 aria-selected:bg-primary-600 aria-selected:text-white"
+                >{{ t("views.DocumentEdit.tabs.permissions") }}</Tab
               >
             </TabList>
             <h1 v-show="displayLabelComponent?.displayLabel" class="mb-4 text-3xl font-bold drop-shadow-xs"><DisplayLabel ref="displayLabelComponent" :doc="doc" /></h1>
@@ -1713,7 +1763,8 @@ function canSave(): boolean {
                       </TabPanel>
                     </TabPanels>
                   </TabGroup>
-                  <div v-if="claimFormError" class="mt-4 text-error-600">{{ t("common.errors.unexpected") }}</div>
+                  <div v-if="claimFormErrorCode === 'notAllowed'" class="mt-4 text-error-600">{{ t("common.errors.notAllowed") }}</div>
+                  <div v-else-if="claimFormError" class="mt-4 text-error-600">{{ t("common.errors.unexpected") }}</div>
                   <div class="mt-4 flex flex-row justify-end gap-4">
                     <Button type="reset" :disabled="allEmpty && !anyError">{{ t("common.buttons.cancel") }}</Button>
                     <!--
@@ -1723,6 +1774,13 @@ function canSave(): boolean {
                     <Button type="submit" :disabled="!anyDirty">{{ editingClaimId ? t("common.buttons.update") : t("common.buttons.add") }}</Button>
                   </div>
                 </form>
+              </TabPanel>
+              <!--
+                Permissions tab panel. It is kept mounted across tab switches (:unmount="false"), so
+                pending, not-yet-saved operations survive them.
+              -->
+              <TabPanel v-if="showPermissionsTab" tabindex="-1" :unmount="false" class="outline-none">
+                <PermissionsForm :claims="doc.claims" />
               </TabPanel>
             </TabPanels>
           </TabGroup>

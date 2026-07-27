@@ -189,7 +189,8 @@ type B struct {
 	// the session's changes is not re-evaluated here, because each change was authorized against
 	// its author when it was appended (see ChangePermissionCheck). A non-nil error rejects the
 	// completion: the session completes as errored and nothing is committed. Sessions ended through
-	// a context marked with WithSystemSession skip the check. PeerDB assigns a default before the
+	// a context marked with WithSystemSession skip the check, and a session the application owns (see
+	// DocumentBeginMetadata.System) can only be ended that way. PeerDB assigns a default before the
 	// site customizer runs (see DefaultEndEditPermissionCheck), so a customizer can keep, wrap,
 	// replace, or disable it (by setting it to nil).
 	EndEditPermissionCheck func(user *store.User, roles []string, doc *document.D) errors.E
@@ -200,7 +201,8 @@ type B struct {
 	// appending caller in ctx, at append time, and that authorization is final (it is not
 	// re-evaluated when the session completes, see EndEditPermissionCheck). A non-nil error rejects
 	// the append and nothing is stored. Both document states are shared and must not be modified.
-	// Changes appended through a context marked with WithSystemSession skip the check. PeerDB
+	// Changes appended through a context marked with WithSystemSession skip the check, and a session
+	// the application owns (see DocumentBeginMetadata.System) can only be appended to that way. PeerDB
 	// assigns a default before the site customizer runs (authorizing each change against the
 	// caller's permissions), so a customizer can keep, wrap, replace, or disable it (by setting it
 	// to nil).

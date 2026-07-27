@@ -243,43 +243,72 @@ function siteGrants(): { [roleName: string]: RoleGrants } {
 // are sets.
 function permissionClaimGrants(doc: PermissionDocument): Map<string, Set<string>> {
   const users = new Map<string, Set<string>>()
-  for (const claim of getClaimsOfTypeWithConfidence(doc.claims, "ref", HAS_PERMISSION)) {
-    const action = claim.to.id
+  for (const [claim, action] of permissionClaims(doc.claims, HAS_PERMISSION)) {
+    // A document's own claims never grant creating it, so a claim of the create action grants nobody
+    // anything.
     if (action === ACTION_CREATE) {
       continue
     }
-    let selfScope = false
-    for (const sub of getClaimsOfTypeWithConfidence(claim.sub, "string", PERMISSION_SCOPE)) {
-      let parsed: Scope[]
-      try {
-        parsed = parseScopes(sub.string)
-      } catch {
-        // A sub-claim which does not parse contributes nothing, like on the backend.
-        continue
-      }
-      for (const scope of parsed) {
-        // Other scopes are not allowed at document-level permissions, but we ignore them.
-        if (scope.literal === SCOPE_SELF) {
-          selfScope = true
-        }
-      }
-    }
-    if (!selfScope) {
-      continue
-    }
-    for (const sub of getClaimsOfTypeWithConfidence(claim.sub, "id", PERMISSION_USER)) {
-      if (!sub.value) {
-        continue
-      }
+    for (const user of permissionClaimUsers(claim)) {
       let granted = users.get(action)
       if (!granted) {
         granted = new Set()
         users.set(action, granted)
       }
-      granted.add(sub.value)
+      granted.add(user)
     }
   }
   return users
+}
+
+// PermissionClaim is one of a document's own permission claims: a reference claim of the
+// HAS_PERMISSION or HAS_REQUESTED_PERMISSION property.
+export type PermissionClaim = Required<DeepReadonly<ClaimTypes>>["ref"][number]
+
+// hasSelfScope reports whether the permission claim is scoped to the document carrying it, the only
+// scope which counts at document level. Other scopes are not allowed there but are ignored. In sync
+// with auth.hasSelfScope in auth/permissions.go.
+function hasSelfScope(claim: PermissionClaim): boolean {
+  for (const sub of getClaimsOfTypeWithConfidence(claim.sub, "string", PERMISSION_SCOPE)) {
+    let parsed: Scope[]
+    try {
+      parsed = parseScopes(sub.string)
+    } catch {
+      // A sub-claim which does not parse contributes nothing, like on the backend.
+      continue
+    }
+    for (const scope of parsed) {
+      if (scope.literal === SCOPE_SELF) {
+        return true
+      }
+    }
+  }
+  return false
+}
+
+// permissionClaims iterates the document's own permission claims of the given property
+// (HAS_PERMISSION or HAS_REQUESTED_PERMISSION) which count at document level, yielding each together
+// with the action it references: the claim counts at or above low confidence, and a claim not scoped
+// to the document carrying it is skipped. In sync with auth.permissionClaims in auth/permissions.go.
+export function* permissionClaims(claims: DeepReadonly<ClaimTypes> | undefined | null, prop: string): Generator<[PermissionClaim, string]> {
+  for (const claim of getClaimsOfTypeWithConfidence(claims, "ref", prop)) {
+    if (!hasSelfScope(claim)) {
+      continue
+    }
+    yield [claim, claim.to.id]
+  }
+}
+
+// permissionClaimUsers iterates the users a permission claim names through its PERMISSION_USER
+// sub-claims at or above low confidence, skipping an empty one: permission claims always name a user.
+// In sync with auth.permissionClaimUsers in auth/permissions.go.
+export function* permissionClaimUsers(claim: PermissionClaim): Generator<string> {
+  for (const sub of getClaimsOfTypeWithConfidence(claim.sub, "id", PERMISSION_USER)) {
+    if (!sub.value) {
+      continue
+    }
+    yield sub.value
+  }
 }
 
 // hasPermissionClaim reports whether the document's own permission claims grant the user the action
@@ -310,16 +339,34 @@ function allowsDocument(scopes: readonly Scope[] | undefined, doc?: PermissionDo
 // identity taken from the reactive auth state (like checkDocumentPermission in permissions.go takes
 // it from the request context).
 export function hasDocumentPermission(action: string, doc?: PermissionDocument | null): boolean {
+  return hasUserDocumentPermission(action, doc, currentIdentityId.value, currentRoles.value)
+}
+
+// hasUserDocumentPermission is hasDocumentPermission asked about somebody else: whether the user with
+// the given subject and roles holds the permission action, through the role arm (the reserved
+// ROLE_EVERYONE entry or one of their roles) or, when doc is given, through the document's own
+// permission claims naming them. The roles of another user are not part of the reactive auth state
+// (they are the caller's), so they come from the user API (see UserGetAPI in user.go).
+export function hasUserDocumentPermission(action: string, doc: PermissionDocument | null | undefined, user: string, roles: readonly string[]): boolean {
   const grants = siteGrants()
   if (allowsDocument(grants[ROLE_EVERYONE]?.[action], doc)) {
     return true
   }
-  for (const role of currentRoles.value) {
+  for (const role of roles) {
     if (allowsDocument(grants[role]?.[action], doc)) {
       return true
     }
   }
-  return !!doc && hasPermissionClaim(action, currentIdentityId.value, doc)
+  return !!doc && hasPermissionClaim(action, user, doc)
+}
+
+// hasUserRoleDocumentPermission is hasUserDocumentPermission through the role arm alone: whether the
+// roles hold the permission action on the document, without what the document's own permission claims
+// grant to anyone. It answers what a user holds independently of the document, which is what a claim
+// granting them the action would have to add to. In sync with checkRoleDocumentPermission in
+// permissions.go, which asks the same by checking with no subject: no permission claim names one.
+export function hasUserRoleDocumentPermission(action: string, doc: PermissionDocument | null | undefined, roles: readonly string[]): boolean {
+  return hasUserDocumentPermission(action, doc, "", roles)
 }
 
 // hasFilePermission returns true if the current user holds the permission action on files, through a

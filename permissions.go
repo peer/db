@@ -5,7 +5,10 @@ import (
 	"context"
 	"encoding/json"
 	"io"
+	"net/http"
 	"reflect"
+	"slices"
+	"strings"
 
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/go/x"
@@ -13,10 +16,12 @@ import (
 	"gitlab.com/tozd/waf"
 
 	"gitlab.com/peerdb/peerdb/auth"
+	"gitlab.com/peerdb/peerdb/base"
 	"gitlab.com/peerdb/peerdb/coordinator"
 	"gitlab.com/peerdb/peerdb/document"
 	internalCore "gitlab.com/peerdb/peerdb/internal/core"
 	internalSite "gitlab.com/peerdb/peerdb/internal/site"
+	internalStore "gitlab.com/peerdb/peerdb/internal/store"
 	"gitlab.com/peerdb/peerdb/storage"
 	"gitlab.com/peerdb/peerdb/store"
 )
@@ -190,6 +195,13 @@ func checkChangePermission(ctx context.Context, site *internalSite.Site, before,
 		}
 	}
 
+	// A site without document-level permissions has no permission claims to change: they grant nothing
+	// there, so they are not written at all.
+	if permissionChanged && site.Features.DisableDocumentPermissions {
+		errE = errors.WithStack(auth.ErrAccessDenied)
+		errors.Details(errE)["reason"] = "document permissions are disabled"
+		return errE
+	}
 	// Permission claims (HAS_PERMISSION and HAS_REQUESTED_PERMISSION, with their sub-claims) require the permissions
 	// action, with the document's own claims consulted in the state before the change, so permissions authority cannot
 	// be minted by the change itself.
@@ -266,9 +278,10 @@ func (s *Service) HasFilePermission(ctx context.Context, action identifier.Ident
 // current point of the session's lifecycle (its in-progress state, the version it committed, or the
 // version it started from), so who may access the session can change as the session progresses.
 // Which action a change appended to a session requires is checked separately, per change (see
-// checkChangePermission); this method gates general access to the session's endpoints. A session
-// which does not exist is reported with coordinator.ErrSessionNotFound so callers can distinguish
-// it from a permission denial.
+// checkChangePermission); this method gates general access to the session's endpoints. A system
+// session is denied to every caller (see denySystemSession). A session which does not exist is
+// reported with coordinator.ErrSessionNotFound so callers can distinguish it from a permission
+// denial.
 func (s *Service) HasSessionPermission(ctx context.Context, session identifier.Identifier) errors.E {
 	site, ok := waf.GetSite[*internalSite.Site](ctx)
 	if !ok {
@@ -278,12 +291,24 @@ func (s *Service) HasSessionPermission(ctx context.Context, session identifier.I
 	// For an active session (or an ended one which is still completing asynchronously) the update
 	// action is checked against the session's current document state, so users granted an action
 	// only within the session have access, too.
-	_, doc, errE := site.Base.SessionDocument(ctx, session)
-	if errors.Is(errE, coordinator.ErrAlreadyCompleted) {
-		beginMetadata, _, completeMetadata, errE := site.Base.GetEditDocumentSession(ctx, session)
-		if errE != nil {
-			return errE
-		}
+	beginMetadata, doc, errE := site.Base.SessionDocument(ctx, session)
+	// A completed session has no own state anymore, so its metadata is read instead and the document
+	// related to it is resolved below.
+	completed := errors.Is(errE, coordinator.ErrAlreadyCompleted)
+	var completeMetadata *base.DocumentCompleteMetadata
+	if completed {
+		beginMetadata, _, completeMetadata, errE = site.Base.GetEditDocumentSession(ctx, session)
+	}
+	if errE != nil {
+		return errE
+	}
+
+	errE = denySystemSession(beginMetadata)
+	if errE != nil {
+		return errE
+	}
+
+	if completed {
 		// The document version related to the completed session.
 		var version *store.Version
 		if completeMetadata.Changeset != nil {
@@ -315,11 +340,22 @@ func (s *Service) HasSessionPermission(ctx context.Context, session identifier.I
 		if errE != nil {
 			return errE
 		}
-	} else if errE != nil {
-		return errE
 	}
 
 	return s.HasDocumentPermission(ctx, auth.ActionUpdate, doc)
+}
+
+// denySystemSession returns an access denied error for a session the application itself drives (see
+// base.DocumentBeginMetadata.System). Such a session is not opened on behalf of any caller: its
+// identifier is never handed out and the application is its only writer, so nothing may be appended
+// to it, nor may it be read or completed, through the API.
+func denySystemSession(beginMetadata *base.DocumentBeginMetadata) errors.E {
+	if !beginMetadata.System {
+		return nil
+	}
+	errE := errors.WithStack(auth.ErrAccessDenied)
+	errors.Details(errE)["reason"] = "system session"
+	return errE
 }
 
 // The default hooks below enforce the read action on the read path from the site's role grants and (for
@@ -473,4 +509,298 @@ func checkVersionedFileReadPermission(ctx context.Context, site *internalSite.Si
 	}
 	// Any other version requires the historic read action on files.
 	return checkFilePermission(ctx, site, auth.ActionReadHistoric), nil
+}
+
+// DocumentRequestGet is a GET/HEAD HTTP request handler which returns HTML frontend for the page where a
+// user can request access to a document. The requesting user generally cannot read the document, so only
+// document existence is checked, with a raw store read (without the read hooks).
+func (s *Service) DocumentRequestGet(w http.ResponseWriter, req *http.Request, params waf.Params) {
+	ctx := req.Context()
+	metrics := waf.MustGetMetrics(ctx)
+
+	id, errE := identifier.MaybeString(params["id"])
+	if errE != nil {
+		s.BadRequestWithError(w, req, errors.WithMessage(errE, `"id" is not a valid identifier`))
+		return
+	}
+
+	site := waf.MustGetSite[*internalSite.Site](ctx)
+
+	if site.Features.DisableDocumentPermissions {
+		s.NotFoundWithError(w, req, errors.New("document permissions are disabled"))
+		return
+	}
+
+	m := metrics.Duration(internalStore.MetricDatabase).Start()
+	_, _, _, _, errE = site.Base.Documents().GetLatest(ctx, id) //nolint:dogsled
+	m.Stop()
+	if errors.Is(errE, store.ErrValueNotFound) {
+		// This includes ErrValueDeleted, too.
+		s.NotFoundWithError(w, req, errE)
+		return
+	} else if errE != nil {
+		s.InternalServerErrorWithError(w, req, errE)
+		return
+	}
+
+	s.HomeGet(w, req, nil)
+}
+
+// maxRequestNoteLength bounds the note a caller can attach to an access request. The note is written
+// into a document the caller generally cannot read, so it is kept short enough to stay a note to
+// whoever decides the request.
+const maxRequestNoteLength = 1000
+
+// documentRequestRequest is the JSON body of DocumentRequestPostAPI: the permission actions being
+// requested (PERMISSION_ACTIONS document IDs, see auth.Actions) and an optional note for whoever
+// decides the request.
+type documentRequestRequest struct {
+	Actions []identifier.Identifier `json:"actions"`
+	Note    string                  `json:"note,omitempty"`
+}
+
+// DocumentRequestPostAPI handles POST requests to record an access request for the current user on a
+// document: a HAS_REQUESTED_PERMISSION claim per requested action, with the user recorded in a
+// PERMISSION_USER sub-claim (plus the request's note, when it has one), is added to the document
+// through an edit session, for whoever holds the permissions action on the document to decide. Any
+// signed-in user can request any actions except create, which a document's own claims can never grant
+// (see auth.PermissionClaimGrants), and the requested actions have to include what they require (see
+// auth.ValidateActions), so that approving them grants a coherent set. The document is read raw
+// (without the read hooks) because the requesting user generally cannot read it: only its permission
+// claims are consulted, nothing is returned to the user. Actions the user already holds (through role
+// grants or the document's own claims) or has already requested are not recorded again, and when
+// nothing is left to record the request succeeds without changing the document.
+func (s *Service) DocumentRequestPostAPI(w http.ResponseWriter, req *http.Request, params waf.Params) {
+	defer req.Body.Close()              //nolint:errcheck
+	defer io.Copy(io.Discard, req.Body) //nolint:errcheck
+
+	ctx := req.Context()
+	metrics := waf.MustGetMetrics(ctx)
+
+	subject, ok := auth.Subject(ctx)
+	if !ok {
+		s.ForbiddenWithError(w, req, errors.New("user is not signed in"))
+		return
+	}
+
+	id, errE := identifier.MaybeString(params["id"])
+	if errE != nil {
+		s.BadRequestWithError(w, req, errors.WithMessage(errE, `"id" is not a valid identifier`))
+		return
+	}
+
+	var request documentRequestRequest
+	errE = x.DecodeJSONWithoutUnknownFields(req.Body, &request)
+	if errE != nil {
+		s.BadRequestWithError(w, req, errE)
+		return
+	}
+	if len(request.Actions) == 0 {
+		s.BadRequestWithError(w, req, errors.New("no permission action requested"))
+		return
+	}
+	for _, action := range request.Actions {
+		if !auth.IsAction(action) {
+			s.BadRequestWithError(w, req, errors.New("unknown permission action"))
+			return
+		}
+		if action == auth.ActionCreate {
+			// A document's own permission claims never grant the create action, so requesting it could
+			// never be approved into a grant.
+			s.BadRequestWithError(w, req, errors.New("the create action cannot be requested"))
+			return
+		}
+	}
+	// The request is judged by what it asks for and not by what the caller happens to hold today, so the
+	// actions have to be closed under their requirements as they are stated: a request for the delete
+	// action carries the read action as well, even from a caller whose roles already grant them reading.
+	// Clients ask for the closure of what the user chose, and the actions of it which the caller already
+	// holds are dropped below, where what is worth recording is decided.
+	errE = auth.ValidateActions(request.Actions)
+	if errE != nil {
+		s.BadRequestWithError(w, req, errE)
+		return
+	}
+	// The note is recorded as stated, so it is trimmed before it is measured and stored: whitespace
+	// around it is not content.
+	note := strings.TrimSpace(request.Note)
+	if len(note) > maxRequestNoteLength {
+		s.BadRequestWithError(w, req, errors.New("note is too long"))
+		return
+	}
+
+	site := waf.MustGetSite[*internalSite.Site](ctx)
+
+	if site.Features.DisableDocumentPermissions {
+		s.NotFoundWithError(w, req, errors.New("document permissions are disabled"))
+		return
+	}
+
+	m := metrics.Duration(internalStore.MetricDatabase).Start()
+	docJSON, _, version, _, errE := site.Base.Documents().GetLatest(ctx, id)
+	m.Stop()
+	if errors.Is(errE, store.ErrValueNotFound) {
+		// This includes ErrValueDeleted, too.
+		s.NotFoundWithError(w, req, errE)
+		return
+	} else if errE != nil {
+		s.InternalServerErrorWithError(w, req, errE)
+		return
+	}
+	doc := new(document.D)
+	errE = x.UnmarshalWithoutUnknownFields(docJSON, doc)
+	if errE != nil {
+		s.InternalServerErrorWithError(w, req, errE)
+		return
+	}
+
+	// The caller may already hold an action, through their role grants or the document's own claims,
+	// and may already have requested it: either way there is nothing to record for it. Duplicates in
+	// the request are dropped the same way.
+	actions := make([]identifier.Identifier, 0, len(request.Actions))
+	for _, action := range request.Actions {
+		if slices.Contains(actions, action) {
+			continue
+		}
+		if checkDocumentPermission(ctx, site, action, doc) || auth.HasRequestedPermissionClaim(action, subject, doc) {
+			continue
+		}
+		actions = append(actions, action)
+	}
+	if len(actions) == 0 {
+		s.WriteJSON(w, req, []byte(`{"success":true}`), nil)
+		return
+	}
+
+	// The whole session is driven by the application itself, so it is opened as a system session:
+	// the per-change and commit permission checks are skipped (the requesting user cannot update the
+	// document) and no caller can access the session through the API, so nothing can be appended to
+	// it between the request claim and the commit. The requesting user still owns the changes: the
+	// session's begin metadata records them as its user.
+	systemCtx := base.WithSystemSession(ctx)
+
+	session, errE := site.Base.BeginEditDocument(systemCtx, version, doc)
+	if errE != nil {
+		s.InternalServerErrorWithError(w, req, errE)
+		return
+	}
+
+	changes := base.RequestedPermissionClaimsChanges(subject, actions, note, session, doc.Base, 0)
+	_, errE = site.Base.AppendDocumentChanges(systemCtx, session, changes, 0)
+	if errE == nil {
+		errE = site.Base.EndEditDocument(systemCtx, session, false)
+	}
+	if errE != nil {
+		// Attempt to discard the session to cleanup.
+		_ = site.Base.EndEditDocument(systemCtx, session, true)
+		s.InternalServerErrorWithError(w, req, errE)
+		return
+	}
+
+	s.WriteJSON(w, req, []byte(`{"success":true}`), nil)
+}
+
+// documentDeleteRequestRequest is the JSON body of DocumentDeleteRequestPostAPI: the permission
+// action whose request the caller withdraws (a PERMISSION_ACTIONS document ID, see auth.Actions).
+type documentDeleteRequestRequest struct {
+	Action identifier.Identifier `json:"action"`
+}
+
+// DocumentDeleteRequestPostAPI handles POST requests to withdraw the current user's access request
+// for an action on a document: the HAS_REQUESTED_PERMISSION claim recording it is removed, together with
+// the claims requesting the actions which require it (see auth.ActionsRequiring), because an action
+// is requested only together with what it builds on. Only the caller's own requests are touched, and
+// only those scoped to the document itself.
+//
+// The response is the same whether or not anything was removed, so a caller learns nothing about the
+// requests of others: a request which does not exist (any more) is not an error, it is a request
+// which is already not pending. The document is read raw (without the read hooks) because the
+// requesting user generally cannot read it, and the removal runs as a system session, like the
+// recording of the request does.
+func (s *Service) DocumentDeleteRequestPostAPI(w http.ResponseWriter, req *http.Request, params waf.Params) {
+	defer req.Body.Close()              //nolint:errcheck
+	defer io.Copy(io.Discard, req.Body) //nolint:errcheck
+
+	ctx := req.Context()
+	metrics := waf.MustGetMetrics(ctx)
+
+	subject, ok := auth.Subject(ctx)
+	if !ok {
+		s.ForbiddenWithError(w, req, errors.New("user is not signed in"))
+		return
+	}
+
+	id, errE := identifier.MaybeString(params["id"])
+	if errE != nil {
+		s.BadRequestWithError(w, req, errors.WithMessage(errE, `"id" is not a valid identifier`))
+		return
+	}
+
+	var request documentDeleteRequestRequest
+	errE = x.DecodeJSONWithoutUnknownFields(req.Body, &request)
+	if errE != nil {
+		s.BadRequestWithError(w, req, errE)
+		return
+	}
+	if !auth.IsAction(request.Action) {
+		s.BadRequestWithError(w, req, errors.New("unknown permission action"))
+		return
+	}
+
+	site := waf.MustGetSite[*internalSite.Site](ctx)
+
+	if site.Features.DisableDocumentPermissions {
+		s.NotFoundWithError(w, req, errors.New("document permissions are disabled"))
+		return
+	}
+
+	m := metrics.Duration(internalStore.MetricDatabase).Start()
+	docJSON, _, version, _, errE := site.Base.Documents().GetLatest(ctx, id)
+	m.Stop()
+	if errors.Is(errE, store.ErrValueNotFound) {
+		// This includes ErrValueDeleted, too.
+		s.NotFoundWithError(w, req, errE)
+		return
+	} else if errE != nil {
+		s.InternalServerErrorWithError(w, req, errE)
+		return
+	}
+	doc := new(document.D)
+	errE = x.UnmarshalWithoutUnknownFields(docJSON, doc)
+	if errE != nil {
+		s.InternalServerErrorWithError(w, req, errE)
+		return
+	}
+
+	actions := append([]identifier.Identifier{request.Action}, auth.ActionsRequiring(request.Action)...)
+	claims := auth.RequestedPermissionClaims(actions, subject, doc)
+	if len(claims) == 0 {
+		s.WriteJSON(w, req, []byte(`{"success":true}`), nil)
+		return
+	}
+
+	systemCtx := base.WithSystemSession(ctx)
+
+	session, errE := site.Base.BeginEditDocument(systemCtx, version, doc)
+	if errE != nil {
+		s.InternalServerErrorWithError(w, req, errE)
+		return
+	}
+
+	changes := make(document.Changes, 0, len(claims))
+	for _, claim := range claims {
+		changes = append(changes, document.RemoveClaimChange{ID: claim})
+	}
+	_, errE = site.Base.AppendDocumentChanges(systemCtx, session, changes, 0)
+	if errE == nil {
+		errE = site.Base.EndEditDocument(systemCtx, session, false)
+	}
+	if errE != nil {
+		// Attempt to discard the session to cleanup.
+		_ = site.Base.EndEditDocument(systemCtx, session, true)
+		s.InternalServerErrorWithError(w, req, errE)
+		return
+	}
+
+	s.WriteJSON(w, req, []byte(`{"success":true}`), nil)
 }

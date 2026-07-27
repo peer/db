@@ -11,7 +11,7 @@ import CheckBox from "@/components/CheckBox.vue"
 import WithDocument from "@/components/WithDocument.vue"
 import DisplayLabel from "@/partials/DisplayLabel.vue"
 import { useLocked } from "@/progress"
-import { DIRECT_REF_FILTER_PREFIX, loadingWidth, specialValueLabelKey, VALUES_NOT_SHOWN_PREFIX } from "@/utils"
+import { DIRECT_REF_FILTER_PREFIX, isSpecialValueId, loadingWidth, specialValueLabel, VALUES_NOT_SHOWN_PREFIX } from "@/utils"
 
 const props = defineProps<{
   node: RefFilterTreeNode
@@ -54,9 +54,9 @@ const WithDocumentD = WithDocument<D>
       </template>
       <template v-else>
         <CheckBox :id="inputId" :model-value="checked" :indeterminate="indeterminate" @update:model-value="handleToggle" />
-        <template v-if="specialValueLabelKey(node.res.id) !== null">
+        <template v-if="isSpecialValueId(node.res.id)">
           <label :for="inputId" :class="locked ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
-            ><i>{{ t(specialValueLabelKey(node.res.id)!) }}</i></label
+            ><i>{{ specialValueLabel(node.res.id, t) }}</i></label
           >
           <label :for="inputId" :class="locked ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'">({{ node.res.count }})</label>
         </template>

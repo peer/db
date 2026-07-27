@@ -16,12 +16,12 @@ import {
   computeRefCheckStates,
   DIRECT_REF_FILTER_PREFIX,
   equals,
+  isSpecialValueId,
   loadingWidth,
   mergeRefOverlay,
   SKIP_TO_END,
   specialsFromIds,
   specialsToIds,
-  specialValueLabelKey,
   toggleRefSelection,
   useInitialLoad,
   useLimitResults,
@@ -162,7 +162,7 @@ const checkboxState = computed({
     // typed reference filter, the special entries into the path's specials filter. Both updates travel
     // in one batch so the session is updated once.
     const directIds = value.filter((v) => v.startsWith(DIRECT_REF_FILTER_PREFIX)).map((v) => v.slice(DIRECT_REF_FILTER_PREFIX.length))
-    const toIds = value.filter((v) => specialValueLabelKey(v) === null && !v.startsWith(DIRECT_REF_FILTER_PREFIX))
+    const toIds = value.filter((v) => !isSpecialValueId(v) && !v.startsWith(DIRECT_REF_FILTER_PREFIX))
     const to: ToValue[] | undefined = toIds.length > 0 ? toIds.map((id) => ({ id })) : undefined
     const direct: ToValue[] | undefined = directIds.length > 0 ? directIds.map((id) => ({ id })) : undefined
 

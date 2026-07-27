@@ -7,7 +7,7 @@ import { computed } from "vue"
 import { useI18n } from "vue-i18n"
 
 import DocumentRefInline from "@/partials/DocumentRefInline.vue"
-import { listFormatParts, refFilterValueTokens, specialValueLabelKey } from "@/utils"
+import { listFormatParts, refFilterValueTokens, specialValueLabel } from "@/utils"
 
 // Renders a reference filter's label together with its active selection as "label: value, value (direct)".
 // The label (the filter's property path) comes from the default slot so the caller controls its markup
@@ -52,7 +52,7 @@ const valueParts = computed(
       <template v-for="(part, i) in valueParts" :key="i">
         <template v-if="'separator' in part">{{ part.separator }}</template>
         <template v-else>
-          <i v-if="part.token.kind === 'special'">{{ t(specialValueLabelKey(part.token.id) ?? "common.values.missing") }}</i>
+          <i v-if="part.token.kind === 'special'">{{ specialValueLabel(part.token.id, t) ?? t("common.values.missing") }}</i>
           <i18n-t v-else-if="part.token.direct" keypath="common.valueWithDirect" scope="global">
             <template #value><DocumentRefInline :id="part.token.id" :link="link" /></template>
             <template #direct

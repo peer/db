@@ -185,7 +185,8 @@ func (b *B) DeleteDocument(ctx context.Context, id identifier.Identifier) errors
 
 // BeginEditDocument begins an edit session of the document at the given version. The caller provides
 // the document itself (typically fetched together with the version), whose ID and Base feed the
-// session's begin metadata.
+// session's begin metadata. A context marked with WithSystemSession begins a system session (see
+// DocumentBeginMetadata.System), which no caller can access through the API.
 func (b *B) BeginEditDocument(ctx context.Context, version store.Version, doc *document.D) (identifier.Identifier, errors.E) {
 	return b.coordinator.Begin(ctx, &DocumentBeginMetadata{
 		At:         store.Time(time.Now().UTC()),
@@ -196,7 +197,8 @@ func (b *B) BeginEditDocument(ctx context.Context, version store.Version, doc *d
 			// Revision 0 resolves to the changeset's latest revision when the session completes.
 			Revision: 0,
 		},
-		User: store.UserFromContext(ctx),
+		User:   store.UserFromContext(ctx),
+		System: isSystemSession(ctx),
 	})
 }
 
@@ -215,6 +217,7 @@ func (b *B) BeginCreateDocument(ctx context.Context, base []string) (identifier.
 		Base:       base,
 		Version:    nil,
 		User:       store.UserFromContext(ctx),
+		System:     isSystemSession(ctx),
 	})
 }
 
@@ -296,6 +299,14 @@ func (b *B) AppendDocumentChange(ctx context.Context, session identifier.Identif
 	errE = change.Apply(validated)
 	if errE != nil {
 		return 0, errors.WrapWith(errE, ErrInvalidChange)
+	}
+
+	// Only the application can append to a session it owns (see DocumentBeginMetadata.System), and it
+	// does so with a system context. Appending to it otherwise is a programming error: the change is
+	// not a caller's change (the session has no caller to check it against), so it is rejected rather
+	// than let through unchecked.
+	if beginMetadata.System && !isSystemSession(ctx) {
+		return 0, errors.New("system session appended to without a system context")
 	}
 
 	if b.ChangePermissionCheck != nil && !isSystemSession(ctx) {

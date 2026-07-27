@@ -391,21 +391,30 @@ export const UNKNOWN_VALUE_ID = "__UNKNOWN__"
 // migrated out of the pooled has facet.
 export const HAS_PROPERTY_VALUE_ID = "__HAS__"
 
-// specialValueLabelKey maps a special entry's synthetic id to its translation key, or returns null for a
-// regular value id.
-export function specialValueLabelKey(id: string): string | null {
+// specialValueLabel maps a special entry's synthetic id to its label, or returns null for a regular
+// value id, which is labelled by the document it stands for instead.
+//
+// The labels are t() call results and not message keys, so that a search for a translation finds where
+// it is used.
+export function specialValueLabel(id: string, t: (key: string) => string): string | null {
   switch (id) {
     case MISSING_VALUE_ID:
-      return "common.values.missing"
+      return t("common.values.missing")
     case NONE_VALUE_ID:
-      return "common.values.none"
+      return t("common.values.none")
     case UNKNOWN_VALUE_ID:
-      return "common.values.unknown"
+      return t("common.values.unknown")
     case HAS_PROPERTY_VALUE_ID:
-      return "common.values.hasProperty"
+      return t("common.values.hasProperty")
     default:
       return null
   }
+}
+
+// isSpecialValueId reports whether the id is one of the synthetic ids of the special entries, which
+// stand for a state of the property path rather than for a document (see specialValueLabel).
+export function isSpecialValueId(id: string): boolean {
+  return id === MISSING_VALUE_ID || id === NONE_VALUE_ID || id === UNKNOWN_VALUE_ID || id === HAS_PROPERTY_VALUE_ID
 }
 
 // specialsToIds flattens a specials selection into the synthetic ids the checkbox state carries.

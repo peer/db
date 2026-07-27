@@ -120,11 +120,26 @@ func NewMockAuthenticator(
 		ClientID: clientID,
 	})
 
-	// The userinfo cache is primed at Callback time and never fetches
-	// upstream: an empty endpoint short-circuits userInfoCache.fetch to an
-	// error, but Authenticate ignores upstream failures and falls back to
-	// the primed entry (or subject-only).
-	cache := newUserInfoCache("", nil)
+	// There is no issuer to ask about a user, so every lookup is answered the same way the mock signs
+	// its own user in: with the mock username, under the subject it was asked about. It makes
+	// development and tests behave as if the site's users all had full role membership, which is what
+	// mock sign-in itself does.
+	cache := newUserInfoCache(
+		func(_ context.Context, subject, _ string) (userInfo, errors.E) {
+			// The caller themselves is answered without roles, because their own token is what says which they
+			// hold and Get stamps those onto the answer. Callback primes their entry anyway, so a user who just
+			// signed in is not looked up at all, and this answers the misses: an entry which expired, or a
+			// process which restarted while the session cookie stayed valid.
+			return userInfo{Subject: subject, Username: mockUsername, Roles: nil}, nil
+		},
+		func(_ context.Context, subject, _ string) (userInfo, errors.E) {
+			var roles []string
+			if grantedRoles != nil {
+				roles = grantedRoles()
+			}
+			return userInfo{Subject: subject, Username: mockUsername, Roles: roles}, nil
+		},
+	)
 
 	if dbpool == nil {
 		return nil, errors.New("dbpool is required")
@@ -142,10 +157,10 @@ func NewMockAuthenticator(
 
 	return &MockAuthenticator{
 		baseAuthenticator: baseAuthenticator{
-			tokenVerifier:   tokenVerifier,
-			userInfoCache:   cache,
-			flowStore:       fs,
-			revocationStore: rs,
+			TokenVerifier:   tokenVerifier,
+			UserInfoCache:   cache,
+			FlowStore:       fs,
+			RevocationStore: rs,
 		},
 		issuer:       issuer,
 		clientID:     clientID,
@@ -163,7 +178,7 @@ func NewMockAuthenticator(
 // callback handler with synthetic code+state, so the issuer is never
 // contacted.
 func (a *MockAuthenticator) SignIn(ctx context.Context, redirect, uiLocales string) (string, errors.E) {
-	return signInFlow(ctx, a.flowStore, redirect, uiLocales, a.authCodeURL)
+	return signInFlow(ctx, a.FlowStore, redirect, uiLocales, a.authCodeURL)
 }
 
 // Callback finishes a mock sign-in flow. It validates the callback
@@ -171,8 +186,8 @@ func (a *MockAuthenticator) SignIn(ctx context.Context, redirect, uiLocales stri
 // (the access token the cookie should carry), and returns the token, its
 // expiry, and the post-sign-in redirect recorded at SignIn time.
 // Client-side failures wrap ErrSignInFailed.
-func (a *MockAuthenticator) Callback(ctx context.Context, values url.Values) (string, time.Time, string, errors.E) {
-	return callbackFlow(ctx, a.flowStore, values, a.exchangeCode)
+func (a *MockAuthenticator) Callback(ctx context.Context, values url.Values, allowedRoles map[string]RoleGrants) (string, time.Time, string, errors.E) {
+	return callbackFlow(ctx, a.FlowStore, values, allowedRoles, a.exchangeCode)
 }
 
 // SignOut revokes the request's access token. The mock has no upstream
@@ -180,7 +195,7 @@ func (a *MockAuthenticator) Callback(ctx context.Context, values url.Values) (st
 // cache). The user is thereafter rejected by Authenticate even though
 // the JWT signature/exp are still valid.
 func (a *MockAuthenticator) SignOut(w http.ResponseWriter, req *http.Request) errors.E {
-	return signOutFlow(w, req, a.tokenVerifier, a.revocationStore, nil)
+	return signOutFlow(w, req, a.TokenVerifier, a.RevocationStore, nil)
 }
 
 // authCodeURL returns a self-redirect URL: the local callback path with
@@ -214,7 +229,7 @@ func (a *MockAuthenticator) authCodeURL(state, _, _, _ string) string {
 //
 // Internal to the package; test code reaches it through
 // TestingExchangeCode in auth_internal_test.go.
-func (a *MockAuthenticator) exchangeCode(_ context.Context, _, _, _ string) (string, time.Time, errors.E) {
+func (a *MockAuthenticator) exchangeCode(_ context.Context, _, _, _ string, allowedRoles map[string]RoleGrants) (string, time.Time, errors.E) {
 	now := time.Now()
 	cookieExpiry := now.Add(mockTokenTTL)
 
@@ -275,8 +290,11 @@ func (a *MockAuthenticator) exchangeCode(_ context.Context, _, _, _ string) (str
 
 	// Prime the userinfo cache so the very first authenticated request
 	// after sign-in finds the username in cache rather than failing the
-	// userinfo fetch (mock has no upstream endpoint).
-	a.userInfoCache.set(a.subject, userInfo{Subject: a.subject, Username: mockUsername})
+	// userinfo fetch (mock has no upstream endpoint). The roles are the
+	// ones just minted into the token which the site recognizes, so the
+	// entry describes the user fully and a lookup of them (see Identity)
+	// needs no fetch either.
+	a.UserInfoCache.set(a.subject, userInfo{Subject: a.subject, Username: mockUsername, Roles: filterRoles(granted, allowedRoles)})
 
 	return token, cookieExpiry, nil
 }

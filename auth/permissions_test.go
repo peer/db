@@ -6,6 +6,7 @@ import (
 	"github.com/goccy/go-yaml"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/identifier"
 
 	"gitlab.com/peerdb/peerdb/auth"
@@ -27,9 +28,19 @@ func makePermissionsDoc(t *testing.T) *document.D {
 func addPermissionClaim(t *testing.T, doc *document.D, user string, action identifier.Identifier, confidence document.Confidence, scopes ...string) {
 	t.Helper()
 
+	addPermissionClaimOfProp(t, doc, internalCore.HasPermissionPropID, user, action, confidence, scopes...)
+}
+
+// addPermissionClaimOfProp is addPermissionClaim generalized over the claim property, so tests can
+// also add HAS_REQUESTED_PERMISSION claims.
+func addPermissionClaimOfProp(
+	t *testing.T, doc *document.D, prop identifier.Identifier, user string, action identifier.Identifier, confidence document.Confidence, scopes ...string,
+) {
+	t.Helper()
+
 	claim := &document.ReferenceClaim{
 		CoreClaim: document.CoreClaim{ID: identifier.New(), Confidence: confidence},
-		Prop:      document.Reference{ID: internalCore.HasPermissionPropID},
+		Prop:      document.Reference{ID: prop},
 		To:        document.Reference{ID: action},
 	}
 	if user != "" {
@@ -420,4 +431,120 @@ func TestPermissionClaimGrants(t *testing.T) {
 		auth.ActionRead:   {"user1", "user2"},
 		auth.ActionUpdate: {"user1"},
 	}, auth.PermissionClaimGrants(doc))
+}
+
+// TestRequestedPermissionClaimGrants verifies that access requests are evaluated over
+// HAS_REQUESTED_PERMISSION claims by the same rules as grants, and that requests and grants never
+// leak into each other.
+func TestRequestedPermissionClaimGrants(t *testing.T) {
+	t.Parallel()
+
+	doc := makePermissionsDoc(t)
+	addPermissionClaimOfProp(t, doc, internalCore.HasRequestedPermissionPropID, "user1", auth.ActionRead, document.HighConfidence, auth.ScopeSelf)
+	addPermissionClaim(t, doc, "user2", auth.ActionRead, document.HighConfidence, auth.ScopeSelf)
+
+	assert.True(t, auth.HasRequestedPermissionClaim(auth.ActionRead, "user1", doc))
+	assert.False(t, auth.HasRequestedPermissionClaim(auth.ActionRead, "user2", doc))
+	assert.False(t, auth.HasPermissionClaim(auth.ActionRead, "user1", doc))
+	assert.True(t, auth.HasPermissionClaim(auth.ActionRead, "user2", doc))
+	assert.Equal(t, map[identifier.Identifier][]string{auth.ActionRead: {"user1"}}, auth.RequestedPermissionClaimGrants(doc))
+}
+
+// TestIsAction verifies that the permission action document IDs are recognized and other identifiers
+// are not.
+func TestIsAction(t *testing.T) {
+	t.Parallel()
+
+	for code, action := range auth.Actions {
+		assert.True(t, auth.IsAction(action), code)
+	}
+	assert.False(t, auth.IsAction(identifier.New()))
+	assert.False(t, auth.IsAction(identifier.Identifier{}))
+}
+
+// TestActionRequirements verifies which actions an action builds on, and that the returned slice is
+// the caller's own.
+func TestActionRequirements(t *testing.T) {
+	t.Parallel()
+
+	assert.Empty(t, auth.ActionRequirements(auth.ActionRead))
+	assert.Empty(t, auth.ActionRequirements(auth.ActionCreate))
+	assert.Empty(t, auth.ActionRequirements(identifier.New()))
+	assert.Equal(t, []identifier.Identifier{auth.ActionRead}, auth.ActionRequirements(auth.ActionUpdate))
+	assert.Equal(t, []identifier.Identifier{auth.ActionRead}, auth.ActionRequirements(auth.ActionReadHistoric))
+	assert.Equal(t, []identifier.Identifier{auth.ActionRead}, auth.ActionRequirements(auth.ActionDelete))
+	assert.Equal(t, []identifier.Identifier{auth.ActionUpdate}, auth.ActionRequirements(auth.ActionUpdatePermissions))
+
+	requirements := auth.ActionRequirements(auth.ActionUpdate)
+	requirements[0] = auth.ActionDelete
+	assert.Equal(t, []identifier.Identifier{auth.ActionRead}, auth.ActionRequirements(auth.ActionUpdate))
+}
+
+// TestActionsClosure verifies that requirements are added transitively, that the given actions keep
+// their order and come first, and that duplicates are dropped.
+func TestActionsClosure(t *testing.T) {
+	t.Parallel()
+
+	assert.Empty(t, auth.ActionsClosure(nil))
+	assert.Equal(t, []identifier.Identifier{auth.ActionRead}, auth.ActionsClosure([]identifier.Identifier{auth.ActionRead}))
+	assert.Equal(t, []identifier.Identifier{auth.ActionUpdate, auth.ActionRead}, auth.ActionsClosure([]identifier.Identifier{auth.ActionUpdate}))
+	assert.Equal(t, []identifier.Identifier{auth.ActionUpdatePermissions, auth.ActionUpdate, auth.ActionRead},
+		auth.ActionsClosure([]identifier.Identifier{auth.ActionUpdatePermissions}))
+	assert.Equal(t, []identifier.Identifier{auth.ActionDelete, auth.ActionRead, auth.ActionReadHistoric},
+		auth.ActionsClosure([]identifier.Identifier{auth.ActionDelete, auth.ActionRead, auth.ActionReadHistoric}))
+}
+
+// TestValidateActions verifies that a set of actions is accepted only when it contains everything its
+// actions require, and that the missing actions are reported.
+func TestValidateActions(t *testing.T) {
+	t.Parallel()
+
+	require.NoError(t, auth.ValidateActions(nil))
+	require.NoError(t, auth.ValidateActions([]identifier.Identifier{auth.ActionRead}))
+	require.NoError(t, auth.ValidateActions([]identifier.Identifier{auth.ActionRead, auth.ActionUpdate}))
+	require.NoError(t, auth.ValidateActions([]identifier.Identifier{auth.ActionRead, auth.ActionUpdate, auth.ActionUpdatePermissions}))
+
+	errE := auth.ValidateActions([]identifier.Identifier{auth.ActionUpdate})
+	assert.EqualError(t, errE, "permission actions are missing actions they require")
+	assert.Equal(t, []string{auth.ActionRead.String()}, errors.Details(errE)["missing"])
+
+	// The permissions action requires updating, which requires reading, so both are missing.
+	errE = auth.ValidateActions([]identifier.Identifier{auth.ActionUpdatePermissions, auth.ActionDelete})
+	assert.EqualError(t, errE, "permission actions are missing actions they require")
+	assert.ElementsMatch(t, []string{auth.ActionRead.String(), auth.ActionUpdate.String()}, errors.Details(errE)["missing"])
+}
+
+// TestActionsRequiring verifies which actions build on an action, transitively.
+func TestActionsRequiring(t *testing.T) {
+	t.Parallel()
+
+	assert.Empty(t, auth.ActionsRequiring(auth.ActionUpdatePermissions))
+	assert.Empty(t, auth.ActionsRequiring(auth.ActionCreate))
+	assert.Empty(t, auth.ActionsRequiring(identifier.New()))
+	assert.ElementsMatch(t, []identifier.Identifier{auth.ActionUpdatePermissions}, auth.ActionsRequiring(auth.ActionUpdate))
+	// Everything builds on reading, the permissions action through the update action.
+	assert.ElementsMatch(t, []identifier.Identifier{
+		auth.ActionReadBulk, auth.ActionReadHistoric, auth.ActionUpdate, auth.ActionUpdatePermissions, auth.ActionDelete,
+	}, auth.ActionsRequiring(auth.ActionRead))
+}
+
+// TestRequestedPermissionClaims verifies which request claims are found for a subject: only claims of
+// the requested actions, scoped to the document itself, and naming that subject.
+func TestRequestedPermissionClaims(t *testing.T) {
+	t.Parallel()
+
+	doc := makePermissionsDoc(t)
+	addPermissionClaimOfProp(t, doc, internalCore.HasRequestedPermissionPropID, "user1", auth.ActionRead, document.HighConfidence, auth.ScopeSelf)
+	addPermissionClaimOfProp(t, doc, internalCore.HasRequestedPermissionPropID, "user1", auth.ActionUpdate, document.HighConfidence, auth.ScopeSelf)
+	// Another user's request, a request scoped elsewhere, and a grant are all left alone.
+	addPermissionClaimOfProp(t, doc, internalCore.HasRequestedPermissionPropID, "user2", auth.ActionRead, document.HighConfidence, auth.ScopeSelf)
+	addPermissionClaimOfProp(t, doc, internalCore.HasRequestedPermissionPropID, "user1", auth.ActionDelete, document.HighConfidence, auth.ScopeAll)
+	addPermissionClaim(t, doc, "user1", auth.ActionRead, document.HighConfidence, auth.ScopeSelf)
+
+	assert.Len(t, auth.RequestedPermissionClaims([]identifier.Identifier{auth.ActionRead}, "user1", doc), 1)
+	assert.Len(t, auth.RequestedPermissionClaims([]identifier.Identifier{auth.ActionRead, auth.ActionUpdate}, "user1", doc), 2)
+	assert.Empty(t, auth.RequestedPermissionClaims([]identifier.Identifier{auth.ActionDelete}, "user1", doc))
+	assert.Empty(t, auth.RequestedPermissionClaims([]identifier.Identifier{auth.ActionRead}, "user3", doc))
+	assert.Empty(t, auth.RequestedPermissionClaims([]identifier.Identifier{auth.ActionRead}, "", doc))
+	assert.Empty(t, auth.RequestedPermissionClaims(nil, "user1", doc))
 }

@@ -80,6 +80,17 @@ type SiteFeatures struct {
 	// auto-hide behavior (hidden while scrolling down, shown when scrolling up).
 	NavbarPosition string `json:"navbarPosition,omitempty" yaml:"navbarPosition,omitempty"`
 
+	// DisableDocumentPermissions turns off document-level permissions: the permissions tabs of the
+	// document page and of the document edit page and the access request page are not offered, the
+	// request API is not served, the create-session seeding grants the creator nothing, and permission
+	// claims (HAS_PERMISSION and HAS_REQUESTED_PERMISSION) cannot be added to a document at all. Such a
+	// site permits through role grants only. Permissions granted while the feature was on keep applying:
+	// they were granted legitimately, and no new ones can be added to join them.
+	//
+	// Role grants are unaffected: their claim scopes are about ordinary properties (INSTANCE_OF and
+	// the like, see ScopeProperties), never about permission claims.
+	DisableDocumentPermissions bool `json:"disableDocumentPermissions,omitempty" yaml:"disableDocumentPermissions,omitempty"`
+
 	// IndexAncestorProperties enables claim propagation to transitive super-properties
 	// when indexing: a claim for property X is also indexed for every ancestor of X
 	// via SUBPROPERTY_OF. Disabled by default. Backend-only; not exposed to the frontend.
@@ -120,7 +131,12 @@ type Favicon struct {
 //
 //nolint:revive
 type SiteAuthConfig struct {
-	Issuer       string `json:"-" yaml:"issuer,omitempty"`
+	Issuer string `json:"-" yaml:"issuer,omitempty"`
+	// Organization is the issuer-side organization the site's users belong to. It is what the user API
+	// needs to look up a user other than the caller, because describing another user is not part of
+	// OpenID Connect and the issuer keeps its users under an organization (see the identity lookup in
+	// auth/oidc.go). Without it the site knows about a user only what their own requests carry.
+	Organization string `json:"-" yaml:"organization,omitempty"`
 	ClientID     string `json:"-" yaml:"clientId,omitempty"`
 	ClientSecret string `json:"-" yaml:"clientSecret,omitempty"`
 }
@@ -212,11 +228,11 @@ type Site struct {
 
 	// Authenticator drives sign-in (SignIn / Callback), sign-out (SignOut)
 	// and request-time token validation (Authenticate) for this site.
-	Authenticator auth.Authenticator
+	Authenticator auth.Authenticator `json:"-" yaml:"-"`
 
 	// DebugRiverHandler is the River UI handler mounted at /debug/river.
 	// Populated only in development mode.
-	DebugRiverHandler http.Handler
+	DebugRiverHandler http.Handler `json:"-" yaml:"-"`
 
 	initialized bool
 }

@@ -308,6 +308,35 @@ func (s *Service) setRoutes() { //nolint:maintidx
 				},
 			},
 		},
+		"DocumentRequest": {
+			RouteOptions: waf.RouteOptions{
+				Handlers: map[string]waf.Handler{
+					http.MethodGet: s.DocumentRequestGet,
+				},
+			},
+			Path: "/d/request/:id",
+			API: waf.RouteOptions{
+				Handlers: map[string]waf.Handler{
+					http.MethodPost: s.DocumentRequestPostAPI,
+				},
+			},
+		},
+		"UserGet": {
+			Path: "/u/:id",
+			API: waf.RouteOptions{
+				Handlers: map[string]waf.Handler{
+					http.MethodGet: s.UserGetAPI,
+				},
+			},
+		},
+		"DocumentDeleteRequest": {
+			Path: "/d/deleteRequest/:id",
+			API: waf.RouteOptions{
+				Handlers: map[string]waf.Handler{
+					http.MethodPost: s.DocumentDeleteRequestPostAPI,
+				},
+			},
+		},
 		"DocumentGet": {
 			RouteOptions: waf.RouteOptions{
 				Handlers: map[string]waf.Handler{

@@ -17,15 +17,16 @@ import (
 
 type emptyRequest struct{}
 
-// permissionClaimChanges returns the changes adding a HAS_PERMISSION claim with the action as the
-// value, together with the changes adding under it a PERMISSION_USER sub-claim with the user and a
-// PERMISSION_SCOPE sub-claim with the self scope. The claim IDs are derived from the seed base as
-// operations startOperation+1 onward. It returns the changes and the operation number of the last
-// one.
-func permissionClaimChanges(seedBase []string, action identifier.Identifier, user string, startOperation int64) (document.Changes, int64) {
+// permissionClaimChanges returns the changes adding a claim of the given property (HAS_PERMISSION
+// or HAS_REQUESTED_PERMISSION) with the action as the value, together with the changes adding under
+// it a PERMISSION_USER sub-claim with the user, a PERMISSION_SCOPE sub-claim with the self scope,
+// and, when note is not empty, a DESCRIPTION sub-claim with it: free text about the claim, which for
+// a request is what the requester wrote to whoever decides it. The claim IDs are derived from the
+// seed base as operations startOperation+1 onward. It returns the changes and the operation number
+// of the last one.
+func permissionClaimChanges(seedBase []string, prop, action identifier.Identifier, user, note string, startOperation int64) (document.Changes, int64) {
 	operation := startOperation + 1
 	confidence := document.HighConfidence
-	hasPermission := internalCore.HasPermissionPropID
 	permissionUser := internalCore.PermissionUserPropID
 	permissionScope := internalCore.PermissionScopePropID
 
@@ -38,7 +39,7 @@ func permissionClaimChanges(seedBase []string, action identifier.Identifier, use
 		Base:  claimBase,
 		Patch: document.ReferenceClaimPatch{
 			Confidence: &confidence,
-			Prop:       &hasPermission,
+			Prop:       &prop,
 			To:         &action,
 		},
 	})
@@ -68,6 +69,23 @@ func permissionClaimChanges(seedBase []string, action identifier.Identifier, use
 			String:     auth.ScopeSelf,
 		},
 	})
+
+	if note != "" {
+		operation++
+		description := internalCore.DescriptionPropID
+		noteBase := append(slices.Clone(seedBase), strconv.FormatInt(operation, 10))
+		changes = append(changes, document.AddClaimChange{
+			Under: &claimID,
+			ID:    identifier.From(noteBase...),
+			Base:  noteBase,
+			Patch: document.StringClaimPatch{
+				Confidence: &confidence,
+				Prop:       &description,
+				String:     note,
+			},
+		})
+	}
+
 	return changes, operation
 }
 
@@ -163,7 +181,27 @@ func PermissionClaimsChanges(
 	changes := document.Changes{}
 	for _, action := range actions {
 		var claimChanges document.Changes
-		claimChanges, startOperation = permissionClaimChanges(sb, action, user, startOperation)
+		claimChanges, startOperation = permissionClaimChanges(sb, internalCore.HasPermissionPropID, action, user, "", startOperation)
+		changes = append(changes, claimChanges...)
+	}
+	return changes
+}
+
+// RequestedPermissionClaimsChanges returns the changes recording that the user requested the actions
+// on the document, through a HAS_REQUESTED_PERMISSION claim with the self scope per action, with
+// claim IDs derived for operations startOperation+1 onward. A non-empty note is added under every
+// claim as a DESCRIPTION sub-claim, so whoever decides a request sees what the requester wrote,
+// whichever of them they decide first. The requests carry the same claim shape as the grants of
+// PermissionClaimsChanges, so approving one means replacing the request claim with a HAS_PERMISSION
+// one, which drops the note with it.
+func RequestedPermissionClaimsChanges(
+	user string, actions []identifier.Identifier, note string, session identifier.Identifier, docBase []string, startOperation int64,
+) document.Changes {
+	sb := seedBase(docBase, session)
+	changes := document.Changes{}
+	for _, action := range actions {
+		var claimChanges document.Changes
+		claimChanges, startOperation = permissionClaimChanges(sb, internalCore.HasRequestedPermissionPropID, action, user, note, startOperation)
 		changes = append(changes, claimChanges...)
 	}
 	return changes

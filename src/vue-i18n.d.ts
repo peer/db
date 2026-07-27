@@ -21,6 +21,10 @@ declare module "vue-i18n" {
         create: string
         upload: string
         edit: string
+        editPermissions: string
+        requestPermissions: string
+        manageRequests: string
+        permissions: string
         delete: string
         save: string
         discard: string
@@ -47,6 +51,7 @@ declare module "vue-i18n" {
       }
       errors: {
         unexpected: string
+        notAllowed: string
         upload: string
       }
       status: {
@@ -92,6 +97,20 @@ declare module "vue-i18n" {
         invalid: string
         invalidPrecision: string
         unfinished: string
+      }
+      permissionActions: {
+        read: string
+        history: string
+        update: string
+        permissions: string
+        delete: string
+      }
+      permissionActionHints: {
+        read: string
+        history: string
+        update: string
+        permissions: string
+        delete: string
       }
     }
     partials: {
@@ -304,6 +323,24 @@ declare module "vue-i18n" {
           inGigaYears: string
         }
       }
+      PermissionsForm: {
+        approve: string
+        deny: string
+        noRequests: string
+        noUsers: string
+        removeAccess: string
+        requestsTitle: string
+        usersTitle: string
+        requestedAction: string
+        cannotGrant: string
+      }
+      PermissionsView: {
+        usersTitle: string
+        noUsers: string
+        requestsTitle: string
+        noRequests: string
+        requestedAction: string
+      }
     }
     views: {
       DocumentCreate: {
@@ -319,6 +356,7 @@ declare module "vue-i18n" {
           allProperties: string
           content: string
           history: string
+          permissions: string
         }
         history: {
           author: string
@@ -332,6 +370,7 @@ declare module "vue-i18n" {
       DocumentEdit: {
         tabs: {
           allProperties: string
+          permissions: string
         }
         addClaim: string
         editClaim: string
@@ -363,6 +402,18 @@ declare module "vue-i18n" {
           from: string
           to: string
         }
+      }
+      DocumentRequest: {
+        confirm: string
+        notSignedIn: string
+        request: string
+        requested: string
+        title: string
+        note: string
+        notAvailable: string
+        permission: string
+        noteHint: string
+        nothingToRequest: string
       }
     }
   }

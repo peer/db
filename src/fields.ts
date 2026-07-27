@@ -454,6 +454,12 @@ export function valueTypeToClaimType(valueTypeId: string): ClaimTypeName {
 // resyncs to the committed state when it observes this error.
 export class ChangeDroppedError extends Error {}
 
+// ChangeDeniedError rejects a queued change which the server refused because the caller may not make
+// it (e.g. a permission claim added by a caller without the permissions action). It is a dropped
+// change, because posting it again could only be refused again, told apart from the other dropped
+// ones so that the form can say that the change is not allowed instead of inviting a retry.
+export class ChangeDeniedError extends ChangeDroppedError {}
+
 // Injection keys for FieldsForm shared services (using Symbol.for for deduplication in dev).
 // See progress.ts for the pattern.
 export const saveChangeKey: InjectionKey<(spec: SaveChangeSpec) => Promise<SaveChangeResult>> =

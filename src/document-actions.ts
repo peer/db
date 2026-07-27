@@ -17,8 +17,9 @@ export type DocumentActions = {
   canUpdatePermissions: Readonly<Ref<boolean>>
   // Progress counter, greater than zero while an edit session is starting.
   editBusy: Readonly<Ref<number>>
-  // Start editing (begins an edit session and navigates to the edit view).
-  edit: () => Promise<void>
+  // Start editing (begins an edit session and navigates to the edit view). The edit view opens on the tab
+  // with the given slug ("permissions" for its permissions tab), or on its default tab when none is given.
+  edit: (tab?: string) => Promise<void>
 }
 
 // During development, Vite can optimize dependencies and can duplicate imports and thus symbols.

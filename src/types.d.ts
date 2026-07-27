@@ -335,6 +335,10 @@ export type SiteContext = {
     // language (instead of the plain rendering), so sites do not have to pass the localized prop through claim
     // value components.
     localizedTimeDisplay?: boolean
+    // Turns off document-level permissions: the permissions tabs of the document page and of the document edit
+    // page and the access request page are not offered, and the backend neither serves the request API nor
+    // accepts permission claims. Such a site permits through role grants only.
+    disableDocumentPermissions?: boolean
   }
   // Role grants resolved by the backend: per role, per permission action (an ACTION_* document ID), the
   // permission scope entries (literal scopes or "property=value" with resolved document IDs).
@@ -344,6 +348,14 @@ export type SiteContext = {
     }
   }
   metadataHeaderPrefix?: string
+}
+
+// Identity is what the site knows about one of its users, as the user API returns it: who they are and
+// which of the site's roles they hold. Keep in sync with auth.Identity in auth/auth.go.
+export type Identity = {
+  subject: string
+  username?: string
+  roles: string[]
 }
 
 export type RouteOptions = {

@@ -34,6 +34,7 @@ import FieldsView from "@/partials/FieldsView.vue"
 import Footer from "@/partials/Footer.vue"
 import NavBar from "@/partials/NavBar.vue"
 import NavBarSearch from "@/partials/NavBarSearch.vue"
+import PermissionsView from "@/partials/PermissionsView.vue"
 import PropertiesView from "@/partials/PropertiesView.vue"
 import SearchShortcutLink from "@/partials/SearchShortcutLink.vue"
 import { getParentLock, localCounter, lockScope, useProgress } from "@/progress"
@@ -89,6 +90,11 @@ onBeforeUnmount(() => {
 
 const WithDocumentD = WithDocument<D>
 const withDocument = useTemplateRef<ComponentExposed<typeof WithDocumentD>>("withDocument")
+
+// documentEpoch keys the document below, so bumping it remounts it and the document is fetched again.
+// The permissions tab bumps it after it changed the document (see PermissionsView).
+// TODO: Remove once we use websocket to watch for new changes.
+const documentEpoch = ref(0)
 const displayLabelComponent = useTemplateRef<ComponentExposed<typeof DisplayLabel>>("displayLabelComponent")
 
 // Resolve field definitions for this document's class(es).
@@ -170,6 +176,10 @@ provide(documentNavigationKey, {
   prevNext,
 })
 
+// Whether the caller can change the document's permissions themselves, which decides which of the two
+// buttons the permissions tab offers: editing the permissions, or asking for access.
+const canUpdatePermissions = computed(() => hasDocumentPermission(ACTION_UPDATE_PERMISSIONS, docRef.value))
+
 // Expose the edit action and whether the caller holds the update, delete, and permissions actions on the
 // document to registered document components, so downstream sites can render their own edit and delete
 // controls inside the page. Deletion goes through the
@@ -179,9 +189,9 @@ provide(documentNavigationKey, {
 provide(documentActionsKey, {
   canUpdate: computed(() => hasDocumentPermission(ACTION_UPDATE, docRef.value)),
   canDelete: computed(() => hasDocumentPermission(ACTION_DELETE, docRef.value)),
-  canUpdatePermissions: computed(() => hasDocumentPermission(ACTION_UPDATE_PERMISSIONS, docRef.value)),
+  canUpdatePermissions,
   editBusy,
-  edit: onEdit,
+  edit: beginEdit,
 })
 
 function afterClick() {
@@ -224,6 +234,12 @@ const documentTabs = computed(() => {
 // when available, otherwise inside the "all properties" panel.
 const hasFieldsViewPanel = computed(() => !isPage.value && documentTabs.value.length === 0 && classTabId.value !== null && mergedFieldsData.value !== null)
 
+// The permissions tab lists the document's own permission claims, so it is shown only on a site which
+// has document permissions. Unlike the permissions tab of the edit page it is read-only and shown to
+// every caller who can read the document: the claims it renders are part of the document, so they are
+// already among its properties.
+const showPermissionsTab = computed(() => !siteContext.features.disableDocumentPermissions)
+
 // Tab slugs in the template's tab order, used to reflect the active tab in the URL. Registry and
 // class tabs use their class document id as the slug; the fixed tabs use stable names, so links
 // can target them (e.g. ?tab=properties or ?tab=history).
@@ -239,6 +255,11 @@ const tabSlugs = computed(() => {
     slugs.push(classTabId.value)
   }
   slugs.push("properties")
+  // The permissions tab follows the All-properties tab, so the first tab (which is the default one) is
+  // never it: it is only a linked or selected tab, never a silent default.
+  if (showPermissionsTab.value) {
+    slugs.push("permissions")
+  }
   // Every caller who can see the document can open its history: it lists the versions they can read.
   slugs.push("history")
   return slugs
@@ -427,7 +448,9 @@ const hasSidebarContent = computed(() => {
   return searchShortcuts.value.some((shortcut) => shown(shortcut.count)) || shown(referencedByCount.value)
 })
 
-async function onEdit() {
+// beginEdit starts an edit session on the document and opens the edit page for it, on the tab given by
+// its slug (the edit page's default tab when none is given).
+async function beginEdit(tab?: string) {
   if (abortController.signal.aborted) {
     return
   }
@@ -454,13 +477,14 @@ async function onEdit() {
         id: props.id,
         session: editResponse.session,
       },
+      query: encodeQuery({ tab }),
     })
   } catch (err) {
     if (abortController.signal.aborted) {
       return
     }
     // TODO: Show notification with error.
-    console.error("DocumentGet.onEdit", err)
+    console.error("DocumentGet.beginEdit", err)
   } finally {
     editBusy.value -= 1
   }
@@ -559,7 +583,7 @@ async function onEdit() {
         class="pd-documentget-card min-w-0 flex-auto basis-3/4 rounded-sm border border-gray-200 bg-white p-4 shadow-sm min-[56rem]:block"
         :class="sidebarOpen && hasSidebarContent ? 'hidden' : 'block'"
       >
-        <WithDocumentD :id="id" ref="withDocument" name="DocumentGet" :version="reqVersion">
+        <WithDocumentD :id="id" ref="withDocument" :key="documentEpoch" name="DocumentGet" :version="reqVersion">
           <template #default="{ doc }">
             <div v-if="!classesInitialized" class="my-1 text-center sm:my-4">{{ t("common.status.loading") }}</div>
             <!--
@@ -590,6 +614,11 @@ async function onEdit() {
                   >{{ t("views.DocumentGet.tabs.allProperties") }}</Tab
                 >
                 <Tab
+                  v-if="showPermissionsTab"
+                  class="rounded-sm border border-gray-300 bg-white px-4 py-2 leading-tight font-medium text-gray-700 uppercase outline-none select-none not-aria-selected:hover:bg-gray-50 focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-1 aria-selected:border-primary-600 aria-selected:bg-primary-600 aria-selected:text-white"
+                  >{{ t("views.DocumentGet.tabs.permissions") }}</Tab
+                >
+                <Tab
                   class="rounded-sm border border-gray-300 bg-white px-4 py-2 leading-tight font-medium text-gray-700 uppercase outline-none select-none not-aria-selected:hover:bg-gray-50 focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-1 aria-selected:border-primary-600 aria-selected:bg-primary-600 aria-selected:text-white"
                   >{{ t("views.DocumentGet.tabs.history") }}</Tab
                 >
@@ -614,6 +643,16 @@ async function onEdit() {
                 <!-- "All properties" tab panel. -->
                 <TabPanel tabindex="-1" class="outline-none">
                   <PropertiesView :claims="doc.claims" />
+                </TabPanel>
+                <!--
+                  "Permissions" tab panel. Its buttons to the edit page take the edit session from the
+                  provided document actions (see PermissionsView), so they run under the same lock and
+                  progress as the Edit button of the side column.
+                -->
+                <TabPanel v-if="showPermissionsTab" tabindex="-1" class="outline-none">
+                  <WithLock :lock="getEditLock">
+                    <PermissionsView :id="id" :claims="doc.claims" @cancelled="documentEpoch += 1" />
+                  </WithLock>
                 </TabPanel>
                 <!-- "History" tab panel. The panel (and thus the data fetch) is mounted only when the tab is selected. -->
                 <TabPanel tabindex="-1" class="outline-none">
@@ -654,7 +693,7 @@ async function onEdit() {
           class="flex flex-col gap-2"
         >
           <WithLock v-if="hasDocumentPermission(ACTION_UPDATE, docRef)" :lock="getEditLock">
-            <Button :progress="editBusy" type="button" class="w-full" @click.prevent="onEdit">{{ t("common.buttons.edit") }}</Button>
+            <Button :progress="editBusy" type="button" class="w-full" @click.prevent="beginEdit()">{{ t("common.buttons.edit") }}</Button>
           </WithLock>
           <ButtonLink v-if="hasDocumentPermission(ACTION_DELETE, docRef)" :to="{ name: 'DocumentDelete', params: { id } }" class="w-full">{{
             t("common.buttons.delete")

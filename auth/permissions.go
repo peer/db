@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"iter"
 	"maps"
 	"slices"
 	"strings"
@@ -80,6 +81,101 @@ var Actions = map[string]identifier.Identifier{
 	ActionUpdateCode:            ActionUpdate,
 	ActionUpdatePermissionsCode: ActionUpdatePermissions,
 	ActionDeleteCode:            ActionDelete,
+}
+
+// IsAction reports whether the identifier is one of the permission action document IDs (see Actions).
+func IsAction(id identifier.Identifier) bool {
+	for _, action := range Actions {
+		if action == id {
+			return true
+		}
+	}
+	return false
+}
+
+// actionRequirements are, per permission action, the actions it directly requires: an action is
+// meaningful only together with them, because it builds on what they allow. Reading is the base of
+// every access to an object, and managing permissions goes through the ordinary edit path, so it
+// requires updating. The create action requires nothing: it is about objects which do not exist yet.
+//
+// Requirements are about the actions alone and say nothing about where a caller holds them from, so
+// they are checked where a set of actions is chosen (an access request, the permissions form) and
+// not against a document's own claims: a document can legitimately grant only the update action to
+// a user who reads it through role grants.
+//
+// Keep in sync with permissionActions in src/permissions.ts.
+//
+//nolint:gochecknoglobals
+var actionRequirements = map[identifier.Identifier][]identifier.Identifier{
+	ActionReadBulk:          {ActionRead},
+	ActionReadHistoric:      {ActionRead},
+	ActionUpdate:            {ActionRead},
+	ActionUpdatePermissions: {ActionUpdate},
+	ActionDelete:            {ActionRead},
+}
+
+// ActionRequirements returns the actions the given action directly requires (see actionRequirements),
+// and nothing for an action which requires nothing or is not a permission action at all.
+func ActionRequirements(action identifier.Identifier) []identifier.Identifier {
+	return slices.Clone(actionRequirements[action])
+}
+
+// ActionsClosure returns the actions together with everything they require, transitively: the given
+// actions come first, in their order and without duplicates, followed by the added requirements.
+func ActionsClosure(actions []identifier.Identifier) []identifier.Identifier {
+	closure := make([]identifier.Identifier, 0, len(actions))
+	pending := slices.Clone(actions)
+	for len(pending) > 0 {
+		action := pending[0]
+		pending = pending[1:]
+		if slices.Contains(closure, action) {
+			continue
+		}
+		closure = append(closure, action)
+		pending = append(pending, actionRequirements[action]...)
+	}
+	return closure
+}
+
+// ActionsRequiring returns the actions which require the given action, directly or through another
+// action, transitively and without duplicates, in no particular order. Giving up an action means
+// giving up these as well, because they build on it.
+func ActionsRequiring(action identifier.Identifier) []identifier.Identifier {
+	requiring := []identifier.Identifier{}
+	pending := []identifier.Identifier{action}
+	for len(pending) > 0 {
+		current := pending[0]
+		pending = pending[1:]
+		for other, required := range actionRequirements {
+			if !slices.Contains(required, current) || slices.Contains(requiring, other) {
+				continue
+			}
+			requiring = append(requiring, other)
+			pending = append(pending, other)
+		}
+	}
+	return requiring
+}
+
+// ValidateActions returns an error when the actions are not closed under their requirements, that is
+// when an action among them requires an action which is not. The missing actions are attached to the
+// error as details.
+func ValidateActions(actions []identifier.Identifier) errors.E {
+	missing := []string{}
+	for _, action := range actions {
+		for _, required := range actionRequirements[action] {
+			if !slices.Contains(actions, required) && !slices.Contains(missing, required.String()) {
+				missing = append(missing, required.String())
+			}
+		}
+	}
+	if len(missing) == 0 {
+		return nil
+	}
+	errE := errors.New("permission actions are missing actions they require")
+	slices.Sort(missing)
+	errors.Details(errE)["missing"] = missing
+	return errE
 }
 
 // Literal permission scopes. Besides them, a scope entry in role configuration can be a search shortcut
@@ -330,36 +426,67 @@ func MustParseRoleGrants(actions map[string][]string) RoleGrants {
 // written by the creating session itself and must not self-authorize it, and afterwards the
 // document already exists. Users are unique and sorted per action.
 func PermissionClaimGrants(doc *document.D) map[identifier.Identifier][]string {
-	users := map[identifier.Identifier]map[string]bool{}
-	for _, claim := range document.GetClaimsOfTypeWithConfidence[document.ReferenceClaim](doc, internalCore.HasPermissionPropID, document.LowConfidence) {
-		action := claim.To.ID
-		if action == ActionCreate {
-			continue
-		}
-		selfScope := false
-		for _, sub := range document.GetClaimsOfTypeWithConfidence[document.StringClaim](claim, internalCore.PermissionScopePropID, document.LowConfidence) {
-			parsed, errE := ParseScopes(sub.String)
-			if errE != nil {
+	return permissionClaimGrants(internalCore.HasPermissionPropID, doc)
+}
+
+// RequestedPermissionClaimGrants returns, per permission action, the users the document's own
+// permission claims record as having requested that action: HAS_REQUESTED_PERMISSION claims carry
+// the same shape as the HAS_PERMISSION grants of PermissionClaimGrants (the requested action as the
+// value, PERMISSION_USER sub-claims naming the requesting users, and a PERMISSION_SCOPE sub-claim
+// with the self scope) and are evaluated by the same rules. A request grants nothing: users with
+// the permissions action decide it by replacing the request claim with a grant, or removing it.
+func RequestedPermissionClaimGrants(doc *document.D) map[identifier.Identifier][]string {
+	return permissionClaimGrants(internalCore.HasRequestedPermissionPropID, doc)
+}
+
+// permissionClaims iterates the document's own permission claims of the given property (HAS_PERMISSION
+// or HAS_REQUESTED_PERMISSION) which count at document level, yielding each together with the action
+// it references: the claim counts at or above low confidence, and a claim not scoped to the document
+// carrying it is skipped (see PermissionClaimGrants for the rules).
+func permissionClaims(prop identifier.Identifier, doc *document.D) iter.Seq2[*document.ReferenceClaim, identifier.Identifier] {
+	return func(yield func(*document.ReferenceClaim, identifier.Identifier) bool) {
+		for _, claim := range document.GetClaimsOfTypeWithConfidence[document.ReferenceClaim](doc, prop, document.LowConfidence) {
+			if !hasSelfScope(claim) {
 				continue
 			}
-			for _, scope := range parsed {
-				// Other scopes are not allowed at document-level permissions, but we ignore them.
-				if scope.Literal == ScopeSelf {
-					selfScope = true
-				}
+			if !yield(claim, claim.To.ID) {
+				return
 			}
 		}
-		if !selfScope {
-			continue
-		}
+	}
+}
+
+// permissionClaimUsers iterates the users a permission claim names through its PERMISSION_USER
+// sub-claims at or above low confidence, skipping an empty one: permission claims always name a user.
+func permissionClaimUsers(claim *document.ReferenceClaim) iter.Seq[string] {
+	return func(yield func(string) bool) {
 		for _, sub := range document.GetClaimsOfTypeWithConfidence[document.IdentifierClaim](claim, internalCore.PermissionUserPropID, document.LowConfidence) {
 			if sub.Value == "" {
 				continue
 			}
+			if !yield(sub.Value) {
+				return
+			}
+		}
+	}
+}
+
+// permissionClaimGrants evaluates the document's own permission claims of the given property
+// (HAS_PERMISSION or HAS_REQUESTED_PERMISSION) into a map of actions to the users the claims name
+// (see PermissionClaimGrants for the rules).
+func permissionClaimGrants(prop identifier.Identifier, doc *document.D) map[identifier.Identifier][]string {
+	users := map[identifier.Identifier]map[string]bool{}
+	for claim, action := range permissionClaims(prop, doc) {
+		// A document's own claims never grant creating it, so a claim of the create action grants
+		// nobody anything.
+		if action == ActionCreate {
+			continue
+		}
+		for user := range permissionClaimUsers(claim) {
 			if users[action] == nil {
 				users[action] = map[string]bool{}
 			}
-			users[action][sub.Value] = true
+			users[action][user] = true
 		}
 	}
 	grants := make(map[identifier.Identifier][]string, len(users))
@@ -369,10 +496,56 @@ func PermissionClaimGrants(doc *document.D) map[identifier.Identifier][]string {
 	return grants
 }
 
+// hasSelfScope reports whether the permission claim is scoped to the document carrying it, the only
+// scope which counts at document level. Other scopes are not allowed there but are ignored.
+func hasSelfScope(claim *document.ReferenceClaim) bool {
+	for _, sub := range document.GetClaimsOfTypeWithConfidence[document.StringClaim](claim, internalCore.PermissionScopePropID, document.LowConfidence) {
+		parsed, errE := ParseScopes(sub.String)
+		if errE != nil {
+			continue
+		}
+		for _, scope := range parsed {
+			if scope.Literal == ScopeSelf {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// RequestedPermissionClaims returns the IDs of the document's claims which record the subject as
+// having requested one of the actions, by the rules of RequestedPermissionClaimGrants (the claim
+// scoped to the document itself and naming the subject). An empty subject matches nothing: permission
+// claims always name a user.
+func RequestedPermissionClaims(actions []identifier.Identifier, subject string, doc *document.D) []identifier.Identifier {
+	if subject == "" {
+		return nil
+	}
+	claims := []identifier.Identifier{}
+	for claim, action := range permissionClaims(internalCore.HasRequestedPermissionPropID, doc) {
+		if !slices.Contains(actions, action) {
+			continue
+		}
+		for user := range permissionClaimUsers(claim) {
+			if user == subject {
+				claims = append(claims, claim.ID)
+				break
+			}
+		}
+	}
+	return claims
+}
+
 // HasPermissionClaim reports whether the document's own permission claims grant the subject the action
 // (see PermissionClaimGrants).
 func HasPermissionClaim(action identifier.Identifier, subject string, doc *document.D) bool {
 	return slices.Contains(PermissionClaimGrants(doc)[action], subject)
+}
+
+// HasRequestedPermissionClaim reports whether the document's own permission claims record the subject
+// as having requested the action (see RequestedPermissionClaimGrants).
+func HasRequestedPermissionClaim(action identifier.Identifier, subject string, doc *document.D) bool {
+	return slices.Contains(RequestedPermissionClaimGrants(doc)[action], subject)
 }
 
 // AllowsDocument reports whether the grants allow the action on the given document: whether the

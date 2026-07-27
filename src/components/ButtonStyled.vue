@@ -13,6 +13,13 @@ border participates in layout, and at fractional device pixel ratios (e.g. 125% 
 scaling) the browser snaps border-width down to the nearest device pixel - rendering
 2px as 1.6 CSS px and making the non-primary button shorter than the primary one. An
 inset ring is paint-only, so the outer box stays identical regardless of DPR.
+
+The display is set here as well, because the rendered element brings its own: a button is
+inline-block, while a link (or any other inline element) is inline, whose vertical padding
+does not count towards the line it sits in. Such a link paints like a button but takes only
+the height of its text, so whatever sits next to it is spaced against the text instead of
+against the button's edge. Setting inline-block on every rendered element makes all of them
+take the same space, and a consumer can still override it (e.g. with w-full or flex).
 -->
 
 <script setup lang="ts">
@@ -49,7 +56,7 @@ defineOptions({
     :is="as"
     v-tw-merge
     v-bind="$attrs"
-    class="pd-buttonstyled relative rounded-sm px-6 py-2.5 text-center leading-tight font-medium whitespace-nowrap uppercase shadow-sm outline-none select-none focus:ring-2 focus:ring-offset-1 navbar:px-0"
+    class="pd-buttonstyled relative inline-block rounded-sm px-6 py-2.5 text-center leading-tight font-medium whitespace-nowrap uppercase shadow-sm outline-none select-none focus:ring-2 focus:ring-offset-1 navbar:px-0"
     :class="{
       'cursor-not-allowed': inactive,
       'bg-primary-300 text-gray-100': primary && inactive,

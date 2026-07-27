@@ -37,11 +37,15 @@ func (f *fakeAuthenticator) Authenticate(
 	return context.WithValue(req.Context(), markerKey{}, f.lastSubjectMarker)
 }
 
+func (*fakeAuthenticator) Identity(_ http.ResponseWriter, _ *http.Request, _ string, _ map[string]auth.RoleGrants) (*auth.Identity, errors.E) {
+	return nil, errors.New("not implemented")
+}
+
 func (*fakeAuthenticator) SignIn(_ context.Context, _, _ string) (string, errors.E) {
 	return "", errors.New("not implemented")
 }
 
-func (*fakeAuthenticator) Callback(_ context.Context, _ url.Values) (string, time.Time, string, errors.E) {
+func (*fakeAuthenticator) Callback(_ context.Context, _ url.Values, _ map[string]auth.RoleGrants) (string, time.Time, string, errors.E) {
 	return "", time.Time{}, "", errors.New("not implemented")
 }
 

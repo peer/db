@@ -280,7 +280,9 @@ func (c *ServeCommand) Init(ctx context.Context, globals *Globals, files fs.FS) 
 
 		// Site.Validate makes sure that or all three settings are set or none.
 		if site.Auth.Issuer != "" {
-			site.Authenticator, errE = auth.NewOIDCAuthenticator(siteCtx, site.DBPool, site.Auth.Issuer, site.Auth.ClientID, site.Auth.ClientSecret, redirectURI)
+			site.Authenticator, errE = auth.NewOIDCAuthenticator(
+				siteCtx, site.DBPool, site.Auth.Issuer, site.Auth.Organization, site.Auth.ClientID, site.Auth.ClientSecret, redirectURI,
+			)
 			if errE != nil {
 				return nil, onShutdown, errE
 			}

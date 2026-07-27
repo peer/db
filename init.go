@@ -113,7 +113,8 @@ func Init(ctx context.Context, globals *Globals) (func(), errors.E) {
 					return changes, errE
 				}
 				subject, ok := auth.Subject(ctx)
-				if !ok {
+				if !ok || site.Features.DisableDocumentPermissions {
+					// Without document-level permissions the creator's claims would grant nothing.
 					return changes, nil
 				}
 				return append(changes, base.PermissionClaimsChanges(subject, base.DefaultCreatorActions, session, docBase, int64(len(changes)))...), nil

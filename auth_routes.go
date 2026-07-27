@@ -70,7 +70,7 @@ func (s *Service) AuthCallbackGet(w http.ResponseWriter, req *http.Request, _ wa
 	ctx := req.Context()
 	site := waf.MustGetSite[*internalSite.Site](ctx)
 
-	accessToken, expiry, redirect, errE := site.Authenticator.Callback(ctx, req.Form)
+	accessToken, expiry, redirect, errE := site.Authenticator.Callback(ctx, req.Form, site.Roles)
 	if errE != nil {
 		if errors.Is(errE, auth.ErrSignInFailed) {
 			s.BadRequestWithError(w, req, errE)

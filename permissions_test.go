@@ -223,6 +223,20 @@ func TestCheckChangePermission(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 	errE = peerdb.TestingCheckChangePermission(ctxNobody, site, baseDoc, makeDoc(baseClaims...))
 	assert.ErrorIs(t, errE, auth.ErrAccessDenied)
+
+	// A site without document-level permissions accepts no permission claim at all, not even from a
+	// caller who holds the permissions action through the claims already on the document. Its other
+	// claims are unaffected, and so are the role grants, whose scopes are about ordinary properties.
+	site.Features.DisableDocumentPermissions = true
+	errE = peerdb.TestingCheckChangePermission(ctxCollab, site, baseDoc, permissionAdded)
+	assert.ErrorIs(t, errE, auth.ErrAccessDenied)
+	errE = peerdb.TestingCheckChangePermission(ctxPermonly, site, baseDoc, removedGrant)
+	assert.ErrorIs(t, errE, auth.ErrAccessDenied)
+	errE = peerdb.TestingCheckChangePermission(ctxEditor, site, baseDoc, ordinaryAdded)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	errE = peerdb.TestingCheckChangePermission(ctxEditor, site, baseDoc, classChanged)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	site.Features.DisableDocumentPermissions = false
 }
 
 // TestCheckChangePermissionGrantsHeld verifies the no-amplification rule of permission claim changes
@@ -725,10 +739,41 @@ func TestSessionPermissions(t *testing.T) {
 	errE := service.HasSessionPermission(ctx, identifier.New())
 	assert.ErrorIs(t, errE, coordinator.ErrSessionNotFound)
 
+	// Whether a session is accessible through the API depends on the context it was begun with, and
+	// on nothing else: the two sessions below reach the same document state (the permission claims a
+	// create session seeds, granting their user the update action) through the same system-context
+	// appends, and are checked by the same caller.
+	seedSession := func(t *testing.T, beginCtx context.Context) identifier.Identifier {
+		t.Helper()
+
+		sessionBase := []string{"test", identifier.New().String()}
+		s, errE := site.Base.BeginCreateDocument(beginCtx, sessionBase)
+		require.NoError(t, errE, "% -+#.1v", errE)
+		// The seeding of a create session appends with a system context, on behalf of the application.
+		_, errE = site.Base.AppendDocumentChanges(sysCtx, s, base.PermissionClaimsChanges(
+			"creator1", []identifier.Identifier{auth.ActionUpdate}, s, sessionBase, 0,
+		), 0)
+		require.NoError(t, errE, "% -+#.1v", errE)
+		return s
+	}
+	ctxSeeded := auth.WithSubject(ctx, "creator1")
+
+	// A session opened on behalf of the caller stays the caller's session even though the
+	// application appended to it with a system context.
+	callerSession := seedSession(t, ctx)
+	errE = service.HasSessionPermission(ctxSeeded, callerSession)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// A session begun with a system context is driven by the application itself: it is denied to
+	// every caller, including the one the same session grants the update action to.
+	systemSession := seedSession(t, sysCtx)
+	errE = service.HasSessionPermission(ctxSeeded, systemSession)
+	assert.ErrorIs(t, errE, auth.ErrAccessDenied)
+
 	// permissionClaimChanges builds a complete permission claim granting the user the action, which
 	// can be appended to the session and applied to a document.
 	docBase := []string{"test", identifier.New().String()}
-	session, errE := site.Base.BeginCreateDocument(sysCtx, docBase)
+	session, errE := site.Base.BeginCreateDocument(ctx, docBase)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	claimChanges := base.PermissionClaimsChanges("collab", []identifier.Identifier{auth.ActionUpdate}, session, docBase, 0)
 	require.Len(t, claimChanges, 3)
@@ -778,7 +823,7 @@ func TestSessionPermissions(t *testing.T) {
 	docID := identifier.From(docBase...)
 	parentDoc, _, version, _, errE := site.Base.GetDocumentLatestDoc(sysCtx, docID)
 	require.NoError(t, errE, "% -+#.1v", errE)
-	editSession, errE := site.Base.BeginEditDocument(sysCtx, version, parentDoc)
+	editSession, errE := site.Base.BeginEditDocument(ctx, version, parentDoc)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	errE = site.Base.EndEditDocument(sysCtx, editSession, true)
 	require.NoError(t, errE, "% -+#.1v", errE)
@@ -793,7 +838,7 @@ func TestSessionPermissions(t *testing.T) {
 
 	// After a create session completes without committing, no document related to the session exists
 	// anymore and only role grants of the create action allow access.
-	createSession, errE := site.Base.BeginCreateDocument(sysCtx, []string{"test", identifier.New().String()})
+	createSession, errE := site.Base.BeginCreateDocument(ctx, []string{"test", identifier.New().String()})
 	require.NoError(t, errE, "% -+#.1v", errE)
 	errE = site.Base.EndEditDocument(sysCtx, createSession, true)
 	require.NoError(t, errE, "% -+#.1v", errE)

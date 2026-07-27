@@ -30,6 +30,20 @@ type DocumentBeginMetadata struct {
 	// User is the user who opened the edit session. nil when unauthenticated.
 	// Feeds the per-changeset Users union assembled at completion.
 	User *store.User `json:"user,omitempty"`
+	// System marks a session the application itself drives from beginning to end (opened with a
+	// context marked by WithSystemSession), as opposed to a session opened on behalf of the caller.
+	// Its identifier is never handed out and it is never accessible through the API (see
+	// HasSessionPermission), so the application is its only writer: nothing can be appended to it
+	// between its changes and its completion. It has no caller to check either, so every operation on
+	// it has to be made with a system context: appending to it or ending it without one is a
+	// programming error and is rejected (see AppendDocumentChange and completeDocumentSession).
+	// User still records the user whose request caused the session, so the changes it commits stay
+	// attributed to them.
+	//
+	// It is a property of the session, not of an operation on it: a session opened on behalf of a
+	// caller stays a caller's session even when the application appends to it with a system context
+	// (as the create-session seeding does), so the caller keeps driving it.
+	System bool `json:"system,omitempty"`
 }
 
 // documentEndMetadata contains metadata captured at the end of document edit session.
@@ -43,8 +57,12 @@ type documentEndMetadata struct {
 	// Roles are the roles of the user who ended the session, recorded for
 	// EndEditPermissionCheck at completion.
 	Roles []string `json:"roles,omitempty"`
-	// System marks a session ended by the application itself and not on behalf of the caller,
-	// for which EndEditPermissionCheck is skipped. See WithSystemSession.
+	// System marks a completion the application itself made and not on behalf of the caller, for
+	// which EndEditPermissionCheck is skipped. See WithSystemSession. It marks the end operation,
+	// which is not the same as the session being the application's own: a caller's session can be
+	// ended by the application (the create-session cleanup discards one that way). The converse is
+	// required though: a session the application owns has to be ended with a system context, else
+	// the completion is rejected (see completeDocumentSession).
 	System bool `json:"system,omitempty"`
 }
 
@@ -226,6 +244,16 @@ func (b *B) completeDocumentSession(ctx context.Context, session identifier.Iden
 			ParentVersion: store.Version{},
 			Metadata:      nil,
 		}, nil
+	}
+
+	// Only the application can end a session it owns (see DocumentBeginMetadata.System), and it does
+	// so with a system context. Ending it otherwise is a programming error: the completion is not a
+	// caller's completion (the session has no caller to check it against), so it is rejected rather
+	// than checked against whoever ended it. The rejection is deterministic, so the complete-session
+	// job is canceled instead of being retried, like the check rejection below.
+	if beginMetadata.System && !endMetadata.System {
+		errE := errors.New("system session ended without a system context")
+		return nil, errors.WrapWith(errE, coordinator.ErrSessionNotAllowed)
 	}
 
 	// The check runs also for a discarded session (see EndEditPermissionCheck). It is the

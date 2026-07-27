@@ -10,6 +10,10 @@
       "create": "Ustvari",
       "upload": "Naloži",
       "edit": "Uredi",
+      "editPermissions": "Uredi pravice",
+      "requestPermissions": "Zaprosi za pravice",
+      "manageRequests": "Upravljaj prošnje",
+      "permissions": "Pravice",
       "delete": "Izbriši",
       "save": "Shrani",
       "discard": "Zavrzi",
@@ -36,6 +40,7 @@
     },
     "errors": {
       "unexpected": "Nepričakovana napaka. Prosimo, poskusite znova.",
+      "notAllowed": "Ta sprememba ni dovoljena.",
       "upload": "Nalaganje ni uspelo. Prosimo, poskusite znova."
     },
     "status": {
@@ -81,6 +86,20 @@
       "invalid": "Neveljavna vrednost.",
       "invalidPrecision": "Neveljavna natančnost.",
       "unfinished": "Nedokončana vrednost."
+    },
+    "permissionActions": {
+      "read": "branje",
+      "history": "zgodovina",
+      "update": "posodabljanje",
+      "permissions": "pravice",
+      "delete": "brisanje"
+    },
+    "permissionActionHints": {
+      "read": "Ogled dokumenta in njegove vsebine.",
+      "history": "Ogled starejših različic dokumenta, tudi tistih izpred dodelitve tega dostopa.",
+      "update": "Spreminjanje dokumenta in njegove vsebine.",
+      "permissions": "Dodeljevanje in odvzemanje dostopa do dokumenta drugim uporabnikom.",
+      "delete": "Brisanje dokumenta."
     }
   },
   "partials": {
@@ -292,6 +311,24 @@
         "inMegaYears": "čez 1M let | čez {count}M let",
         "inGigaYears": "čez 1G let | čez {count}G let"
       }
+    },
+    "PermissionsForm": {
+      "approve": "Odobri",
+      "deny": "Zavrni",
+      "noRequests": "Ni čakajočih prošenj.",
+      "noUsers": "Noben uporabnik nima odobrenega dostopa.",
+      "removeAccess": "Odstrani dostop",
+      "requestsTitle": "Čakajoče prošnje",
+      "usersTitle": "Uporabniki z dostopom",
+      "requestedAction": "Zaprošena pravica",
+      "cannotGrant": "Pravice, ki je sami nimate, ne morete dodeliti."
+    },
+    "PermissionsView": {
+      "usersTitle": "@:partials.PermissionsForm.usersTitle",
+      "noUsers": "@:partials.PermissionsForm.noUsers",
+      "requestsTitle": "@:partials.PermissionsForm.requestsTitle",
+      "noRequests": "@:partials.PermissionsForm.noRequests",
+      "requestedAction": "@:partials.PermissionsForm.requestedAction"
     }
   },
   "views": {
@@ -307,7 +344,8 @@
       "tabs": {
         "allProperties": "Vse lastnosti",
         "content": "Vsebina",
-        "history": "Zgodovina"
+        "history": "Zgodovina",
+        "permissions": "Pravice"
       },
       "history": {
         "author": "Avtor",
@@ -320,7 +358,8 @@
     },
     "DocumentEdit": {
       "tabs": {
-        "allProperties": "@:views.DocumentGet.tabs.allProperties"
+        "allProperties": "@:views.DocumentGet.tabs.allProperties",
+        "permissions": "@:views.DocumentGet.tabs.permissions"
       },
       "addClaim": "Dodaj vrednost",
       "editClaim": "Uredi vrednost",
@@ -352,6 +391,18 @@
         "from": "Od",
         "to": "Do"
       }
+    },
+    "DocumentRequest": {
+      "confirm": "Ali želite zaprositi za dostop do dokumenta?",
+      "notSignedIn": "Za prošnjo za dostop do dokumenta se morate prijaviti.",
+      "request": "Zaprosi",
+      "requested": "Prošnja za dostop do dokumenta je bila poslana.",
+      "title": "Prošnja za dostop",
+      "note": "Opomba",
+      "notAvailable": "Prošnja za dostop do dokumentov ni na voljo.",
+      "permission": "Pravica",
+      "noteHint": "Zakaj potrebujete ta dostop?",
+      "nothingToRequest": "Do dokumenta že imate poln dostop (vse pravice)."
     }
   }
 }
