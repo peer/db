@@ -5,6 +5,7 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/goccy/go-yaml"
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/identifier"
 
@@ -256,9 +257,9 @@ type RoleGrants map[identifier.Identifier][]Scope
 
 // UnmarshalYAML parses a map of permission action codes to lists of permission scope expressions and
 // resolves it with ParseRoleGrants.
-func (g *RoleGrants) UnmarshalYAML(unmarshal func(any) error) error {
+func (g *RoleGrants) UnmarshalYAML(data []byte) error {
 	var actions map[string][]string
-	err := unmarshal(&actions)
+	err := yaml.Unmarshal(data, &actions)
 	if err != nil {
 		return errors.WithStack(err)
 	}

@@ -304,6 +304,12 @@ func TestGrantsUnmarshalYAML(t *testing.T) {
 	require.NoError(t, err)
 	assert.Len(t, roles["admin"][auth.ActionRead], 1)
 
+	// A role which configures no actions has no grants.
+	var empty auth.RoleGrants
+	err = yaml.Unmarshal([]byte(""), &empty)
+	require.NoError(t, err)
+	assert.Empty(t, empty)
+
 	err = yaml.Unmarshal([]byte("ACTION_UNKNOWN: [all]"), &grants)
 	assert.ErrorContains(t, err, "unknown permission action")
 
