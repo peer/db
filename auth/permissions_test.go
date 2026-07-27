@@ -3,10 +3,10 @@ package auth_test
 import (
 	"testing"
 
+	"github.com/goccy/go-yaml"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gitlab.com/tozd/identifier"
-	"gopkg.in/yaml.v3"
 
 	"gitlab.com/peerdb/peerdb/auth"
 	"gitlab.com/peerdb/peerdb/document"
@@ -287,6 +287,8 @@ func TestScopeProperties(t *testing.T) {
 
 // TestGrantsUnmarshalYAML verifies that grants unmarshal from the configuration form (action codes and
 // permission scope expressions) into their resolved form, with the same validation as ParseRoleGrants.
+// A decoder which does not call the unmarshaler decodes the map itself and fails on the action codes,
+// which are not document IDs.
 func TestGrantsUnmarshalYAML(t *testing.T) {
 	t.Parallel()
 
@@ -295,6 +297,12 @@ func TestGrantsUnmarshalYAML(t *testing.T) {
 	require.NoError(t, err)
 	assert.Len(t, grants[auth.ActionRead], 3)
 	assert.Len(t, grants[auth.ActionUpdate], 1)
+
+	// The grants of a whole role map resolve the same way, which is how a site configures them.
+	var roles map[string]auth.RoleGrants
+	err = yaml.Unmarshal([]byte("admin:\n  ACTION_READ: [all]\n"), &roles)
+	require.NoError(t, err)
+	assert.Len(t, roles["admin"][auth.ActionRead], 1)
 
 	err = yaml.Unmarshal([]byte("ACTION_UNKNOWN: [all]"), &grants)
 	assert.ErrorContains(t, err, "unknown permission action")

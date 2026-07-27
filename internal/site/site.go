@@ -12,6 +12,7 @@ import (
 
 	"github.com/alecthomas/kong"
 	"github.com/elastic/go-elasticsearch/v9"
+	"github.com/goccy/go-yaml"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/riverqueue/river"
@@ -19,7 +20,6 @@ import (
 	"gitlab.com/tozd/go/x"
 	"gitlab.com/tozd/identifier"
 	"gitlab.com/tozd/waf"
-	"gopkg.in/yaml.v3"
 
 	"gitlab.com/peerdb/peerdb/auth"
 	"gitlab.com/peerdb/peerdb/base"
@@ -228,17 +228,10 @@ func (s *Site) Decode(ctx *kong.DecodeContext) error {
 	if err != nil {
 		return errors.WithStack(err)
 	}
-	decoder := yaml.NewDecoder(strings.NewReader(value))
-	decoder.KnownFields(true)
-	err = decoder.Decode(s) //nolint:musttag
+	err = yaml.NewDecoder(strings.NewReader(value), yaml.DisallowUnknownField()).Decode(s)
 	if err != nil {
-		if yamlErr, ok := errors.AsType[*yaml.TypeError](err); ok {
-			e := "error"
-			if len(yamlErr.Errors) > 1 {
-				e = "errors"
-			}
-			return errors.Errorf("yaml: unmarshal %s: %s", e, strings.Join(yamlErr.Errors, "; "))
-		} else if errors.Is(err, io.EOF) {
+		if errors.Is(err, io.EOF) {
+			// An empty value configures nothing, leaving the site as it is.
 			return nil
 		}
 		return errors.WithStack(err)

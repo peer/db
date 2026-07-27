@@ -15,16 +15,16 @@ globals:
         "":
           ACTION_READ:
             - all
-          ACTION_HISTORY:
+          ACTION_READ_HISTORIC:
             - all
         admin:
           ACTION_CREATE:
             - all
-          ACTION_UPDATE:
+          ACTION_READ_BULK:
             - all
-          ACTION_DELETE:
+          ACTION_UPDATE:
             - all
           ACTION_UPDATE_PERMISSIONS:
             - all
-          ACTION_BULK_READ:
+          ACTION_DELETE:
             - all

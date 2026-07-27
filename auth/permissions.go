@@ -7,7 +7,6 @@ import (
 
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/identifier"
-	"gopkg.in/yaml.v3"
 
 	"gitlab.com/peerdb/peerdb/document"
 	internalCore "gitlab.com/peerdb/peerdb/internal/core"
@@ -255,11 +254,11 @@ func scopesAllowDocument(scopes []Scope, doc *document.D) bool {
 //nolint:recvcheck
 type RoleGrants map[identifier.Identifier][]Scope
 
-// UnmarshalYAML implements yaml.Unmarshaler for RoleGrants: it parses a map of permission action codes to
-// lists of permission scope expressions and resolves it with ParseRoleGrants.
-func (g *RoleGrants) UnmarshalYAML(value *yaml.Node) error {
+// UnmarshalYAML parses a map of permission action codes to lists of permission scope expressions and
+// resolves it with ParseRoleGrants.
+func (g *RoleGrants) UnmarshalYAML(unmarshal func(any) error) error {
 	var actions map[string][]string
-	err := value.Decode(&actions)
+	err := unmarshal(&actions)
 	if err != nil {
 		return errors.WithStack(err)
 	}
