@@ -145,36 +145,45 @@ func (v *duplicateVisitor) VisitIdentifier(claim *document.IdentifierClaim) (doc
 	if v.Skip(claim) || claim.Value == "" {
 		return document.Keep, nil
 	}
-	return v.Add("id\x00"+claim.Prop.ID.String()+"\x00"+claim.Value, identifierDuplicateWeight, esdsl.NewNestedQuery(
-		esdsl.NewBoolQuery().Must(
-			esdsl.NewTermQuery("claims.id.prop", esdsl.NewFieldValue().String(claim.Prop.ID.String())),
-			esdsl.NewMatchPhraseQuery("claims.id.value", claim.Value),
-		),
-	).Path("claims.id"))
+	return v.Add(
+		"id\x00"+claim.Prop.ID.String()+"\x00"+claim.Value, identifierDuplicateWeight,
+		esdsl.NewNestedQuery(
+			esdsl.NewBoolQuery().Must(
+				esdsl.NewTermQuery("claims.id.prop", esdsl.NewFieldValue().String(claim.Prop.ID.String())),
+				esdsl.NewMatchPhraseQuery("claims.id.value", claim.Value),
+			),
+		).Path("claims.id"),
+	)
 }
 
 func (v *duplicateVisitor) VisitString(claim *document.StringClaim) (document.VisitResult, errors.E) {
 	if v.Skip(claim) || claim.String == "" {
 		return document.Keep, nil
 	}
-	return v.Add("string\x00"+claim.Prop.ID.String()+"\x00"+claim.String, stringDuplicateWeight,
-		stringDuplicateNested(claim.Prop.ID, claim.String, v.EnabledLanguages))
+	return v.Add(
+		"string\x00"+claim.Prop.ID.String()+"\x00"+claim.String, stringDuplicateWeight,
+		stringDuplicateNested(claim.Prop.ID, claim.String, v.EnabledLanguages),
+	)
 }
 
 func (v *duplicateVisitor) VisitHTML(claim *document.HTMLClaim) (document.VisitResult, errors.E) {
 	if v.Skip(claim) || claim.HTML == "" {
 		return document.Keep, nil
 	}
-	return v.Add("html\x00"+claim.Prop.ID.String()+"\x00"+claim.HTML, htmlDuplicateWeight,
-		htmlDuplicateNested(claim.Prop.ID, claim.HTML, v.EnabledLanguages))
+	return v.Add(
+		"html\x00"+claim.Prop.ID.String()+"\x00"+claim.HTML, htmlDuplicateWeight,
+		htmlDuplicateNested(claim.Prop.ID, claim.HTML, v.EnabledLanguages),
+	)
 }
 
 func (v *duplicateVisitor) VisitAmount(claim *document.AmountClaim) (document.VisitResult, errors.E) {
 	if v.Skip(claim) {
 		return document.Keep, nil
 	}
-	return v.Add("amount\x00"+claim.Prop.ID.String()+"\x00"+claim.Amount.String()+"\x00"+strconv.FormatFloat(claim.Precision, 'g', -1, 64),
-		amountDuplicateWeight, amountDuplicateNested(claim))
+	return v.Add(
+		"amount\x00"+claim.Prop.ID.String()+"\x00"+claim.Amount.String()+"\x00"+strconv.FormatFloat(claim.Precision, 'g', -1, 64),
+		amountDuplicateWeight, amountDuplicateNested(claim),
+	)
 }
 
 func (v *duplicateVisitor) VisitAmountInterval(claim *document.AmountIntervalClaim) (document.VisitResult, errors.E) {
@@ -185,16 +194,20 @@ func (v *duplicateVisitor) VisitAmountInterval(claim *document.AmountIntervalCla
 	if !ok {
 		return document.Keep, nil
 	}
-	return v.Add(intervalKey("amountInterval", claim.Prop.ID, from, to), amountDuplicateWeight,
-		rangeDuplicateNested(amountPath, claim.Prop.ID, from, to))
+	return v.Add(
+		intervalKey("amountInterval", claim.Prop.ID, from, to), amountDuplicateWeight,
+		rangeDuplicateNested(amountPath, claim.Prop.ID, from, to),
+	)
 }
 
 func (v *duplicateVisitor) VisitTime(claim *document.TimeClaim) (document.VisitResult, errors.E) {
 	if v.Skip(claim) {
 		return document.Keep, nil
 	}
-	return v.Add("time\x00"+claim.Prop.ID.String()+"\x00"+claim.Time.String()+"\x00"+strconv.Itoa(int(claim.Precision)),
-		timeDuplicateWeight, timeDuplicateNested(claim))
+	return v.Add(
+		"time\x00"+claim.Prop.ID.String()+"\x00"+claim.Time.String()+"\x00"+strconv.Itoa(int(claim.Precision)),
+		timeDuplicateWeight, timeDuplicateNested(claim),
+	)
 }
 
 func (v *duplicateVisitor) VisitTimeInterval(claim *document.TimeIntervalClaim) (document.VisitResult, errors.E) {
@@ -205,20 +218,25 @@ func (v *duplicateVisitor) VisitTimeInterval(claim *document.TimeIntervalClaim) 
 	if !ok {
 		return document.Keep, nil
 	}
-	return v.Add(intervalKey("timeInterval", claim.Prop.ID, from, to), timeDuplicateWeight,
-		rangeDuplicateNested(timePath, claim.Prop.ID, from, to))
+	return v.Add(
+		intervalKey("timeInterval", claim.Prop.ID, from, to), timeDuplicateWeight,
+		rangeDuplicateNested(timePath, claim.Prop.ID, from, to),
+	)
 }
 
 func (v *duplicateVisitor) VisitLink(claim *document.LinkClaim) (document.VisitResult, errors.E) {
 	if v.Skip(claim) || claim.IRI == "" {
 		return document.Keep, nil
 	}
-	return v.Add("link\x00"+claim.Prop.ID.String()+"\x00"+claim.IRI, linkDuplicateWeight, esdsl.NewNestedQuery(
-		esdsl.NewBoolQuery().Must(
-			esdsl.NewTermQuery("claims.link.prop", esdsl.NewFieldValue().String(claim.Prop.ID.String())),
-			esdsl.NewMatchPhraseQuery("claims.link.iri", claim.IRI),
-		),
-	).Path("claims.link"))
+	return v.Add(
+		"link\x00"+claim.Prop.ID.String()+"\x00"+claim.IRI, linkDuplicateWeight,
+		esdsl.NewNestedQuery(
+			esdsl.NewBoolQuery().Must(
+				esdsl.NewTermQuery("claims.link.prop", esdsl.NewFieldValue().String(claim.Prop.ID.String())),
+				esdsl.NewMatchPhraseQuery("claims.link.iri", claim.IRI),
+			),
+		).Path("claims.link"),
+	)
 }
 
 func (v *duplicateVisitor) VisitReference(claim *document.ReferenceClaim) (document.VisitResult, errors.E) {
@@ -234,24 +252,30 @@ func (v *duplicateVisitor) VisitReference(claim *document.ReferenceClaim) (docum
 	// The index expands a reference to the target and all its hierarchy ancestors, so matching the
 	// stated (most-specific) target also matches documents that reference a narrower value of it.
 	// A term on "to" matches only rel records with the ref claimType, so no claimType term is needed.
-	return v.Add("ref\x00"+claim.Prop.ID.String()+"\x00"+claim.To.ID.String(), referenceDuplicateWeight, esdsl.NewNestedQuery(
-		esdsl.NewBoolQuery().Must(
-			esdsl.NewTermQuery(relPath+".prop", esdsl.NewFieldValue().String(claim.Prop.ID.String())),
-			esdsl.NewTermQuery(relPath+".to", esdsl.NewFieldValue().String(claim.To.ID.String())),
-		),
-	).Path(relPath))
+	return v.Add(
+		"ref\x00"+claim.Prop.ID.String()+"\x00"+claim.To.ID.String(), referenceDuplicateWeight,
+		esdsl.NewNestedQuery(
+			esdsl.NewBoolQuery().Must(
+				esdsl.NewTermQuery(relPath+".prop", esdsl.NewFieldValue().String(claim.Prop.ID.String())),
+				esdsl.NewTermQuery(relPath+".to", esdsl.NewFieldValue().String(claim.To.ID.String())),
+			),
+		).Path(relPath),
+	)
 }
 
 func (v *duplicateVisitor) VisitHas(claim *document.HasClaim) (document.VisitResult, errors.E) {
 	if v.Skip(claim) {
 		return document.Keep, nil
 	}
-	return v.Add("has\x00"+claim.Prop.ID.String(), hasDuplicateWeight, esdsl.NewNestedQuery(
-		esdsl.NewBoolQuery().Must(
-			claimTypeTerm(relPath, internalSearch.ClaimTypeHas),
-			esdsl.NewTermQuery(relPath+".prop", esdsl.NewFieldValue().String(claim.Prop.ID.String())),
-		),
-	).Path(relPath))
+	return v.Add(
+		"has\x00"+claim.Prop.ID.String(), hasDuplicateWeight,
+		esdsl.NewNestedQuery(
+			esdsl.NewBoolQuery().Must(
+				claimTypeTerm(relPath, internalSearch.ClaimTypeHas),
+				esdsl.NewTermQuery(relPath+".prop", esdsl.NewFieldValue().String(claim.Prop.ID.String())),
+			),
+		).Path(relPath),
+	)
 }
 
 // A none claim asserts that the document has no value for the property. Two documents agreeing that
