@@ -9426,10 +9426,10 @@ func TestFromDocumentEmbed(t *testing.T) {
 	assert.Equal(t, destProp, embedded.Prop)
 }
 
-// TestFromDocumentEmbedStringNotInText verifies that an embedded string sub-claim is indexed as
-// a structured string record in the reference record's Sub container but, like native string
-// sub-claims, is not folded into the document's top-level text.
-func TestFromDocumentEmbedStringNotInText(t *testing.T) {
+// TestFromDocumentEmbedStringInText verifies that an embedded string sub-claim is indexed as a
+// structured string record in the reference record's Sub container and, like native string
+// sub-claims, is folded into the document's top-level text.
+func TestFromDocumentEmbedStringInText(t *testing.T) {
 	t.Parallel()
 
 	classID := identifier.New()
@@ -9491,7 +9491,10 @@ func TestFromDocumentEmbedStringNotInText(t *testing.T) {
 	assert.Equal(t, destProp, parentRec.Sub.String[0].Prop)
 	assert.Equal(t, "embedded text value", parentRec.Sub.String[0].String["und"])
 
-	// Like native string sub-claims, it is not folded into the document's top-level text.
+	// Like native string sub-claims, it is folded into the document's top-level text, so the document
+	// is findable by the data it embeds. Embedding only ever copies from documents which are sources
+	// at the level (see the indexing source check), so the entry's text exposes nothing its records do
+	// not already.
 	found := false
 	for _, values := range result.Text {
 		for _, value := range values {
@@ -9500,7 +9503,7 @@ func TestFromDocumentEmbedStringNotInText(t *testing.T) {
 			}
 		}
 	}
-	assert.False(t, found, "embedded string should not be folded into text, got %+v", result.Text)
+	assert.True(t, found, "embedded string should be folded into text, got %+v", result.Text)
 }
 
 func TestEmbedPathsTouch(t *testing.T) {
@@ -10098,9 +10101,8 @@ func TestExcludeFromTextSearch(t *testing.T) {
 	}
 	assert.True(t, folded, "the target's label should be folded into the text")
 
-	// Textual values of marked properties stay out of the text too (the reason permission sub-field
-	// properties like PERMISSION_USER and PERMISSION_SCOPE carry the setting): the values remain
-	// indexed on the claims themselves.
+	// Textual values of marked properties stay out of the text too: the values remain indexed on the
+	// claims themselves.
 	valueDoc := &document.D{
 		CoreDocument: document.CoreDocument{ID: identifier.New()}, //nolint:exhaustruct
 		Claims: &document.ClaimTypes{
@@ -10128,6 +10130,55 @@ func TestExcludeFromTextSearch(t *testing.T) {
 	for lang, vals := range result.Text {
 		assert.NotContains(t, vals, "some-user", "language %s", lang)
 		assert.NotContains(t, vals, "self", "language %s", lang)
+	}
+
+	// Sub-claims fold their values into the text like top-level claims do, so a document is findable
+	// by what its sub-claims say, and an excluded claim excludes its whole subtree: the sub-claims of
+	// a marked claim fold nothing even though their own property is not marked (this is what keeps a
+	// permission claim's user and note out of the text). The sub-claims stay indexed either way.
+	subDoc := func(prop identifier.Identifier) *document.D {
+		return &document.D{
+			CoreDocument: document.CoreDocument{ID: identifier.New()}, //nolint:exhaustruct
+			Claims: &document.ClaimTypes{
+				Reference: []document.ReferenceClaim{
+					{
+						CoreClaim: makeCoreClaim(document.HighConfidence, &document.ClaimTypes{
+							String: []document.StringClaim{
+								{
+									CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+									Prop:      document.Reference{ID: plainProp},
+									String:    "a note under the claim",
+								},
+							},
+						}),
+						Prop: document.Reference{ID: prop},
+						To:   document.Reference{ID: target},
+					},
+				},
+			},
+		}
+	}
+
+	result, errE = c.FromDocument(t.Context(), subDoc(plainProp), nil, nil, nil)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	require.Len(t, result.Claims.Rel, 1)
+	require.NotNil(t, result.Claims.Rel[0].Sub)
+	require.Len(t, result.Claims.Rel[0].Sub.String, 1)
+	folded = false
+	for _, vals := range result.Text {
+		if slices.Contains(vals, "a note under the claim") {
+			folded = true
+		}
+	}
+	assert.True(t, folded, "the sub-claim's value should be folded into the text")
+
+	result, errE = c.FromDocument(t.Context(), subDoc(markedProp), nil, nil, nil)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	require.Len(t, result.Claims.Rel, 1)
+	require.NotNil(t, result.Claims.Rel[0].Sub)
+	require.Len(t, result.Claims.Rel[0].Sub.String, 1)
+	for lang, vals := range result.Text {
+		assert.NotContains(t, vals, "a note under the claim", "language %s", lang)
 	}
 }
 

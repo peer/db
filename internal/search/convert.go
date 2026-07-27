@@ -1912,11 +1912,13 @@ func (v *convertVisitor) markReferenceLeaves() {
 // extracted per their own language, so they fold into that language's bucket
 // where the matching analyzer applies.
 func (v *convertVisitor) appendClaimDisplaysToText() {
-	// Properties marked with EXCLUDE_FROM_TEXT_SEARCH do not fold their claims' display strings, so
-	// the main text search does not match them; the strings stay indexed with the claims themselves,
-	// so facets still show and match them. The check runs per indexed record's property: when claims
-	// are also indexed for ancestor properties (IndexAncestorProperties), the ancestor records fold
-	// unless the ancestors are marked too.
+	// Properties marked with EXCLUDE_FROM_TEXT_SEARCH fold nothing, neither their claims' own values
+	// nor their display strings, so the main text search does not match them. Everything stays indexed
+	// with the claims themselves, so facets still show and match them. The exclusion covers the
+	// claim's whole subtree: the sub-claims of an excluded claim are not folded either, whatever their
+	// own properties are, so a claim is excluded as a whole. The check runs per indexed record's
+	// property: when claims are also indexed for ancestor properties (IndexAncestorProperties),
+	// the ancestor records fold unless the ancestors are marked too.
 	excluded := v.converter.textExcludedProperties
 	// Display values across the per-language map all collapse into "und".
 	addDisplay := func(m map[string]string) {
@@ -1931,13 +1933,22 @@ func (v *convertVisitor) appendClaimDisplaysToText() {
 			}
 		}
 	}
-	fold := func(claims *ClaimTypes) {
+	// Hierarchy-expanded copies of one claim share a single Sub container pointer, so the pointer-keyed
+	// seen set folds each claim's sub-claims exactly once.
+	seen := map[*ClaimTypes]bool{}
+	var fold func(claims *ClaimTypes)
+	fold = func(claims *ClaimTypes) {
+		if claims == nil || seen[claims] {
+			return
+		}
+		seen[claims] = true
 		for _, c := range claims.Amount {
 			if excluded[c.Prop] {
 				continue
 			}
 			v.addText(document.UndeterminedLanguage, c.FromDisplay)
 			v.addText(document.UndeterminedLanguage, c.ToDisplay)
+			fold(c.Sub)
 		}
 		for _, c := range claims.Time {
 			if excluded[c.Prop] {
@@ -1945,6 +1956,7 @@ func (v *convertVisitor) appendClaimDisplaysToText() {
 			}
 			v.addText(document.UndeterminedLanguage, c.FromDisplay)
 			v.addText(document.UndeterminedLanguage, c.ToDisplay)
+			fold(c.Sub)
 		}
 		for _, c := range claims.Rel {
 			if excluded[c.Prop] {
@@ -1959,10 +1971,46 @@ func (v *convertVisitor) appendClaimDisplaysToText() {
 				addDisplay(c.PropDisplay)
 				addNaming(c.PropNaming)
 			}
+			fold(c.Sub)
+		}
+		// The text-only collections fold their values: an identifier and a link have no language, so
+		// they fold into the undetermined bucket, while a string and an HTML claim fold into every
+		// language they resolve to (their entries all hold the same value, the HTML ones its plain-text
+		// rendering).
+		for _, c := range claims.Identifier {
+			if excluded[c.Prop] {
+				continue
+			}
+			v.addText(document.UndeterminedLanguage, c.Value)
+			fold(c.Sub)
+		}
+		for _, c := range claims.String {
+			if excluded[c.Prop] {
+				continue
+			}
+			for lang, value := range c.String {
+				v.addText(lang, value)
+			}
+			fold(c.Sub)
+		}
+		for _, c := range claims.HTML {
+			if excluded[c.Prop] {
+				continue
+			}
+			for lang, value := range c.HTML {
+				v.addText(lang, value)
+			}
+			fold(c.Sub)
+		}
+		for _, c := range claims.Link {
+			if excluded[c.Prop] {
+				continue
+			}
+			v.addText(document.UndeterminedLanguage, c.IRI)
+			fold(c.Sub)
 		}
 	}
 	fold(&v.result.Claims)
-	forEachSubContainer(&v.result.Claims, fold)
 }
 
 // subContainer converts a claim's direct sub-claims into their shared Sub container. The container
@@ -1978,9 +2026,6 @@ func (v *convertVisitor) subContainer(sub *document.ClaimTypes) (*ClaimTypes, er
 func (v *convertVisitor) VisitIdentifier(claim *document.IdentifierClaim) (document.VisitResult, errors.E) {
 	if claim.GetConfidence() < document.LowConfidence {
 		return document.Keep, nil
-	}
-	if !v.converter.textExcludedProperties[claim.Prop.ID] {
-		v.addText(document.UndeterminedLanguage, claim.Value)
 	}
 	claims, errE := v.converter.convertIdentifier(v.ctx, claim)
 	if errE != nil {
@@ -2005,11 +2050,6 @@ func (v *convertVisitor) VisitString(claim *document.StringClaim) (document.Visi
 		return document.Keep, nil
 	}
 	langs := v.converter.textLanguages(claim.Sub, claim.String)
-	if !v.converter.textExcludedProperties[claim.Prop.ID] {
-		for _, lang := range langs {
-			v.addText(lang, claim.String)
-		}
-	}
 	claims, errE := v.converter.convertString(v.ctx, claim, langs)
 	if errE != nil {
 		return document.Keep, errE
@@ -2043,12 +2083,8 @@ func (v *convertVisitor) VisitHTML(claim *document.HTMLClaim) (document.VisitRes
 	// per language.
 	langs := v.converter.textLanguages(claim.Sub, stripDoc(doc, document.UndeterminedLanguage))
 	stripped := make(map[string]string, len(langs))
-	textExcluded := v.converter.textExcludedProperties[claim.Prop.ID]
 	for _, lang := range langs {
 		s := stripDoc(doc, lang)
-		if !textExcluded {
-			v.addText(lang, s)
-		}
 		if s != "" {
 			stripped[lang] = s
 		}
@@ -2164,9 +2200,6 @@ func (v *convertVisitor) VisitTimeInterval(claim *document.TimeIntervalClaim) (d
 func (v *convertVisitor) VisitLink(claim *document.LinkClaim) (document.VisitResult, errors.E) {
 	if claim.GetConfidence() < document.LowConfidence {
 		return document.Keep, nil
-	}
-	if !v.converter.textExcludedProperties[claim.Prop.ID] {
-		v.addText(document.UndeterminedLanguage, claim.IRI)
 	}
 	claims, errE := v.converter.convertLink(v.ctx, claim)
 	if errE != nil {
