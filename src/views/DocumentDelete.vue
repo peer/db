@@ -81,7 +81,7 @@ async function onDelete() {
     <NavBar />
   </Teleport>
   <div class="pd-documentdelete mt-[var(--pd-navbar-offset)] flex w-full flex-col gap-y-1 border-t border-transparent p-1 sm:gap-y-4 sm:p-4">
-    <div class="flex flex-col gap-y-1 rounded-sm border border-gray-200 bg-white p-4 shadow-sm sm:gap-y-4">
+    <div class="flex flex-col gap-y-4 rounded-sm border border-gray-200 bg-white p-4 shadow-sm">
       <template v-if="hasDocumentPermission(ACTION_DELETE)">
         <div>
           <h1 class="text-3xl font-bold drop-shadow-xs">{{ t("views.DocumentDelete.title") }}</h1>
