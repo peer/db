@@ -33,7 +33,7 @@ func stringClaim(prop identifier.Identifier, value string, confidence document.C
 	}
 }
 
-func TestDuplicatesQuery(t *testing.T) {
+func TestDuplicatesQuery(t *testing.T) { //nolint:maintidx
 	t.Parallel()
 
 	exclude := identifier.From("doc")
@@ -43,7 +43,18 @@ func TestDuplicatesQuery(t *testing.T) {
 	ident := identifier.From("identifier")
 	other := identifier.From("other")
 	desc := identifier.From("description")
+	amountProp := identifier.From("amountProp")
+	timeProp := identifier.From("timeProp")
 	langs := []string{"en", "und"}
+
+	// An amount's precision window is symmetric around its value, so 10 with precision 2 occupies
+	// [9, 11] and 20 occupies [19, 21].
+	amountFrom := document.Amount("10")
+	amountTo := document.Amount("20")
+	amountPrecision := float64(2)
+	timeFrom := document.Time("2020")
+	timeTo := document.Time("2021")
+	timePrecision := document.TimePrecisionYear
 
 	// reverse is the must_not clause excluding candidates that assert they are distinct from this
 	// document (the symmetric direction of DISTINCT_FROM); it is present in every query.
@@ -183,6 +194,104 @@ func TestDuplicatesQuery(t *testing.T) {
 				exclude.String(), reverse, other.String(),
 			),
 		},
+		{
+			// An interval occupies the window from its lower bound's window to its upper bound's, so
+			// candidates whose own window overlaps it match.
+			Name: "amount interval spans both bounds",
+			Doc: &document.D{
+				CoreDocument: document.CoreDocument{ID: exclude, Base: []string{"x", "doc"}},
+				Claims: &document.ClaimTypes{
+					AmountInterval: document.AmountIntervalClaims{{ //nolint:exhaustruct
+						CoreClaim:     document.CoreClaim{ID: identifier.New(), Confidence: document.HighConfidence},
+						Prop:          document.Reference{ID: amountProp},
+						From:          &amountFrom,
+						FromPrecision: &amountPrecision,
+						To:            &amountTo,
+						ToPrecision:   &amountPrecision,
+					}},
+				},
+			},
+			Want: amountIntervalWant(exclude, reverse, amountProp, 9, 21),
+		},
+		{
+			// The bounds are stated in decreasing order, which is the same interval.
+			Name: "amount interval stated in decreasing order",
+			Doc: &document.D{
+				CoreDocument: document.CoreDocument{ID: exclude, Base: []string{"x", "doc"}},
+				Claims: &document.ClaimTypes{
+					AmountInterval: document.AmountIntervalClaims{{ //nolint:exhaustruct
+						CoreClaim:     document.CoreClaim{ID: identifier.New(), Confidence: document.HighConfidence},
+						Prop:          document.Reference{ID: amountProp},
+						From:          &amountTo,
+						FromPrecision: &amountPrecision,
+						To:            &amountFrom,
+						ToPrecision:   &amountPrecision,
+					}},
+				},
+			},
+			Want: amountIntervalWant(exclude, reverse, amountProp, 9, 21),
+		},
+		{
+			// A bound stated as unknown collapses the interval to a point at the stated bound, which is
+			// how the indexer stores it too, so the clause is the one a point claim there produces.
+			Name: "amount interval with an unknown bound collapses to a point",
+			Doc: &document.D{
+				CoreDocument: document.CoreDocument{ID: exclude, Base: []string{"x", "doc"}},
+				Claims: &document.ClaimTypes{
+					AmountInterval: document.AmountIntervalClaims{{ //nolint:exhaustruct
+						CoreClaim:     document.CoreClaim{ID: identifier.New(), Confidence: document.HighConfidence},
+						Prop:          document.Reference{ID: amountProp},
+						From:          &amountFrom,
+						FromPrecision: &amountPrecision,
+						ToIsUnknown:   true,
+					}},
+				},
+			},
+			Want: amountIntervalWant(exclude, reverse, amountProp, 9, 11),
+		},
+		{
+			// A bound stated as absent leaves the interval unbounded on that side, which overlaps a large
+			// part of the corpus and is no duplicate signal, so only the reference claim contributes.
+			Name: "amount interval unbounded on one side contributes nothing",
+			Doc: &document.D{
+				CoreDocument: document.CoreDocument{ID: exclude, Base: []string{"x", "doc"}},
+				Claims: &document.ClaimTypes{
+					Reference: document.ReferenceClaims{refClaim(instanceOf, class, document.HighConfidence)},
+					AmountInterval: document.AmountIntervalClaims{{ //nolint:exhaustruct
+						CoreClaim:   document.CoreClaim{ID: identifier.New(), Confidence: document.HighConfidence},
+						Prop:        document.Reference{ID: amountProp},
+						FromIsNone:  true,
+						To:          &amountTo,
+						ToPrecision: &amountPrecision,
+					}},
+				},
+			},
+			Want: fmt.Sprintf(
+				`{"bool":{"minimum_should_match":1,"must_not":[{"term":{"id":{"value":%q}}},%s],`+
+					`"should":[{"constant_score":{"boost":2,"filter":{"nested":{"path":"claims.rel","query":{"bool":{"must":[`+
+					`{"term":{"claims.rel.prop":{"value":%q}}},{"term":{"claims.rel.to":{"value":%q}}}]}}}}}}]}}`,
+				exclude.String(), reverse, instanceOf.String(), class.String(),
+			),
+		},
+		{
+			// A time interval is matched the same way, against the time collection.
+			Name: "time interval spans both bounds",
+			Doc: &document.D{
+				CoreDocument: document.CoreDocument{ID: exclude, Base: []string{"x", "doc"}},
+				Claims: &document.ClaimTypes{
+					TimeInterval: document.TimeIntervalClaims{{ //nolint:exhaustruct
+						CoreClaim:     document.CoreClaim{ID: identifier.New(), Confidence: document.HighConfidence},
+						Prop:          document.Reference{ID: timeProp},
+						From:          &timeFrom,
+						FromPrecision: &timePrecision,
+						To:            &timeTo,
+						ToPrecision:   &timePrecision,
+					}},
+				},
+			},
+			// 2020-01-01T00:00:00Z through 2022-01-01T00:00:00Z, in seconds since the epoch.
+			Want: timeIntervalWant(exclude, reverse, timeProp, 1577836800, 1640995200),
+		},
 	}
 
 	for _, tt := range tests {
@@ -193,6 +302,26 @@ func TestDuplicatesQuery(t *testing.T) {
 			assert.Equal(t, tt.Want, testutils.QueryJSON(t, query))
 		})
 	}
+}
+
+// amountIntervalWant is the expected query for a document whose only clause is an amount interval on
+// prop occupying [from, to].
+func amountIntervalWant(exclude identifier.Identifier, reverse string, prop identifier.Identifier, from, to int) string {
+	return rangeIntervalWant("claims.amount", exclude, reverse, prop, from, to)
+}
+
+// timeIntervalWant is amountIntervalWant for a time interval.
+func timeIntervalWant(exclude identifier.Identifier, reverse string, prop identifier.Identifier, from, to int) string {
+	return rangeIntervalWant("claims.time", exclude, reverse, prop, from, to)
+}
+
+func rangeIntervalWant(path string, exclude identifier.Identifier, reverse string, prop identifier.Identifier, from, to int) string {
+	return fmt.Sprintf(
+		`{"bool":{"minimum_should_match":1,"must_not":[{"term":{"id":{"value":%q}}},%s],`+
+			`"should":[{"constant_score":{"boost":2,"filter":{"nested":{"path":%q,"query":{"bool":{"must":[`+
+			`{"term":{"%s.prop":{"value":%q}}},{"range":{"%s.range":{"gte":%d,"lte":%d}}}]}}}}}}]}}`,
+		exclude.String(), reverse, path, path, prop.String(), path, from, to,
+	)
 }
 
 // TestDuplicatesQueryNoClaims verifies that a document with no matchable claims yields a nil query,

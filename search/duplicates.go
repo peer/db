@@ -177,14 +177,16 @@ func (v *duplicateVisitor) VisitAmount(claim *document.AmountClaim) (document.Vi
 		amountDuplicateWeight, amountDuplicateNested(claim))
 }
 
-// An amount interval contributes nothing for now.
-func (v *duplicateVisitor) VisitAmountInterval(*document.AmountIntervalClaim) (document.VisitResult, errors.E) {
-	// TODO: Score interval claims as duplicate signals.
-	//       The indexer stores an interval as a range over its bounds, the same shape it stores a
-	//       point value's precision window as, so an overlapping-range clause could contribute like
-	//       the amount and time ones do. It needs its own weight and handling for bounds which are
-	//       open, unknown, or absent.
-	return document.Keep, nil
+func (v *duplicateVisitor) VisitAmountInterval(claim *document.AmountIntervalClaim) (document.VisitResult, errors.E) {
+	if v.Skip(claim) {
+		return document.Keep, nil
+	}
+	from, to, ok := amountIntervalWindow(claim)
+	if !ok {
+		return document.Keep, nil
+	}
+	return v.Add(intervalKey("amountInterval", claim.Prop.ID, from, to), amountDuplicateWeight,
+		rangeDuplicateNested(amountPath, claim.Prop.ID, from, to))
 }
 
 func (v *duplicateVisitor) VisitTime(claim *document.TimeClaim) (document.VisitResult, errors.E) {
@@ -195,9 +197,16 @@ func (v *duplicateVisitor) VisitTime(claim *document.TimeClaim) (document.VisitR
 		timeDuplicateWeight, timeDuplicateNested(claim))
 }
 
-// A time interval contributes nothing, for the same reason an amount interval does not.
-func (v *duplicateVisitor) VisitTimeInterval(*document.TimeIntervalClaim) (document.VisitResult, errors.E) {
-	return document.Keep, nil
+func (v *duplicateVisitor) VisitTimeInterval(claim *document.TimeIntervalClaim) (document.VisitResult, errors.E) {
+	if v.Skip(claim) {
+		return document.Keep, nil
+	}
+	from, to, ok := timeIntervalWindow(claim)
+	if !ok {
+		return document.Keep, nil
+	}
+	return v.Add(intervalKey("timeInterval", claim.Prop.ID, from, to), timeDuplicateWeight,
+		rangeDuplicateNested(timePath, claim.Prop.ID, from, to))
 }
 
 func (v *duplicateVisitor) VisitLink(claim *document.LinkClaim) (document.VisitResult, errors.E) {
@@ -311,12 +320,31 @@ func htmlDuplicateNested(prop identifier.Identifier, html string, enabledLanguag
 	).Path("claims.html")
 }
 
+// rangeDuplicateNested matches documents whose claim for prop in the amount or time collection at path
+// has a value window overlapping [from, to]. Both sides are ranges, so the default range-on-range
+// INTERSECTS relation finds the same or an indistinguishable value. Units are not constrained: a
+// property carries a consistent measure, so the property already scopes the comparison.
+func rangeDuplicateNested(path string, prop identifier.Identifier, from, to float64) types.QueryVariant { //nolint:ireturn
+	return esdsl.NewNestedQuery(
+		esdsl.NewBoolQuery().Must(
+			esdsl.NewTermQuery(path+".prop", esdsl.NewFieldValue().String(prop.String())),
+			esdsl.NewNumberRangeQuery(path+".range").Gte(types.Float64(from)).Lte(types.Float64(to)),
+		),
+	).Path(path)
+}
+
+// intervalKey keys an interval's clause by the window it queries rather than by the bounds as they
+// are stated, so two claims stating the same interval differently (decreasing order, an unknown bound
+// beside a stated one) share one clause.
+func intervalKey(claimType string, prop identifier.Identifier, from, to float64) string {
+	return claimType + "\x00" + prop.String() +
+		"\x00" + strconv.FormatFloat(from, 'g', -1, 64) +
+		"\x00" + strconv.FormatFloat(to, 'g', -1, 64)
+}
+
 // amountDuplicateNested matches documents whose amount claim for the same property has a value window
 // overlapping this claim's window. The window is computed exactly as the indexer computes the stored
-// range, so an overlapping range query (the default range-on-range INTERSECTS relation) finds the same
-// or an indistinguishable value. It returns nil (the claim is skipped) when the window cannot be
-// computed. Units are not constrained: a property carries a consistent measure, so the property already
-// scopes the comparison.
+// range. It returns nil (the claim is skipped) when the window cannot be computed.
 func amountDuplicateNested(claim *document.AmountClaim) types.QueryVariant { //nolint:ireturn
 	from, errE := claim.Amount.WindowStartFloat64(claim.Precision, false)
 	if errE != nil {
@@ -326,12 +354,7 @@ func amountDuplicateNested(claim *document.AmountClaim) types.QueryVariant { //n
 	if errE != nil {
 		return nil
 	}
-	return esdsl.NewNestedQuery(
-		esdsl.NewBoolQuery().Must(
-			esdsl.NewTermQuery("claims.amount.prop", esdsl.NewFieldValue().String(claim.Prop.ID.String())),
-			esdsl.NewNumberRangeQuery("claims.amount.range").Gte(types.Float64(from)).Lte(types.Float64(to)),
-		),
-	).Path("claims.amount")
+	return rangeDuplicateNested(amountPath, claim.Prop.ID, from, to)
 }
 
 // timeDuplicateNested matches documents whose time claim for the same property has a value window
@@ -346,12 +369,119 @@ func timeDuplicateNested(claim *document.TimeClaim) types.QueryVariant { //nolin
 	if errE != nil {
 		return nil
 	}
-	return esdsl.NewNestedQuery(
-		esdsl.NewBoolQuery().Must(
-			esdsl.NewTermQuery("claims.time.prop", esdsl.NewFieldValue().String(claim.Prop.ID.String())),
-			esdsl.NewNumberRangeQuery("claims.time.range").Gte(types.Float64(from)).Lte(types.Float64(to)),
-		),
-	).Path("claims.time")
+	return rangeDuplicateNested(timePath, claim.Prop.ID, from, to)
+}
+
+// An interval claim occupies a value window just like a point claim does, so it is matched the same
+// way, against the window the indexer computes for it (see convertAmountInterval and
+// convertTimeInterval):
+//
+//   - Two stated bounds span from the lower bound's window to the upper one's, with a bound stated as
+//     open excluding its own window. Bounds stated in decreasing order are swapped, like the indexer
+//     swaps them.
+//   - A bound stated beside one which is unknown collapses the interval to a point at the stated
+//     bound, which is how the indexer stores it too.
+//   - Anything else occupies no window worth matching: an interval with a bound stated as absent is
+//     unbounded on that side, so it overlaps a large part of the corpus and says nothing about two
+//     documents being the same, and an interval with neither bound stated is stored as an unknown
+//     record, which is not a duplicate signal either (see VisitUnknown).
+//
+// The window functions report an error for a value a precision cannot represent; such a claim is
+// skipped, like one whose window cannot be computed on the point path.
+
+// amountIntervalWindow returns the value window an amount interval claim occupies, and whether it
+// occupies one at all.
+func amountIntervalWindow(claim *document.AmountIntervalClaim) (float64, float64, bool) {
+	var from, to *document.Amount
+	var fromPrecision, toPrecision *float64
+	var fromIsOpen, toIsOpen bool
+	switch {
+	case claim.From != nil && claim.To != nil:
+		from, fromPrecision, fromIsOpen = claim.From, claim.FromPrecision, claim.FromIsOpen
+		to, toPrecision, toIsOpen = claim.To, claim.ToPrecision, claim.ToIsOpen
+	case claim.From != nil && claim.ToIsUnknown:
+		from, fromPrecision = claim.From, claim.FromPrecision
+		to, toPrecision = claim.From, claim.FromPrecision
+	case claim.To != nil && claim.FromIsUnknown:
+		from, fromPrecision = claim.To, claim.ToPrecision
+		to, toPrecision = claim.To, claim.ToPrecision
+	default:
+		return 0, 0, false
+	}
+	window := func(lo *document.Amount, loPrecision *float64, loIsOpen bool, hi *document.Amount, hiPrecision *float64, hiIsOpen bool) (float64, float64, bool) {
+		if loPrecision == nil || hiPrecision == nil {
+			return 0, 0, false
+		}
+		lower, errE := lo.WindowStartFloat64(*loPrecision, loIsOpen)
+		if errE != nil {
+			return 0, 0, false
+		}
+		upper, errE := hi.WindowEndFloat64(*hiPrecision, hiIsOpen)
+		if errE != nil {
+			return 0, 0, false
+		}
+		return lower, upper, true
+	}
+	lower, upper, ok := window(from, fromPrecision, fromIsOpen, to, toPrecision, toIsOpen)
+	if !ok {
+		return 0, 0, false
+	}
+	if lower <= upper {
+		return lower, upper, true
+	}
+	// The bounds are stated in decreasing order, so they are swapped, like the indexer swaps them, and
+	// the window is computed again: a bound stated as open excludes the window at the end it bounds,
+	// which is the other end now.
+	return window(to, toPrecision, toIsOpen, from, fromPrecision, fromIsOpen)
+}
+
+// timeIntervalWindow returns the value window a time interval claim occupies, and whether it occupies
+// one at all.
+func timeIntervalWindow(claim *document.TimeIntervalClaim) (float64, float64, bool) {
+	var from, to *document.Time
+	var fromPrecision, toPrecision *document.TimePrecision
+	var fromIsOpen, toIsOpen bool
+	switch {
+	case claim.From != nil && claim.To != nil:
+		from, fromPrecision, fromIsOpen = claim.From, claim.FromPrecision, claim.FromIsOpen
+		to, toPrecision, toIsOpen = claim.To, claim.ToPrecision, claim.ToIsOpen
+	case claim.From != nil && claim.ToIsUnknown:
+		from, fromPrecision = claim.From, claim.FromPrecision
+		to, toPrecision = claim.From, claim.FromPrecision
+	case claim.To != nil && claim.FromIsUnknown:
+		from, fromPrecision = claim.To, claim.ToPrecision
+		to, toPrecision = claim.To, claim.ToPrecision
+	default:
+		return 0, 0, false
+	}
+	window := func(
+		lo *document.Time, loPrecision *document.TimePrecision, loIsOpen bool,
+		hi *document.Time, hiPrecision *document.TimePrecision, hiIsOpen bool,
+	) (float64, float64, bool) {
+		if loPrecision == nil || hiPrecision == nil {
+			return 0, 0, false
+		}
+		lower, errE := lo.WindowStartFloat64(*loPrecision, loIsOpen)
+		if errE != nil {
+			return 0, 0, false
+		}
+		upper, errE := hi.WindowEndFloat64(*hiPrecision, hiIsOpen)
+		if errE != nil {
+			return 0, 0, false
+		}
+		return lower, upper, true
+	}
+	lower, upper, ok := window(from, fromPrecision, fromIsOpen, to, toPrecision, toIsOpen)
+	if !ok {
+		return 0, 0, false
+	}
+	if lower <= upper {
+		return lower, upper, true
+	}
+	// The bounds are stated in decreasing order, so they are swapped, like the indexer swaps them, and
+	// the window is computed again: a bound stated as open excludes the window at the end it bounds,
+	// which is the other end now.
+	return window(to, toPrecision, toIsOpen, from, fromPrecision, fromIsOpen)
 }
 
 // duplicatesQuery builds the ElasticSearch query that finds potential duplicates of doc: a bool whose
