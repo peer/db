@@ -1817,34 +1817,13 @@ func immediateParents(toPaths []string) []string {
 // pointer-keyed seen set visits each parent claim's sub-claims exactly once.
 func forEachSubContainer(claims *ClaimTypes, fn func(sub *ClaimTypes)) {
 	seen := map[*ClaimTypes]bool{}
-	visit := func(sub *ClaimTypes) {
+	claims.Visit(recordVisitor{Fn: func(_ identifier.Identifier, sub *ClaimTypes) {
 		if sub == nil || seen[sub] {
 			return
 		}
 		seen[sub] = true
 		fn(sub)
-	}
-	for i := range claims.Rel {
-		visit(claims.Rel[i].Sub)
-	}
-	for i := range claims.Amount {
-		visit(claims.Amount[i].Sub)
-	}
-	for i := range claims.Time {
-		visit(claims.Time[i].Sub)
-	}
-	for i := range claims.Identifier {
-		visit(claims.Identifier[i].Sub)
-	}
-	for i := range claims.String {
-		visit(claims.String[i].Sub)
-	}
-	for i := range claims.HTML {
-		visit(claims.HTML[i].Sub)
-	}
-	for i := range claims.Link {
-		visit(claims.Link[i].Sub)
-	}
+	}})
 }
 
 // markRelLeaves sets IsLeaf on the ref records of one rel collection (one leaf-marking
@@ -1885,132 +1864,149 @@ func (v *convertVisitor) markReferenceLeaves() {
 	})
 }
 
-// appendClaimDisplaysToText folds claim values into the document's top-level
-// text bucket so the text-search query can match against referenced-document
-// names (including their ancestor hierarchy labels), numeric/temporal boundary
-// strings, and has-claim property labels. Top-level records and every Sub
-// container fold the same way (each parent claim's shared container once).
-//
-// For value claims (Amount, Time, and rel records with the ref claimType) the property label
-// (PropDisplay/PropNaming) is deliberately not folded: a property name like
-// "date of birth" is structural, not document content, and folding it would
-// make every document with such a claim match a search for the property name.
-// Only the values fold: referenced-document labels (ToDisplay/ToNaming) and
-// numeric/temporal bounds (FromDisplay/ToDisplay).
-//
-// Has records are property-only: the assertion that the document "has" the
-// property is itself the content, so their property labels do fold. None and
-// unknown records, which assert the absence or ignorance of a value, are not
-// folded. Sub identifier, string, html, and link records are not folded either:
-// they are indexed for structured queries only, matching how their values do
-// not participate in facets.
-//
-// Display labels (ToDisplay, and the language-neutral FromDisplay/ToDisplay) are
-// fallback-resolved and may mix languages, so they fold into the "und" bucket
-// only (und_text analyzer), never into a language-specific bucket where a
-// foreign stemmer would mangle them. Naming strings (ToNaming, PropNaming) are
-// extracted per their own language, so they fold into that language's bucket
-// where the matching analyzer applies.
+// appendClaimDisplaysToText folds what the document's claims say into its top-level text bucket, so
+// the text-search query matches a document by its content and not only by its display label: the
+// values of its textual claims, the labels of the documents it references (with their ancestor
+// hierarchy labels), its numeric and temporal boundary strings, and the names of the properties its
+// has claims assert. The whole record tree folds, top-level records and every Sub container alike.
+// See textFoldVisitor for which records fold what.
 func (v *convertVisitor) appendClaimDisplaysToText() {
-	// Properties marked with EXCLUDE_FROM_TEXT_SEARCH fold nothing, neither their claims' own values
-	// nor their display strings, so the main text search does not match them. Everything stays indexed
-	// with the claims themselves, so facets still show and match them. The exclusion covers the
-	// claim's whole subtree: the sub-claims of an excluded claim are not folded either, whatever their
-	// own properties are, so a claim is excluded as a whole. The check runs per indexed record's
-	// property: when claims are also indexed for ancestor properties (IndexAncestorProperties),
-	// the ancestor records fold unless the ancestors are marked too.
-	excluded := v.converter.textExcludedProperties
-	// Display values across the per-language map all collapse into "und".
-	addDisplay := func(m map[string]string) {
-		for _, val := range m {
-			v.addText(document.UndeterminedLanguage, val)
+	(&textFoldVisitor{
+		Visitor:  v,
+		Excluded: v.converter.textExcludedProperties,
+		Seen:     map[*ClaimTypes]bool{},
+	}).Fold(&v.result.Claims)
+}
+
+// textFoldVisitor folds a document's indexed records into its top-level text field: the values of
+// the text-only records and the display strings of the others, from the whole record tree.
+//
+// A record which has a value (an amount, a time, or a reference) folds only that value, never its
+// property label: a property name like "date of birth" is structural, not document content, and
+// folding it would make every document with such a claim match a search for the property name. A has
+// record is the exception, because the assertion that the document has the property is itself its
+// content, so it folds the property's labels. None and unknown records assert the absence or the
+// ignorance of a value, so they fold nothing.
+//
+// Properties marked with EXCLUDE_FROM_TEXT_SEARCH fold nothing, neither their claims' own values nor
+// their display strings, so the main text search does not match them. Everything stays indexed with
+// the claims themselves, so facets still show and match them. The exclusion covers the claim's whole
+// subtree: the sub-claims of an excluded claim are not folded either, whatever their own properties
+// are, so a claim is excluded as a whole. The check runs per indexed record's property: when claims
+// are also indexed for ancestor properties (IndexAncestorProperties), the ancestor records fold
+// unless the ancestors are marked too.
+type textFoldVisitor struct {
+	Visitor  *convertVisitor
+	Excluded map[identifier.Identifier]bool
+	Seen     map[*ClaimTypes]bool
+}
+
+// Fold folds one container's records, and through the visit methods the containers of their
+// sub-claims. Hierarchy-expanded copies of one claim share a single Sub container pointer, so the
+// pointer-keyed seen set folds each claim's sub-claims exactly once.
+func (f *textFoldVisitor) Fold(claims *ClaimTypes) {
+	if claims == nil || f.Seen[claims] {
+		return
+	}
+	f.Seen[claims] = true
+	claims.Visit(f)
+}
+
+// AddDisplay folds display values, which are fallback-resolved and may mix languages, so they fold
+// into the "und" bucket only (und_text analyzer), never into a language-specific bucket where a
+// foreign stemmer would mangle them.
+func (f *textFoldVisitor) AddDisplay(m map[string]string) {
+	for _, value := range m {
+		f.Visitor.addText(document.UndeterminedLanguage, value)
+	}
+}
+
+// AddNaming folds naming strings, which are extracted per their own language, so they fold into that
+// language's bucket where the matching analyzer applies.
+func (f *textFoldVisitor) AddNaming(m map[string][]string) {
+	for lang, values := range m {
+		for _, value := range values {
+			f.Visitor.addText(lang, value)
 		}
 	}
-	addNaming := func(m map[string][]string) {
-		for lang, vals := range m {
-			for _, val := range vals {
-				v.addText(lang, val)
-			}
-		}
+}
+
+func (f *textFoldVisitor) VisitRel(claim *RelClaim) {
+	if f.Excluded[claim.Prop] {
+		return
 	}
-	// Hierarchy-expanded copies of one claim share a single Sub container pointer, so the pointer-keyed
-	// seen set folds each claim's sub-claims exactly once.
-	seen := map[*ClaimTypes]bool{}
-	var fold func(claims *ClaimTypes)
-	fold = func(claims *ClaimTypes) {
-		if claims == nil || seen[claims] {
-			return
-		}
-		seen[claims] = true
-		for _, c := range claims.Amount {
-			if excluded[c.Prop] {
-				continue
-			}
-			v.addText(document.UndeterminedLanguage, c.FromDisplay)
-			v.addText(document.UndeterminedLanguage, c.ToDisplay)
-			fold(c.Sub)
-		}
-		for _, c := range claims.Time {
-			if excluded[c.Prop] {
-				continue
-			}
-			v.addText(document.UndeterminedLanguage, c.FromDisplay)
-			v.addText(document.UndeterminedLanguage, c.ToDisplay)
-			fold(c.Sub)
-		}
-		for _, c := range claims.Rel {
-			if excluded[c.Prop] {
-				continue
-			}
-			switch c.ClaimType {
-			case ClaimTypeRef:
-				addDisplay(c.ToDisplay)
-				addNaming(c.ToNaming)
-				v.addDisplayPathLabels(c.ToDisplayPath)
-			case ClaimTypeHas:
-				addDisplay(c.PropDisplay)
-				addNaming(c.PropNaming)
-			}
-			fold(c.Sub)
-		}
-		// The text-only collections fold their values: an identifier and a link have no language, so
-		// they fold into the undetermined bucket, while a string and an HTML claim fold into every
-		// language they resolve to (their entries all hold the same value, the HTML ones its plain-text
-		// rendering).
-		for _, c := range claims.Identifier {
-			if excluded[c.Prop] {
-				continue
-			}
-			v.addText(document.UndeterminedLanguage, c.Value)
-			fold(c.Sub)
-		}
-		for _, c := range claims.String {
-			if excluded[c.Prop] {
-				continue
-			}
-			for lang, value := range c.String {
-				v.addText(lang, value)
-			}
-			fold(c.Sub)
-		}
-		for _, c := range claims.HTML {
-			if excluded[c.Prop] {
-				continue
-			}
-			for lang, value := range c.HTML {
-				v.addText(lang, value)
-			}
-			fold(c.Sub)
-		}
-		for _, c := range claims.Link {
-			if excluded[c.Prop] {
-				continue
-			}
-			v.addText(document.UndeterminedLanguage, c.IRI)
-			fold(c.Sub)
-		}
+	switch claim.ClaimType {
+	case ClaimTypeRef:
+		// A reference folds the label of the document it points at, so the document is findable by
+		// what it refers to.
+		f.AddDisplay(claim.ToDisplay)
+		f.AddNaming(claim.ToNaming)
+		f.Visitor.addDisplayPathLabels(claim.ToDisplayPath)
+	case ClaimTypeHas:
+		// A has claim has no value, so it folds the name of the property it asserts.
+		f.AddDisplay(claim.PropDisplay)
+		f.AddNaming(claim.PropNaming)
 	}
-	fold(&v.result.Claims)
+	f.Fold(claim.Sub)
+}
+
+func (f *textFoldVisitor) VisitAmount(claim *AmountClaim) {
+	if f.Excluded[claim.Prop] {
+		return
+	}
+	f.Visitor.addText(document.UndeterminedLanguage, claim.FromDisplay)
+	f.Visitor.addText(document.UndeterminedLanguage, claim.ToDisplay)
+	f.Fold(claim.Sub)
+}
+
+func (f *textFoldVisitor) VisitTime(claim *TimeClaim) {
+	if f.Excluded[claim.Prop] {
+		return
+	}
+	f.Visitor.addText(document.UndeterminedLanguage, claim.FromDisplay)
+	f.Visitor.addText(document.UndeterminedLanguage, claim.ToDisplay)
+	f.Fold(claim.Sub)
+}
+
+// An identifier has no language, so it folds into the undetermined bucket.
+func (f *textFoldVisitor) VisitIdentifier(claim *IdentifierClaim) {
+	if f.Excluded[claim.Prop] {
+		return
+	}
+	f.Visitor.addText(document.UndeterminedLanguage, claim.Value)
+	f.Fold(claim.Sub)
+}
+
+// A string folds into every language it resolves to (its entries all hold the same value).
+func (f *textFoldVisitor) VisitString(claim *StringClaim) {
+	if f.Excluded[claim.Prop] {
+		return
+	}
+	for lang, value := range claim.String {
+		f.Visitor.addText(lang, value)
+	}
+	f.Fold(claim.Sub)
+}
+
+// An HTML claim folds its plain-text rendering, per language like a string.
+func (f *textFoldVisitor) VisitHTML(claim *HTMLClaim) {
+	if f.Excluded[claim.Prop] {
+		return
+	}
+	for lang, value := range claim.HTML {
+		f.Visitor.addText(lang, value)
+	}
+	f.Fold(claim.Sub)
+}
+
+// A link has no language, so its IRI folds into the undetermined bucket, making the URL components
+// searchable.
+func (f *textFoldVisitor) VisitLink(claim *LinkClaim) {
+	if f.Excluded[claim.Prop] {
+		return
+	}
+	f.Visitor.addText(document.UndeterminedLanguage, claim.IRI)
+	f.Fold(claim.Sub)
 }
 
 // subContainer converts a claim's direct sub-claims into their shared Sub container. The container
@@ -4132,118 +4128,203 @@ func (c *Converter) convertReference(ctx context.Context, claim *document.Refere
 // of their own: the mapping indexes a single sub level, so sub-claims of sub-claims are not indexed
 // (they still count toward counts.claims and the document time). It returns nil when there is
 // nothing to index.
-func (c *Converter) convertSubClaimTypes(ctx context.Context, sub *document.ClaimTypes) (*ClaimTypes, errors.E) { //nolint:cyclop
+func (c *Converter) convertSubClaimTypes(ctx context.Context, sub *document.ClaimTypes) (*ClaimTypes, errors.E) {
 	if sub == nil {
 		return nil, nil //nolint:nilnil
 	}
-	out := &ClaimTypes{}
-
-	for _, mr := range document.GetAllClaimsOfTypeWithConfidence[document.ReferenceClaim](sub, document.LowConfidence) {
-		recs, errE := c.relRecordsForRef(ctx, mr.Prop.ID, mr.To.ID)
-		if errE != nil {
-			errors.Details(errE)["claim"] = mr
-			return nil, errE
-		}
-		out.Rel = append(out.Rel, recs...)
+	v := &subClaimsVisitor{Ctx: ctx, Converter: c, Out: &ClaimTypes{}, ErrE: nil}
+	// The visitor never returns an error to the walk (it collects one instead), so this cannot fail.
+	_ = sub.Visit(v)
+	if v.ErrE != nil {
+		return nil, v.ErrE
 	}
-	for _, hc := range document.GetAllClaimsOfTypeWithConfidence[document.HasClaim](sub, document.LowConfidence) {
-		recs, errE := c.relRecordsSimple(ctx, ClaimTypeHas, hc.Prop.ID)
-		if errE != nil {
-			errors.Details(errE)["claim"] = hc
-			return nil, errE
-		}
-		out.Rel = append(out.Rel, recs...)
-	}
-	for _, nc := range document.GetAllClaimsOfTypeWithConfidence[document.NoneClaim](sub, document.LowConfidence) {
-		recs, errE := c.relRecordsSimple(ctx, ClaimTypeNone, nc.Prop.ID)
-		if errE != nil {
-			errors.Details(errE)["claim"] = nc
-			return nil, errE
-		}
-		out.Rel = append(out.Rel, recs...)
-	}
-	for _, uc := range document.GetAllClaimsOfTypeWithConfidence[document.UnknownClaim](sub, document.LowConfidence) {
-		recs, errE := c.relRecordsSimple(ctx, ClaimTypeUnknown, uc.Prop.ID)
-		if errE != nil {
-			errors.Details(errE)["claim"] = uc
-			return nil, errE
-		}
-		out.Rel = append(out.Rel, recs...)
-	}
-	for _, ac := range document.GetAllClaimsOfTypeWithConfidence[document.AmountClaim](sub, document.LowConfidence) {
-		recs, errE := c.convertAmount(ctx, ac)
-		if errE != nil {
-			return nil, errE
-		}
-		out.Amount = append(out.Amount, recs...)
-	}
-	for _, aic := range document.GetAllClaimsOfTypeWithConfidence[document.AmountIntervalClaim](sub, document.LowConfidence) {
-		amounts, unknowns, errE := c.convertAmountInterval(ctx, aic)
-		if errE != nil {
-			return nil, errE
-		}
-		out.Amount = append(out.Amount, amounts...)
-		out.Rel = append(out.Rel, unknowns...)
-	}
-	for _, tc := range document.GetAllClaimsOfTypeWithConfidence[document.TimeClaim](sub, document.LowConfidence) {
-		recs, errE := c.convertTime(ctx, tc)
-		if errE != nil {
-			return nil, errE
-		}
-		out.Time = append(out.Time, recs...)
-	}
-	for _, tic := range document.GetAllClaimsOfTypeWithConfidence[document.TimeIntervalClaim](sub, document.LowConfidence) {
-		times, unknowns, errE := c.convertTimeInterval(ctx, tic)
-		if errE != nil {
-			return nil, errE
-		}
-		out.Time = append(out.Time, times...)
-		out.Rel = append(out.Rel, unknowns...)
-	}
-	for _, ic := range document.GetAllClaimsOfTypeWithConfidence[document.IdentifierClaim](sub, document.LowConfidence) {
-		recs, errE := c.convertIdentifier(ctx, ic)
-		if errE != nil {
-			return nil, errE
-		}
-		out.Identifier = append(out.Identifier, recs...)
-	}
-	for _, sc := range document.GetAllClaimsOfTypeWithConfidence[document.StringClaim](sub, document.LowConfidence) {
-		langs := c.textLanguages(sc.Sub, sc.String)
-		recs, errE := c.convertString(ctx, sc, langs)
-		if errE != nil {
-			return nil, errE
-		}
-		out.String = append(out.String, recs...)
-	}
-	for _, hc := range document.GetAllClaimsOfTypeWithConfidence[document.HTMLClaim](sub, document.LowConfidence) {
-		doc, errE := document.ParseHTML(hc.HTML)
-		if errE != nil {
-			errors.Details(errE)["claim"] = hc
-			return nil, errE
-		}
-		langs := c.textLanguages(hc.Sub, stripDoc(doc, document.UndeterminedLanguage))
-		stripped := make(map[string]string, len(langs))
-		for _, lang := range langs {
-			if s := stripDoc(doc, lang); s != "" {
-				stripped[lang] = s
-			}
-		}
-		recs, errE := c.convertHTML(ctx, hc, stripped)
-		if errE != nil {
-			return nil, errE
-		}
-		out.HTML = append(out.HTML, recs...)
-	}
-	for _, lc := range document.GetAllClaimsOfTypeWithConfidence[document.LinkClaim](sub, document.LowConfidence) {
-		recs, errE := c.convertLink(ctx, lc)
-		if errE != nil {
-			return nil, errE
-		}
-		out.Link = append(out.Link, recs...)
-	}
-
-	if out.Size() == 0 {
+	if v.Out.Size() == 0 {
 		return nil, nil //nolint:nilnil
 	}
-	return out, nil
+	return v.Out, nil
+}
+
+// subClaimsVisitor converts a claim's direct sub-claims into their Sub container, running each
+// sub-claim through the same per-type conversion its top-level counterpart uses. Claims below low
+// confidence are skipped, like they are at the top level.
+//
+// The visit methods keep the walk going after a conversion error and record the first one instead,
+// because dropping out of a walk mid-way would leave the container half-built; the caller checks
+// errE. Records inside the container carry no Sub of their own: the mapping indexes a single sub
+// level, so sub-claims of sub-claims are not indexed (they still count toward counts.claims and the
+// document time).
+type subClaimsVisitor struct {
+	// Ctx is used by the per-type conversions, which resolve display strings and hierarchy ancestors.
+	Ctx       context.Context //nolint:containedctx
+	Converter *Converter
+	Out       *ClaimTypes
+	ErrE      errors.E
+}
+
+var _ document.Visitor = (*subClaimsVisitor)(nil)
+
+// Skip reports whether the claim does not contribute a record: one below low confidence, or any
+// claim once a conversion has failed.
+func (v *subClaimsVisitor) Skip(claim document.Claim) bool {
+	return v.ErrE != nil || claim.GetConfidence() < document.LowConfidence
+}
+
+// Fail records the first conversion error, with the claim which caused it.
+func (v *subClaimsVisitor) Fail(errE errors.E, claim document.Claim) (document.VisitResult, errors.E) {
+	if v.ErrE == nil {
+		errors.Details(errE)["claim"] = claim
+		v.ErrE = errE
+	}
+	return document.Keep, nil
+}
+
+func (v *subClaimsVisitor) VisitReference(claim *document.ReferenceClaim) (document.VisitResult, errors.E) {
+	if v.Skip(claim) {
+		return document.Keep, nil
+	}
+	records, errE := v.Converter.relRecordsForRef(v.Ctx, claim.Prop.ID, claim.To.ID)
+	if errE != nil {
+		return v.Fail(errE, claim)
+	}
+	v.Out.Rel = append(v.Out.Rel, records...)
+	return document.Keep, nil
+}
+
+func (v *subClaimsVisitor) VisitHas(claim *document.HasClaim) (document.VisitResult, errors.E) {
+	return v.VisitSimpleRel(claim, ClaimTypeHas, claim.Prop.ID)
+}
+
+func (v *subClaimsVisitor) VisitNone(claim *document.NoneClaim) (document.VisitResult, errors.E) {
+	return v.VisitSimpleRel(claim, ClaimTypeNone, claim.Prop.ID)
+}
+
+func (v *subClaimsVisitor) VisitUnknown(claim *document.UnknownClaim) (document.VisitResult, errors.E) {
+	return v.VisitSimpleRel(claim, ClaimTypeUnknown, claim.Prop.ID)
+}
+
+// VisitSimpleRel converts the target-less rel claim types (has, none, unknown), which differ only in
+// their claim type discriminator.
+func (v *subClaimsVisitor) VisitSimpleRel(claim document.Claim, claimType string, prop identifier.Identifier) (document.VisitResult, errors.E) {
+	if v.Skip(claim) {
+		return document.Keep, nil
+	}
+	records, errE := v.Converter.relRecordsSimple(v.Ctx, claimType, prop)
+	if errE != nil {
+		return v.Fail(errE, claim)
+	}
+	v.Out.Rel = append(v.Out.Rel, records...)
+	return document.Keep, nil
+}
+
+func (v *subClaimsVisitor) VisitAmount(claim *document.AmountClaim) (document.VisitResult, errors.E) {
+	if v.Skip(claim) {
+		return document.Keep, nil
+	}
+	records, errE := v.Converter.convertAmount(v.Ctx, claim)
+	if errE != nil {
+		return v.Fail(errE, claim)
+	}
+	v.Out.Amount = append(v.Out.Amount, records...)
+	return document.Keep, nil
+}
+
+func (v *subClaimsVisitor) VisitAmountInterval(claim *document.AmountIntervalClaim) (document.VisitResult, errors.E) {
+	if v.Skip(claim) {
+		return document.Keep, nil
+	}
+	// An interval whose bounds are all unknown maps to an unknown rel record instead of a range.
+	amounts, unknowns, errE := v.Converter.convertAmountInterval(v.Ctx, claim)
+	if errE != nil {
+		return v.Fail(errE, claim)
+	}
+	v.Out.Amount = append(v.Out.Amount, amounts...)
+	v.Out.Rel = append(v.Out.Rel, unknowns...)
+	return document.Keep, nil
+}
+
+func (v *subClaimsVisitor) VisitTime(claim *document.TimeClaim) (document.VisitResult, errors.E) {
+	if v.Skip(claim) {
+		return document.Keep, nil
+	}
+	records, errE := v.Converter.convertTime(v.Ctx, claim)
+	if errE != nil {
+		return v.Fail(errE, claim)
+	}
+	v.Out.Time = append(v.Out.Time, records...)
+	return document.Keep, nil
+}
+
+func (v *subClaimsVisitor) VisitTimeInterval(claim *document.TimeIntervalClaim) (document.VisitResult, errors.E) {
+	if v.Skip(claim) {
+		return document.Keep, nil
+	}
+	amounts, unknowns, errE := v.Converter.convertTimeInterval(v.Ctx, claim)
+	if errE != nil {
+		return v.Fail(errE, claim)
+	}
+	v.Out.Time = append(v.Out.Time, amounts...)
+	v.Out.Rel = append(v.Out.Rel, unknowns...)
+	return document.Keep, nil
+}
+
+func (v *subClaimsVisitor) VisitIdentifier(claim *document.IdentifierClaim) (document.VisitResult, errors.E) {
+	if v.Skip(claim) {
+		return document.Keep, nil
+	}
+	records, errE := v.Converter.convertIdentifier(v.Ctx, claim)
+	if errE != nil {
+		return v.Fail(errE, claim)
+	}
+	v.Out.Identifier = append(v.Out.Identifier, records...)
+	return document.Keep, nil
+}
+
+func (v *subClaimsVisitor) VisitString(claim *document.StringClaim) (document.VisitResult, errors.E) {
+	if v.Skip(claim) {
+		return document.Keep, nil
+	}
+	// A textual sub-claim resolves its languages from its own IN_LANGUAGE sub-claims, like a
+	// top-level one does.
+	langs := v.Converter.textLanguages(claim.Sub, claim.String)
+	records, errE := v.Converter.convertString(v.Ctx, claim, langs)
+	if errE != nil {
+		return v.Fail(errE, claim)
+	}
+	v.Out.String = append(v.Out.String, records...)
+	return document.Keep, nil
+}
+
+func (v *subClaimsVisitor) VisitHTML(claim *document.HTMLClaim) (document.VisitResult, errors.E) {
+	if v.Skip(claim) {
+		return document.Keep, nil
+	}
+	doc, errE := document.ParseHTML(claim.HTML)
+	if errE != nil {
+		return v.Fail(errE, claim)
+	}
+	langs := v.Converter.textLanguages(claim.Sub, stripDoc(doc, document.UndeterminedLanguage))
+	stripped := make(map[string]string, len(langs))
+	for _, lang := range langs {
+		if s := stripDoc(doc, lang); s != "" {
+			stripped[lang] = s
+		}
+	}
+	records, errE := v.Converter.convertHTML(v.Ctx, claim, stripped)
+	if errE != nil {
+		return v.Fail(errE, claim)
+	}
+	v.Out.HTML = append(v.Out.HTML, records...)
+	return document.Keep, nil
+}
+
+func (v *subClaimsVisitor) VisitLink(claim *document.LinkClaim) (document.VisitResult, errors.E) {
+	if v.Skip(claim) {
+		return document.Keep, nil
+	}
+	records, errE := v.Converter.convertLink(v.Ctx, claim)
+	if errE != nil {
+		return v.Fail(errE, claim)
+	}
+	v.Out.Link = append(v.Out.Link, records...)
+	return document.Keep, nil
 }

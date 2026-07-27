@@ -124,12 +124,75 @@ type ClaimTypes struct {
 	Link       LinkClaims       `json:"link,omitempty"`
 }
 
+// ClaimsVisitor visits the records of a ClaimTypes container, one method per collection. Code which
+// walks records implements it (or uses recordVisitor, when it needs only what every record has)
+// instead of enumerating the collections itself, so a new collection is a compile error in every
+// walker rather than a record type silently skipped by some of them.
+type ClaimsVisitor interface {
+	VisitRel(claim *RelClaim)
+	VisitAmount(claim *AmountClaim)
+	VisitTime(claim *TimeClaim)
+	VisitIdentifier(claim *IdentifierClaim)
+	VisitString(claim *StringClaim)
+	VisitHTML(claim *HTMLClaim)
+	VisitLink(claim *LinkClaim)
+}
+
+// Visit calls the visitor for every record in the container, collection by collection. It is the one
+// place enumerating the collections. It does not recurse into the records' sub-claims: a visitor
+// which wants them visits a record's Sub container itself, so it decides whether and when to
+// descend.
+func (c *ClaimTypes) Visit(visitor ClaimsVisitor) {
+	if c == nil {
+		return
+	}
+	for i := range c.Rel {
+		visitor.VisitRel(&c.Rel[i])
+	}
+	for i := range c.Amount {
+		visitor.VisitAmount(&c.Amount[i])
+	}
+	for i := range c.Time {
+		visitor.VisitTime(&c.Time[i])
+	}
+	for i := range c.Identifier {
+		visitor.VisitIdentifier(&c.Identifier[i])
+	}
+	for i := range c.String {
+		visitor.VisitString(&c.String[i])
+	}
+	for i := range c.HTML {
+		visitor.VisitHTML(&c.HTML[i])
+	}
+	for i := range c.Link {
+		visitor.VisitLink(&c.Link[i])
+	}
+}
+
+// recordVisitor adapts a per-record function to ClaimsVisitor, for walkers which need only what
+// every record has: the property it is about and its sub-claims. Fn is called once per record, in
+// the order Visit walks the collections.
+type recordVisitor struct {
+	Fn func(prop identifier.Identifier, sub *ClaimTypes)
+}
+
+var _ ClaimsVisitor = recordVisitor{}
+
+func (v recordVisitor) VisitRel(claim *RelClaim)               { v.Fn(claim.Prop, claim.Sub) }
+func (v recordVisitor) VisitAmount(claim *AmountClaim)         { v.Fn(claim.Prop, claim.Sub) }
+func (v recordVisitor) VisitTime(claim *TimeClaim)             { v.Fn(claim.Prop, claim.Sub) }
+func (v recordVisitor) VisitIdentifier(claim *IdentifierClaim) { v.Fn(claim.Prop, claim.Sub) }
+func (v recordVisitor) VisitString(claim *StringClaim)         { v.Fn(claim.Prop, claim.Sub) }
+func (v recordVisitor) VisitHTML(claim *HTMLClaim)             { v.Fn(claim.Prop, claim.Sub) }
+func (v recordVisitor) VisitLink(claim *LinkClaim)             { v.Fn(claim.Prop, claim.Sub) }
+
 // Size returns the total number of records across all collections.
 func (c *ClaimTypes) Size() int {
-	if c == nil {
-		return 0
-	}
-	return len(c.Rel) + len(c.Amount) + len(c.Time) + len(c.Identifier) + len(c.String) + len(c.HTML) + len(c.Link)
+	size := 0
+	c.Visit(recordVisitor{Fn: func(identifier.Identifier, *ClaimTypes) {
+		size++
+	}})
+	return size
 }
 
 type (
