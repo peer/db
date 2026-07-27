@@ -1627,7 +1627,7 @@ func TestMarkReferenceLeaves(t *testing.T) {
 	}
 
 	v := &convertVisitor{ //nolint:exhaustruct
-		result: &Document{ //nolint:exhaustruct
+		Result: &Document{ //nolint:exhaustruct
 			Claims: ClaimTypes{ //nolint:exhaustruct
 				Rel: []RelClaim{
 					// Instance of two sibling leaf classes (painter, sculptor), both narrower than artist.
@@ -1657,12 +1657,12 @@ func TestMarkReferenceLeaves(t *testing.T) {
 	}
 
 	// Both sibling classes are most-specific; their shared ancestor is not.
-	assert.True(t, relLeaf(v.result.Claims.Rel, instanceOf, painter))
-	assert.True(t, relLeaf(v.result.Claims.Rel, instanceOf, sculptor))
-	assert.False(t, relLeaf(v.result.Claims.Rel, instanceOf, artist))
+	assert.True(t, relLeaf(v.Result.Claims.Rel, instanceOf, painter))
+	assert.True(t, relLeaf(v.Result.Claims.Rel, instanceOf, sculptor))
+	assert.False(t, relLeaf(v.Result.Claims.Rel, instanceOf, artist))
 	// Leaf detection is per property: under otherProp artist has no narrower value present, so it
 	// is most-specific there even though it is not under instanceOf.
-	assert.True(t, relLeaf(v.result.Claims.Rel, otherProp, artist))
+	assert.True(t, relLeaf(v.Result.Claims.Rel, otherProp, artist))
 
 	// Sub-references get the same treatment, each parent claim's Sub container being its own scope:
 	// in the first container dog is a leaf and mammal (its ancestor) is not, while in the second

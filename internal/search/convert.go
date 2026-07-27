@@ -1635,11 +1635,11 @@ func (c *Converter) propagateProp(propID identifier.Identifier) []identifier.Ide
 
 // convertVisitor implements document.Visitor to convert claims to search claims.
 type convertVisitor struct {
-	ctx       context.Context //nolint:containedctx
-	converter *Converter
-	result    *Document
-	// docID is the ID of the document being converted.
-	docID identifier.Identifier
+	Ctx       context.Context //nolint:containedctx
+	Converter *Converter
+	Result    *Document
+	// DocID is the ID of the document being converted.
+	DocID identifier.Identifier
 }
 
 var _ document.Visitor = (*convertVisitor)(nil)
@@ -1650,17 +1650,17 @@ var _ document.Visitor = (*convertVisitor)(nil)
 // language) is dropped: it has no index field, and it reaches search only
 // through the display labels it resolves to.
 func (v *convertVisitor) addText(lang, value string) {
-	if !v.converter.enabledLanguages[lang] {
+	if !v.Converter.enabledLanguages[lang] {
 		return
 	}
 	value = strings.TrimSpace(value)
 	if value == "" {
 		return
 	}
-	if v.result.Text == nil {
-		v.result.Text = map[string][]string{}
+	if v.Result.Text == nil {
+		v.Result.Text = map[string][]string{}
 	}
-	v.result.Text[lang] = append(v.result.Text[lang], value)
+	v.Result.Text[lang] = append(v.Result.Text[lang], value)
 }
 
 // deduplicateResult removes duplicate values from the result's display and text
@@ -1675,14 +1675,14 @@ func (v *convertVisitor) addText(lang, value string) {
 // "und", so such a value is already reachable through its language field, and the
 // "und" copy would only bloat the index and inflate term frequencies.
 func (v *convertVisitor) deduplicateResult() {
-	for lang, vals := range v.result.Display {
-		v.result.Display[lang] = deduplicateStrings(vals)
+	for lang, vals := range v.Result.Display {
+		v.Result.Display[lang] = deduplicateStrings(vals)
 	}
-	for lang, vals := range v.result.Text {
-		v.result.Text[lang] = deduplicateStrings(vals)
+	for lang, vals := range v.Result.Text {
+		v.Result.Text[lang] = deduplicateStrings(vals)
 	}
 	inLanguage := map[string]bool{}
-	for lang, vals := range v.result.Text {
+	for lang, vals := range v.Result.Text {
 		if lang == document.UndeterminedLanguage {
 			continue
 		}
@@ -1690,7 +1690,7 @@ func (v *convertVisitor) deduplicateResult() {
 			inLanguage[val] = true
 		}
 	}
-	und := v.result.Text[document.UndeterminedLanguage]
+	und := v.Result.Text[document.UndeterminedLanguage]
 	filtered := und[:0]
 	for _, val := range und {
 		if inLanguage[val] {
@@ -1699,10 +1699,10 @@ func (v *convertVisitor) deduplicateResult() {
 		filtered = append(filtered, val)
 	}
 	if len(filtered) == 0 {
-		delete(v.result.Text, document.UndeterminedLanguage)
+		delete(v.Result.Text, document.UndeterminedLanguage)
 		return
 	}
-	v.result.Text[document.UndeterminedLanguage] = filtered
+	v.Result.Text[document.UndeterminedLanguage] = filtered
 }
 
 // deduplicateStrings returns vals with duplicates removed, preserving first-seen order.
@@ -1729,13 +1729,13 @@ func deduplicateStrings(vals []string) []string {
 func (v *convertVisitor) addDisplay(labels map[string]string, paths map[string][]string) {
 	add := func(lang, val string) {
 		val = strings.TrimSpace(val)
-		if val == "" || !v.converter.enabledLanguages[lang] {
+		if val == "" || !v.Converter.enabledLanguages[lang] {
 			return
 		}
-		if v.result.Display == nil {
-			v.result.Display = map[string][]string{}
+		if v.Result.Display == nil {
+			v.Result.Display = map[string][]string{}
 		}
-		v.result.Display[lang] = append(v.result.Display[lang], val)
+		v.Result.Display[lang] = append(v.Result.Display[lang], val)
 	}
 	for lang, label := range labels {
 		add(lang, label)
@@ -1858,8 +1858,8 @@ func markRelLeaves(recs []RelClaim) {
 // ("direct"). Top-level records are one scope; each parent claim's Sub container is its own
 // scope, so leaf-ness among sub-references is computed per parent claim.
 func (v *convertVisitor) markReferenceLeaves() {
-	markRelLeaves(v.result.Claims.Rel)
-	forEachSubContainer(&v.result.Claims, func(sub *ClaimTypes) {
+	markRelLeaves(v.Result.Claims.Rel)
+	forEachSubContainer(&v.Result.Claims, func(sub *ClaimTypes) {
 		markRelLeaves(sub.Rel)
 	})
 }
@@ -1873,9 +1873,9 @@ func (v *convertVisitor) markReferenceLeaves() {
 func (v *convertVisitor) appendClaimDisplaysToText() {
 	(&textFoldVisitor{
 		Visitor:  v,
-		Excluded: v.converter.textExcludedProperties,
+		Excluded: v.Converter.textExcludedProperties,
 		Seen:     map[*ClaimTypes]bool{},
-	}).Fold(&v.result.Claims)
+	}).Fold(&v.Result.Claims)
 }
 
 // textFoldVisitor folds a document's indexed records into its top-level text field: the values of
@@ -2013,7 +2013,7 @@ func (f *textFoldVisitor) VisitLink(claim *LinkClaim) {
 // is attached to every record the claim expands into (hierarchy-expanded copies share the pointer),
 // so it is built once per stated claim.
 func (v *convertVisitor) subContainer(sub *document.ClaimTypes) (*ClaimTypes, errors.E) {
-	return v.converter.convertSubClaimTypes(v.ctx, sub)
+	return v.Converter.convertSubClaimTypes(v.Ctx, sub)
 }
 
 // VisitIdentifier indexes the identifier as a nested id claim for structured per-property queries
@@ -2023,7 +2023,7 @@ func (v *convertVisitor) VisitIdentifier(claim *document.IdentifierClaim) (docum
 	if claim.GetConfidence() < document.LowConfidence {
 		return document.Keep, nil
 	}
-	claims, errE := v.converter.convertIdentifier(v.ctx, claim)
+	claims, errE := v.Converter.convertIdentifier(v.Ctx, claim)
 	if errE != nil {
 		return document.Keep, errE
 	}
@@ -2034,7 +2034,7 @@ func (v *convertVisitor) VisitIdentifier(claim *document.IdentifierClaim) (docum
 	for i := range claims {
 		claims[i].Sub = sub
 	}
-	v.result.Claims.Identifier = append(v.result.Claims.Identifier, claims...)
+	v.Result.Claims.Identifier = append(v.Result.Claims.Identifier, claims...)
 	return document.Keep, nil
 }
 
@@ -2045,8 +2045,8 @@ func (v *convertVisitor) VisitString(claim *document.StringClaim) (document.Visi
 	if claim.GetConfidence() < document.LowConfidence {
 		return document.Keep, nil
 	}
-	langs := v.converter.textLanguages(claim.Sub, claim.String)
-	claims, errE := v.converter.convertString(v.ctx, claim, langs)
+	langs := v.Converter.textLanguages(claim.Sub, claim.String)
+	claims, errE := v.Converter.convertString(v.Ctx, claim, langs)
 	if errE != nil {
 		return document.Keep, errE
 	}
@@ -2057,7 +2057,7 @@ func (v *convertVisitor) VisitString(claim *document.StringClaim) (document.Visi
 	for i := range claims {
 		claims[i].Sub = sub
 	}
-	v.result.Claims.String = append(v.result.Claims.String, claims...)
+	v.Result.Claims.String = append(v.Result.Claims.String, claims...)
 	return document.Keep, nil
 }
 
@@ -2077,7 +2077,7 @@ func (v *convertVisitor) VisitHTML(claim *document.HTMLClaim) (document.VisitRes
 	// Detection runs on the plain-text strip; the language argument only affects no-block-space
 	// scripts, so the "und" strip is a valid detection input. The document is parsed once and stripped
 	// per language.
-	langs := v.converter.textLanguages(claim.Sub, stripDoc(doc, document.UndeterminedLanguage))
+	langs := v.Converter.textLanguages(claim.Sub, stripDoc(doc, document.UndeterminedLanguage))
 	stripped := make(map[string]string, len(langs))
 	for _, lang := range langs {
 		s := stripDoc(doc, lang)
@@ -2085,7 +2085,7 @@ func (v *convertVisitor) VisitHTML(claim *document.HTMLClaim) (document.VisitRes
 			stripped[lang] = s
 		}
 	}
-	claims, errE := v.converter.convertHTML(v.ctx, claim, stripped)
+	claims, errE := v.Converter.convertHTML(v.Ctx, claim, stripped)
 	if errE != nil {
 		return document.Keep, errE
 	}
@@ -2096,7 +2096,7 @@ func (v *convertVisitor) VisitHTML(claim *document.HTMLClaim) (document.VisitRes
 	for i := range claims {
 		claims[i].Sub = sub
 	}
-	v.result.Claims.HTML = append(v.result.Claims.HTML, claims...)
+	v.Result.Claims.HTML = append(v.Result.Claims.HTML, claims...)
 	return document.Keep, nil
 }
 
@@ -2105,7 +2105,7 @@ func (v *convertVisitor) VisitAmount(claim *document.AmountClaim) (document.Visi
 	if claim.GetConfidence() < document.LowConfidence {
 		return document.Keep, nil
 	}
-	claims, errE := v.converter.convertAmount(v.ctx, claim)
+	claims, errE := v.Converter.convertAmount(v.Ctx, claim)
 	if errE != nil {
 		return document.Keep, errE
 	}
@@ -2116,7 +2116,7 @@ func (v *convertVisitor) VisitAmount(claim *document.AmountClaim) (document.Visi
 	for i := range claims {
 		claims[i].Sub = sub
 	}
-	v.result.Claims.Amount = append(v.result.Claims.Amount, claims...)
+	v.Result.Claims.Amount = append(v.Result.Claims.Amount, claims...)
 	return document.Keep, nil
 }
 
@@ -2126,7 +2126,7 @@ func (v *convertVisitor) VisitAmountInterval(claim *document.AmountIntervalClaim
 	if claim.GetConfidence() < document.LowConfidence {
 		return document.Keep, nil
 	}
-	amountClaims, unknownClaims, errE := v.converter.convertAmountInterval(v.ctx, claim)
+	amountClaims, unknownClaims, errE := v.Converter.convertAmountInterval(v.Ctx, claim)
 	if errE != nil {
 		return document.Keep, errE
 	}
@@ -2140,8 +2140,8 @@ func (v *convertVisitor) VisitAmountInterval(claim *document.AmountIntervalClaim
 	for i := range unknownClaims {
 		unknownClaims[i].Sub = sub
 	}
-	v.result.Claims.Amount = append(v.result.Claims.Amount, amountClaims...)
-	v.result.Claims.Rel = append(v.result.Claims.Rel, unknownClaims...)
+	v.Result.Claims.Amount = append(v.Result.Claims.Amount, amountClaims...)
+	v.Result.Claims.Rel = append(v.Result.Claims.Rel, unknownClaims...)
 	return document.Keep, nil
 }
 
@@ -2150,7 +2150,7 @@ func (v *convertVisitor) VisitTime(claim *document.TimeClaim) (document.VisitRes
 	if claim.GetConfidence() < document.LowConfidence {
 		return document.Keep, nil
 	}
-	claims, errE := v.converter.convertTime(v.ctx, claim)
+	claims, errE := v.Converter.convertTime(v.Ctx, claim)
 	if errE != nil {
 		return document.Keep, errE
 	}
@@ -2161,7 +2161,7 @@ func (v *convertVisitor) VisitTime(claim *document.TimeClaim) (document.VisitRes
 	for i := range claims {
 		claims[i].Sub = sub
 	}
-	v.result.Claims.Time = append(v.result.Claims.Time, claims...)
+	v.Result.Claims.Time = append(v.Result.Claims.Time, claims...)
 	return document.Keep, nil
 }
 
@@ -2171,7 +2171,7 @@ func (v *convertVisitor) VisitTimeInterval(claim *document.TimeIntervalClaim) (d
 	if claim.GetConfidence() < document.LowConfidence {
 		return document.Keep, nil
 	}
-	timeClaims, unknownClaims, errE := v.converter.convertTimeInterval(v.ctx, claim)
+	timeClaims, unknownClaims, errE := v.Converter.convertTimeInterval(v.Ctx, claim)
 	if errE != nil {
 		return document.Keep, errE
 	}
@@ -2185,8 +2185,8 @@ func (v *convertVisitor) VisitTimeInterval(claim *document.TimeIntervalClaim) (d
 	for i := range unknownClaims {
 		unknownClaims[i].Sub = sub
 	}
-	v.result.Claims.Time = append(v.result.Claims.Time, timeClaims...)
-	v.result.Claims.Rel = append(v.result.Claims.Rel, unknownClaims...)
+	v.Result.Claims.Time = append(v.Result.Claims.Time, timeClaims...)
+	v.Result.Claims.Rel = append(v.Result.Claims.Rel, unknownClaims...)
 	return document.Keep, nil
 }
 
@@ -2197,7 +2197,7 @@ func (v *convertVisitor) VisitLink(claim *document.LinkClaim) (document.VisitRes
 	if claim.GetConfidence() < document.LowConfidence {
 		return document.Keep, nil
 	}
-	claims, errE := v.converter.convertLink(v.ctx, claim)
+	claims, errE := v.Converter.convertLink(v.Ctx, claim)
 	if errE != nil {
 		return document.Keep, errE
 	}
@@ -2208,7 +2208,7 @@ func (v *convertVisitor) VisitLink(claim *document.LinkClaim) (document.VisitRes
 	for i := range claims {
 		claims[i].Sub = sub
 	}
-	v.result.Claims.Link = append(v.result.Claims.Link, claims...)
+	v.Result.Claims.Link = append(v.Result.Claims.Link, claims...)
 	return document.Keep, nil
 }
 
@@ -2217,7 +2217,7 @@ func (v *convertVisitor) VisitReference(claim *document.ReferenceClaim) (documen
 	if claim.GetConfidence() < document.LowConfidence {
 		return document.Keep, nil
 	}
-	claims, errE := v.converter.convertReference(v.ctx, claim)
+	claims, errE := v.Converter.convertReference(v.Ctx, claim)
 	if errE != nil {
 		return document.Keep, errE
 	}
@@ -2228,7 +2228,7 @@ func (v *convertVisitor) VisitReference(claim *document.ReferenceClaim) (documen
 	for i := range claims {
 		claims[i].Sub = sub
 	}
-	v.result.Claims.Rel = append(v.result.Claims.Rel, claims...)
+	v.Result.Claims.Rel = append(v.Result.Claims.Rel, claims...)
 	return document.Keep, nil
 }
 
@@ -2237,7 +2237,7 @@ func (v *convertVisitor) VisitHas(claim *document.HasClaim) (document.VisitResul
 	if claim.GetConfidence() < document.LowConfidence {
 		return document.Keep, nil
 	}
-	claims, errE := v.converter.relRecordsSimple(v.ctx, ClaimTypeHas, claim.Prop.ID)
+	claims, errE := v.Converter.relRecordsSimple(v.Ctx, ClaimTypeHas, claim.Prop.ID)
 	if errE != nil {
 		return document.Keep, errE
 	}
@@ -2248,7 +2248,7 @@ func (v *convertVisitor) VisitHas(claim *document.HasClaim) (document.VisitResul
 	for i := range claims {
 		claims[i].Sub = sub
 	}
-	v.result.Claims.Rel = append(v.result.Claims.Rel, claims...)
+	v.Result.Claims.Rel = append(v.Result.Claims.Rel, claims...)
 	return document.Keep, nil
 }
 
@@ -2257,7 +2257,7 @@ func (v *convertVisitor) VisitNone(claim *document.NoneClaim) (document.VisitRes
 	if claim.GetConfidence() < document.LowConfidence {
 		return document.Keep, nil
 	}
-	claims, errE := v.converter.relRecordsSimple(v.ctx, ClaimTypeNone, claim.Prop.ID)
+	claims, errE := v.Converter.relRecordsSimple(v.Ctx, ClaimTypeNone, claim.Prop.ID)
 	if errE != nil {
 		return document.Keep, errE
 	}
@@ -2268,7 +2268,7 @@ func (v *convertVisitor) VisitNone(claim *document.NoneClaim) (document.VisitRes
 	for i := range claims {
 		claims[i].Sub = sub
 	}
-	v.result.Claims.Rel = append(v.result.Claims.Rel, claims...)
+	v.Result.Claims.Rel = append(v.Result.Claims.Rel, claims...)
 	return document.Keep, nil
 }
 
@@ -2277,7 +2277,7 @@ func (v *convertVisitor) VisitUnknown(claim *document.UnknownClaim) (document.Vi
 	if claim.GetConfidence() < document.LowConfidence {
 		return document.Keep, nil
 	}
-	claims, errE := v.converter.relRecordsSimple(v.ctx, ClaimTypeUnknown, claim.Prop.ID)
+	claims, errE := v.Converter.relRecordsSimple(v.Ctx, ClaimTypeUnknown, claim.Prop.ID)
 	if errE != nil {
 		return document.Keep, errE
 	}
@@ -2288,7 +2288,7 @@ func (v *convertVisitor) VisitUnknown(claim *document.UnknownClaim) (document.Vi
 	for i := range claims {
 		claims[i].Sub = sub
 	}
-	v.result.Claims.Rel = append(v.result.Claims.Rel, claims...)
+	v.Result.Claims.Rel = append(v.Result.Claims.Rel, claims...)
 	return document.Keep, nil
 }
 
@@ -2389,9 +2389,9 @@ func (c *Converter) FromDocument(
 	}
 
 	v := &convertVisitor{
-		ctx:       ctx,
-		converter: c,
-		result: &Document{
+		Ctx:       ctx,
+		Converter: c,
+		Result: &Document{
 			ID:              doc.ID,
 			Display:         nil,
 			DisplaySort:     nil,
@@ -2403,7 +2403,7 @@ func (c *Converter) FromDocument(
 			ReadableByRoles: readableByRoles,
 			ReadableByUsers: readableByUsers,
 		},
-		docID: doc.ID,
+		DocID: doc.ID,
 	}
 
 	// Build the top-level "display" field per language: the rendered display
@@ -2420,7 +2420,7 @@ func (c *Converter) FromDocument(
 	// would never be read (and the mapping is dynamic: strict, so it must not be set).
 	if len(info.Display.Display) > 0 {
 		displaySort := make(map[string]string, len(info.Display.Display))
-		idTiebreak := SortKeySeparator + hex.EncodeToString(v.docID[:])
+		idTiebreak := SortKeySeparator + hex.EncodeToString(v.DocID[:])
 		for lang, label := range info.Display.Display {
 			if lang == document.UndeterminedLanguage {
 				continue
@@ -2428,7 +2428,7 @@ func (c *Converter) FromDocument(
 			displaySort[lang] = label + idTiebreak
 		}
 		if len(displaySort) > 0 {
-			v.result.DisplaySort = displaySort
+			v.Result.DisplaySort = displaySort
 		}
 	}
 
@@ -2465,7 +2465,7 @@ func (c *Converter) FromDocument(
 		if errE != nil {
 			return nil, errE
 		}
-		v.result.Counts.References = &count
+		v.Result.Counts.References = &count
 	}
 
 	// counts.score is the document's total "amount of knowledge": its own number of claims plus the
@@ -2474,12 +2474,12 @@ func (c *Converter) FromDocument(
 	// are not stored twice, duplicated, so counts.references counts exactly those claims. Used to
 	// boost search ranking.
 	score := claimsCount
-	if v.result.Counts.References != nil {
-		score += *v.result.Counts.References
+	if v.Result.Counts.References != nil {
+		score += *v.Result.Counts.References
 	}
-	v.result.Counts.Score = &score
+	v.Result.Counts.Score = &score
 
-	return v.result, nil
+	return v.Result, nil
 }
 
 // inverseReferenceClaimID computes an unique claim ID for a synthetic inverse reference claim.
@@ -2499,28 +2499,28 @@ func inverseReferenceClaimID(base []string, ir InverseRelation) identifier.Ident
 // property-level INVERSE_PROPERTY_OF, an inverse relation per resolved inverse property. It tracks the
 // current field path (via sub-claims) for the field-level resolution.
 type referencesVisitor struct {
-	// ctx is used to resolve a target's hierarchy ancestors via getDocumentInfo.
-	ctx       context.Context //nolint:containedctx
-	converter *Converter
-	docID     identifier.Identifier
-	// classes are the IDs of the classes the document is an instance of, used to
+	// Ctx is used to resolve a target's hierarchy ancestors via getDocumentInfo.
+	Ctx       context.Context //nolint:containedctx
+	Converter *Converter
+	DocID     identifier.Identifier
+	// Classes are the IDs of the classes the document is an instance of, used to
 	// resolve field-level inverse properties, which are defined per class.
-	classes []identifier.Identifier
-	// path tracks the current nesting of claim property IDs.
-	path []identifier.Identifier
-	// references maps target document ID to collected reference rows.
-	references map[identifier.Identifier][]Reference
-	// inverse maps target document ID to collected inverse relations.
-	inverse map[identifier.Identifier][]InverseRelation
+	Classes []identifier.Identifier
+	// Path tracks the current nesting of claim property IDs.
+	Path []identifier.Identifier
+	// References maps target document ID to collected reference rows.
+	References map[identifier.Identifier][]Reference
+	// Inverse maps target document ID to collected inverse relations.
+	Inverse map[identifier.Identifier][]InverseRelation
 }
 
 var _ document.Visitor = (*referencesVisitor)(nil)
 
 // recurse pushes propID onto the path, visits sub-claims, then pops.
 func (v *referencesVisitor) recurse(propID identifier.Identifier, claim document.Claim) errors.E {
-	v.path = append(v.path, propID)
+	v.Path = append(v.Path, propID)
 	errE := claim.Visit(v)
-	v.path = v.path[:len(v.path)-1]
+	v.Path = v.Path[:len(v.Path)-1]
 	return errE
 }
 
@@ -2602,21 +2602,21 @@ func (v *referencesVisitor) VisitReference(claim *document.ReferenceClaim) (docu
 	// property-level inverse. The same source property can be a field on more than
 	// one of the document's classes, so all matching field-level inverses are collected.
 	var targetProps []identifier.Identifier
-	path := encodeFieldPath(v.path)
+	path := encodeFieldPath(v.Path)
 	seen := map[identifier.Identifier]bool{}
-	for _, classID := range v.classes {
+	for _, classID := range v.Classes {
 		key := fieldInverseKey{
 			Class:      classID,
 			Path:       path,
 			SourceProp: claim.Prop.ID,
 		}
-		if targetProp, ok := v.converter.fieldInverseProperties[key]; ok && !seen[targetProp] {
+		if targetProp, ok := v.Converter.fieldInverseProperties[key]; ok && !seen[targetProp] {
 			seen[targetProp] = true
 			targetProps = append(targetProps, targetProp)
 		}
 	}
 	if len(targetProps) == 0 {
-		targetProps = v.converter.inverseProperties[claim.Prop.ID]
+		targetProps = v.Converter.inverseProperties[claim.Prop.ID]
 	}
 
 	// Expand the target across its value hierarchies so the rows land on the direct target and all its
@@ -2633,16 +2633,16 @@ func (v *referencesVisitor) VisitReference(claim *document.ReferenceClaim) (docu
 	// The source flag is the bridge's decision per document version, stamped onto the rows by
 	// mergeReferenceRows, so it is left false here.
 	for _, target := range targets {
-		v.references[target] = append(v.references[target], Reference{
+		v.References[target] = append(v.References[target], Reference{
 			Claim:    claim.ID,
-			Source:   v.docID,
+			Source:   v.DocID,
 			Target:   target,
 			IsSource: false,
 		})
 		for _, targetProp := range targetProps {
-			v.inverse[target] = append(v.inverse[target], InverseRelation{
+			v.Inverse[target] = append(v.Inverse[target], InverseRelation{
 				Claim:      claim.ID,
-				Source:     v.docID,
+				Source:     v.DocID,
 				TargetProp: targetProp,
 				SourceProp: claim.Prop.ID,
 				Target:     target,
@@ -2683,12 +2683,12 @@ func (v *referencesVisitor) VisitUnknown(claim *document.UnknownClaim) (document
 // across all value hierarchies, deduplicated. It mirrors the target expansion
 // convertReference performs for forward references.
 func (v *referencesVisitor) expandedTargets(targetID identifier.Identifier) ([]identifier.Identifier, errors.E) {
-	if len(v.converter.valueHierarchyProperties) == 0 {
+	if len(v.Converter.valueHierarchyProperties) == 0 {
 		// When no value hierarchies are configured we avoid
 		// fetching the target document entirely.
 		return []identifier.Identifier{targetID}, nil
 	}
-	info, errE := v.converter.getDocumentInfo(v.ctx, targetID)
+	info, errE := v.Converter.getDocumentInfo(v.Ctx, targetID)
 	if errE != nil {
 		return nil, errE
 	}
@@ -2724,19 +2724,19 @@ func (c *Converter) OutgoingReferences(
 		classes = append(classes, rel.To.ID)
 	}
 	v := &referencesVisitor{
-		ctx:        ctx,
-		converter:  c,
-		docID:      doc.ID,
-		classes:    classes,
-		path:       nil,
-		references: map[identifier.Identifier][]Reference{},
-		inverse:    map[identifier.Identifier][]InverseRelation{},
+		Ctx:        ctx,
+		Converter:  c,
+		DocID:      doc.ID,
+		Classes:    classes,
+		Path:       nil,
+		References: map[identifier.Identifier][]Reference{},
+		Inverse:    map[identifier.Identifier][]InverseRelation{},
 	}
 	errE := doc.Visit(v)
 	if errE != nil {
 		return nil, nil, errE
 	}
-	return v.references, v.inverse, nil
+	return v.References, v.Inverse, nil
 }
 
 // fieldEmbedKey identifies a position within a specific class's field hierarchy for field-level embed
@@ -2869,19 +2869,19 @@ type embedTask struct {
 // classes and the current field path (via sub-claim nesting), the same way referencesVisitor does, and
 // for each reference claim resolves the field-level embed specs that apply to it.
 type embedVisitor struct {
-	converter *Converter
-	classes   []identifier.Identifier
-	path      []identifier.Identifier
-	tasks     []embedTask
+	Converter *Converter
+	Classes   []identifier.Identifier
+	Path      []identifier.Identifier
+	Tasks     []embedTask
 }
 
 var _ document.Visitor = (*embedVisitor)(nil)
 
 // recurse pushes propID onto the path, visits sub-claims, then pops.
 func (v *embedVisitor) recurse(propID identifier.Identifier, claim document.Claim) errors.E {
-	v.path = append(v.path, propID)
+	v.Path = append(v.Path, propID)
 	errE := claim.Visit(v)
-	v.path = v.path[:len(v.path)-1]
+	v.Path = v.Path[:len(v.Path)-1]
 	return errE
 }
 
@@ -2947,9 +2947,9 @@ func (v *embedVisitor) VisitReference(claim *document.ReferenceClaim) (document.
 	if claim.GetConfidence() < document.LowConfidence {
 		return document.Keep, nil
 	}
-	specs := v.converter.resolveEmbedSpecs(v.classes, v.path, claim.Prop.ID)
+	specs := v.Converter.resolveEmbedSpecs(v.Classes, v.Path, claim.Prop.ID)
 	if len(specs) > 0 {
-		v.tasks = append(v.tasks, embedTask{claim: claim, specs: specs})
+		v.Tasks = append(v.Tasks, embedTask{claim: claim, specs: specs})
 	}
 	return document.Keep, v.recurse(claim.Prop.ID, claim)
 }
@@ -2983,12 +2983,12 @@ func (c *Converter) collectEmbedTasks(doc *document.D) ([]embedTask, errors.E) {
 	for _, rel := range instanceOf {
 		classes = append(classes, rel.To.ID)
 	}
-	v := &embedVisitor{converter: c, classes: classes, path: nil, tasks: nil}
+	v := &embedVisitor{Converter: c, Classes: classes, Path: nil, Tasks: nil}
 	errE := doc.Visit(v)
 	if errE != nil {
 		return nil, errE
 	}
-	return v.tasks, nil
+	return v.Tasks, nil
 }
 
 // OutgoingEmbeds returns the documents this document embeds claims from, each mapped to the deduplicated
@@ -3183,94 +3183,94 @@ func claimsAtLeastLowConfidence(claims []document.Claim) []document.Claim {
 // re-propertied to the destination property, re-identified with the given deterministic ID, and with no
 // sub-claims.
 type embedCopyVisitor struct {
-	prop   document.Reference
-	id     identifier.Identifier
-	result document.Claim
+	Prop   document.Reference
+	ID     identifier.Identifier
+	Result document.Claim
 }
 
 var _ document.Visitor = (*embedCopyVisitor)(nil)
 
 func (v *embedCopyVisitor) VisitIdentifier(c *document.IdentifierClaim) (document.VisitResult, errors.E) {
 	cp := *c
-	cp.ID, cp.Prop, cp.Sub = v.id, v.prop, nil
-	v.result = &cp
+	cp.ID, cp.Prop, cp.Sub = v.ID, v.Prop, nil
+	v.Result = &cp
 	return document.Keep, nil
 }
 
 func (v *embedCopyVisitor) VisitString(c *document.StringClaim) (document.VisitResult, errors.E) {
 	cp := *c
-	cp.ID, cp.Prop, cp.Sub = v.id, v.prop, nil
-	v.result = &cp
+	cp.ID, cp.Prop, cp.Sub = v.ID, v.Prop, nil
+	v.Result = &cp
 	return document.Keep, nil
 }
 
 func (v *embedCopyVisitor) VisitHTML(c *document.HTMLClaim) (document.VisitResult, errors.E) {
 	cp := *c
-	cp.ID, cp.Prop, cp.Sub = v.id, v.prop, nil
-	v.result = &cp
+	cp.ID, cp.Prop, cp.Sub = v.ID, v.Prop, nil
+	v.Result = &cp
 	return document.Keep, nil
 }
 
 func (v *embedCopyVisitor) VisitAmount(c *document.AmountClaim) (document.VisitResult, errors.E) {
 	cp := *c
-	cp.ID, cp.Prop, cp.Sub = v.id, v.prop, nil
-	v.result = &cp
+	cp.ID, cp.Prop, cp.Sub = v.ID, v.Prop, nil
+	v.Result = &cp
 	return document.Keep, nil
 }
 
 func (v *embedCopyVisitor) VisitAmountInterval(c *document.AmountIntervalClaim) (document.VisitResult, errors.E) {
 	cp := *c
-	cp.ID, cp.Prop, cp.Sub = v.id, v.prop, nil
-	v.result = &cp
+	cp.ID, cp.Prop, cp.Sub = v.ID, v.Prop, nil
+	v.Result = &cp
 	return document.Keep, nil
 }
 
 func (v *embedCopyVisitor) VisitTime(c *document.TimeClaim) (document.VisitResult, errors.E) {
 	cp := *c
-	cp.ID, cp.Prop, cp.Sub = v.id, v.prop, nil
-	v.result = &cp
+	cp.ID, cp.Prop, cp.Sub = v.ID, v.Prop, nil
+	v.Result = &cp
 	return document.Keep, nil
 }
 
 func (v *embedCopyVisitor) VisitTimeInterval(c *document.TimeIntervalClaim) (document.VisitResult, errors.E) {
 	cp := *c
-	cp.ID, cp.Prop, cp.Sub = v.id, v.prop, nil
-	v.result = &cp
+	cp.ID, cp.Prop, cp.Sub = v.ID, v.Prop, nil
+	v.Result = &cp
 	return document.Keep, nil
 }
 
 func (v *embedCopyVisitor) VisitLink(c *document.LinkClaim) (document.VisitResult, errors.E) {
 	cp := *c
-	cp.ID, cp.Prop, cp.Sub = v.id, v.prop, nil
-	v.result = &cp
+	cp.ID, cp.Prop, cp.Sub = v.ID, v.Prop, nil
+	v.Result = &cp
 	return document.Keep, nil
 }
 
 func (v *embedCopyVisitor) VisitReference(c *document.ReferenceClaim) (document.VisitResult, errors.E) {
 	cp := *c
-	cp.ID, cp.Prop, cp.Sub = v.id, v.prop, nil
-	v.result = &cp
+	cp.ID, cp.Prop, cp.Sub = v.ID, v.Prop, nil
+	v.Result = &cp
 	return document.Keep, nil
 }
 
 func (v *embedCopyVisitor) VisitHas(c *document.HasClaim) (document.VisitResult, errors.E) {
 	cp := *c
-	cp.ID, cp.Prop, cp.Sub = v.id, v.prop, nil
-	v.result = &cp
+	cp.ID, cp.Prop, cp.Sub = v.ID, v.Prop, nil
+	v.Result = &cp
 	return document.Keep, nil
 }
 
 func (v *embedCopyVisitor) VisitNone(c *document.NoneClaim) (document.VisitResult, errors.E) {
 	cp := *c
-	cp.ID, cp.Prop, cp.Sub = v.id, v.prop, nil
-	v.result = &cp
+	cp.ID, cp.Prop, cp.Sub = v.ID, v.Prop, nil
+	v.Result = &cp
 	return document.Keep, nil
 }
 
 func (v *embedCopyVisitor) VisitUnknown(c *document.UnknownClaim) (document.VisitResult, errors.E) {
 	cp := *c
-	cp.ID, cp.Prop, cp.Sub = v.id, v.prop, nil
-	v.result = &cp
+	cp.ID, cp.Prop, cp.Sub = v.ID, v.Prop, nil
+	v.Result = &cp
 	return document.Keep, nil
 }
 
@@ -3284,12 +3284,12 @@ func embedClaimCopy(src document.Claim, prop, id identifier.Identifier) (documen
 	if errE != nil {
 		return nil, errE
 	}
-	v := &embedCopyVisitor{prop: document.Reference{ID: prop}, id: id, result: nil}
+	v := &embedCopyVisitor{Prop: document.Reference{ID: prop}, ID: id, Result: nil}
 	errE = container.Visit(v)
 	if errE != nil {
 		return nil, errE
 	}
-	return v.result, nil
+	return v.Result, nil
 }
 
 // embeddedClaimID computes a deterministic, unique claim ID for a synthetic embedded claim copied into a
