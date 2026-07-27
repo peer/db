@@ -51,6 +51,21 @@ type Document struct {
 	Counts Counts `json:"counts,omitzero"`
 
 	Claims ClaimTypes `json:"claims,omitzero"`
+
+	// ReadableByRoles lists the roles whose role grants allow reading this document (including the
+	// reserved everyone role under its empty name), evaluated at indexing time against the document's
+	// claims exactly like the read path evaluates them (see auth.RoleGrants.AllowsDocument). The default
+	// search query filter matches the caller's roles against it (see ReadAccessQuery). Role grants are
+	// baked into the index through this field, so changing them requires a full reindex. Omitted when
+	// the converter has no roles configured.
+	ReadableByRoles []string `json:"readableByRoles,omitempty"`
+
+	// ReadableByUsers lists the users the document's own permission claims grant the read action
+	// (see auth.PermissionClaimGrants), evaluated at indexing time. The default search query filter
+	// matches the caller's subject against it (see ReadAccessQuery). Together with ReadableByRoles it
+	// materializes the two arms of auth.HasDocumentPermission for the read action; other actions are
+	// not indexed, search never filters by them.
+	ReadableByUsers []string `json:"readableByUsers,omitempty"`
 }
 
 // Counts holds a document's count metrics, used to boost search ranking.

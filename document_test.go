@@ -156,7 +156,7 @@ func TestDocumentListGetAPIRequiresBulkRead(t *testing.T) {
 						DefaultLanguage:      "",
 						LanguageCodes:        nil,
 						Features:             internalSite.SiteFeatures{},
-						Roles:                map[string]auth.Grants{auth.RoleEveryone: auth.MustParseRoleGrants(tt.grants)},
+						Roles:                map[string]auth.RoleGrants{auth.RoleEveryone: auth.MustParseRoleGrants(tt.grants)},
 						ScopeProperties:      nil,
 						Visibility:           nil,
 						Auth:                 internalSite.SiteAuthConfig{},

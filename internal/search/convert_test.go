@@ -15,6 +15,7 @@ import (
 	"gitlab.com/tozd/go/x"
 	"gitlab.com/tozd/identifier"
 
+	"gitlab.com/peerdb/peerdb/auth"
 	"gitlab.com/peerdb/peerdb/document"
 	internalCore "gitlab.com/peerdb/peerdb/internal/core"
 	"gitlab.com/peerdb/peerdb/store"
@@ -10128,4 +10129,93 @@ func TestExcludeFromTextSearch(t *testing.T) {
 		assert.NotContains(t, vals, "some-user", "language %s", lang)
 		assert.NotContains(t, vals, "self", "language %s", lang)
 	}
+}
+
+// TestReadAccessFields verifies the read-access fields the converter computes at indexing time: which
+// roles may read the document per its claims and the role grants, and which users the document's own
+// permission claims grant actions to.
+func TestReadAccessFields(t *testing.T) {
+	t.Parallel()
+
+	instanceOf := identifier.New()
+	grantedClass := identifier.New()
+	otherClass := identifier.New()
+
+	c := newTestConverter(
+		t,
+		[]*document.D{
+			makeNamingDoc(instanceOf, "instance of"),
+			makeNamingDoc(internalCore.HasPermissionPropID, "has permission"),
+			makeNamingDoc(internalCore.PermissionUserPropID, "permission user"),
+			makeNamingDoc(internalCore.PermissionScopePropID, "permission scope"),
+		},
+		nil,
+		map[identifier.Identifier]*document.D{
+			grantedClass:    makeNamingDoc(grantedClass, "granted class"),
+			otherClass:      makeNamingDoc(otherClass, "other class"),
+			auth.ActionRead: makeNamingDoc(auth.ActionRead, "read"),
+		},
+	)
+	c.Roles = map[string]auth.RoleGrants{
+		auth.RoleEveryone: auth.MustParseRoleGrants(map[string][]string{
+			auth.ActionReadCode: {instanceOf.String() + "=" + grantedClass.String()},
+		}),
+		"admin": auth.MustParseRoleGrants(map[string][]string{auth.ActionReadCode: {auth.ScopeAll}}),
+	}
+
+	makeDoc := func(class identifier.Identifier) *document.D {
+		return &document.D{
+			CoreDocument: document.CoreDocument{ID: identifier.New()}, //nolint:exhaustruct
+			Claims: &document.ClaimTypes{
+				Reference: []document.ReferenceClaim{
+					{
+						CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+						Prop:      document.Reference{ID: instanceOf},
+						To:        document.Reference{ID: class},
+					},
+				},
+			},
+		}
+	}
+
+	// A document of the granted class is readable by everyone and by the admin.
+	result, errE := c.FromDocument(t.Context(), makeDoc(grantedClass), nil, nil, nil)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, []string{auth.RoleEveryone, "admin"}, result.ReadableByRoles)
+	assert.Empty(t, result.ReadableByUsers)
+
+	// A document of another class is readable only by the admin, and its own permission claim
+	// additionally grants a user the read action.
+	doc := makeDoc(otherClass)
+	permClaim := &document.ReferenceClaim{
+		CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+		Prop:      document.Reference{ID: internalCore.HasPermissionPropID},
+		To:        document.Reference{ID: auth.ActionRead},
+	}
+	errE = permClaim.Add(&document.IdentifierClaim{
+		CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+		Prop:      document.Reference{ID: internalCore.PermissionUserPropID},
+		Value:     "user1",
+	})
+	require.NoError(t, errE, "% -+#.1v", errE)
+	errE = permClaim.Add(&document.StringClaim{
+		CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+		Prop:      document.Reference{ID: internalCore.PermissionScopePropID},
+		String:    auth.ScopeSelf,
+	})
+	require.NoError(t, errE, "% -+#.1v", errE)
+	errE = doc.Add(permClaim)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	result, errE = c.FromDocument(t.Context(), doc, nil, nil, nil)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, []string{"admin"}, result.ReadableByRoles)
+	assert.Equal(t, []string{"user1"}, result.ReadableByUsers)
+
+	// Without roles configured, the field is omitted while permissions stay claim-derived.
+	c.Roles = nil
+	result, errE = c.FromDocument(t.Context(), doc, nil, nil, nil)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Nil(t, result.ReadableByRoles)
+	assert.Equal(t, []string{"user1"}, result.ReadableByUsers)
 }

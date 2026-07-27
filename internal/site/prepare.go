@@ -31,7 +31,9 @@ func (s *Site) Prepare(
 	ctx = internalStore.WithFallbackDBContext(ctx, s.Schema, "init")
 	ctx = logger.WithContext(ctx)
 
-	b, r, errE := internalBase.InitComponents(ctx, logger, withContext, dbpool, esClient, s.Schema, s.IndexPrefix, shards, storageDir, s.LanguagePriority, s.LevelNames())
+	b, r, errE := internalBase.InitComponents(
+		ctx, logger, withContext, dbpool, esClient, s.Schema, s.IndexPrefix, shards, storageDir, s.LanguagePriority, s.Roles, s.LevelNames(),
+	)
 	if errE != nil {
 		return errE
 	}

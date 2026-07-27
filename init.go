@@ -18,7 +18,6 @@ import (
 	internalSearch "gitlab.com/peerdb/peerdb/internal/search"
 	internalSite "gitlab.com/peerdb/peerdb/internal/site"
 	internalStore "gitlab.com/peerdb/peerdb/internal/store"
-	"gitlab.com/peerdb/peerdb/store"
 )
 
 // Init initializes PeerDB for all sites defined in globals.
@@ -124,57 +123,36 @@ func Init(ctx context.Context, globals *Globals) (func(), errors.E) {
 			// customizer can keep, wrap, replace, or disable it. Denials are logged at the debug level:
 			// for a site with read-restricted documents they are the expected outcome.
 			site.Base.IndexingSourceCheck = base.DefaultIndexingSourceCheck(site.Visibility, site.Roles, false)
+
+			// The default search query hook is likewise assigned before the customizer runs, so the
+			// customizer can keep, wrap, replace, or disable it (by setting it to nil, search is then
+			// unrestricted). It hides from search (results, facets, and counts) the documents the
+			// caller cannot read, matching the read path.
+			site.Base.SearchQueryHook = site.Base.DefaultSearchQueryHook
+
+			// The default edit-session checks are likewise assigned before the customizer runs. Every
+			// change appended to an edit session is checked against the session's document state before
+			// and after the change (see checkChangePermission), and completing a session requires the
+			// update action on its resulting document (see DefaultEndEditPermissionCheck).
+			site.Base.ChangePermissionCheck = func(ctx context.Context, before, after *document.D, _ document.Change) errors.E {
+				return checkChangePermission(ctx, site, before, after)
+			}
+			site.Base.EndEditPermissionCheck = site.Base.DefaultEndEditPermissionCheck
+
+			// The hook lists are seeded with the default permission-enforcing hooks, likewise before
+			// the customizer runs: a customizer appending its own hooks keeps the default enforcement,
+			// while a customizer replacing enforcement assigns the whole list anew (the defaults are
+			// exported for explicit inclusion).
+			site.Base.DocumentPreHooks = append(site.Base.DocumentPreHooks, DefaultDocumentPreHook)
+			site.Base.DocumentPostHooks = append(site.Base.DocumentPostHooks, DefaultDocumentPostHook)
+			site.Base.FilePreHooks = append(site.Base.FilePreHooks, DefaultFilePreHook)
+			site.Base.FilePostHooks = append(site.Base.FilePostHooks, DefaultFilePostHook)
 		}
 
 		if firstInit && globals.Customize.ConfigureBase != nil {
 			errE = globals.Customize.ConfigureBase(site)
 			if errE != nil {
 				return onShutdownF, errE
-			}
-		}
-
-		if firstInit {
-			// Hook lists the site does not customize get the default permission-enforcing hooks. A site
-			// which customizes a list and wants the default enforcement as well has to include the
-			// corresponding default hook in the list itself.
-			if len(site.Base.DocumentPreHooks) == 0 {
-				site.Base.DocumentPreHooks = append(site.Base.DocumentPreHooks, DefaultDocumentPreHook)
-			}
-			if len(site.Base.DocumentPostHooks) == 0 {
-				site.Base.DocumentPostHooks = append(site.Base.DocumentPostHooks, DefaultDocumentPostHook)
-			}
-			if len(site.Base.FilePreHooks) == 0 {
-				site.Base.FilePreHooks = append(site.Base.FilePreHooks, DefaultFilePreHook)
-			}
-			if len(site.Base.FilePostHooks) == 0 {
-				site.Base.FilePostHooks = append(site.Base.FilePostHooks, DefaultFilePostHook)
-			}
-			// Every change appended to an edit session is checked against the session's document
-			// state before and after the change (see checkChangePermission).
-			if site.Base.ChangePermissionCheck == nil {
-				site.Base.ChangePermissionCheck = func(ctx context.Context, before, after *document.D, _ document.Change) errors.E {
-					return checkChangePermission(ctx, site, before, after)
-				}
-			}
-			// Completing an edit session (committing it, or discarding it, which destroys the
-			// session for everyone) requires the update action on the session's resulting document,
-			// with the document's own permission claims counting: removing the claim granting the
-			// subject the update action makes the completion itself fail. Sessions ended through the
-			// HTTP API are also gated when the end is requested, but the check at completion is the
-			// authoritative one: it sees the final change list.
-			if site.Base.EndEditPermissionCheck == nil {
-				site.Base.EndEditPermissionCheck = func(user *store.User, roles []string, doc *document.D) errors.E {
-					subject := ""
-					if user != nil {
-						subject = user.ID
-					}
-					if auth.HasDocumentPermission(site.Roles, auth.ActionUpdate, subject, roles, doc) {
-						return nil
-					}
-					errE := errors.WithStack(auth.ErrAccessDenied)
-					errors.Details(errE)["action"] = auth.ActionUpdate.String()
-					return errE
-				}
 			}
 		}
 	}

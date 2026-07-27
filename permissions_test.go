@@ -64,7 +64,7 @@ func docWithClaims(t *testing.T, id identifier.Identifier, claims ...document.Cl
 }
 
 // rolesSite returns a site with the given roles.
-func rolesSite(roles map[string]auth.Grants) *internalSite.Site {
+func rolesSite(roles map[string]auth.RoleGrants) *internalSite.Site {
 	site := &internalSite.Site{}
 	site.Roles = roles
 	return site
@@ -101,7 +101,7 @@ func TestCheckChangePermission(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	site := &internalSite.Site{}
-	site.Roles = map[string]auth.Grants{"editor": updateGrants}
+	site.Roles = map[string]auth.RoleGrants{"editor": updateGrants}
 	site.ScopeProperties = map[identifier.Identifier]bool{internalCore.InstanceOfPropID: true}
 
 	// Documents share claim objects, so a claim present in a before and an after document serializes
@@ -244,7 +244,7 @@ func TestCheckChangePermissionGrantsHeld(t *testing.T) {
 		auth.ActionReadCode: {auth.ScopeDocuments},
 	})
 	require.NoError(t, errE, "% -+#.1v", errE)
-	site := rolesSite(map[string]auth.Grants{"admin": adminGrants, "reader": readerGrants})
+	site := rolesSite(map[string]auth.RoleGrants{"admin": adminGrants, "reader": readerGrants})
 
 	// The creator holds the update and permissions actions through the document's own claims (the
 	// shape the create-session seeding produces) and the read action through the reader role.
@@ -285,7 +285,7 @@ func TestCheckChangePermissionGrantsHeld(t *testing.T) {
 func TestCheckDocumentPermission(t *testing.T) {
 	t.Parallel()
 
-	site := rolesSite(map[string]auth.Grants{
+	site := rolesSite(map[string]auth.RoleGrants{
 		auth.RoleEveryone: auth.MustParseRoleGrants(map[string][]string{auth.ActionReadCode: {auth.ScopeAll}}),
 		"editor":          auth.MustParseRoleGrants(map[string][]string{auth.ActionUpdateCode: {auth.ScopeDocuments}}),
 	})
@@ -315,7 +315,7 @@ func TestCheckDocumentPermission(t *testing.T) {
 func TestCheckFilePermission(t *testing.T) {
 	t.Parallel()
 
-	site := rolesSite(map[string]auth.Grants{
+	site := rolesSite(map[string]auth.RoleGrants{
 		auth.RoleEveryone: auth.MustParseRoleGrants(map[string][]string{auth.ActionReadCode: {auth.ScopeAll}}),
 		"uploader":        auth.MustParseRoleGrants(map[string][]string{auth.ActionCreateCode: {auth.ScopeFiles}}),
 		"editor":          auth.MustParseRoleGrants(map[string][]string{auth.ActionUpdateCode: {auth.ScopeDocuments}}),
@@ -333,7 +333,7 @@ func TestCheckFilePermission(t *testing.T) {
 func TestCheckRoleDocumentPermission(t *testing.T) {
 	t.Parallel()
 
-	site := rolesSite(map[string]auth.Grants{
+	site := rolesSite(map[string]auth.RoleGrants{
 		auth.RoleEveryone: auth.MustParseRoleGrants(map[string][]string{auth.ActionReadCode: {auth.ScopeAll}}),
 		"editor":          auth.MustParseRoleGrants(map[string][]string{auth.ActionUpdateCode: {auth.ScopeDocuments}}),
 	})
@@ -459,7 +459,7 @@ func TestHasPermission(t *testing.T) {
 	errE := service.HasDocumentPermission(context.Background(), auth.ActionRead, nil)
 	assert.ErrorIs(t, errE, auth.ErrAccessDenied)
 
-	site := rolesSite(map[string]auth.Grants{
+	site := rolesSite(map[string]auth.RoleGrants{
 		auth.RoleEveryone: auth.MustParseRoleGrants(map[string][]string{auth.ActionReadCode: {auth.ScopeAll}}),
 	})
 	ctx := waf.WithSite(context.Background(), site)
@@ -488,7 +488,7 @@ func TestHasFilePermission(t *testing.T) {
 	errE := service.HasFilePermission(context.Background(), auth.ActionRead)
 	assert.ErrorIs(t, errE, auth.ErrAccessDenied)
 
-	site := rolesSite(map[string]auth.Grants{
+	site := rolesSite(map[string]auth.RoleGrants{
 		auth.RoleEveryone: auth.MustParseRoleGrants(map[string][]string{auth.ActionReadCode: {auth.ScopeAll}}),
 		"uploader":        auth.MustParseRoleGrants(map[string][]string{auth.ActionCreateCode: {auth.ScopeFiles}}),
 	})
@@ -511,10 +511,10 @@ func TestDefaultDocumentPreHook(t *testing.T) {
 	errE := peerdb.DefaultDocumentPreHook(context.Background(), identifier.New(), nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	openSite := rolesSite(map[string]auth.Grants{
+	openSite := rolesSite(map[string]auth.RoleGrants{
 		auth.RoleEveryone: auth.MustParseRoleGrants(map[string][]string{auth.ActionReadCode: {auth.ScopeAll}}),
 	})
-	closedSite := rolesSite(map[string]auth.Grants{})
+	closedSite := rolesSite(map[string]auth.RoleGrants{})
 
 	errE = peerdb.DefaultDocumentPreHook(waf.WithSite(context.Background(), openSite), identifier.New(), nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
@@ -531,10 +531,10 @@ func TestDefaultDocumentPreHook(t *testing.T) {
 func TestDefaultDocumentPostHook(t *testing.T) {
 	t.Parallel()
 
-	openSite := rolesSite(map[string]auth.Grants{
+	openSite := rolesSite(map[string]auth.RoleGrants{
 		auth.RoleEveryone: auth.MustParseRoleGrants(map[string][]string{auth.ActionReadCode: {auth.ScopeAll}}),
 	})
-	closedSite := rolesSite(map[string]auth.Grants{})
+	closedSite := rolesSite(map[string]auth.RoleGrants{})
 	doc := docWithClaims(t, identifier.New(), permissionClaim(t, identifier.New(), "collab", auth.ActionRead))
 	version := store.Version{Changeset: identifier.New(), Revision: 1}
 
@@ -598,10 +598,10 @@ func TestDefaultFilePreHook(t *testing.T) {
 	errE := peerdb.DefaultFilePreHook(context.Background(), identifier.New(), nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	openSite := rolesSite(map[string]auth.Grants{
+	openSite := rolesSite(map[string]auth.RoleGrants{
 		auth.RoleEveryone: auth.MustParseRoleGrants(map[string][]string{auth.ActionReadCode: {auth.ScopeAll}}),
 	})
-	documentsSite := rolesSite(map[string]auth.Grants{
+	documentsSite := rolesSite(map[string]auth.RoleGrants{
 		auth.RoleEveryone: auth.MustParseRoleGrants(map[string][]string{auth.ActionReadCode: {auth.ScopeDocuments}}),
 	})
 
@@ -618,16 +618,16 @@ func TestDefaultFilePreHook(t *testing.T) {
 func TestDefaultFilePostHook(t *testing.T) {
 	t.Parallel()
 
-	openSite := rolesSite(map[string]auth.Grants{
+	openSite := rolesSite(map[string]auth.RoleGrants{
 		auth.RoleEveryone: auth.MustParseRoleGrants(map[string][]string{auth.ActionReadCode: {auth.ScopeAll}}),
 	})
-	historicSite := rolesSite(map[string]auth.Grants{
+	historicSite := rolesSite(map[string]auth.RoleGrants{
 		auth.RoleEveryone: auth.MustParseRoleGrants(map[string][]string{
 			auth.ActionReadCode:         {auth.ScopeAll},
 			auth.ActionReadHistoricCode: {auth.ScopeAll},
 		}),
 	})
-	closedSite := rolesSite(map[string]auth.Grants{})
+	closedSite := rolesSite(map[string]auth.RoleGrants{})
 	version := store.Version{Changeset: identifier.New(), Revision: 1}
 	latestVersion := store.Version{Changeset: identifier.New(), Revision: 1}
 
@@ -696,7 +696,7 @@ func TestSessionPermissions(t *testing.T) {
 				DefaultLanguage:  "",
 				LanguageCodes:    nil,
 				Features:         internalSite.SiteFeatures{},
-				Roles: map[string]auth.Grants{
+				Roles: map[string]auth.RoleGrants{
 					auth.RoleEveryone: auth.MustParseRoleGrants(map[string][]string{auth.ActionReadCode: {auth.ScopeAll}}),
 					"creator":         auth.MustParseRoleGrants(map[string][]string{auth.ActionCreateCode: {auth.ScopeDocuments}}),
 				},

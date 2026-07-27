@@ -148,8 +148,7 @@ func TestHasPermissionClaim(t *testing.T) {
 	assert.True(t, auth.HasPermissionClaim(auth.ActionRead, "user1", doc))
 	assert.False(t, auth.HasPermissionClaim(auth.ActionUpdate, "user1", doc))
 	assert.False(t, auth.HasPermissionClaim(auth.ActionRead, "user2", doc))
-	assert.Len(t, auth.PermissionClaimScopes(auth.ActionRead, "user1", doc), 1)
-	assert.Empty(t, auth.PermissionClaimScopes(auth.ActionRead, "", doc))
+	assert.False(t, auth.HasPermissionClaim(auth.ActionRead, "", doc))
 
 	// The PERMISSION_USER sub-claim is required.
 	doc = makePermissionsDoc(t)
@@ -181,11 +180,11 @@ func TestHasPermissionClaim(t *testing.T) {
 	addPermissionClaim(t, doc, "user1", auth.ActionRead, document.LowConfidence/2, auth.ScopeSelf)
 	assert.False(t, auth.HasPermissionClaim(auth.ActionRead, "user1", doc))
 
-	// The create action never has claim scopes: a document's own claims cannot grant creating it.
+	// The create action is never granted: a document's own claims cannot grant creating it.
 	doc = makePermissionsDoc(t)
 	addPermissionClaim(t, doc, "user1", auth.ActionCreate, document.HighConfidence, auth.ScopeSelf)
 	assert.False(t, auth.HasPermissionClaim(auth.ActionCreate, "user1", doc))
-	assert.Empty(t, auth.PermissionClaimScopes(auth.ActionCreate, "user1", doc))
+	assert.Empty(t, auth.PermissionClaimGrants(doc))
 }
 
 func TestGrantsAllowsDocument(t *testing.T) {
@@ -196,26 +195,28 @@ func TestGrantsAllowsDocument(t *testing.T) {
 
 	doc := makePermissionsDoc(t)
 
-	// A role grant with a scope covering the document allows the action for any caller, including an
-	// anonymous one (an empty user).
-	assert.True(t, grants.AllowsDocument(auth.ActionRead, "", doc))
-	assert.True(t, grants.AllowsDocument(auth.ActionRead, "user1", doc))
-	assert.False(t, grants.AllowsDocument(auth.ActionUpdate, "user1", doc))
+	// A role grant with a scope covering the document allows the action.
+	assert.True(t, grants.AllowsDocument(auth.ActionRead, doc))
+	assert.False(t, grants.AllowsDocument(auth.ActionUpdate, doc))
 
 	// With a nil document the grants are checked against documents in general.
-	assert.True(t, grants.AllowsDocument(auth.ActionRead, "user1", nil))
-	assert.False(t, grants.AllowsDocument(auth.ActionUpdate, "user1", nil))
+	assert.True(t, grants.AllowsDocument(auth.ActionRead, nil))
+	assert.False(t, grants.AllowsDocument(auth.ActionUpdate, nil))
 
-	// The document's own permission claims allow the action also without a covering role grant, but
-	// only for the user they name, never for an anonymous caller, and never without a document.
+	// The document's own permission claims are a separate arm which does not flow through role
+	// grants: AllowsDocument stays false, while HasDocumentPermission combines both arms and grants
+	// the action to the user the claims name, never to an anonymous caller, and never without a
+	// document.
 	addPermissionClaim(t, doc, "user1", auth.ActionUpdate, document.HighConfidence, auth.ScopeSelf)
-	assert.True(t, grants.AllowsDocument(auth.ActionUpdate, "user1", doc))
-	assert.False(t, grants.AllowsDocument(auth.ActionUpdate, "user2", doc))
-	assert.False(t, grants.AllowsDocument(auth.ActionUpdate, "", doc))
-	assert.False(t, grants.AllowsDocument(auth.ActionUpdate, "user1", nil))
+	assert.False(t, grants.AllowsDocument(auth.ActionUpdate, doc))
+	roleGrants := map[string]auth.RoleGrants{auth.RoleEveryone: grants}
+	assert.True(t, auth.HasDocumentPermission(roleGrants, auth.ActionUpdate, "user1", nil, doc))
+	assert.False(t, auth.HasDocumentPermission(roleGrants, auth.ActionUpdate, "user2", nil, doc))
+	assert.False(t, auth.HasDocumentPermission(roleGrants, auth.ActionUpdate, "", nil, doc))
+	assert.False(t, auth.HasDocumentPermission(roleGrants, auth.ActionUpdate, "user1", nil, nil))
 
-	// Nil grants (a role without configuration) still consult the document's claims.
-	assert.True(t, auth.Grants(nil).AllowsDocument(auth.ActionUpdate, "user1", doc))
+	// Even without any role grants the claim arm applies.
+	assert.True(t, auth.HasDocumentPermission(nil, auth.ActionUpdate, "user1", nil, doc))
 
 	// Files are covered only by grants whose scopes match files.
 	assert.False(t, grants.AllowsFiles(auth.ActionRead))
@@ -250,14 +251,17 @@ func TestGrantsAllowsDocument(t *testing.T) {
 	})
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	assert.True(t, classGrants.AllowsDocument(auth.ActionRead, "", singleDoc))
-	assert.False(t, classGrants.AllowsDocument(auth.ActionRead, "", multiDoc))
-	assert.True(t, bothGrants.AllowsDocument(auth.ActionRead, "", multiDoc))
-	assert.False(t, classGrants.AllowsDocument(auth.ActionRead, "", makePermissionsDoc(t)))
+	assert.True(t, classGrants.AllowsDocument(auth.ActionRead, singleDoc))
+	assert.False(t, classGrants.AllowsDocument(auth.ActionRead, multiDoc))
+	assert.True(t, bothGrants.AllowsDocument(auth.ActionRead, multiDoc))
+	assert.False(t, classGrants.AllowsDocument(auth.ActionRead, makePermissionsDoc(t)))
 
-	// An unknown literal scope cannot come out of ParseRoleGrants, so evaluating one panics.
-	bogus := auth.Grants{auth.ActionRead: {auth.Scope{Literal: "unknown", Prop: identifier.Identifier{}, Value: identifier.Identifier{}}}}
-	assert.Panics(t, func() { bogus.AllowsDocument(auth.ActionRead, "", singleDoc) })
+	// An unknown literal scope cannot come out of ParseRoleGrants, so evaluating one panics, and so
+	// does the self scope, which is valid only in document-level permission claims.
+	bogus := auth.RoleGrants{auth.ActionRead: {auth.Scope{Literal: "unknown", Prop: identifier.Identifier{}, Value: identifier.Identifier{}}}}
+	assert.Panics(t, func() { bogus.AllowsDocument(auth.ActionRead, singleDoc) })
+	selfish := auth.RoleGrants{auth.ActionRead: {auth.Scope{Literal: auth.ScopeSelf, Prop: identifier.Identifier{}, Value: identifier.Identifier{}}}}
+	assert.Panics(t, func() { selfish.AllowsDocument(auth.ActionRead, singleDoc) })
 }
 
 func TestScopeProperties(t *testing.T) {
@@ -277,7 +281,7 @@ func TestScopeProperties(t *testing.T) {
 	})
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	properties := auth.ScopeProperties(map[string]auth.Grants{"role1": grants1, "role2": grants2})
+	properties := auth.ScopeProperties(map[string]auth.RoleGrants{"role1": grants1, "role2": grants2})
 	assert.Equal(t, map[identifier.Identifier]bool{prop1: true, prop2: true}, properties)
 }
 
@@ -286,7 +290,7 @@ func TestScopeProperties(t *testing.T) {
 func TestGrantsUnmarshalYAML(t *testing.T) {
 	t.Parallel()
 
-	var grants auth.Grants
+	var grants auth.RoleGrants
 	err := yaml.Unmarshal([]byte("ACTION_READ: [all, documents&files]\nACTION_UPDATE: [documents]"), &grants)
 	require.NoError(t, err)
 	assert.Len(t, grants[auth.ActionRead], 3)
@@ -313,7 +317,7 @@ func TestHasDocumentPermission(t *testing.T) {
 		auth.ActionCreateCode: {internalCore.Namespace + ",INSTANCE_OF=" + class1.String()},
 	})
 	require.NoError(t, errE, "% -+#.1v", errE)
-	grants := map[string]auth.Grants{"creator1": createGrants}
+	grants := map[string]auth.RoleGrants{"creator1": createGrants}
 
 	makeDoc := func(class *identifier.Identifier) *document.D {
 		doc := makePermissionsDoc(t)
@@ -372,7 +376,7 @@ func TestHasFilePermission(t *testing.T) {
 		auth.ActionUpdateCode: {auth.ScopeFiles},
 	})
 	require.NoError(t, errE, "% -+#.1v", errE)
-	grants := map[string]auth.Grants{"editor1": fileGrants}
+	grants := map[string]auth.RoleGrants{"editor1": fileGrants}
 
 	assert.True(t, auth.HasFilePermission(grants, auth.ActionUpdate, []string{"editor1"}))
 	assert.False(t, auth.HasFilePermission(grants, auth.ActionUpdate, []string{"other"}))
@@ -381,4 +385,25 @@ func TestHasFilePermission(t *testing.T) {
 	// A grant of the reserved everyone role applies without any listed roles.
 	grants[auth.RoleEveryone] = fileGrants
 	assert.True(t, auth.HasFilePermission(grants, auth.ActionUpdate, nil))
+}
+
+// TestPermissionClaimGrants verifies the enumeration of document-level permission grants and that it
+// matches HasPermissionClaim exactly.
+func TestPermissionClaimGrants(t *testing.T) {
+	t.Parallel()
+
+	doc := makePermissionsDoc(t)
+	addPermissionClaim(t, doc, "user1", auth.ActionRead, document.HighConfidence, auth.ScopeSelf)
+	addPermissionClaim(t, doc, "user2", auth.ActionRead, document.HighConfidence, auth.ScopeSelf)
+	addPermissionClaim(t, doc, "user1", auth.ActionUpdate, document.HighConfidence, auth.ScopeSelf)
+	// A claim without the self scope, a claim below low confidence, and a create-action claim
+	// contribute nothing.
+	addPermissionClaim(t, doc, "user3", auth.ActionRead, document.HighConfidence, auth.ScopeAll)
+	addPermissionClaim(t, doc, "user4", auth.ActionRead, document.LowConfidence/2, auth.ScopeSelf)
+	addPermissionClaim(t, doc, "user5", auth.ActionCreate, document.HighConfidence, auth.ScopeSelf)
+
+	assert.Equal(t, map[identifier.Identifier][]string{
+		auth.ActionRead:   {"user1", "user2"},
+		auth.ActionUpdate: {"user1"},
+	}, auth.PermissionClaimGrants(doc))
 }

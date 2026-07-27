@@ -11,6 +11,7 @@ import (
 	"gitlab.com/tozd/go/x"
 	"gitlab.com/tozd/identifier"
 
+	"gitlab.com/peerdb/peerdb/auth"
 	"gitlab.com/peerdb/peerdb/coordinator"
 	"gitlab.com/peerdb/peerdb/document"
 	internalStore "gitlab.com/peerdb/peerdb/internal/store"
@@ -451,4 +452,25 @@ func (p *primaryCoordinator) ChangesetID(ctx context.Context, session identifier
 	changesetBase = append(changesetBase, "SESSION", session.String())
 
 	return identifier.From(changesetBase...), nil
+}
+
+// DefaultEndEditPermissionCheck is the default end-edit permission check (see
+// EndEditPermissionCheck): completing an edit session (committing it, or discarding it, which
+// destroys the session for everyone) requires the update action on the session's resulting
+// document, evaluated with auth.HasDocumentPermission against Roles, so the document's own
+// permission claims count besides role grants: removing the claim granting the subject the update
+// action makes the completion itself fail. Sessions ended through the HTTP API are also gated when
+// the end is requested, but this check at completion is the authoritative one: it sees the final
+// change list.
+func (b *B) DefaultEndEditPermissionCheck(user *store.User, roles []string, doc *document.D) errors.E {
+	subject := ""
+	if user != nil {
+		subject = user.ID
+	}
+	if auth.HasDocumentPermission(b.Roles, auth.ActionUpdate, subject, roles, doc) {
+		return nil
+	}
+	errE := errors.WithStack(auth.ErrAccessDenied)
+	errors.Details(errE)["action"] = auth.ActionUpdate.String()
+	return errE
 }

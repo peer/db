@@ -55,7 +55,7 @@ type Service struct {
 //nolint:ireturn
 func (s *Service) lookupSiteAuthenticator(
 	w http.ResponseWriter, req *http.Request,
-) (auth.Authenticator, map[string]auth.Grants, []auth.VisibilityLevel, bool) {
+) (auth.Authenticator, map[string]auth.RoleGrants, []auth.VisibilityLevel, bool) {
 	site, ok := waf.GetSite[*internalSite.Site](req.Context())
 	if !ok {
 		s.InternalServerErrorWithError(w, req, errors.New("no site in request context"))

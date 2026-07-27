@@ -73,6 +73,14 @@ type B struct {
 	// via SUBPROPERTY_OF. Disabled by default.
 	IndexAncestorProperties bool
 
+	// Roles maps role names to the permission actions each role grants. Indexing evaluates with it
+	// which roles and users may read each document and records them on the document's search entry,
+	// which the default search query hook matches against the caller (see DefaultSearchQueryHook),
+	// and the default end-edit permission check evaluates it at completion time (see
+	// DefaultEndEditPermissionCheck). Role grants are baked into the index, so changing them requires
+	// a full reindex.
+	Roles map[string]auth.RoleGrants
+
 	// IndexingNormalizeHooks transform a document for indexing before it is augmented with embedded claims
 	// and synthetic incoming inverse claims. The bridge runs them per visibility level, on that level's
 	// copy of the document read from the store, with the level's visibility in ctx and no caller identity
@@ -134,11 +142,15 @@ type B struct {
 	IndexingSourceCheck func(ctx context.Context, doc *document.D, metadata *store.DocumentMetadata) errors.E
 
 	// DocumentPreHooks are called before fetching the document from the store on the read/API path.
-	// They are not called during indexing.
+	// They are not called during indexing. PeerDB seeds the list with the default
+	// permission-enforcing hook before the site customizer runs, so a customizer appending its own
+	// hooks keeps the enforcement; replacing it means assigning the list anew.
 	DocumentPreHooks []func(ctx context.Context, id identifier.Identifier, version *store.Version) errors.E
 
 	// DocumentPostHooks are called after fetching the document from the store on the read/API path.
-	// They are not called during indexing. Besides the fetched document they receive the document at
+	// They are not called during indexing. PeerDB seeds the list with the default permission-enforcing
+	// hook before the site customizer runs, so a customizer appending its own hooks keeps the enforcement.
+	// Replacing it means assigning the list anew. Besides the fetched document they receive the document at
 	// its latest version, fetched raw: for a read of the latest version it has the same content as
 	// the fetched document but is never the same instance (so transforming the fetched document does
 	// not affect it), and it is nil when the document is deleted at its latest version (the read
@@ -150,17 +162,21 @@ type B struct {
 		ctx context.Context, doc, latest *document.D, metadata *store.DocumentMetadata, version store.Version, parentChangesets []store.Version, errE errors.E,
 	) (*document.D, *store.DocumentMetadata, store.Version, []store.Version, errors.E)
 
-	// FilePreHooks are called before fetching the file from the store.
+	// FilePreHooks are called before fetching the file from the store. PeerDB seeds the list with
+	// the default permission-enforcing hook before the site customizer runs, so a customizer
+	// appending its own hooks keeps the enforcement; replacing it means assigning the list anew.
 	FilePreHooks []func(ctx context.Context, id identifier.Identifier, version *store.Version) errors.E
 
-	// FilePostHooks are called after fetching the file from the store. The file is an open handle on
-	// the contents; a hook that drops or replaces it (returns a different handle or a non-nil error)
-	// is responsible for closing the handle it received. Besides the fetched file they receive the
-	// version of the file's latest version, read raw: for a read of the latest version it is the
-	// fetched version itself, and it is nil when the file is deleted at its latest version (the read
-	// error then reports the deletion, so access to versions of a deleted file is for the hooks to
-	// decide by transforming the error). It is input for permission checks, is shared between the
-	// hooks, and must not be modified.
+	// FilePostHooks are called after fetching the file from the store. PeerDB seeds the list with
+	// the default permission-enforcing hook before the site customizer runs, so a customizer
+	// appending its own hooks keeps the enforcement. Teplacing it means assigning the list anew.
+	// The file is an open handle on the contents. A hook that drops or replaces it (returns a different
+	// handle or a non-nil error) is responsible for closing the handle it received. Besides the fetched
+	// file they receive the version of the file's latest version, read raw: for a read of the latest
+	// version it is the fetched version itself, and it is nil when the file is deleted at its latest
+	// version (the read error then reports the deletion, so access to versions of a deleted file is
+	// for the hooks to decide by transforming the error). It is input for permission checks, is
+	// shared between the hooks, and must not be modified.
 	FilePostHooks []func(
 		ctx context.Context, file io.ReadSeekCloser, latestVersion *store.Version, metadata *storage.FileMetadata, version store.Version, parentChangesets []store.Version, errE errors.E,
 	) (io.ReadSeekCloser, *storage.FileMetadata, store.Version, []store.Version, errors.E)
@@ -173,7 +189,9 @@ type B struct {
 	// the session's changes is not re-evaluated here, because each change was authorized against
 	// its author when it was appended (see ChangePermissionCheck). A non-nil error rejects the
 	// completion: the session completes as errored and nothing is committed. Sessions ended through
-	// a context marked with WithSystemSession skip the check.
+	// a context marked with WithSystemSession skip the check. PeerDB assigns a default before the
+	// site customizer runs (see DefaultEndEditPermissionCheck), so a customizer can keep, wrap,
+	// replace, or disable it (by setting it to nil).
 	EndEditPermissionCheck func(user *store.User, roles []string, doc *document.D) errors.E
 
 	// ChangePermissionCheck, when set, is called for every change appended to an edit session, with
@@ -182,7 +200,10 @@ type B struct {
 	// appending caller in ctx, at append time, and that authorization is final (it is not
 	// re-evaluated when the session completes, see EndEditPermissionCheck). A non-nil error rejects
 	// the append and nothing is stored. Both document states are shared and must not be modified.
-	// Changes appended through a context marked with WithSystemSession skip the check.
+	// Changes appended through a context marked with WithSystemSession skip the check. PeerDB
+	// assigns a default before the site customizer runs (authorizing each change against the
+	// caller's permissions), so a customizer can keep, wrap, replace, or disable it (by setting it
+	// to nil).
 	ChangePermissionCheck func(ctx context.Context, before, after *document.D, change document.Change) errors.E
 
 	// CreateDocumentSeed, when set, is called when a create session is opened through the HTTP API,
@@ -201,6 +222,10 @@ type B struct {
 	// which documents searches can see based on the caller. A nil query means no
 	// restriction. It is not applied to the corpus-wide ScoreFactor statistic or
 	// the internal reference-score count, which run without a caller.
+	//
+	// PeerDB assigns a default before the site customizer runs (see DefaultSearchQueryHook), so a
+	// customizer can keep, wrap, replace, or disable it (by setting it to nil, search is then
+	// unrestricted). The default hides the documents the caller cannot read, matching the read path.
 	//
 	// TODO: Gate search ranking to constant scores before returning a per-document (per-user) ACL filter here, to avoid leaking document existence through _score.
 	//       A filter returned here drops documents from the result set but not from the relevance-scoring collection
@@ -367,6 +392,7 @@ func (b *B) Start(ctx context.Context, documents []StartDocument) (func(), error
 		converter.IndexAncestorProperties = b.IndexAncestorProperties
 		converter.DetectLanguages = true
 		converter.CountReferences = b.bridge.CountReferencesFunc(level)
+		converter.Roles = b.Roles
 		converter.FinalizeHooks = b.IndexingFinalizeHooks
 		if i == len(b.Levels)-1 {
 			// The converter derived language codes from the language documents while being built.

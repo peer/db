@@ -38,7 +38,7 @@ import (
 // already guarantee that every level's documents are readable by the level's searchers can set the
 // check to nil, taking over the invariant documented on B.IndexingSourceCheck itself.
 func DefaultIndexingSourceCheck(
-	visibility []auth.VisibilityLevel, grants map[string]auth.Grants, logWarning bool,
+	visibility []auth.VisibilityLevel, grants map[string]auth.RoleGrants, logWarning bool,
 ) func(ctx context.Context, doc *document.D, metadata *store.DocumentMetadata) errors.E {
 	// Precompute per level the minimal searcher audiences. A request resolves to the highest level among
 	// its roles, with a no-roles first level as the floor for requests (including anonymous ones) whose

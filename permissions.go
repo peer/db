@@ -147,7 +147,7 @@ func changedClaimProperties(before, after *document.D) (map[identifier.Identifie
 		}
 	}
 	var grantedActions []identifier.Identifier
-	// The confidence threshold matches auth.PermissionClaimScopes: a claim below it grants nothing,
+	// The confidence threshold matches auth.PermissionClaimGrants: a claim below it grants nothing,
 	// and raising its confidence later is a change of the claim, so it is included here then.
 	for _, claim := range document.GetClaimsOfTypeWithConfidence[document.ReferenceClaim](after, internalCore.HasPermissionPropID, document.LowConfidence) {
 		beforeClaim, ok := beforeClaims[claim.ID]

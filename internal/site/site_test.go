@@ -14,7 +14,7 @@ import (
 func TestValidateVisibility(t *testing.T) {
 	t.Parallel()
 
-	roles := map[string]auth.Grants{
+	roles := map[string]auth.RoleGrants{
 		"public":     nil,
 		"researcher": nil,
 		"reviewer":   nil,
@@ -24,7 +24,7 @@ func TestValidateVisibility(t *testing.T) {
 
 	tests := []struct {
 		name       string
-		roles      map[string]auth.Grants
+		roles      map[string]auth.RoleGrants
 		visibility []auth.VisibilityLevel
 		wantErr    string
 	}{

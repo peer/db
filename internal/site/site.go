@@ -163,9 +163,9 @@ type Site struct {
 	// are named by their codes (e.g. ACTION_READ, see auth.Actions). The map keys also act as the
 	// allowlist of roles a token may bind to a request: any role a token claims that is not a key here
 	// is dropped at authentication time so it cannot leak into auth.Roles or the Roles response header.
-	// Grants under the reserved empty name (auth.RoleEveryone) apply to every caller, authenticated or
+	// The grants under the reserved empty name (auth.RoleEveryone) apply to every caller, authenticated or
 	// not. When empty, everything is readable by everyone and nothing else is allowed.
-	Roles map[string]auth.Grants `json:"roles,omitempty" yaml:"roles,omitempty"`
+	Roles map[string]auth.RoleGrants `json:"roles,omitempty" yaml:"roles,omitempty"`
 
 	// ScopeProperties are the properties participating in claim scopes of any role grant, resolved
 	// from Roles during validation. Claims of these properties determine which documents role grants
@@ -289,12 +289,12 @@ func (s *Site) Validate() error {
 }
 
 // validateRoles normalizes the Roles configuration (grants are already parsed and validated while
-// unmarshaling, see auth.Grants.UnmarshalYAML) and resolves ScopeProperties from it. When Roles is
+// unmarshaling, see auth.RoleGrants.UnmarshalYAML) and resolves ScopeProperties from it. When Roles is
 // empty it is set to the default under which everything is readable by everyone and nothing else is
 // allowed; making anything writable requires configuring grants (in the configuration or in code).
 func (s *Site) validateRoles() {
 	if len(s.Roles) == 0 {
-		s.Roles = map[string]auth.Grants{
+		s.Roles = map[string]auth.RoleGrants{
 			auth.RoleEveryone: auth.MustParseRoleGrants(map[string][]string{auth.ActionReadCode: {auth.ScopeAll}}),
 		}
 	}

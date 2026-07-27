@@ -69,7 +69,7 @@ func TestSearchVisibilityReadRouting(t *testing.T) {
 						DefaultLanguage:      "",
 						LanguageCodes:        nil,
 						Features:             internalSite.SiteFeatures{},
-						Roles:                map[string]auth.Grants{"researcher": nil},
+						Roles:                map[string]auth.RoleGrants{"researcher": nil},
 						ScopeProperties:      nil,
 						Visibility:           tt.visibility,
 						Auth:                 internalSite.SiteAuthConfig{},

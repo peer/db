@@ -165,7 +165,7 @@ func TestAuthenticateRoleRaisesFloor(t *testing.T) {
 	req.Header.Set("Authorization", "Bearer "+token)
 	w := httptest.NewRecorder()
 
-	ctx := authenticator.Authenticate(w, req, "", map[string]auth.Grants{"editor": nil}, visibility)
+	ctx := authenticator.Authenticate(w, req, "", map[string]auth.RoleGrants{"editor": nil}, visibility)
 	assert.Equal(t, "editor", auth.Visibility(ctx))
 }
 
@@ -190,7 +190,7 @@ func TestAuthenticateFiltersRoleWildcard(t *testing.T) {
 	req.Header.Set("Authorization", "Bearer "+token)
 	w := httptest.NewRecorder()
 
-	ctx := authenticator.Authenticate(w, req, "", map[string]auth.Grants{"editor": nil}, nil)
+	ctx := authenticator.Authenticate(w, req, "", map[string]auth.RoleGrants{"editor": nil}, nil)
 	assert.Equal(t, []string{"editor"}, auth.Roles(ctx))
 }
 
@@ -212,7 +212,7 @@ func TestAuthenticateReadsScpArray(t *testing.T) {
 	req.Header.Set("Authorization", "Bearer "+token)
 	w := httptest.NewRecorder()
 
-	ctx := authenticator.Authenticate(w, req, "", map[string]auth.Grants{"admin": nil, "viewer": nil}, nil)
+	ctx := authenticator.Authenticate(w, req, "", map[string]auth.RoleGrants{"admin": nil, "viewer": nil}, nil)
 	assert.ElementsMatch(t, []string{"admin", "viewer"}, auth.Roles(ctx))
 }
 
@@ -318,7 +318,7 @@ func TestAuthenticateAttachesIdentityToContext(t *testing.T) {
 	req.Header.Set("Authorization", "Bearer "+token)
 	w := httptest.NewRecorder()
 
-	ctx := authenticator.Authenticate(w, req, "", map[string]auth.Grants{"admin": nil}, nil)
+	ctx := authenticator.Authenticate(w, req, "", map[string]auth.RoleGrants{"admin": nil}, nil)
 
 	subject, ok := auth.Subject(ctx)
 	require.True(t, ok)
@@ -410,7 +410,7 @@ func TestAuthenticateValidatesCookieToken(t *testing.T) {
 	req.AddCookie(&http.Cookie{Name: auth.TestingAccessTokenCookieName, Value: token}) //nolint:exhaustruct,gosec
 	w := httptest.NewRecorder()
 
-	ctx := authenticator.Authenticate(w, req, "", map[string]auth.Grants{"editor": nil}, nil)
+	ctx := authenticator.Authenticate(w, req, "", map[string]auth.RoleGrants{"editor": nil}, nil)
 
 	subject, ok := auth.Subject(ctx)
 	require.True(t, ok)
@@ -471,7 +471,7 @@ func TestAuthenticateDropsRolesNotInAllowedSet(t *testing.T) {
 	req.Header.Set("Authorization", "Bearer "+token)
 	w := httptest.NewRecorder()
 
-	ctx := authenticator.Authenticate(w, req, "", map[string]auth.Grants{"admin": nil, "editor": nil}, nil)
+	ctx := authenticator.Authenticate(w, req, "", map[string]auth.RoleGrants{"admin": nil, "editor": nil}, nil)
 
 	subject, ok := auth.Subject(ctx)
 	require.True(t, ok)
@@ -531,7 +531,7 @@ func TestMockAuthenticatorMintsValidJWT(t *testing.T) {
 	req.Header.Set("Authorization", "Bearer "+token)
 	w := httptest.NewRecorder()
 
-	ctx = a.Authenticate(w, req, "", map[string]auth.Grants{"admin": nil, "editor": nil}, nil)
+	ctx = a.Authenticate(w, req, "", map[string]auth.RoleGrants{"admin": nil, "editor": nil}, nil)
 
 	_, ok := auth.Subject(ctx)
 	require.True(t, ok)
@@ -583,7 +583,7 @@ func TestMockAuthenticatorFiltersRolesByAllowedSet(t *testing.T) {
 
 	// Allowed set excludes "editor": even though the mock-minted JWT
 	// claimed both, Authenticate must drop the unallowed one.
-	ctx = a.Authenticate(w, req, "", map[string]auth.Grants{"admin": nil}, nil)
+	ctx = a.Authenticate(w, req, "", map[string]auth.RoleGrants{"admin": nil}, nil)
 
 	assert.Equal(t, []string{"admin"}, auth.Roles(ctx))
 }
@@ -615,7 +615,7 @@ func TestMockAuthenticatorResolvesRolesAtSignIn(t *testing.T) {
 	req.Header.Set("Authorization", "Bearer "+token)
 	w := httptest.NewRecorder()
 
-	ctx = a.Authenticate(w, req, "", map[string]auth.Grants{"admin": nil, "editor": nil}, nil)
+	ctx = a.Authenticate(w, req, "", map[string]auth.RoleGrants{"admin": nil, "editor": nil}, nil)
 
 	assert.ElementsMatch(t, []string{"admin", "editor"}, auth.Roles(ctx))
 }
@@ -665,7 +665,7 @@ func TestMockAuthenticatorIsolatesPerSite(t *testing.T) {
 	req.Header.Set("Authorization", "Bearer "+tokenA)
 	w := httptest.NewRecorder()
 
-	ctx = siteB.Authenticate(w, req, "", map[string]auth.Grants{"admin": nil}, nil)
+	ctx = siteB.Authenticate(w, req, "", map[string]auth.RoleGrants{"admin": nil}, nil)
 
 	_, ok := auth.Subject(ctx)
 	assert.False(t, ok)
@@ -695,7 +695,7 @@ func TestSignOutRevokesToken(t *testing.T) {
 		req := httptest.NewRequestWithContext(ctx, http.MethodGet, "/api/whatever", nil)
 		req.Header.Set("Authorization", "Bearer "+token)
 		w := httptest.NewRecorder()
-		authCtx := a.Authenticate(w, req, "", map[string]auth.Grants{"admin": nil}, nil)
+		authCtx := a.Authenticate(w, req, "", map[string]auth.RoleGrants{"admin": nil}, nil)
 		_, ok := auth.Subject(authCtx)
 		require.True(t, ok, "first Authenticate should accept the token")
 	}
@@ -716,7 +716,7 @@ func TestSignOutRevokesToken(t *testing.T) {
 		req := httptest.NewRequestWithContext(ctx, http.MethodGet, "/api/whatever", nil)
 		req.Header.Set("Authorization", "Bearer "+token)
 		w := httptest.NewRecorder()
-		authCtx := a.Authenticate(w, req, "", map[string]auth.Grants{"admin": nil}, nil)
+		authCtx := a.Authenticate(w, req, "", map[string]auth.RoleGrants{"admin": nil}, nil)
 		_, ok := auth.Subject(authCtx)
 		assert.False(t, ok, "Authenticate should reject the revoked token")
 		assert.Empty(t, auth.Roles(authCtx))

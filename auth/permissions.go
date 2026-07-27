@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"maps"
 	"slices"
 	"strings"
 
@@ -197,18 +198,24 @@ func ParseScopes(expression string) ([]Scope, errors.E) {
 }
 
 // scopesAllowDocument reports whether the scopes, evaluated together, allow an action on the given
-// document. The all and documents scopes allow every document on their own, and so does the self scope
-// (it comes only from the document's own permission claims, extracted by PermissionClaimScopes, and
-// covers the document carrying them). Claim scopes have to be fully satisfied by the document: for
-// every property among them which the document carries, every value the document carries has to be
-// granted (so a document with multiple instance_of claims requires all of its classes to be granted),
-// and at least one such property has to be present on the document. The files scope allows no document.
+// document. The all and documents scopes allow every document on their own. Claim scopes have to be
+// fully satisfied by the document: for every property among them which the document carries, every
+// value the document carries has to be granted (so a document with multiple INSTANCE_OF claims
+// requires all of its classes to be granted), and at least one such property has to be present on
+// the document. The files scope allows no document, and the self scope never appears here: it is
+// valid only in document-level permission claims, which are evaluated by PermissionClaimGrants, not
+// as scopes.
 func scopesAllowDocument(scopes []Scope, doc *document.D) bool {
 	values := map[identifier.Identifier]map[identifier.Identifier]bool{}
 	for _, scope := range scopes {
 		switch scope.Literal {
-		case ScopeAll, ScopeDocuments, ScopeSelf:
+		case ScopeAll, ScopeDocuments:
 			return true
+		case ScopeSelf:
+			// The self scope never appears in role grants (ParseRoleGrants rejects it).
+			errE := errors.New("unexpected scope")
+			errors.Details(errE)["scope"] = scope.Literal
+			panic(errE)
 		case ScopeFiles:
 			continue
 		case "":
@@ -239,18 +246,18 @@ func scopesAllowDocument(scopes []Scope, doc *document.D) bool {
 	return present
 }
 
-// Grants maps permission actions (by the document IDs of the PERMISSION_ACTIONS vocabulary values) to the
+// RoleGrants maps permission actions (by the document IDs of the PERMISSION_ACTIONS vocabulary values) to the
 // scopes they are granted with. In YAML configuration, grants are written as a map of permission action
 // codes to lists of permission scope expressions (see ParseRoleGrants); they marshal to JSON in their
 // resolved form (action document IDs and resolved scope strings), so JSON consumers do not need to parse
 // expressions.
 //
 //nolint:recvcheck
-type Grants map[identifier.Identifier][]Scope
+type RoleGrants map[identifier.Identifier][]Scope
 
-// UnmarshalYAML implements yaml.Unmarshaler for Grants: it parses a map of permission action codes to
+// UnmarshalYAML implements yaml.Unmarshaler for RoleGrants: it parses a map of permission action codes to
 // lists of permission scope expressions and resolves it with ParseRoleGrants.
-func (g *Grants) UnmarshalYAML(value *yaml.Node) error {
+func (g *RoleGrants) UnmarshalYAML(value *yaml.Node) error {
 	var actions map[string][]string
 	err := value.Decode(&actions)
 	if err != nil {
@@ -265,10 +272,10 @@ func (g *Grants) UnmarshalYAML(value *yaml.Node) error {
 }
 
 // ParseRoleGrants validates and resolves one role's action configuration (a map from action codes to
-// permission scope expressions) into Grants. The self scope is rejected (it is valid only in
+// permission scope expressions) into RoleGrants. The self scope is rejected (it is valid only in
 // document-level permission claims) and the bulk read action supports only the all scope.
-func ParseRoleGrants(actions map[string][]string) (Grants, errors.E) {
-	grants := Grants{}
+func ParseRoleGrants(actions map[string][]string) (RoleGrants, errors.E) {
+	grants := RoleGrants{}
 	for code, expressions := range actions {
 		action, ok := Actions[code]
 		if !ok {
@@ -305,7 +312,7 @@ func ParseRoleGrants(actions map[string][]string) (Grants, errors.E) {
 
 // MustParseRoleGrants is like ParseRoleGrants but panics on error. It is intended for role
 // configurations fixed in code.
-func MustParseRoleGrants(actions map[string][]string) Grants {
+func MustParseRoleGrants(actions map[string][]string) RoleGrants {
 	grants, errE := ParseRoleGrants(actions)
 	if errE != nil {
 		panic(errE)
@@ -313,34 +320,23 @@ func MustParseRoleGrants(actions map[string][]string) Grants {
 	return grants
 }
 
-// PermissionClaimScopes returns the scopes of the document's own permission claims granting the user
-// the action: for every HAS_PERMISSION claim with the action as the value and a PERMISSION_USER
-// sub-claim with the user, the scopes of its PERMISSION_SCOPE sub-claims which are valid in
-// document-level permission claims (currently only the self scope). Both sub-claims are required, so a
-// permission claim without them (or with only invalid scopes) contributes nothing, and an empty user
-// (an anonymous caller) has no scopes, because permission claims always name a user. The create action
-// never has claim scopes: a document's own claims cannot grant creating it, because when they are
-// evaluated during creation they were written by the creating session itself and must not
-// self-authorize it, and afterwards the document already exists.
-func PermissionClaimScopes(action identifier.Identifier, user string, doc *document.D) []Scope {
-	if user == "" || action == ActionCreate {
-		return nil
-	}
-	var scopes []Scope
+// PermissionClaimGrants returns, per permission action, the users the document's own permission
+// claims grant that action. A HAS_PERMISSION claim grants the action it references to the users its
+// PERMISSION_USER sub-claims name when one of its PERMISSION_SCOPE sub-claims carries the self
+// scope, the only scope valid in document-level permission claims (other scopes are ignored). The
+// claim and both sub-claims count only at or above low confidence, and an empty user is ignored
+// (permission claims always name a user). The create action is never granted: a document's own
+// claims cannot grant creating it, because when they are evaluated during creation they were
+// written by the creating session itself and must not self-authorize it, and afterwards the
+// document already exists. Users are unique and sorted per action.
+func PermissionClaimGrants(doc *document.D) map[identifier.Identifier][]string {
+	users := map[identifier.Identifier]map[string]bool{}
 	for _, claim := range document.GetClaimsOfTypeWithConfidence[document.ReferenceClaim](doc, internalCore.HasPermissionPropID, document.LowConfidence) {
-		if claim.To.ID != action {
+		action := claim.To.ID
+		if action == ActionCreate {
 			continue
 		}
-		userMatches := false
-		for _, sub := range document.GetClaimsOfTypeWithConfidence[document.IdentifierClaim](claim, internalCore.PermissionUserPropID, document.LowConfidence) {
-			if sub.Value == user {
-				userMatches = true
-				break
-			}
-		}
-		if !userMatches {
-			continue
-		}
+		selfScope := false
 		for _, sub := range document.GetClaimsOfTypeWithConfidence[document.StringClaim](claim, internalCore.PermissionScopePropID, document.LowConfidence) {
 			parsed, errE := ParseScopes(sub.String)
 			if errE != nil {
@@ -349,27 +345,43 @@ func PermissionClaimScopes(action identifier.Identifier, user string, doc *docum
 			for _, scope := range parsed {
 				// Other scopes are not allowed at document-level permissions, but we ignore them.
 				if scope.Literal == ScopeSelf {
-					scopes = append(scopes, scope)
+					selfScope = true
 				}
 			}
 		}
+		if !selfScope {
+			continue
+		}
+		for _, sub := range document.GetClaimsOfTypeWithConfidence[document.IdentifierClaim](claim, internalCore.PermissionUserPropID, document.LowConfidence) {
+			if sub.Value == "" {
+				continue
+			}
+			if users[action] == nil {
+				users[action] = map[string]bool{}
+			}
+			users[action][sub.Value] = true
+		}
 	}
-	return scopes
+	grants := make(map[identifier.Identifier][]string, len(users))
+	for action, us := range users {
+		grants[action] = slices.Sorted(maps.Keys(us))
+	}
+	return grants
 }
 
-// HasPermissionClaim reports whether the document's own permission claims grant the user the action:
-// whether the scopes extracted from them by PermissionClaimScopes allow the document.
-func HasPermissionClaim(action identifier.Identifier, user string, doc *document.D) bool {
-	return scopesAllowDocument(PermissionClaimScopes(action, user, doc), doc)
+// HasPermissionClaim reports whether the document's own permission claims grant the subject the action
+// (see PermissionClaimGrants).
+func HasPermissionClaim(action identifier.Identifier, subject string, doc *document.D) bool {
+	return slices.Contains(PermissionClaimGrants(doc)[action], subject)
 }
 
-// AllowsDocument reports whether the grants allow the user the action on the given document: the
-// scopes granted for the action and the scopes extracted from the document's own permission claims
-// granting the user the action (see PermissionClaimScopes) together form one list which has to allow
-// the document (see scopesAllowDocument for how the document has to fully satisfy claim scopes). With
-// a nil document it reports whether the grants allow the action on documents at all (any scope which
-// can cover a document counts); there are then no document claims to consult.
-func (g Grants) AllowsDocument(action identifier.Identifier, user string, doc *document.D) bool {
+// AllowsDocument reports whether the grants allow the action on the given document: whether the
+// scopes granted for the action allow it (see scopesAllowDocument for how the document has to fully
+// satisfy claim scopes). With a nil document it reports whether the grants allow the action on
+// documents at all (any scope which can cover a document counts). The document's own permission
+// claims are not consulted: they grant actions to named users independently of any role (see
+// PermissionClaimGrants), and HasDocumentPermission combines both.
+func (g RoleGrants) AllowsDocument(action identifier.Identifier, doc *document.D) bool {
 	if doc == nil {
 		for _, scope := range g[action] {
 			if scope.CoversDocuments() {
@@ -379,11 +391,11 @@ func (g Grants) AllowsDocument(action identifier.Identifier, user string, doc *d
 		return false
 	}
 
-	return scopesAllowDocument(slices.Concat(g[action], PermissionClaimScopes(action, user, doc)), doc)
+	return scopesAllowDocument(g[action], doc)
 }
 
 // AllowsFiles reports whether the grants allow the action on files.
-func (g Grants) AllowsFiles(action identifier.Identifier) bool {
+func (g RoleGrants) AllowsFiles(action identifier.Identifier) bool {
 	for _, scope := range g[action] {
 		if scope.MatchesFiles() {
 			return true
@@ -393,25 +405,29 @@ func (g Grants) AllowsFiles(action identifier.Identifier) bool {
 }
 
 // HasDocumentPermission reports whether the subject with the given roles holds the permission action
-// on the document under the given role grants: through a grant of the reserved everyone role or one
-// of the roles with a scope covering the document, or, when doc is non-nil, through the document's
-// own permission claims. With a nil doc only role grants are checked, against documents in general.
-func HasDocumentPermission(grants map[string]Grants, action identifier.Identifier, subject string, roles []string, doc *document.D) bool {
-	if grants[RoleEveryone].AllowsDocument(action, subject, doc) {
+// on the document, through either of two independent arms: the role arm (a grant of the reserved
+// everyone role or of one of the roles allows the document, see RoleGrants.AllowsDocument) or, when doc
+// is non-nil, the claim arm (the document's own permission claims grant the subject the action, see
+// PermissionClaimGrants). Indexing materializes exactly these two arms for every document (the roles
+// whose grants allow it and the users its claims grant), so the default search query filter admits
+// precisely the documents this reports permitted. With a nil doc only role grants are checked,
+// against documents in general.
+func HasDocumentPermission(grants map[string]RoleGrants, action identifier.Identifier, subject string, roles []string, doc *document.D) bool {
+	if grants[RoleEveryone].AllowsDocument(action, doc) {
 		return true
 	}
 	for _, role := range roles {
-		if grants[role].AllowsDocument(action, subject, doc) {
+		if grants[role].AllowsDocument(action, doc) {
 			return true
 		}
 	}
-	return false
+	return doc != nil && HasPermissionClaim(action, subject, doc)
 }
 
 // HasFilePermission reports whether a caller with the given roles holds the permission action on
 // files under the given role grants: through a grant of the reserved everyone role or one of the
 // roles with a scope covering files.
-func HasFilePermission(grants map[string]Grants, action identifier.Identifier, roles []string) bool {
+func HasFilePermission(grants map[string]RoleGrants, action identifier.Identifier, roles []string) bool {
 	if grants[RoleEveryone].AllowsFiles(action) {
 		return true
 	}
@@ -427,7 +443,7 @@ func HasFilePermission(grants map[string]Grants, action identifier.Identifier, r
 // all given roles and all actions. Claims of these properties determine which documents role grants
 // cover, so changing them is a role-level operation: document-level permission claims granting the
 // update action do not allow changing them.
-func ScopeProperties(roleGrants map[string]Grants) map[identifier.Identifier]bool {
+func ScopeProperties(roleGrants map[string]RoleGrants) map[identifier.Identifier]bool {
 	properties := map[identifier.Identifier]bool{}
 	for _, grants := range roleGrants {
 		for _, scopes := range grants {

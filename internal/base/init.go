@@ -11,6 +11,7 @@ import (
 	"gitlab.com/tozd/go/errors"
 	z "gitlab.com/tozd/go/zerolog"
 
+	"gitlab.com/peerdb/peerdb/auth"
 	"gitlab.com/peerdb/peerdb/base"
 	internalSearch "gitlab.com/peerdb/peerdb/internal/search"
 	internalStore "gitlab.com/peerdb/peerdb/internal/store"
@@ -19,7 +20,8 @@ import (
 // InitComponents initializes Base components.
 func InitComponents(
 	ctx context.Context, logger zerolog.Logger, withContext z.WithContextFunc, dbpool *pgxpool.Pool,
-	esClient *elasticsearch.TypedClient, schema, indexPrefix string, shards int, storageDir string, languagePriority map[string][]string, levels []string,
+	esClient *elasticsearch.TypedClient, schema, indexPrefix string, shards int, storageDir string, languagePriority map[string][]string,
+	roles map[string]auth.RoleGrants, levels []string,
 ) (*base.B, *internalStore.River, errors.E) {
 	for _, level := range levels {
 		errE := internalSearch.EnsureIndex(ctx, esClient, internalSearch.LevelIndex(indexPrefix, level), shards, languagePriority)
@@ -49,6 +51,7 @@ func InitComponents(
 		Levels:                  levels,
 		LanguagePriority:        nil,
 		IndexAncestorProperties: false,
+		Roles:                   roles,
 		IndexingNormalizeHooks:  nil,
 		IndexingFinalizeHooks:   nil,
 		IndexingSourceCheck:     nil,

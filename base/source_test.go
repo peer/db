@@ -28,9 +28,9 @@ func sourceCheckVisibility() []auth.VisibilityLevel {
 // sourceCheckGrants returns role grants for the given roles, each granting read on everything, plus
 // read on everything for everyone when withEveryone is set. The level-assigned roles plus the
 // unassigned translator role always exist.
-func sourceCheckGrants(withEveryone bool, readRoles ...string) map[string]auth.Grants {
+func sourceCheckGrants(withEveryone bool, readRoles ...string) map[string]auth.RoleGrants {
 	readAll := map[string][]string{auth.ActionReadCode: {auth.ScopeAll}}
-	grants := map[string]auth.Grants{}
+	grants := map[string]auth.RoleGrants{}
 	for _, role := range []string{"researcher", "reviewer", "editor", "translator"} {
 		if slices.Contains(readRoles, role) {
 			grants[role] = auth.MustParseRoleGrants(readAll)

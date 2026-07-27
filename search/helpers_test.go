@@ -101,14 +101,16 @@ func refreshIndex(t *testing.T, ctx context.Context, esClient *elasticsearch.Typ
 // claimsDoc builds a Document with the given ID and claims and nothing else.
 func claimsDoc(id string, claims internalSearch.ClaimTypes) internalSearch.Document {
 	return internalSearch.Document{
-		ID:          identifier.From(id),
-		Display:     nil,
-		DisplaySort: nil,
-		Text:        nil,
-		Time:        nil,
-		LastUpdated: nil,
-		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
-		Claims:      claims,
+		ID:              identifier.From(id),
+		Display:         nil,
+		DisplaySort:     nil,
+		Text:            nil,
+		Time:            nil,
+		LastUpdated:     nil,
+		Counts:          internalSearch.Counts{References: nil, Claims: nil, Score: nil},
+		Claims:          claims,
+		ReadableByRoles: nil,
+		ReadableByUsers: nil,
 	}
 }
 
@@ -253,14 +255,16 @@ func indexScoreDoc(t *testing.T, ctx context.Context, esClient *elasticsearch.Ty
 	t.Helper()
 
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID:          id,
-		Display:     nil,
-		DisplaySort: nil,
-		Text:        map[string][]string{"en": {text}},
-		Time:        nil,
-		LastUpdated: nil,
-		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: score},
-		Claims:      internalSearch.ClaimTypes{Rel: nil, Amount: nil, Time: nil, Identifier: nil, String: nil, HTML: nil, Link: nil},
+		ID:              id,
+		Display:         nil,
+		DisplaySort:     nil,
+		Text:            map[string][]string{"en": {text}},
+		Time:            nil,
+		LastUpdated:     nil,
+		Counts:          internalSearch.Counts{References: nil, Claims: nil, Score: score},
+		Claims:          internalSearch.ClaimTypes{Rel: nil, Amount: nil, Time: nil, Identifier: nil, String: nil, HTML: nil, Link: nil},
+		ReadableByRoles: nil,
+		ReadableByUsers: nil,
 	})
 }
 

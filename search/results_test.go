@@ -542,6 +542,8 @@ func TestResultsGetSortOrderIntegration(t *testing.T) {
 			Claims: internalSearch.ClaimTypes{
 				Rel: nil, Amount: nil, Time: nil, Identifier: nil, String: nil, HTML: nil, Link: nil,
 			},
+			ReadableByRoles: nil,
+			ReadableByUsers: nil,
 		})
 	}
 

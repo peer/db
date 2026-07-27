@@ -311,7 +311,9 @@ func timeDiscoveryAggregation(path string, match types.QueryVariant) types.Aggre
 // document count (equal to the full count when the facet was reached through its property name,
 // and a lower bound when reached through a value name). The filter also drops the records of hidden
 // facet properties, so this pass cannot surface a facet the unfiltered pass hides.
-func filteredDiscoveryAggregation(path string, match types.QueryVariant, inner types.AggregationsVariant, hidden map[string]bool) types.AggregationsVariant { //nolint:ireturn
+func filteredDiscoveryAggregation( //nolint:ireturn
+	path string, match types.QueryVariant, inner types.AggregationsVariant, hidden map[string]bool,
+) types.AggregationsVariant {
 	return esdsl.NewAggregations().
 		Nested(esdsl.NewNestedAggregation().Path(path)).
 		AddAggregation("filter", esdsl.NewAggregations().
@@ -1303,7 +1305,7 @@ func FiltersGet( //nolint:maintidx
 	// property is added to that parent property's set (marked beyond so it renders without growing the
 	// total). Doing it in a second pass keeps a sub facet that is unfiltered in any parent collection
 	// from being treated as beyond (and its count from being corrupted by a matched-scoped merge).
-	if valueQueryActive {
+	if valueQueryActive { //nolint:nestif
 		for _, parent := range parentCollections {
 			subNested, errE := internalSearch.AggAs[types.NestedAggregate](res.Aggregations, "sub:"+parent)
 			if errE != nil {

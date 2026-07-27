@@ -22,6 +22,7 @@ import (
 	"gitlab.com/tozd/go/x"
 	"gitlab.com/tozd/identifier"
 
+	"gitlab.com/peerdb/peerdb/auth"
 	"gitlab.com/peerdb/peerdb/document"
 	internalCore "gitlab.com/peerdb/peerdb/internal/core"
 	internalDocument "gitlab.com/peerdb/peerdb/internal/document"
@@ -275,6 +276,13 @@ type Converter struct {
 	// document. When set, FromDocument records it as the document's counts.references. Nil disables
 	// the count (the field is then omitted).
 	CountReferences func(ctx context.Context, id identifier.Identifier) (int, errors.E)
+
+	// Roles maps role names to the permission actions each role grants. When set, FromDocument
+	// evaluates which roles may read each document and records them as the document's
+	// readableByRoles field, which the default search query filter matches against the caller's
+	// roles. Nil disables the field (the default search query filter then matches no document
+	// through roles).
+	Roles map[string]auth.RoleGrants
 
 	// FinalizeHooks transform the document FromDocument converts, after it has been augmented with
 	// embedded claims and then synthetic incoming inverse claims, so related claims fetched via
@@ -576,6 +584,7 @@ func NewConverter(
 		IndexAncestorProperties:  false,
 		DetectLanguages:          false,
 		CountReferences:          nil,
+		Roles:                    nil,
 		FinalizeHooks:            nil,
 		languageDetector:         nil,
 		linguaToCode:             nil,
@@ -2301,6 +2310,23 @@ func (c *Converter) FromDocument(
 	// stored claims the same way.
 	claimsCount := doc.SizeWithSubWithConfidence(document.LowConfidence)
 
+	// The read-access fields are likewise evaluated from the document before augmentation (synthetic
+	// inverse and embedded claims are not the document's own and must not influence its readability).
+	// They materialize the two arms of auth.HasDocumentPermission for the read action, each with the
+	// same auth function the read path runs against the stored document, so search admits exactly the
+	// documents the read path allows: readableByRoles holds the roles whose grants allow the document
+	// (the role arm) and readableByUsers holds the users the document's own permission claims grant
+	// the read action (the claim arm).
+	var readableByRoles []string
+	for role, grants := range c.Roles {
+		if grants.AllowsDocument(auth.ActionRead, doc) {
+			readableByRoles = append(readableByRoles, role)
+		}
+	}
+	// Sorted, so the indexed document is deterministic.
+	slices.Sort(readableByRoles)
+	readableByUsers := auth.PermissionClaimGrants(doc)[auth.ActionRead]
+
 	// Build the augmented document the conversion runs over: the clean doc plus embedded claims (added as
 	// sub-claims of its reference claims) and incoming inverse claims (added as top-level reference claims).
 	// Embedding runs first so it walks only the document's own references, not the synthetic inverse ones
@@ -2337,14 +2363,16 @@ func (c *Converter) FromDocument(
 		ctx:       ctx,
 		converter: c,
 		result: &Document{
-			ID:          doc.ID,
-			Display:     nil,
-			DisplaySort: nil,
-			Text:        nil,
-			Time:        earliestTime,
-			LastUpdated: lastUpdated,
-			Counts:      Counts{References: nil, Claims: &claimsCount, Score: nil},
-			Claims:      ClaimTypes{},
+			ID:              doc.ID,
+			Display:         nil,
+			DisplaySort:     nil,
+			Text:            nil,
+			Time:            earliestTime,
+			LastUpdated:     lastUpdated,
+			Counts:          Counts{References: nil, Claims: &claimsCount, Score: nil},
+			Claims:          ClaimTypes{},
+			ReadableByRoles: readableByRoles,
+			ReadableByUsers: readableByUsers,
 		},
 		docID: doc.ID,
 	}

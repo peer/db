@@ -35,24 +35,28 @@ func TestTextSearchUndWildcardCaseAndDiacritic(t *testing.T) {
 
 	// doc1 has the literal diacritic form; doc2 has the folded form.
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		DisplaySort: nil,
-		ID:          doc1ID,
-		Display:     nil,
-		Text:        map[string][]string{"und": {"Žagar Špela"}},
-		Time:        nil,
-		LastUpdated: nil,
-		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
-		Claims:      internalSearch.ClaimTypes{},
+		DisplaySort:     nil,
+		ID:              doc1ID,
+		Display:         nil,
+		Text:            map[string][]string{"und": {"Žagar Špela"}},
+		Time:            nil,
+		LastUpdated:     nil,
+		Counts:          internalSearch.Counts{References: nil, Claims: nil, Score: nil},
+		Claims:          internalSearch.ClaimTypes{},
+		ReadableByRoles: nil,
+		ReadableByUsers: nil,
 	})
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		DisplaySort: nil,
-		ID:          doc2ID,
-		Display:     nil,
-		Text:        map[string][]string{"und": {"Zagar Ivan"}},
-		Time:        nil,
-		LastUpdated: nil,
-		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
-		Claims:      internalSearch.ClaimTypes{},
+		DisplaySort:     nil,
+		ID:              doc2ID,
+		Display:         nil,
+		Text:            map[string][]string{"und": {"Zagar Ivan"}},
+		Time:            nil,
+		LastUpdated:     nil,
+		Counts:          internalSearch.Counts{References: nil, Claims: nil, Score: nil},
+		Claims:          internalSearch.ClaimTypes{},
+		ReadableByRoles: nil,
+		ReadableByUsers: nil,
 	})
 	refreshIndex(t, ctx, esClient, index)
 
@@ -93,24 +97,28 @@ func TestTextSearchUndQuotedExactVsFolded(t *testing.T) {
 	doc2ID := identifier.From("doc2") // folded "Zagar".
 
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		DisplaySort: nil,
-		ID:          doc1ID,
-		Display:     nil,
-		Text:        map[string][]string{"und": {"Žagar"}},
-		Time:        nil,
-		LastUpdated: nil,
-		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
-		Claims:      internalSearch.ClaimTypes{},
+		DisplaySort:     nil,
+		ID:              doc1ID,
+		Display:         nil,
+		Text:            map[string][]string{"und": {"Žagar"}},
+		Time:            nil,
+		LastUpdated:     nil,
+		Counts:          internalSearch.Counts{References: nil, Claims: nil, Score: nil},
+		Claims:          internalSearch.ClaimTypes{},
+		ReadableByRoles: nil,
+		ReadableByUsers: nil,
 	})
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		DisplaySort: nil,
-		ID:          doc2ID,
-		Display:     nil,
-		Text:        map[string][]string{"und": {"Zagar"}},
-		Time:        nil,
-		LastUpdated: nil,
-		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
-		Claims:      internalSearch.ClaimTypes{},
+		DisplaySort:     nil,
+		ID:              doc2ID,
+		Display:         nil,
+		Text:            map[string][]string{"und": {"Zagar"}},
+		Time:            nil,
+		LastUpdated:     nil,
+		Counts:          internalSearch.Counts{References: nil, Claims: nil, Score: nil},
+		Claims:          internalSearch.ClaimTypes{},
+		ReadableByRoles: nil,
+		ReadableByUsers: nil,
 	})
 	refreshIndex(t, ctx, esClient, index)
 
@@ -172,24 +180,28 @@ func TestTextSearchUndUnquotedFoldsBoth(t *testing.T) {
 	doc2ID := identifier.From("doc2")
 
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		DisplaySort: nil,
-		ID:          doc1ID,
-		Display:     nil,
-		Text:        map[string][]string{"und": {"Žagar"}},
-		Time:        nil,
-		LastUpdated: nil,
-		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
-		Claims:      internalSearch.ClaimTypes{},
+		DisplaySort:     nil,
+		ID:              doc1ID,
+		Display:         nil,
+		Text:            map[string][]string{"und": {"Žagar"}},
+		Time:            nil,
+		LastUpdated:     nil,
+		Counts:          internalSearch.Counts{References: nil, Claims: nil, Score: nil},
+		Claims:          internalSearch.ClaimTypes{},
+		ReadableByRoles: nil,
+		ReadableByUsers: nil,
 	})
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		DisplaySort: nil,
-		ID:          doc2ID,
-		Display:     nil,
-		Text:        map[string][]string{"und": {"Zagar"}},
-		Time:        nil,
-		LastUpdated: nil,
-		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
-		Claims:      internalSearch.ClaimTypes{},
+		DisplaySort:     nil,
+		ID:              doc2ID,
+		Display:         nil,
+		Text:            map[string][]string{"und": {"Zagar"}},
+		Time:            nil,
+		LastUpdated:     nil,
+		Counts:          internalSearch.Counts{References: nil, Claims: nil, Score: nil},
+		Claims:          internalSearch.ClaimTypes{},
+		ReadableByRoles: nil,
+		ReadableByUsers: nil,
 	})
 	refreshIndex(t, ctx, esClient, index)
 
@@ -227,28 +239,32 @@ func TestTextSearchStemmedPhraseEnglish(t *testing.T) {
 	// (run / shoe), so phrase positions line up after stemming.
 	doc1ID := identifier.From("doc1")
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		DisplaySort: nil,
-		ID:          doc1ID,
-		Display:     nil,
-		Text:        map[string][]string{"en": {"running shoes"}},
-		Time:        nil,
-		LastUpdated: nil,
-		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
-		Claims:      internalSearch.ClaimTypes{},
+		DisplaySort:     nil,
+		ID:              doc1ID,
+		Display:         nil,
+		Text:            map[string][]string{"en": {"running shoes"}},
+		Time:            nil,
+		LastUpdated:     nil,
+		Counts:          internalSearch.Counts{References: nil, Claims: nil, Score: nil},
+		Claims:          internalSearch.ClaimTypes{},
+		ReadableByRoles: nil,
+		ReadableByUsers: nil,
 	})
 
 	// doc2 is a control: contains "running" but not "shoes". Should not match
 	// a quoted phrase that requires both terms adjacent.
 	doc2ID := identifier.From("doc2")
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		DisplaySort: nil,
-		ID:          doc2ID,
-		Display:     nil,
-		Text:        map[string][]string{"en": {"running fast"}},
-		Time:        nil,
-		LastUpdated: nil,
-		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
-		Claims:      internalSearch.ClaimTypes{},
+		DisplaySort:     nil,
+		ID:              doc2ID,
+		Display:         nil,
+		Text:            map[string][]string{"en": {"running fast"}},
+		Time:            nil,
+		LastUpdated:     nil,
+		Counts:          internalSearch.Counts{References: nil, Claims: nil, Score: nil},
+		Claims:          internalSearch.ClaimTypes{},
+		ReadableByRoles: nil,
+		ReadableByUsers: nil,
 	})
 	refreshIndex(t, ctx, esClient, index)
 
@@ -292,34 +308,40 @@ func TestTextSearchExactFieldRejectsFolded(t *testing.T) {
 	doc3ID := identifier.From("doc3")
 
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		DisplaySort: nil,
-		ID:          doc1ID,
-		Display:     nil,
-		Text:        map[string][]string{"und": {"Müller"}}, // German umlaut.
-		Time:        nil,
-		LastUpdated: nil,
-		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
-		Claims:      internalSearch.ClaimTypes{},
+		DisplaySort:     nil,
+		ID:              doc1ID,
+		Display:         nil,
+		Text:            map[string][]string{"und": {"Müller"}}, // German umlaut.
+		Time:            nil,
+		LastUpdated:     nil,
+		Counts:          internalSearch.Counts{References: nil, Claims: nil, Score: nil},
+		Claims:          internalSearch.ClaimTypes{},
+		ReadableByRoles: nil,
+		ReadableByUsers: nil,
 	})
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		DisplaySort: nil,
-		ID:          doc2ID,
-		Display:     nil,
-		Text:        map[string][]string{"und": {"Muller"}}, // ASCII.
-		Time:        nil,
-		LastUpdated: nil,
-		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
-		Claims:      internalSearch.ClaimTypes{},
+		DisplaySort:     nil,
+		ID:              doc2ID,
+		Display:         nil,
+		Text:            map[string][]string{"und": {"Muller"}}, // ASCII.
+		Time:            nil,
+		LastUpdated:     nil,
+		Counts:          internalSearch.Counts{References: nil, Claims: nil, Score: nil},
+		Claims:          internalSearch.ClaimTypes{},
+		ReadableByRoles: nil,
+		ReadableByUsers: nil,
 	})
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		DisplaySort: nil,
-		ID:          doc3ID,
-		Display:     nil,
-		Text:        map[string][]string{"und": {"Smith"}}, // unrelated.
-		Time:        nil,
-		LastUpdated: nil,
-		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
-		Claims:      internalSearch.ClaimTypes{},
+		DisplaySort:     nil,
+		ID:              doc3ID,
+		Display:         nil,
+		Text:            map[string][]string{"und": {"Smith"}}, // unrelated.
+		Time:            nil,
+		LastUpdated:     nil,
+		Counts:          internalSearch.Counts{References: nil, Claims: nil, Score: nil},
+		Claims:          internalSearch.ClaimTypes{},
+		ReadableByRoles: nil,
+		ReadableByUsers: nil,
 	})
 	refreshIndex(t, ctx, esClient, index)
 

@@ -150,6 +150,12 @@
           }
         }
       },
+      "readableByRoles": {
+        "type": "keyword"
+      },
+      "readableByUsers": {
+        "type": "keyword"
+      },
       "claims": {
         "properties": {
           {{range $i, $collection := .Collections}}
