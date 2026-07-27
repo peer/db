@@ -80,9 +80,10 @@ const (
 )
 
 // duplicateClauses builds one scoring should-clause per distinct stated claim of doc that can be
-// matched structurally against the index. Each clause is a nested query matching documents that have
-// the same property and value, wrapped in constant_score so that matching it contributes exactly the
-// claim type's weight to the document's score, regardless of corpus term statistics.
+// matched structurally against the index, together with the targets doc is asserted to be distinct
+// from. Each clause is a nested query matching documents that have the same property and value,
+// wrapped in constant_score so that matching it contributes exactly the claim type's weight to the
+// document's score, regardless of corpus term statistics.
 //
 // Only top-level claims are considered (sub-claims are not walked), and only those at or above
 // LowConfidence, mirroring what the indexer keeps. Identical clauses (same type, property and value)
@@ -92,118 +93,167 @@ func duplicateClauses(doc *document.D, enabledLanguages []string) ([]types.Query
 	if doc == nil || doc.Claims == nil {
 		return nil, nil
 	}
-
-	var clauses []types.QueryVariant
-	var distinctFrom []identifier.Identifier
-	seen := map[string]bool{}
-	add := func(key string, weight float32, query types.QueryVariant) {
-		if query == nil || seen[key] {
-			return
-		}
-		seen[key] = true
-		clauses = append(clauses, esdsl.NewConstantScoreQuery(query).Boost(weight))
+	v := &duplicateVisitor{
+		EnabledLanguages: enabledLanguages,
+		Clauses:          nil,
+		DistinctFrom:     nil,
+		Seen:             map[string]bool{},
 	}
+	// The visit methods never fail and never drop a claim, so the walk cannot return an error and
+	// leaves the document unchanged. The document's own claims are visited, not its sub-claims: the
+	// visit methods do not recurse.
+	_ = doc.Claims.Visit(v)
+	return v.Clauses, v.DistinctFrom
+}
 
-	c := doc.Claims
+// duplicateVisitor turns a document's stated claims into the duplicate-detection scoring clauses.
+// Implementing document.Visitor makes every claim type a decision taken here: a type which
+// contributes no clause says so in its own method, instead of being left out of a walk over some of
+// the types, where a type added later would be silently ignored.
+type duplicateVisitor struct {
+	// EnabledLanguages scopes the per-language fields the string and HTML clauses query.
+	EnabledLanguages []string
+	// Clauses are the scoring clauses collected so far.
+	Clauses []types.QueryVariant
+	// DistinctFrom are the targets of DISTINCT_FROM claims, which are excluded from the results (in
+	// duplicatesQuery) instead of contributing a clause.
+	DistinctFrom []identifier.Identifier
+	// Seen keys the claims already turned into a clause, by claim type, property, and value.
+	Seen map[string]bool
+}
 
-	for i := range c.Identifier {
-		claim := &c.Identifier[i]
-		if claim.GetConfidence() < document.LowConfidence || claim.Value == "" {
-			continue
-		}
-		add("id\x00"+claim.Prop.ID.String()+"\x00"+claim.Value, identifierDuplicateWeight, esdsl.NewNestedQuery(
-			esdsl.NewBoolQuery().Must(
-				esdsl.NewTermQuery("claims.id.prop", esdsl.NewFieldValue().String(claim.Prop.ID.String())),
-				esdsl.NewMatchPhraseQuery("claims.id.value", claim.Value),
-			),
-		).Path("claims.id"))
+var _ document.Visitor = (*duplicateVisitor)(nil)
+
+// Add collects the clause for the claim identified by key, weighted by its claim type. A key already
+// collected contributes nothing, so repeating a value does not double-count, and so does a nil query,
+// which is how a claim whose clause cannot be built is skipped.
+func (v *duplicateVisitor) Add(key string, weight float32, query types.QueryVariant) (document.VisitResult, errors.E) {
+	if query != nil && !v.Seen[key] {
+		v.Seen[key] = true
+		v.Clauses = append(v.Clauses, esdsl.NewConstantScoreQuery(query).Boost(weight))
 	}
+	return document.Keep, nil
+}
 
-	for i := range c.String {
-		claim := &c.String[i]
-		if claim.GetConfidence() < document.LowConfidence || claim.String == "" {
-			continue
-		}
-		add("string\x00"+claim.Prop.ID.String()+"\x00"+claim.String, stringDuplicateWeight,
-			stringDuplicateNested(claim.Prop.ID, claim.String, enabledLanguages))
+// Skip reports whether the claim contributes nothing because it is below the confidence at which the
+// indexer keeps a claim, so nothing in the index could match it anyway.
+func (v *duplicateVisitor) Skip(claim document.Claim) bool {
+	return claim.GetConfidence() < document.LowConfidence
+}
+
+func (v *duplicateVisitor) VisitIdentifier(claim *document.IdentifierClaim) (document.VisitResult, errors.E) {
+	if v.Skip(claim) || claim.Value == "" {
+		return document.Keep, nil
 	}
+	return v.Add("id\x00"+claim.Prop.ID.String()+"\x00"+claim.Value, identifierDuplicateWeight, esdsl.NewNestedQuery(
+		esdsl.NewBoolQuery().Must(
+			esdsl.NewTermQuery("claims.id.prop", esdsl.NewFieldValue().String(claim.Prop.ID.String())),
+			esdsl.NewMatchPhraseQuery("claims.id.value", claim.Value),
+		),
+	).Path("claims.id"))
+}
 
-	for i := range c.HTML {
-		claim := &c.HTML[i]
-		if claim.GetConfidence() < document.LowConfidence || claim.HTML == "" {
-			continue
-		}
-		add("html\x00"+claim.Prop.ID.String()+"\x00"+claim.HTML, htmlDuplicateWeight,
-			htmlDuplicateNested(claim.Prop.ID, claim.HTML, enabledLanguages))
+func (v *duplicateVisitor) VisitString(claim *document.StringClaim) (document.VisitResult, errors.E) {
+	if v.Skip(claim) || claim.String == "" {
+		return document.Keep, nil
 	}
+	return v.Add("string\x00"+claim.Prop.ID.String()+"\x00"+claim.String, stringDuplicateWeight,
+		stringDuplicateNested(claim.Prop.ID, claim.String, v.EnabledLanguages))
+}
 
-	for i := range c.Link {
-		claim := &c.Link[i]
-		if claim.GetConfidence() < document.LowConfidence || claim.IRI == "" {
-			continue
-		}
-		add("link\x00"+claim.Prop.ID.String()+"\x00"+claim.IRI, linkDuplicateWeight, esdsl.NewNestedQuery(
-			esdsl.NewBoolQuery().Must(
-				esdsl.NewTermQuery("claims.link.prop", esdsl.NewFieldValue().String(claim.Prop.ID.String())),
-				esdsl.NewMatchPhraseQuery("claims.link.iri", claim.IRI),
-			),
-		).Path("claims.link"))
+func (v *duplicateVisitor) VisitHTML(claim *document.HTMLClaim) (document.VisitResult, errors.E) {
+	if v.Skip(claim) || claim.HTML == "" {
+		return document.Keep, nil
 	}
+	return v.Add("html\x00"+claim.Prop.ID.String()+"\x00"+claim.HTML, htmlDuplicateWeight,
+		htmlDuplicateNested(claim.Prop.ID, claim.HTML, v.EnabledLanguages))
+}
 
-	for i := range c.Reference {
-		claim := &c.Reference[i]
-		if claim.GetConfidence() < document.LowConfidence {
-			continue
-		}
-		if claim.Prop.ID == internalCore.DistinctFromPropID {
-			// The target is asserted to be a different entity, so it is excluded from the results (in
-			// duplicatesQuery) rather than scored as a similarity.
-			distinctFrom = append(distinctFrom, claim.To.ID)
-			continue
-		}
-		// The index expands a reference to the target and all its hierarchy ancestors, so matching the
-		// stated (most-specific) target also matches documents that reference a narrower value of it.
-		// A term on "to" matches only rel records with the ref claimType, so no claimType term is needed.
-		add("ref\x00"+claim.Prop.ID.String()+"\x00"+claim.To.ID.String(), referenceDuplicateWeight, esdsl.NewNestedQuery(
-			esdsl.NewBoolQuery().Must(
-				esdsl.NewTermQuery(relPath+".prop", esdsl.NewFieldValue().String(claim.Prop.ID.String())),
-				esdsl.NewTermQuery(relPath+".to", esdsl.NewFieldValue().String(claim.To.ID.String())),
-			),
-		).Path(relPath))
+func (v *duplicateVisitor) VisitAmount(claim *document.AmountClaim) (document.VisitResult, errors.E) {
+	if v.Skip(claim) {
+		return document.Keep, nil
 	}
+	return v.Add("amount\x00"+claim.Prop.ID.String()+"\x00"+claim.Amount.String()+"\x00"+strconv.FormatFloat(claim.Precision, 'g', -1, 64),
+		amountDuplicateWeight, amountDuplicateNested(claim))
+}
 
-	for i := range c.Amount {
-		claim := &c.Amount[i]
-		if claim.GetConfidence() < document.LowConfidence {
-			continue
-		}
-		add("amount\x00"+claim.Prop.ID.String()+"\x00"+claim.Amount.String()+"\x00"+strconv.FormatFloat(claim.Precision, 'g', -1, 64),
-			amountDuplicateWeight, amountDuplicateNested(claim))
+// An amount interval contributes nothing for now.
+func (v *duplicateVisitor) VisitAmountInterval(*document.AmountIntervalClaim) (document.VisitResult, errors.E) {
+	// TODO: Score interval claims as duplicate signals.
+	//       The indexer stores an interval as a range over its bounds, the same shape it stores a
+	//       point value's precision window as, so an overlapping-range clause could contribute like
+	//       the amount and time ones do. It needs its own weight and handling for bounds which are
+	//       open, unknown, or absent.
+	return document.Keep, nil
+}
+
+func (v *duplicateVisitor) VisitTime(claim *document.TimeClaim) (document.VisitResult, errors.E) {
+	if v.Skip(claim) {
+		return document.Keep, nil
 	}
+	return v.Add("time\x00"+claim.Prop.ID.String()+"\x00"+claim.Time.String()+"\x00"+strconv.Itoa(int(claim.Precision)),
+		timeDuplicateWeight, timeDuplicateNested(claim))
+}
 
-	for i := range c.Time {
-		claim := &c.Time[i]
-		if claim.GetConfidence() < document.LowConfidence {
-			continue
-		}
-		add("time\x00"+claim.Prop.ID.String()+"\x00"+claim.Time.String()+"\x00"+strconv.Itoa(int(claim.Precision)),
-			timeDuplicateWeight, timeDuplicateNested(claim))
+// A time interval contributes nothing, for the same reason an amount interval does not.
+func (v *duplicateVisitor) VisitTimeInterval(*document.TimeIntervalClaim) (document.VisitResult, errors.E) {
+	return document.Keep, nil
+}
+
+func (v *duplicateVisitor) VisitLink(claim *document.LinkClaim) (document.VisitResult, errors.E) {
+	if v.Skip(claim) || claim.IRI == "" {
+		return document.Keep, nil
 	}
+	return v.Add("link\x00"+claim.Prop.ID.String()+"\x00"+claim.IRI, linkDuplicateWeight, esdsl.NewNestedQuery(
+		esdsl.NewBoolQuery().Must(
+			esdsl.NewTermQuery("claims.link.prop", esdsl.NewFieldValue().String(claim.Prop.ID.String())),
+			esdsl.NewMatchPhraseQuery("claims.link.iri", claim.IRI),
+		),
+	).Path("claims.link"))
+}
 
-	for i := range c.Has {
-		claim := &c.Has[i]
-		if claim.GetConfidence() < document.LowConfidence {
-			continue
-		}
-		add("has\x00"+claim.Prop.ID.String(), hasDuplicateWeight, esdsl.NewNestedQuery(
-			esdsl.NewBoolQuery().Must(
-				claimTypeTerm(relPath, internalSearch.ClaimTypeHas),
-				esdsl.NewTermQuery(relPath+".prop", esdsl.NewFieldValue().String(claim.Prop.ID.String())),
-			),
-		).Path(relPath))
+func (v *duplicateVisitor) VisitReference(claim *document.ReferenceClaim) (document.VisitResult, errors.E) {
+	if v.Skip(claim) {
+		return document.Keep, nil
 	}
+	if claim.Prop.ID == internalCore.DistinctFromPropID {
+		// The target is asserted to be a different entity, so it is excluded from the results (in
+		// duplicatesQuery) rather than scored as a similarity.
+		v.DistinctFrom = append(v.DistinctFrom, claim.To.ID)
+		return document.Keep, nil
+	}
+	// The index expands a reference to the target and all its hierarchy ancestors, so matching the
+	// stated (most-specific) target also matches documents that reference a narrower value of it.
+	// A term on "to" matches only rel records with the ref claimType, so no claimType term is needed.
+	return v.Add("ref\x00"+claim.Prop.ID.String()+"\x00"+claim.To.ID.String(), referenceDuplicateWeight, esdsl.NewNestedQuery(
+		esdsl.NewBoolQuery().Must(
+			esdsl.NewTermQuery(relPath+".prop", esdsl.NewFieldValue().String(claim.Prop.ID.String())),
+			esdsl.NewTermQuery(relPath+".to", esdsl.NewFieldValue().String(claim.To.ID.String())),
+		),
+	).Path(relPath))
+}
 
-	return clauses, distinctFrom
+func (v *duplicateVisitor) VisitHas(claim *document.HasClaim) (document.VisitResult, errors.E) {
+	if v.Skip(claim) {
+		return document.Keep, nil
+	}
+	return v.Add("has\x00"+claim.Prop.ID.String(), hasDuplicateWeight, esdsl.NewNestedQuery(
+		esdsl.NewBoolQuery().Must(
+			claimTypeTerm(relPath, internalSearch.ClaimTypeHas),
+			esdsl.NewTermQuery(relPath+".prop", esdsl.NewFieldValue().String(claim.Prop.ID.String())),
+		),
+	).Path(relPath))
+}
+
+// A none claim asserts that the document has no value for the property. Two documents agreeing that
+// something is absent does not make them the same entity, so it contributes nothing.
+func (v *duplicateVisitor) VisitNone(*document.NoneClaim) (document.VisitResult, errors.E) {
+	return document.Keep, nil
+}
+
+// An unknown claim asserts that a value exists but is not known, which is not identifying either.
+func (v *duplicateVisitor) VisitUnknown(*document.UnknownClaim) (document.VisitResult, errors.E) {
+	return document.Keep, nil
 }
 
 // stringDuplicateNested matches documents that have a string claim for prop whose value matches value
