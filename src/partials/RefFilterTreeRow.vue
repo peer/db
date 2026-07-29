@@ -35,9 +35,9 @@ function handleToggle() {
   props.onToggle(props.node)
 }
 
-const WithDocumentD = WithDocument<D>
-
 const inputId = computed(() => "ref/" + props.propsKey + "/" + props.node.key)
+
+const WithDocumentD = WithDocument<D>
 </script>
 
 <template>

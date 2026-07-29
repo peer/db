@@ -181,8 +181,6 @@ onBeforeUnmount(() => {
   window.removeEventListener("scroll", onScroll)
 })
 
-const WithDocumentD = WithDocument<D>
-
 const { track: trackTruncation, truncated } = useTruncationTracking()
 
 const expandedRows = ref(new Map<string, Set<string>>())
@@ -240,6 +238,8 @@ function onCloseFilterModal() {
 
   activeFilter.value = null
 }
+
+const WithDocumentD = WithDocument<D>
 </script>
 
 <template>

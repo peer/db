@@ -29,8 +29,6 @@ defineOptions({
   inheritAttrs: false,
 })
 
-const WithDocumentD = WithDocument<D>
-
 // The DisplayLabel child exposes its async-resolved label; we read it back
 // here only to mirror it into the title attribute when requested.
 const displayLabelRef = useTemplateRef<ComponentExposed<typeof DisplayLabel>>("displayLabelRef")
@@ -40,6 +38,8 @@ const titleAttr = computed<string | undefined>(() => {
   const label = displayLabelRef.value?.displayLabel
   return typeof label === "string" && label ? label : undefined
 })
+
+const WithDocumentD = WithDocument<D>
 </script>
 
 <template>
