@@ -1175,12 +1175,18 @@ async function onDiscard() {
       return
     }
 
-    await router.push({
-      name: "DocumentGet",
-      params: {
-        id: props.id,
-      },
-    })
+    // The document of a create session exists only once the session has been saved, so discarding one
+    // goes back to where the creation started instead of to a document which is not there.
+    await router.push(
+      isCreating.value
+        ? { name: "DocumentCreate" }
+        : {
+            name: "DocumentGet",
+            params: {
+              id: props.id,
+            },
+          },
+    )
   } catch (err) {
     if (abortController.signal.aborted) {
       return
