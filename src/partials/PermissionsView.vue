@@ -27,6 +27,7 @@ import { currentIdentityId, isSignedIn } from "@/auth"
 import Button from "@/components/Button.vue"
 import ButtonLink from "@/components/ButtonLink.vue"
 import { useDocumentActions } from "@/document-actions"
+import IdentityInline from "@/partials/IdentityInline.vue"
 import { permissionActionLabel, permissionActionOrder, permissionGrants, permissionRequests } from "@/permissions"
 import { useBusy } from "@/progress"
 import { delay } from "@/utils"
@@ -150,7 +151,7 @@ async function onCancel(action: string) {
       <p v-if="users.length === 0" class="mt-1 text-gray-700">{{ t("partials.PermissionsView.noUsers") }}</p>
       <ul v-else class="mt-2 flex flex-col gap-y-3">
         <li v-for="row of users" :key="row.user" class="flex flex-col gap-y-2 rounded border border-slate-300 p-3">
-          <span class="font-medium break-all">{{ row.user }}</span>
+          <IdentityInline :subject="row.user" class="font-medium" />
           <ul class="flex flex-row flex-wrap content-start items-baseline gap-1 text-sm">
             <li v-for="action of row.actions" :key="action" class="rounded-xs bg-slate-100 px-1.5 py-0.5 leading-none text-gray-600 shadow-xs">{{
               actionLabel(action)
@@ -168,7 +169,7 @@ async function onCancel(action: string) {
         <!-- One claim can ask on behalf of several users, so it takes both to tell its requests apart. -->
         <li v-for="request of requests" :key="`${request.claimID}-${request.user}`" class="flex flex-col gap-y-2 rounded border border-slate-300 p-3">
           <div class="flex flex-row items-center justify-between gap-4">
-            <span class="font-medium break-all">{{ request.user }}</span>
+            <IdentityInline :subject="request.user" class="font-medium" />
             <!-- Only the user who made the request can withdraw it. -->
             <Button v-if="isOwnRequest(request.user)" type="button" :progress="busy" @click.prevent="onCancel(request.action)">{{ t("common.buttons.cancel") }}</Button>
           </div>

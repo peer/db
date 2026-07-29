@@ -547,6 +547,13 @@ export function listFormatParts(locale: string, count: number, type: "conjunctio
     .map((part) => (part.type === "literal" ? { type: "literal", value: part.value } : { type: "element", index: Number(part.value) }))
 }
 
+// formatList formats the items into one string, with the locale's separators between them (and any
+// trailing conjunction), via Intl.ListFormat. It is listFormatParts for a list of plain strings, where
+// the result is text and not elements to render, and takes the same enumeration types.
+export function formatList(locale: string, items: readonly string[], type: "conjunction" | "disjunction" | "unit" = "unit"): string {
+  return new Intl.ListFormat(locale, { style: "long", type }).format(items)
+}
+
 // Approximate seconds-per-year used when picking a coarser-than-day precision.
 // Exact-year math is unnecessary here. We only need the right order of magnitude.
 const SECONDS_PER_YEAR = 60 * 60 * 24 * 365

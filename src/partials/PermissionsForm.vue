@@ -54,6 +54,7 @@ import WithDocument from "@/components/WithDocument.vue"
 import { HAS_PERMISSION, PERMISSION_SCOPE, PERMISSION_USER } from "@/core"
 import { HighConfidence } from "@/document"
 import { saveChangeKey } from "@/fields"
+import IdentityLabel from "@/partials/IdentityLabel.vue"
 import { useBusy } from "@/progress"
 import {
   permissionActionClosure,
@@ -244,7 +245,7 @@ const WithDocumentIdentity = WithDocument<Identity>
           <WithDocumentIdentity :id="grant.user" name="UserGet">
             <template #default="{ doc: identity }">
               <div class="flex flex-row items-center justify-between gap-4">
-                <span class="font-medium break-all">{{ grant.user }}</span>
+                <IdentityLabel :identity="identity" class="font-medium" />
                 <!-- TODO: Remove should be shown even on loading error, so that on can remove the request for non-existing user. -->
                 <Button type="button" :progress="busy" @click.prevent="onRemoveUser(grant)">{{ t("partials.PermissionsForm.removeAccess") }}</Button>
               </div>
@@ -291,7 +292,7 @@ const WithDocumentIdentity = WithDocument<Identity>
           <WithDocumentIdentity :id="request.user" name="UserGet">
             <template #default="{ doc: identity }">
               <div class="flex flex-row items-center justify-between gap-4">
-                <span class="font-medium break-all">{{ request.user }}</span>
+                <IdentityLabel :identity="identity" class="font-medium" />
                 <div class="flex flex-row gap-x-2">
                   <!-- TODO: Deny should be shown even on loading error, so that on can remove the request for non-existing user. -->
                   <Button type="button" :progress="busy" @click.prevent="onDeny(request)">{{ t("partials.PermissionsForm.deny") }}</Button>

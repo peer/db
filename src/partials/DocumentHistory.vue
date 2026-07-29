@@ -6,6 +6,8 @@ import { useI18n } from "vue-i18n"
 import { useRouter } from "vue-router"
 
 import { getURL } from "@/api"
+import IdentityInline from "@/partials/IdentityInline.vue"
+import ListFormat from "@/partials/ListFormat.vue"
 import TimeDisplay from "@/partials/TimeDisplay.vue"
 import { getRootProgress } from "@/progress"
 import { encodeQuery, timeStringFromFloat64 } from "@/utils"
@@ -54,13 +56,6 @@ onMounted(async () => {
 function timeString(at: string): string {
   return timeStringFromFloat64(new Date(at).getTime() / 1000, "s")
 }
-
-function formatAuthors(item: DocumentHistoryItem): string {
-  if (!item.authors || item.authors.length === 0) {
-    return t("views.DocumentGet.history.anonymous")
-  }
-  return item.authors.map((author) => author.id).join(", ")
-}
 </script>
 
 <template>
@@ -82,7 +77,11 @@ function formatAuthors(item: DocumentHistoryItem): string {
               ><TimeDisplay :timestamp="timeString(item.at)" precision="s" :toggle="false"
             /></RouterLink>
           </td>
-          <td class="border-l border-slate-200 px-2 py-1 align-top">{{ formatAuthors(item) }}</td>
+          <td class="border-l border-slate-200 px-2 py-1 align-top">
+            <!-- A changeset made by nobody signed in has no authors. The authors of one all made it, so they are listed as a conjunction. -->
+            <template v-if="!item.authors?.length">{{ t("views.DocumentGet.history.anonymous") }}</template>
+            <ListFormat v-else v-slot="{ index }" :count="item.authors.length" type="conjunction"><IdentityInline :subject="item.authors[index].id" /></ListFormat>
+          </td>
         </tr>
       </tbody>
     </table>
