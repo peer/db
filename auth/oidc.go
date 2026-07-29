@@ -228,14 +228,29 @@ func fetchUserInfo(endpoint string, client *http.Client) func(ctx context.Contex
 		var payload struct {
 			Sub               string `json:"sub"`
 			PreferredUsername string `json:"preferred_username"` //nolint:tagliatelle
+			Name              string `json:"name"`
+			GivenName         string `json:"given_name"` //nolint:tagliatelle
 		}
 		// We accept extra fields silently.
 		errE := x.DecodeJSON(resp.Body, &payload)
 		if errE != nil {
 			return userInfo{}, errE
 		}
-		return userInfo{Subject: payload.Sub, Username: payload.PreferredUsername, Roles: nil}, nil
+		return userInfo{Subject: payload.Sub, Username: pickUsername(payload.PreferredUsername, payload.GivenName, payload.Name), Roles: nil}, nil
 	}
+}
+
+// pickUsername is the name a user is known by: the username the issuer gives them, or a name it gives
+// instead, the given name before the full name, because an issuer which knows no username for a user
+// (or does not tell it) still names them better than their subject does.
+func pickUsername(username, givenName, fullName string) string {
+	if username != "" {
+		return username
+	}
+	if givenName != "" {
+		return givenName
+	}
+	return fullName
 }
 
 // fetchIdentity builds the lookup of a user other than the caller which the userinfo cache misses on:
@@ -292,16 +307,18 @@ func fetchIdentity(issuer, organization string, client *http.Client) func(ctx co
 		}
 
 		var payload struct {
-			ID       string   `json:"id"`
-			Username string   `json:"username"`
-			Roles    []string `json:"roles"`
+			ID        string   `json:"id"`
+			Username  string   `json:"username"`
+			FullName  string   `json:"fullName"`
+			GivenName string   `json:"givenName"`
+			Roles     []string `json:"roles"`
 		}
 		// We accept extra fields silently.
 		errE := x.DecodeJSON(response.Body, &payload)
 		if errE != nil {
 			return userInfo{}, errE
 		}
-		return userInfo{Subject: payload.ID, Username: payload.Username, Roles: payload.Roles}, nil
+		return userInfo{Subject: payload.ID, Username: pickUsername(payload.Username, payload.GivenName, payload.FullName), Roles: payload.Roles}, nil
 	}
 }
 
@@ -408,6 +425,8 @@ func (a *OIDCAuthenticator) exchangeCode(
 	// /auth/oidc/userinfo round-trip.
 	var profile struct {
 		PreferredUsername string `json:"preferred_username"` //nolint:tagliatelle
+		Name              string `json:"name"`
+		GivenName         string `json:"given_name"` //nolint:tagliatelle
 	}
 	err = idToken.Claims(&profile)
 	if err != nil {
@@ -423,7 +442,7 @@ func (a *OIDCAuthenticator) exchangeCode(
 		if errE == nil {
 			a.UserInfoCache.set(idToken.Subject, userInfo{
 				Subject:  idToken.Subject,
-				Username: profile.PreferredUsername,
+				Username: pickUsername(profile.PreferredUsername, profile.GivenName, profile.Name),
 				Roles:    roles,
 			})
 		}
