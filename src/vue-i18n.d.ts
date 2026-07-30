@@ -333,6 +333,10 @@ declare module "vue-i18n" {
         usersTitle: string
         requestedAction: string
         cannotGrant: string
+        addUser: string
+        addUserHint: string
+        nothingToGrant: string
+        alreadyGranted: string
       }
       PermissionsView: {
         usersTitle: string

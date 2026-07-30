@@ -120,24 +120,30 @@ func NewMockAuthenticator(
 		ClientID: clientID,
 	})
 
-	// There is no issuer to ask about a user, so every lookup is answered the same way the mock signs
-	// its own user in: with the mock username, under the subject it was asked about. It makes
-	// development and tests behave as if the site's users all had full role membership, which is what
-	// mock sign-in itself does.
+	// There is no issuer to ask about a user, so a lookup is answered from what the mock signs its own
+	// user in as. It signs in one user, so the site has one user: a lookup of any other subject finds
+	// nobody, the way a real issuer answers about somebody it does not know.
 	cache := newUserInfoCache(
-		func(_ context.Context, subject, _ string) (userInfo, errors.E) {
+		func(_ context.Context, lookedUp, _ string) (userInfo, errors.E) {
 			// The caller themselves is answered without roles, because their own token is what says which they
 			// hold and Get stamps those onto the answer. Callback primes their entry anyway, so a user who just
 			// signed in is not looked up at all, and this answers the misses: an entry which expired, or a
 			// process which restarted while the session cookie stayed valid.
-			return userInfo{Subject: subject, Username: mockUsername, Roles: nil}, nil
+			return userInfo{Subject: lookedUp, Username: mockUsername, Roles: nil}, nil
 		},
-		func(_ context.Context, subject, _ string) (userInfo, errors.E) {
+		func(_ context.Context, lookedUp, _ string) (userInfo, errors.E) {
+			if lookedUp != subject {
+				errE := errors.WithStack(ErrIdentityNotFound)
+				errors.Details(errE)["subject"] = lookedUp
+				return userInfo{}, errE
+			}
+			// The mock user holds every role the site recognizes, which makes development and tests behave
+			// as if its user had full role membership, exactly as mock sign-in gives them.
 			var roles []string
 			if grantedRoles != nil {
 				roles = grantedRoles()
 			}
-			return userInfo{Subject: subject, Username: mockUsername, Roles: roles}, nil
+			return userInfo{Subject: lookedUp, Username: mockUsername, Roles: roles}, nil
 		},
 	)
 

@@ -1053,8 +1053,9 @@ func TestOIDCAuthenticatorSignOutSwallowsUpstreamFailure(t *testing.T) {
 }
 
 // TestMockAuthenticatorIdentity covers the user lookup of the mock authenticator: an authenticated
-// caller learns about themselves and about any other user (the mock knows them all), the roles are
-// filtered by the site's roles, and an unauthenticated caller learns nothing.
+// caller learns about themselves with the roles their token grants, filtered by the site's roles, while
+// any other subject is nobody (the mock signs in one user, so it knows one user), and an unauthenticated
+// caller learns nothing.
 func TestMockAuthenticatorIdentity(t *testing.T) {
 	t.Parallel()
 
@@ -1085,13 +1086,10 @@ func TestMockAuthenticatorIdentity(t *testing.T) {
 	assert.Equal(t, self, identity.Subject)
 	assert.Equal(t, []string{"admin"}, identity.Roles)
 
-	// Any other user, with the roles the mock hands out, filtered by the site's roles.
+	// Anybody else is not a user of the site.
 	w, req = authenticated()
-	identity, errE = a.Identity(w, req, "somebody", allowedRoles)
-	require.NoError(t, errE, "% -+#.1v", errE)
-	assert.Equal(t, "somebody", identity.Subject)
-	assert.NotEmpty(t, identity.Username)
-	assert.Equal(t, []string{"admin"}, identity.Roles)
+	_, errE = a.Identity(w, req, "somebody", allowedRoles)
+	assert.ErrorIs(t, errE, auth.ErrIdentityNotFound)
 
 	// Without a token there is nobody to answer on behalf of, and an empty subject is nobody.
 	w = httptest.NewRecorder()

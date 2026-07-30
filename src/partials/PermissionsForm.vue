@@ -22,9 +22,14 @@ hold through neither the document nor their roles, which checking grants (togeth
 requires and they lack). An action their roles already cover is not offered at all, because granting it
 on the document would add nothing to what they can do.
 
-The roles of a user come from the user API (see UserGetAPI in user.go), which both lists load, so the
-checkboxes and the decisions of a user who cannot be looked up are not offered: without knowing what
-they already have, what to grant them is not known either.
+Access is granted to a user who has not asked for it by naming them in the entry under the users with
+access: it holds the same permissions those users have, so naming somebody shows what they could be
+granted, and granting them any of it makes them one of those users, listed above. What they hold
+already cannot be taken away there, which is what their own entry is for.
+
+The roles of a user come from the user API (see UserGetAPI in user.go), which every user shown here is
+looked up through, so the checkboxes and the decisions of a user who cannot be looked up are not
+offered: without knowing what they already have, what to grant them is not known either.
 
 Approving a request grants the requested action and, with it, the actions it requires which the user is
 missing. Pending requests for any of the granted actions are approved along, so the same access is
@@ -42,9 +47,9 @@ import type { DeepReadonly } from "vue"
 
 import type { ClaimTypes } from "@/document"
 import type { PermissionGrant, PermissionRequest } from "@/permissions"
-import type { Identity } from "@/types"
+import type { Identity, ValidationError } from "@/types"
 
-import { computed, inject } from "vue"
+import { computed, inject, ref } from "vue"
 import { useI18n } from "vue-i18n"
 
 import { hasDocumentPermission, hasUserDocumentPermission, hasUserRoleDocumentPermission, SCOPE_SELF } from "@/auth"
@@ -55,6 +60,7 @@ import { HAS_PERMISSION, PERMISSION_SCOPE, PERMISSION_USER } from "@/core"
 import { HighConfidence } from "@/document"
 import { saveChangeKey } from "@/fields"
 import IdentityLabel from "@/partials/IdentityLabel.vue"
+import InputIdentity from "@/partials/input/InputIdentity.vue"
 import { useBusy } from "@/progress"
 import {
   permissionActionClosure,
@@ -66,6 +72,7 @@ import {
   permissionGrants,
   permissionRequests,
 } from "@/permissions"
+import { pickErrorMessage } from "@/validation"
 
 const props = defineProps<{
   claims: DeepReadonly<ClaimTypes>
@@ -74,6 +81,19 @@ const props = defineProps<{
 const { t } = useI18n({ useScope: "global" })
 
 const saveChange = inject(saveChangeKey)
+
+// The user named to be granted access without having asked for it, and what naming them ran into (an
+// unknown subject, see InputIdentity). Granting them anything makes them a user with access, which is
+// when the name is cleared (see onGrantNamedUser).
+const namedUser = ref("")
+const namedUserErrors = ref<ValidationError[]>([])
+const namedUserErrorMessage = computed(() => pickErrorMessage(namedUserErrors.value, t))
+const namedUserResolved = computed(() => namedUser.value !== "" && namedUserErrors.value.length === 0)
+
+// What the document grants the named user, which is nothing unless they are listed above already: their
+// entry then shows what they hold, so that naming a user who has access reads the same as their entry
+// and only what they are missing can be granted here.
+const namedUserGrant = computed<PermissionGrant>(() => users.value.find((grant) => grant.user === namedUser.value) ?? { user: namedUser.value, actions: new Map() })
 
 // Both lists are the session document's permission claims, so they follow every change appended to
 // the session, whether it was made here, on another tab, or by another client.
@@ -191,6 +211,15 @@ function onRemoveUser(grant: PermissionGrant) {
   void append(() => removeClaims([...grant.actions.values()].flat()))
 }
 
+// Granting an action to a named user makes them a user with access, listed with everybody else, so
+// naming them is done: the name is cleared once the grant has landed, ready for the next user.
+function onGrantNamedUser(identity: Identity, action: string) {
+  void append(async () => {
+    await grantActions(identity.subject, missingActions(identity, action))
+    namedUser.value = ""
+  })
+}
+
 // grantedSet is what the document grants the user, which is what the tab can add to and take from.
 function grantedSet(user: string): Set<string> {
   return new Set(users.value.find((grant) => grant.user === user)?.actions.keys() ?? [])
@@ -266,7 +295,11 @@ const WithDocumentIdentity = WithDocument<Identity>
                     {{ actionLabel(checkbox.action) }}
                   </label>
                 </div>
-                <i v-if="actionCheckboxes(grant, identity as Identity).some((checkbox) => !checkbox.toggleable)" class="text-gray-500">
+                <!-- Every action their roles cover is left out, so a user whose roles cover them all has no checkbox at all. -->
+                <i v-if="actionCheckboxes(grant, identity as Identity).length === 0" class="text-sm text-neutral-500">
+                  {{ t("partials.PermissionsForm.nothingToGrant") }}
+                </i>
+                <i v-else-if="actionCheckboxes(grant, identity as Identity).some((checkbox) => !checkbox.toggleable)" class="text-sm text-neutral-500">
                   {{ t("partials.PermissionsForm.cannotGrant") }}
                 </i>
               </div>
@@ -277,6 +310,64 @@ const WithDocumentIdentity = WithDocument<Identity>
           </WithDocumentIdentity>
         </li>
       </ul>
+      <!--
+        Access can be granted to a user who has not asked for it, by naming them in this entry: it holds
+        the same permissions a user with access has, in the same place, and granting any of them makes
+        them one of those users, listed above.
+      -->
+      <div class="mt-3 flex flex-col gap-y-2 rounded border border-slate-300 p-3">
+        <div class="flex flex-col gap-y-1">
+          <InputIdentity v-model="namedUser" :aria-label="t('partials.PermissionsForm.addUser')" @errors="namedUserErrors = $event" />
+          <p v-if="namedUserErrorMessage" class="text-sm text-error-600">{{ namedUserErrorMessage }}</p>
+          <p class="text-sm text-neutral-500 italic">{{ t("partials.PermissionsForm.addUserHint") }}</p>
+        </div>
+        <!-- With nobody named there is nobody to grant anything to: the permissions show what could be granted, and none of them can be. -->
+        <div v-if="!namedUserResolved" class="flex flex-row flex-wrap gap-x-6 gap-y-1">
+          <label v-for="action of permissionActions" :key="action.id" class="flex cursor-not-allowed items-center gap-x-2 text-gray-500" :title="actionHint(action.id)">
+            <CheckBox :model-value="false" disabled />
+            {{ actionLabel(action.id) }}
+          </label>
+        </div>
+        <!-- A named user has the permissions read against their roles, like a user with access has. -->
+        <WithDocumentIdentity v-else :id="namedUser" name="UserGet">
+          <template #default="{ doc: identity }">
+            <div class="flex flex-col gap-y-1">
+              <div class="flex flex-row flex-wrap gap-x-6 gap-y-1">
+                <label
+                  v-for="checkbox of actionCheckboxes(namedUserGrant, identity as Identity)"
+                  :key="checkbox.action"
+                  class="flex items-center gap-x-2"
+                  :class="!checkbox.granted && checkbox.toggleable ? 'cursor-pointer' : 'cursor-not-allowed text-gray-500'"
+                  :title="actionHint(checkbox.action)"
+                >
+                  <!-- Access is only granted here: what a user holds already is theirs to lose in their own entry above. -->
+                  <CheckBox
+                    :model-value="checkbox.granted"
+                    :disabled="checkbox.granted || !checkbox.toggleable"
+                    @update:model-value="onGrantNamedUser(identity as Identity, checkbox.action)"
+                  />
+                  {{ actionLabel(checkbox.action) }}
+                </label>
+              </div>
+              <i v-if="actionCheckboxes(namedUserGrant, identity as Identity).length === 0" class="text-sm text-neutral-500">
+                {{ t("partials.PermissionsForm.nothingToGrant") }}
+              </i>
+              <template v-else>
+                <!-- The two say different things, so a user who is listed above and holds an action nobody can grant gets both. -->
+                <i v-if="actionCheckboxes(namedUserGrant, identity as Identity).some((checkbox) => checkbox.granted)" class="text-sm text-neutral-500">
+                  {{ t("partials.PermissionsForm.alreadyGranted") }}
+                </i>
+                <i v-if="actionCheckboxes(namedUserGrant, identity as Identity).some((checkbox) => !checkbox.toggleable)" class="text-sm text-neutral-500">
+                  {{ t("partials.PermissionsForm.cannotGrant") }}
+                </i>
+              </template>
+            </div>
+          </template>
+          <template #loading>
+            <i class="text-gray-500">{{ t("common.status.loading") }}</i>
+          </template>
+        </WithDocumentIdentity>
+      </div>
     </div>
     <div>
       <h2 class="text-xl font-bold">{{ t("partials.PermissionsForm.requestsTitle") }}</h2>
@@ -311,7 +402,9 @@ const WithDocumentIdentity = WithDocument<Identity>
                 <div v-if="actionHint(request.action)" class="text-sm text-neutral-500 italic">{{ actionHint(request.action) }}</div>
               </div>
               <div v-if="request.note" class="break-words whitespace-pre-wrap text-gray-700">{{ request.note }}</div>
-              <i v-if="!canGrant(missingActions(identity as Identity, request.action))" class="text-gray-500">{{ t("partials.PermissionsForm.cannotGrant") }}</i>
+              <i v-if="!canGrant(missingActions(identity as Identity, request.action))" class="text-sm text-neutral-500">{{
+                t("partials.PermissionsForm.cannotGrant")
+              }}</i>
             </template>
             <template #loading>
               <i class="text-gray-500">{{ t("common.status.loading") }}</i>

@@ -321,7 +321,11 @@
       "requestsTitle": "Čakajoče prošnje",
       "usersTitle": "Uporabniki z dostopom",
       "requestedAction": "Zaprošena pravica",
-      "cannotGrant": "Pravice, ki je sami nimate, ne morete dodeliti."
+      "cannotGrant": "Pravice, ki je sami nimate, ne morete dodeliti.",
+      "addUser": "Drug uporabnik",
+      "addUserHint": "ID uporabnika, ki mu želite dodeliti dostop.",
+      "nothingToGrant": "Ta uporabnik že ima poln dostop do dokumenta (vse pravice).",
+      "alreadyGranted": "Označene pravice ima ta uporabnik že dodeljene, odvzamete pa mu jih lahko v njegovem vnosu zgoraj."
     },
     "PermissionsView": {
       "usersTitle": "@:partials.PermissionsForm.usersTitle",

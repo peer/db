@@ -321,7 +321,11 @@
       "requestsTitle": "Pending requests",
       "usersTitle": "Users with access",
       "requestedAction": "Requested permission",
-      "cannotGrant": "You cannot grant a permission which you do not hold yourself."
+      "cannotGrant": "You cannot grant a permission which you do not hold yourself.",
+      "addUser": "Another user",
+      "addUserHint": "The ID of a user to grant access to.",
+      "nothingToGrant": "This user already has full access to the document (all permissions).",
+      "alreadyGranted": "The checked permissions are granted to this user already, and can be taken away in their entry above."
     },
     "PermissionsView": {
       "usersTitle": "@:partials.PermissionsForm.usersTitle",
