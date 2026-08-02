@@ -9,6 +9,7 @@ import (
 	"gitlab.com/tozd/go/x"
 	"gitlab.com/tozd/identifier"
 
+	"gitlab.com/peerdb/peerdb/auth"
 	"gitlab.com/peerdb/peerdb/document"
 	"gitlab.com/peerdb/peerdb/storage"
 	"gitlab.com/peerdb/peerdb/store"
@@ -101,6 +102,26 @@ func (b *B) withDocumentHooks(
 		doc, metadata, resolved, parentChangesets, errE = hook(ctx, doc, latest, metadata, resolved, parentChangesets, errE)
 	}
 	return doc, metadata, resolved, parentChangesets, errE
+}
+
+// FilterSessionDocument runs the session document hooks on the state of an edit session and returns what
+// they leave of it (see SessionDocumentHooks), so the state can be handed to the caller filtered the same
+// as a document read through the store is.
+//
+// A hook which hides the state whole reports it with auth.ErrAccessDenied, and so does this method when
+// a hook keeps nothing of the state: there is then nothing of the session to show the caller.
+func (b *B) FilterSessionDocument(ctx context.Context, doc *document.D, beginMetadata *DocumentBeginMetadata) (*document.D, errors.E) {
+	for _, hook := range b.SessionDocumentHooks {
+		var errE errors.E
+		doc, errE = hook(ctx, doc, beginMetadata)
+		if errE != nil {
+			return nil, errE
+		}
+		if doc == nil {
+			return nil, errors.WithStack(auth.ErrAccessDenied)
+		}
+	}
+	return doc, nil
 }
 
 // readVersionedFileWithLatest reads the file at the given version together with the version of the

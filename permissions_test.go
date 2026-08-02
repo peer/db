@@ -783,7 +783,7 @@ func TestSessionPermissions(t *testing.T) {
 	errE = claimChanges.Apply(doc)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.True(t, auth.HasPermissionClaim(auth.ActionUpdate, "collab", doc))
-	_, doc, errE = site.Base.SessionDocument(ctx, session)
+	_, doc, errE = site.Base.SessionDocumentRaw(ctx, session)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.True(t, auth.HasPermissionClaim(auth.ActionUpdate, "collab", doc))
 	assert.False(t, auth.HasPermissionClaim(auth.ActionUpdate, "stranger", doc))
@@ -793,7 +793,7 @@ func TestSessionPermissions(t *testing.T) {
 	assert.Len(t, seedChanges, 15)
 	_, errE = site.Base.AppendDocumentChanges(sysCtx, session, seedChanges, 3)
 	require.NoError(t, errE, "% -+#.1v", errE)
-	_, doc, errE = site.Base.SessionDocument(ctx, session)
+	_, doc, errE = site.Base.SessionDocumentRaw(ctx, session)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	for _, action := range base.DefaultCreatorActions {
 		assert.True(t, auth.HasPermissionClaim(action, "creator1", doc), action.String())
@@ -810,7 +810,7 @@ func TestSessionPermissions(t *testing.T) {
 	errE = site.Base.EndEditDocument(sysCtx, session, false)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.EventuallyWithT(t, func(c *assert.CollectT) {
-		_, _, errE := site.Base.SessionDocument(ctx, session)
+		_, _, errE := site.Base.SessionDocumentRaw(ctx, session)
 		assert.ErrorIs(c, errE, coordinator.ErrAlreadyCompleted)
 	}, 10*time.Second, 10*time.Millisecond)
 	errE = service.HasSessionPermission(ctxCollab, session)
@@ -828,7 +828,7 @@ func TestSessionPermissions(t *testing.T) {
 	errE = site.Base.EndEditDocument(sysCtx, editSession, true)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.EventuallyWithT(t, func(c *assert.CollectT) {
-		_, _, errE := site.Base.SessionDocument(ctx, editSession)
+		_, _, errE := site.Base.SessionDocumentRaw(ctx, editSession)
 		assert.ErrorIs(c, errE, coordinator.ErrAlreadyCompleted)
 	}, 10*time.Second, 10*time.Millisecond)
 	errE = service.HasSessionPermission(ctxCollab, editSession)
@@ -843,7 +843,7 @@ func TestSessionPermissions(t *testing.T) {
 	errE = site.Base.EndEditDocument(sysCtx, createSession, true)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.EventuallyWithT(t, func(c *assert.CollectT) {
-		_, _, errE := site.Base.SessionDocument(ctx, createSession)
+		_, _, errE := site.Base.SessionDocumentRaw(ctx, createSession)
 		assert.ErrorIs(c, errE, coordinator.ErrAlreadyCompleted)
 	}, 10*time.Second, 10*time.Millisecond)
 	errE = service.HasSessionPermission(ctxCreator, createSession)

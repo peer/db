@@ -162,6 +162,24 @@ type B struct {
 		ctx context.Context, doc, latest *document.D, metadata *store.DocumentMetadata, version store.Version, parentChangesets []store.Version, errE errors.E,
 	) (*document.D, *store.DocumentMetadata, store.Version, []store.Version, errors.E)
 
+	// SessionDocumentHooks are called on the state of an edit session (see SessionDocumentRaw) before it is
+	// handed to a caller, the way DocumentPostHooks are called on a document read from the store. The
+	// state is built raw, so nothing else applies a site's filtering to it: a site which filters
+	// documents on the read path wants the same filtering here. They are called neither on the read/API
+	// path for documents nor during indexing, and neither are the document hooks called on a session's
+	// state. PeerDB seeds the list with the default permission-enforcing hook before the site customizer
+	// runs, so a customizer appending its own hooks keeps the enforcement; replacing it means assigning
+	// the list anew.
+	//
+	// Besides the state they receive the metadata the session began with: the version it edits from (nil
+	// when it creates the document), who opened it and when. Permissions are decided on the state itself,
+	// which is what the session's own checks do, so a permission claim added within the session counts
+	// here as well. Returning auth.ErrAccessDenied hides the state from the caller, and so does returning
+	// no document at all; the hooks after the one which does either are not called.
+	SessionDocumentHooks []func(
+		ctx context.Context, doc *document.D, beginMetadata *DocumentBeginMetadata,
+	) (*document.D, errors.E)
+
 	// FilePreHooks are called before fetching the file from the store. PeerDB seeds the list with
 	// the default permission-enforcing hook before the site customizer runs, so a customizer
 	// appending its own hooks keeps the enforcement; replacing it means assigning the list anew.
@@ -285,6 +303,7 @@ func (b *B) Init(
 		Prefix:                   "docs",
 		DataType:                 "jsonb",
 		MetadataType:             "jsonb",
+		MetadataIndex:            true,
 		CompleteSession:          b.completeDocumentSession,
 		CompleteSessionTx:        b.completeDocumentSessionTx,
 		CompleteSessionOnErrorTx: b.completeSessionOnErrorTx,

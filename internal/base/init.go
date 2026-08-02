@@ -57,6 +57,7 @@ func InitComponents(
 		IndexingSourceCheck:     nil,
 		DocumentPreHooks:        nil,
 		DocumentPostHooks:       nil,
+		SessionDocumentHooks:    nil,
 		FilePreHooks:            nil,
 		FilePostHooks:           nil,
 		EndEditPermissionCheck:  nil,

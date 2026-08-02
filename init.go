@@ -146,6 +146,7 @@ func Init(ctx context.Context, globals *Globals) (func(), errors.E) {
 			// exported for explicit inclusion).
 			site.Base.DocumentPreHooks = append(site.Base.DocumentPreHooks, DefaultDocumentPreHook)
 			site.Base.DocumentPostHooks = append(site.Base.DocumentPostHooks, DefaultDocumentPostHook)
+			site.Base.SessionDocumentHooks = append(site.Base.SessionDocumentHooks, DefaultSessionDocumentHook)
 			site.Base.FilePreHooks = append(site.Base.FilePreHooks, DefaultFilePreHook)
 			site.Base.FilePostHooks = append(site.Base.FilePostHooks, DefaultFilePostHook)
 		}

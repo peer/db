@@ -88,7 +88,7 @@ func TestDocumentSessionEndEditPermissionCheck(t *testing.T) {
 	require.ErrorIs(t, errE, store.ErrValueNotFound)
 
 	// A completed session has no current document state anymore.
-	_, _, errE = b.SessionDocument(ctx, session)
+	_, _, errE = b.SessionDocumentRaw(ctx, session)
 	require.ErrorIs(t, errE, coordinator.ErrAlreadyCompleted)
 
 	mu.Lock()

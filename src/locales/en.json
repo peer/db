@@ -344,6 +344,16 @@
       "title": "Delete document",
       "confirm": "Do you want to delete the document?"
     },
+    "DocumentSessions": {
+      "title": "Editing sessions",
+      "notSignedIn": "You need to sign in to see the editing sessions.",
+      "noSessions": "There are no active editing sessions.",
+      "started": "Started: {time}, user {user}",
+      "lastChange": "Last change: {time}, user {user}",
+      "create": "create",
+      "edit": "edit",
+      "open": "Open"
+    },
     "DocumentGet": {
       "tabs": {
         "allProperties": "All properties",

@@ -376,18 +376,19 @@ func (b *B) EndEditDocument(ctx context.Context, session identifier.Identifier, 
 	return errE
 }
 
-// SessionDocument returns the edit session's current document state (the parent document for edit
+// SessionDocumentRaw returns the edit session's current document state (the parent document for edit
 // sessions, or an empty document for create sessions, with all committed changes applied), together
 // with the session's begin metadata. It works also for an ended session while it is completing
 // asynchronously (its changes are frozen, so its state is final), but fails with
 // coordinator.ErrAlreadyCompleted once the session has completed: its result (if any) is then a
 // committed document version and the session has no own state anymore.
 //
-// The state is built raw, without running the document pre and post hooks (for edit sessions the
-// parent document is loaded directly from the store), so it can reveal documents (or parts of
-// documents) which the hooks would deny or filter. Callers have to check permissions themselves
-// before exposing the returned document to the caller.
-func (b *B) SessionDocument(ctx context.Context, session identifier.Identifier) (*DocumentBeginMetadata, *document.D, errors.E) {
+// The state is raw, as the name says: neither the document pre and post hooks nor the session document
+// hooks are run on it (for edit sessions the parent document is loaded directly from the store), so it
+// can reveal documents, or parts of documents, which those hooks would deny or filter. It is the state
+// to check permissions against, because the checks read claims a filter may hide, and it must not be
+// handed to a caller as it is: run it through FilterSessionDocument for that.
+func (b *B) SessionDocumentRaw(ctx context.Context, session identifier.Identifier) (*DocumentBeginMetadata, *document.D, errors.E) {
 	beginMetadata, _, completeMetadata, errE := b.coordinator.Get(ctx, session)
 	if errE != nil {
 		return nil, nil, errE
@@ -416,6 +417,81 @@ func (b *B) SessionDocument(ctx context.Context, session identifier.Identifier) 
 		return nil, nil, errE
 	}
 	return beginMetadata, result, nil
+}
+
+// EditSession is one edit session a user is taking part in, as ListEditSessions returns it.
+type EditSession struct {
+	Session identifier.Identifier
+	// DocumentID is the document the session edits, which for a create session is the document it will
+	// create once it is saved.
+	DocumentID identifier.Identifier
+	// Create tells the two apart: it is true for a session creating a new document and false for one
+	// editing a document which exists.
+	Create bool
+	// At is when the session began, and LastChangeAt when a change was last appended to it, which is
+	// when it began while nothing has been appended.
+	At           store.Time
+	LastChangeAt store.Time
+	// By is who began the session, and LastChangeBy who appended the change last, which is who began
+	// it while nothing has been appended. Either is nil when done unauthenticated.
+	By           *store.User
+	LastChangeBy *store.User
+}
+
+// ListEditSessions returns the edit sessions which have not ended yet and which the user in ctx is
+// taking part in: those they began and those they appended a change to, which are the users a session
+// records on what it commits (see store.DocumentMetadata.Users). Sessions the application drives
+// itself are left out (see DocumentBeginMetadata.System), and an unauthenticated caller takes part in
+// none, so they get nothing.
+//
+// The sessions come newest first, by when they began. Whether the caller may still access each of them
+// is a separate question (see Service.HasSessionPermission), and so is what each of them holds by now
+// (see SessionDocumentRaw).
+func (b *B) ListEditSessions(ctx context.Context) ([]EditSession, errors.E) {
+	user := store.UserFromContext(ctx)
+	if user == nil {
+		return nil, nil
+	}
+
+	// The metadata a session begins with and the metadata of every change record the user under the
+	// same key, so one match finds a session whichever of the two the user is in.
+	metadata, errE := x.MarshalWithoutEscapeHTML(struct {
+		User *store.User `json:"user"`
+	}{user})
+	if errE != nil {
+		return nil, errE
+	}
+
+	infos, errE := b.coordinator.ListNotEnded(ctx, metadata)
+	if errE != nil {
+		return nil, errE
+	}
+
+	sessions := make([]EditSession, 0, len(infos))
+	for _, info := range infos {
+		if info.BeginMetadata.System {
+			continue
+		}
+		lastChangeAt := info.BeginMetadata.At
+		lastChangeBy := info.BeginMetadata.User
+		if info.LastOperation > 0 {
+			lastChangeAt = info.OperationMetadata.At
+			lastChangeBy = info.OperationMetadata.User
+		}
+		sessions = append(sessions, EditSession{
+			Session:      info.Session,
+			DocumentID:   info.BeginMetadata.DocumentID,
+			Create:       info.BeginMetadata.Version == nil,
+			At:           info.BeginMetadata.At,
+			LastChangeAt: lastChangeAt,
+			By:           info.BeginMetadata.User,
+			LastChangeBy: lastChangeBy,
+		})
+	}
+	slices.SortFunc(sessions, func(a, b EditSession) int {
+		return time.Time(b.At).Compare(time.Time(a.At))
+	})
+	return sessions, nil
 }
 
 // GetEditDocumentSession returns the begin metadata of the edit session, a flag indicating

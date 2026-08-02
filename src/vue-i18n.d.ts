@@ -355,6 +355,16 @@ declare module "vue-i18n" {
         title: string
         confirm: string
       }
+      DocumentSessions: {
+        title: string
+        notSignedIn: string
+        noSessions: string
+        started: string
+        lastChange: string
+        create: string
+        edit: string
+        open: string
+      }
       DocumentGet: {
         tabs: {
           allProperties: string

@@ -408,6 +408,83 @@ func (s *Service) DocumentListGetAPI(w http.ResponseWriter, req *http.Request, _
 	s.WriteJSON(w, req, documents, nil)
 }
 
+// DocumentSessionResponse is one edit session DocumentSessionsGetAPI returns.
+type DocumentSessionResponse struct {
+	Session identifier.Identifier `json:"session"`
+	// Doc is the document as the session has it, so a document being created is described by what the
+	// session has put into it and not by what is committed of it, which is nothing until it is saved.
+	Doc *document.D `json:"doc"`
+	// Create is true for a session creating a new document and false for one editing a document which exists.
+	Create bool `json:"create"`
+	// At is when the session began and By who began it, LastChangeAt when a change was last appended to it
+	// and LastChangeBy who appended it. Either user is absent when done unauthenticated.
+	At           store.Time  `json:"at"`
+	By           *store.User `json:"by,omitempty"`
+	LastChangeAt store.Time  `json:"lastChangeAt"`
+	LastChangeBy *store.User `json:"lastChangeBy,omitempty"`
+}
+
+// DocumentSessionsGet is a GET/HEAD HTTP request handler which returns HTML frontend for the page
+// listing the caller's edit sessions.
+func (s *Service) DocumentSessionsGet(w http.ResponseWriter, req *http.Request, _ waf.Params) {
+	s.HomeGet(w, req, nil)
+}
+
+// DocumentSessionsGetAPI is a GET HTTP request API handler which returns the edit sessions the caller
+// is taking part in and can still open, newest first: the sessions they began or appended a change to,
+// which have not ended yet (see base.ListEditSessions), each with the document as the session has it.
+//
+// A session the caller may no longer access is left out, so opening any of the listed ones works, and
+// so is a session which ends while the list is being made: it is no longer one to continue either.
+func (s *Service) DocumentSessionsGetAPI(w http.ResponseWriter, req *http.Request, _ waf.Params) {
+	ctx := req.Context()
+	site := waf.MustGetSite[*internalSite.Site](ctx)
+
+	sessions, errE := site.Base.ListEditSessions(ctx)
+	if errE != nil {
+		s.InternalServerErrorWithError(w, req, errE)
+		return
+	}
+
+	response := make([]DocumentSessionResponse, 0, len(sessions))
+	for _, session := range sessions {
+		beginMetadata, doc, errE := s.sessionDocumentWithPermission(ctx, session.Session)
+		if errors.Is(errE, auth.ErrAccessDenied) || errors.Is(errE, coordinator.ErrSessionNotFound) {
+			continue
+		} else if errE != nil {
+			s.InternalServerErrorWithError(w, req, errE)
+			return
+		} else if doc == nil {
+			// The session completed while the list was being made, so it is not one to continue either.
+			continue
+		}
+
+		// The state is built raw, so it is filtered for the caller the same as a document they read
+		// (see base.SessionDocumentHooks), which is also what enforces the read action on it.
+		doc, errE = site.Base.FilterSessionDocument(ctx, doc, beginMetadata)
+		if errors.Is(errE, auth.ErrAccessDenied) {
+			continue
+		} else if errE != nil {
+			s.InternalServerErrorWithError(w, req, errE)
+			return
+		} else if doc == nil {
+			continue
+		}
+
+		response = append(response, DocumentSessionResponse{
+			Session:      session.Session,
+			Doc:          doc,
+			Create:       session.Create,
+			At:           session.At,
+			By:           session.By,
+			LastChangeAt: session.LastChangeAt,
+			LastChangeBy: session.LastChangeBy,
+		})
+	}
+
+	s.WriteJSON(w, req, response, nil)
+}
+
 type documentCreateResponse struct {
 	ID      identifier.Identifier `json:"id"`
 	Base    []string              `json:"base"`
@@ -809,6 +886,16 @@ func (s *Service) DocumentGetChangeGetAPI(w http.ResponseWriter, req *http.Reque
 		return
 	}
 
+	// TODO: Decide what taking part in an edit session may reveal of the document.
+	//       The change is returned as it was appended, so every participant reads every change the
+	//       others made to the session, including changes to parts of the document a site hides from
+	//       them on the read path. No document hook can filter this: a change is not a document (see
+	//       base.DocumentPostHooks for a read and base.SessionDocumentHooks for the session's state,
+	//       both of which stay filtered). So a session between participants who may see different
+	//       parts of the same document shows each of them all of it. Either changes are filtered per
+	//       participant as well, which requires the site to say what a change reveals, or taking part
+	//       in a session requires being able to see the whole document, which makes it a permission
+	//       rule instead of a filtering one.
 	s.WriteJSON(w, req, dataJSON, nil)
 }
 
@@ -834,7 +921,7 @@ func (s *Service) documentEndEdit(w http.ResponseWriter, req *http.Request, para
 		return
 	}
 
-	errE = s.HasSessionPermission(ctx, session)
+	_, doc, errE := s.sessionDocumentWithPermission(ctx, session)
 	if errors.Is(errE, coordinator.ErrSessionNotFound) {
 		s.NotFoundWithError(w, req, errE)
 		return
@@ -862,15 +949,9 @@ func (s *Service) documentEndEdit(w http.ResponseWriter, req *http.Request, para
 		// request's user and roles so the request fails fast. The check gets the session's
 		// resulting document, so scoped role grants are enforced against what the session actually
 		// produces (and an edit cannot move the document out of the granted scope).
-		_, doc, errE := site.Base.SessionDocument(ctx, session)
-		if errors.Is(errE, coordinator.ErrSessionNotFound) {
-			s.NotFoundWithError(w, req, errE)
-			return
-		} else if errors.Is(errE, coordinator.ErrAlreadyCompleted) {
-			s.NotFoundWithError(w, req, errE)
-			return
-		} else if errE != nil {
-			s.InternalServerErrorWithError(w, req, errE)
+		if doc == nil {
+			// The session has completed, so it has no state of its own left to check, nor anything to end.
+			s.NotFoundWithError(w, req, errors.WithStack(coordinator.ErrAlreadyCompleted))
 			return
 		}
 		errE = site.Base.EndEditPermissionCheck(store.UserFromContext(ctx), auth.Roles(ctx), doc)

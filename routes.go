@@ -210,6 +210,19 @@ func (s *Service) setRoutes() { //nolint:maintidx
 				},
 			},
 		},
+		"DocumentSessions": {
+			RouteOptions: waf.RouteOptions{
+				Handlers: map[string]waf.Handler{
+					http.MethodGet: s.DocumentSessionsGet,
+				},
+			},
+			Path: "/d/session",
+			API: waf.RouteOptions{
+				Handlers: map[string]waf.Handler{
+					http.MethodGet: s.DocumentSessionsGetAPI,
+				},
+			},
+		},
 		"DocumentCreateOptions": {
 			Path: "/d/createOptions",
 			API: waf.RouteOptions{

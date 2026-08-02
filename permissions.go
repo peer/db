@@ -273,25 +273,31 @@ func (s *Service) HasFilePermission(ctx context.Context, action identifier.Ident
 	return errE
 }
 
-// HasSessionPermission reports whether the caller may access the edit session: its state, its
-// changes, and its status. The check is made against the document related to the session at the
-// current point of the session's lifecycle (its in-progress state, the version it committed, or the
-// version it started from), so who may access the session can change as the session progresses.
-// Which action a change appended to a session requires is checked separately, per change (see
-// checkChangePermission); this method gates general access to the session's endpoints. A system
-// session is denied to every caller (see denySystemSession). A session which does not exist is
-// reported with coordinator.ErrSessionNotFound so callers can distinguish it from a permission
-// denial.
-func (s *Service) HasSessionPermission(ctx context.Context, session identifier.Identifier) errors.E {
+// sessionDocumentWithPermission checks whether the caller may access the edit session (see
+// HasSessionPermission for the rules) and returns the metadata the session began with together with the
+// state the session has its document in.
+//
+// The returned document is the very state the check was made against, so a caller which shows it or
+// checks something else on it works on what passed the check: reading the session a second time could
+// answer with a state a change appended in between has moved out of the caller's reach. It also builds
+// that state once instead of once for the check and once for the caller. The state is raw, so it has to
+// be filtered before it is shown (see base.B.FilterSessionDocument).
+//
+// The document is nil for a session which has completed: what such a session relates to is a committed
+// document version, which is read only to make the check (and read raw, so that its permission claims
+// count also for a caller who may not read it).
+func (s *Service) sessionDocumentWithPermission(
+	ctx context.Context, session identifier.Identifier,
+) (*base.DocumentBeginMetadata, *document.D, errors.E) {
 	site, ok := waf.GetSite[*internalSite.Site](ctx)
 	if !ok {
-		return errors.WithStack(auth.ErrAccessDenied)
+		return nil, nil, errors.WithStack(auth.ErrAccessDenied)
 	}
 
 	// For an active session (or an ended one which is still completing asynchronously) the update
 	// action is checked against the session's current document state, so users granted an action
 	// only within the session have access, too.
-	beginMetadata, doc, errE := site.Base.SessionDocument(ctx, session)
+	beginMetadata, doc, errE := site.Base.SessionDocumentRaw(ctx, session)
 	// A completed session has no own state anymore, so its metadata is read instead and the document
 	// related to it is resolved below.
 	completed := errors.Is(errE, coordinator.ErrAlreadyCompleted)
@@ -300,12 +306,12 @@ func (s *Service) HasSessionPermission(ctx context.Context, session identifier.I
 		beginMetadata, _, completeMetadata, errE = site.Base.GetEditDocumentSession(ctx, session)
 	}
 	if errE != nil {
-		return errE
+		return nil, nil, errE
 	}
 
 	errE = denySystemSession(beginMetadata)
 	if errE != nil {
-		return errE
+		return nil, nil, errE
 	}
 
 	if completed {
@@ -327,22 +333,52 @@ func (s *Service) HasSessionPermission(ctx context.Context, session identifier.I
 		// action is checked without a document (only role grants can allow it), again matching the
 		// check made when the session was opened.
 		if version == nil {
-			return s.HasDocumentPermission(ctx, auth.ActionCreate, nil)
+			errE = s.HasDocumentPermission(ctx, auth.ActionCreate, nil)
+			if errE != nil {
+				return nil, nil, errE
+			}
+			return beginMetadata, nil, nil
 		}
 		// The document is obtained raw (its permission claims have to count also for callers who may
 		// not read it) and is used only for the permission check.
 		docJSON, _, _, _, errE := site.Base.Documents().Get(ctx, beginMetadata.DocumentID, *version)
 		if errE != nil {
-			return errE
+			return nil, nil, errE
 		}
-		doc = new(document.D)
-		errE = x.UnmarshalWithoutUnknownFields(docJSON, doc)
+		committed := new(document.D)
+		errE = x.UnmarshalWithoutUnknownFields(docJSON, committed)
 		if errE != nil {
-			return errE
+			return nil, nil, errE
 		}
+		errE = s.HasDocumentPermission(ctx, auth.ActionUpdate, committed)
+		if errE != nil {
+			return nil, nil, errE
+		}
+		return beginMetadata, nil, nil
 	}
 
-	return s.HasDocumentPermission(ctx, auth.ActionUpdate, doc)
+	errE = s.HasDocumentPermission(ctx, auth.ActionUpdate, doc)
+	if errE != nil {
+		return nil, nil, errE
+	}
+	return beginMetadata, doc, nil
+}
+
+// HasSessionPermission reports whether the caller may access the edit session: its state, its
+// changes, and its status. The check is made against the document related to the session at the
+// current point of the session's lifecycle (its in-progress state, the version it committed, or the
+// version it started from), so who may access the session can change as the session progresses.
+// Which action a change appended to a session requires is checked separately, per change (see
+// checkChangePermission); this method gates general access to the session's endpoints. A system
+// session is denied to every caller (see denySystemSession). A session which does not exist is
+// reported with coordinator.ErrSessionNotFound so callers can distinguish it from a permission
+// denial.
+//
+// Use sessionDocumentWithPermission where the session's document is needed as well, so that the state
+// which is worked on is the one the check approved.
+func (s *Service) HasSessionPermission(ctx context.Context, session identifier.Identifier) errors.E {
+	_, _, errE := s.sessionDocumentWithPermission(ctx, session)
+	return errE
 }
 
 // denySystemSession returns an access denied error for a session the application itself drives (see
@@ -425,6 +461,24 @@ func DefaultDocumentPostHook(
 		return doc, metadata, version, parentChangesets, nil
 	}
 	return doc, metadata, version, parentChangesets, errors.WithStack(auth.ErrAccessDenied)
+}
+
+// DefaultSessionDocumentHook enforces the read action on the state of an edit session, from role grants
+// with a scope covering the document and from the state's own permission claims. The state is what the
+// action is held on, the same as for the session's update check (see Service.HasSessionPermission), so a
+// permission claim added within the session grants reading the state as well.
+func DefaultSessionDocumentHook(ctx context.Context, doc *document.D, _ *base.DocumentBeginMetadata) (*document.D, errors.E) {
+	if doc == nil {
+		return doc, nil
+	}
+	site, ok := waf.GetSite[*internalSite.Site](ctx)
+	if !ok {
+		return doc, nil
+	}
+	if !checkDocumentPermission(ctx, site, auth.ActionRead, doc) {
+		return nil, errors.WithStack(auth.ErrAccessDenied)
+	}
+	return doc, nil
 }
 
 // DefaultFilePreHook enforces the read action on files, from role grants with a scope covering files.

@@ -344,6 +344,16 @@
       "title": "Izbriši dokument",
       "confirm": "Ali želite izbrisati dokument?"
     },
+    "DocumentSessions": {
+      "title": "Seje urejanja",
+      "notSignedIn": "Za prikaz sej urejanja se morate prijaviti.",
+      "noSessions": "Ni aktivnih sej urejanja.",
+      "started": "Začeta: {time}, uporabnik {user}",
+      "lastChange": "Zadnja sprememba: {time}, uporabnik {user}",
+      "create": "ustvarjanje",
+      "edit": "urejanje",
+      "open": "Odpri"
+    },
     "DocumentGet": {
       "tabs": {
         "allProperties": "Vse lastnosti",

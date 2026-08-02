@@ -4,6 +4,7 @@ import type { Composer } from "vue-i18n"
 import type { Router } from "vue-router"
 
 import type { ClaimTypes } from "@/document/claims"
+import type { D } from "@/document/document"
 
 export type RefSearchResult = {
   props: readonly string[]
@@ -434,6 +435,23 @@ export type DocumentBeginEditResponse = {
   version: string
 }
 
+// One edit session the caller is taking part in and can open, as the sessions API returns it (see
+// DocumentSessionsGetAPI in document.go): the document is the state the session has it in, create tells
+// whether the session creates the document or edits one which exists, and the timestamps with the users
+// are of when the session began and when a change was last appended to it, by whom. A user is absent
+// when what they did was done unauthenticated.
+export type DocumentSessionResponse = {
+  session: string
+  doc: D
+  create: boolean
+  at: string
+  by?: DocumentUser
+  lastChangeAt: string
+  lastChangeBy?: DocumentUser
+}
+
+export type DocumentSessionsResponse = DocumentSessionResponse[]
+
 export type DocumentEndEditResponse = {
   changeset: string
 }
@@ -446,8 +464,8 @@ export type DocumentBeginMetadata = {
   version?: string
 }
 
-// A user who contributed to a document version. id is the auth subject string.
-export type HistoryUser = {
+// A user who contributed to a document version or took part in an edit session. id is the auth subject string.
+export type DocumentUser = {
   id: string
 }
 
@@ -458,7 +476,7 @@ export type DocumentHistoryItem = {
   changeset: string
   version: string
   at: string
-  authors?: HistoryUser[]
+  authors?: DocumentUser[]
 }
 
 export type ViewType = "table" | "feed"
