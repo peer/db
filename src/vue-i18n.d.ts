@@ -117,6 +117,10 @@ declare module "vue-i18n" {
       LanguageSwitcher: {
         selectLanguage: string
       }
+      NavBarUser: {
+        copyId: string
+        copied: string
+      }
       input: {
         InputHTML: {
           toolbar: {

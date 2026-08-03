@@ -106,6 +106,10 @@
     "LanguageSwitcher": {
       "selectLanguage": "Select language"
     },
+    "NavBarUser": {
+      "copyId": "Copy user ID",
+      "copied": "User ID copied."
+    },
     "input": {
       "InputHTML": {
         "toolbar": {

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { currentIdentityId, currentUsername, isSignedIn } from "@/auth"
 import ProgressBar from "@/components/ProgressBar.vue"
 import siteContext, { logoVariants } from "@/context"
 import { useNavbar } from "@/navbar"
@@ -6,6 +7,7 @@ import CreateButton from "@/partials/CreateButton.vue"
 import LanguageSwitcher from "@/partials/LanguageSwitcher.vue"
 import NavBarMenu from "@/partials/NavBarMenu.vue"
 import NavBarSearch from "@/partials/NavBarSearch.vue"
+import NavBarUser from "@/partials/NavBarUser.vue"
 import SignInButton from "@/partials/SignInButton.vue"
 import { getParentProgress } from "@/progress"
 import { getNavbarComponents } from "@/registry/navbar"
@@ -87,11 +89,14 @@ useValidationRegistry()
       <slot name="end" />
       <CreateButton />
       <!--
-        On narrow viewports the language switcher and sign-in button fold into a single menu so the
-        navbar stays on one row; the create button stays inline. Above the breakpoint NavBarMenu
-        renders them directly (no wrapping element), so they remain direct navbar children.
+        A signed-in user has a menu of their own at every width, named by them and holding what is
+        theirs (see NavBarUser) besides the language switcher and the sign-out button. A caller who is
+        not signed in has only those two, inline, folded into a menu on narrow viewports so the navbar
+        stays on one row; the create button stays inline either way. Where NavBarMenu makes no menu it
+        renders its contents directly (no wrapping element), so they remain direct navbar children.
       -->
-      <NavBarMenu>
+      <NavBarMenu :label="isSignedIn() ? currentUsername || currentIdentityId : undefined">
+        <NavBarUser v-if="isSignedIn()" />
         <LanguageSwitcher />
         <SignInButton />
       </NavBarMenu>
