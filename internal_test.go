@@ -18,6 +18,7 @@ var (
 	TestingCheckDocumentPermission     = checkDocumentPermission
 	TestingCheckFilePermission         = checkFilePermission
 	TestingCheckRoleDocumentPermission = checkRoleDocumentPermission
+	TestingCheckCreateClassPermission  = checkCreateClassPermission
 	TestingChangedClaimProperties      = changedClaimProperties
 	TestingTopLevelClaimsByID          = topLevelClaimsByID
 )

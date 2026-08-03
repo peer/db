@@ -95,6 +95,10 @@ func pathsContain(paths [][]string, id string) bool {
 // not found or not accessible, so the class is skipped) to determine createability, and documentHierarchyPaths
 // resolves its SUBCLASS_OF ancestor paths.
 //
+// canCreate, when non-nil, additionally decides per class whether the caller may create a document of it,
+// so that the view offers only what creating it would accept; a class it denies is not creatable here and
+// is pruned with the rest. Without it every class a document can be created for is offered.
+//
 // When limit is non-empty, the offering is restricted to that class id and its descendants: only they keep
 // their creatability, the limit class's ancestors are kept solely as structural labels (forced
 // non-creatable) so the tree still renders from a root down to the limit, and every other class is dropped.
@@ -104,6 +108,7 @@ func CreateOptions(
 	getSearchService func() *esSearch.Search,
 	accessFilter types.QueryVariant,
 	loadDocument func(context.Context, identifier.Identifier) (*document.D, errors.E),
+	canCreate func(context.Context, identifier.Identifier) bool,
 	documentHierarchyPaths func(context.Context, identifier.Identifier) ([]string, errors.E),
 	limit string,
 ) ([]ClassCreateOption, errors.E) {
@@ -138,6 +143,10 @@ func CreateOptions(
 		if errE != nil {
 			return nil, errE
 		}
+		creatable := classCreatable(doc)
+		if creatable && canCreate != nil {
+			creatable = canCreate(ctx, id)
+		}
 		entries = append(entries, classEntry{
 			Res: RefFilterResult{
 				ID:                id.String(),
@@ -146,7 +155,7 @@ func CreateOptions(
 				ChildCountAtLeast: false,
 				Paths:             ancestorChains(fullPaths),
 			},
-			Creatable: classCreatable(doc),
+			Creatable: creatable,
 		})
 	}
 

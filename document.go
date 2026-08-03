@@ -649,7 +649,13 @@ func (s *Service) DocumentCreateOptionsGetAPI(w http.ResponseWriter, req *http.R
 		return doc, errE
 	}
 
-	classes, errE := search.CreateOptions(ctx, s.getSearchServiceClosure(req, index), accessFilter, loadDocument, s.documentHierarchyPaths, limit)
+	// A class the caller's create grants do not cover is not offered, so the view offers what creating
+	// a document would accept instead of what the create gate lets the caller reach.
+	canCreate := func(ctx context.Context, id identifier.Identifier) bool {
+		return checkCreateClassPermission(ctx, site, id)
+	}
+
+	classes, errE := search.CreateOptions(ctx, s.getSearchServiceClosure(req, index), accessFilter, loadDocument, canCreate, s.documentHierarchyPaths, limit)
 	if errE != nil {
 		s.InternalServerErrorWithError(w, req, errE)
 		return

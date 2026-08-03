@@ -47,6 +47,29 @@ func checkRoleDocumentPermission(ctx context.Context, site *internalSite.Site, a
 	return auth.HasDocumentPermission(site.Roles, action, "", auth.Roles(ctx), doc)
 }
 
+// checkCreateClassPermission reports whether the caller in ctx may create a document which is an instance
+// of the given class on the given site. There is no document to check yet, so the check is made against a
+// synthetic one carrying just that instance-of claim, and only role grants count, the same as when the
+// creation itself is checked (see DocumentCreatePostAPI): a document's own claims cannot authorize
+// creating it.
+//
+// It answers what a create grant scoped on the instance-of property allows. A create grant scoped on
+// another property does not match the synthetic document and hides the class, which offers less than the
+// creation would accept: such a grant needs initial claims which only the creation itself knows.
+func checkCreateClassPermission(ctx context.Context, site *internalSite.Site, class identifier.Identifier) bool {
+	claims := new(document.ClaimTypes)
+	claims.Reference = append(claims.Reference, document.ReferenceClaim{
+		CoreClaim: document.CoreClaim{ID: identifier.New(), Confidence: document.HighConfidence},
+		Prop:      document.Reference{ID: internalCore.InstanceOfPropID},
+		To:        document.Reference{ID: class},
+	})
+	doc := &document.D{
+		CoreDocument: document.CoreDocument{ID: identifier.New(), Base: nil},
+		Claims:       claims,
+	}
+	return checkRoleDocumentPermission(ctx, site, auth.ActionCreate, doc)
+}
+
 // checkVersionedReadPermission reports whether the caller in ctx may read the given version of the
 // document on the given site: the read action on the document at its latest version, together with
 // the read action at the given version or the historic read action on the document (the same rule

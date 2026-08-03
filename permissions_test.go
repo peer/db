@@ -360,6 +360,37 @@ func TestCheckRoleDocumentPermission(t *testing.T) {
 	assert.False(t, peerdb.TestingCheckRoleDocumentPermission(auth.WithSubject(context.Background(), "collab"), site, auth.ActionUpdate, doc))
 }
 
+// TestCheckCreateClassPermission verifies which classes a caller may create a document of: the check is
+// made against a document which is only an instance of the class, so a create grant scoped on the
+// instance-of property covers exactly the classes it names.
+func TestCheckCreateClassPermission(t *testing.T) {
+	t.Parallel()
+
+	application := identifier.New()
+	other := identifier.New()
+	site := rolesSite(map[string]auth.RoleGrants{
+		"creator": auth.MustParseRoleGrants(map[string][]string{auth.ActionCreateCode: {auth.ScopeDocuments}}),
+		"researcher": auth.MustParseRoleGrants(map[string][]string{
+			auth.ActionCreateCode: {internalCore.InstanceOfPropID.String() + "=" + application.String()},
+		}),
+		"reader": auth.MustParseRoleGrants(map[string][]string{auth.ActionReadCode: {auth.ScopeAll}}),
+	})
+
+	// A grant covering documents in general covers every class.
+	creator := auth.WithRoles(context.Background(), []string{"creator"})
+	assert.True(t, peerdb.TestingCheckCreateClassPermission(creator, site, application))
+	assert.True(t, peerdb.TestingCheckCreateClassPermission(creator, site, other))
+
+	// A grant scoped on a class covers that class alone.
+	researcher := auth.WithRoles(context.Background(), []string{"researcher"})
+	assert.True(t, peerdb.TestingCheckCreateClassPermission(researcher, site, application))
+	assert.False(t, peerdb.TestingCheckCreateClassPermission(researcher, site, other))
+
+	// Holding another action, or no role at all, covers nothing.
+	assert.False(t, peerdb.TestingCheckCreateClassPermission(auth.WithRoles(context.Background(), []string{"reader"}), site, application))
+	assert.False(t, peerdb.TestingCheckCreateClassPermission(context.Background(), site, application))
+}
+
 // TestTopLevelClaimsByID verifies serialization of a document's top-level claims by their IDs:
 // sub-claims are serialized within their top-level claim and are not entries themselves.
 func TestTopLevelClaimsByID(t *testing.T) {
