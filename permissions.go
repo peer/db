@@ -48,21 +48,28 @@ func checkRoleDocumentPermission(ctx context.Context, site *internalSite.Site, a
 }
 
 // checkCreateClassPermission reports whether the caller in ctx may create a document which is an instance
-// of the given class on the given site. There is no document to check yet, so the check is made against a
-// synthetic one carrying just that instance-of claim, and only role grants count, the same as when the
-// creation itself is checked (see DocumentCreatePostAPI): a document's own claims cannot authorize
-// creating it.
+// of the given class on the given site, together with the initial claims requested for it. There is no
+// document to check yet, so the check is made against a synthetic one carrying just those claims, and
+// only role grants count, the same as when the creation itself is checked (see DocumentCreatePostAPI):
+// a document's own claims cannot authorize creating it.
 //
-// It answers what a create grant scoped on the instance-of property allows. A create grant scoped on
-// another property does not match the synthetic document and hides the class, which offers less than the
-// creation would accept: such a grant needs initial claims which only the creation itself knows.
-func checkCreateClassPermission(ctx context.Context, site *internalSite.Site, class identifier.Identifier) bool {
+// The requested claims are what makes the answer match the creation for a create grant scoped on a
+// property other than the instance-of one: such a grant covers the class exactly when the claims it is
+// scoped on are among those the document is created with (see base.RequestedClaims).
+func checkCreateClassPermission(ctx context.Context, site *internalSite.Site, class identifier.Identifier, requested []base.RequestedClaim) bool {
 	claims := new(document.ClaimTypes)
 	claims.Reference = append(claims.Reference, document.ReferenceClaim{
 		CoreClaim: document.CoreClaim{ID: identifier.New(), Confidence: document.HighConfidence},
 		Prop:      document.Reference{ID: internalCore.InstanceOfPropID},
 		To:        document.Reference{ID: class},
 	})
+	for _, claim := range requested {
+		claims.Reference = append(claims.Reference, document.ReferenceClaim{
+			CoreClaim: document.CoreClaim{ID: identifier.New(), Confidence: document.HighConfidence},
+			Prop:      document.Reference{ID: claim.Prop},
+			To:        document.Reference{ID: claim.Value},
+		})
+	}
 	doc := &document.D{
 		CoreDocument: document.CoreDocument{ID: identifier.New(), Base: nil},
 		Claims:       claims,

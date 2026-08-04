@@ -642,6 +642,17 @@ func (s *Service) DocumentCreateOptionsGetAPI(w http.ResponseWriter, req *http.R
 
 	site := waf.MustGetSite[*internalSite.Site](ctx)
 
+	// The rest of the query string asks for the same initial claims the creation itself would be asked
+	// for, so that a caller whose create grants are scoped on them is offered the classes they can
+	// create with them (see DocumentCreatePostAPI, which seeds exactly these claims).
+	requestedQuery := req.URL.Query()
+	requestedQuery.Del("limit")
+	requested, errE := base.RequestedClaims(requestedQuery, site.ScopeProperties)
+	if errE != nil {
+		s.BadRequestWithError(w, req, errE)
+		return
+	}
+
 	// loadDocument reads a class document so search.CreateOptions can decide createability. CreateOptions
 	// skips a class that is not found or not accessible (an ErrValueNotFound or ErrAccessDenied error).
 	loadDocument := func(ctx context.Context, id identifier.Identifier) (*document.D, errors.E) {
@@ -652,7 +663,7 @@ func (s *Service) DocumentCreateOptionsGetAPI(w http.ResponseWriter, req *http.R
 	// A class the caller's create grants do not cover is not offered, so the view offers what creating
 	// a document would accept instead of what the create gate lets the caller reach.
 	canCreate := func(ctx context.Context, id identifier.Identifier) bool {
-		return checkCreateClassPermission(ctx, site, id)
+		return checkCreateClassPermission(ctx, site, id, requested)
 	}
 
 	classes, errE := search.CreateOptions(ctx, s.getSearchServiceClosure(req, index), accessFilter, loadDocument, canCreate, s.documentHierarchyPaths, limit)

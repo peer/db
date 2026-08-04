@@ -361,34 +361,45 @@ func TestCheckRoleDocumentPermission(t *testing.T) {
 }
 
 // TestCheckCreateClassPermission verifies which classes a caller may create a document of: the check is
-// made against a document which is only an instance of the class, so a create grant scoped on the
-// instance-of property covers exactly the classes it names.
+// made against a document which is an instance of the class and carries the requested initial claims, so
+// a create grant covers a class exactly when it is scoped on one of them.
 func TestCheckCreateClassPermission(t *testing.T) {
 	t.Parallel()
 
 	application := identifier.New()
 	other := identifier.New()
+	partOf := identifier.New()
+	organisation := identifier.New()
 	site := rolesSite(map[string]auth.RoleGrants{
 		"creator": auth.MustParseRoleGrants(map[string][]string{auth.ActionCreateCode: {auth.ScopeDocuments}}),
 		"researcher": auth.MustParseRoleGrants(map[string][]string{
 			auth.ActionCreateCode: {internalCore.InstanceOfPropID.String() + "=" + application.String()},
+		}),
+		"member": auth.MustParseRoleGrants(map[string][]string{
+			auth.ActionCreateCode: {partOf.String() + "=" + organisation.String()},
 		}),
 		"reader": auth.MustParseRoleGrants(map[string][]string{auth.ActionReadCode: {auth.ScopeAll}}),
 	})
 
 	// A grant covering documents in general covers every class.
 	creator := auth.WithRoles(context.Background(), []string{"creator"})
-	assert.True(t, peerdb.TestingCheckCreateClassPermission(creator, site, application))
-	assert.True(t, peerdb.TestingCheckCreateClassPermission(creator, site, other))
+	assert.True(t, peerdb.TestingCheckCreateClassPermission(creator, site, application, nil))
+	assert.True(t, peerdb.TestingCheckCreateClassPermission(creator, site, other, nil))
 
 	// A grant scoped on a class covers that class alone.
 	researcher := auth.WithRoles(context.Background(), []string{"researcher"})
-	assert.True(t, peerdb.TestingCheckCreateClassPermission(researcher, site, application))
-	assert.False(t, peerdb.TestingCheckCreateClassPermission(researcher, site, other))
+	assert.True(t, peerdb.TestingCheckCreateClassPermission(researcher, site, application, nil))
+	assert.False(t, peerdb.TestingCheckCreateClassPermission(researcher, site, other, nil))
+
+	// A grant scoped on another property covers a class only together with the claim it is scoped on.
+	member := auth.WithRoles(context.Background(), []string{"member"})
+	assert.False(t, peerdb.TestingCheckCreateClassPermission(member, site, other, nil))
+	assert.True(t, peerdb.TestingCheckCreateClassPermission(member, site, other, []base.RequestedClaim{{Prop: partOf, Value: organisation}}))
+	assert.False(t, peerdb.TestingCheckCreateClassPermission(member, site, other, []base.RequestedClaim{{Prop: partOf, Value: identifier.New()}}))
 
 	// Holding another action, or no role at all, covers nothing.
-	assert.False(t, peerdb.TestingCheckCreateClassPermission(auth.WithRoles(context.Background(), []string{"reader"}), site, application))
-	assert.False(t, peerdb.TestingCheckCreateClassPermission(context.Background(), site, application))
+	assert.False(t, peerdb.TestingCheckCreateClassPermission(auth.WithRoles(context.Background(), []string{"reader"}), site, application, nil))
+	assert.False(t, peerdb.TestingCheckCreateClassPermission(context.Background(), site, application, nil))
 }
 
 // TestTopLevelClaimsByID verifies serialization of a document's top-level claims by their IDs:

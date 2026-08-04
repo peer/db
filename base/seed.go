@@ -3,6 +3,7 @@ package base
 import (
 	"maps"
 	"net/http"
+	"net/url"
 	"slices"
 	"strconv"
 
@@ -104,38 +105,28 @@ func seedBase(docBase []string, session identifier.Identifier) []string {
 //nolint:gochecknoglobals
 var DefaultCreatorActions = []identifier.Identifier{auth.ActionRead, auth.ActionReadHistoric, auth.ActionUpdate, auth.ActionDelete, auth.ActionUpdatePermissions}
 
-// RequestedClaimsChanges returns the changes adding the initial claims requested through the create
-// document API request: it decodes the (empty) request body and turns query string parameters
-// (property=value, both resolved document IDs) into claims, with claim IDs derived for operations
-// startOperation+1 onward. Only claims of the given scope-participating properties can be requested:
-// such claims cannot be added by clients as ordinary changes without role-granted update permissions
-// covering them, while at creation they are validated against the caller's create grants (see
-// DocumentCreatePostAPI); claims of other properties can be added after creation by the client
-// itself.
-func RequestedClaimsChanges(
-	req *http.Request, scopeProperties map[identifier.Identifier]bool, session identifier.Identifier, docBase []string, startOperation int64,
-) (document.Changes, errors.E) {
-	var ea emptyRequest
-	errE := x.DecodeJSONWithoutUnknownFields(req.Body, &ea)
-	if errE != nil {
-		return nil, errE
-	}
+// RequestedClaim is one initial claim asked for through a create request: a property which participates
+// in permission scopes and the value the claim refers to.
+type RequestedClaim struct {
+	Prop  identifier.Identifier
+	Value identifier.Identifier
+}
 
-	type seed struct {
-		prop  identifier.Identifier
-		value identifier.Identifier
-	}
-	seeds := []seed{}
-	query := req.URL.Query()
+// RequestedClaims parses the initial claims requested through a query string (property=value, both
+// resolved document IDs), ordered by property. Only claims of the given scope-participating properties
+// can be requested: such claims cannot be added by clients as ordinary changes without role-granted
+// update permissions covering them, while at creation they are validated against the caller's create
+// grants (see DocumentCreatePostAPI); claims of other properties can be added after creation by the
+// client itself. A key or value which is not an identifier, and a property which participates in no
+// scope, are errors, so the query has to be free of anything else the caller sent.
+func RequestedClaims(query url.Values, scopeProperties map[identifier.Identifier]bool) ([]RequestedClaim, errors.E) {
+	claims := []RequestedClaim{}
 	for _, key := range slices.Sorted(maps.Keys(query)) {
 		prop, errE := identifier.MaybeString(key)
 		if errE != nil {
 			return nil, errors.WithMessage(errE, "invalid property in query string")
 		}
 		if !scopeProperties[prop] {
-			// Only scope-participating properties are allowed in the query string. Claims with
-			// other properties can be added after creation by the client without the help of the
-			// backend.
 			errE := errors.New("property does not participate in permission scopes")
 			errors.Details(errE)["property"] = prop.String()
 			return nil, errE
@@ -145,8 +136,27 @@ func RequestedClaimsChanges(
 			if errE != nil {
 				return nil, errors.WithMessage(errE, "invalid value in query string")
 			}
-			seeds = append(seeds, seed{prop: prop, value: valueID})
+			claims = append(claims, RequestedClaim{Prop: prop, Value: valueID})
 		}
+	}
+	return claims, nil
+}
+
+// RequestedClaimsChanges returns the changes adding the initial claims requested through the create
+// document API request: it decodes the (empty) request body and turns the query string parameters into
+// claims (see RequestedClaims), with claim IDs derived for operations startOperation+1 onward.
+func RequestedClaimsChanges(
+	req *http.Request, scopeProperties map[identifier.Identifier]bool, session identifier.Identifier, docBase []string, startOperation int64,
+) (document.Changes, errors.E) {
+	var ea emptyRequest
+	errE := x.DecodeJSONWithoutUnknownFields(req.Body, &ea)
+	if errE != nil {
+		return nil, errE
+	}
+
+	seeds, errE := RequestedClaims(req.URL.Query(), scopeProperties)
+	if errE != nil {
+		return nil, errE
 	}
 
 	confidence := document.HighConfidence
@@ -161,8 +171,8 @@ func RequestedClaimsChanges(
 			Base:  claimBase,
 			Patch: document.ReferenceClaimPatch{
 				Confidence: &confidence,
-				Prop:       &sd.prop,
-				To:         &sd.value,
+				Prop:       &sd.Prop,
+				To:         &sd.Value,
 			},
 		})
 		operation++

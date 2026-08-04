@@ -60,6 +60,25 @@ const loaded = ref(false)
 // each of its parents.
 const tree = computed(() => buildRefTree(classes.value))
 
+// The requested claims split by whether their property participates in permission scopes. The scoped
+// ones go to the backend, which validates them against the caller's create grants and seeds them into
+// the session (clients cannot add such claims themselves, see the create API); the rest are appended as
+// ordinary client changes once the session is open. The scoped ones are what the classes to offer are
+// asked for as well, so a class is offered when it can be created together with them.
+const seeds = computed((): { scoped: Record<string, string[]>; client: { prop: string; to: string }[] } => {
+  const scopeProps = scopeProperties()
+  const scoped: Record<string, string[]> = {}
+  const client: { prop: string; to: string }[] = []
+  for (const { prop, to } of claimParams.value) {
+    if (scopeProps.has(prop)) {
+      scoped[prop] = [...(scoped[prop] ?? []), to]
+    } else {
+      client.push({ prop, to })
+    }
+  }
+  return { scoped, client }
+})
+
 onBeforeUnmount(() => {
   abortController.abort()
 })
@@ -75,7 +94,7 @@ async function loadClasses() {
   busy.value += 1
   try {
     const { doc } = await getURL<CreateOptionsResponse>(
-      router.apiResolve({ name: "DocumentCreateOptions", query: encodeQuery({ limit: requested || undefined }) }).href,
+      router.apiResolve({ name: "DocumentCreateOptions", query: encodeQuery({ limit: requested || undefined, ...seeds.value.scoped }) }).href,
       null,
       abortController.signal,
       null,
@@ -143,24 +162,15 @@ async function onCreate(classId: string, replace = false) {
     // Open a create session. The document is not yet inserted in the store;
     // the session holds all pending changes (starting with instance_of below)
     // and the backend materializes the document only on Save.
-    // Initial claims of properties participating in permission scopes (usually the "instance of"
-    // class) are passed to the backend through the query string: it validates them against the
-    // caller's create grants and seeds them into the session as its first changes (clients cannot add
-    // such claims themselves, see the create API). Claims of other properties are appended as
-    // ordinary client changes after the session is opened.
-    const scopeProps = scopeProperties()
-    const query: Record<string, string[]> = {}
-    const clientSeeds: { prop: string; to: string }[] = []
-    const addSeed = (prop: string, to: string) => {
-      if (scopeProps.has(prop)) {
-        query[prop] = [...(query[prop] ?? []), to]
-      } else {
-        clientSeeds.push({ prop, to })
-      }
-    }
-    addSeed(INSTANCE_OF, classId)
-    for (const { prop, to } of claimParams.value) {
-      addSeed(prop, to)
+    // The requested initial claims are split by their property (see seeds), and the class is one such
+    // claim: seeded by the backend when the "instance of" property participates in permission scopes,
+    // appended by the client otherwise.
+    const query: Record<string, string[]> = { ...seeds.value.scoped }
+    const clientSeeds = [...seeds.value.client]
+    if (scopeProperties().has(INSTANCE_OF)) {
+      query[INSTANCE_OF] = [...(query[INSTANCE_OF] ?? []), classId]
+    } else {
+      clientSeeds.push({ prop: INSTANCE_OF, to: classId })
     }
     const createResponse = await postJSON<DocumentCreateResponse>(
       router.apiResolve({ name: "DocumentCreate", query: encodeQuery(query) }).href,
