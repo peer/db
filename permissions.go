@@ -202,15 +202,22 @@ func changedClaimProperties(before, after *document.D) (map[identifier.Identifie
 // claim's property to another one modifies claims of both properties), so the requirements are
 // checked conjunctively and not as alternatives. A change granting a permission (adding or modifying
 // a HAS_PERMISSION claim) additionally requires the granted action itself, so the caller cannot
-// grant (to anyone, including themselves) a permission they do not hold.
+// grant (to anyone, including themselves) a permission they do not hold, and a change of a claim the
+// caller's own create grants are scoped on additionally requires the create action on the state it
+// produces, so they cannot edit a document into one they could not have created.
 func checkChangePermission(ctx context.Context, site *internalSite.Site, before, after *document.D) errors.E {
 	changed, grantedActions, errE := changedClaimProperties(before, after)
 	if errE != nil {
 		return errE
 	}
 
+	// The properties the caller's own create grants are scoped on, which is nothing for a caller who
+	// may create documents in general and for one who may create none.
+	createScopeProperties := auth.ActionScopeProperties(site.Roles, auth.ActionCreate, auth.Roles(ctx))
+
 	permissionChanged := false
 	scopeChanged := false
+	createScopeChanged := false
 	otherChanged := false
 	for prop := range changed {
 		isPermission := prop == internalCore.HasPermissionPropID || prop == internalCore.HasRequestedPermissionPropID
@@ -219,6 +226,9 @@ func checkChangePermission(ctx context.Context, site *internalSite.Site, before,
 		}
 		if site.ScopeProperties[prop] {
 			scopeChanged = true
+		}
+		if createScopeProperties[prop] {
+			createScopeChanged = true
 		}
 		if !isPermission && !site.ScopeProperties[prop] {
 			otherChanged = true
@@ -256,6 +266,16 @@ func checkChangePermission(ctx context.Context, site *internalSite.Site, before,
 	if scopeChanged && (!checkRoleDocumentPermission(ctx, site, auth.ActionUpdate, before) || !checkRoleDocumentPermission(ctx, site, auth.ActionUpdate, after)) {
 		errE = errors.WithStack(auth.ErrAccessDenied)
 		errors.Details(errE)["action"] = auth.ActionUpdate.String()
+		return errE
+	}
+	// Claims of properties the caller's own create grants are scoped on additionally require the create action
+	// from role grants alone on the state the change produces: what those grants cover is then what the caller
+	// may bring about and not only what they may originate, so they cannot edit a document into one they could
+	// not have created. A caller whose create grants are scoped on none of the changed properties is not
+	// concerned, which includes a caller who may create documents in general and one who may create none.
+	if createScopeChanged && !checkRoleDocumentPermission(ctx, site, auth.ActionCreate, after) {
+		errE = errors.WithStack(auth.ErrAccessDenied)
+		errors.Details(errE)["action"] = auth.ActionCreate.String()
 		return errE
 	}
 	// Claims of other properties, and a change modifying no top-level claims at all, require the update action, both before

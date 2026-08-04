@@ -360,6 +360,83 @@ func TestCheckRoleDocumentPermission(t *testing.T) {
 	assert.False(t, peerdb.TestingCheckRoleDocumentPermission(auth.WithSubject(context.Background(), "collab"), site, auth.ActionUpdate, doc))
 }
 
+// TestCheckChangePermissionCreateScopes verifies the rule about claims a caller's own create grants are
+// scoped on: a change of such a claim has to leave the document in a state the caller could have created,
+// while a caller whose create grants are scoped on none of the changed properties is unaffected.
+func TestCheckChangePermissionCreateScopes(t *testing.T) {
+	t.Parallel()
+
+	dataset := identifier.New()
+	application := identifier.New()
+	partOfProp := identifier.New()
+	org1 := identifier.New()
+	org2 := identifier.New()
+
+	site := &internalSite.Site{}
+	site.Roles = map[string]auth.RoleGrants{
+		// The admin may update everything but may create every class except applications, the shape which
+		// makes the rule matter: without it their update grant lets them edit a document into one.
+		"admin": auth.MustParseRoleGrants(map[string][]string{
+			auth.ActionUpdateCode: {auth.ScopeAll},
+			auth.ActionCreateCode: {internalCore.InstanceOfPropID.String() + "=" + dataset.String()},
+		}),
+		// The editor may update everything and create nothing.
+		"editor": auth.MustParseRoleGrants(map[string][]string{auth.ActionUpdateCode: {auth.ScopeAll}}),
+		// The author may create and update everything.
+		"author": auth.MustParseRoleGrants(map[string][]string{
+			auth.ActionUpdateCode: {auth.ScopeAll},
+			auth.ActionCreateCode: {auth.ScopeDocuments},
+		}),
+		// The member's create grants are scoped on another property than the class.
+		"member": auth.MustParseRoleGrants(map[string][]string{
+			auth.ActionUpdateCode: {auth.ScopeAll},
+			auth.ActionCreateCode: {partOfProp.String() + "=" + org1.String()},
+		}),
+	}
+	site.ScopeProperties = auth.ScopeProperties(site.Roles)
+
+	docID := identifier.New()
+	makeDoc := func(claims ...document.Claim) *document.D {
+		return docWithClaims(t, docID, claims...)
+	}
+	instanceOfDataset := refClaim(identifier.New(), internalCore.InstanceOfPropID, dataset)
+	instanceOfApplication := refClaim(identifier.New(), internalCore.InstanceOfPropID, application)
+	partOfOrg1 := refClaim(identifier.New(), partOfProp, org1)
+	partOfOrg2 := refClaim(identifier.New(), partOfProp, org2)
+
+	ctxAdmin := auth.WithRoles(context.Background(), []string{"admin"})
+	ctxEditor := auth.WithRoles(context.Background(), []string{"editor"})
+	ctxAuthor := auth.WithRoles(context.Background(), []string{"author"})
+	ctxMember := auth.WithRoles(context.Background(), []string{"member"})
+
+	dataDoc := makeDoc(instanceOfDataset, partOfOrg1)
+	applicationDoc := makeDoc(instanceOfApplication, partOfOrg1)
+
+	// The admin's create grants are scoped on the class, so they may not turn a dataset into an
+	// application: they could not have created one.
+	errE := peerdb.TestingCheckChangePermission(ctxAdmin, site, dataDoc, applicationDoc)
+	assert.ErrorIs(t, errE, auth.ErrAccessDenied)
+	assert.Equal(t, auth.ActionCreate.String(), errors.Details(errE)["action"])
+	// A change leaving the document a dataset is unaffected, and so is a change of another property.
+	errE = peerdb.TestingCheckChangePermission(ctxAdmin, site, dataDoc, makeDoc(instanceOfDataset, partOfOrg2))
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// A caller who may create documents in general, and one who may create none, have their create grants
+	// scoped on no property at all, so the rule says nothing about their changes.
+	errE = peerdb.TestingCheckChangePermission(ctxAuthor, site, dataDoc, applicationDoc)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	errE = peerdb.TestingCheckChangePermission(ctxEditor, site, dataDoc, applicationDoc)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// The member's create grants are scoped on the other property: the class is theirs to change, while
+	// moving the document out of the organisation they may create in is not.
+	errE = peerdb.TestingCheckChangePermission(ctxMember, site, dataDoc, applicationDoc)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	errE = peerdb.TestingCheckChangePermission(ctxMember, site, dataDoc, makeDoc(instanceOfDataset, partOfOrg2))
+	assert.ErrorIs(t, errE, auth.ErrAccessDenied)
+	assert.Equal(t, auth.ActionCreate.String(), errors.Details(errE)["action"])
+}
+
 // TestCheckCreateClassPermission verifies which classes a caller may create a document of: the check is
 // made against a document which is an instance of the class and carries the requested initial claims, so
 // a create grant covers a class exactly when it is scoped on one of them.

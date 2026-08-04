@@ -629,3 +629,26 @@ func ScopeProperties(roleGrants map[string]RoleGrants) map[identifier.Identifier
 	}
 	return properties
 }
+
+// ActionScopeProperties returns the set of properties participating in claim scopes of the grants of
+// the action a caller with the given roles holds: the grants of the reserved everyone role and of each
+// of their roles. It is what ScopeProperties answers for the whole site, narrowed to one action and one
+// caller, so it says which claims decide whether that caller's grants of the action cover a document.
+//
+// It is empty for a caller whose grants of the action use no claim scope, which is both a caller holding
+// the action on documents in general and a caller not holding it at all.
+func ActionScopeProperties(roleGrants map[string]RoleGrants, action identifier.Identifier, roles []string) map[identifier.Identifier]bool {
+	properties := map[identifier.Identifier]bool{}
+	collect := func(role string) {
+		for _, scope := range roleGrants[role][action] {
+			if scope.Literal == "" {
+				properties[scope.Prop] = true
+			}
+		}
+	}
+	collect(RoleEveryone)
+	for _, role := range roles {
+		collect(role)
+	}
+	return properties
+}
