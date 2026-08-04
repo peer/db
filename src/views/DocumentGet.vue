@@ -572,8 +572,11 @@ async function beginEdit(tab?: string) {
     class="pd-documentget mt-[var(--pd-navbar-offset)] flex w-full flex-col gap-y-1 border-t border-transparent p-1 sm:gap-y-4 sm:p-4"
     :data-url="withDocument?.url"
   >
-    <!-- Registered document header components render above the card, on every tab. -->
-    <component :is="component" v-for="(component, i) in getDocumentHeaderComponents().value" :id="id" :key="i" />
+    <!--
+      Registered document header components render above the card, on every tab. They get the document
+      the card renders, so the page reads it once, and null while it is still being read.
+    -->
+    <component :is="component" v-for="(component, i) in getDocumentHeaderComponents().value" :key="i" :doc="docRef" />
     <!--
       The card and the sidebar sit side by side from 56rem up. Below that only one shows at a time: the sidebar
       replaces the card when it is toggled open (via the navbar button), mirroring the search results filters.
