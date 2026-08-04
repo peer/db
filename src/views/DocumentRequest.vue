@@ -25,7 +25,7 @@ import Footer from "@/partials/Footer.vue"
 import InputBadges from "@/partials/InputBadges.vue"
 import NavBar from "@/partials/NavBar.vue"
 import PermissionActionsInput from "@/partials/PermissionActionsInput.vue"
-import SearchResult from "@/partials/SearchResult.vue"
+import SearchResultDocument from "@/partials/SearchResultDocument.vue"
 import { permissionActions, permissionActionsClosure } from "@/permissions"
 import { useBusy } from "@/progress"
 import { encodeQuery } from "@/utils"
@@ -196,10 +196,11 @@ async function onRequest() {
           <p v-else class="mt-1 text-gray-700">{{ t("views.DocumentRequest.confirm") }}</p>
         </div>
         <!--
-          The document itself, when the caller can read it, so they see what they are asking about.
+          The document itself, when the caller can read it, so they see what they are asking about. It
+          is the document this page has already read, rendered on the card the page provides.
           Once the request is recorded the confirmation stands alone, like the rest of the page.
         -->
-        <SearchResult v-if="doc && !requested" :result="{ id }" flat />
+        <SearchResultDocument v-if="doc && !requested" :doc="doc" />
         <template v-if="!requested">
           <div v-if="availableActions.length === 0" class="text-gray-700">{{ t("views.DocumentRequest.nothingToRequest") }}</div>
           <!--

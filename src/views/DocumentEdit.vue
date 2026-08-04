@@ -128,6 +128,10 @@ const claimFormErrorCode = ref("")
 // Everything else the claim form ran into, as the error states it, empty when it ran into nothing.
 const claimFormError = ref("")
 const sessionError = ref("")
+// Set when the session and its document could not be loaded at all, so the page says so instead of
+// waiting for a document which is not coming. Access denied is one such failure: whether the caller may
+// edit is decided on the document, so without it the page cannot tell a denial from anything else.
+const loadError = ref(false)
 // Null in add mode; the claim's ID in edit mode. Drives the form title,
 // the primary button label, and the onSubmit branch (set vs add).
 const editingClaimId = ref<string | null>(null)
@@ -922,9 +926,13 @@ watch(
     saveChainTail = Promise.resolve()
     fieldsFormInvalid.value = false
     pendingInitialFocus = true
+    loadError.value = false
 
-    loadAndSubscribe().catch((error) => {
-      // TODO: Show error state to the user.
+    loadAndSubscribe().catch((error: unknown) => {
+      if (abortController.signal.aborted) {
+        return
+      }
+      loadError.value = true
       console.error("loadAndSubscribe", error)
     })
   },
@@ -1798,9 +1806,13 @@ function canSave(): boolean {
             }}</Button>
           </div>
         </template>
-        <div v-else-if="!hasDocumentPermission(ACTION_UPDATE, doc)" class="my-1 text-center sm:my-4">{{ t("common.status.editingNotAllowed") }}</div>
-        <div v-else-if="!classesInitialized" class="my-1 text-center sm:my-4">{{ t("common.status.loading") }}</div>
-        <div v-else class="my-1 text-center sm:my-4">{{ t("common.status.loading") }}</div>
+        <div v-else-if="loadError" class="my-1 text-center text-error-600 sm:my-4">{{ t("common.errors.unexpected") }}</div>
+        <!--
+          Whether the caller may edit is decided on the document, which can grant the update action
+          through its own permission claims, so it is decided only once the document is there.
+        -->
+        <div v-else-if="!doc || !classesInitialized" class="my-1 text-center sm:my-4">{{ t("common.status.loading") }}</div>
+        <div v-else class="my-1 text-center sm:my-4">{{ t("common.status.editingNotAllowed") }}</div>
       </div>
     </div>
   </div>
