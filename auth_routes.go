@@ -44,9 +44,6 @@ func (s *Service) AuthMockSignInGet(w http.ResponseWriter, req *http.Request, _ 
 // The optional ?redirect=<path> query parameter records where to send the
 // user after the callback completes.
 func (s *Service) AuthSignInGet(w http.ResponseWriter, req *http.Request, _ waf.Params) {
-	defer req.Body.Close()              //nolint:errcheck
-	defer io.Copy(io.Discard, req.Body) //nolint:errcheck
-
 	// no-store: this URL is a side-effect entry point (creates a authentication
 	// flow, redirects to the issuer). Nothing about its response is safe to keep
 	// in any cache.
@@ -77,9 +74,6 @@ func (s *Service) AuthSignInGet(w http.ResponseWriter, req *http.Request, _ waf.
 // the access token plus the post-sign-in redirect path. The handler then sets the
 // access-token cookie and redirects the user to that path.
 func (s *Service) AuthCallbackGet(w http.ResponseWriter, req *http.Request, _ waf.Params) {
-	defer req.Body.Close()              //nolint:errcheck
-	defer io.Copy(io.Discard, req.Body) //nolint:errcheck
-
 	// no-store: the URL potentially carries a one-time code or a token in its query string
 	// and the response sets the session cookie. Caching any part of it would be a credential leak.
 	w.Header().Set("Cache-Control", "no-store")
