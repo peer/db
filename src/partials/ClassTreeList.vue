@@ -7,7 +7,7 @@ import ClassTreeLabel from "@/partials/ClassTreeLabel.vue"
 
 const props = defineProps<{
   nodes: ClassCreateTreeNode[]
-  onCreate: (classId: string) => void
+  onCreate: (classId: string) => Promise<void>
 }>()
 
 // A run of consecutive childless nodes (creatable leaf classes shown as buttons) shares one row so the
