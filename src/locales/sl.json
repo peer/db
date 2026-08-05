@@ -340,6 +340,12 @@
     }
   },
   "views": {
+    "AuthMockSignIn": {
+      "title": "Lažna prijava",
+      "description": "To spletišče se prijavlja brez ponudnika identitet. Izberite vloge, s katerimi se želite prijaviti.",
+      "noRoles": "To spletišče nima določenih vlog, zato jih ni mogoče izbrati.",
+      "noState": "Ni prijave, ki bi jo bilo mogoče dokončati. Začnite jo z gumbom za prijavo."
+    },
     "DocumentCreate": {
       "title": "Ustvari nov dokument",
       "noClasses": "Ni vrst dokumentov za ustvarjanje."

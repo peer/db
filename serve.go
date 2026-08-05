@@ -278,6 +278,20 @@ func (c *ServeCommand) Init(ctx context.Context, globals *Globals, files fs.FS) 
 			return "https://" + host + callbackPath
 		})
 
+		// Where a mock sign-in chooses the roles to sign in with, which stands in for the issuer's own
+		// sign-in page (see auth.MockAuthenticator.SignIn).
+		mockSignInURI := sync.OnceValue(func() string {
+			host, errE := c.Server.Host(site.Domain)
+			if errE != nil {
+				return ""
+			}
+			signInPath, errE := service.Reverse("AuthMockSignIn", nil, nil)
+			if errE != nil {
+				return ""
+			}
+			return "https://" + host + signInPath
+		})
+
 		// Site.Validate makes sure that or all three settings are set or none.
 		if site.Auth.Issuer != "" {
 			site.Authenticator, errE = auth.NewOIDCAuthenticator(
@@ -288,7 +302,9 @@ func (c *ServeCommand) Init(ctx context.Context, globals *Globals, files fs.FS) 
 			}
 			globals.Logger.Info().Str("domain", site.Domain).Str("issuer", site.Auth.Issuer).Str("clientId", site.Auth.ClientID).Msg("OIDC authentication enabled")
 		} else {
-			site.Authenticator, errE = auth.NewMockAuthenticator(siteCtx, site.DBPool, site.Domain, func() []string { return siteRoleNames(site) }, redirectURI)
+			site.Authenticator, errE = auth.NewMockAuthenticator(
+				siteCtx, site.DBPool, site.Domain, func() []string { return siteRoleNames(site) }, redirectURI, mockSignInURI,
+			)
 			if errE != nil {
 				return nil, onShutdown, errE
 			}

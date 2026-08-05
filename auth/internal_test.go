@@ -40,8 +40,9 @@ type (
 	TestingUserInfo        = userInfo
 )
 
-func (a *MockAuthenticator) TestingSubject() string {
-	return a.subject
+// TestingSubject returns the subject of the mock user signed in with the given roles.
+func (a *MockAuthenticator) TestingSubject(roles ...string) string {
+	return mockSubject(roles, a.subjectSuffix)
 }
 
 func (a *MockAuthenticator) TestingAuthCodeURL(state, codeVerifier, nonce string) string {

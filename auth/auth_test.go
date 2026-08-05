@@ -12,6 +12,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -72,6 +73,24 @@ func newTestAuthenticator(t *testing.T) (*auth.OIDCAuthenticator, string, *rsa.P
 	a, errE := auth.NewOIDCAuthenticator(ctx, dbpool, ts.URL, "", testAudience, secretPath, cb)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	return a, ts.URL, priv
+}
+
+// mockSignInURI stands for the page a mock sign-in sends the browser to, where the roles to sign in with
+// are chosen (see MockAuthenticator.SignIn).
+func mockSignInURI() string {
+	return "https://example.test/auth/mock"
+}
+
+// mockCallbackValues turns the URL a mock sign-in sends the browser to into the callback query the
+// role-choosing page sends on from it, signing in with the given roles.
+func mockCallbackValues(t *testing.T, authURL string, roles ...string) url.Values {
+	t.Helper()
+
+	u, err := url.Parse(authURL)
+	require.NoError(t, err)
+	values := u.Query()
+	values.Set("code", "mock:"+strings.Join(roles, ","))
+	return values
 }
 
 func TestNewOIDCAuthenticatorRequiresIssuerClientIDSecretAndRedirect(t *testing.T) {
@@ -519,10 +538,10 @@ func TestMockAuthenticatorMintsValidJWT(t *testing.T) {
 
 	ctx, dbpool := auth.TestingInitPool(t)
 	cb := func() string { return "https://example.test/auth/callback" }
-	a, errE := auth.NewMockAuthenticator(ctx, dbpool, "example.test", func() []string { return []string{"admin", "editor"} }, cb)
+	a, errE := auth.NewMockAuthenticator(ctx, dbpool, "example.test", func() []string { return []string{"admin", "editor"} }, cb, mockSignInURI)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	token, expiry, errE := a.TestingExchangeCode(ctx, "mock", "verifier", "nonce-abc", nil)
+	token, expiry, errE := a.TestingExchangeCode(ctx, "mock:admin,editor", "verifier", "nonce-abc", nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.NotEmpty(t, token)
 	assert.True(t, expiry.After(time.Now()))
@@ -541,25 +560,26 @@ func TestMockAuthenticatorMintsValidJWT(t *testing.T) {
 	// during ExchangeCode, so a sign-in immediately surfaces a non-empty
 	// username without ever touching an upstream userinfo endpoint.
 	userInfoHeader := w.Header().Get("Userinfo")
-	assert.Contains(t, userInfoHeader, `username="mock"`)
+	assert.Contains(t, userInfoHeader, `username="mock-admin-editor"`)
 }
 
-// TestMockAuthenticatorAuthCodeURLPointsAtCallback covers the self-redirect:
-// the URL returned by AuthCodeURL is the same absolute callback URL the
-// OIDC flow would use, with state baked into the query so the callback can
-// consume the matching flow-store row.
-func TestMockAuthenticatorAuthCodeURLPointsAtCallback(t *testing.T) {
+// TestMockAuthenticatorAuthCodeURLPointsAtSignInPage covers the self-redirect: the URL returned by
+// AuthCodeURL is the page where the roles to sign in with are chosen, which stands in for the issuer's
+// own sign-in page, with state baked into the query so the callback that page sends the browser to can
+// consume the matching flow-store row. The code is made there, out of the chosen roles, so it is not
+// part of this URL.
+func TestMockAuthenticatorAuthCodeURLPointsAtSignInPage(t *testing.T) {
 	t.Parallel()
 
 	ctx, dbpool := auth.TestingInitPool(t)
 	cb := func() string { return "https://example.test/auth/callback" }
-	a, errE := auth.NewMockAuthenticator(ctx, dbpool, "example.test", nil, cb)
+	a, errE := auth.NewMockAuthenticator(ctx, dbpool, "example.test", nil, cb, mockSignInURI)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	url := a.TestingAuthCodeURL("state-xyz", "verifier", "nonce")
-	assert.Contains(t, url, "https://example.test/auth/callback")
+	assert.Contains(t, url, "https://example.test/auth/mock")
 	assert.Contains(t, url, "state=state-xyz")
-	assert.Contains(t, url, "code=")
+	assert.NotContains(t, url, "code=")
 }
 
 // TestMockAuthenticatorFiltersRolesByAllowedSet covers the same allowlist
@@ -571,10 +591,10 @@ func TestMockAuthenticatorFiltersRolesByAllowedSet(t *testing.T) {
 
 	ctx, dbpool := auth.TestingInitPool(t)
 	cb := func() string { return "https://example.test/auth/callback" }
-	a, errE := auth.NewMockAuthenticator(ctx, dbpool, "example.test", func() []string { return []string{"admin", "editor"} }, cb)
+	a, errE := auth.NewMockAuthenticator(ctx, dbpool, "example.test", func() []string { return []string{"admin", "editor"} }, cb, mockSignInURI)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	token, _, errE := a.TestingExchangeCode(ctx, "mock", "", "nonce", nil)
+	token, _, errE := a.TestingExchangeCode(ctx, "mock:admin,editor", "", "nonce", nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	req := httptest.NewRequestWithContext(ctx, http.MethodGet, "/api/whatever", nil)
@@ -603,12 +623,12 @@ func TestMockAuthenticatorResolvesRolesAtSignIn(t *testing.T) {
 	// only populated afterwards. The mock must reflect the later value, not an
 	// empty snapshot taken when it was built.
 	var roles []string
-	a, errE := auth.NewMockAuthenticator(ctx, dbpool, "example.test", func() []string { return roles }, cb)
+	a, errE := auth.NewMockAuthenticator(ctx, dbpool, "example.test", func() []string { return roles }, cb, mockSignInURI)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	roles = []string{"admin", "editor"}
 
-	token, _, errE := a.TestingExchangeCode(ctx, "mock", "", "nonce", nil)
+	token, _, errE := a.TestingExchangeCode(ctx, "mock:admin,editor", "", "nonce", nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	req := httptest.NewRequestWithContext(ctx, http.MethodGet, "/api/whatever", nil)
@@ -620,6 +640,64 @@ func TestMockAuthenticatorResolvesRolesAtSignIn(t *testing.T) {
 	assert.ElementsMatch(t, []string{"admin", "editor"}, auth.Roles(ctx))
 }
 
+// TestMockAuthenticatorSignsInWithChosenRoles covers what the code stands for: exactly the roles it
+// lists, which the subject and the username spell out in alphabetical order. A role the site does not
+// recognize is not claimed, and a code which is not the mock's own is refused.
+func TestMockAuthenticatorSignsInWithChosenRoles(t *testing.T) {
+	t.Parallel()
+
+	ctx, dbpool := auth.TestingInitPool(t)
+	cb := func() string { return "https://example.test/auth/callback" }
+	allowedRoles := map[string]auth.RoleGrants{"admin": nil, "editor": nil}
+	a, errE := auth.NewMockAuthenticator(ctx, dbpool, "example.test", func() []string { return []string{"editor", "admin"} }, cb, mockSignInURI)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// signedIn returns the subject, the username, and the roles of a session signed in with the given code.
+	signedIn := func(code string) (string, string, []string) {
+		t.Helper()
+
+		token, _, errE := a.TestingExchangeCode(ctx, code, "", "nonce", allowedRoles)
+		require.NoError(t, errE, "% -+#.1v", errE)
+		req := httptest.NewRequestWithContext(ctx, http.MethodGet, "/api/whatever", nil)
+		req.Header.Set("Authorization", "Bearer "+token)
+		w := httptest.NewRecorder()
+		// What the token says is read back from the context authenticating it stamps it onto, and the
+		// username from the UserInfo header the same request answers with.
+		authenticated := a.Authenticate(w, req, "", allowedRoles, nil)
+		subject, _ := auth.Subject(authenticated)                             //nolint:contextcheck
+		return subject, w.Header().Get("Userinfo"), auth.Roles(authenticated) //nolint:contextcheck
+	}
+
+	subject, userInfo, roles := signedIn("mock:admin")
+	assert.Equal(t, "mock-user-admin@example.test", subject)
+	assert.Contains(t, userInfo, `username="mock-admin"`)
+	assert.Equal(t, []string{"admin"}, roles)
+
+	subject, userInfo, roles = signedIn("mock:editor,admin")
+	assert.Equal(t, "mock-user-admin-editor@example.test", subject)
+	assert.Contains(t, userInfo, `username="mock-admin-editor"`)
+	assert.ElementsMatch(t, []string{"admin", "editor"}, roles)
+
+	// Choosing no role signs in a user who holds none, which is a user of the site all the same.
+	subject, userInfo, roles = signedIn("mock:")
+	assert.Equal(t, "mock-user@example.test", subject)
+	assert.Contains(t, userInfo, `username="mock"`)
+	assert.Empty(t, roles)
+
+	// A role the site does not recognize is not claimed, and neither the subject nor the username names it.
+	subject, userInfo, roles = signedIn("mock:admin,nonesuch")
+	assert.Equal(t, "mock-user-admin@example.test", subject)
+	assert.Contains(t, userInfo, `username="mock-admin"`)
+	assert.Equal(t, []string{"admin"}, roles)
+
+	// A code which does not name the roles it signs in with is not one the mock mints, so it is a failed
+	// sign-in, and so is a code of somebody else entirely.
+	_, _, errE = a.TestingExchangeCode(ctx, "mock", "", "nonce", allowedRoles)
+	assert.ErrorIs(t, errE, auth.ErrSignInFailed)
+	_, _, errE = a.TestingExchangeCode(ctx, "something-else", "", "nonce", allowedRoles)
+	assert.ErrorIs(t, errE, auth.ErrSignInFailed)
+}
+
 // TestMockAuthenticatorRequiresDomainAndRedirectURI covers the
 // NewMockAuthenticator preconditions: both siteDomain and redirectURI must
 // be non-empty.
@@ -629,13 +707,13 @@ func TestMockAuthenticatorRequiresDomainAndRedirectURI(t *testing.T) {
 	ctx, dbpool := auth.TestingInitPool(t)
 	cb := func() string { return "https://example.test/auth/callback" }
 
-	_, errE := auth.NewMockAuthenticator(ctx, dbpool, "", nil, cb)
+	_, errE := auth.NewMockAuthenticator(ctx, dbpool, "", nil, cb, mockSignInURI)
 	require.Error(t, errE)
 
-	_, errE = auth.NewMockAuthenticator(ctx, dbpool, "example.test", nil, nil)
+	_, errE = auth.NewMockAuthenticator(ctx, dbpool, "example.test", nil, nil, nil)
 	require.Error(t, errE)
 
-	_, errE = auth.NewMockAuthenticator(ctx, nil, "example.test", nil, cb)
+	_, errE = auth.NewMockAuthenticator(ctx, nil, "example.test", nil, cb, mockSignInURI)
 	require.Error(t, errE)
 }
 
@@ -649,12 +727,12 @@ func TestMockAuthenticatorIsolatesPerSite(t *testing.T) {
 
 	ctx, dbpool := auth.TestingInitPool(t)
 	cb := func() string { return "https://example.test/auth/callback" }
-	siteA, errE := auth.NewMockAuthenticator(ctx, dbpool, "a.example", func() []string { return []string{"admin"} }, cb)
+	siteA, errE := auth.NewMockAuthenticator(ctx, dbpool, "a.example", func() []string { return []string{"admin"} }, cb, mockSignInURI)
 	require.NoError(t, errE, "% -+#.1v", errE)
-	siteB, errE := auth.NewMockAuthenticator(ctx, dbpool, "b.example", func() []string { return []string{"admin"} }, cb)
+	siteB, errE := auth.NewMockAuthenticator(ctx, dbpool, "b.example", func() []string { return []string{"admin"} }, cb, mockSignInURI)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	tokenA, _, errE := siteA.TestingExchangeCode(ctx, "mock", "", "nonce", nil)
+	tokenA, _, errE := siteA.TestingExchangeCode(ctx, "mock:admin", "", "nonce", nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Site B sees the token but its tokenVerifier expects a different
@@ -682,10 +760,10 @@ func TestSignOutRevokesToken(t *testing.T) {
 
 	ctx, dbpool := auth.TestingInitPool(t)
 	cb := func() string { return "https://example.test/auth/callback" }
-	a, errE := auth.NewMockAuthenticator(ctx, dbpool, "example.test", func() []string { return []string{"admin"} }, cb)
+	a, errE := auth.NewMockAuthenticator(ctx, dbpool, "example.test", func() []string { return []string{"admin"} }, cb, mockSignInURI)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	token, _, errE := a.TestingExchangeCode(ctx, "mock", "", "nonce", nil)
+	token, _, errE := a.TestingExchangeCode(ctx, "mock:admin", "", "nonce", nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Baseline: Authenticate accepts the token (revocation store is
@@ -732,7 +810,7 @@ func TestSignOutWithoutTokenIsNoOp(t *testing.T) {
 
 	ctx, dbpool := auth.TestingInitPool(t)
 	cb := func() string { return "https://example.test/auth/callback" }
-	a, errE := auth.NewMockAuthenticator(ctx, dbpool, "example.test", nil, cb)
+	a, errE := auth.NewMockAuthenticator(ctx, dbpool, "example.test", nil, cb, mockSignInURI)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	req := httptest.NewRequestWithContext(ctx, http.MethodPost, "/auth/signOut", nil)
@@ -751,7 +829,7 @@ func TestSignOutWithInvalidTokenIsNoOp(t *testing.T) {
 
 	ctx, dbpool := auth.TestingInitPool(t)
 	cb := func() string { return "https://example.test/auth/callback" }
-	a, errE := auth.NewMockAuthenticator(ctx, dbpool, "example.test", nil, cb)
+	a, errE := auth.NewMockAuthenticator(ctx, dbpool, "example.test", nil, cb, mockSignInURI)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	req := httptest.NewRequestWithContext(ctx, http.MethodPost, "/auth/signOut", nil)
@@ -771,18 +849,20 @@ func TestMockAuthenticatorSignInCallbackRoundTrip(t *testing.T) {
 
 	ctx, dbpool := auth.TestingInitPool(t)
 	cb := func() string { return "https://example.test/auth/callback" }
-	a, errE := auth.NewMockAuthenticator(ctx, dbpool, "example.test", func() []string { return []string{"admin"} }, cb)
+	a, errE := auth.NewMockAuthenticator(ctx, dbpool, "example.test", func() []string { return []string{"admin"} }, cb, mockSignInURI)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	authURL, errE := a.SignIn(ctx, "/landing", "")
 	require.NoError(t, errE, "% -+#.1v", errE)
 
+	// The sign-in sends the browser to the page choosing the roles, which is where the code is made.
 	u, err := url.Parse(authURL)
 	require.NoError(t, err)
 	require.NotEmpty(t, u.Query().Get("state"))
-	require.NotEmpty(t, u.Query().Get("code"))
+	require.Empty(t, u.Query().Get("code"))
+	values := mockCallbackValues(t, authURL, "admin")
 
-	token, expiry, redirect, errE := a.Callback(ctx, u.Query(), nil)
+	token, expiry, redirect, errE := a.Callback(ctx, values, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.NotEmpty(t, token)
 	assert.True(t, expiry.After(time.Now()))
@@ -790,7 +870,7 @@ func TestMockAuthenticatorSignInCallbackRoundTrip(t *testing.T) {
 
 	// Single-use: a second Callback with the same state must return
 	// the client-error sentinel so the route handler maps it to 400.
-	_, _, _, errE = a.Callback(ctx, u.Query(), nil) //nolint:dogsled
+	_, _, _, errE = a.Callback(ctx, values, nil) //nolint:dogsled
 	require.Error(t, errE)
 	assert.True(t, errors.Is(errE, auth.ErrSignInFailed), "second consume must wrap ErrSignInFailed")
 }
@@ -804,15 +884,13 @@ func TestMockAuthenticatorSignInUnsafeRedirectFallsBackToRoot(t *testing.T) {
 
 	ctx, dbpool := auth.TestingInitPool(t)
 	cb := func() string { return "https://example.test/auth/callback" }
-	a, errE := auth.NewMockAuthenticator(ctx, dbpool, "example.test", nil, cb)
+	a, errE := auth.NewMockAuthenticator(ctx, dbpool, "example.test", nil, cb, mockSignInURI)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	authURL, errE := a.SignIn(ctx, "//evil.example/phish", "")
 	require.NoError(t, errE, "% -+#.1v", errE)
-	u, err := url.Parse(authURL)
-	require.NoError(t, err)
 
-	_, _, redirect, errE := a.Callback(ctx, u.Query(), nil)
+	_, _, redirect, errE := a.Callback(ctx, mockCallbackValues(t, authURL), nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, "/", redirect, "protocol-relative redirect must collapse to /")
 }
@@ -824,7 +902,7 @@ func TestMockAuthenticatorCallbackMissingParams(t *testing.T) {
 
 	ctx, dbpool := auth.TestingInitPool(t)
 	cb := func() string { return "https://example.test/auth/callback" }
-	a, errE := auth.NewMockAuthenticator(ctx, dbpool, "example.test", nil, cb)
+	a, errE := auth.NewMockAuthenticator(ctx, dbpool, "example.test", nil, cb, mockSignInURI)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	cases := []url.Values{
@@ -849,7 +927,7 @@ func TestMockAuthenticatorCallbackIssuerError(t *testing.T) {
 
 	ctx, dbpool := auth.TestingInitPool(t)
 	cb := func() string { return "https://example.test/auth/callback" }
-	a, errE := auth.NewMockAuthenticator(ctx, dbpool, "example.test", nil, cb)
+	a, errE := auth.NewMockAuthenticator(ctx, dbpool, "example.test", nil, cb, mockSignInURI)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	values := url.Values{
@@ -1062,14 +1140,12 @@ func TestMockAuthenticatorIdentity(t *testing.T) {
 	ctx, dbpool := auth.TestingInitPool(t)
 	cb := func() string { return "https://example.test/auth/callback" }
 	allowedRoles := map[string]auth.RoleGrants{"admin": nil}
-	a, errE := auth.NewMockAuthenticator(ctx, dbpool, "example.test", func() []string { return []string{"admin", "unknown"} }, cb)
+	a, errE := auth.NewMockAuthenticator(ctx, dbpool, "example.test", func() []string { return []string{"admin", "unknown"} }, cb, mockSignInURI)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	authURL, errE := a.SignIn(ctx, "/", "")
 	require.NoError(t, errE, "% -+#.1v", errE)
-	u, err := url.Parse(authURL)
-	require.NoError(t, err)
-	token, _, _, errE := a.Callback(ctx, u.Query(), allowedRoles)
+	token, _, _, errE := a.Callback(ctx, mockCallbackValues(t, authURL, "admin", "unknown"), allowedRoles)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	authenticated := func() (*httptest.ResponseRecorder, *http.Request) {
@@ -1078,9 +1154,10 @@ func TestMockAuthenticatorIdentity(t *testing.T) {
 		return httptest.NewRecorder(), req
 	}
 
-	// The caller themselves: the subject of their own token, with the roles it grants.
+	// The caller themselves: the subject of their own token, which spells out the roles they signed in
+	// with, and the roles it grants of those the site recognizes.
 	w, req := authenticated()
-	self := a.TestingSubject()
+	self := a.TestingSubject("admin", "unknown")
 	identity, errE := a.Identity(w, req, self, allowedRoles)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, self, identity.Subject)

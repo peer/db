@@ -243,6 +243,14 @@ function siteGrants(): { [roleName: string]: RoleGrants } {
   return parsedRoles
 }
 
+// siteRoles returns the names of the roles the site declares, in alphabetical order, without the
+// reserved everyone entry, which is not a role anybody holds. In sync with siteRoleNames in serve.go.
+export function siteRoles(): string[] {
+  return Object.keys(siteGrants())
+    .filter((role) => role !== ROLE_EVERYONE)
+    .sort()
+}
+
 // permissionClaimGrants returns, per permission action, the users the document's own permission
 // claims grant that action. A HAS_PERMISSION claim grants the action it references to the users its
 // PERMISSION_USER sub-claims name when one of its PERMISSION_SCOPE sub-claims carries the self

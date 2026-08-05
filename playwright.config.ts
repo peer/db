@@ -49,5 +49,9 @@ export default defineConfig({
       testMatch: /navigation\/.*\.test\.ts$/,
       dependencies: ["search"],
     },
+    {
+      name: "auth",
+      testMatch: /auth\/.*\.test\.ts$/,
+    },
   ],
 })

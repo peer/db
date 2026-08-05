@@ -340,6 +340,12 @@
     }
   },
   "views": {
+    "AuthMockSignIn": {
+      "title": "Mock sign-in",
+      "description": "This site signs in without an identity provider. Choose the roles to sign in with.",
+      "noRoles": "This site declares no roles, so there are none to sign in with.",
+      "noState": "There is no sign-in to finish. Start it from the sign-in button."
+    },
     "DocumentCreate": {
       "title": "Create a new document",
       "noClasses": "There are no document types available to create."

@@ -20,6 +20,23 @@ const signInRedirectQueryParam = "redirect"
 // LanguageSwitcher partial). We forward its value to the issuer as the OIDC ui_locales preference.
 const uiLanguageCookieName = "language"
 
+// AuthMockSignInGet returns the HTML frontend for the page where a mock sign-in chooses the roles to
+// sign in with, which the mock authenticator sends the browser to instead of an issuer's sign-in page
+// (see auth.MockAuthenticator.SignIn). A site authenticating against a real issuer has no such page, so
+// it answers with not found there.
+func (s *Service) AuthMockSignInGet(w http.ResponseWriter, req *http.Request, _ waf.Params) {
+	// The page is one step of a sign-in flow, so nothing about it is safe to keep in any cache.
+	w.Header().Set("Cache-Control", "no-store")
+
+	site := waf.MustGetSite[*internalSite.Site](req.Context())
+	if site.Auth.Issuer != "" {
+		s.NotFound(w, req)
+		return
+	}
+
+	s.HomeGet(w, req, nil)
+}
+
 // AuthSignInGet starts the sign-in flow. It hands the caller-supplied redirect
 // off to the per-site Authenticator and then redirects the user to the URL
 // the Authenticator returned.

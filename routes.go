@@ -483,6 +483,14 @@ func (s *Service) setRoutes() { //nolint:maintidx
 			},
 			Path: "/auth/callback",
 		},
+		"AuthMockSignIn": {
+			RouteOptions: waf.RouteOptions{
+				Handlers: map[string]waf.Handler{
+					http.MethodGet: s.AuthMockSignInGet,
+				},
+			},
+			Path: "/auth/mock",
+		},
 		"AuthSignOut": {
 			Path: "/auth/signOut",
 			API: waf.RouteOptions{

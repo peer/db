@@ -351,6 +351,12 @@ declare module "vue-i18n" {
       }
     }
     views: {
+      AuthMockSignIn: {
+        title: string
+        description: string
+        noRoles: string
+        noState: string
+      }
       DocumentCreate: {
         title: string
         noClasses: string

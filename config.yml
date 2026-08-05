@@ -15,12 +15,30 @@ globals:
         "":
           ACTION_READ:
             - all
+        historic:
           ACTION_READ_HISTORIC:
             - all
-        admin:
+        bulk:
+          ACTION_READ_BULK:
+            - all
+        create:
           ACTION_CREATE:
             - all
+        update:
+          ACTION_UPDATE:
+            - all
+        permissions:
+          ACTION_UPDATE_PERMISSIONS:
+            - all
+        delete:
+          ACTION_DELETE:
+            - all
+        admin:
+          ACTION_READ_HISTORIC:
+            - all
           ACTION_READ_BULK:
+            - all
+          ACTION_CREATE:
             - all
           ACTION_UPDATE:
             - all

@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/url"
+	"slices"
 	"strings"
 	"time"
 
@@ -29,15 +30,31 @@ const mockIssuerScheme = "mock://"
 // the signature check.
 const mockClientIDPrefix = "peerdb-mock:"
 
-// mockSubjectPrefix is the prefix of the sub claim of mock-minted JWTs.
-// The full subject includes the site domain so the UserInfo header surfaces
-// which site a session was signed into.
-const mockSubjectPrefix = "mock-user@"
+// mockSubjectPrefix is the prefix of the sub claim of mock-minted JWTs. The rest of the subject spells
+// out the roles the session was signed in with, each after a dash and in alphabetical order, and ends
+// with the site domain, so the UserInfo header surfaces both which site a session was signed into and as
+// whom: "mock-user@example.test" holds no role, "mock-user-admin-editor@example.test" holds two. The
+// mock signs in as many users as there are combinations of the site's roles, and the subject is what
+// tells them apart.
+//
+// A role name containing a dash cannot be told apart from two roles, so a subject spelling one out is
+// not recognized (see rolesFromSubject): the site's role names are what a mock subject is read against.
+const mockSubjectPrefix = "mock-user"
 
-// mockUsername is the preferred_username surfaced to the frontend in the
-// UserInfo header. Shared across sites is fine - the per-site distinction
-// already lives in subject.
-const mockUsername = "mock"
+// The code the mock "issuer" hands to the callback: the prefix followed by the roles the sign-in claims,
+// separated by mockRolesSeparator and empty for a sign-in with no role at all. It is what the page
+// choosing the roles makes out of them (see MockAuthenticator.SignIn), and the only code the mock mints.
+const (
+	mockCodePrefix           = "mock:"
+	mockRolesSeparator       = ","
+	mockSubjectRoleSeparator = "-"
+)
+
+// mockUsernamePrefix is the prefix of the preferred_username surfaced to the frontend in the UserInfo
+// header. The rest names the roles the user was signed in with, the same way the subject does, so the
+// mock's users are told apart by their name as well: "mock" holds no role, "mock-admin-editor" holds
+// two. Shared across sites is fine - the per-site distinction already lives in the subject.
+const mockUsernamePrefix = "mock"
 
 // mockTokenTTL is how long a mock-minted JWT is considered valid. The
 // access-token cookie's lifetime matches it so the session ends at the
@@ -67,13 +84,87 @@ const mockKeyBits = 2048
 type MockAuthenticator struct {
 	baseAuthenticator
 
-	issuer       string
-	clientID     string
-	subject      string
-	privateKey   *rsa.PrivateKey
-	keyID        string
-	grantedRoles func() []string
-	redirectURI  func() string
+	issuer        string
+	clientID      string
+	subjectSuffix string
+	privateKey    *rsa.PrivateKey
+	keyID         string
+	grantedRoles  func() []string
+	redirectURI   func() string
+	signInURI     func() string
+}
+
+// mockName spells the roles out after the prefix, each after a dash and in alphabetical order, which is
+// how both the subject and the username of a mock user are made (see mockSubjectPrefix). The roles are
+// expected to be known to the site already.
+func mockName(prefix string, roles []string) string {
+	var name strings.Builder
+	name.WriteString(prefix)
+	for _, role := range slices.Sorted(slices.Values(roles)) {
+		name.WriteString(mockSubjectRoleSeparator)
+		name.WriteString(role)
+	}
+	return name.String()
+}
+
+// mockSubject returns the sub claim of a session signed in with the given roles: the roles spelled out
+// between the mock prefix and the site domain (see mockSubjectPrefix).
+func mockSubject(roles []string, subjectSuffix string) string {
+	return mockName(mockSubjectPrefix, roles) + subjectSuffix
+}
+
+// mockUsername returns the preferred_username of a session signed in with the given roles (see
+// mockUsernamePrefix).
+func mockUsername(roles []string) string {
+	return mockName(mockUsernamePrefix, roles)
+}
+
+// rolesFromSubject returns the roles the mock subject was signed in with, and whether it is a subject of
+// this mock at all: the site's own role names are what its dash-separated part is read against, so a
+// subject naming a role the site does not have is nobody's (see mockSubjectPrefix).
+func rolesFromSubject(subject string, subjectSuffix string, granted []string) ([]string, bool) {
+	rest, ok := strings.CutSuffix(subject, subjectSuffix)
+	if !ok {
+		return nil, false
+	}
+	rest, ok = strings.CutPrefix(rest, mockSubjectPrefix)
+	if !ok {
+		return nil, false
+	}
+	if rest == "" {
+		return nil, true
+	}
+	rest, ok = strings.CutPrefix(rest, mockSubjectRoleSeparator)
+	if !ok {
+		return nil, false
+	}
+	roles := strings.Split(rest, mockSubjectRoleSeparator)
+	for _, role := range roles {
+		if !slices.Contains(granted, role) {
+			return nil, false
+		}
+	}
+	return roles, true
+}
+
+// rolesFromCode returns the roles a mock callback code stands for (see mockCodePrefix), keeping only
+// those the site recognizes, without duplicates and in alphabetical order. It reports whether the code is
+// a mock code at all.
+func rolesFromCode(code string, granted []string) ([]string, bool) {
+	rest, ok := strings.CutPrefix(code, mockCodePrefix)
+	if !ok {
+		return nil, false
+	}
+	roles := []string{}
+	if rest != "" {
+		for role := range strings.SplitSeq(rest, mockRolesSeparator) {
+			if slices.Contains(granted, role) && !slices.Contains(roles, role) {
+				roles = append(roles, role)
+			}
+		}
+	}
+	slices.Sort(roles)
+	return roles, true
 }
 
 // NewMockAuthenticator creates a MockAuthenticator scoped to the given site
@@ -86,21 +177,25 @@ type MockAuthenticator struct {
 //
 // dbpool is used to construct and initialise the flow and revocation stores.
 //
-// grantedRoles is a thunk that resolves to the set of role names a
-// successful mock sign-in should claim. It is evaluated at sign-in time,
-// not at construction, so a caller may populate the site's roles after
-// this authenticator has been built and the mock will still pick them up.
-// Typically it returns the keys of the site's Roles map, so a mock user
-// holds every role the site recognises. redirectURI is a thunk that
-// resolves to a URL the post-sign-in browser should land on.
+// grantedRoles is a thunk that resolves to the set of role names a mock
+// sign-in can claim. It is evaluated at sign-in time, not at construction,
+// so a caller may populate the site's roles after this authenticator has
+// been built and the mock will still pick them up. Typically it returns the
+// keys of the site's Roles map, so a mock user can hold every role the site
+// recognises. redirectURI is a thunk that resolves to a URL the post-sign-in
+// browser should land on, and signInURI one that resolves to the page where
+// the roles to sign in with are chosen (see SignIn).
 func NewMockAuthenticator(
-	ctx context.Context, dbpool *pgxpool.Pool, siteDomain string, grantedRoles func() []string, redirectURI func() string,
+	ctx context.Context, dbpool *pgxpool.Pool, siteDomain string, grantedRoles func() []string, redirectURI, signInURI func() string,
 ) (*MockAuthenticator, errors.E) {
 	if siteDomain == "" {
 		return nil, errors.New("site domain is required")
 	}
 	if redirectURI == nil {
 		return nil, errors.New("redirect URI thunk is required")
+	}
+	if signInURI == nil {
+		return nil, errors.New("sign-in URI thunk is required")
 	}
 
 	privateKey, err := rsa.GenerateKey(rand.Reader, mockKeyBits)
@@ -110,7 +205,7 @@ func NewMockAuthenticator(
 
 	issuer := mockIssuerScheme + siteDomain
 	clientID := mockClientIDPrefix + siteDomain
-	subject := mockSubjectPrefix + siteDomain
+	subjectSuffix := "@" + siteDomain
 
 	keyID := identifier.New().String()
 	keySet := &oidc.StaticKeySet{
@@ -120,30 +215,37 @@ func NewMockAuthenticator(
 		ClientID: clientID,
 	})
 
-	// There is no issuer to ask about a user, so a lookup is answered from what the mock signs its own
-	// user in as. It signs in one user, so the site has one user: a lookup of any other subject finds
-	// nobody, the way a real issuer answers about somebody it does not know.
+	// There is no issuer to ask about a user, so a lookup is answered from what the mock signs users in
+	// as. Its users are the site's role combinations, each named by a subject spelling its roles out
+	// (see mockSubjectPrefix), so a subject which is not one of those finds nobody, the way a real
+	// issuer answers about somebody it does not know.
 	cache := newUserInfoCache(
 		func(_ context.Context, lookedUp, _ string) (userInfo, errors.E) {
 			// The caller themselves is answered without roles, because their own token is what says which they
 			// hold and Get stamps those onto the answer. Callback primes their entry anyway, so a user who just
 			// signed in is not looked up at all, and this answers the misses: an entry which expired, or a
-			// process which restarted while the session cookie stayed valid.
-			return userInfo{Subject: lookedUp, Username: mockUsername, Roles: nil}, nil
+			// process which restarted while the session cookie stayed valid. Their name says which roles they
+			// signed in with, which their subject spells out, and stays the bare one for a subject which is
+			// not the mock's own shape (the caller's token is what makes them the caller either way).
+			var granted []string
+			if grantedRoles != nil {
+				granted = grantedRoles()
+			}
+			roles, _ := rolesFromSubject(lookedUp, subjectSuffix, granted)
+			return userInfo{Subject: lookedUp, Username: mockUsername(roles), Roles: nil}, nil
 		},
 		func(_ context.Context, lookedUp, _ string) (userInfo, errors.E) {
-			if lookedUp != subject {
+			var granted []string
+			if grantedRoles != nil {
+				granted = grantedRoles()
+			}
+			roles, ok := rolesFromSubject(lookedUp, subjectSuffix, granted)
+			if !ok {
 				errE := errors.WithStack(ErrIdentityNotFound)
 				errors.Details(errE)["subject"] = lookedUp
 				return userInfo{}, errE
 			}
-			// The mock user holds every role the site recognizes, which makes development and tests behave
-			// as if its user had full role membership, exactly as mock sign-in gives them.
-			var roles []string
-			if grantedRoles != nil {
-				roles = grantedRoles()
-			}
-			return userInfo{Subject: lookedUp, Username: mockUsername, Roles: roles}, nil
+			return userInfo{Subject: lookedUp, Username: mockUsername(roles), Roles: roles}, nil
 		},
 	)
 
@@ -168,21 +270,23 @@ func NewMockAuthenticator(
 			FlowStore:       fs,
 			RevocationStore: rs,
 		},
-		issuer:       issuer,
-		clientID:     clientID,
-		subject:      subject,
-		privateKey:   privateKey,
-		keyID:        keyID,
-		grantedRoles: grantedRoles,
-		redirectURI:  redirectURI,
+		issuer:        issuer,
+		clientID:      clientID,
+		subjectSuffix: subjectSuffix,
+		privateKey:    privateKey,
+		keyID:         keyID,
+		grantedRoles:  grantedRoles,
+		redirectURI:   redirectURI,
+		signInURI:     signInURI,
 	}, nil
 }
 
 // SignIn begins a mock sign-in flow. It records flow state in the internal
 // store (same as OIDC) so the callback round-trip exercises the same
-// flow-store code path. The returned URL is a self-redirect to our own
-// callback handler with synthetic code+state, so the issuer is never
-// contacted.
+// flow-store code path. The returned URL is a self-redirect to the page
+// choosing the roles to sign in with, which stands in for the issuer's own
+// sign-in page and sends the browser on to our callback handler, so the
+// issuer is never contacted.
 func (a *MockAuthenticator) SignIn(ctx context.Context, redirect, uiLocales string) (string, errors.E) {
 	return signInFlow(ctx, a.FlowStore, redirect, uiLocales, a.authCodeURL)
 }
@@ -204,12 +308,13 @@ func (a *MockAuthenticator) SignOut(w http.ResponseWriter, req *http.Request) er
 	return signOutFlow(w, req, a.TokenVerifier, a.RevocationStore, nil)
 }
 
-// authCodeURL returns a self-redirect URL: the local callback path with
-// code+state already filled in. The browser follows it back to our own
-// AuthCallback handler, which consumes the flow row keyed by state and
-// then calls exchangeCode. No external issuer is contacted.
+// authCodeURL returns a self-redirect URL: the local page choosing the roles
+// to sign in with, with the state to carry on. That page mints the code out
+// of the chosen roles (see mockCodePrefix) and sends the browser to our own
+// AuthCallback handler, which consumes the flow row keyed by state and then
+// calls exchangeCode. No external issuer is contacted.
 func (a *MockAuthenticator) authCodeURL(state, _, _, _ string) string {
-	base := a.redirectURI()
+	base := a.signInURI()
 	u, err := url.Parse(base)
 	if err != nil {
 		// Caller built the URL out of safe parts (https + Host + reverse
@@ -221,21 +326,21 @@ func (a *MockAuthenticator) authCodeURL(state, _, _, _ string) string {
 		panic(errE)
 	}
 	q := u.Query()
-	q.Set("code", "mock")
 	q.Set("state", state)
 	u.RawQuery = q.Encode()
 	return u.String()
 }
 
-// exchangeCode mints a freshly-signed JWT carrying every granted role.
+// exchangeCode mints a freshly-signed JWT carrying the roles the code stands for (see mockCodePrefix), for
+// the user those roles make (see mockSubjectPrefix). A code which is not the mock's own is refused as a
+// failed sign-in, the way an issuer refuses a code it did not mint.
 //
-// The code, codeVerifier are ignored - the flow store round-trip has
-// already validated state. expectedNonce is embedded into the JWT's nonce
-// claim.
+// The codeVerifier is ignored - the flow store round-trip has already validated state. expectedNonce is
+// embedded into the JWT's nonce claim.
 //
 // Internal to the package; test code reaches it through
 // TestingExchangeCode in auth_internal_test.go.
-func (a *MockAuthenticator) exchangeCode(_ context.Context, _, _, _ string, allowedRoles map[string]RoleGrants) (string, time.Time, errors.E) {
+func (a *MockAuthenticator) exchangeCode(_ context.Context, code, _, _ string, allowedRoles map[string]RoleGrants) (string, time.Time, errors.E) {
 	now := time.Now()
 	cookieExpiry := now.Add(mockTokenTTL)
 
@@ -244,25 +349,34 @@ func (a *MockAuthenticator) exchangeCode(_ context.Context, _, _, _ string, allo
 	// we set Max-Age from. The cookie anyway deletes itself first.
 	jwtExpiry := cookieExpiry.Add(time.Minute)
 
-	// Base claims we always advertise plus one role.<key> entry per granted
-	// role. The granted roles are resolved here, at sign-in time, so roles
-	// configured on the site after this authenticator was built are still
-	// picked up. Pre-sized so the appends below do not grow the slice.
+	// The roles the site recognizes are resolved here, at sign-in time, so roles configured on the site
+	// after this authenticator was built are still picked up. They are what the code is read against:
+	// the sign-in claims those of them it names.
 	var granted []string
 	if a.grantedRoles != nil {
 		granted = a.grantedRoles()
 	}
+	roles, ok := rolesFromCode(code, granted)
+	if !ok {
+		errE := errors.WithStack(ErrSignInFailed)
+		errors.Details(errE)["code"] = code
+		return "", time.Time{}, errE
+	}
+	subject := mockSubject(roles, a.subjectSuffix)
+
+	// Base claims we always advertise plus one role.<key> entry per claimed role. Pre-sized so the
+	// appends below do not grow the slice.
 	baseScopes := []string{oidc.ScopeOpenID, "profile", "email"}
-	scopes := make([]string, 0, len(baseScopes)+len(granted))
+	scopes := make([]string, 0, len(baseScopes)+len(roles))
 	scopes = append(scopes, baseScopes...)
-	for _, role := range granted {
+	for _, role := range roles {
 		scopes = append(scopes, roleScopePrefix+role)
 	}
 
 	claims := map[string]any{
 		"iss":       a.issuer,
 		"aud":       []string{a.clientID},
-		"sub":       a.subject,
+		"sub":       subject,
 		"iat":       now.Unix(),
 		"nbf":       now.Unix(),
 		"exp":       jwtExpiry.Unix(),
@@ -300,7 +414,7 @@ func (a *MockAuthenticator) exchangeCode(_ context.Context, _, _, _ string, allo
 	// ones just minted into the token which the site recognizes, so the
 	// entry describes the user fully and a lookup of them (see Identity)
 	// needs no fetch either.
-	a.UserInfoCache.set(a.subject, userInfo{Subject: a.subject, Username: mockUsername, Roles: filterRoles(granted, allowedRoles)})
+	a.UserInfoCache.set(subject, userInfo{Subject: subject, Username: mockUsername(roles), Roles: filterRoles(roles, allowedRoles)})
 
 	return token, cookieExpiry, nil
 }
