@@ -7,9 +7,11 @@ import { equals } from "@/utils"
 
 import {
   CARDINALITY,
+  COMPONENT_PROPS,
   FIELD,
   FIELD_CONTEXT,
   FIELD_DEFAULT,
+  FIELD_INPUT_COMPONENT,
   FIELD_INSTRUCTION,
   FIELD_VALUES,
   FIELDS,
@@ -93,6 +95,31 @@ export interface FieldData {
   // getClaimsForField route each claim to exactly one of the two fields by whether its IRI is
   // a file link (see the isFileLink parameter there).
   fileLinkSibling?: boolean
+  // FIELD_INPUT_COMPONENT value: the name of the component the edit form renders the field's
+  // value with, instead of the one the value type picks. The name is a key into the field input
+  // registry (see registry/field-input), which is what turns it into a component.
+  inputComponent?: string
+  // The COMPONENT_PROPS sub-claim of FIELD_INPUT_COMPONENT: the props the input component is
+  // rendered with, parsed from the claim's query string. Values are strings, so a component
+  // reading them as anything else has to convert them itself.
+  inputComponentProps?: Readonly<Record<string, string>>
+}
+
+// parseComponentProps parses a COMPONENT_PROPS claim ("key=value&key=value") into the props
+// record. A prop holds one string, so a repeated key keeps its first value, the way
+// URLSearchParams.get reads one. Building the claim from struct tags refuses a repeated key
+// outright, but a claim can be made in other ways too. Returns undefined for a string holding no
+// pair at all, so a component with an empty props claim is the same as one without the claim.
+function parseComponentProps(props: string | undefined): Record<string, string> | undefined {
+  if (!props) {
+    return undefined
+  }
+  const parsed: Record<string, string> = {}
+  const params = new URLSearchParams(props)
+  for (const key of new Set(params.keys())) {
+    parsed[key] = params.get(key)!
+  }
+  return Object.keys(parsed).length > 0 ? parsed : undefined
 }
 
 // fieldShownInView reports whether the read-only views render the field. A field
@@ -252,6 +279,10 @@ function extractFieldData(claimsTypes: DeepReadonly<ClaimTypes> | undefined, par
 
   const contextClaims = getClaimsOfTypeWithConfidence(claimsTypes, "string", FIELD_CONTEXT)
 
+  // The props sit under the component claim, so they cannot be given without one.
+  const inputComponentClaim = getBestClaimOfType(claimsTypes, "string", FIELD_INPUT_COMPONENT)
+  const inputComponentPropsClaim = inputComponentClaim ? getBestClaimOfType(inputComponentClaim.sub, "string", COMPONENT_PROPS) : undefined
+
   const defaultRef = getBestClaimOfType(claimsTypes, "ref", FIELD_DEFAULT)
   let fieldDefault: "none" | "unknown" | undefined
   if (defaultRef?.to.id === VT_NONE) {
@@ -272,6 +303,8 @@ function extractFieldData(claimsTypes: DeepReadonly<ClaimTypes> | undefined, par
     default: fieldDefault,
     claims: claimsTypes,
     context: contextClaims.length > 0 ? contextClaims.map((claim) => claim.string) : undefined,
+    inputComponent: inputComponentClaim?.string || undefined,
+    inputComponentProps: parseComponentProps(inputComponentPropsClaim?.string),
   }
 }
 

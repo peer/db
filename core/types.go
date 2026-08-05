@@ -66,6 +66,9 @@ type Field = internalCore.Field
 // Fields represents a list of fields of an entity.
 type Fields = internalCore.Fields
 
+// ComponentWithProps represents a frontend component with the props it is rendered with.
+type ComponentWithProps = internalCore.ComponentWithProps
+
 // DocumentFields contains common fields for all documents.
 type DocumentFields struct {
 	ID []string `documentid:"" json:"id"`

@@ -44,6 +44,7 @@ import InputString from "@/partials/input/InputString.vue"
 import InputTime from "@/partials/input/InputTime.vue"
 import InputField from "@/partials/InputField.vue"
 import InputMissing from "@/partials/InputMissing.vue"
+import { getFieldInputComponents } from "@/registry/field-input"
 import { allErrors, useRegisterForValidation, useValidationRegistry } from "@/validation"
 
 const props = defineProps<{
@@ -133,6 +134,17 @@ const { t } = useI18n({ useScope: "global" })
 
 const claimType = computed(() => valueTypeToClaimType(props.field.valueType))
 const isFile = computed(() => props.field.valueType === VT_FILE)
+
+// The component the field names for its value, looked up in the field input registry. It stands in
+// for the input the claim type would otherwise render, so it is bound the same models the built-in
+// one is. A field naming a component nothing registered under that path falls back to the built-in
+// input: the form stays usable, and what is missing is the registration, not the field.
+const registeredInputs = getFieldInputComponents()
+const fieldInput = computed(() => (props.field.inputComponent ? (registeredInputs.value.get(props.field.inputComponent) ?? null) : null))
+
+// The props from the field's COMPONENT_PROPS sub-claim, passed to the input the field names. They
+// are bound before the input's own props, so a stray key cannot shadow what the form binds itself.
+const fieldInputProps = computed(() => (fieldInput.value ? (props.field.inputComponentProps ?? {}) : {}))
 
 // Sub-registry: every inner input (InputString, InputAmount, InputMissing,
 // etc.) registers here instead of bubbling directly to the ancestor
@@ -273,29 +285,30 @@ function onCompleteInput() {
   <!-- id -->
   <InputField v-if="claimType === 'id'" :required="required" :invalid="invalid" :labelledby="labelId" hide-badge hide-hints>
     <template #input="inputProps">
-      <InputIdentifier v-bind="inputProps" v-model="value" :readonly="readonly" @update:model-value="onInput" />
+      <component :is="fieldInput ?? InputIdentifier" v-bind="{ ...fieldInputProps, ...inputProps }" v-model="value" :readonly="readonly" @update:model-value="onInput" />
     </template>
   </InputField>
 
   <!-- string -->
   <InputField v-else-if="claimType === 'string'" :required="required" :invalid="invalid" :labelledby="labelId" hide-badge hide-hints>
     <template #input="inputProps">
-      <InputString v-bind="inputProps" v-model="value" :readonly="readonly" @update:model-value="onInput" />
+      <component :is="fieldInput ?? InputString" v-bind="{ ...fieldInputProps, ...inputProps }" v-model="value" :readonly="readonly" @update:model-value="onInput" />
     </template>
   </InputField>
 
   <!-- html -->
   <InputField v-else-if="claimType === 'html'" :required="required" :invalid="invalid" :labelledby="labelId" hide-badge hide-hints>
     <template #input="inputProps">
-      <InputHTML v-bind="inputProps" v-model="value" :readonly="readonly" @update:model-value="onInput" />
+      <component :is="fieldInput ?? InputHTML" v-bind="{ ...fieldInputProps, ...inputProps }" v-model="value" :readonly="readonly" @update:model-value="onInput" />
     </template>
   </InputField>
 
   <!-- amount -->
   <InputField v-else-if="claimType === 'amount'" :required="required" :invalid="invalid" :labelledby="labelId" hide-badge hide-hints :hide-labels="hideLabels">
     <template #input="inputProps">
-      <InputAmount
-        v-bind="inputProps"
+      <component
+        :is="fieldInput ?? InputAmount"
+        v-bind="{ ...fieldInputProps, ...inputProps }"
         v-model="value"
         v-model:precision="amountPrecision"
         :readonly="readonly"
@@ -323,7 +336,7 @@ function onCompleteInput() {
     >
       <template #input="inputProps">
         <InputMissing
-          v-bind="inputProps"
+          v-bind="{ ...fieldInputProps, ...inputProps }"
           v-model:unknown="fromUnknown"
           v-model:none="fromNone"
           :readonly="readonly"
@@ -331,8 +344,9 @@ function onCompleteInput() {
           @update:none="onMissingInput('from')"
         >
           <template #default="missingProps">
-            <InputAmount
-              v-bind="missingProps"
+            <component
+              :is="fieldInput ?? InputAmount"
+              v-bind="{ ...fieldInputProps, ...missingProps }"
               v-model="value"
               v-model:precision="amountPrecision"
               :readonly="readonly"
@@ -354,7 +368,7 @@ function onCompleteInput() {
     >
       <template #input="inputProps">
         <InputMissing
-          v-bind="inputProps"
+          v-bind="{ ...fieldInputProps, ...inputProps }"
           v-model:unknown="toUnknown"
           v-model:none="toNone"
           :readonly="readonly"
@@ -362,8 +376,9 @@ function onCompleteInput() {
           @update:none="onMissingInput('to')"
         >
           <template #default="missingProps">
-            <InputAmount
-              v-bind="missingProps"
+            <component
+              :is="fieldInput ?? InputAmount"
+              v-bind="{ ...fieldInputProps, ...missingProps }"
               v-model="valueTo"
               v-model:precision="amountPrecisionTo"
               :readonly="readonly"
@@ -379,7 +394,15 @@ function onCompleteInput() {
   <!-- time -->
   <InputField v-else-if="claimType === 'time'" :required="required" :invalid="invalid" :labelledby="labelId" hide-badge hide-hints :hide-labels="hideLabels">
     <template #input="inputProps">
-      <InputTime v-bind="inputProps" v-model="value" v-model:precision="timePrecision" :readonly="readonly" @update:model-value="onInput" @update:precision="onInput" />
+      <component
+        :is="fieldInput ?? InputTime"
+        v-bind="{ ...fieldInputProps, ...inputProps }"
+        v-model="value"
+        v-model:precision="timePrecision"
+        :readonly="readonly"
+        @update:model-value="onInput"
+        @update:precision="onInput"
+      />
     </template>
   </InputField>
 
@@ -396,7 +419,7 @@ function onCompleteInput() {
     >
       <template #input="inputProps">
         <InputMissing
-          v-bind="inputProps"
+          v-bind="{ ...fieldInputProps, ...inputProps }"
           v-model:unknown="fromUnknown"
           v-model:none="fromNone"
           :readonly="readonly"
@@ -404,8 +427,9 @@ function onCompleteInput() {
           @update:none="onMissingInput('from')"
         >
           <template #default="missingProps">
-            <InputTime
-              v-bind="missingProps"
+            <component
+              :is="fieldInput ?? InputTime"
+              v-bind="{ ...fieldInputProps, ...missingProps }"
               v-model="value"
               v-model:precision="timePrecision"
               :readonly="readonly"
@@ -427,7 +451,7 @@ function onCompleteInput() {
     >
       <template #input="inputProps">
         <InputMissing
-          v-bind="inputProps"
+          v-bind="{ ...fieldInputProps, ...inputProps }"
           v-model:unknown="toUnknown"
           v-model:none="toNone"
           :readonly="readonly"
@@ -435,8 +459,9 @@ function onCompleteInput() {
           @update:none="onMissingInput('to')"
         >
           <template #default="missingProps">
-            <InputTime
-              v-bind="missingProps"
+            <component
+              :is="fieldInput ?? InputTime"
+              v-bind="{ ...fieldInputProps, ...missingProps }"
               v-model="valueTo"
               v-model:precision="timePrecisionTo"
               :readonly="readonly"
@@ -452,14 +477,20 @@ function onCompleteInput() {
   <!-- link (no file affordance) -->
   <InputField v-else-if="claimType === 'link' && !isFile" :required="required" :invalid="invalid" :labelledby="labelId" hide-badge hide-hints>
     <template #input="inputProps">
-      <InputLink v-bind="inputProps" v-model="value" :readonly="readonly" @update:model-value="onInput" />
+      <component :is="fieldInput ?? InputLink" v-bind="{ ...fieldInputProps, ...inputProps }" v-model="value" :readonly="readonly" @update:model-value="onInput" />
     </template>
   </InputField>
 
   <!-- link with file value type: render the file-upload affordance instead. -->
   <InputField v-else-if="claimType === 'link' && isFile" :required="required" :invalid="invalid" :labelledby="labelId" hide-badge hide-hints>
     <template #input="inputProps">
-      <InputFile v-bind="inputProps" v-model="value" :readonly="readonly" @update:model-value="onCompleteInput" />
+      <component
+        :is="fieldInput ?? InputFile"
+        v-bind="{ ...fieldInputProps, ...inputProps }"
+        v-model="value"
+        :readonly="readonly"
+        @update:model-value="onCompleteInput"
+      />
     </template>
   </InputField>
 
@@ -467,7 +498,14 @@ function onCompleteInput() {
   <InputField v-else-if="claimType === 'ref'" :required="required" :invalid="invalid" :labelledby="labelId" hide-badge hide-hints>
     <template #input="inputProps">
       <!-- TODO: Pass "self" prop as the current document's ID. -->
-      <InputRef v-bind="inputProps" v-model="value" :readonly="readonly" :filter="field.values" @update:model-value="onInput" />
+      <component
+        :is="fieldInput ?? InputRef"
+        v-bind="{ ...fieldInputProps, ...inputProps }"
+        v-model="value"
+        :readonly="readonly"
+        :filter="field.values"
+        @update:model-value="onInput"
+      />
     </template>
   </InputField>
 </template>

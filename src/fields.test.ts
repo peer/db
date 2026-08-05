@@ -5,7 +5,9 @@ import type { FieldData } from "@/fields"
 
 import {
   CARDINALITY,
+  COMPONENT_PROPS,
   FIELD,
+  FIELD_INPUT_COMPONENT,
   FIELDS,
   HAS_PROPERTY,
   HAS_VALUE_TYPE,
@@ -72,8 +74,25 @@ function rawCardinality(from: string | null, to: string | null): object {
   return obj
 }
 
+// Build a raw FIELD_INPUT_COMPONENT string claim, with its props as a COMPONENT_PROPS sub-claim.
+function rawInputComponent(name: string, props?: string): object {
+  const claim: Record<string, unknown> = { id: id(), confidence: HighConfidence, prop: { id: FIELD_INPUT_COMPONENT }, string: name }
+  if (props !== undefined) {
+    claim.sub = { string: [{ id: id(), confidence: HighConfidence, prop: { id: COMPONENT_PROPS }, string: props }] }
+  }
+  return claim
+}
+
 // Build a raw FIELD has claim.
-function rawField(opts: { propertyId: string; valueType: string; order: string; from?: string | null; to?: string | null; subFields?: object[] }): object {
+function rawField(opts: {
+  propertyId: string
+  valueType: string
+  order: string
+  from?: string | null
+  to?: string | null
+  subFields?: object[]
+  inputComponent?: object
+}): object {
   const sub: Record<string, object[]> = {
     ref: [rawRef(HAS_PROPERTY, opts.propertyId), rawRef(HAS_VALUE_TYPE, opts.valueType)],
     amount: [rawAmount(ORDER_IN_LIST, opts.order)],
@@ -81,6 +100,9 @@ function rawField(opts: { propertyId: string; valueType: string; order: string; 
   }
   if (opts.subFields && opts.subFields.length > 0) {
     sub.has = opts.subFields
+  }
+  if (opts.inputComponent) {
+    sub.string = [opts.inputComponent]
   }
   return { id: id(), confidence: HighConfidence, prop: { id: FIELD }, sub }
 }
@@ -296,6 +318,60 @@ describe("extractFieldsFromClaims", () => {
     assert.notEqual(result, null)
     assert.equal(result!.fields[0].subFields.length, 1)
     assert.equal(result!.fields[0].subFields[0].propertyId, propB)
+  })
+
+  test("extracts the input component with its props", async () => {
+    const ct = await makeClaimsWithFields(
+      [],
+      [
+        rawField({
+          propertyId: propA,
+          valueType: valueTypeString,
+          order: "1",
+          inputComponent: rawInputComponent("AppInputCode", "variant=compact&placeholder=a%20code"),
+        }),
+      ],
+    )
+    const result = extractFieldsFromClaims(ct)
+    assert.notEqual(result, null)
+    assert.equal(result!.fields[0].inputComponent, "AppInputCode")
+    assert.deepEqual(result!.fields[0].inputComponentProps, { variant: "compact", placeholder: "a code" })
+  })
+
+  test("a field without an input component has neither component nor props", async () => {
+    const ct = await makeClaimsWithFields([], [rawField({ propertyId: propA, valueType: valueTypeString, order: "1" })])
+    const result = extractFieldsFromClaims(ct)
+    assert.notEqual(result, null)
+    assert.equal(result!.fields[0].inputComponent, undefined)
+    assert.equal(result!.fields[0].inputComponentProps, undefined)
+  })
+
+  test("a repeated props key keeps its first value", async () => {
+    const ct = await makeClaimsWithFields(
+      [],
+      [
+        rawField({
+          propertyId: propA,
+          valueType: valueTypeString,
+          order: "1",
+          inputComponent: rawInputComponent("AppInputCode", "variant=compact&variant=wide"),
+        }),
+      ],
+    )
+    const result = extractFieldsFromClaims(ct)
+    assert.notEqual(result, null)
+    assert.deepEqual(result!.fields[0].inputComponentProps, { variant: "compact" })
+  })
+
+  test("an input component without props claim has no props", async () => {
+    const ct = await makeClaimsWithFields(
+      [],
+      [rawField({ propertyId: propA, valueType: valueTypeString, order: "1", inputComponent: rawInputComponent("AppInputCode") })],
+    )
+    const result = extractFieldsFromClaims(ct)
+    assert.notEqual(result, null)
+    assert.equal(result!.fields[0].inputComponent, "AppInputCode")
+    assert.equal(result!.fields[0].inputComponentProps, undefined)
   })
 
   test("extracts both sections and top-level fields", async () => {

@@ -1124,6 +1124,70 @@ func Properties() ([]any, errors.E) {
 	documents = append(documents, &Property{
 		PropertyFields: PropertyFields{
 			Name: []StringWithLanguage{{
+				Value: "field input component",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "en-GB"},
+				}},
+			}, {
+				Value: "vnosna komponenta polja",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}},
+			ShortName:              nil,
+			AlternativeName:        nil,
+			Mnemonic:               "FIELD_INPUT_COMPONENT",
+			Description:            nil,
+			IdentifierLinkTemplate: "",
+			ExcludeFromTextSearch:  false,
+			SubpropertyOf: []Ref{{
+				ID: []string{Namespace, "SETTING"},
+			}},
+			InversePropertyOf: nil,
+		},
+		DocumentFields: DocumentFields{
+			ID: []string{Namespace, "FIELD_INPUT_COMPONENT"},
+			InstanceOf: []Ref{{
+				ID: []string{Namespace, "PROPERTY"},
+			}},
+		},
+	})
+
+	documents = append(documents, &Property{
+		PropertyFields: PropertyFields{
+			Name: []StringWithLanguage{{
+				Value: "component props",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "en-GB"},
+				}},
+			}, {
+				Value: "lastnosti komponente",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}},
+			ShortName:              nil,
+			AlternativeName:        nil,
+			Mnemonic:               "COMPONENT_PROPS",
+			Description:            nil,
+			IdentifierLinkTemplate: "",
+			ExcludeFromTextSearch:  false,
+			SubpropertyOf: []Ref{{
+				ID: []string{Namespace, "SETTING"},
+			}},
+			InversePropertyOf: nil,
+		},
+		DocumentFields: DocumentFields{
+			ID: []string{Namespace, "COMPONENT_PROPS"},
+			InstanceOf: []Ref{{
+				ID: []string{Namespace, "PROPERTY"},
+			}},
+		},
+	})
+
+	documents = append(documents, &Property{
+		PropertyFields: PropertyFields{
+			Name: []StringWithLanguage{{
 				Value: "field instruction",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "en-GB"},
