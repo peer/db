@@ -1801,7 +1801,8 @@ function canSave(): boolean {
           <div v-if="sessionError" class="mt-4 text-error-600">{{ t("common.errors.unexpected") }}</div>
           <div class="mt-4 flex flex-row justify-between gap-4">
             <Button id="documentedit-button-discard" type="button" :progress="saveBusy" @click.prevent="onDiscard">{{ t("common.buttons.discard") }}</Button>
-            <Button id="documentedit-button-save" type="submit" primary :disabled="!canSave()" :progress="saveBusy" @click.prevent="onSave">{{
+            <!-- The button sits outside the claim form (a form cannot nest in it), so saving is a click and not a submit. -->
+            <Button id="documentedit-button-save" type="button" primary :disabled="!canSave()" :progress="saveBusy" @click.prevent="onSave">{{
               isCreating ? t("common.buttons.create") : t("common.buttons.update")
             }}</Button>
           </div>

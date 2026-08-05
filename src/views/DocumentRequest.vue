@@ -189,7 +189,7 @@ async function onRequest() {
   </Teleport>
   <div class="pd-documentrequest mt-[var(--pd-navbar-offset)] flex w-full flex-col gap-y-1 border-t border-transparent p-1 sm:gap-y-4 sm:p-4">
     <div class="flex flex-col gap-y-4 rounded-sm border border-gray-200 bg-white p-4 shadow-sm">
-      <template v-if="available && isSignedIn()">
+      <form v-if="available && isSignedIn()" class="flex flex-col gap-y-4" @submit.prevent="onRequest">
         <div>
           <h1 class="text-3xl font-bold drop-shadow-xs">{{ t("views.DocumentRequest.title") }}</h1>
           <p v-if="requested" class="mt-1 text-gray-700">{{ t("views.DocumentRequest.requested") }}</p>
@@ -247,16 +247,9 @@ async function onRequest() {
             }}</ButtonLink>
           </div>
           <div>
-            <Button
-              v-if="!requested && availableActions.length > 0"
-              id="documentrequest-button-request"
-              type="button"
-              primary
-              :disabled="allEmpty"
-              :progress="busy"
-              @click.prevent="onRequest"
-              >{{ t("views.DocumentRequest.request") }}</Button
-            >
+            <Button v-if="!requested && availableActions.length > 0" id="documentrequest-button-request" type="submit" primary :disabled="allEmpty" :progress="busy">{{
+              t("views.DocumentRequest.request")
+            }}</Button>
             <ButtonLink
               v-if="requested && doc"
               id="documentrequest-button-permissions"
@@ -266,7 +259,7 @@ async function onRequest() {
             >
           </div>
         </div>
-      </template>
+      </form>
       <div v-else-if="!available" class="my-1 text-center sm:my-4">{{ t("views.DocumentRequest.notAvailable") }}</div>
       <div v-else class="my-1 text-center sm:my-4">{{ t("views.DocumentRequest.notSignedIn") }}</div>
     </div>
