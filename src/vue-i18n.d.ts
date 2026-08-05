@@ -159,6 +159,9 @@ declare module "vue-i18n" {
           dropOrBrowse: string
           noPermission: string
         }
+        InputIdentityFromPermissions: {
+          noUsers: string
+        }
         InputLink: {
           hint: string
         }

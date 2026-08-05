@@ -122,6 +122,17 @@ export function permissionGrants(claims: DeepReadonly<ClaimTypes>): PermissionGr
   return grants
 }
 
+// usersWithDocumentPermission returns the subjects of the users the document's own permission claims
+// grant the action to, in the order the claims name them (see permissionGrants). Only what the
+// document grants counts: a user who holds the action through their roles was never added to the
+// document and is not among them, which is what makes this the list of users somebody put on the
+// document.
+export function usersWithDocumentPermission(claims: DeepReadonly<ClaimTypes>, action: string): string[] {
+  return permissionGrants(claims)
+    .filter((grant) => grant.actions.has(action))
+    .map((grant) => grant.user)
+}
+
 // permissionRequests returns the access requests recorded on the document, in the order of their
 // claims, counted by the same rules as the grants (see permissionGrants), so a claim asking on behalf
 // of several users is one request per user. Requests are removed when they are decided, so all of them

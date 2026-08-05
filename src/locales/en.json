@@ -148,6 +148,9 @@
         "dropOrBrowse": "Drop file here or click to browse",
         "noPermission": "Uploading files not allowed."
       },
+      "InputIdentityFromPermissions": {
+        "noUsers": "There are no users with access to choose from."
+      },
       "InputLink": {
         "hint": "Example: https://example.com"
       },

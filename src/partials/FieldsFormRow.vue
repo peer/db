@@ -285,21 +285,42 @@ function onCompleteInput() {
   <!-- id -->
   <InputField v-if="claimType === 'id'" :required="required" :invalid="invalid" :labelledby="labelId" hide-badge hide-hints>
     <template #input="inputProps">
-      <component :is="fieldInput ?? InputIdentifier" v-bind="{ ...fieldInputProps, ...inputProps }" v-model="value" :readonly="readonly" @update:model-value="onInput" />
+      <component
+        :is="fieldInput ?? InputIdentifier"
+        v-bind="{ ...fieldInputProps, ...inputProps }"
+        v-model="value"
+        :readonly="readonly"
+        @update:model-value="onInput"
+        @complete-change="onCompleteInput"
+      />
     </template>
   </InputField>
 
   <!-- string -->
   <InputField v-else-if="claimType === 'string'" :required="required" :invalid="invalid" :labelledby="labelId" hide-badge hide-hints>
     <template #input="inputProps">
-      <component :is="fieldInput ?? InputString" v-bind="{ ...fieldInputProps, ...inputProps }" v-model="value" :readonly="readonly" @update:model-value="onInput" />
+      <component
+        :is="fieldInput ?? InputString"
+        v-bind="{ ...fieldInputProps, ...inputProps }"
+        v-model="value"
+        :readonly="readonly"
+        @update:model-value="onInput"
+        @complete-change="onCompleteInput"
+      />
     </template>
   </InputField>
 
   <!-- html -->
   <InputField v-else-if="claimType === 'html'" :required="required" :invalid="invalid" :labelledby="labelId" hide-badge hide-hints>
     <template #input="inputProps">
-      <component :is="fieldInput ?? InputHTML" v-bind="{ ...fieldInputProps, ...inputProps }" v-model="value" :readonly="readonly" @update:model-value="onInput" />
+      <component
+        :is="fieldInput ?? InputHTML"
+        v-bind="{ ...fieldInputProps, ...inputProps }"
+        v-model="value"
+        :readonly="readonly"
+        @update:model-value="onInput"
+        @complete-change="onCompleteInput"
+      />
     </template>
   </InputField>
 
@@ -313,6 +334,7 @@ function onCompleteInput() {
         v-model:precision="amountPrecision"
         :readonly="readonly"
         @update:model-value="onInput"
+        @complete-change="onCompleteInput"
         @update:precision="onInput"
       />
     </template>
@@ -351,6 +373,7 @@ function onCompleteInput() {
               v-model:precision="amountPrecision"
               :readonly="readonly"
               @update:model-value="onInput"
+              @complete-change="onCompleteInput"
               @update:precision="onInput"
             />
           </template>
@@ -383,6 +406,7 @@ function onCompleteInput() {
               v-model:precision="amountPrecisionTo"
               :readonly="readonly"
               @update:model-value="onInput"
+              @complete-change="onCompleteInput"
               @update:precision="onInput"
             />
           </template>
@@ -401,6 +425,7 @@ function onCompleteInput() {
         v-model:precision="timePrecision"
         :readonly="readonly"
         @update:model-value="onInput"
+        @complete-change="onCompleteInput"
         @update:precision="onInput"
       />
     </template>
@@ -434,6 +459,7 @@ function onCompleteInput() {
               v-model:precision="timePrecision"
               :readonly="readonly"
               @update:model-value="onInput"
+              @complete-change="onCompleteInput"
               @update:precision="onInput"
             />
           </template>
@@ -466,6 +492,7 @@ function onCompleteInput() {
               v-model:precision="timePrecisionTo"
               :readonly="readonly"
               @update:model-value="onInput"
+              @complete-change="onCompleteInput"
               @update:precision="onInput"
             />
           </template>
@@ -477,7 +504,14 @@ function onCompleteInput() {
   <!-- link (no file affordance) -->
   <InputField v-else-if="claimType === 'link' && !isFile" :required="required" :invalid="invalid" :labelledby="labelId" hide-badge hide-hints>
     <template #input="inputProps">
-      <component :is="fieldInput ?? InputLink" v-bind="{ ...fieldInputProps, ...inputProps }" v-model="value" :readonly="readonly" @update:model-value="onInput" />
+      <component
+        :is="fieldInput ?? InputLink"
+        v-bind="{ ...fieldInputProps, ...inputProps }"
+        v-model="value"
+        :readonly="readonly"
+        @update:model-value="onInput"
+        @complete-change="onCompleteInput"
+      />
     </template>
   </InputField>
 
@@ -489,7 +523,8 @@ function onCompleteInput() {
         v-bind="{ ...fieldInputProps, ...inputProps }"
         v-model="value"
         :readonly="readonly"
-        @update:model-value="onCompleteInput"
+        @update:model-value="onInput"
+        @complete-change="onCompleteInput"
       />
     </template>
   </InputField>
@@ -505,6 +540,7 @@ function onCompleteInput() {
         :readonly="readonly"
         :filter="field.values"
         @update:model-value="onInput"
+        @complete-change="onCompleteInput"
       />
     </template>
   </InputField>

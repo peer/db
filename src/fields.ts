@@ -508,6 +508,13 @@ export const unregisterForFlushKey: InjectionKey<(instance: FieldsFormFlush) => 
 export const getCommittedClaimKey: InjectionKey<(id: string) => DeepReadonly<Claim> | null> =
   process.env.NODE_ENV !== "production" ? Symbol.for("peerdb-getCommittedClaim") : Symbol()
 
+// documentClaimsKey provides all claims of the document being edited, with the committed session
+// changes applied. An input which needs more of the document than the value it edits reads them
+// through it (e.g. the users the document grants access to, see InputIdentityFromPermissions), so
+// what it offers follows the document as the session changes it.
+export const documentClaimsKey: InjectionKey<() => DeepReadonly<ClaimTypes> | null> =
+  process.env.NODE_ENV !== "production" ? Symbol.for("peerdb-documentClaims") : Symbol()
+
 // Remote conflict handlers: DocumentEdit notifies these with the set of claim ids touched
 // by committed changes from other session editors whenever the subscription applies
 // them. The set also contains the ancestor claim ids of every touched claim. Each slot

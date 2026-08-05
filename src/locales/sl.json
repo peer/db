@@ -148,6 +148,9 @@
         "dropOrBrowse": "Spustite datoteko sem ali kliknite za brskanje",
         "noPermission": "Nalaganje datotek ni dovoljeno."
       },
+      "InputIdentityFromPermissions": {
+        "noUsers": "Ni uporabnikov z dostopom za izbiro."
+      },
       "InputLink": {
         "hint": "Primer: https://example.com"
       },

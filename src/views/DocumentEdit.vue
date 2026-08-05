@@ -56,6 +56,7 @@ import {
   ChangeDroppedError,
   claimsEquivalent,
   computeCardinalityFills,
+  documentClaimsKey,
   getCommittedClaimKey,
   getSectionName,
   registerForFlushKey,
@@ -544,6 +545,7 @@ async function drainSaveChanges(): Promise<void> {
 }
 
 provide(getCommittedClaimKey, (id: string) => (doc.value?.claims.GetByID(id) ?? null) as DeepReadonly<Claim> | null)
+provide(documentClaimsKey, () => (doc.value?.claims ?? null))
 provide(registerForFlushKey, (instance: FieldsFormFlush) => {
   flushRegistry.add(instance)
 })

@@ -56,7 +56,11 @@ const props = withDefaults(
 const model = defineModel<string>({ default: "" })
 const errors = ref<ValidationError[]>([])
 
-const emit = defineEmits<{ errors: [ValidationError[]] }>()
+// completeChange reports a change which is a complete decision on its own: a finished upload and a
+// cleared file are both done when they happen and there is no natural blur after them (the file
+// dialog and the upload leave focus where it was), so the enclosing slot commits them right away.
+// The form resetting the input is not one of them: it is not the user deciding anything.
+const emit = defineEmits<{ errors: [ValidationError[]]; completeChange: [] }>()
 watch(errors, (v) => emit("errors", v), { flush: "sync" })
 
 const invalid = computed(() => props.invalid || errors.value.length > 0)
@@ -235,6 +239,7 @@ async function onUpload(file: File) {
       return
     }
     model.value = router.resolve({ name: "StorageGet", params: { id: fileId } }).href
+    emit("completeChange")
     // Move focus onto the uploaded file's link: the browse button which held focus
     // unmounts together with the empty state, and the link is what the user acts on
     // next (inspecting the uploaded file).
@@ -302,6 +307,7 @@ async function onClear() {
   if (inactive.value) return
   clearing = true
   model.value = ""
+  emit("completeChange")
   // The user intentionally cleared the field; drop any error now (the required
   // check returns on the next leave-validation) so it does not flash.
   errors.value = []
