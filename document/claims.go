@@ -3,12 +3,16 @@ package document
 
 import (
 	"cmp"
+	"encoding/json"
 	"fmt"
 	"iter"
 	"math"
 	"slices"
+	"strings"
 
+	"github.com/mohae/deepcopy"
 	"gitlab.com/tozd/go/errors"
+	"gitlab.com/tozd/go/x"
 	"gitlab.com/tozd/identifier"
 
 	internalCore "gitlab.com/peerdb/peerdb/internal/core"
@@ -30,6 +34,15 @@ type Claim interface {
 	GetProp() Reference
 	GetSub() *ClaimTypes
 	SetSub(sub *ClaimTypes)
+	// EqualityKey returns what the claim says, as a string two claims share exactly when they say
+	// the same thing: their type (which a claim's own fields do not carry - in a document it is the
+	// claim list a claim is in - and without which a has, a none and an unknown claim would all say
+	// the same) and their values. The claim's ID and its sub-claims are part of it only when asked
+	// for: two claims saying the same thing are still two claims, so equality leaves the IDs out,
+	// while a signature which has to tell them apart asks for them. The sub-claims are keyed the same
+	// way (identities and all, as asked) and sorted, so the order they are stored in does not decide
+	// the answer. In sync with Claim.EqualityKey in src/document/claims.ts.
+	EqualityKey(withID, withSub bool) (string, errors.E)
 }
 
 // Claims is the interface for types that hold and manipulate a collection of claims.
@@ -59,6 +72,63 @@ var (
 	_ Claim = (*NoneClaim)(nil)
 	_ Claim = (*UnknownClaim)(nil)
 )
+
+// claimEqualityKey builds the claim's equality key (see Claim.EqualityKey). The claim is marshaled
+// with its sub-claims cleared and, unless they are asked for, its ID dropped; the sub-claims (when
+// asked for) contribute their own keys, sorted so their order does not decide the answer.
+func claimEqualityKey(claim Claim, claimType string, withID, withSub bool) (string, errors.E) {
+	copied, ok := deepcopy.Copy(claim).(Claim)
+	if !ok {
+		return "", errors.New("deep copy returned unexpected type")
+	}
+	copied.SetSub(nil)
+	data, errE := x.MarshalWithoutEscapeHTML(copied)
+	if errE != nil {
+		return "", errE
+	}
+	// Dropping the ID from the marshaled fields (instead of zeroing it on the copy) keeps this
+	// working for any claim type: the fields are re-marshaled from a map, which orders its keys.
+	var fields map[string]json.RawMessage
+	errE = x.Unmarshal(data, &fields)
+	if errE != nil {
+		return "", errE
+	}
+	if !withID {
+		delete(fields, "id")
+	}
+	own, errE := x.MarshalWithoutEscapeHTML(fields)
+	if errE != nil {
+		return "", errE
+	}
+	if !withSub {
+		return claimType + ":" + string(own), nil
+	}
+	sub := claim.GetSub()
+	if sub == nil {
+		return claimType + ":" + string(own), nil
+	}
+	keys := []string{}
+	for subClaim := range sub.AllClaims() {
+		key, errE := subClaim.EqualityKey(withID, true)
+		if errE != nil {
+			return "", errE
+		}
+		keys = append(keys, key)
+	}
+	slices.Sort(keys)
+	// Each sub-claim's key is preceded by the separator, so a claim carrying none says the same thing
+	// whether or not they are asked for. Keys still cannot collide: what a claim says is one JSON
+	// object, so a key with sub-claims (object, separator, object, ...) never reads as one without.
+	var key strings.Builder
+	key.WriteString(claimType)
+	key.WriteString(":")
+	key.Write(own)
+	for _, subKey := range keys {
+		key.WriteString("|")
+		key.WriteString(subKey)
+	}
+	return key.String(), nil
+}
 
 // getClaimsOfType returns all claims of the concrete type T matching the given property ID,
 // sorted by decreasing confidence.
@@ -802,6 +872,11 @@ func (c *IdentifierClaim) GetProp() Reference {
 	return c.Prop
 }
 
+// EqualityKey returns what the claim says (see Claim.EqualityKey).
+func (c *IdentifierClaim) EqualityKey(withID, withSub bool) (string, errors.E) {
+	return claimEqualityKey(c, "id", withID, withSub)
+}
+
 // Validate checks that the identifier claim has a non-empty value and valid confidence.
 func (c *IdentifierClaim) Validate() errors.E {
 	errE := c.CoreClaim.Validate()
@@ -830,6 +905,11 @@ func (c *StringClaim) GetProp() Reference {
 	return c.Prop
 }
 
+// EqualityKey returns what the claim says (see Claim.EqualityKey).
+func (c *StringClaim) EqualityKey(withID, withSub bool) (string, errors.E) {
+	return claimEqualityKey(c, "string", withID, withSub)
+}
+
 // Validate checks that the string claim has a non-empty string and valid confidence.
 func (c *StringClaim) Validate() errors.E {
 	errE := c.CoreClaim.Validate()
@@ -856,6 +936,11 @@ type HTMLClaim struct {
 // GetProp returns the claim's property reference.
 func (c *HTMLClaim) GetProp() Reference {
 	return c.Prop
+}
+
+// EqualityKey returns what the claim says (see Claim.EqualityKey).
+func (c *HTMLClaim) EqualityKey(withID, withSub bool) (string, errors.E) {
+	return claimEqualityKey(c, "html", withID, withSub)
 }
 
 // Validate checks that the HTML claim has non-empty, canonical HTML and valid
@@ -903,6 +988,11 @@ type AmountClaim struct {
 // GetProp returns the claim's property reference.
 func (c *AmountClaim) GetProp() Reference {
 	return c.Prop
+}
+
+// EqualityKey returns what the claim says (see Claim.EqualityKey).
+func (c *AmountClaim) EqualityKey(withID, withSub bool) (string, errors.E) {
+	return claimEqualityKey(c, "amount", withID, withSub)
 }
 
 // Validate checks that the amount claim has valid amount, precision, and confidence.
@@ -954,6 +1044,11 @@ type AmountIntervalClaim struct {
 // GetProp returns the claim's property reference.
 func (c *AmountIntervalClaim) GetProp() Reference {
 	return c.Prop
+}
+
+// EqualityKey returns what the claim says (see Claim.EqualityKey).
+func (c *AmountIntervalClaim) EqualityKey(withID, withSub bool) (string, errors.E) {
+	return claimEqualityKey(c, "amountInterval", withID, withSub)
 }
 
 // Validate checks that the amount interval claim has valid bounds and valid confidence.
@@ -1106,6 +1201,11 @@ type TimeClaim struct {
 	Precision TimePrecision `json:"precision"`
 }
 
+// EqualityKey returns what the claim says (see Claim.EqualityKey).
+func (t *TimeClaim) EqualityKey(withID, withSub bool) (string, errors.E) {
+	return claimEqualityKey(t, "time", withID, withSub)
+}
+
 // GetProp returns the claim's property reference.
 func (t *TimeClaim) GetProp() Reference {
 	return t.Prop
@@ -1146,6 +1246,11 @@ type TimeIntervalClaim struct {
 // GetProp returns the claim's property reference.
 func (c *TimeIntervalClaim) GetProp() Reference {
 	return c.Prop
+}
+
+// EqualityKey returns what the claim says (see Claim.EqualityKey).
+func (c *TimeIntervalClaim) EqualityKey(withID, withSub bool) (string, errors.E) {
+	return claimEqualityKey(c, "timeInterval", withID, withSub)
 }
 
 // Validate checks that the time interval claim has valid bounds and valid confidence.
@@ -1291,6 +1396,11 @@ func (c *LinkClaim) GetProp() Reference {
 	return c.Prop
 }
 
+// EqualityKey returns what the claim says (see Claim.EqualityKey).
+func (c *LinkClaim) EqualityKey(withID, withSub bool) (string, errors.E) {
+	return claimEqualityKey(c, "link", withID, withSub)
+}
+
 // Validate checks that the link claim has an IRI in the allowed form
 // and valid confidence. Allowed-IRI rules match the frontend's parseUrl.
 func (c *LinkClaim) Validate() errors.E {
@@ -1314,6 +1424,11 @@ func (c *ReferenceClaim) GetProp() Reference {
 	return c.Prop
 }
 
+// EqualityKey returns what the claim says (see Claim.EqualityKey).
+func (c *ReferenceClaim) EqualityKey(withID, withSub bool) (string, errors.E) {
+	return claimEqualityKey(c, "ref", withID, withSub)
+}
+
 // HasClaim represents a claim with just a property.
 //
 // It can also be used for nested claims.
@@ -1328,6 +1443,11 @@ func (c *HasClaim) GetProp() Reference {
 	return c.Prop
 }
 
+// EqualityKey returns what the claim says (see Claim.EqualityKey).
+func (c *HasClaim) EqualityKey(withID, withSub bool) (string, errors.E) {
+	return claimEqualityKey(c, "has", withID, withSub)
+}
+
 // NoneClaim represents a claim that explicitly states no value exists for a property.
 type NoneClaim struct {
 	CoreClaim
@@ -1340,6 +1460,11 @@ func (c *NoneClaim) GetProp() Reference {
 	return c.Prop
 }
 
+// EqualityKey returns what the claim says (see Claim.EqualityKey).
+func (c *NoneClaim) EqualityKey(withID, withSub bool) (string, errors.E) {
+	return claimEqualityKey(c, "none", withID, withSub)
+}
+
 // UnknownClaim represents a claim where the value for a property is known to exist but is unknown.
 type UnknownClaim struct {
 	CoreClaim
@@ -1350,4 +1475,9 @@ type UnknownClaim struct {
 // GetProp returns the claim's property reference.
 func (c *UnknownClaim) GetProp() Reference {
 	return c.Prop
+}
+
+// EqualityKey returns what the claim says (see Claim.EqualityKey).
+func (c *UnknownClaim) EqualityKey(withID, withSub bool) (string, errors.E) {
+	return claimEqualityKey(c, "unknown", withID, withSub)
 }

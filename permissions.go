@@ -1,12 +1,9 @@
 package peerdb
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"io"
 	"net/http"
-	"reflect"
 	"slices"
 	"strings"
 
@@ -126,26 +123,23 @@ func checkVersionedReadPermission(ctx context.Context, site *internalSite.Site, 
 }
 
 // topLevelClaim is a top-level claim of a document as compared by changedClaimProperties: its
-// property, its concrete type, and its serialized form (which includes its sub-claims). The type is
-// compared separately because it is not part of a claim's own serialization (in a document the type
-// is encoded by the claim list the claim is in), so a cast between claim types with equal fields
-// (e.g. between a has and a none claim) would otherwise not register as a change.
+// property and what it says with its sub-claims (see document.Claim.EqualityKey, whose key carries
+// the claim's type, so a cast between claim types with equal fields - a has to a none claim, say -
+// registers as a change). The IDs are not asked for: the claims are compared by their own IDs below.
 type topLevelClaim struct {
 	Prop identifier.Identifier
-	Type reflect.Type
-	Data json.RawMessage
+	Key  string
 }
 
-// topLevelClaimsByID returns the document's top-level claims (with their sub-claims), serialized, by
-// their IDs.
+// topLevelClaimsByID returns the document's top-level claims (with their sub-claims) by their IDs.
 func topLevelClaimsByID(doc *document.D) (map[identifier.Identifier]topLevelClaim, errors.E) {
 	claims := map[identifier.Identifier]topLevelClaim{}
 	for claim := range doc.AllClaims() {
-		data, errE := x.MarshalWithoutEscapeHTML(claim)
+		key, errE := claim.EqualityKey(false, true)
 		if errE != nil {
 			return nil, errE
 		}
-		claims[claim.GetID()] = topLevelClaim{Prop: claim.GetProp().ID, Type: reflect.TypeOf(claim), Data: data}
+		claims[claim.GetID()] = topLevelClaim{Prop: claim.GetProp().ID, Key: key}
 	}
 	return claims, nil
 }
@@ -171,7 +165,7 @@ func changedClaimProperties(before, after *document.D) (map[identifier.Identifie
 		afterClaim, ok := afterClaims[id]
 		if !ok {
 			changed[beforeClaim.Prop] = true
-		} else if beforeClaim.Type != afterClaim.Type || !bytes.Equal(beforeClaim.Data, afterClaim.Data) {
+		} else if beforeClaim.Key != afterClaim.Key {
 			changed[beforeClaim.Prop] = true
 			changed[afterClaim.Prop] = true
 		}
@@ -187,7 +181,7 @@ func changedClaimProperties(before, after *document.D) (map[identifier.Identifie
 	for _, claim := range document.GetClaimsOfTypeWithConfidence[document.ReferenceClaim](after, internalCore.HasPermissionPropID, document.LowConfidence) {
 		beforeClaim, ok := beforeClaims[claim.ID]
 		afterClaim := afterClaims[claim.ID]
-		if ok && beforeClaim.Type == afterClaim.Type && bytes.Equal(beforeClaim.Data, afterClaim.Data) {
+		if ok && beforeClaim.Key == afterClaim.Key {
 			continue
 		}
 		grantedActions = append(grantedActions, claim.To.ID)

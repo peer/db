@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { ComponentPublicInstance, ShallowUnwrapRef } from "vue"
 
-import type { InputColumn, ValidatedInput } from "@/types"
+import type { InputColumn, ValidatedInput, ValidationError } from "@/types"
 
 import { computed, shallowRef, useId } from "vue"
 import { useI18n } from "vue-i18n"
@@ -36,6 +36,10 @@ const props = defineProps<{
   // instructions, see ClaimCardinality). Without it (the claim-type forms of the
   // "All properties" tab) hints render inline, under the errors.
   hideHints?: boolean
+  // Errors the input is in without knowing it: the enclosing form found them by looking at more
+  // than this input holds. They are shown and colour the control like the input's own, which
+  // is what they are to the user.
+  errors?: ValidationError[]
   // When set, the badge's revert invokes this instead of restoring the wrapped input's
   // own checkpoints. ClaimInput passes its per-bound revert through FieldsFormRow for
   // the interval bounds, so the badge behaves like the field-level revert - posting
@@ -84,7 +88,10 @@ const errorId = useId()
 // so the badges next to it do not leak into the group's accessible name.
 const labelId = useId()
 
-const errorMessage = computed<string | null>(() => pickErrorMessage(input.value?.errors ?? [], t))
+const errorMessage = computed<string | null>(() => pickErrorMessage([...(props.errors ?? []), ...(input.value?.errors ?? [])], t))
+
+// The control is red for an error handed to the input as much as for one it found itself.
+const anyInvalid = computed<boolean>(() => props.invalid || (props.errors?.length ?? 0) > 0)
 
 // The wrapped input's hint lines, shown under the error message (when there is
 // one), unless the enclosing cardinality has hoisted the hint out.
@@ -153,7 +160,7 @@ function onRevert(): void {
       elements become direct grid items of this fieldset, each in its column.
     -->
     <div :class="columnCount > 1 ? 'contents' : 'grid grid-cols-[minmax(0,1fr)]'">
-      <slot :ref="setInputRef" name="input" :required="required" :invalid="invalid" :aria-describedby="errorMessage ? errorId : undefined" />
+      <slot :ref="setInputRef" name="input" :required="required" :invalid="anyInvalid" :aria-describedby="errorMessage ? errorId : undefined" />
     </div>
     <p v-if="errorMessage" :id="errorId" class="col-span-full mt-1 text-sm text-error-600">{{ errorMessage }}</p>
     <p v-for="(hint, i) in hints" :key="i" class="col-span-full mt-1 text-sm text-neutral-500 italic">{{ hint }}</p>

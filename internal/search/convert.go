@@ -14,7 +14,6 @@ import (
 	"unicode/utf8"
 
 	"github.com/Masterminds/sprig/v3"
-	"github.com/mohae/deepcopy"
 	"github.com/pemistahl/lingua-go"
 	"github.com/rs/zerolog"
 	"gitlab.com/tozd/go/errors"
@@ -3134,19 +3133,10 @@ func claimValueStates(doc *document.D) (map[string]identifier.Identifier, errors
 }
 
 // claimValueKey returns a signature of a claim's own value, excluding its sub-claims (compared separately as
-// their own claims). The claim's ID is part of the signature so that removing one of several otherwise
-// identical claims is detected as a change.
+// their own claims). It is what the claim says with its ID (see document.Claim.EqualityKey), so that removing
+// one of several otherwise identical claims is detected as a change.
 func claimValueKey(claim document.Claim) (string, errors.E) {
-	copied, ok := deepcopy.Copy(claim).(document.Claim)
-	if !ok {
-		return "", errors.New("deep copy returned unexpected type")
-	}
-	copied.SetSub(nil)
-	data, errE := x.MarshalWithoutEscapeHTML(copied)
-	if errE != nil {
-		return "", errE
-	}
-	return string(data), nil
+	return claim.EqualityKey(true, false)
 }
 
 // matchEmbedSource navigates the source path within a referenced document and returns the claims it selects:

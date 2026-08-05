@@ -25,6 +25,8 @@ var (
 	ExcludeFromTextSearchPropID  = identifier.From(Namespace, "EXCLUDE_FROM_TEXT_SEARCH")
 	FieldContextPropID           = identifier.From(Namespace, "FIELD_CONTEXT")
 	FieldDefaultPropID           = identifier.From(Namespace, "FIELD_DEFAULT")
+	FieldDuplicateAllowPropID    = identifier.From(Namespace, "FIELD_DUPLICATE_ALLOW")
+	FieldDuplicateTopPropID      = identifier.From(Namespace, "FIELD_DUPLICATE_TOP")
 	FieldInputComponentPropID    = identifier.From(Namespace, "FIELD_INPUT_COMPONENT")
 	FieldInstructionPropID       = identifier.From(Namespace, "FIELD_INSTRUCTION")
 	FieldPropID                  = identifier.From(Namespace, "FIELD")

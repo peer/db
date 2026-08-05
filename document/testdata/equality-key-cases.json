@@ -1,0 +1,382 @@
+{
+  "cases": [
+    {
+      "name": "identifier",
+      "claims": {
+        "id": [
+          {
+            "id": "4wAcZBpDVLh9ipBmnpEZfB",
+            "confidence": 1,
+            "prop": {
+              "id": "9YWaBGjJQF3HZyCTBUKa5N"
+            },
+            "value": "some-identifier"
+          }
+        ]
+      },
+      "key": "id:{\"confidence\":1,\"prop\":{\"id\":\"9YWaBGjJQF3HZyCTBUKa5N\"},\"value\":\"some-identifier\"}",
+      "keyWithID": "id:{\"confidence\":1,\"id\":\"4wAcZBpDVLh9ipBmnpEZfB\",\"prop\":{\"id\":\"9YWaBGjJQF3HZyCTBUKa5N\"},\"value\":\"some-identifier\"}",
+      "keyWithSub": "id:{\"confidence\":1,\"prop\":{\"id\":\"9YWaBGjJQF3HZyCTBUKa5N\"},\"value\":\"some-identifier\"}",
+      "keyWithIDAndSub": "id:{\"confidence\":1,\"id\":\"4wAcZBpDVLh9ipBmnpEZfB\",\"prop\":{\"id\":\"9YWaBGjJQF3HZyCTBUKa5N\"},\"value\":\"some-identifier\"}"
+    },
+    {
+      "name": "string",
+      "claims": {
+        "string": [
+          {
+            "id": "4wAcZBpDVLh9ipBmnpEZfB",
+            "confidence": 1,
+            "prop": {
+              "id": "9YWaBGjJQF3HZyCTBUKa5N"
+            },
+            "string": "some string"
+          }
+        ]
+      },
+      "key": "string:{\"confidence\":1,\"prop\":{\"id\":\"9YWaBGjJQF3HZyCTBUKa5N\"},\"string\":\"some string\"}",
+      "keyWithID": "string:{\"confidence\":1,\"id\":\"4wAcZBpDVLh9ipBmnpEZfB\",\"prop\":{\"id\":\"9YWaBGjJQF3HZyCTBUKa5N\"},\"string\":\"some string\"}",
+      "keyWithSub": "string:{\"confidence\":1,\"prop\":{\"id\":\"9YWaBGjJQF3HZyCTBUKa5N\"},\"string\":\"some string\"}",
+      "keyWithIDAndSub": "string:{\"confidence\":1,\"id\":\"4wAcZBpDVLh9ipBmnpEZfB\",\"prop\":{\"id\":\"9YWaBGjJQF3HZyCTBUKa5N\"},\"string\":\"some string\"}"
+    },
+    {
+      "name": "html",
+      "claims": {
+        "html": [
+          {
+            "id": "4wAcZBpDVLh9ipBmnpEZfB",
+            "confidence": 0.5,
+            "prop": {
+              "id": "9YWaBGjJQF3HZyCTBUKa5N"
+            },
+            "html": "\u003cp\u003esome html\u003c/p\u003e"
+          }
+        ]
+      },
+      "key": "html:{\"confidence\":0.5,\"html\":\"\u003cp\u003esome html\u003c/p\u003e\",\"prop\":{\"id\":\"9YWaBGjJQF3HZyCTBUKa5N\"}}",
+      "keyWithID": "html:{\"confidence\":0.5,\"html\":\"\u003cp\u003esome html\u003c/p\u003e\",\"id\":\"4wAcZBpDVLh9ipBmnpEZfB\",\"prop\":{\"id\":\"9YWaBGjJQF3HZyCTBUKa5N\"}}",
+      "keyWithSub": "html:{\"confidence\":0.5,\"html\":\"\u003cp\u003esome html\u003c/p\u003e\",\"prop\":{\"id\":\"9YWaBGjJQF3HZyCTBUKa5N\"}}",
+      "keyWithIDAndSub": "html:{\"confidence\":0.5,\"html\":\"\u003cp\u003esome html\u003c/p\u003e\",\"id\":\"4wAcZBpDVLh9ipBmnpEZfB\",\"prop\":{\"id\":\"9YWaBGjJQF3HZyCTBUKa5N\"}}"
+    },
+    {
+      "name": "amount",
+      "claims": {
+        "amount": [
+          {
+            "id": "4wAcZBpDVLh9ipBmnpEZfB",
+            "confidence": 1,
+            "prop": {
+              "id": "9YWaBGjJQF3HZyCTBUKa5N"
+            },
+            "amount": "42.5",
+            "precision": 0.1
+          }
+        ]
+      },
+      "key": "amount:{\"amount\":\"42.5\",\"confidence\":1,\"precision\":0.1,\"prop\":{\"id\":\"9YWaBGjJQF3HZyCTBUKa5N\"}}",
+      "keyWithID": "amount:{\"amount\":\"42.5\",\"confidence\":1,\"id\":\"4wAcZBpDVLh9ipBmnpEZfB\",\"precision\":0.1,\"prop\":{\"id\":\"9YWaBGjJQF3HZyCTBUKa5N\"}}",
+      "keyWithSub": "amount:{\"amount\":\"42.5\",\"confidence\":1,\"precision\":0.1,\"prop\":{\"id\":\"9YWaBGjJQF3HZyCTBUKa5N\"}}",
+      "keyWithIDAndSub": "amount:{\"amount\":\"42.5\",\"confidence\":1,\"id\":\"4wAcZBpDVLh9ipBmnpEZfB\",\"precision\":0.1,\"prop\":{\"id\":\"9YWaBGjJQF3HZyCTBUKa5N\"}}"
+    },
+    {
+      "name": "amountInterval",
+      "claims": {
+        "amountInterval": [
+          {
+            "id": "4wAcZBpDVLh9ipBmnpEZfB",
+            "confidence": 1,
+            "prop": {
+              "id": "9YWaBGjJQF3HZyCTBUKa5N"
+            },
+            "from": "1",
+            "fromPrecision": 1,
+            "to": "10",
+            "toPrecision": 1
+          }
+        ]
+      },
+      "key": "amountInterval:{\"confidence\":1,\"from\":\"1\",\"fromPrecision\":1,\"prop\":{\"id\":\"9YWaBGjJQF3HZyCTBUKa5N\"},\"to\":\"10\",\"toPrecision\":1}",
+      "keyWithID": "amountInterval:{\"confidence\":1,\"from\":\"1\",\"fromPrecision\":1,\"id\":\"4wAcZBpDVLh9ipBmnpEZfB\",\"prop\":{\"id\":\"9YWaBGjJQF3HZyCTBUKa5N\"},\"to\":\"10\",\"toPrecision\":1}",
+      "keyWithSub": "amountInterval:{\"confidence\":1,\"from\":\"1\",\"fromPrecision\":1,\"prop\":{\"id\":\"9YWaBGjJQF3HZyCTBUKa5N\"},\"to\":\"10\",\"toPrecision\":1}",
+      "keyWithIDAndSub": "amountInterval:{\"confidence\":1,\"from\":\"1\",\"fromPrecision\":1,\"id\":\"4wAcZBpDVLh9ipBmnpEZfB\",\"prop\":{\"id\":\"9YWaBGjJQF3HZyCTBUKa5N\"},\"to\":\"10\",\"toPrecision\":1}"
+    },
+    {
+      "name": "amountInterval with missing bounds",
+      "claims": {
+        "amountInterval": [
+          {
+            "id": "4wAcZBpDVLh9ipBmnpEZfB",
+            "confidence": 1,
+            "prop": {
+              "id": "9YWaBGjJQF3HZyCTBUKa5N"
+            },
+            "fromIsUnknown": true,
+            "toIsNone": true
+          }
+        ]
+      },
+      "key": "amountInterval:{\"confidence\":1,\"fromIsUnknown\":true,\"prop\":{\"id\":\"9YWaBGjJQF3HZyCTBUKa5N\"},\"toIsNone\":true}",
+      "keyWithID": "amountInterval:{\"confidence\":1,\"fromIsUnknown\":true,\"id\":\"4wAcZBpDVLh9ipBmnpEZfB\",\"prop\":{\"id\":\"9YWaBGjJQF3HZyCTBUKa5N\"},\"toIsNone\":true}",
+      "keyWithSub": "amountInterval:{\"confidence\":1,\"fromIsUnknown\":true,\"prop\":{\"id\":\"9YWaBGjJQF3HZyCTBUKa5N\"},\"toIsNone\":true}",
+      "keyWithIDAndSub": "amountInterval:{\"confidence\":1,\"fromIsUnknown\":true,\"id\":\"4wAcZBpDVLh9ipBmnpEZfB\",\"prop\":{\"id\":\"9YWaBGjJQF3HZyCTBUKa5N\"},\"toIsNone\":true}"
+    },
+    {
+      "name": "time",
+      "claims": {
+        "time": [
+          {
+            "id": "4wAcZBpDVLh9ipBmnpEZfB",
+            "confidence": 1,
+            "prop": {
+              "id": "9YWaBGjJQF3HZyCTBUKa5N"
+            },
+            "time": "2026-08-06",
+            "precision": "d"
+          }
+        ]
+      },
+      "key": "time:{\"confidence\":1,\"precision\":\"d\",\"prop\":{\"id\":\"9YWaBGjJQF3HZyCTBUKa5N\"},\"time\":\"2026-08-06\"}",
+      "keyWithID": "time:{\"confidence\":1,\"id\":\"4wAcZBpDVLh9ipBmnpEZfB\",\"precision\":\"d\",\"prop\":{\"id\":\"9YWaBGjJQF3HZyCTBUKa5N\"},\"time\":\"2026-08-06\"}",
+      "keyWithSub": "time:{\"confidence\":1,\"precision\":\"d\",\"prop\":{\"id\":\"9YWaBGjJQF3HZyCTBUKa5N\"},\"time\":\"2026-08-06\"}",
+      "keyWithIDAndSub": "time:{\"confidence\":1,\"id\":\"4wAcZBpDVLh9ipBmnpEZfB\",\"precision\":\"d\",\"prop\":{\"id\":\"9YWaBGjJQF3HZyCTBUKa5N\"},\"time\":\"2026-08-06\"}"
+    },
+    {
+      "name": "timeInterval",
+      "claims": {
+        "timeInterval": [
+          {
+            "id": "4wAcZBpDVLh9ipBmnpEZfB",
+            "confidence": 1,
+            "prop": {
+              "id": "9YWaBGjJQF3HZyCTBUKa5N"
+            },
+            "from": "2026-01-01",
+            "fromPrecision": "d",
+            "to": "2026-12-31",
+            "toPrecision": "d"
+          }
+        ]
+      },
+      "key": "timeInterval:{\"confidence\":1,\"from\":\"2026-01-01\",\"fromPrecision\":\"d\",\"prop\":{\"id\":\"9YWaBGjJQF3HZyCTBUKa5N\"},\"to\":\"2026-12-31\",\"toPrecision\":\"d\"}",
+      "keyWithID": "timeInterval:{\"confidence\":1,\"from\":\"2026-01-01\",\"fromPrecision\":\"d\",\"id\":\"4wAcZBpDVLh9ipBmnpEZfB\",\"prop\":{\"id\":\"9YWaBGjJQF3HZyCTBUKa5N\"},\"to\":\"2026-12-31\",\"toPrecision\":\"d\"}",
+      "keyWithSub": "timeInterval:{\"confidence\":1,\"from\":\"2026-01-01\",\"fromPrecision\":\"d\",\"prop\":{\"id\":\"9YWaBGjJQF3HZyCTBUKa5N\"},\"to\":\"2026-12-31\",\"toPrecision\":\"d\"}",
+      "keyWithIDAndSub": "timeInterval:{\"confidence\":1,\"from\":\"2026-01-01\",\"fromPrecision\":\"d\",\"id\":\"4wAcZBpDVLh9ipBmnpEZfB\",\"prop\":{\"id\":\"9YWaBGjJQF3HZyCTBUKa5N\"},\"to\":\"2026-12-31\",\"toPrecision\":\"d\"}"
+    },
+    {
+      "name": "link",
+      "claims": {
+        "link": [
+          {
+            "id": "4wAcZBpDVLh9ipBmnpEZfB",
+            "confidence": 1,
+            "prop": {
+              "id": "9YWaBGjJQF3HZyCTBUKa5N"
+            },
+            "iri": "https://example.com/a"
+          }
+        ]
+      },
+      "key": "link:{\"confidence\":1,\"iri\":\"https://example.com/a\",\"prop\":{\"id\":\"9YWaBGjJQF3HZyCTBUKa5N\"}}",
+      "keyWithID": "link:{\"confidence\":1,\"id\":\"4wAcZBpDVLh9ipBmnpEZfB\",\"iri\":\"https://example.com/a\",\"prop\":{\"id\":\"9YWaBGjJQF3HZyCTBUKa5N\"}}",
+      "keyWithSub": "link:{\"confidence\":1,\"iri\":\"https://example.com/a\",\"prop\":{\"id\":\"9YWaBGjJQF3HZyCTBUKa5N\"}}",
+      "keyWithIDAndSub": "link:{\"confidence\":1,\"id\":\"4wAcZBpDVLh9ipBmnpEZfB\",\"iri\":\"https://example.com/a\",\"prop\":{\"id\":\"9YWaBGjJQF3HZyCTBUKa5N\"}}"
+    },
+    {
+      "name": "reference",
+      "claims": {
+        "ref": [
+          {
+            "id": "4wAcZBpDVLh9ipBmnpEZfB",
+            "confidence": 1,
+            "prop": {
+              "id": "9YWaBGjJQF3HZyCTBUKa5N"
+            },
+            "to": {
+              "id": "SZmEyX4MDoR259jGRXB5RD"
+            }
+          }
+        ]
+      },
+      "key": "ref:{\"confidence\":1,\"prop\":{\"id\":\"9YWaBGjJQF3HZyCTBUKa5N\"},\"to\":{\"id\":\"SZmEyX4MDoR259jGRXB5RD\"}}",
+      "keyWithID": "ref:{\"confidence\":1,\"id\":\"4wAcZBpDVLh9ipBmnpEZfB\",\"prop\":{\"id\":\"9YWaBGjJQF3HZyCTBUKa5N\"},\"to\":{\"id\":\"SZmEyX4MDoR259jGRXB5RD\"}}",
+      "keyWithSub": "ref:{\"confidence\":1,\"prop\":{\"id\":\"9YWaBGjJQF3HZyCTBUKa5N\"},\"to\":{\"id\":\"SZmEyX4MDoR259jGRXB5RD\"}}",
+      "keyWithIDAndSub": "ref:{\"confidence\":1,\"id\":\"4wAcZBpDVLh9ipBmnpEZfB\",\"prop\":{\"id\":\"9YWaBGjJQF3HZyCTBUKa5N\"},\"to\":{\"id\":\"SZmEyX4MDoR259jGRXB5RD\"}}"
+    },
+    {
+      "name": "has",
+      "claims": {
+        "has": [
+          {
+            "id": "4wAcZBpDVLh9ipBmnpEZfB",
+            "confidence": 1,
+            "prop": {
+              "id": "9YWaBGjJQF3HZyCTBUKa5N"
+            }
+          }
+        ]
+      },
+      "key": "has:{\"confidence\":1,\"prop\":{\"id\":\"9YWaBGjJQF3HZyCTBUKa5N\"}}",
+      "keyWithID": "has:{\"confidence\":1,\"id\":\"4wAcZBpDVLh9ipBmnpEZfB\",\"prop\":{\"id\":\"9YWaBGjJQF3HZyCTBUKa5N\"}}",
+      "keyWithSub": "has:{\"confidence\":1,\"prop\":{\"id\":\"9YWaBGjJQF3HZyCTBUKa5N\"}}",
+      "keyWithIDAndSub": "has:{\"confidence\":1,\"id\":\"4wAcZBpDVLh9ipBmnpEZfB\",\"prop\":{\"id\":\"9YWaBGjJQF3HZyCTBUKa5N\"}}"
+    },
+    {
+      "name": "none",
+      "claims": {
+        "none": [
+          {
+            "id": "4wAcZBpDVLh9ipBmnpEZfB",
+            "confidence": 1,
+            "prop": {
+              "id": "9YWaBGjJQF3HZyCTBUKa5N"
+            }
+          }
+        ]
+      },
+      "key": "none:{\"confidence\":1,\"prop\":{\"id\":\"9YWaBGjJQF3HZyCTBUKa5N\"}}",
+      "keyWithID": "none:{\"confidence\":1,\"id\":\"4wAcZBpDVLh9ipBmnpEZfB\",\"prop\":{\"id\":\"9YWaBGjJQF3HZyCTBUKa5N\"}}",
+      "keyWithSub": "none:{\"confidence\":1,\"prop\":{\"id\":\"9YWaBGjJQF3HZyCTBUKa5N\"}}",
+      "keyWithIDAndSub": "none:{\"confidence\":1,\"id\":\"4wAcZBpDVLh9ipBmnpEZfB\",\"prop\":{\"id\":\"9YWaBGjJQF3HZyCTBUKa5N\"}}"
+    },
+    {
+      "name": "unknown",
+      "claims": {
+        "unknown": [
+          {
+            "id": "4wAcZBpDVLh9ipBmnpEZfB",
+            "confidence": 1,
+            "prop": {
+              "id": "9YWaBGjJQF3HZyCTBUKa5N"
+            }
+          }
+        ]
+      },
+      "key": "unknown:{\"confidence\":1,\"prop\":{\"id\":\"9YWaBGjJQF3HZyCTBUKa5N\"}}",
+      "keyWithID": "unknown:{\"confidence\":1,\"id\":\"4wAcZBpDVLh9ipBmnpEZfB\",\"prop\":{\"id\":\"9YWaBGjJQF3HZyCTBUKa5N\"}}",
+      "keyWithSub": "unknown:{\"confidence\":1,\"prop\":{\"id\":\"9YWaBGjJQF3HZyCTBUKa5N\"}}",
+      "keyWithIDAndSub": "unknown:{\"confidence\":1,\"id\":\"4wAcZBpDVLh9ipBmnpEZfB\",\"prop\":{\"id\":\"9YWaBGjJQF3HZyCTBUKa5N\"}}"
+    },
+    {
+      "name": "claim with sub-claims",
+      "claims": {
+        "string": [
+          {
+            "id": "4wAcZBpDVLh9ipBmnpEZfB",
+            "confidence": 1,
+            "prop": {
+              "id": "9YWaBGjJQF3HZyCTBUKa5N"
+            },
+            "string": "some string",
+            "sub": {
+              "id": [
+                {
+                  "id": "MNCyBLxN6EPjovGyEitRRz",
+                  "confidence": 1,
+                  "prop": {
+                    "id": "SZmEyX4MDoR259jGRXB5RD"
+                  },
+                  "value": "first"
+                }
+              ],
+              "string": [
+                {
+                  "id": "R7YmhaGkyxdJv1z8snYY4G",
+                  "confidence": 1,
+                  "prop": {
+                    "id": "SZmEyX4MDoR259jGRXB5RD"
+                  },
+                  "string": "second"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "key": "string:{\"confidence\":1,\"prop\":{\"id\":\"9YWaBGjJQF3HZyCTBUKa5N\"},\"string\":\"some string\"}",
+      "keyWithID": "string:{\"confidence\":1,\"id\":\"4wAcZBpDVLh9ipBmnpEZfB\",\"prop\":{\"id\":\"9YWaBGjJQF3HZyCTBUKa5N\"},\"string\":\"some string\"}",
+      "keyWithSub": "string:{\"confidence\":1,\"prop\":{\"id\":\"9YWaBGjJQF3HZyCTBUKa5N\"},\"string\":\"some string\"}|id:{\"confidence\":1,\"prop\":{\"id\":\"SZmEyX4MDoR259jGRXB5RD\"},\"value\":\"first\"}|string:{\"confidence\":1,\"prop\":{\"id\":\"SZmEyX4MDoR259jGRXB5RD\"},\"string\":\"second\"}",
+      "keyWithIDAndSub": "string:{\"confidence\":1,\"id\":\"4wAcZBpDVLh9ipBmnpEZfB\",\"prop\":{\"id\":\"9YWaBGjJQF3HZyCTBUKa5N\"},\"string\":\"some string\"}|id:{\"confidence\":1,\"id\":\"MNCyBLxN6EPjovGyEitRRz\",\"prop\":{\"id\":\"SZmEyX4MDoR259jGRXB5RD\"},\"value\":\"first\"}|string:{\"confidence\":1,\"id\":\"R7YmhaGkyxdJv1z8snYY4G\",\"prop\":{\"id\":\"SZmEyX4MDoR259jGRXB5RD\"},\"string\":\"second\"}"
+    },
+    {
+      "name": "claim with sub-claims in another order",
+      "claims": {
+        "string": [
+          {
+            "id": "Uy6P6Fn5jJc2RXtDEZ2Umd",
+            "confidence": 1,
+            "prop": {
+              "id": "9YWaBGjJQF3HZyCTBUKa5N"
+            },
+            "string": "some string",
+            "sub": {
+              "string": [
+                {
+                  "id": "AoXcgeLNPvvahsehsypDrM",
+                  "confidence": 1,
+                  "prop": {
+                    "id": "SZmEyX4MDoR259jGRXB5RD"
+                  },
+                  "string": "second"
+                }
+              ],
+              "id": [
+                {
+                  "id": "3xX2FCcS8vzhtqtsy9mNz1",
+                  "confidence": 1,
+                  "prop": {
+                    "id": "SZmEyX4MDoR259jGRXB5RD"
+                  },
+                  "value": "first"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "key": "string:{\"confidence\":1,\"prop\":{\"id\":\"9YWaBGjJQF3HZyCTBUKa5N\"},\"string\":\"some string\"}",
+      "keyWithID": "string:{\"confidence\":1,\"id\":\"Uy6P6Fn5jJc2RXtDEZ2Umd\",\"prop\":{\"id\":\"9YWaBGjJQF3HZyCTBUKa5N\"},\"string\":\"some string\"}",
+      "keyWithSub": "string:{\"confidence\":1,\"prop\":{\"id\":\"9YWaBGjJQF3HZyCTBUKa5N\"},\"string\":\"some string\"}|id:{\"confidence\":1,\"prop\":{\"id\":\"SZmEyX4MDoR259jGRXB5RD\"},\"value\":\"first\"}|string:{\"confidence\":1,\"prop\":{\"id\":\"SZmEyX4MDoR259jGRXB5RD\"},\"string\":\"second\"}",
+      "keyWithIDAndSub": "string:{\"confidence\":1,\"id\":\"Uy6P6Fn5jJc2RXtDEZ2Umd\",\"prop\":{\"id\":\"9YWaBGjJQF3HZyCTBUKa5N\"},\"string\":\"some string\"}|id:{\"confidence\":1,\"id\":\"3xX2FCcS8vzhtqtsy9mNz1\",\"prop\":{\"id\":\"SZmEyX4MDoR259jGRXB5RD\"},\"value\":\"first\"}|string:{\"confidence\":1,\"id\":\"AoXcgeLNPvvahsehsypDrM\",\"prop\":{\"id\":\"SZmEyX4MDoR259jGRXB5RD\"},\"string\":\"second\"}"
+    },
+    {
+      "name": "claim with nested sub-claims",
+      "claims": {
+        "has": [
+          {
+            "id": "4wAcZBpDVLh9ipBmnpEZfB",
+            "confidence": 1,
+            "prop": {
+              "id": "9YWaBGjJQF3HZyCTBUKa5N"
+            },
+            "sub": {
+              "has": [
+                {
+                  "id": "MNCyBLxN6EPjovGyEitRRz",
+                  "confidence": 1,
+                  "prop": {
+                    "id": "SZmEyX4MDoR259jGRXB5RD"
+                  },
+                  "sub": {
+                    "string": [
+                      {
+                        "id": "R7YmhaGkyxdJv1z8snYY4G",
+                        "confidence": 1,
+                        "prop": {
+                          "id": "XBbZn6di75qjw96k5Ge8qR"
+                        },
+                        "string": "deep"
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "key": "has:{\"confidence\":1,\"prop\":{\"id\":\"9YWaBGjJQF3HZyCTBUKa5N\"}}",
+      "keyWithID": "has:{\"confidence\":1,\"id\":\"4wAcZBpDVLh9ipBmnpEZfB\",\"prop\":{\"id\":\"9YWaBGjJQF3HZyCTBUKa5N\"}}",
+      "keyWithSub": "has:{\"confidence\":1,\"prop\":{\"id\":\"9YWaBGjJQF3HZyCTBUKa5N\"}}|has:{\"confidence\":1,\"prop\":{\"id\":\"SZmEyX4MDoR259jGRXB5RD\"}}|string:{\"confidence\":1,\"prop\":{\"id\":\"XBbZn6di75qjw96k5Ge8qR\"},\"string\":\"deep\"}",
+      "keyWithIDAndSub": "has:{\"confidence\":1,\"id\":\"4wAcZBpDVLh9ipBmnpEZfB\",\"prop\":{\"id\":\"9YWaBGjJQF3HZyCTBUKa5N\"}}|has:{\"confidence\":1,\"id\":\"MNCyBLxN6EPjovGyEitRRz\",\"prop\":{\"id\":\"SZmEyX4MDoR259jGRXB5RD\"}}|string:{\"confidence\":1,\"id\":\"R7YmhaGkyxdJv1z8snYY4G\",\"prop\":{\"id\":\"XBbZn6di75qjw96k5Ge8qR\"},\"string\":\"deep\"}"
+    }
+  ]
+}

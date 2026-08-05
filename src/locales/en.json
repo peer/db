@@ -82,6 +82,7 @@
     },
     "validation": {
       "required": "Required value.",
+      "duplicate": "Duplicate value.",
       "requiredPrecision": "Required precision.",
       "invalid": "Invalid value.",
       "invalidPrecision": "Invalid precision.",

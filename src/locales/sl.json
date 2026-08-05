@@ -82,6 +82,7 @@
     },
     "validation": {
       "required": "Obvezna vrednost.",
+      "duplicate": "Podvojena vrednost.",
       "requiredPrecision": "Obvezna natančnost.",
       "invalid": "Neveljavna vrednost.",
       "invalidPrecision": "Neveljavna natančnost.",

@@ -28,6 +28,22 @@ export interface ClaimsContainer extends Claims {
   GetID(): string
 }
 
+// stableStringify renders a value with object keys in a fixed order, so two equal values always
+// produce the same string however their properties happen to be ordered (which JSON.stringify alone
+// does not promise). Undefined values are left out, like they are in JSON.
+function stableStringify(value: unknown): string {
+  if (value === null || typeof value !== "object") {
+    return JSON.stringify(value) ?? "null"
+  }
+  if (Array.isArray(value)) {
+    return `[${value.map(stableStringify).join(",")}]`
+  }
+  const entries = Object.entries(value as Record<string, unknown>)
+    .filter(([, v]) => v !== undefined)
+    .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
+  return `{${entries.map(([key, v]) => `${JSON.stringify(key)}:${stableStringify(v)}`).join(",")}}`
+}
+
 // CoreClaim contains fields common to all claim types.
 class CoreClaim implements ClaimsContainer {
   id!: string
@@ -40,6 +56,37 @@ class CoreClaim implements ClaimsContainer {
 
   GetConfidence(): Confidence {
     return this.confidence
+  }
+
+  // EqualityKey returns what the claim says, as a string two claims share exactly when they say the
+  // same thing: their type (which a claim's own fields do not carry - in a document it is the claim
+  // list a claim is in - and without which a has, a none and an unknown claim would all say the
+  // same) and their values. The claim's id and its sub-claims are part of it only when asked for:
+  // two claims saying the same thing are still two claims, so equality leaves the ids out, while a
+  // signature which has to tell them apart asks for them. The sub-claims are keyed the same way
+  // (identities and all, as asked) and sorted, so the order they are stored in does not decide the
+  // answer. In sync with Claim.EqualityKey in document/claims.go.
+  EqualityKey(withID: boolean, withSub: boolean): string {
+    // Reading the fields off the claim itself keeps this in step with the claim types: a type
+    // gaining a field gains it here, without a per-type key of its own. The sub-claims are keyed
+    // separately below, so they are never part of the claim's own value.
+    const value: Record<string, unknown> = {}
+    for (const [key, v] of Object.entries(this as unknown as Record<string, unknown>)) {
+      if (key === "sub" || (key === "id" && !withID)) {
+        continue
+      }
+      value[key] = v
+    }
+    const own = `${claimTypeName(this as unknown as Claim)}:${stableStringify(value)}`
+    if (!withSub) {
+      return own
+    }
+    const subKeys = this.AllClaims().map((claim) => claim.EqualityKey(withID, true))
+    subKeys.sort()
+    // Each sub-claim's key is preceded by the separator, so a claim carrying none says the same thing
+    // whether or not they are asked for. Keys still cannot collide: what a claim says is one JSON
+    // object, so a key with sub-claims (object, separator, object, ...) never reads as one without.
+    return own + subKeys.map((key) => `|${key}`).join("")
   }
 
   Get(propID: string): Claim[] {

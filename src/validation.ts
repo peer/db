@@ -80,6 +80,7 @@ export function pickErrorMessage(errors: ValidationError[], t: (key: string) => 
   }
   const codeMap: Record<string, string> = {
     required: t("common.validation.required"),
+    duplicate: t("common.validation.duplicate"),
     invalid: t("common.validation.invalid"),
     requiredPrecision: t("common.validation.requiredPrecision"),
     invalidPrecision: t("common.validation.invalidPrecision"),

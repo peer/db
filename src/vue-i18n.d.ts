@@ -93,6 +93,7 @@ declare module "vue-i18n" {
       }
       validation: {
         required: string
+        duplicate: string
         requiredPrecision: string
         invalid: string
         invalidPrecision: string

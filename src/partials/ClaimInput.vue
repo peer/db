@@ -20,9 +20,10 @@ import type { DeepReadonly, ShallowUnwrapRef } from "vue"
 
 import type { Claim, ClaimTypes } from "@/document"
 import type { FieldData, FieldEntryValue } from "@/fields"
-import type { FieldsFormFlush, InputColumn, SaveChangeResult, SaveChangeSpec, ValidatedInput } from "@/types"
+import type { FieldsFormFlush, InputColumn, SaveChangeResult, SaveChangeSpec, ValidatedInput, ValidationError } from "@/types"
 
 import { computed, inject, nextTick, onBeforeUnmount, onMounted, ref, shallowRef, toRaw, useId, useTemplateRef, watch } from "vue"
+import { useI18n } from "vue-i18n"
 
 import CheckBox from "@/components/CheckBox.vue"
 import { VT_HAS, VT_NONE, VT_UNKNOWN } from "@/core"
@@ -47,13 +48,18 @@ import {
 } from "@/fields"
 import ClaimCardinality from "@/partials/ClaimCardinality.vue"
 import FieldsFormRow from "@/partials/FieldsFormRow.vue"
-import { allErrors, useRegisterForValidation, useValidationRegistry } from "@/validation"
+import { allErrors, pickErrorMessage, useRegisterForValidation, useValidationRegistry } from "@/validation"
 
 const props = withDefaults(
   defineProps<{
     modelValue: DeepReadonly<Claim> | null
     initialClaim: DeepReadonly<Claim> | null
     field: DeepReadonly<FieldData>
+    // Errors the enclosing cardinality found for this slot by looking at more than the slot holds.
+    // They are shown by the value input, and by the slot itself for a presence-only slot, which has
+    // no value input to show them (with or without a checkbox: a HAS slot with sub-fields has
+    // neither).
+    errors?: ValidationError[]
     // parentClaimId is a callback that returns the parent's claim id
     // (creating it lazily if the parent is a HAS slot whose claim has
     // not been committed yet). Undefined for top-level claims.
@@ -78,6 +84,7 @@ const props = withDefaults(
     hideLabels?: boolean
   }>(),
   {
+    errors: undefined,
     parentClaimId: undefined,
     invalid: false,
     required: false,
@@ -964,6 +971,18 @@ function subFieldLabelId(subField: DeepReadonly<FieldData>): string {
 // sub-field is non-simple (repeats or has its own sub-fields), else gap-4.
 const subFieldGapClass = computed<string>(() => (props.field.subFields.some((subField) => !isSimpleField(subField)) ? "gap-y-8" : "gap-y-4"))
 
+const { t } = useI18n({ useScope: "global" })
+
+// The message for the errors handed to the slot, shown by a presence-only slot itself (the value
+// input shows them for every other slot, see InputField).
+const errorMessage = computed<string | null>(() => pickErrorMessage(props.errors ?? [], t))
+
+// A presence-only slot marks itself invalid while it holds errors of its own, so that the rails
+// around it (and every rail above them, up to the field) find it the way they find an invalid
+// input: they look for the attribute anywhere below them, and a slot's own error would otherwise
+// stop at the slot. The value input carries the attribute for every other slot.
+const invalidSlot = computed<true | undefined>(() => (isPresenceOnly.value && (props.errors?.length ?? 0) > 0 ? true : undefined))
+
 defineExpose({
   ...validatedInput,
   // Override the sync wrapper with the actual async function so direct
@@ -975,7 +994,7 @@ defineExpose({
 </script>
 
 <template>
-  <div ref="rootRef" class="flex min-w-0 grow flex-col gap-y-4" @focusout="onSlotFocusOut">
+  <div ref="rootRef" class="flex min-w-0 grow flex-col gap-y-4" :aria-invalid="invalidSlot" @focusout="onSlotFocusOut">
     <!--
       Value input. Skipped for presence-only types (HAS / NONE / UNKNOWN);
       for those, see the checkbox / sub-form blocks below.
@@ -1000,6 +1019,7 @@ defineExpose({
         :invalid="invalid"
         :readonly="slotReadonly"
         :revert="revertEntryCallback"
+        :errors="errors"
         :label-id="labelId"
         :hide-labels="hideLabels"
         @missing-change="onMissingChange"
@@ -1011,8 +1031,20 @@ defineExpose({
       Presence-toggle checkbox for NONE, UNKNOWN, and HAS-without-sub-fields.
       HAS *with* sub-fields skips the checkbox entirely and relies on the
       sub-form to drive presence (lazy create via ensureClaimId).
+
+      The message and the checkbox are grouped so the message sits right under it, the way the
+      value input shows its own message, instead of being pushed away by the slot's gap.
     -->
-    <CheckBox v-if="showCheckbox" :id="checkboxId" :model-value="currentClaim !== null" :disabled="slotReadonly" @update:model-value="onCheckboxChange" />
+    <div v-if="showCheckbox" class="flex flex-col">
+      <CheckBox
+        :id="checkboxId"
+        :model-value="currentClaim !== null"
+        :disabled="slotReadonly"
+        :invalid="(errors?.length ?? 0) > 0"
+        @update:model-value="onCheckboxChange"
+      />
+      <p v-if="errorMessage" class="mt-1 text-sm text-error-600">{{ errorMessage }}</p>
+    </div>
 
     <!--
       Sub-fields: one ClaimCardinality per sub-field, each with its property
@@ -1021,6 +1053,11 @@ defineExpose({
       that don't have a committed claim yet (the parent must exist before a
       sub-claim can sit under it). For HAS the sub-form is always shown;
       ensureClaimId lazily creates the parent on the first sub add.
+
+      A slot whose presence comes from the sub-form has no checkbox to show the message it was
+      handed, so the sub-form carries it, as its last member: the message is about the whole entry
+      rather than about any one sub-field, so it stands apart from the last one by the same gap
+      that separates the sub-fields.
     -->
     <div v-if="showSubFields" class="flex flex-col" :class="subFieldGapClass">
       <!--
@@ -1041,6 +1078,7 @@ defineExpose({
         :label-id="subFieldLabelId(subField)"
         :parent-active="subFieldsActive"
       />
+      <p v-if="isPresenceOnly && !showCheckbox && errorMessage" class="text-sm text-error-600">{{ errorMessage }}</p>
     </div>
   </div>
 </template>

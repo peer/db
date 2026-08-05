@@ -233,6 +233,8 @@ type Field struct {
 	Default         *Ref                  `cardinality:"0..1" json:"default,omitempty"         property:"FIELD_DEFAULT"         values:"core.peerdb.org,INSTANCE_OF=core.peerdb.org,VALUE_TYPE"`
 	Instruction     []RawHTMLWithLanguage `cardinality:"0.."  json:"instruction,omitempty"     property:"FIELD_INSTRUCTION"`
 	InputComponent  *ComponentWithProps   `cardinality:"0..1" json:"inputComponent,omitempty"  property:"FIELD_INPUT_COMPONENT"`
+	DuplicateTop    bool                  `cardinality:"0..1" json:"duplicateTop,omitempty"    property:"FIELD_DUPLICATE_TOP"`
+	DuplicateAllow  bool                  `cardinality:"0..1" json:"duplicateAllow,omitempty"  property:"FIELD_DUPLICATE_ALLOW"`
 }
 
 // ComponentWithProps represents a frontend component with the props it is rendered with. The value

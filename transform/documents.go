@@ -340,6 +340,9 @@ const (
 	typeRawHTML = "rawhtml"
 	typeNone    = "none"
 	typeUnknown = "unknown"
+
+	duplicateTop   = "top"
+	duplicateAllow = "allow"
 )
 
 // Documents transforms structs into PeerDB document.D documents.

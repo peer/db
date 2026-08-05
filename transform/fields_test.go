@@ -1499,3 +1499,49 @@ func TestFieldsInputComponent(t *testing.T) {
 	require.Error(t, errE)
 	assert.EqualError(t, errE, "invalid inputComponentProps tag: invalid URL escape \"%zz\"")
 }
+
+type FieldsWithDuplicate struct {
+	Name  []string `cardinality:"0.."                   json:"name"  property:"NAME"`
+	Tags  []string `cardinality:"0.." duplicate:"top"   json:"tags"  property:"DESCRIPTION"`
+	Notes []string `cardinality:"0.." duplicate:"allow" json:"notes" property:"NOTES"`
+}
+
+type DuplicateValueStruct struct {
+	Value string `duplicate:"top" json:"value" value:""`
+
+	Name string `json:"name" property:"NAME"`
+}
+
+type FieldsWithDuplicateOnValue struct {
+	Data DuplicateValueStruct `cardinality:"1" json:"data" property:"DATA"`
+}
+
+type FieldsWithInvalidDuplicate struct {
+	Name []string `cardinality:"0.." duplicate:"sometimes" json:"name" property:"NAME"`
+}
+
+func TestFieldsDuplicate(t *testing.T) {
+	t.Parallel()
+
+	mnemonics := fieldsTestMnemonics()
+
+	result, errE := transform.Fields[FieldsWithDuplicate](mnemonics, nil, nil)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	require.Len(t, result.Field, 3)
+	// Without the tag the whole claim is compared, which neither setting says.
+	assert.False(t, result.Field[0].DuplicateTop)
+	assert.False(t, result.Field[0].DuplicateAllow)
+	assert.True(t, result.Field[1].DuplicateTop)
+	assert.False(t, result.Field[1].DuplicateAllow)
+	assert.False(t, result.Field[2].DuplicateTop)
+	assert.True(t, result.Field[2].DuplicateAllow)
+
+	// The tag is about the field's claims, so it does not belong on the value of one of them.
+	_, errE = transform.Fields[FieldsWithDuplicateOnValue](mnemonics, nil, nil)
+	require.Error(t, errE)
+	assert.EqualError(t, errE, "duplicate tag cannot be used with value tag")
+
+	_, errE = transform.Fields[FieldsWithInvalidDuplicate](mnemonics, nil, nil)
+	require.Error(t, errE)
+	assert.EqualError(t, errE, "duplicate tag must be \"top\" or \"allow\"")
+}

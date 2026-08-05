@@ -1,12 +1,17 @@
 import { Identifier } from "@tozd/identifier"
 import { assert, describe, test } from "vitest"
 
+import type { DeepReadonly } from "vue"
+
+import type { Claim } from "@/document"
 import type { FieldData } from "@/fields"
 
 import {
   CARDINALITY,
   COMPONENT_PROPS,
   FIELD,
+  FIELD_DUPLICATE_ALLOW,
+  FIELD_DUPLICATE_TOP,
   FIELD_INPUT_COMPONENT,
   FIELDS,
   HAS_PROPERTY,
@@ -28,6 +33,7 @@ import {
   cardinalityViolations,
   claimsEquivalent,
   computeCardinalityFills,
+  duplicateClaimIds,
   extractFieldsFromClaims,
   fieldIsRequired,
   fieldKey,
@@ -92,6 +98,7 @@ function rawField(opts: {
   to?: string | null
   subFields?: object[]
   inputComponent?: object
+  duplicate?: "top" | "allow"
 }): object {
   const sub: Record<string, object[]> = {
     ref: [rawRef(HAS_PROPERTY, opts.propertyId), rawRef(HAS_VALUE_TYPE, opts.valueType)],
@@ -103,6 +110,9 @@ function rawField(opts: {
   }
   if (opts.inputComponent) {
     sub.string = [opts.inputComponent]
+  }
+  if (opts.duplicate) {
+    sub.has = [...(sub.has ?? []), { id: id(), confidence: HighConfidence, prop: { id: opts.duplicate === "top" ? FIELD_DUPLICATE_TOP : FIELD_DUPLICATE_ALLOW } }]
   }
   return { id: id(), confidence: HighConfidence, prop: { id: FIELD }, sub }
 }
@@ -372,6 +382,22 @@ describe("extractFieldsFromClaims", () => {
     assert.notEqual(result, null)
     assert.equal(result!.fields[0].inputComponent, "AppInputCode")
     assert.equal(result!.fields[0].inputComponentProps, undefined)
+  })
+
+  test("extracts how the field compares its claims for duplicates", async () => {
+    const ct = await makeClaimsWithFields(
+      [],
+      [
+        rawField({ propertyId: propA, valueType: valueTypeString, order: "1", duplicate: "top" }),
+        rawField({ propertyId: propB, valueType: valueTypeString, order: "2", duplicate: "allow" }),
+        rawField({ propertyId: propC, valueType: valueTypeString, order: "3" }),
+      ],
+    )
+    const result = extractFieldsFromClaims(ct)
+    assert.notEqual(result, null)
+    assert.equal(result!.fields[0].duplicate, "top")
+    assert.equal(result!.fields[1].duplicate, "allow")
+    assert.equal(result!.fields[2].duplicate, undefined)
   })
 
   test("extracts both sections and top-level fields", async () => {
@@ -868,5 +894,59 @@ describe("claimsEquivalent", () => {
     assert.equal(claimsEquivalent(withSubs([subA, subB]), withSubs([subA, { ...subB, value: "CHANGED" }])), false)
     // A sub-claim added -> not equivalent.
     assert.equal(claimsEquivalent(withSubs([subA, subB]), withSubs([subA, subB, { id: id(), confidence: HighConfidence, prop: { id: subProp }, value: "z" }])), false)
+  })
+})
+
+describe("duplicateClaimIds", () => {
+  const prop = Identifier.new().toString()
+  const subProp = Identifier.new().toString()
+
+  // A string claim with the given value, optionally carrying one identifier sub-claim.
+  function claim(value: string, subValue?: string): DeepReadonly<Claim> {
+    const raw: Record<string, unknown> = { id: id(), confidence: HighConfidence, prop: { id: prop }, string: value }
+    if (subValue !== undefined) {
+      raw.sub = { id: [{ id: id(), confidence: HighConfidence, prop: { id: subProp }, value: subValue }] }
+    }
+    return new ClaimTypes({ string: [raw] }).string![0]
+  }
+
+  const field = (duplicate?: "top" | "allow"): FieldData => ({ ...makeField(prop, VT_STRING), duplicate })
+
+  test("flags every claim of a repeated value and leaves the others alone", () => {
+    const first = claim("same")
+    const second = claim("same")
+    const other = claim("other")
+    assert.deepEqual([...duplicateClaimIds([first, second, other], field())], [first.id, second.id])
+  })
+
+  test("claims differing in a sub-claim are not duplicates by default", () => {
+    const claims = [claim("same", "one"), claim("same", "two")]
+    assert.deepEqual([...duplicateClaimIds(claims, field())], [])
+  })
+
+  test("claims saying the same thing including their sub-claims are duplicates", () => {
+    const claims = [claim("same", "one"), claim("same", "one")]
+    assert.deepEqual([...duplicateClaimIds(claims, field())], [claims[0].id, claims[1].id])
+  })
+
+  test("a field comparing top-level values ignores the sub-claims", () => {
+    const claims = [claim("same", "one"), claim("same", "two")]
+    assert.deepEqual([...duplicateClaimIds(claims, field("top"))], [claims[0].id, claims[1].id])
+  })
+
+  test("a field allowing duplicates has none", () => {
+    const claims = [claim("same", "one"), claim("same", "one")]
+    assert.deepEqual([...duplicateClaimIds(claims, field("allow"))], [])
+  })
+
+  test("a value repeated more than once flags every claim of it", () => {
+    const claims = [claim("same"), claim("same"), claim("same")]
+    assert.deepEqual([...duplicateClaimIds(claims, field())], [claims[0].id, claims[1].id, claims[2].id])
+  })
+
+  test("claims of different types saying the same fields are not duplicates", () => {
+    const none = new ClaimTypes({ none: [{ id: id(), confidence: HighConfidence, prop: { id: prop } }] }).none![0]
+    const unknown = new ClaimTypes({ unknown: [{ id: id(), confidence: HighConfidence, prop: { id: prop } }] }).unknown![0]
+    assert.deepEqual([...duplicateClaimIds([none, unknown], field())], [])
   })
 })

@@ -3,8 +3,8 @@ package peerdb_test
 import (
 	"context"
 	"io"
-	"reflect"
 	"slices"
+	"strings"
 	"testing"
 	"time"
 
@@ -488,8 +488,8 @@ func TestCheckCreateClassPermission(t *testing.T) {
 	assert.False(t, peerdb.TestingCheckCreateClassPermission(context.Background(), site, application, nil))
 }
 
-// TestTopLevelClaimsByID verifies serialization of a document's top-level claims by their IDs:
-// sub-claims are serialized within their top-level claim and are not entries themselves.
+// TestTopLevelClaimsByID verifies how a document's top-level claims are keyed by their IDs:
+// sub-claims are part of their top-level claim's key and are not entries themselves.
 func TestTopLevelClaimsByID(t *testing.T) {
 	t.Parallel()
 
@@ -503,9 +503,10 @@ func TestTopLevelClaimsByID(t *testing.T) {
 	require.Len(t, claims, 2)
 	assert.Equal(t, prop, claims[topID].Prop)
 	assert.Equal(t, internalCore.HasPermissionPropID, claims[permID].Prop)
-	assert.Equal(t, reflect.TypeFor[*document.ReferenceClaim](), claims[permID].Type)
-	assert.Contains(t, string(claims[permID].Data), internalCore.PermissionUserPropID.String())
-	assert.Contains(t, string(claims[permID].Data), "collab")
+	// The key names the claim's type and carries its sub-claims.
+	assert.True(t, strings.HasPrefix(claims[permID].Key, "ref:"), claims[permID].Key)
+	assert.Contains(t, claims[permID].Key, internalCore.PermissionUserPropID.String())
+	assert.Contains(t, claims[permID].Key, "collab")
 
 	claims, errE = peerdb.TestingTopLevelClaimsByID(docWithClaims(t, identifier.New()))
 	require.NoError(t, errE, "% -+#.1v", errE)

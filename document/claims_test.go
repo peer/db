@@ -1583,3 +1583,60 @@ func TestRemoveByIDSubClaim(t *testing.T) {
 	sub := doc.GetByID(subID)
 	assert.Nil(t, sub)
 }
+
+func TestClaimEqualityKey(t *testing.T) {
+	t.Parallel()
+
+	prop := document.Reference{ID: identifier.New()}
+	sub := func(value string) *document.ClaimTypes {
+		return &document.ClaimTypes{
+			Identifier: document.IdentifierClaims{{
+				CoreClaim: document.CoreClaim{ID: identifier.New(), Confidence: document.HighConfidence},
+				Prop:      prop,
+				Value:     value,
+			}},
+		}
+	}
+	claim := func(value string, subClaims *document.ClaimTypes) *document.StringClaim {
+		return &document.StringClaim{
+			CoreClaim: document.CoreClaim{ID: identifier.New(), Confidence: document.HighConfidence, Sub: subClaims},
+			Prop:      prop,
+			String:    value,
+		}
+	}
+
+	// Two claims saying the same thing share the key, whatever their IDs are.
+	first, errE := claim("same", nil).EqualityKey(false, true)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	second, errE := claim("same", nil).EqualityKey(false, true)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, first, second)
+
+	other, errE := claim("other", nil).EqualityKey(false, true)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.NotEqual(t, first, other)
+
+	// Asked with the identities, the same two claims are told apart.
+	firstWithID, errE := claim("same", nil).EqualityKey(true, true)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	secondWithID, errE := claim("same", nil).EqualityKey(true, true)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.NotEqual(t, firstWithID, secondWithID)
+
+	// A sub-claim is part of the key only when asked for.
+	withSub, errE := claim("same", sub("one")).EqualityKey(false, true)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.NotEqual(t, first, withSub)
+
+	// Asked without them, a claim carrying sub-claims says the same as one without any.
+	bare, errE := claim("same", nil).EqualityKey(false, false)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	withoutSub, errE := claim("same", sub("one")).EqualityKey(false, false)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, bare, withoutSub)
+
+	// Sub-claims saying different things make the claims differ.
+	otherSub, errE := claim("same", sub("two")).EqualityKey(false, true)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.NotEqual(t, withSub, otherSub)
+}

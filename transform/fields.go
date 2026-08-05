@@ -258,6 +258,11 @@ func (fc *fieldsCollector) processLevel(
 				errors.Details(errE)["field"] = strings.Join(newFieldPath, ".")
 				return errE
 			}
+			if field.Tag.Get("duplicate") != "" {
+				errE := errors.New("duplicate tag cannot be used with value tag")
+				errors.Details(errE)["field"] = strings.Join(newFieldPath, ".")
+				return errE
+			}
 			continue
 		}
 
@@ -385,6 +390,11 @@ func (fc *fieldsCollector) processSubFields(
 			}
 			if field.Tag.Get("context") != "" {
 				errE := errors.New("context tag cannot be used with value tag")
+				errors.Details(errE)["field"] = strings.Join(newFieldPath, ".")
+				return nil, errE
+			}
+			if field.Tag.Get("duplicate") != "" {
+				errE := errors.New("duplicate tag cannot be used with value tag")
 				errors.Details(errE)["field"] = strings.Join(newFieldPath, ".")
 				return nil, errE
 			}
@@ -566,6 +576,13 @@ func (fc *fieldsCollector) makeField(
 		return internalCore.Field{}, errE
 	}
 
+	// Parse duplicate tag, which says how the edit form compares the field's claims for duplicates.
+	duplicateTop, duplicateAllow, errE := parseDuplicateTag(structField)
+	if errE != nil {
+		errors.Details(errE)["field"] = strings.Join(fieldPath, ".")
+		return internalCore.Field{}, errE
+	}
+
 	return internalCore.Field{
 		Property:        propertyRef,
 		ValueType:       valueTypeRef,
@@ -579,6 +596,8 @@ func (fc *fieldsCollector) makeField(
 		Default:         defaultRef,
 		Instruction:     fc.fieldInstruction(fieldPath),
 		InputComponent:  inputComponent,
+		DuplicateTop:    duplicateTop,
+		DuplicateAllow:  duplicateAllow,
 	}, nil
 }
 
@@ -861,6 +880,25 @@ func parseValuesTag(field reflect.StructField) ([]string, errors.E) {
 	}
 
 	return values, nil
+}
+
+// parseDuplicateTag reads the field's "duplicate" tag, which says how the edit form compares the
+// field's claims for duplicates: "top" compares each claim's own value alone, so entries repeating a
+// value are duplicates however their sub-claims differ, and "allow" keeps duplicates and compares
+// nothing. Without the tag the whole claim, sub-claims included, is compared.
+func parseDuplicateTag(field reflect.StructField) (bool, bool, errors.E) {
+	switch tag := strings.TrimSpace(field.Tag.Get("duplicate")); tag {
+	case "":
+		return false, false, nil
+	case duplicateTop:
+		return true, false, nil
+	case duplicateAllow:
+		return false, true, nil
+	default:
+		errE := errors.New("duplicate tag must be \"top\" or \"allow\"")
+		errors.Details(errE)["duplicate"] = tag
+		return false, false, errE
+	}
 }
 
 // parseContextTag parses the "context" struct tag into a slice of opaque context

@@ -3,14 +3,14 @@ import type { DeepReadonly, InjectionKey } from "vue"
 import type { Claim, ClaimTypeName, TimePrecision } from "@/document"
 import type { FieldsFormFlush, SaveChangeResult, SaveChangeSpec } from "@/types"
 
-import { equals } from "@/utils"
-
 import {
   CARDINALITY,
   COMPONENT_PROPS,
   FIELD,
   FIELD_CONTEXT,
   FIELD_DEFAULT,
+  FIELD_DUPLICATE_ALLOW,
+  FIELD_DUPLICATE_TOP,
   FIELD_INPUT_COMPONENT,
   FIELD_INSTRUCTION,
   FIELD_VALUES,
@@ -103,6 +103,39 @@ export interface FieldData {
   // rendered with, parsed from the claim's query string. Values are strings, so a component
   // reading them as anything else has to convert them itself.
   inputComponentProps?: Readonly<Record<string, string>>
+  // How the edit form compares the field's claims for duplicates (see duplicateClaimIds), from the
+  // FIELD_DUPLICATE_TOP and FIELD_DUPLICATE_ALLOW claims: "top" compares each claim's own value
+  // alone, "allow" compares nothing because duplicates are wanted. Unset compares the whole claim,
+  // sub-claims included.
+  duplicate?: "top" | "allow"
+}
+
+// duplicateClaimIds returns the ids of every claim among a field's claims which says the same thing
+// as another one of them: two claims are the same when they say the same thing (see
+// Claim.EqualityKey), which never involves the claim ids (those are always distinct) and, unless the
+// field compares top-level values alone, includes their sub-claims in any order. A field allowing
+// duplicates has none by definition.
+//
+// Every claim of a repeated value is returned, the first one included: they are duplicates of each
+// other, and which of them the user meant to keep is not for the form to guess.
+export function duplicateClaimIds(claims: DeepReadonly<readonly Claim[]>, field: DeepReadonly<FieldData>): Set<string> {
+  const duplicates = new Set<string>()
+  if (field.duplicate === "allow") {
+    return duplicates
+  }
+  const byKey = new Map<string, string[]>()
+  for (const claim of claims) {
+    const key = claim.EqualityKey(false, field.duplicate !== "top")
+    byKey.set(key, [...(byKey.get(key) ?? []), claim.id])
+  }
+  for (const ids of byKey.values()) {
+    if (ids.length > 1) {
+      for (const id of ids) {
+        duplicates.add(id)
+      }
+    }
+  }
+  return duplicates
 }
 
 // parseComponentProps parses a COMPONENT_PROPS claim ("key=value&key=value") into the props
@@ -279,6 +312,10 @@ function extractFieldData(claimsTypes: DeepReadonly<ClaimTypes> | undefined, par
 
   const contextClaims = getClaimsOfTypeWithConfidence(claimsTypes, "string", FIELD_CONTEXT)
 
+  // Allowing duplicates wins over comparing them, so a field carrying both settings keeps them.
+  const duplicateAllow = getBestClaimOfType(claimsTypes, "has", FIELD_DUPLICATE_ALLOW)
+  const duplicateTop = getBestClaimOfType(claimsTypes, "has", FIELD_DUPLICATE_TOP)
+
   // The props sit under the component claim, so they cannot be given without one.
   const inputComponentClaim = getBestClaimOfType(claimsTypes, "string", FIELD_INPUT_COMPONENT)
   const inputComponentPropsClaim = inputComponentClaim ? getBestClaimOfType(inputComponentClaim.sub, "string", COMPONENT_PROPS) : undefined
@@ -305,6 +342,7 @@ function extractFieldData(claimsTypes: DeepReadonly<ClaimTypes> | undefined, par
     context: contextClaims.length > 0 ? contextClaims.map((claim) => claim.string) : undefined,
     inputComponent: inputComponentClaim?.string || undefined,
     inputComponentProps: parseComponentProps(inputComponentPropsClaim?.string),
+    duplicate: duplicateAllow ? "allow" : duplicateTop ? "top" : undefined,
   }
 }
 
@@ -922,14 +960,11 @@ export function cardinalityViolations(
   return violations
 }
 
-// A claim as claimsEquivalent inspects it: an id, its own value fields, and optional nested
-// sub-claims. Kept structural (not the Claim class) so raw JSON claims and reactive proxies both fit.
-type ClaimLike = { id: string; sub?: DeepReadonly<ClaimTypes> | null }
-
 // claimsEquivalent reports whether two claim sets hold the same claims. It mirrors the backend's
 // fillChangedProperties / claimValueStates: every claim (top-level and nested) is flattened into an
-// id-keyed map, and two claims are equal when their own value fields match with their sub-claims
-// excluded (the sub-claims are in the flat map in their own right and compared there). This makes
+// id-keyed map, and two claims are equal when what they say matches with their sub-claims excluded
+// (the sub-claims are in the flat map in their own right and compared there, see Claim.EqualityKey).
+// This makes
 // the comparison order-independent at every level - a claim's position in its type array, and a
 // nested claim's position under its parent, do not matter - so a Revert that restores sub-claims in
 // a different array order still compares equal. Drives net-change detection: an edit session whose
@@ -946,25 +981,25 @@ type ClaimLike = { id: string; sub?: DeepReadonly<ClaimTypes> | null }
 // own value changes no property's indexed values; reference/structure concerns are handled by
 // separate mechanisms there, e.g. collectChangedReferenceTargets).
 export function claimsEquivalent(a: DeepReadonly<ClaimTypes> | undefined | null, b: DeepReadonly<ClaimTypes> | undefined | null): boolean {
-  const flatten = (claims: DeepReadonly<ClaimTypes> | undefined | null, out: Map<string, ClaimLike>): void => {
+  const flatten = (claims: DeepReadonly<ClaimTypes> | undefined | null, out: Map<string, DeepReadonly<Claim>>): void => {
     if (!claims) {
       return
     }
     // We iterate the (possibly reactive) claims directly rather than through toRaw: a reactive
-    // caller (canSave) must track claim reads so it re-runs when the doc changes, and the deep
-    // equals below compares reactive proxies correctly by reading their values.
+    // caller (canSave) must track claim reads so it re-runs when the doc changes, and the keys
+    // below are built by reading the reactive proxies' values.
     for (const list of Object.values(claims)) {
       if (!Array.isArray(list)) {
         continue
       }
-      for (const claim of list as ClaimLike[]) {
+      for (const claim of list as DeepReadonly<Claim>[]) {
         out.set(claim.id, claim)
         flatten(claim.sub ?? null, out)
       }
     }
   }
-  const flatA = new Map<string, ClaimLike>()
-  const flatB = new Map<string, ClaimLike>()
+  const flatA = new Map<string, DeepReadonly<Claim>>()
+  const flatB = new Map<string, DeepReadonly<Claim>>()
   flatten(a, flatA)
   flatten(b, flatB)
   if (flatA.size !== flatB.size) {
@@ -972,9 +1007,9 @@ export function claimsEquivalent(a: DeepReadonly<ClaimTypes> | undefined | null,
   }
   for (const [id, claim] of flatA) {
     const other = flatB.get(id)
-    // Compare each claim's own value with sub excluded (spreading normalizes sub to undefined on
-    // both sides so equals ignores it), like the backend's claimValueKey marshaling with sub cleared.
-    if (other === undefined || !equals({ ...claim, sub: undefined }, { ...other, sub: undefined })) {
+    // Each claim is compared by what it says with its sub-claims left out (they are in the flat map
+    // in their own right), which is what the claim's key without them is.
+    if (other === undefined || claim.EqualityKey(false, false) !== other.EqualityKey(false, false)) {
       return false
     }
   }

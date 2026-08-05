@@ -27,7 +27,7 @@ component for those.
 import type { Component, DeepReadonly, WritableComputedRef } from "vue"
 
 import type { FieldData, FieldEntryValue } from "@/fields"
-import type { InputColumn, ValidatedInput } from "@/types"
+import type { InputColumn, ValidatedInput, ValidationError } from "@/types"
 
 import { computed, shallowRef, watch } from "vue"
 import { useI18n } from "vue-i18n"
@@ -59,6 +59,9 @@ const props = defineProps<{
   // Renders every inner input read-only (grayed and non-interactive, but selectable).
   // Set by ClaimInput while the slot's changes are queued or in flight.
   readonly?: boolean
+  // Errors the enclosing form found for this row without the inputs knowing,
+  // shown by every InputField the row renders (see InputField).
+  errors?: ValidationError[]
   // Per-bound revert for the interval InputFields, bound to their side via boundRevert,
   // so each bound's changed badge reverts only its own bound and posts the reverting
   // changes right away (see the revert prop on InputField). Non-interval inputs render
@@ -318,7 +321,16 @@ function onCompleteInput() {
     prop of its own come first; every other type shares the last branch.
   -->
   <!-- amount -->
-  <InputField v-if="claimType === 'amount'" :required="required" :invalid="invalid" :labelledby="labelId" hide-badge hide-hints :hide-labels="hideLabels">
+  <InputField
+    v-if="claimType === 'amount'"
+    :required="required"
+    :invalid="invalid"
+    :errors="errors"
+    :labelledby="labelId"
+    hide-badge
+    hide-hints
+    :hide-labels="hideLabels"
+  >
     <template #input="inputProps">
       <component
         :is="input"
@@ -344,6 +356,7 @@ function onCompleteInput() {
       :required="required"
       hide-required-badge
       :invalid="invalid"
+      :errors="errors"
       :labelledby="labelId"
       :label="t('partials.FieldsForm.from')"
       :revert="boundRevert('from')"
@@ -377,6 +390,7 @@ function onCompleteInput() {
       :required="required"
       hide-required-badge
       :invalid="invalid"
+      :errors="errors"
       :labelledby="labelId"
       :label="t('partials.FieldsForm.to')"
       :revert="boundRevert('to')"
@@ -409,7 +423,16 @@ function onCompleteInput() {
   </div>
 
   <!-- time -->
-  <InputField v-else-if="claimType === 'time'" :required="required" :invalid="invalid" :labelledby="labelId" hide-badge hide-hints :hide-labels="hideLabels">
+  <InputField
+    v-else-if="claimType === 'time'"
+    :required="required"
+    :invalid="invalid"
+    :errors="errors"
+    :labelledby="labelId"
+    hide-badge
+    hide-hints
+    :hide-labels="hideLabels"
+  >
     <template #input="inputProps">
       <component
         :is="input"
@@ -430,6 +453,7 @@ function onCompleteInput() {
       :required="required"
       hide-required-badge
       :invalid="invalid"
+      :errors="errors"
       :labelledby="labelId"
       :label="t('partials.FieldsForm.from')"
       :revert="boundRevert('from')"
@@ -463,6 +487,7 @@ function onCompleteInput() {
       :required="required"
       hide-required-badge
       :invalid="invalid"
+      :errors="errors"
       :labelledby="labelId"
       :label="t('partials.FieldsForm.to')"
       :revert="boundRevert('to')"
@@ -494,7 +519,7 @@ function onCompleteInput() {
     </InputField>
   </div>
   <!-- ref: the only input given the field's candidate filter. -->
-  <InputField v-else-if="claimType === 'ref'" :required="required" :invalid="invalid" :labelledby="labelId" hide-badge hide-hints>
+  <InputField v-else-if="claimType === 'ref'" :required="required" :invalid="invalid" :errors="errors" :labelledby="labelId" hide-badge hide-hints>
     <template #input="inputProps">
       <!-- TODO: Pass "self" prop as the current document's ID. -->
       <component
@@ -513,7 +538,7 @@ function onCompleteInput() {
     Every other value type: one value, edited by one input inside one InputField. Which input that is
     comes from the claim type (or from the field itself, see the field input registry).
   -->
-  <InputField v-else :required="required" :invalid="invalid" :labelledby="labelId" hide-badge hide-hints>
+  <InputField v-else :required="required" :invalid="invalid" :errors="errors" :labelledby="labelId" hide-badge hide-hints>
     <template #input="inputProps">
       <component
         :is="input"
