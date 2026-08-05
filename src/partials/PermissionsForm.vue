@@ -52,7 +52,7 @@ import type { Identity, ValidationError } from "@/types"
 import { computed, inject, ref } from "vue"
 import { useI18n } from "vue-i18n"
 
-import { hasDocumentPermission, hasUserDocumentPermission, hasUserRoleDocumentPermission, SCOPE_SELF } from "@/auth"
+import { actionsClosure, hasDocumentPermission, hasUserDocumentPermission, hasUserRoleDocumentPermission, SCOPE_SELF } from "@/auth"
 import Button from "@/components/Button.vue"
 import CheckBox from "@/components/CheckBox.vue"
 import WithDocument from "@/components/WithDocument.vue"
@@ -63,7 +63,6 @@ import IdentityLabel from "@/partials/IdentityLabel.vue"
 import InputIdentity from "@/partials/input/InputIdentity.vue"
 import { useBusy } from "@/progress"
 import {
-  permissionActionClosure,
   permissionActionHint,
   permissionActionLabel,
   permissionActionOrder,
@@ -231,7 +230,7 @@ function grantedSet(user: string): Set<string> {
 // already cover it, so that the grant is recorded and can be taken back here.
 function missingActions(identity: Identity, action: string): string[] {
   const granted = grantedSet(identity.subject)
-  return [...permissionActionClosure(action)].filter(
+  return [...actionsClosure([action])].filter(
     (required) => !granted.has(required) && (required === action || !hasUserDocumentPermission(required, { claims: props.claims }, identity.subject, identity.roles)),
   )
 }

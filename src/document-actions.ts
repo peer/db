@@ -11,7 +11,8 @@ import { inject } from "vue"
 export type DocumentActions = {
   // Whether the caller has permission to update, delete, or manage permissions of the document (the
   // ACTION_UPDATE, ACTION_DELETE, and ACTION_UPDATE_PERMISSIONS actions checked against the document, so
-  // document-level permission claims count).
+  // document-level permission claims count). Managing permissions takes the update action as well,
+  // because it is done by changing the document's claims in an edit session.
   canUpdate: Readonly<Ref<boolean>>
   canDelete: Readonly<Ref<boolean>>
   canUpdatePermissions: Readonly<Ref<boolean>>

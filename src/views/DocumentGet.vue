@@ -177,7 +177,9 @@ provide(documentNavigationKey, {
 })
 
 // Whether the caller can change the document's permissions themselves, which decides which of the two
-// buttons the permissions tab offers: editing the permissions, or asking for access.
+// buttons the permissions tab offers: editing the permissions, or asking for access. Holding the
+// permissions action includes holding the update action it requires, so this is also the answer to
+// whether the edit session the button opens will be granted to them.
 const canUpdatePermissions = computed(() => hasDocumentPermission(ACTION_UPDATE_PERMISSIONS, docRef.value))
 
 // Expose the edit action and whether the caller holds the update, delete, and permissions actions on the

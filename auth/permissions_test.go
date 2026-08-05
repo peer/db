@@ -226,7 +226,11 @@ func TestGrantsAllowsDocument(t *testing.T) {
 	assert.False(t, auth.HasDocumentPermission(roleGrants, auth.ActionUpdate, "", nil, doc))
 	assert.False(t, auth.HasDocumentPermission(roleGrants, auth.ActionUpdate, "user1", nil, nil))
 
-	// Even without any role grants the claim arm applies.
+	// Even without any role grants the claim arm applies, as long as it grants what the action requires
+	// as well: here reading comes from the everyone grant above, so without it the update action alone
+	// is not held.
+	assert.False(t, auth.HasDocumentPermission(nil, auth.ActionUpdate, "user1", nil, doc))
+	addPermissionClaim(t, doc, "user1", auth.ActionRead, document.HighConfidence, auth.ScopeSelf)
 	assert.True(t, auth.HasDocumentPermission(nil, auth.ActionUpdate, "user1", nil, doc))
 
 	// Files are covered only by grants whose scopes match files.
@@ -331,7 +335,8 @@ func TestGrantsUnmarshalYAML(t *testing.T) {
 // TestHasDocumentPermission verifies the explicit-identity permission core: role grants (of the
 // listed roles and of the reserved everyone role) are evaluated with their scopes against the document,
 // document-level permission claims count for actions they can grant (e.g. update) and never for the
-// create action, and a claim-scoped grant covers only documents carrying a matching claim.
+// create action, a claim-scoped grant covers only documents carrying a matching claim, and an action is
+// held only together with what it requires.
 func TestHasDocumentPermission(t *testing.T) {
 	t.Parallel()
 
@@ -342,7 +347,11 @@ func TestHasDocumentPermission(t *testing.T) {
 		auth.ActionCreateCode: {internalCore.Namespace + ",INSTANCE_OF=" + class1.String()},
 	})
 	require.NoError(t, errE, "% -+#.1v", errE)
-	grants := map[string]auth.RoleGrants{"creator1": createGrants}
+	// Everyone reads every document, the shape of a site where the update action is the one being
+	// granted: the update action requires reading, so it is held only where reading is.
+	readGrants, errE := auth.ParseRoleGrants(map[string][]string{auth.ActionReadCode: {auth.ScopeDocuments}})
+	require.NoError(t, errE, "% -+#.1v", errE)
+	grants := map[string]auth.RoleGrants{"creator1": createGrants, auth.RoleEveryone: readGrants}
 
 	makeDoc := func(class *identifier.Identifier) *document.D {
 		doc := makePermissionsDoc(t)
@@ -387,9 +396,26 @@ func TestHasDocumentPermission(t *testing.T) {
 	assert.True(t, auth.HasDocumentPermission(grants, auth.ActionUpdate, "user1", []string{"editor1"}, makeDoc(&class1)))
 	assert.False(t, auth.HasDocumentPermission(grants, auth.ActionUpdate, "user1", []string{"editor1"}, makeDoc(&class2)))
 
-	// A grant of the reserved everyone role applies without any listed roles.
-	grants[auth.RoleEveryone] = updateGrants
+	// A grant of the reserved everyone role applies without any listed roles. It grants reading as well,
+	// because the update action is held only together with it.
+	everyoneGrants, errE := auth.ParseRoleGrants(map[string][]string{
+		auth.ActionReadCode:   {auth.ScopeDocuments},
+		auth.ActionUpdateCode: {internalCore.Namespace + ",INSTANCE_OF=" + class1.String()},
+	})
+	require.NoError(t, errE, "% -+#.1v", errE)
+	grants[auth.RoleEveryone] = everyoneGrants
 	assert.True(t, auth.HasDocumentPermission(grants, auth.ActionUpdate, "user2", nil, makeDoc(&class1)))
+
+	// An action is held only together with what it requires: without the read action nothing grants
+	// updating, whichever arm grants the update action itself.
+	noRead := map[string]auth.RoleGrants{"editor1": updateGrants}
+	assert.False(t, auth.HasDocumentPermission(noRead, auth.ActionUpdate, "user1", []string{"editor1"}, makeDoc(&class1)))
+	claimed := makeDoc(&class1)
+	addPermissionClaim(t, claimed, "user1", auth.ActionUpdate, document.HighConfidence, auth.ScopeSelf)
+	assert.False(t, auth.HasDocumentPermission(nil, auth.ActionUpdate, "user1", nil, claimed))
+	// The requirement can come from the other arm: reading through a role grant is enough for an update
+	// action a claim grants.
+	assert.True(t, auth.HasDocumentPermission(map[string]auth.RoleGrants{auth.RoleEveryone: readGrants}, auth.ActionUpdate, "user1", nil, claimed))
 }
 
 // TestHasFilePermission verifies the explicit-identity permission core for files: grants of the listed

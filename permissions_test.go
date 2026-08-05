@@ -99,9 +99,13 @@ func TestCheckChangePermission(t *testing.T) {
 		auth.ActionUpdateCode: {auth.ScopeDocuments},
 	})
 	require.NoError(t, errE, "% -+#.1v", errE)
+	// Everyone reads every document, without which nobody would hold the update action either: it
+	// requires reading.
+	readGrants, errE := auth.ParseRoleGrants(map[string][]string{auth.ActionReadCode: {auth.ScopeDocuments}})
+	require.NoError(t, errE, "% -+#.1v", errE)
 
 	site := &internalSite.Site{}
-	site.Roles = map[string]auth.RoleGrants{"editor": updateGrants}
+	site.Roles = map[string]auth.RoleGrants{"editor": updateGrants, auth.RoleEveryone: readGrants}
 	site.ScopeProperties = map[identifier.Identifier]bool{internalCore.InstanceOfPropID: true}
 
 	// Documents share claim objects, so a claim present in a before and an after document serializes
@@ -118,8 +122,9 @@ func TestCheckChangePermission(t *testing.T) {
 	baseClaims := []document.Claim{instanceClaim, collabUpdate, collabPermissions, permonlyPermissions}
 	baseDoc := makeDoc(baseClaims...)
 
-	// collab holds update and permissions document claims, permonly holds only a permissions claim,
-	// editor holds the update action on all documents through a role, and nobody holds nothing.
+	// collab holds update and permissions document claims, editor holds the update action on all
+	// documents through a role, and nobody holds nothing. permonly holds a permissions claim and nothing
+	// else, which leaves them holding nothing at all: the permissions action requires the update action.
 	ctxCollab := auth.WithSubject(context.Background(), "collab")
 	ctxPermonly := auth.WithSubject(context.Background(), "permonly")
 	ctxEditor := auth.WithRoles(auth.WithSubject(context.Background(), "editor"), []string{"editor"})
@@ -137,16 +142,16 @@ func TestCheckChangePermission(t *testing.T) {
 	errE = peerdb.TestingCheckChangePermission(ctxNobody, site, baseDoc, ordinaryAdded)
 	assert.ErrorIs(t, errE, auth.ErrAccessDenied)
 
-	// A change to permission claims requires the permissions action alone (no update action), and
-	// granting is limited to actions the granter holds: permonly holds (only) the permissions action
-	// and can grant it onwards, while an editor without the permissions action cannot touch
-	// permission claims at all.
+	// A change to permission claims requires the permissions action, and granting is limited to actions
+	// the granter holds: collab holds the permissions action (with the update action it requires) and can
+	// grant it onwards, an editor without the permissions action cannot touch permission claims at all,
+	// and neither can permonly, whose permissions claim grants them nothing without an update action.
 	permissionAdded := makeDoc(append(slices.Clone(baseClaims), permissionClaim(t, identifier.New(), "other", auth.ActionUpdatePermissions))...)
-	errE = peerdb.TestingCheckChangePermission(ctxPermonly, site, baseDoc, permissionAdded)
-	require.NoError(t, errE, "% -+#.1v", errE)
 	errE = peerdb.TestingCheckChangePermission(ctxCollab, site, baseDoc, permissionAdded)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	errE = peerdb.TestingCheckChangePermission(ctxEditor, site, baseDoc, permissionAdded)
+	assert.ErrorIs(t, errE, auth.ErrAccessDenied)
+	errE = peerdb.TestingCheckChangePermission(ctxPermonly, site, baseDoc, permissionAdded)
 	assert.ErrorIs(t, errE, auth.ErrAccessDenied)
 
 	// Granting an action the granter does not hold is rejected even for holders of the permissions
@@ -165,10 +170,12 @@ func TestCheckChangePermission(t *testing.T) {
 	errE = peerdb.TestingCheckChangePermission(ctxPermonly, site, baseDoc, modifiedGrant)
 	assert.ErrorIs(t, errE, auth.ErrAccessDenied)
 
-	// Removing a permission claim is not granting: it requires only the permissions action, so
-	// permonly can remove the update grant of collab without holding the update action.
-	removedGrant := makeDoc(instanceClaim, collabPermissions, permonlyPermissions)
-	errE = peerdb.TestingCheckChangePermission(ctxPermonly, site, baseDoc, removedGrant)
+	// Removing a permission claim is not granting: it requires the permissions action and not the action
+	// the removed claim granted, so collab can remove a grant of the historic read action they do not
+	// hold themselves.
+	historicGrant := permissionClaim(t, identifier.New(), "other", auth.ActionReadHistoric)
+	removedGrant := makeDoc(baseClaims...)
+	errE = peerdb.TestingCheckChangePermission(ctxCollab, site, makeDoc(append(slices.Clone(baseClaims), historicGrant)...), removedGrant)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// A change to claims of a scope-participating property requires the update action from role
@@ -374,6 +381,8 @@ func TestCheckChangePermissionCreateScopes(t *testing.T) {
 
 	site := &internalSite.Site{}
 	site.Roles = map[string]auth.RoleGrants{
+		// Everyone reads every document, without which nobody would hold the update action either.
+		auth.RoleEveryone: auth.MustParseRoleGrants(map[string][]string{auth.ActionReadCode: {auth.ScopeDocuments}}),
 		// The admin may update everything but may create every class except applications, the shape which
 		// makes the rule matter: without it their update grant lets them edit a document into one.
 		"admin": auth.MustParseRoleGrants(map[string][]string{

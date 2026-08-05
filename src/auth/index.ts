@@ -9,7 +9,18 @@ import { computed, ref } from "vue"
 
 import { clearCache, postJSON } from "@/api"
 import siteContext, { initialRoles, initialUserInfo } from "@/context"
-import { ACTION_CREATE, HAS_PERMISSION, PERMISSION_SCOPE, PERMISSION_USER } from "@/core"
+import {
+  ACTION_CREATE,
+  ACTION_DELETE,
+  ACTION_READ,
+  ACTION_READ_BULK,
+  ACTION_READ_HISTORIC,
+  ACTION_UPDATE,
+  ACTION_UPDATE_PERMISSIONS,
+  HAS_PERMISSION,
+  PERMISSION_SCOPE,
+  PERMISSION_USER,
+} from "@/core"
 import { getClaimsOfTypeWithConfidence } from "@/document"
 import { ENTRY_SEPARATOR, parseEntry } from "@/shortcut"
 import { currentAbsoluteURL, redirectServerSide } from "@/utils"
@@ -342,12 +353,40 @@ export function hasDocumentPermission(action: string, doc?: PermissionDocument |
   return hasUserDocumentPermission(action, doc, currentIdentityId.value, currentRoles.value)
 }
 
-// hasUserDocumentPermission is hasDocumentPermission asked about somebody else: whether the user with
-// the given subject and roles holds the permission action, through the role arm (the reserved
-// ROLE_EVERYONE entry or one of their roles) or, when doc is given, through the document's own
-// permission claims naming them. The roles of another user are not part of the reactive auth state
-// (they are the caller's), so they come from the user API (see UserGetAPI in user.go).
-export function hasUserDocumentPermission(action: string, doc: PermissionDocument | null | undefined, user: string, roles: readonly string[]): boolean {
+// actionRequirements are, per permission action, the actions it directly requires: an action is
+// meaningful only together with them, because it builds on what they allow. Reading is the base of
+// every access to a document, and managing permissions goes through the ordinary edit path, so it
+// requires updating. The create action requires nothing: it is about documents which do not exist yet.
+// In sync with actionRequirements in auth/permissions.go.
+export const actionRequirements: Record<string, string[]> = {
+  [ACTION_READ_BULK]: [ACTION_READ],
+  [ACTION_READ_HISTORIC]: [ACTION_READ],
+  [ACTION_UPDATE]: [ACTION_READ],
+  [ACTION_UPDATE_PERMISSIONS]: [ACTION_UPDATE],
+  [ACTION_DELETE]: [ACTION_READ],
+}
+
+// actionsClosure returns the actions together with everything they require, transitively. In sync with
+// auth.ActionsClosure in auth/permissions.go.
+export function actionsClosure(actions: Iterable<string>): Set<string> {
+  const closure = new Set<string>()
+  const pending = [...actions]
+  while (pending.length > 0) {
+    const action = pending.pop()!
+    if (closure.has(action)) {
+      continue
+    }
+    closure.add(action)
+    pending.push(...(actionRequirements[action] ?? []))
+  }
+  return closure
+}
+
+// hasUserDocumentAction reports whether the user with the given subject and roles is granted the
+// permission action, through the role arm (the reserved ROLE_EVERYONE entry or one of their roles) or,
+// when doc is given, through the document's own permission claims naming them. In sync with
+// hasDocumentAction in auth/permissions.go.
+function hasUserDocumentAction(action: string, doc: PermissionDocument | null | undefined, user: string, roles: readonly string[]): boolean {
   const grants = siteGrants()
   if (allowsDocument(grants[ROLE_EVERYONE]?.[action], doc)) {
     return true
@@ -358,6 +397,20 @@ export function hasUserDocumentPermission(action: string, doc: PermissionDocumen
     }
   }
   return !!doc && hasPermissionClaim(action, user, doc)
+}
+
+// hasUserDocumentPermission is hasDocumentPermission asked about somebody else: whether the user with
+// the given subject and roles holds the permission action, which they do when they are granted it and
+// everything it requires (see actionRequirements), each through either arm. The roles of another user
+// are not part of the reactive auth state (they are the caller's), so they come from the user API (see
+// UserGetAPI in user.go). In sync with auth.HasDocumentPermission in auth/permissions.go.
+export function hasUserDocumentPermission(action: string, doc: PermissionDocument | null | undefined, user: string, roles: readonly string[]): boolean {
+  for (const required of actionsClosure([action])) {
+    if (!hasUserDocumentAction(required, doc, user, roles)) {
+      return false
+    }
+  }
+  return true
 }
 
 // hasUserRoleDocumentPermission is hasUserDocumentPermission through the role arm alone: whether the

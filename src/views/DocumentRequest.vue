@@ -16,7 +16,7 @@ import { useI18n } from "vue-i18n"
 import { useRouter } from "vue-router"
 
 import { deleteFromCache, FetchError, getURL, postJSON } from "@/api"
-import { hasDocumentPermission, isSignedIn } from "@/auth"
+import { actionsClosure, hasDocumentPermission, isSignedIn } from "@/auth"
 import siteContext from "@/context"
 import Button from "@/components/Button.vue"
 import ButtonLink from "@/components/ButtonLink.vue"
@@ -26,7 +26,7 @@ import InputBadges from "@/partials/InputBadges.vue"
 import NavBar from "@/partials/NavBar.vue"
 import PermissionActionsInput from "@/partials/PermissionActionsInput.vue"
 import SearchResultDocument from "@/partials/SearchResultDocument.vue"
-import { permissionActions, permissionActionsClosure } from "@/permissions"
+import { permissionActions } from "@/permissions"
 import { useBusy } from "@/progress"
 import { encodeQuery } from "@/utils"
 import { focusFirstInvalid, useValidationRegistry } from "@/validation"
@@ -153,7 +153,7 @@ async function onRequest() {
           id: props.id,
         },
       }).href,
-      { actions: [...permissionActionsClosure(selected.value)], note: note.value },
+      { actions: [...actionsClosure(selected.value)], note: note.value },
       abortController.signal,
       busy,
     )

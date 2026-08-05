@@ -577,15 +577,15 @@ func (g RoleGrants) AllowsFiles(action identifier.Identifier) bool {
 	return false
 }
 
-// HasDocumentPermission reports whether the subject with the given roles holds the permission action
+// hasDocumentAction reports whether the subject with the given roles is granted the permission action
 // on the document, through either of two independent arms: the role arm (a grant of the reserved
 // everyone role or of one of the roles allows the document, see RoleGrants.AllowsDocument) or, when doc
 // is non-nil, the claim arm (the document's own permission claims grant the subject the action, see
 // PermissionClaimGrants). Indexing materializes exactly these two arms for every document (the roles
 // whose grants allow it and the users its claims grant), so the default search query filter admits
-// precisely the documents this reports permitted. With a nil doc only role grants are checked,
-// against documents in general.
-func HasDocumentPermission(grants map[string]RoleGrants, action identifier.Identifier, subject string, roles []string, doc *document.D) bool {
+// precisely the documents this reports granted. With a nil doc only role grants are checked, against
+// documents in general.
+func hasDocumentAction(grants map[string]RoleGrants, action identifier.Identifier, subject string, roles []string, doc *document.D) bool {
 	if grants[RoleEveryone].AllowsDocument(action, doc) {
 		return true
 	}
@@ -595,6 +595,25 @@ func HasDocumentPermission(grants map[string]RoleGrants, action identifier.Ident
 		}
 	}
 	return doc != nil && HasPermissionClaim(action, subject, doc)
+}
+
+// HasDocumentPermission reports whether the subject with the given roles holds the permission action on
+// the document: they have to be granted it and everything it requires (see actionRequirements), because
+// an action is of no use without what it builds on. So the update action is held only together with
+// reading, and managing permissions only together with updating, whichever arm grants each of them.
+//
+// Requirements are not checked against a document's own claims alone: an action granted by a claim can
+// have its requirements come from role grants, which is how a document shared with a user who reads
+// every document through a role works. The read action requires nothing, so this is the plain grant
+// check for it, and the equivalence between it and what indexing materializes (see hasDocumentAction,
+// which indexing mirrors for the read action) stands.
+func HasDocumentPermission(grants map[string]RoleGrants, action identifier.Identifier, subject string, roles []string, doc *document.D) bool {
+	for _, required := range ActionsClosure([]identifier.Identifier{action}) {
+		if !hasDocumentAction(grants, required, subject, roles, doc) {
+			return false
+		}
+	}
+	return true
 }
 
 // HasFilePermission reports whether a caller with the given roles holds the permission action on

@@ -2,7 +2,7 @@ import type { DeepReadonly } from "vue"
 
 import type { ClaimTypes } from "@/document"
 
-import { permissionClaims, permissionClaimUsers } from "@/auth"
+import { actionRequirements, actionsClosure, permissionClaims, permissionClaimUsers } from "@/auth"
 import { ACTION_DELETE, ACTION_READ, ACTION_READ_HISTORIC, ACTION_UPDATE, ACTION_UPDATE_PERMISSIONS, DESCRIPTION, HAS_PERMISSION, HAS_REQUESTED_PERMISSION } from "@/core"
 import { getBestClaimOfType } from "@/document"
 
@@ -24,52 +24,45 @@ export interface PermissionAction {
 // auth/permissions.go), and so is the bulk read action, which is not about a particular document.
 //
 // The requirements are what an action builds on, so they are chosen together with it (see
-// permissionActionsWith): reading is the base of every access to a document, and managing permissions
-// goes through the ordinary edit path, so it requires updating.
-//
-// Keep in sync with actionRequirements in auth/permissions.go.
+// permissionActionsWith). They are the rule the permission checks apply as well, so they are taken
+// from there (see actionRequirements) rather than restated.
 export const permissionActions: PermissionAction[] = [
-  { id: ACTION_READ, label: (t) => t("common.permissionActions.read"), hint: (t) => t("common.permissionActionHints.read"), requires: [] },
+  {
+    id: ACTION_READ,
+    label: (t) => t("common.permissionActions.read"),
+    hint: (t) => t("common.permissionActionHints.read"),
+    requires: actionRequirements[ACTION_READ] ?? [],
+  },
   {
     id: ACTION_READ_HISTORIC,
     label: (t) => t("common.permissionActions.history"),
     hint: (t) => t("common.permissionActionHints.history"),
-    requires: [ACTION_READ],
+    requires: actionRequirements[ACTION_READ_HISTORIC] ?? [],
   },
-  { id: ACTION_UPDATE, label: (t) => t("common.permissionActions.update"), hint: (t) => t("common.permissionActionHints.update"), requires: [ACTION_READ] },
+  {
+    id: ACTION_UPDATE,
+    label: (t) => t("common.permissionActions.update"),
+    hint: (t) => t("common.permissionActionHints.update"),
+    requires: actionRequirements[ACTION_UPDATE] ?? [],
+  },
   {
     id: ACTION_UPDATE_PERMISSIONS,
     label: (t) => t("common.permissionActions.permissions"),
     hint: (t) => t("common.permissionActionHints.permissions"),
-    requires: [ACTION_UPDATE],
+    requires: actionRequirements[ACTION_UPDATE_PERMISSIONS] ?? [],
   },
-  { id: ACTION_DELETE, label: (t) => t("common.permissionActions.delete"), hint: (t) => t("common.permissionActionHints.delete"), requires: [ACTION_READ] },
+  {
+    id: ACTION_DELETE,
+    label: (t) => t("common.permissionActions.delete"),
+    hint: (t) => t("common.permissionActionHints.delete"),
+    requires: actionRequirements[ACTION_DELETE] ?? [],
+  },
 ]
-
-// permissionActionsClosure returns the actions together with everything they require, transitively.
-export function permissionActionsClosure(actions: Iterable<string>): Set<string> {
-  const result = new Set<string>()
-  const pending = [...actions]
-  while (pending.length > 0) {
-    const current = pending.pop()!
-    if (result.has(current)) {
-      continue
-    }
-    result.add(current)
-    pending.push(...(permissionActions.find((a) => a.id === current)?.requires ?? []))
-  }
-  return result
-}
-
-// permissionActionClosure returns the action together with everything it requires, transitively.
-export function permissionActionClosure(action: string): Set<string> {
-  return permissionActionsClosure([action])
-}
 
 // permissionActionsWith returns the actions with the given action added, together with everything the
 // added action requires, transitively.
 export function permissionActionsWith(actions: Iterable<string>, action: string): Set<string> {
-  return permissionActionsClosure([...actions, action])
+  return actionsClosure([...actions, action])
 }
 
 // permissionActionsWithout returns the actions with the given action removed, together with every
