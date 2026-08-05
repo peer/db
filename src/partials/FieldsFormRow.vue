@@ -24,7 +24,7 @@ component for those.
 -->
 
 <script setup lang="ts">
-import type { DeepReadonly, WritableComputedRef } from "vue"
+import type { Component, DeepReadonly, WritableComputedRef } from "vue"
 
 import type { FieldData, FieldEntryValue } from "@/fields"
 import type { InputColumn, ValidatedInput } from "@/types"
@@ -135,16 +135,48 @@ const { t } = useI18n({ useScope: "global" })
 const claimType = computed(() => valueTypeToClaimType(props.field.valueType))
 const isFile = computed(() => props.field.valueType === VT_FILE)
 
-// The component the field names for its value, looked up in the field input registry. It stands in
-// for the input the claim type would otherwise render, so it is bound the same models the built-in
-// one is. A field naming a component nothing registered under that path falls back to the built-in
-// input: the form stays usable, and what is missing is the registration, not the field.
+// The component the field names for its value, looked up in the field input registry. A field naming
+// a component nothing is registered under falls back to the claim type's input below: the form stays
+// usable, and what is missing is the registration, not the field.
 const registeredInputs = getFieldInputComponents()
 const fieldInput = computed(() => (props.field.inputComponent ? (registeredInputs.value.get(props.field.inputComponent) ?? null) : null))
 
 // The props from the field's COMPONENT_PROPS sub-claim, passed to the input the field names. They
 // are bound before the input's own props, so a stray key cannot shadow what the form binds itself.
 const fieldInputProps = computed(() => (fieldInput.value ? (props.field.inputComponentProps ?? {}) : {}))
+
+// The input the row renders: the one the field names, or the one its claim type is edited with. A
+// field's input stands in for the built-in one, so it is bound the same models. The interval types
+// render both their bounds with the input of the bound's own type. FILE is a link claim edited by
+// uploading rather than by naming an IRI. The presence-only types have no value input at all; the
+// parent never mounts this component for them (see ClaimInput), so the null is never rendered.
+const input = computed<Component | null>(() => {
+  if (fieldInput.value !== null) {
+    return fieldInput.value
+  }
+  switch (claimType.value) {
+    case "id":
+      return InputIdentifier
+    case "string":
+      return InputString
+    case "html":
+      return InputHTML
+    case "amount":
+    case "amountInterval":
+      return InputAmount
+    case "time":
+    case "timeInterval":
+      return InputTime
+    case "link":
+      return isFile.value ? InputFile : InputLink
+    case "ref":
+      return InputRef
+    case "has":
+    case "none":
+    case "unknown":
+      return null
+  }
+})
 
 // Sub-registry: every inner input (InputString, InputAmount, InputMissing,
 // etc.) registers here instead of bubbling directly to the ancestor
@@ -281,54 +313,15 @@ function onCompleteInput() {
     changed/revert badge of their own (per bound); for everything else the
     changed/revert lives one level up. required/invalid flow to the inner
     input through InputField's slot props.
+
+    The value types whose input needs more than one model, one field, or one
+    prop of its own come first; every other type shares the last branch.
   -->
-  <!-- id -->
-  <InputField v-if="claimType === 'id'" :required="required" :invalid="invalid" :labelledby="labelId" hide-badge hide-hints>
-    <template #input="inputProps">
-      <component
-        :is="fieldInput ?? InputIdentifier"
-        v-bind="{ ...fieldInputProps, ...inputProps }"
-        v-model="value"
-        :readonly="readonly"
-        @update:model-value="onInput"
-        @complete-change="onCompleteInput"
-      />
-    </template>
-  </InputField>
-
-  <!-- string -->
-  <InputField v-else-if="claimType === 'string'" :required="required" :invalid="invalid" :labelledby="labelId" hide-badge hide-hints>
-    <template #input="inputProps">
-      <component
-        :is="fieldInput ?? InputString"
-        v-bind="{ ...fieldInputProps, ...inputProps }"
-        v-model="value"
-        :readonly="readonly"
-        @update:model-value="onInput"
-        @complete-change="onCompleteInput"
-      />
-    </template>
-  </InputField>
-
-  <!-- html -->
-  <InputField v-else-if="claimType === 'html'" :required="required" :invalid="invalid" :labelledby="labelId" hide-badge hide-hints>
-    <template #input="inputProps">
-      <component
-        :is="fieldInput ?? InputHTML"
-        v-bind="{ ...fieldInputProps, ...inputProps }"
-        v-model="value"
-        :readonly="readonly"
-        @update:model-value="onInput"
-        @complete-change="onCompleteInput"
-      />
-    </template>
-  </InputField>
-
   <!-- amount -->
-  <InputField v-else-if="claimType === 'amount'" :required="required" :invalid="invalid" :labelledby="labelId" hide-badge hide-hints :hide-labels="hideLabels">
+  <InputField v-if="claimType === 'amount'" :required="required" :invalid="invalid" :labelledby="labelId" hide-badge hide-hints :hide-labels="hideLabels">
     <template #input="inputProps">
       <component
-        :is="fieldInput ?? InputAmount"
+        :is="input"
         v-bind="{ ...fieldInputProps, ...inputProps }"
         v-model="value"
         v-model:precision="amountPrecision"
@@ -367,7 +360,7 @@ function onCompleteInput() {
         >
           <template #default="missingProps">
             <component
-              :is="fieldInput ?? InputAmount"
+              :is="input"
               v-bind="{ ...fieldInputProps, ...missingProps }"
               v-model="value"
               v-model:precision="amountPrecision"
@@ -400,7 +393,7 @@ function onCompleteInput() {
         >
           <template #default="missingProps">
             <component
-              :is="fieldInput ?? InputAmount"
+              :is="input"
               v-bind="{ ...fieldInputProps, ...missingProps }"
               v-model="valueTo"
               v-model:precision="amountPrecisionTo"
@@ -419,7 +412,7 @@ function onCompleteInput() {
   <InputField v-else-if="claimType === 'time'" :required="required" :invalid="invalid" :labelledby="labelId" hide-badge hide-hints :hide-labels="hideLabels">
     <template #input="inputProps">
       <component
-        :is="fieldInput ?? InputTime"
+        :is="input"
         v-bind="{ ...fieldInputProps, ...inputProps }"
         v-model="value"
         v-model:precision="timePrecision"
@@ -453,7 +446,7 @@ function onCompleteInput() {
         >
           <template #default="missingProps">
             <component
-              :is="fieldInput ?? InputTime"
+              :is="input"
               v-bind="{ ...fieldInputProps, ...missingProps }"
               v-model="value"
               v-model:precision="timePrecision"
@@ -486,7 +479,7 @@ function onCompleteInput() {
         >
           <template #default="missingProps">
             <component
-              :is="fieldInput ?? InputTime"
+              :is="input"
               v-bind="{ ...fieldInputProps, ...missingProps }"
               v-model="valueTo"
               v-model:precision="timePrecisionTo"
@@ -500,45 +493,33 @@ function onCompleteInput() {
       </template>
     </InputField>
   </div>
-
-  <!-- link (no file affordance) -->
-  <InputField v-else-if="claimType === 'link' && !isFile" :required="required" :invalid="invalid" :labelledby="labelId" hide-badge hide-hints>
-    <template #input="inputProps">
-      <component
-        :is="fieldInput ?? InputLink"
-        v-bind="{ ...fieldInputProps, ...inputProps }"
-        v-model="value"
-        :readonly="readonly"
-        @update:model-value="onInput"
-        @complete-change="onCompleteInput"
-      />
-    </template>
-  </InputField>
-
-  <!-- link with file value type: render the file-upload affordance instead. -->
-  <InputField v-else-if="claimType === 'link' && isFile" :required="required" :invalid="invalid" :labelledby="labelId" hide-badge hide-hints>
-    <template #input="inputProps">
-      <component
-        :is="fieldInput ?? InputFile"
-        v-bind="{ ...fieldInputProps, ...inputProps }"
-        v-model="value"
-        :readonly="readonly"
-        @update:model-value="onInput"
-        @complete-change="onCompleteInput"
-      />
-    </template>
-  </InputField>
-
-  <!-- ref -->
+  <!-- ref: the only input given the field's candidate filter. -->
   <InputField v-else-if="claimType === 'ref'" :required="required" :invalid="invalid" :labelledby="labelId" hide-badge hide-hints>
     <template #input="inputProps">
       <!-- TODO: Pass "self" prop as the current document's ID. -->
       <component
-        :is="fieldInput ?? InputRef"
+        :is="input"
         v-bind="{ ...fieldInputProps, ...inputProps }"
         v-model="value"
         :readonly="readonly"
         :filter="field.values"
+        @update:model-value="onInput"
+        @complete-change="onCompleteInput"
+      />
+    </template>
+  </InputField>
+
+  <!--
+    Every other value type: one value, edited by one input inside one InputField. Which input that is
+    comes from the claim type (or from the field itself, see the field input registry).
+  -->
+  <InputField v-else :required="required" :invalid="invalid" :labelledby="labelId" hide-badge hide-hints>
+    <template #input="inputProps">
+      <component
+        :is="input"
+        v-bind="{ ...fieldInputProps, ...inputProps }"
+        v-model="value"
+        :readonly="readonly"
         @update:model-value="onInput"
         @complete-change="onCompleteInput"
       />
