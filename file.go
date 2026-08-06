@@ -395,9 +395,9 @@ func (s *Service) StorageUploadGetAPI(w http.ResponseWriter, req *http.Request, 
 			Active:           false,
 		}, nil)
 	} else if sessionEnded {
-		s.WriteJSON(w, req, `{"active":false}`, nil)
+		s.WriteJSON(w, req, []byte(`{"active":false}`), nil)
 	} else {
-		s.WriteJSON(w, req, `{"active":true}`, nil)
+		s.WriteJSON(w, req, []byte(`{"active":true}`), nil)
 	}
 }
 
