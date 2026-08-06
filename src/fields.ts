@@ -110,6 +110,19 @@ export interface FieldData {
   duplicate?: "top" | "allow"
 }
 
+// requiresDistinctValues reports whether the field cannot hold the same top-level value twice, which
+// is what lets an input keep a value the field already holds out of the user's way (see
+// takenValuesKey) instead of letting them pick it and be told it is a duplicate on save.
+//
+// Only the field saying so counts. Having no sub-fields does not: sub-fields are what the form
+// renders, sub-claims are what a claim holds, and a sub-field hidden from the form (order "-", e.g.
+// the language of a string) is left out of the schema while its claims still carry the sub-claim. A
+// field like that may hold the same value twice, told apart by what the form does not show, and
+// keeping the value out of the list would deny an entry which is allowed, without saying why.
+export function requiresDistinctValues(field: DeepReadonly<FieldData>): boolean {
+  return field.duplicate === "top"
+}
+
 // duplicateClaimIds returns the ids of every claim among a field's claims which says the same thing
 // as another one of them: two claims are the same when they say the same thing (see
 // Claim.EqualityKey), which never involves the claim ids (those are always distinct) and, unless the
@@ -552,6 +565,15 @@ export const getCommittedClaimKey: InjectionKey<(id: string) => DeepReadonly<Cla
 // what it offers follows the document as the session changes it.
 export const documentClaimsKey: InjectionKey<() => DeepReadonly<ClaimTypes> | null> =
   process.env.NODE_ENV !== "production" ? Symbol.for("peerdb-documentClaims") : Symbol()
+
+// takenValuesKey provides the top-level values the field's entries already hold, for a field which
+// cannot hold the same value twice (see requiresDistinctValues); it is empty for every other field.
+// An input offering a choice reads it to keep those values out of the user's way instead of letting
+// them pick one and be told it is a duplicate on save. The values are the ones the inputs edit (see
+// getClaimValues), so an input compares them with its own candidates directly. They are the values
+// of the whole field, this input's own among them, so an input drops its own value from them.
+// Every field's claims provide their own, so a sub-field never sees its parent's.
+export const takenValuesKey: InjectionKey<() => ReadonlySet<string>> = process.env.NODE_ENV !== "production" ? Symbol.for("peerdb-takenValues") : Symbol()
 
 // Remote conflict handlers: DocumentEdit notifies these with the set of claim ids touched
 // by committed changes from other session editors whenever the subscription applies

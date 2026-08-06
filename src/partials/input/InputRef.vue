@@ -35,7 +35,7 @@ import type { ComponentPublicInstance } from "vue"
 import { Combobox, ComboboxButton, ComboboxInput, ComboboxOption, ComboboxOptions } from "@headlessui/vue"
 import { ArrowTopRightOnSquareIcon, CheckIcon, ChevronUpDownIcon } from "@heroicons/vue/20/solid"
 import { Identifier } from "@tozd/identifier"
-import { computed, nextTick, onBeforeUnmount, ref, useTemplateRef, watch } from "vue"
+import { computed, inject, nextTick, onBeforeUnmount, ref, useTemplateRef, watch } from "vue"
 import { useI18n } from "vue-i18n"
 import { useRouter } from "vue-router"
 
@@ -44,6 +44,7 @@ import Button from "@/components/Button.vue"
 import InputStyled from "@/components/InputStyled.vue"
 import ProgressBar from "@/components/ProgressBar.vue"
 import WithDocument from "@/components/WithDocument.vue"
+import { takenValuesKey } from "@/fields"
 import DisplayLabel from "@/partials/DisplayLabel.vue"
 import { useLock } from "@/progress"
 import { shortcutToFilters } from "@/shortcut"
@@ -104,6 +105,17 @@ const selectedDocument = computed<Result | null>({
     model.value = value?.id || ""
   },
 })
+// The documents another entry of the field already references, when the field cannot reference the
+// same document twice. Such a result stays in the list, so the user sees that the document exists
+// and where it already is, but it cannot be picked: doing so would only be flagged as a duplicate on
+// save. This input's own reference is not one of them.
+const takenValues = inject(takenValuesKey, null)
+const taken = computed<ReadonlySet<string>>(() => {
+  const values = new Set(takenValues?.() ?? [])
+  values.delete(model.value)
+  return values
+})
+
 const query = ref("")
 // Data modification and controls; useValidation writes to this lock during
 // validation. An active enclosing lock (either inherited from a parent
@@ -549,7 +561,7 @@ const WithPeerDBDocument = WithDocument<D>
               the selected-check icon consistent across the loading, error,
               and loaded slot variants below.
             -->
-            <ComboboxOption v-for="result in searchResults" :key="result.id" v-slot="{ active }" :value="result" as="template">
+            <ComboboxOption v-for="result in searchResults" :key="result.id" v-slot="{ active }" :value="result" :disabled="taken.has(result.id)" as="template">
               <li class="p-1 outline-none select-none">
                 <!--
                   We have an additional div so that the ring has the space to be shown.
@@ -560,13 +572,17 @@ const WithPeerDBDocument = WithDocument<D>
                   <WithPeerDBDocument :id="result.id" name="DocumentGet">
                     <template #default="{ doc }">
                       <div
-                        class="w-full cursor-pointer truncate"
+                        class="w-full truncate"
                         :class="{
                           'font-medium': result.id === selectedDocument?.id,
+                          'cursor-not-allowed text-gray-500': taken.has(result.id),
+                          'cursor-pointer': !taken.has(result.id),
                         }"
                       >
                         <DisplayLabel :doc="doc" />
                       </div>
+
+                      <span v-if="taken.has(result.id)" class="mr-2 ml-2 shrink-0 text-sm text-gray-500 italic">{{ t("partials.input.InputRef.alreadyUsed") }}</span>
 
                       <CheckIcon v-if="result.id === selectedDocument?.id" class="mr-2 size-5 text-primary-600" aria-hidden="true" />
 
@@ -585,12 +601,16 @@ const WithPeerDBDocument = WithDocument<D>
                         <i class="block h-4 rounded bg-slate-200 motion-safe:animate-pulse" :data-url="url" :class="[loadingWidth(result.id)]" aria-hidden="true"></i>
                       </div>
 
+                      <span v-if="taken.has(result.id)" class="mr-2 ml-2 shrink-0 text-sm text-gray-500 italic">{{ t("partials.input.InputRef.alreadyUsed") }}</span>
+
                       <CheckIcon v-if="result.id === selectedDocument?.id" class="size-5 text-primary-600" aria-hidden="true" />
                     </template>
                     <template #error="{ message, accessDenied, url }">
                       <div class="w-full truncate">
                         <i :class="['pd-withdocument-error', accessDenied ? 'text-gray-500' : 'text-error-600']" :data-url="url">{{ message }}</i>
                       </div>
+
+                      <span v-if="taken.has(result.id)" class="mr-2 ml-2 shrink-0 text-sm text-gray-500 italic">{{ t("partials.input.InputRef.alreadyUsed") }}</span>
 
                       <CheckIcon v-if="result.id === selectedDocument?.id" class="size-5 text-primary-600" aria-hidden="true" />
                     </template>

@@ -29,7 +29,7 @@ import { useRouter } from "vue-router"
 
 import { postJSON } from "@/api"
 import { claimPatchFrom, claimTypeName } from "@/document"
-import { fieldIsRequired, getClaimValues, getFieldInstructions, makePatchForField, valueTypeToClaimType } from "@/fields"
+import { fieldIsRequired, getClaimValues, getFieldInstructions, makePatchForField, requiresDistinctValues, valueTypeToClaimType } from "@/fields"
 import ClaimInput from "@/partials/ClaimInput.vue"
 import ClaimRefSelect from "@/partials/ClaimRefSelect.vue"
 import DocumentRefInline from "@/partials/DocumentRefInline.vue"
@@ -43,7 +43,7 @@ import { ArrowPathSingleCounterclockwiseIcon } from "@sidekickicons/vue/20/solid
 
 import { inject as injectFn } from "vue"
 
-import { ChangeDroppedError, duplicateClaimIds, fieldLabelCellKey, registerRemoteAddsKey, saveChangeKey, unregisterRemoteAddsKey } from "@/fields"
+import { ChangeDroppedError, duplicateClaimIds, fieldLabelCellKey, registerRemoteAddsKey, saveChangeKey, takenValuesKey, unregisterRemoteAddsKey } from "@/fields"
 
 const props = withDefaults(
   defineProps<{
@@ -323,6 +323,24 @@ const {
 // a sub-field's duplicates are found by the sub-field's own cardinality, not by its parent's, and
 // only where the user can enter one at all (see duplicatesPossible).
 const duplicateIds = shallowRef<ReadonlySet<string>>(new Set())
+
+// The values the field's entries hold, offered to the inputs so a field which cannot repeat a value
+// does not offer one it already has. It is the committed state, so a value the user is still typing
+// is not among them yet; picking from a list commits at once, which is where this matters.
+const takenValues = computed<ReadonlySet<string>>(() => {
+  if (!requiresDistinctValues(props.field)) {
+    return new Set()
+  }
+  const values = new Set<string>()
+  for (const claim of props.modelValue) {
+    const value = getClaimValues(claim).value
+    if (value !== "") {
+      values.add(value)
+    }
+  }
+  return values
+})
+provide(takenValuesKey, () => takenValues.value)
 
 // The complaint every slot holding one of the duplicates is handed: they are equally the duplicate,
 // so each of them shows it where its own errors are shown, and each of them is red.

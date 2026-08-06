@@ -150,12 +150,14 @@
         "noPermission": "Uploading files not allowed."
       },
       "InputIdentityFromPermissions": {
+        "noMoreUsers": "There are no more users with access to choose from.",
         "noUsers": "There are no users with access to choose from."
       },
       "InputLink": {
         "hint": "Example: https://example.com"
       },
       "InputRef": {
+        "alreadyUsed": "already used",
         "invalidValue": "invalid value",
         "noResults": "No results found."
       },

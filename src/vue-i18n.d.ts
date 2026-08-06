@@ -161,12 +161,14 @@ declare module "vue-i18n" {
           noPermission: string
         }
         InputIdentityFromPermissions: {
+          noMoreUsers: string
           noUsers: string
         }
         InputLink: {
           hint: string
         }
         InputRef: {
+          alreadyUsed: string
           invalidValue: string
           noResults: string
         }

@@ -150,12 +150,14 @@
         "noPermission": "Nalaganje datotek ni dovoljeno."
       },
       "InputIdentityFromPermissions": {
+        "noMoreUsers": "Ni več uporabnikov z dostopom za izbiro.",
         "noUsers": "Ni uporabnikov z dostopom za izbiro."
       },
       "InputLink": {
         "hint": "Primer: https://example.com"
       },
       "InputRef": {
+        "alreadyUsed": "že uporabljeno",
         "invalidValue": "neveljavna vrednost",
         "noResults": "Ni najdenih rezultatov."
       },

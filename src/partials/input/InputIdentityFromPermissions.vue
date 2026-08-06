@@ -10,6 +10,9 @@ into a list of, say, the researchers on an application. Their roles come from th
 UserGetAPI in user.go), so a user the site cannot describe is left out of a role-filtered list: there
 is no role to confirm.
 
+A user another entry of the field already names is not offered, when the field cannot name the same
+user twice (see takenValuesKey): the whole point of the list is that everything on it can be picked.
+
 The value stays in the list even when it is not (or no longer) among those users, so a selection is
 never invisible, and the selected option can be clicked again to clear it (see RadioButton).
 -->
@@ -24,7 +27,7 @@ import { useRouter } from "vue-router"
 import { getURL } from "@/api"
 import RadioButton from "@/components/RadioButton.vue"
 import { ACTION_READ } from "@/core"
-import { documentClaimsKey } from "@/fields"
+import { documentClaimsKey, takenValuesKey } from "@/fields"
 import IdentityInline from "@/partials/IdentityInline.vue"
 import { usersWithDocumentPermission } from "@/permissions"
 import { useLock } from "@/progress"
@@ -131,12 +134,30 @@ watch(
   { immediate: true },
 )
 
+// The users another entry of the field already names, when the field cannot name the same user
+// twice. They are not offered here: naming one of them is a duplicate, and the user would only be
+// told so on save.
+const takenValues = inject(takenValuesKey, null)
+const taken = computed<ReadonlySet<string>>(() => {
+  const values = new Set(takenValues?.() ?? [])
+  // This input's own value is among the field's values and is not somebody else's.
+  values.delete(model.value)
+  return values
+})
+
+// The users the input would offer if the field's other entries named nobody.
+const candidates = computed<string[]>(() => (props.role ? users.value.filter((user) => userRoles.value.get(user)?.includes(props.role)) : users.value))
+
 const options = computed<string[]>(() => {
-  const offered = props.role ? users.value.filter((user) => userRoles.value.get(user)?.includes(props.role)) : users.value
+  const offered = candidates.value.filter((user) => !taken.value.has(user))
   // A value naming somebody the document no longer grants access to (or who does not hold the role)
   // is still what the field holds, so it stays selectable and clearable.
   return model.value !== "" && !offered.includes(model.value) ? [model.value, ...offered] : offered
 })
+
+// Whether the other entries are the reason there is nobody left to offer, which is a different thing
+// to tell the user than a document with nobody on it: here they have named everybody already.
+const allTaken = computed<boolean>(() => options.value.length === 0 && candidates.value.length > 0)
 
 // The radio's model. Clicking the selected option clears it, which RadioButton reports as undefined.
 const selected = computed<string | undefined>({
@@ -212,6 +233,7 @@ function onFocusout(event: FocusEvent) {
       </li>
     </ul>
     <i v-else-if="loading" class="text-gray-500">{{ t("common.status.loading") }}</i>
+    <i v-else-if="allTaken" class="text-gray-500">{{ t("partials.input.InputIdentityFromPermissions.noMoreUsers") }}</i>
     <i v-else class="text-gray-500">{{ t("partials.input.InputIdentityFromPermissions.noUsers") }}</i>
   </fieldset>
 </template>
