@@ -48,7 +48,7 @@ defineOptions({
       :class="{
         'cursor-not-allowed bg-gray-400 text-primary-300': inactive(),
         'cursor-pointer text-primary-600 focus:ring-primary-500': !inactive() && !invalid,
-        'cursor-pointer bg-error-50 text-error-600 focus:ring-primary-500': !inactive() && invalid,
+        'cursor-pointer bg-error-50 text-error-600 checked:bg-error-600 focus:ring-primary-500': !inactive() && invalid,
       }"
     />
   </div>
