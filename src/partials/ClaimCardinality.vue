@@ -320,7 +320,8 @@ const {
 // The claims which repeat one before them, found on the final (Save) pass and shown until the field
 // is touched again: a value being typed passes through states which repeat another one, and the user
 // is not to be told about it until they say they are done. Every claim of the field is compared, so
-// a sub-field's duplicates are found by the sub-field's own cardinality, not by its parent's.
+// a sub-field's duplicates are found by the sub-field's own cardinality, not by its parent's, and
+// only where the user can enter one at all (see duplicatesPossible).
 const duplicateIds = shallowRef<ReadonlySet<string>>(new Set())
 
 // The complaint every slot holding one of the duplicates is handed: they are equally the duplicate,
@@ -334,6 +335,15 @@ const duplicateErrors = computed<ValidationError[]>(() =>
 function slotErrors(slot: { claim: DeepReadonly<Claim> | null }): ValidationError[] {
   return slot.claim !== null && duplicateIds.value.has(slot.claim.id) ? duplicateErrors.value : []
 }
+
+// Whether the user can enter a duplicate at all, which is what makes looking for one worth it. A
+// field's slots each hold their own claim, so two of them can end up saying the same thing; select
+// mode instead has one control per option and no way to select an option twice (see ClaimRefSelect),
+// so a duplicate there can only have come from outside the editor. Complaining about those would
+// block the save over claims the user did not make, cannot see (the option is simply selected) and
+// cannot clear except by chance. The mode has to be resolved first: an eligible field has no slots
+// yet and it is not known which of the two it will be.
+const duplicatesPossible = computed<boolean>(() => modeResolved.value && refOptions.value === null)
 
 const childErrors = allErrors(childInputs)
 
@@ -724,7 +734,7 @@ const validatedInput: ValidatedInput = {
     await validateChildAll(signal, options)
     // Only the final pass (Save) complains about duplicates: every other pass runs while the user is
     // still working, and their next keystroke may be what makes the values differ again.
-    duplicateIds.value = options?.final ? duplicateClaimIds(props.modelValue, props.field) : new Set()
+    duplicateIds.value = options?.final && duplicatesPossible.value ? duplicateClaimIds(props.modelValue, props.field) : new Set()
   },
   reset: () => {
     resetChildAll()
