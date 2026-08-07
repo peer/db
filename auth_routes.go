@@ -20,6 +20,23 @@ const signInRedirectQueryParam = "redirect"
 // LanguageSwitcher partial). We forward its value to the issuer as the OIDC ui_locales preference.
 const uiLanguageCookieName = "language"
 
+// AuthMockSignInGet returns the HTML frontend for the page where a mock sign-in chooses the roles to
+// sign in with, which the mock authenticator sends the browser to instead of an issuer's sign-in page
+// (see auth.MockAuthenticator.SignIn). A site authenticating against a real issuer has no such page, so
+// it answers with not found there.
+func (s *Service) AuthMockSignInGet(w http.ResponseWriter, req *http.Request, _ waf.Params) {
+	// The page is one step of a sign-in flow, so nothing about it is safe to keep in any cache.
+	w.Header().Set("Cache-Control", "no-store")
+
+	site := waf.MustGetSite[*internalSite.Site](req.Context())
+	if site.Auth.Issuer != "" {
+		s.NotFound(w, req)
+		return
+	}
+
+	s.HomeGet(w, req, nil)
+}
+
 // AuthSignInGet starts the sign-in flow. It hands the caller-supplied redirect
 // off to the per-site Authenticator and then redirects the user to the URL
 // the Authenticator returned.
@@ -27,9 +44,6 @@ const uiLanguageCookieName = "language"
 // The optional ?redirect=<path> query parameter records where to send the
 // user after the callback completes.
 func (s *Service) AuthSignInGet(w http.ResponseWriter, req *http.Request, _ waf.Params) {
-	defer req.Body.Close()              //nolint:errcheck
-	defer io.Copy(io.Discard, req.Body) //nolint:errcheck
-
 	// no-store: this URL is a side-effect entry point (creates a authentication
 	// flow, redirects to the issuer). Nothing about its response is safe to keep
 	// in any cache.
@@ -60,9 +74,6 @@ func (s *Service) AuthSignInGet(w http.ResponseWriter, req *http.Request, _ waf.
 // the access token plus the post-sign-in redirect path. The handler then sets the
 // access-token cookie and redirects the user to that path.
 func (s *Service) AuthCallbackGet(w http.ResponseWriter, req *http.Request, _ waf.Params) {
-	defer req.Body.Close()              //nolint:errcheck
-	defer io.Copy(io.Discard, req.Body) //nolint:errcheck
-
 	// no-store: the URL potentially carries a one-time code or a token in its query string
 	// and the response sets the session cookie. Caching any part of it would be a credential leak.
 	w.Header().Set("Cache-Control", "no-store")
@@ -70,7 +81,7 @@ func (s *Service) AuthCallbackGet(w http.ResponseWriter, req *http.Request, _ wa
 	ctx := req.Context()
 	site := waf.MustGetSite[*internalSite.Site](ctx)
 
-	accessToken, expiry, redirect, errE := site.Authenticator.Callback(ctx, req.Form)
+	accessToken, expiry, redirect, errE := site.Authenticator.Callback(ctx, req.Form, site.Roles)
 	if errE != nil {
 		if errors.Is(errE, auth.ErrSignInFailed) {
 			s.BadRequestWithError(w, req, errE)

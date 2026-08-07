@@ -33,26 +33,33 @@
   },
   "amount": {
     "aggregations": {
-      "props": {
+      "scoped": {
         "aggregations": {
-          "docs": {
-            "reverse_nested": {}
+          "props": {
+            "aggregations": {
+              "docs": {
+                "reverse_nested": {}
+              }
+            },
+            "multi_terms": {
+              "order": {
+                "docs": "desc"
+              },
+              "size": 1000,
+              "terms": [
+                {
+                  "field": "claims.amount.prop"
+                },
+                {
+                  "field": "claims.amount.unit",
+                  "missing": "__missing__"
+                }
+              ]
+            }
           }
         },
-        "multi_terms": {
-          "order": {
-            "docs": "desc"
-          },
-          "size": 1000,
-          "terms": [
-            {
-              "field": "claims.amount.prop"
-            },
-            {
-              "field": "claims.amount.unit",
-              "missing": "__missing__"
-            }
-          ]
+        "filter": {
+          "bool": {}
         }
       }
     },
@@ -65,10 +72,16 @@
       "nested": {
         "path": "claims.rel",
         "query": {
-          "term": {
-            "claims.rel.claimType": {
-              "value": "has"
-            }
+          "bool": {
+            "must": [
+              {
+                "term": {
+                  "claims.rel.claimType": {
+                    "value": "has"
+                  }
+                }
+              }
+            ]
           }
         }
       }
@@ -76,68 +89,75 @@
   },
   "rel": {
     "aggregations": {
-      "props": {
+      "scoped": {
         "aggregations": {
-          "claimTypes": {
-            "terms": {
-              "field": "claims.rel.claimType",
-              "size": 4
-            }
-          },
-          "docs": {
-            "reverse_nested": {}
-          },
-          "hierarchy": {
-            "filter": {
-              "bool": {
-                "must": [
-                  {
-                    "term": {
-                      "claims.rel.claimType": {
-                        "value": "ref"
-                      }
-                    }
-                  }
-                ],
-                "must_not": [
-                  {
-                    "term": {
-                      "claims.rel.isLeaf": {
-                        "value": true
-                      }
-                    }
-                  }
-                ]
-              }
-            }
-          },
-          "valueless": {
+          "props": {
             "aggregations": {
+              "claimTypes": {
+                "terms": {
+                  "field": "claims.rel.claimType",
+                  "size": 4
+                }
+              },
               "docs": {
                 "reverse_nested": {}
+              },
+              "hierarchy": {
+                "filter": {
+                  "bool": {
+                    "must": [
+                      {
+                        "term": {
+                          "claims.rel.claimType": {
+                            "value": "ref"
+                          }
+                        }
+                      }
+                    ],
+                    "must_not": [
+                      {
+                        "term": {
+                          "claims.rel.isLeaf": {
+                            "value": true
+                          }
+                        }
+                      }
+                    ]
+                  }
+                }
+              },
+              "valueless": {
+                "aggregations": {
+                  "docs": {
+                    "reverse_nested": {}
+                  }
+                },
+                "filter": {
+                  "bool": {
+                    "must_not": [
+                      {
+                        "term": {
+                          "claims.rel.claimType": {
+                            "value": "ref"
+                          }
+                        }
+                      }
+                    ]
+                  }
+                }
               }
             },
-            "filter": {
-              "bool": {
-                "must_not": [
-                  {
-                    "term": {
-                      "claims.rel.claimType": {
-                        "value": "ref"
-                      }
-                    }
-                  }
-                ]
-              }
+            "terms": {
+              "field": "claims.rel.prop",
+              "order": {
+                "docs": "desc"
+              },
+              "size": 1000
             }
           }
         },
-        "terms": {
-          "field": "claims.rel.prop",
-          "order": {
-            "docs": "desc"
-          },
-          "size": 1000
+        "filter": {
+          "bool": {}
         }
       }
     },
@@ -147,89 +167,49 @@
   },
   "sub:amount": {
     "aggregations": {
-      "parents": {
+      "scoped": {
         "aggregations": {
-          "subAmount": {
+          "parents": {
             "aggregations": {
-              "props": {
+              "subAmount": {
                 "aggregations": {
-                  "docs": {
-                    "reverse_nested": {}
-                  }
-                },
-                "multi_terms": {
-                  "order": {
-                    "docs": "desc"
-                  },
-                  "size": 1000,
-                  "terms": [
-                    {
-                      "field": "claims.amount.sub.amount.prop"
+                  "scoped": {
+                    "aggregations": {
+                      "props": {
+                        "aggregations": {
+                          "docs": {
+                            "reverse_nested": {}
+                          }
+                        },
+                        "multi_terms": {
+                          "order": {
+                            "docs": "desc"
+                          },
+                          "size": 1000,
+                          "terms": [
+                            {
+                              "field": "claims.amount.sub.amount.prop"
+                            },
+                            {
+                              "field": "claims.amount.sub.amount.unit",
+                              "missing": "__missing__"
+                            }
+                          ]
+                        }
+                      }
                     },
-                    {
-                      "field": "claims.amount.sub.amount.unit",
-                      "missing": "__missing__"
+                    "filter": {
+                      "bool": {}
                     }
-                  ]
-                }
-              }
-            },
-            "nested": {
-              "path": "claims.amount.sub.amount"
-            }
-          },
-          "subRel": {
-            "aggregations": {
-              "pooledHasDocs": {
-                "aggregations": {
-                  "docs": {
-                    "reverse_nested": {}
                   }
                 },
-                "filter": {
-                  "term": {
-                    "claims.amount.sub.rel.claimType": {
-                      "value": "has"
-                    }
-                  }
+                "nested": {
+                  "path": "claims.amount.sub.amount"
                 }
               },
-              "props": {
+              "subRel": {
                 "aggregations": {
-                  "claimTypes": {
-                    "terms": {
-                      "field": "claims.amount.sub.rel.claimType",
-                      "size": 4
-                    }
-                  },
-                  "docs": {
-                    "reverse_nested": {}
-                  },
-                  "hierarchy": {
-                    "filter": {
-                      "bool": {
-                        "must": [
-                          {
-                            "term": {
-                              "claims.amount.sub.rel.claimType": {
-                                "value": "ref"
-                              }
-                            }
-                          }
-                        ],
-                        "must_not": [
-                          {
-                            "term": {
-                              "claims.amount.sub.rel.isLeaf": {
-                                "value": true
-                              }
-                            }
-                          }
-                        ]
-                      }
-                    }
-                  },
-                  "valueless": {
+                  "pooledHasDocs": {
                     "aggregations": {
                       "docs": {
                         "reverse_nested": {}
@@ -237,57 +217,131 @@
                     },
                     "filter": {
                       "bool": {
-                        "must_not": [
+                        "must": [
                           {
                             "term": {
                               "claims.amount.sub.rel.claimType": {
-                                "value": "ref"
+                                "value": "has"
                               }
                             }
                           }
                         ]
                       }
                     }
+                  },
+                  "scoped": {
+                    "aggregations": {
+                      "props": {
+                        "aggregations": {
+                          "claimTypes": {
+                            "terms": {
+                              "field": "claims.amount.sub.rel.claimType",
+                              "size": 4
+                            }
+                          },
+                          "docs": {
+                            "reverse_nested": {}
+                          },
+                          "hierarchy": {
+                            "filter": {
+                              "bool": {
+                                "must": [
+                                  {
+                                    "term": {
+                                      "claims.amount.sub.rel.claimType": {
+                                        "value": "ref"
+                                      }
+                                    }
+                                  }
+                                ],
+                                "must_not": [
+                                  {
+                                    "term": {
+                                      "claims.amount.sub.rel.isLeaf": {
+                                        "value": true
+                                      }
+                                    }
+                                  }
+                                ]
+                              }
+                            }
+                          },
+                          "valueless": {
+                            "aggregations": {
+                              "docs": {
+                                "reverse_nested": {}
+                              }
+                            },
+                            "filter": {
+                              "bool": {
+                                "must_not": [
+                                  {
+                                    "term": {
+                                      "claims.amount.sub.rel.claimType": {
+                                        "value": "ref"
+                                      }
+                                    }
+                                  }
+                                ]
+                              }
+                            }
+                          }
+                        },
+                        "terms": {
+                          "field": "claims.amount.sub.rel.prop",
+                          "order": {
+                            "docs": "desc"
+                          },
+                          "size": 1000
+                        }
+                      }
+                    },
+                    "filter": {
+                      "bool": {}
+                    }
                   }
                 },
-                "terms": {
-                  "field": "claims.amount.sub.rel.prop",
-                  "order": {
-                    "docs": "desc"
-                  },
-                  "size": 1000
+                "nested": {
+                  "path": "claims.amount.sub.rel"
                 }
-              }
-            },
-            "nested": {
-              "path": "claims.amount.sub.rel"
-            }
-          },
-          "subTime": {
-            "aggregations": {
-              "props": {
+              },
+              "subTime": {
                 "aggregations": {
-                  "docs": {
-                    "reverse_nested": {}
+                  "scoped": {
+                    "aggregations": {
+                      "props": {
+                        "aggregations": {
+                          "docs": {
+                            "reverse_nested": {}
+                          }
+                        },
+                        "terms": {
+                          "field": "claims.amount.sub.time.prop",
+                          "order": {
+                            "docs": "desc"
+                          },
+                          "size": 1000
+                        }
+                      }
+                    },
+                    "filter": {
+                      "bool": {}
+                    }
                   }
                 },
-                "terms": {
-                  "field": "claims.amount.sub.time.prop",
-                  "order": {
-                    "docs": "desc"
-                  },
-                  "size": 1000
+                "nested": {
+                  "path": "claims.amount.sub.time"
                 }
               }
             },
-            "nested": {
-              "path": "claims.amount.sub.time"
+            "terms": {
+              "field": "claims.amount.prop",
+              "size": 1000
             }
           }
         },
-        "terms": {
-          "field": "claims.amount.prop",
-          "size": 1000
+        "filter": {
+          "bool": {}
         }
       }
     },
@@ -297,89 +351,49 @@
   },
   "sub:html": {
     "aggregations": {
-      "parents": {
+      "scoped": {
         "aggregations": {
-          "subAmount": {
+          "parents": {
             "aggregations": {
-              "props": {
+              "subAmount": {
                 "aggregations": {
-                  "docs": {
-                    "reverse_nested": {}
-                  }
-                },
-                "multi_terms": {
-                  "order": {
-                    "docs": "desc"
-                  },
-                  "size": 1000,
-                  "terms": [
-                    {
-                      "field": "claims.html.sub.amount.prop"
+                  "scoped": {
+                    "aggregations": {
+                      "props": {
+                        "aggregations": {
+                          "docs": {
+                            "reverse_nested": {}
+                          }
+                        },
+                        "multi_terms": {
+                          "order": {
+                            "docs": "desc"
+                          },
+                          "size": 1000,
+                          "terms": [
+                            {
+                              "field": "claims.html.sub.amount.prop"
+                            },
+                            {
+                              "field": "claims.html.sub.amount.unit",
+                              "missing": "__missing__"
+                            }
+                          ]
+                        }
+                      }
                     },
-                    {
-                      "field": "claims.html.sub.amount.unit",
-                      "missing": "__missing__"
+                    "filter": {
+                      "bool": {}
                     }
-                  ]
-                }
-              }
-            },
-            "nested": {
-              "path": "claims.html.sub.amount"
-            }
-          },
-          "subRel": {
-            "aggregations": {
-              "pooledHasDocs": {
-                "aggregations": {
-                  "docs": {
-                    "reverse_nested": {}
                   }
                 },
-                "filter": {
-                  "term": {
-                    "claims.html.sub.rel.claimType": {
-                      "value": "has"
-                    }
-                  }
+                "nested": {
+                  "path": "claims.html.sub.amount"
                 }
               },
-              "props": {
+              "subRel": {
                 "aggregations": {
-                  "claimTypes": {
-                    "terms": {
-                      "field": "claims.html.sub.rel.claimType",
-                      "size": 4
-                    }
-                  },
-                  "docs": {
-                    "reverse_nested": {}
-                  },
-                  "hierarchy": {
-                    "filter": {
-                      "bool": {
-                        "must": [
-                          {
-                            "term": {
-                              "claims.html.sub.rel.claimType": {
-                                "value": "ref"
-                              }
-                            }
-                          }
-                        ],
-                        "must_not": [
-                          {
-                            "term": {
-                              "claims.html.sub.rel.isLeaf": {
-                                "value": true
-                              }
-                            }
-                          }
-                        ]
-                      }
-                    }
-                  },
-                  "valueless": {
+                  "pooledHasDocs": {
                     "aggregations": {
                       "docs": {
                         "reverse_nested": {}
@@ -387,57 +401,131 @@
                     },
                     "filter": {
                       "bool": {
-                        "must_not": [
+                        "must": [
                           {
                             "term": {
                               "claims.html.sub.rel.claimType": {
-                                "value": "ref"
+                                "value": "has"
                               }
                             }
                           }
                         ]
                       }
                     }
+                  },
+                  "scoped": {
+                    "aggregations": {
+                      "props": {
+                        "aggregations": {
+                          "claimTypes": {
+                            "terms": {
+                              "field": "claims.html.sub.rel.claimType",
+                              "size": 4
+                            }
+                          },
+                          "docs": {
+                            "reverse_nested": {}
+                          },
+                          "hierarchy": {
+                            "filter": {
+                              "bool": {
+                                "must": [
+                                  {
+                                    "term": {
+                                      "claims.html.sub.rel.claimType": {
+                                        "value": "ref"
+                                      }
+                                    }
+                                  }
+                                ],
+                                "must_not": [
+                                  {
+                                    "term": {
+                                      "claims.html.sub.rel.isLeaf": {
+                                        "value": true
+                                      }
+                                    }
+                                  }
+                                ]
+                              }
+                            }
+                          },
+                          "valueless": {
+                            "aggregations": {
+                              "docs": {
+                                "reverse_nested": {}
+                              }
+                            },
+                            "filter": {
+                              "bool": {
+                                "must_not": [
+                                  {
+                                    "term": {
+                                      "claims.html.sub.rel.claimType": {
+                                        "value": "ref"
+                                      }
+                                    }
+                                  }
+                                ]
+                              }
+                            }
+                          }
+                        },
+                        "terms": {
+                          "field": "claims.html.sub.rel.prop",
+                          "order": {
+                            "docs": "desc"
+                          },
+                          "size": 1000
+                        }
+                      }
+                    },
+                    "filter": {
+                      "bool": {}
+                    }
                   }
                 },
-                "terms": {
-                  "field": "claims.html.sub.rel.prop",
-                  "order": {
-                    "docs": "desc"
-                  },
-                  "size": 1000
+                "nested": {
+                  "path": "claims.html.sub.rel"
                 }
-              }
-            },
-            "nested": {
-              "path": "claims.html.sub.rel"
-            }
-          },
-          "subTime": {
-            "aggregations": {
-              "props": {
+              },
+              "subTime": {
                 "aggregations": {
-                  "docs": {
-                    "reverse_nested": {}
+                  "scoped": {
+                    "aggregations": {
+                      "props": {
+                        "aggregations": {
+                          "docs": {
+                            "reverse_nested": {}
+                          }
+                        },
+                        "terms": {
+                          "field": "claims.html.sub.time.prop",
+                          "order": {
+                            "docs": "desc"
+                          },
+                          "size": 1000
+                        }
+                      }
+                    },
+                    "filter": {
+                      "bool": {}
+                    }
                   }
                 },
-                "terms": {
-                  "field": "claims.html.sub.time.prop",
-                  "order": {
-                    "docs": "desc"
-                  },
-                  "size": 1000
+                "nested": {
+                  "path": "claims.html.sub.time"
                 }
               }
             },
-            "nested": {
-              "path": "claims.html.sub.time"
+            "terms": {
+              "field": "claims.html.prop",
+              "size": 1000
             }
           }
         },
-        "terms": {
-          "field": "claims.html.prop",
-          "size": 1000
+        "filter": {
+          "bool": {}
         }
       }
     },
@@ -447,89 +535,49 @@
   },
   "sub:id": {
     "aggregations": {
-      "parents": {
+      "scoped": {
         "aggregations": {
-          "subAmount": {
+          "parents": {
             "aggregations": {
-              "props": {
+              "subAmount": {
                 "aggregations": {
-                  "docs": {
-                    "reverse_nested": {}
-                  }
-                },
-                "multi_terms": {
-                  "order": {
-                    "docs": "desc"
-                  },
-                  "size": 1000,
-                  "terms": [
-                    {
-                      "field": "claims.id.sub.amount.prop"
+                  "scoped": {
+                    "aggregations": {
+                      "props": {
+                        "aggregations": {
+                          "docs": {
+                            "reverse_nested": {}
+                          }
+                        },
+                        "multi_terms": {
+                          "order": {
+                            "docs": "desc"
+                          },
+                          "size": 1000,
+                          "terms": [
+                            {
+                              "field": "claims.id.sub.amount.prop"
+                            },
+                            {
+                              "field": "claims.id.sub.amount.unit",
+                              "missing": "__missing__"
+                            }
+                          ]
+                        }
+                      }
                     },
-                    {
-                      "field": "claims.id.sub.amount.unit",
-                      "missing": "__missing__"
+                    "filter": {
+                      "bool": {}
                     }
-                  ]
-                }
-              }
-            },
-            "nested": {
-              "path": "claims.id.sub.amount"
-            }
-          },
-          "subRel": {
-            "aggregations": {
-              "pooledHasDocs": {
-                "aggregations": {
-                  "docs": {
-                    "reverse_nested": {}
                   }
                 },
-                "filter": {
-                  "term": {
-                    "claims.id.sub.rel.claimType": {
-                      "value": "has"
-                    }
-                  }
+                "nested": {
+                  "path": "claims.id.sub.amount"
                 }
               },
-              "props": {
+              "subRel": {
                 "aggregations": {
-                  "claimTypes": {
-                    "terms": {
-                      "field": "claims.id.sub.rel.claimType",
-                      "size": 4
-                    }
-                  },
-                  "docs": {
-                    "reverse_nested": {}
-                  },
-                  "hierarchy": {
-                    "filter": {
-                      "bool": {
-                        "must": [
-                          {
-                            "term": {
-                              "claims.id.sub.rel.claimType": {
-                                "value": "ref"
-                              }
-                            }
-                          }
-                        ],
-                        "must_not": [
-                          {
-                            "term": {
-                              "claims.id.sub.rel.isLeaf": {
-                                "value": true
-                              }
-                            }
-                          }
-                        ]
-                      }
-                    }
-                  },
-                  "valueless": {
+                  "pooledHasDocs": {
                     "aggregations": {
                       "docs": {
                         "reverse_nested": {}
@@ -537,57 +585,131 @@
                     },
                     "filter": {
                       "bool": {
-                        "must_not": [
+                        "must": [
                           {
                             "term": {
                               "claims.id.sub.rel.claimType": {
-                                "value": "ref"
+                                "value": "has"
                               }
                             }
                           }
                         ]
                       }
                     }
+                  },
+                  "scoped": {
+                    "aggregations": {
+                      "props": {
+                        "aggregations": {
+                          "claimTypes": {
+                            "terms": {
+                              "field": "claims.id.sub.rel.claimType",
+                              "size": 4
+                            }
+                          },
+                          "docs": {
+                            "reverse_nested": {}
+                          },
+                          "hierarchy": {
+                            "filter": {
+                              "bool": {
+                                "must": [
+                                  {
+                                    "term": {
+                                      "claims.id.sub.rel.claimType": {
+                                        "value": "ref"
+                                      }
+                                    }
+                                  }
+                                ],
+                                "must_not": [
+                                  {
+                                    "term": {
+                                      "claims.id.sub.rel.isLeaf": {
+                                        "value": true
+                                      }
+                                    }
+                                  }
+                                ]
+                              }
+                            }
+                          },
+                          "valueless": {
+                            "aggregations": {
+                              "docs": {
+                                "reverse_nested": {}
+                              }
+                            },
+                            "filter": {
+                              "bool": {
+                                "must_not": [
+                                  {
+                                    "term": {
+                                      "claims.id.sub.rel.claimType": {
+                                        "value": "ref"
+                                      }
+                                    }
+                                  }
+                                ]
+                              }
+                            }
+                          }
+                        },
+                        "terms": {
+                          "field": "claims.id.sub.rel.prop",
+                          "order": {
+                            "docs": "desc"
+                          },
+                          "size": 1000
+                        }
+                      }
+                    },
+                    "filter": {
+                      "bool": {}
+                    }
                   }
                 },
-                "terms": {
-                  "field": "claims.id.sub.rel.prop",
-                  "order": {
-                    "docs": "desc"
-                  },
-                  "size": 1000
+                "nested": {
+                  "path": "claims.id.sub.rel"
                 }
-              }
-            },
-            "nested": {
-              "path": "claims.id.sub.rel"
-            }
-          },
-          "subTime": {
-            "aggregations": {
-              "props": {
+              },
+              "subTime": {
                 "aggregations": {
-                  "docs": {
-                    "reverse_nested": {}
+                  "scoped": {
+                    "aggregations": {
+                      "props": {
+                        "aggregations": {
+                          "docs": {
+                            "reverse_nested": {}
+                          }
+                        },
+                        "terms": {
+                          "field": "claims.id.sub.time.prop",
+                          "order": {
+                            "docs": "desc"
+                          },
+                          "size": 1000
+                        }
+                      }
+                    },
+                    "filter": {
+                      "bool": {}
+                    }
                   }
                 },
-                "terms": {
-                  "field": "claims.id.sub.time.prop",
-                  "order": {
-                    "docs": "desc"
-                  },
-                  "size": 1000
+                "nested": {
+                  "path": "claims.id.sub.time"
                 }
               }
             },
-            "nested": {
-              "path": "claims.id.sub.time"
+            "terms": {
+              "field": "claims.id.prop",
+              "size": 1000
             }
           }
         },
-        "terms": {
-          "field": "claims.id.prop",
-          "size": 1000
+        "filter": {
+          "bool": {}
         }
       }
     },
@@ -597,89 +719,49 @@
   },
   "sub:link": {
     "aggregations": {
-      "parents": {
+      "scoped": {
         "aggregations": {
-          "subAmount": {
+          "parents": {
             "aggregations": {
-              "props": {
+              "subAmount": {
                 "aggregations": {
-                  "docs": {
-                    "reverse_nested": {}
-                  }
-                },
-                "multi_terms": {
-                  "order": {
-                    "docs": "desc"
-                  },
-                  "size": 1000,
-                  "terms": [
-                    {
-                      "field": "claims.link.sub.amount.prop"
+                  "scoped": {
+                    "aggregations": {
+                      "props": {
+                        "aggregations": {
+                          "docs": {
+                            "reverse_nested": {}
+                          }
+                        },
+                        "multi_terms": {
+                          "order": {
+                            "docs": "desc"
+                          },
+                          "size": 1000,
+                          "terms": [
+                            {
+                              "field": "claims.link.sub.amount.prop"
+                            },
+                            {
+                              "field": "claims.link.sub.amount.unit",
+                              "missing": "__missing__"
+                            }
+                          ]
+                        }
+                      }
                     },
-                    {
-                      "field": "claims.link.sub.amount.unit",
-                      "missing": "__missing__"
+                    "filter": {
+                      "bool": {}
                     }
-                  ]
-                }
-              }
-            },
-            "nested": {
-              "path": "claims.link.sub.amount"
-            }
-          },
-          "subRel": {
-            "aggregations": {
-              "pooledHasDocs": {
-                "aggregations": {
-                  "docs": {
-                    "reverse_nested": {}
                   }
                 },
-                "filter": {
-                  "term": {
-                    "claims.link.sub.rel.claimType": {
-                      "value": "has"
-                    }
-                  }
+                "nested": {
+                  "path": "claims.link.sub.amount"
                 }
               },
-              "props": {
+              "subRel": {
                 "aggregations": {
-                  "claimTypes": {
-                    "terms": {
-                      "field": "claims.link.sub.rel.claimType",
-                      "size": 4
-                    }
-                  },
-                  "docs": {
-                    "reverse_nested": {}
-                  },
-                  "hierarchy": {
-                    "filter": {
-                      "bool": {
-                        "must": [
-                          {
-                            "term": {
-                              "claims.link.sub.rel.claimType": {
-                                "value": "ref"
-                              }
-                            }
-                          }
-                        ],
-                        "must_not": [
-                          {
-                            "term": {
-                              "claims.link.sub.rel.isLeaf": {
-                                "value": true
-                              }
-                            }
-                          }
-                        ]
-                      }
-                    }
-                  },
-                  "valueless": {
+                  "pooledHasDocs": {
                     "aggregations": {
                       "docs": {
                         "reverse_nested": {}
@@ -687,57 +769,131 @@
                     },
                     "filter": {
                       "bool": {
-                        "must_not": [
+                        "must": [
                           {
                             "term": {
                               "claims.link.sub.rel.claimType": {
-                                "value": "ref"
+                                "value": "has"
                               }
                             }
                           }
                         ]
                       }
                     }
+                  },
+                  "scoped": {
+                    "aggregations": {
+                      "props": {
+                        "aggregations": {
+                          "claimTypes": {
+                            "terms": {
+                              "field": "claims.link.sub.rel.claimType",
+                              "size": 4
+                            }
+                          },
+                          "docs": {
+                            "reverse_nested": {}
+                          },
+                          "hierarchy": {
+                            "filter": {
+                              "bool": {
+                                "must": [
+                                  {
+                                    "term": {
+                                      "claims.link.sub.rel.claimType": {
+                                        "value": "ref"
+                                      }
+                                    }
+                                  }
+                                ],
+                                "must_not": [
+                                  {
+                                    "term": {
+                                      "claims.link.sub.rel.isLeaf": {
+                                        "value": true
+                                      }
+                                    }
+                                  }
+                                ]
+                              }
+                            }
+                          },
+                          "valueless": {
+                            "aggregations": {
+                              "docs": {
+                                "reverse_nested": {}
+                              }
+                            },
+                            "filter": {
+                              "bool": {
+                                "must_not": [
+                                  {
+                                    "term": {
+                                      "claims.link.sub.rel.claimType": {
+                                        "value": "ref"
+                                      }
+                                    }
+                                  }
+                                ]
+                              }
+                            }
+                          }
+                        },
+                        "terms": {
+                          "field": "claims.link.sub.rel.prop",
+                          "order": {
+                            "docs": "desc"
+                          },
+                          "size": 1000
+                        }
+                      }
+                    },
+                    "filter": {
+                      "bool": {}
+                    }
                   }
                 },
-                "terms": {
-                  "field": "claims.link.sub.rel.prop",
-                  "order": {
-                    "docs": "desc"
-                  },
-                  "size": 1000
+                "nested": {
+                  "path": "claims.link.sub.rel"
                 }
-              }
-            },
-            "nested": {
-              "path": "claims.link.sub.rel"
-            }
-          },
-          "subTime": {
-            "aggregations": {
-              "props": {
+              },
+              "subTime": {
                 "aggregations": {
-                  "docs": {
-                    "reverse_nested": {}
+                  "scoped": {
+                    "aggregations": {
+                      "props": {
+                        "aggregations": {
+                          "docs": {
+                            "reverse_nested": {}
+                          }
+                        },
+                        "terms": {
+                          "field": "claims.link.sub.time.prop",
+                          "order": {
+                            "docs": "desc"
+                          },
+                          "size": 1000
+                        }
+                      }
+                    },
+                    "filter": {
+                      "bool": {}
+                    }
                   }
                 },
-                "terms": {
-                  "field": "claims.link.sub.time.prop",
-                  "order": {
-                    "docs": "desc"
-                  },
-                  "size": 1000
+                "nested": {
+                  "path": "claims.link.sub.time"
                 }
               }
             },
-            "nested": {
-              "path": "claims.link.sub.time"
+            "terms": {
+              "field": "claims.link.prop",
+              "size": 1000
             }
           }
         },
-        "terms": {
-          "field": "claims.link.prop",
-          "size": 1000
+        "filter": {
+          "bool": {}
         }
       }
     },
@@ -747,89 +903,49 @@
   },
   "sub:rel": {
     "aggregations": {
-      "parents": {
+      "scoped": {
         "aggregations": {
-          "subAmount": {
+          "parents": {
             "aggregations": {
-              "props": {
+              "subAmount": {
                 "aggregations": {
-                  "docs": {
-                    "reverse_nested": {}
-                  }
-                },
-                "multi_terms": {
-                  "order": {
-                    "docs": "desc"
-                  },
-                  "size": 1000,
-                  "terms": [
-                    {
-                      "field": "claims.rel.sub.amount.prop"
+                  "scoped": {
+                    "aggregations": {
+                      "props": {
+                        "aggregations": {
+                          "docs": {
+                            "reverse_nested": {}
+                          }
+                        },
+                        "multi_terms": {
+                          "order": {
+                            "docs": "desc"
+                          },
+                          "size": 1000,
+                          "terms": [
+                            {
+                              "field": "claims.rel.sub.amount.prop"
+                            },
+                            {
+                              "field": "claims.rel.sub.amount.unit",
+                              "missing": "__missing__"
+                            }
+                          ]
+                        }
+                      }
                     },
-                    {
-                      "field": "claims.rel.sub.amount.unit",
-                      "missing": "__missing__"
+                    "filter": {
+                      "bool": {}
                     }
-                  ]
-                }
-              }
-            },
-            "nested": {
-              "path": "claims.rel.sub.amount"
-            }
-          },
-          "subRel": {
-            "aggregations": {
-              "pooledHasDocs": {
-                "aggregations": {
-                  "docs": {
-                    "reverse_nested": {}
                   }
                 },
-                "filter": {
-                  "term": {
-                    "claims.rel.sub.rel.claimType": {
-                      "value": "has"
-                    }
-                  }
+                "nested": {
+                  "path": "claims.rel.sub.amount"
                 }
               },
-              "props": {
+              "subRel": {
                 "aggregations": {
-                  "claimTypes": {
-                    "terms": {
-                      "field": "claims.rel.sub.rel.claimType",
-                      "size": 4
-                    }
-                  },
-                  "docs": {
-                    "reverse_nested": {}
-                  },
-                  "hierarchy": {
-                    "filter": {
-                      "bool": {
-                        "must": [
-                          {
-                            "term": {
-                              "claims.rel.sub.rel.claimType": {
-                                "value": "ref"
-                              }
-                            }
-                          }
-                        ],
-                        "must_not": [
-                          {
-                            "term": {
-                              "claims.rel.sub.rel.isLeaf": {
-                                "value": true
-                              }
-                            }
-                          }
-                        ]
-                      }
-                    }
-                  },
-                  "valueless": {
+                  "pooledHasDocs": {
                     "aggregations": {
                       "docs": {
                         "reverse_nested": {}
@@ -837,57 +953,131 @@
                     },
                     "filter": {
                       "bool": {
-                        "must_not": [
+                        "must": [
                           {
                             "term": {
                               "claims.rel.sub.rel.claimType": {
-                                "value": "ref"
+                                "value": "has"
                               }
                             }
                           }
                         ]
                       }
                     }
+                  },
+                  "scoped": {
+                    "aggregations": {
+                      "props": {
+                        "aggregations": {
+                          "claimTypes": {
+                            "terms": {
+                              "field": "claims.rel.sub.rel.claimType",
+                              "size": 4
+                            }
+                          },
+                          "docs": {
+                            "reverse_nested": {}
+                          },
+                          "hierarchy": {
+                            "filter": {
+                              "bool": {
+                                "must": [
+                                  {
+                                    "term": {
+                                      "claims.rel.sub.rel.claimType": {
+                                        "value": "ref"
+                                      }
+                                    }
+                                  }
+                                ],
+                                "must_not": [
+                                  {
+                                    "term": {
+                                      "claims.rel.sub.rel.isLeaf": {
+                                        "value": true
+                                      }
+                                    }
+                                  }
+                                ]
+                              }
+                            }
+                          },
+                          "valueless": {
+                            "aggregations": {
+                              "docs": {
+                                "reverse_nested": {}
+                              }
+                            },
+                            "filter": {
+                              "bool": {
+                                "must_not": [
+                                  {
+                                    "term": {
+                                      "claims.rel.sub.rel.claimType": {
+                                        "value": "ref"
+                                      }
+                                    }
+                                  }
+                                ]
+                              }
+                            }
+                          }
+                        },
+                        "terms": {
+                          "field": "claims.rel.sub.rel.prop",
+                          "order": {
+                            "docs": "desc"
+                          },
+                          "size": 1000
+                        }
+                      }
+                    },
+                    "filter": {
+                      "bool": {}
+                    }
                   }
                 },
-                "terms": {
-                  "field": "claims.rel.sub.rel.prop",
-                  "order": {
-                    "docs": "desc"
-                  },
-                  "size": 1000
+                "nested": {
+                  "path": "claims.rel.sub.rel"
                 }
-              }
-            },
-            "nested": {
-              "path": "claims.rel.sub.rel"
-            }
-          },
-          "subTime": {
-            "aggregations": {
-              "props": {
+              },
+              "subTime": {
                 "aggregations": {
-                  "docs": {
-                    "reverse_nested": {}
+                  "scoped": {
+                    "aggregations": {
+                      "props": {
+                        "aggregations": {
+                          "docs": {
+                            "reverse_nested": {}
+                          }
+                        },
+                        "terms": {
+                          "field": "claims.rel.sub.time.prop",
+                          "order": {
+                            "docs": "desc"
+                          },
+                          "size": 1000
+                        }
+                      }
+                    },
+                    "filter": {
+                      "bool": {}
+                    }
                   }
                 },
-                "terms": {
-                  "field": "claims.rel.sub.time.prop",
-                  "order": {
-                    "docs": "desc"
-                  },
-                  "size": 1000
+                "nested": {
+                  "path": "claims.rel.sub.time"
                 }
               }
             },
-            "nested": {
-              "path": "claims.rel.sub.time"
+            "terms": {
+              "field": "claims.rel.prop",
+              "size": 1000
             }
           }
         },
-        "terms": {
-          "field": "claims.rel.prop",
-          "size": 1000
+        "filter": {
+          "bool": {}
         }
       }
     },
@@ -897,89 +1087,49 @@
   },
   "sub:string": {
     "aggregations": {
-      "parents": {
+      "scoped": {
         "aggregations": {
-          "subAmount": {
+          "parents": {
             "aggregations": {
-              "props": {
+              "subAmount": {
                 "aggregations": {
-                  "docs": {
-                    "reverse_nested": {}
-                  }
-                },
-                "multi_terms": {
-                  "order": {
-                    "docs": "desc"
-                  },
-                  "size": 1000,
-                  "terms": [
-                    {
-                      "field": "claims.string.sub.amount.prop"
+                  "scoped": {
+                    "aggregations": {
+                      "props": {
+                        "aggregations": {
+                          "docs": {
+                            "reverse_nested": {}
+                          }
+                        },
+                        "multi_terms": {
+                          "order": {
+                            "docs": "desc"
+                          },
+                          "size": 1000,
+                          "terms": [
+                            {
+                              "field": "claims.string.sub.amount.prop"
+                            },
+                            {
+                              "field": "claims.string.sub.amount.unit",
+                              "missing": "__missing__"
+                            }
+                          ]
+                        }
+                      }
                     },
-                    {
-                      "field": "claims.string.sub.amount.unit",
-                      "missing": "__missing__"
+                    "filter": {
+                      "bool": {}
                     }
-                  ]
-                }
-              }
-            },
-            "nested": {
-              "path": "claims.string.sub.amount"
-            }
-          },
-          "subRel": {
-            "aggregations": {
-              "pooledHasDocs": {
-                "aggregations": {
-                  "docs": {
-                    "reverse_nested": {}
                   }
                 },
-                "filter": {
-                  "term": {
-                    "claims.string.sub.rel.claimType": {
-                      "value": "has"
-                    }
-                  }
+                "nested": {
+                  "path": "claims.string.sub.amount"
                 }
               },
-              "props": {
+              "subRel": {
                 "aggregations": {
-                  "claimTypes": {
-                    "terms": {
-                      "field": "claims.string.sub.rel.claimType",
-                      "size": 4
-                    }
-                  },
-                  "docs": {
-                    "reverse_nested": {}
-                  },
-                  "hierarchy": {
-                    "filter": {
-                      "bool": {
-                        "must": [
-                          {
-                            "term": {
-                              "claims.string.sub.rel.claimType": {
-                                "value": "ref"
-                              }
-                            }
-                          }
-                        ],
-                        "must_not": [
-                          {
-                            "term": {
-                              "claims.string.sub.rel.isLeaf": {
-                                "value": true
-                              }
-                            }
-                          }
-                        ]
-                      }
-                    }
-                  },
-                  "valueless": {
+                  "pooledHasDocs": {
                     "aggregations": {
                       "docs": {
                         "reverse_nested": {}
@@ -987,57 +1137,131 @@
                     },
                     "filter": {
                       "bool": {
-                        "must_not": [
+                        "must": [
                           {
                             "term": {
                               "claims.string.sub.rel.claimType": {
-                                "value": "ref"
+                                "value": "has"
                               }
                             }
                           }
                         ]
                       }
                     }
+                  },
+                  "scoped": {
+                    "aggregations": {
+                      "props": {
+                        "aggregations": {
+                          "claimTypes": {
+                            "terms": {
+                              "field": "claims.string.sub.rel.claimType",
+                              "size": 4
+                            }
+                          },
+                          "docs": {
+                            "reverse_nested": {}
+                          },
+                          "hierarchy": {
+                            "filter": {
+                              "bool": {
+                                "must": [
+                                  {
+                                    "term": {
+                                      "claims.string.sub.rel.claimType": {
+                                        "value": "ref"
+                                      }
+                                    }
+                                  }
+                                ],
+                                "must_not": [
+                                  {
+                                    "term": {
+                                      "claims.string.sub.rel.isLeaf": {
+                                        "value": true
+                                      }
+                                    }
+                                  }
+                                ]
+                              }
+                            }
+                          },
+                          "valueless": {
+                            "aggregations": {
+                              "docs": {
+                                "reverse_nested": {}
+                              }
+                            },
+                            "filter": {
+                              "bool": {
+                                "must_not": [
+                                  {
+                                    "term": {
+                                      "claims.string.sub.rel.claimType": {
+                                        "value": "ref"
+                                      }
+                                    }
+                                  }
+                                ]
+                              }
+                            }
+                          }
+                        },
+                        "terms": {
+                          "field": "claims.string.sub.rel.prop",
+                          "order": {
+                            "docs": "desc"
+                          },
+                          "size": 1000
+                        }
+                      }
+                    },
+                    "filter": {
+                      "bool": {}
+                    }
                   }
                 },
-                "terms": {
-                  "field": "claims.string.sub.rel.prop",
-                  "order": {
-                    "docs": "desc"
-                  },
-                  "size": 1000
+                "nested": {
+                  "path": "claims.string.sub.rel"
                 }
-              }
-            },
-            "nested": {
-              "path": "claims.string.sub.rel"
-            }
-          },
-          "subTime": {
-            "aggregations": {
-              "props": {
+              },
+              "subTime": {
                 "aggregations": {
-                  "docs": {
-                    "reverse_nested": {}
+                  "scoped": {
+                    "aggregations": {
+                      "props": {
+                        "aggregations": {
+                          "docs": {
+                            "reverse_nested": {}
+                          }
+                        },
+                        "terms": {
+                          "field": "claims.string.sub.time.prop",
+                          "order": {
+                            "docs": "desc"
+                          },
+                          "size": 1000
+                        }
+                      }
+                    },
+                    "filter": {
+                      "bool": {}
+                    }
                   }
                 },
-                "terms": {
-                  "field": "claims.string.sub.time.prop",
-                  "order": {
-                    "docs": "desc"
-                  },
-                  "size": 1000
+                "nested": {
+                  "path": "claims.string.sub.time"
                 }
               }
             },
-            "nested": {
-              "path": "claims.string.sub.time"
+            "terms": {
+              "field": "claims.string.prop",
+              "size": 1000
             }
           }
         },
-        "terms": {
-          "field": "claims.string.prop",
-          "size": 1000
+        "filter": {
+          "bool": {}
         }
       }
     },
@@ -1047,89 +1271,49 @@
   },
   "sub:time": {
     "aggregations": {
-      "parents": {
+      "scoped": {
         "aggregations": {
-          "subAmount": {
+          "parents": {
             "aggregations": {
-              "props": {
+              "subAmount": {
                 "aggregations": {
-                  "docs": {
-                    "reverse_nested": {}
-                  }
-                },
-                "multi_terms": {
-                  "order": {
-                    "docs": "desc"
-                  },
-                  "size": 1000,
-                  "terms": [
-                    {
-                      "field": "claims.time.sub.amount.prop"
+                  "scoped": {
+                    "aggregations": {
+                      "props": {
+                        "aggregations": {
+                          "docs": {
+                            "reverse_nested": {}
+                          }
+                        },
+                        "multi_terms": {
+                          "order": {
+                            "docs": "desc"
+                          },
+                          "size": 1000,
+                          "terms": [
+                            {
+                              "field": "claims.time.sub.amount.prop"
+                            },
+                            {
+                              "field": "claims.time.sub.amount.unit",
+                              "missing": "__missing__"
+                            }
+                          ]
+                        }
+                      }
                     },
-                    {
-                      "field": "claims.time.sub.amount.unit",
-                      "missing": "__missing__"
+                    "filter": {
+                      "bool": {}
                     }
-                  ]
-                }
-              }
-            },
-            "nested": {
-              "path": "claims.time.sub.amount"
-            }
-          },
-          "subRel": {
-            "aggregations": {
-              "pooledHasDocs": {
-                "aggregations": {
-                  "docs": {
-                    "reverse_nested": {}
                   }
                 },
-                "filter": {
-                  "term": {
-                    "claims.time.sub.rel.claimType": {
-                      "value": "has"
-                    }
-                  }
+                "nested": {
+                  "path": "claims.time.sub.amount"
                 }
               },
-              "props": {
+              "subRel": {
                 "aggregations": {
-                  "claimTypes": {
-                    "terms": {
-                      "field": "claims.time.sub.rel.claimType",
-                      "size": 4
-                    }
-                  },
-                  "docs": {
-                    "reverse_nested": {}
-                  },
-                  "hierarchy": {
-                    "filter": {
-                      "bool": {
-                        "must": [
-                          {
-                            "term": {
-                              "claims.time.sub.rel.claimType": {
-                                "value": "ref"
-                              }
-                            }
-                          }
-                        ],
-                        "must_not": [
-                          {
-                            "term": {
-                              "claims.time.sub.rel.isLeaf": {
-                                "value": true
-                              }
-                            }
-                          }
-                        ]
-                      }
-                    }
-                  },
-                  "valueless": {
+                  "pooledHasDocs": {
                     "aggregations": {
                       "docs": {
                         "reverse_nested": {}
@@ -1137,57 +1321,131 @@
                     },
                     "filter": {
                       "bool": {
-                        "must_not": [
+                        "must": [
                           {
                             "term": {
                               "claims.time.sub.rel.claimType": {
-                                "value": "ref"
+                                "value": "has"
                               }
                             }
                           }
                         ]
                       }
                     }
+                  },
+                  "scoped": {
+                    "aggregations": {
+                      "props": {
+                        "aggregations": {
+                          "claimTypes": {
+                            "terms": {
+                              "field": "claims.time.sub.rel.claimType",
+                              "size": 4
+                            }
+                          },
+                          "docs": {
+                            "reverse_nested": {}
+                          },
+                          "hierarchy": {
+                            "filter": {
+                              "bool": {
+                                "must": [
+                                  {
+                                    "term": {
+                                      "claims.time.sub.rel.claimType": {
+                                        "value": "ref"
+                                      }
+                                    }
+                                  }
+                                ],
+                                "must_not": [
+                                  {
+                                    "term": {
+                                      "claims.time.sub.rel.isLeaf": {
+                                        "value": true
+                                      }
+                                    }
+                                  }
+                                ]
+                              }
+                            }
+                          },
+                          "valueless": {
+                            "aggregations": {
+                              "docs": {
+                                "reverse_nested": {}
+                              }
+                            },
+                            "filter": {
+                              "bool": {
+                                "must_not": [
+                                  {
+                                    "term": {
+                                      "claims.time.sub.rel.claimType": {
+                                        "value": "ref"
+                                      }
+                                    }
+                                  }
+                                ]
+                              }
+                            }
+                          }
+                        },
+                        "terms": {
+                          "field": "claims.time.sub.rel.prop",
+                          "order": {
+                            "docs": "desc"
+                          },
+                          "size": 1000
+                        }
+                      }
+                    },
+                    "filter": {
+                      "bool": {}
+                    }
                   }
                 },
-                "terms": {
-                  "field": "claims.time.sub.rel.prop",
-                  "order": {
-                    "docs": "desc"
-                  },
-                  "size": 1000
+                "nested": {
+                  "path": "claims.time.sub.rel"
                 }
-              }
-            },
-            "nested": {
-              "path": "claims.time.sub.rel"
-            }
-          },
-          "subTime": {
-            "aggregations": {
-              "props": {
+              },
+              "subTime": {
                 "aggregations": {
-                  "docs": {
-                    "reverse_nested": {}
+                  "scoped": {
+                    "aggregations": {
+                      "props": {
+                        "aggregations": {
+                          "docs": {
+                            "reverse_nested": {}
+                          }
+                        },
+                        "terms": {
+                          "field": "claims.time.sub.time.prop",
+                          "order": {
+                            "docs": "desc"
+                          },
+                          "size": 1000
+                        }
+                      }
+                    },
+                    "filter": {
+                      "bool": {}
+                    }
                   }
                 },
-                "terms": {
-                  "field": "claims.time.sub.time.prop",
-                  "order": {
-                    "docs": "desc"
-                  },
-                  "size": 1000
+                "nested": {
+                  "path": "claims.time.sub.time"
                 }
               }
             },
-            "nested": {
-              "path": "claims.time.sub.time"
+            "terms": {
+              "field": "claims.time.prop",
+              "size": 1000
             }
           }
         },
-        "terms": {
-          "field": "claims.time.prop",
-          "size": 1000
+        "filter": {
+          "bool": {}
         }
       }
     },
@@ -1197,18 +1455,25 @@
   },
   "time": {
     "aggregations": {
-      "props": {
+      "scoped": {
         "aggregations": {
-          "docs": {
-            "reverse_nested": {}
+          "props": {
+            "aggregations": {
+              "docs": {
+                "reverse_nested": {}
+              }
+            },
+            "terms": {
+              "field": "claims.time.prop",
+              "order": {
+                "docs": "desc"
+              },
+              "size": 1000
+            }
           }
         },
-        "terms": {
-          "field": "claims.time.prop",
-          "order": {
-            "docs": "desc"
-          },
-          "size": 1000
+        "filter": {
+          "bool": {}
         }
       }
     },

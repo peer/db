@@ -22,7 +22,7 @@ func TestRangeFloatValidate(t *testing.T) {
 			LessThan:           &lt,
 		}
 		errE := r.Validate()
-		assert.NoError(t, errE)
+		require.NoError(t, errE, "% -+#.1v", errE)
 	})
 
 	t.Run("valid gt lte", func(t *testing.T) {
@@ -34,7 +34,7 @@ func TestRangeFloatValidate(t *testing.T) {
 			LessThanOrEqual: &lte,
 		}
 		errE := r.Validate()
-		assert.NoError(t, errE)
+		require.NoError(t, errE, "% -+#.1v", errE)
 	})
 
 	t.Run("both gt and gte", func(t *testing.T) {

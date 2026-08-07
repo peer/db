@@ -9,6 +9,7 @@ import (
 	"gitlab.com/tozd/identifier"
 
 	"gitlab.com/peerdb/peerdb/document"
+	internalSearch "gitlab.com/peerdb/peerdb/internal/search"
 	"gitlab.com/peerdb/peerdb/store"
 )
 
@@ -25,7 +26,7 @@ func (b *B) TestingDocumentsForLevel(ctx context.Context, level string, document
 
 // TestingInverseRelations exposes the bridge-maintained inverse relations for the document with the given id,
 // grouped by visibility level.
-func (b *B) TestingInverseRelations(ctx context.Context, id identifier.Identifier) (map[string][]store.InverseRelation, errors.E) {
+func (b *B) TestingInverseRelations(ctx context.Context, id identifier.Identifier) (map[string][]internalSearch.InverseRelation, errors.E) {
 	return b.bridge.InverseRelations(ctx, id)
 }
 

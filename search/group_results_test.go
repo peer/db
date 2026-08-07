@@ -46,14 +46,16 @@ func flatRef(prop, to identifier.Identifier, disp string) internalSearch.RelClai
 // takes the ID directly instead of hashing a seed string.
 func idClaimsDoc(id identifier.Identifier, claims internalSearch.ClaimTypes) internalSearch.Document {
 	return internalSearch.Document{
-		ID:          id,
-		Display:     nil,
-		DisplaySort: nil,
-		Text:        nil,
-		Time:        nil,
-		LastUpdated: nil,
-		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
-		Claims:      claims,
+		ID:              id,
+		Display:         nil,
+		DisplaySort:     nil,
+		Text:            nil,
+		Time:            nil,
+		LastUpdated:     nil,
+		Counts:          internalSearch.Counts{References: nil, Claims: nil, Score: nil},
+		Claims:          claims,
+		ReadableByRoles: nil,
+		ReadableByUsers: nil,
 	}
 }
 

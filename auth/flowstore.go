@@ -104,6 +104,9 @@ func (s *flowStore) BeginFlow(ctx context.Context, state string, fs flowState) e
 func (s *flowStore) ConsumeFlow(ctx context.Context, state string) (flowState, errors.E) {
 	var fs flowState
 	errE := internalStore.RetryTransaction(ctx, s.DBPool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
+		// Initialize in the case transaction is retried.
+		fs = flowState{}
+
 		row := tx.QueryRow(ctx, `
 			DELETE FROM "AuthFlows"
 			WHERE "state" = $1 AND "expiresAt" > now()

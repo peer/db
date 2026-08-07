@@ -18,6 +18,7 @@ import ClaimValue from "@/partials/ClaimValue.vue"
 import DisplayLabel from "@/partials/DisplayLabel.vue"
 import FiltersResult from "@/partials/FiltersResult.vue"
 import Footer from "@/partials/Footer.vue"
+import ListFormat from "@/partials/ListFormat.vue"
 import SearchResultsHeader from "@/partials/SearchResultsHeader.vue"
 import { useBusy } from "@/progress"
 import { getSearchHeaderComponents } from "@/registry/search-header"
@@ -181,8 +182,6 @@ onBeforeUnmount(() => {
   window.removeEventListener("scroll", onScroll)
 })
 
-const WithDocumentD = WithDocument<D>
-
 const { track: trackTruncation, truncated } = useTruncationTracking()
 
 const expandedRows = ref(new Map<string, Set<string>>())
@@ -240,6 +239,8 @@ function onCloseFilterModal() {
 
   activeFilter.value = null
 }
+
+const WithDocumentD = WithDocument<D>
 </script>
 
 <template>
@@ -379,10 +380,9 @@ function onCloseFilterModal() {
                             </Button>
                           </div>
 
-                          <template v-for="(claim, cIndex) in getClaimsOfTypeWithConfidence(doc.claims, filter.type, filter.props?.[0] ?? '')" :key="claim.id">
-                            <template v-if="cIndex !== 0">, </template>
-                            <ClaimValue :type="filter.type" :claim="claim" />
-                          </template>
+                          <LocalScope v-slot="{ claims }" :claims="getClaimsOfTypeWithConfidence(doc.claims, filter.type, filter.props?.[0] ?? '')">
+                            <ListFormat v-slot="{ index: claimIndex }" :count="claims.length"><ClaimValue :type="filter.type" :claim="claims[claimIndex]" /></ListFormat>
+                          </LocalScope>
                         </div>
                       </LocalScope>
                     </td>

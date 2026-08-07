@@ -21,7 +21,7 @@ import type { DeepReadonly } from "vue"
 
 import type { Claim } from "@/document"
 import type { FieldData } from "@/fields"
-import type { InputColumn, Result, SaveChangeResult, SaveChangeSpec, ValidatedInput } from "@/types"
+import type { InputColumn, Result, SaveChangeResult, SaveChangeSpec, ValidatedInput, ValidationError } from "@/types"
 
 import { computed, nextTick, onBeforeMount, onBeforeUnmount, onMounted, provide, ref, shallowReactive, shallowRef, useTemplateRef, watch } from "vue"
 import { useI18n } from "vue-i18n"
@@ -29,7 +29,7 @@ import { useRouter } from "vue-router"
 
 import { postJSON } from "@/api"
 import { claimPatchFrom, claimTypeName } from "@/document"
-import { fieldIsRequired, getClaimValues, getFieldInstructions, makePatchForField, valueTypeToClaimType } from "@/fields"
+import { fieldIsRequired, getClaimValues, getFieldInstructions, makePatchForField, requiresDistinctValues, valueTypeToClaimType } from "@/fields"
 import ClaimInput from "@/partials/ClaimInput.vue"
 import ClaimRefSelect from "@/partials/ClaimRefSelect.vue"
 import DocumentRefInline from "@/partials/DocumentRefInline.vue"
@@ -43,7 +43,7 @@ import { ArrowPathSingleCounterclockwiseIcon } from "@sidekickicons/vue/20/solid
 
 import { inject as injectFn } from "vue"
 
-import { ChangeDroppedError, fieldLabelCellKey, registerRemoteAddsKey, saveChangeKey, unregisterRemoteAddsKey } from "@/fields"
+import { ChangeDroppedError, duplicateClaimIds, fieldLabelCellKey, registerRemoteAddsKey, saveChangeKey, takenValuesKey, unregisterRemoteAddsKey } from "@/fields"
 
 const props = withDefaults(
   defineProps<{
@@ -313,8 +313,57 @@ const {
   firstInputEl: firstChildInputEl,
 } = useValidationRegistry(() => {
   reconcileSlots()
+  duplicateIds.value = new Set()
   forwardInteraction?.()
 })
+
+// The claims which repeat one before them, found on the final (Save) pass and shown until the field
+// is touched again: a value being typed passes through states which repeat another one, and the user
+// is not to be told about it until they say they are done. Every claim of the field is compared, so
+// a sub-field's duplicates are found by the sub-field's own cardinality, not by its parent's, and
+// only where the user can enter one at all (see duplicatesPossible).
+const duplicateIds = shallowRef<ReadonlySet<string>>(new Set())
+
+// The values the field's entries hold, offered to the inputs so a field which cannot repeat a value
+// does not offer one it already has. It is the committed state, so a value the user is still typing
+// is not among them yet; picking from a list commits at once, which is where this matters.
+const takenValues = computed<ReadonlySet<string>>(() => {
+  if (!requiresDistinctValues(props.field)) {
+    return new Set()
+  }
+  const values = new Set<string>()
+  for (const claim of props.modelValue) {
+    const value = getClaimValues(claim).value
+    if (value !== "") {
+      values.add(value)
+    }
+  }
+  return values
+})
+provide(takenValuesKey, () => takenValues.value)
+
+// The complaint every slot holding one of the duplicates is handed: they are equally the duplicate,
+// so each of them shows it where its own errors are shown, and each of them is red.
+const duplicateErrors = computed<ValidationError[]>(() =>
+  duplicateIds.value.size > 0 ? [{ code: "duplicate", el: firstChildInputEl() ?? rootRef.value ?? undefined }] : [],
+)
+
+// slotErrors are the errors of the slot's claim: the duplicate complaint when its claim says the
+// same as another entry's, nothing otherwise.
+function slotErrors(slot: { claim: DeepReadonly<Claim> | null }): ValidationError[] {
+  return slot.claim !== null && duplicateIds.value.has(slot.claim.id) ? duplicateErrors.value : []
+}
+
+// Whether the user can enter a duplicate at all, which is what makes looking for one worth it. A
+// field's slots each hold their own claim, so two of them can end up saying the same thing; select
+// mode instead has one control per option and no way to select an option twice (see ClaimRefSelect),
+// so a duplicate there can only have come from outside the editor. Complaining about those would
+// block the save over claims the user did not make, cannot see (the option is simply selected) and
+// cannot clear except by chance. The mode has to be resolved first: an eligible field has no slots
+// yet and it is not known which of the two it will be.
+const duplicatesPossible = computed<boolean>(() => modeResolved.value && refOptions.value === null)
+
+const childErrors = allErrors(childInputs)
 
 // slotInputs maps a slot key to the ClaimInput's exposed object (we use it
 // to read each slot's isEmpty and to call its revert()). Set via the
@@ -701,6 +750,9 @@ const validatedInput: ValidatedInput = {
   // error of our own.
   validate: async (signal, options) => {
     await validateChildAll(signal, options)
+    // Only the final pass (Save) complains about duplicates: every other pass runs while the user is
+    // still working, and their next keystroke may be what makes the values differ again.
+    duplicateIds.value = options?.final && duplicatesPossible.value ? duplicateClaimIds(props.modelValue, props.field) : new Set()
   },
   reset: () => {
     resetChildAll()
@@ -727,7 +779,7 @@ const validatedInput: ValidatedInput = {
   mainEl: () => rootRef.value,
   isDirty,
   isEmpty: allChildEmpty,
-  errors: allErrors(childInputs),
+  errors: computed<ValidationError[]>(() => [...duplicateErrors.value, ...childErrors.value]),
   checkpoint: () => {
     // Move the baseline forward to the current claims (mirroring what
     // <DocumentEdit> does after Save). Cascade child checkpoints so each
@@ -843,7 +895,9 @@ onBeforeUnmount(() => {
     slot is changed, else neutral. The invalid/focus overrides are CSS variants
     with higher specificity than the changed/neutral base, so invalid > focus >
     changed. focus-within / has(aria-invalid) / the aggregated dirty all bubble
-    up, so the colour forms a path down the nested rails to the field.
+    up, so the colour forms a path down the nested rails to the field. An entry
+    whose error is about the entry as a whole (the duplicate complaint) has the
+    slot itself marked invalid, so it takes that same path (see ClaimInput).
 
     The sub-field header (the field label + whole-field badge, shown only via
     showHeader) sits left-aligned above the slots with mb-4 and the same pl-4 as
@@ -946,6 +1000,7 @@ onBeforeUnmount(() => {
             :field="field"
             :parent-claim-id="parentClaimId"
             :invalid="invalid"
+            :errors="slotErrors(slot)"
             :required="designated[idx]"
             :readonly="readonly"
             :label-id="labelId"
@@ -977,6 +1032,7 @@ onBeforeUnmount(() => {
           :field="field"
           :parent-claim-id="parentClaimId"
           :invalid="invalid"
+          :errors="slotErrors(slot)"
           :required="designated[idx]"
           :readonly="readonly"
           :label-id="labelId"

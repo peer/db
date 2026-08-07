@@ -1,7 +1,7 @@
 import { Identifier } from "@tozd/identifier"
 import { assert, expect, test } from "vitest"
 
-import { Changes, D, NoneClaim, StringClaim, UnknownClaim } from "@/document"
+import { Changes, D, LowConfidence, NoneClaim, StringClaim, UnknownClaim } from "@/document"
 
 test("Document lifecycle", () => {
   const prop = Identifier.new().toString()
@@ -212,6 +212,30 @@ test("Document SizeWithSub", () => {
   // Recursive: top + sub1 + deepSub + sub2.
   assert.equal(doc.SizeWithSub(), 4)
   assert.equal(doc.claims.AllClaimsWithSub().length, 4)
+})
+
+test("Document SizeWithSubWithConfidence", () => {
+  const prop = Identifier.new().toString()
+
+  const doc = new D({ id: Identifier.new().toString(), base: ["base"] })
+
+  // The same shape as in "Document SizeWithSub", but sub1 is below low confidence, so it and its
+  // deep sub-claim are pruned: only top and sub2 count.
+  const deepSub = new StringClaim({ id: Identifier.new().toString(), confidence: 1.0, prop: { id: prop }, string: "deep" })
+  const sub1 = new StringClaim({ id: Identifier.new().toString(), confidence: LowConfidence / 2, prop: { id: prop }, string: "sub1" })
+  sub1.Add(deepSub)
+  const sub2 = new NoneClaim({ id: Identifier.new().toString(), confidence: LowConfidence, prop: { id: prop } })
+  const top = new StringClaim({ id: Identifier.new().toString(), confidence: 1.0, prop: { id: prop }, string: "top" })
+  top.Add(sub1)
+  top.Add(sub2)
+  doc.Add(top)
+
+  // All claims count without the confidence gate.
+  assert.equal(doc.SizeWithSub(), 4)
+  // With the gate, sub1 and its subtree are pruned: top + sub2. The confidence defaults to
+  // LowConfidence, so both calls agree.
+  assert.equal(doc.SizeWithSubWithConfidence(LowConfidence), 2)
+  assert.equal(doc.SizeWithSubWithConfidence(), 2)
 })
 
 test("Document Validate", async () => {

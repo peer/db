@@ -6,6 +6,10 @@ defineProps<{
   required?: boolean
   multiple?: boolean
   changed?: boolean
+  // Suppress the changed/revert badge, for a label with no editing state behind it: the badge is
+  // rendered even when nothing has changed (to reserve its width, see below), so without such a state
+  // it would only ever take up space.
+  hideChanged?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -37,6 +41,7 @@ const { t } = useI18n({ useScope: "global" })
     sub-field headers) the query never matches and the full badge shows.
   -->
   <button
+    v-if="!hideChanged"
     type="button"
     :title="t('common.buttons.revert')"
     class="flex flex-row items-center gap-1 rounded-xs bg-primary-300 px-1.5 py-0.5 text-xs leading-none text-gray-100 shadow-xs outline-none hover:cursor-pointer hover:bg-primary-400 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 active:bg-primary-500 @max-[12rem]/labels:px-0.5"

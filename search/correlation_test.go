@@ -271,7 +271,7 @@ func TestParentMissingEmptiesSubFacetsIntegration(t *testing.T) {
 		Filters: []search.Filter{locationMissing},
 	})
 
-	results, _, errE := search.FiltersGet(ctx, getSearchService, session, nil, "")
+	results, _, errE := search.FiltersGet(ctx, getSearchService, session, nil, "", nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	subFacetProps := []string{locationProp.String(), artistProp.String()}
 	for _, r := range results {
@@ -289,7 +289,7 @@ func TestParentMissingEmptiesSubFacetsIntegration(t *testing.T) {
 		},
 	})
 
-	results, _, errE = search.FiltersGet(ctx, getSearchService, activeSession, nil, "")
+	results, _, errE = search.FiltersGet(ctx, getSearchService, activeSession, nil, "", nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	activeID := activeSession.Filters[1].ID.String()
 	found := false

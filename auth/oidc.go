@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/go-cleanhttp"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"gitlab.com/tozd/go/errors"
+	"gitlab.com/tozd/go/x"
 	"golang.org/x/oauth2"
 )
 
@@ -35,7 +36,6 @@ var signInScopes = []string{ //nolint:gochecknoglobals
 type OIDCAuthenticator struct {
 	baseAuthenticator
 
-	issuer             string
 	clientID           string
 	httpClient         *http.Client
 	oauth              *oauth2.Config
@@ -45,6 +45,10 @@ type OIDCAuthenticator struct {
 
 // NewOIDCAuthenticator creates an Authenticator that uses OIDC discovery to
 // fetch keys from issuer.
+//
+// organization is the issuer-side organization the site's users belong to, used to look up users
+// other than the caller (see Identity). It is optional: without it such lookups fail, and the site
+// then knows nothing about a user beyond what their own requests carry.
 //
 // clientID is the expected audience of presented access tokens.
 // clientSecret authenticates the backend during the authorization-code exchange
@@ -58,7 +62,7 @@ type OIDCAuthenticator struct {
 // shutdown hook because the underlying client uses idle connection pooling
 // that releases resources passively.
 func NewOIDCAuthenticator(
-	ctx context.Context, dbpool *pgxpool.Pool, issuer, clientID, clientSecretPath string, redirectURI func() string,
+	ctx context.Context, dbpool *pgxpool.Pool, issuer, organization, clientID, clientSecretPath string, redirectURI func() string,
 ) (*OIDCAuthenticator, errors.E) {
 	if issuer == "" {
 		return nil, errors.New("issuer is required")
@@ -123,14 +127,13 @@ func NewOIDCAuthenticator(
 
 	return &OIDCAuthenticator{
 		baseAuthenticator: baseAuthenticator{
-			tokenVerifier: provider.Verifier(&oidc.Config{ //nolint:exhaustruct
+			TokenVerifier: provider.Verifier(&oidc.Config{ //nolint:exhaustruct
 				ClientID: clientID,
 			}),
-			userInfoCache:   newUserInfoCache(discovered.UserInfoEndpoint, client),
-			flowStore:       fs,
-			revocationStore: rs,
+			UserInfoCache:   newUserInfoCache(fetchUserInfo(discovered.UserInfoEndpoint, client), fetchIdentity(issuer, organization, client)),
+			FlowStore:       fs,
+			RevocationStore: rs,
 		},
-		issuer:             issuer,
 		clientID:           clientID,
 		httpClient:         client,
 		revocationEndpoint: discovered.RevocationEndpoint,
@@ -148,12 +151,12 @@ func NewOIDCAuthenticator(
 
 // SignIn begins an authorization-code flow against the configured issuer.
 func (a *OIDCAuthenticator) SignIn(ctx context.Context, redirect, uiLocales string) (string, errors.E) {
-	return signInFlow(ctx, a.flowStore, redirect, uiLocales, a.authCodeURL)
+	return signInFlow(ctx, a.FlowStore, redirect, uiLocales, a.authCodeURL)
 }
 
 // Callback finishes an authorization-code flow.
-func (a *OIDCAuthenticator) Callback(ctx context.Context, values url.Values) (string, time.Time, string, errors.E) {
-	return callbackFlow(ctx, a.flowStore, values, a.exchangeCode)
+func (a *OIDCAuthenticator) Callback(ctx context.Context, values url.Values, allowedRoles map[string]RoleGrants) (string, time.Time, string, errors.E) {
+	return callbackFlow(ctx, a.FlowStore, values, allowedRoles, a.exchangeCode)
 }
 
 // TODO: Consider invoking also the issuer-side session using RP-Initiated Logout (end_session_endpoint).
@@ -170,7 +173,153 @@ func (a *OIDCAuthenticator) Callback(ctx context.Context, values url.Values) (st
 // already succeeded and SignOut returns nil. The user is signed out for
 // us regardless of whether the issuer cooperates.
 func (a *OIDCAuthenticator) SignOut(w http.ResponseWriter, req *http.Request) errors.E {
-	return signOutFlow(w, req, a.tokenVerifier, a.revocationStore, a.revokeUpstream)
+	return signOutFlow(w, req, a.TokenVerifier, a.RevocationStore, a.revokeUpstream)
+}
+
+// charonIdentityPath builds the path of the issuer's endpoint describing one user of the
+// organization, given the organization and the user's (organization-scoped) subject.
+//
+// TODO: Support issuers other than Charon.
+//
+//	Looking up a user other than the caller is not part of OpenID Connect: its userinfo endpoint
+//	describes the caller alone. Charon exposes the organization's users through this endpoint,
+//	readable by any user of the same organization, but another issuer needs its own way (SCIM,
+//	say), so this should become a configured URL template with per-issuer response mapping.
+func charonIdentityPath(organization, subject string) string {
+	return "/api/o/identity/" + url.PathEscape(organization) + "/" + url.PathEscape(subject)
+}
+
+// fetchUserInfo builds the lookup of the user a token belongs to which the userinfo cache misses on:
+// a call to the issuer's userinfo endpoint with the token as the credential. An issuer which does not
+// advertise the endpoint leaves the site with nothing to ask, which every lookup then says.
+//
+// The subject looked up is not part of the request, because the endpoint describes the holder of the
+// token and nobody else; it is the response which says who that is.
+//
+// The HTTP client should be pooled so JWKS refreshes and userinfo lookups share connections.
+func fetchUserInfo(endpoint string, client *http.Client) func(ctx context.Context, subject, token string) (userInfo, errors.E) {
+	return func(ctx context.Context, _, token string) (userInfo, errors.E) {
+		if endpoint == "" {
+			return userInfo{}, errors.New("userinfo endpoint not configured")
+		}
+
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
+		if err != nil {
+			return userInfo{}, errors.WithStack(err)
+		}
+		req.Header.Set("Authorization", "Bearer "+token)
+		req.Header.Set("Accept", "application/json")
+
+		resp, err := client.Do(req)
+		if err != nil {
+			return userInfo{}, errors.WithStack(err)
+		}
+		defer resp.Body.Close()              //nolint:errcheck
+		defer io.Copy(io.Discard, resp.Body) //nolint:errcheck
+
+		if resp.StatusCode != http.StatusOK {
+			body, _ := io.ReadAll(resp.Body)
+			errE := errors.New("userinfo request failed")
+			errors.Details(errE)["status"] = resp.StatusCode
+			errors.Details(errE)["body"] = strings.TrimSpace(string(body))
+			return userInfo{}, errE
+		}
+
+		var payload struct {
+			Sub               string `json:"sub"`
+			PreferredUsername string `json:"preferred_username"` //nolint:tagliatelle
+			Name              string `json:"name"`
+			GivenName         string `json:"given_name"` //nolint:tagliatelle
+		}
+		// We accept extra fields silently.
+		errE := x.DecodeJSON(resp.Body, &payload)
+		if errE != nil {
+			return userInfo{}, errE
+		}
+		return userInfo{Subject: payload.Sub, Username: pickUsername(payload.PreferredUsername, payload.GivenName, payload.Name), Roles: nil}, nil
+	}
+}
+
+// pickUsername is the name a user is known by: the username the issuer gives them, or a name it gives
+// instead, the given name before the full name, because an issuer which knows no username for a user
+// (or does not tell it) still names them better than their subject does.
+func pickUsername(username, givenName, fullName string) string {
+	if username != "" {
+		return username
+	}
+	if givenName != "" {
+		return givenName
+	}
+	return fullName
+}
+
+// fetchIdentity builds the lookup of a user other than the caller which the userinfo cache misses on:
+// a call to the issuer's endpoint for one user of the organization, with the caller's access token as
+// the credential, so the issuer decides what a caller may learn. It is readable by any user of the
+// organization and describes a user the same way to each of them, which is what caching the answer
+// assumes (see userInfoCache).
+//
+// A subject the issuer does not describe to this caller is reported as not found, so that a caller
+// cannot tell "no such user" from "not for you". Without a configured organization there is no such
+// endpoint to call, which every lookup then says.
+func fetchIdentity(issuer, organization string, client *http.Client) func(ctx context.Context, subject, token string) (userInfo, errors.E) {
+	return func(ctx context.Context, subject, token string) (userInfo, errors.E) {
+		if organization == "" {
+			errE := errors.New("organization is not configured")
+			errors.Details(errE)["subject"] = subject
+			return userInfo{}, errE
+		}
+
+		endpoint, err := url.JoinPath(issuer, charonIdentityPath(organization, subject))
+		if err != nil {
+			return userInfo{}, errors.WithStack(err)
+		}
+
+		// The URL is the site's configured issuer with the organization and the subject as escaped path
+		// segments, so it addresses the issuer and nothing else.
+		request, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil) //nolint:gosec
+		if err != nil {
+			return userInfo{}, errors.WithStack(err)
+		}
+		request.Header.Set("Authorization", "Bearer "+token)
+		request.Header.Set("Accept", "application/json")
+
+		response, err := client.Do(request) //nolint:gosec
+		if err != nil {
+			return userInfo{}, errors.WithStack(err)
+		}
+		defer response.Body.Close()              //nolint:errcheck
+		defer io.Copy(io.Discard, response.Body) //nolint:errcheck
+
+		if response.StatusCode == http.StatusNotFound || response.StatusCode == http.StatusUnauthorized || response.StatusCode == http.StatusForbidden {
+			errE := errors.WithStack(ErrIdentityNotFound)
+			errors.Details(errE)["subject"] = subject
+			errors.Details(errE)["status"] = response.StatusCode
+			return userInfo{}, errE
+		}
+		if response.StatusCode != http.StatusOK {
+			body, _ := io.ReadAll(response.Body)
+			errE := errors.New("identity request failed")
+			errors.Details(errE)["subject"] = subject
+			errors.Details(errE)["status"] = response.StatusCode
+			errors.Details(errE)["body"] = strings.TrimSpace(string(body))
+			return userInfo{}, errE
+		}
+
+		var payload struct {
+			ID        string   `json:"id"`
+			Username  string   `json:"username"`
+			FullName  string   `json:"fullName"`
+			GivenName string   `json:"givenName"`
+			Roles     []string `json:"roles"`
+		}
+		// We accept extra fields silently.
+		errE := x.DecodeJSON(response.Body, &payload)
+		if errE != nil {
+			return userInfo{}, errE
+		}
+		return userInfo{Subject: payload.ID, Username: pickUsername(payload.Username, payload.GivenName, payload.FullName), Roles: payload.Roles}, nil
+	}
 }
 
 // revokeUpstream POSTs to the issuer's revocation_endpoint. Returns the
@@ -237,7 +386,9 @@ func (a *OIDCAuthenticator) authCodeURL(state, codeVerifier, nonce, uiLocales st
 }
 
 // exchangeCode finishes the authorization-code flow.
-func (a *OIDCAuthenticator) exchangeCode(ctx context.Context, code, codeVerifier, expectedNonce string) (string, time.Time, errors.E) {
+func (a *OIDCAuthenticator) exchangeCode(
+	ctx context.Context, code, codeVerifier, expectedNonce string, allowedRoles map[string]RoleGrants,
+) (string, time.Time, errors.E) {
 	// The pooled HTTP client is shared with JWKS / userinfo so token
 	// exchanges benefit from the same keep-alive pool.
 	tokenCtx := oidc.ClientContext(ctx, a.httpClient)
@@ -252,7 +403,7 @@ func (a *OIDCAuthenticator) exchangeCode(ctx context.Context, code, codeVerifier
 		return "", time.Time{}, errors.New("issuer did not return an id_token")
 	}
 
-	idToken, err := a.tokenVerifier.Verify(ctx, rawIDToken)
+	idToken, err := a.TokenVerifier.Verify(ctx, rawIDToken)
 	if err != nil {
 		return "", time.Time{}, errors.WithStack(err)
 	}
@@ -274,15 +425,28 @@ func (a *OIDCAuthenticator) exchangeCode(ctx context.Context, code, codeVerifier
 	// /auth/oidc/userinfo round-trip.
 	var profile struct {
 		PreferredUsername string `json:"preferred_username"` //nolint:tagliatelle
+		Name              string `json:"name"`
+		GivenName         string `json:"given_name"` //nolint:tagliatelle
 	}
 	err = idToken.Claims(&profile)
 	if err != nil {
 		return "", time.Time{}, errors.WithStack(err)
 	}
-	a.userInfoCache.set(idToken.Subject, userInfo{
-		Subject:  idToken.Subject,
-		Username: profile.PreferredUsername,
-	})
+	// The roles come from the access token just issued, which is what grants them, so the entry
+	// describes the user fully and a lookup of them (see Identity) needs no fetch either. Priming is
+	// best-effort: a token we cannot read here (a JWKS refresh may have just failed) does not
+	// authenticate anything either, so we prime nothing instead of recording a user without roles.
+	accessClaims, err := a.TokenVerifier.Verify(ctx, response.AccessToken)
+	if err == nil {
+		roles, errE := extractRoles(accessClaims, allowedRoles)
+		if errE == nil {
+			a.UserInfoCache.set(idToken.Subject, userInfo{
+				Subject:  idToken.Subject,
+				Username: pickUsername(profile.PreferredUsername, profile.GivenName, profile.Name),
+				Roles:    roles,
+			})
+		}
+	}
 
 	return response.AccessToken, response.Expiry, nil
 }

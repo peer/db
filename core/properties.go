@@ -28,6 +28,7 @@ func Properties() ([]any, errors.E) {
 			Mnemonic:               "SUBENTITY_OF",
 			Description:            nil,
 			IdentifierLinkTemplate: "",
+			ExcludeFromTextSearch:  false,
 			SubpropertyOf:          nil,
 			InversePropertyOf:      nil,
 		},
@@ -97,6 +98,7 @@ func Properties() ([]any, errors.E) {
 			Mnemonic:               "INSTANCE_OF",
 			Description:            nil,
 			IdentifierLinkTemplate: "",
+			ExcludeFromTextSearch:  false,
 			SubpropertyOf: []Ref{{
 				ID: []string{Namespace, "SUBENTITY_OF"},
 			}},
@@ -128,6 +130,7 @@ func Properties() ([]any, errors.E) {
 			Mnemonic:               "SUBCLASS_OF",
 			Description:            nil,
 			IdentifierLinkTemplate: "",
+			ExcludeFromTextSearch:  false,
 			SubpropertyOf: []Ref{{
 				ID: []string{Namespace, "SUBENTITY_OF"},
 			}},
@@ -159,6 +162,7 @@ func Properties() ([]any, errors.E) {
 			Mnemonic:               "SUBPROPERTY_OF",
 			Description:            nil,
 			IdentifierLinkTemplate: "",
+			ExcludeFromTextSearch:  false,
 			SubpropertyOf: []Ref{{
 				ID: []string{Namespace, "SUBENTITY_OF"},
 			}},
@@ -190,6 +194,7 @@ func Properties() ([]any, errors.E) {
 			Mnemonic:               "INVERSE_PROPERTY_OF",
 			Description:            nil,
 			IdentifierLinkTemplate: "",
+			ExcludeFromTextSearch:  false,
 			SubpropertyOf:          nil,
 			InversePropertyOf:      nil,
 		},
@@ -219,6 +224,7 @@ func Properties() ([]any, errors.E) {
 			Mnemonic:               "ABSTRACT_CLASS",
 			Description:            nil,
 			IdentifierLinkTemplate: "",
+			ExcludeFromTextSearch:  false,
 			SubpropertyOf:          nil,
 			InversePropertyOf:      nil,
 		},
@@ -248,6 +254,7 @@ func Properties() ([]any, errors.E) {
 			Mnemonic:               "DISTINCT_FROM",
 			Description:            nil,
 			IdentifierLinkTemplate: "",
+			ExcludeFromTextSearch:  false,
 			SubpropertyOf:          nil,
 			// "distinct from" is symmetric, so it is its own inverse.
 			InversePropertyOf: &Ref{
@@ -280,6 +287,7 @@ func Properties() ([]any, errors.E) {
 			Mnemonic:               "NAMING",
 			Description:            nil,
 			IdentifierLinkTemplate: "",
+			ExcludeFromTextSearch:  false,
 			SubpropertyOf:          nil,
 			InversePropertyOf:      nil,
 		},
@@ -309,6 +317,7 @@ func Properties() ([]any, errors.E) {
 			Mnemonic:               "NAME",
 			Description:            nil,
 			IdentifierLinkTemplate: "",
+			ExcludeFromTextSearch:  false,
 			SubpropertyOf: []Ref{{
 				ID: []string{Namespace, "NAMING"},
 			}},
@@ -340,6 +349,7 @@ func Properties() ([]any, errors.E) {
 			Mnemonic:               "SHORT_NAME",
 			Description:            nil,
 			IdentifierLinkTemplate: "",
+			ExcludeFromTextSearch:  false,
 			SubpropertyOf: []Ref{{
 				ID: []string{Namespace, "NAMING"},
 			}},
@@ -371,6 +381,7 @@ func Properties() ([]any, errors.E) {
 			Mnemonic:               "ALTERNATIVE_NAME",
 			Description:            nil,
 			IdentifierLinkTemplate: "",
+			ExcludeFromTextSearch:  false,
 			SubpropertyOf: []Ref{{
 				ID: []string{Namespace, "NAMING"},
 			}},
@@ -402,6 +413,7 @@ func Properties() ([]any, errors.E) {
 			Mnemonic:               "TITLE",
 			Description:            nil,
 			IdentifierLinkTemplate: "",
+			ExcludeFromTextSearch:  false,
 			SubpropertyOf: []Ref{{
 				ID: []string{Namespace, "NAMING"},
 			}},
@@ -433,6 +445,7 @@ func Properties() ([]any, errors.E) {
 			Mnemonic:               "DESCRIPTION",
 			Description:            nil,
 			IdentifierLinkTemplate: "",
+			ExcludeFromTextSearch:  false,
 			SubpropertyOf:          nil,
 			InversePropertyOf:      nil,
 		},
@@ -462,6 +475,7 @@ func Properties() ([]any, errors.E) {
 			Mnemonic:               "CONTENT",
 			Description:            nil,
 			IdentifierLinkTemplate: "",
+			ExcludeFromTextSearch:  false,
 			SubpropertyOf:          nil,
 			InversePropertyOf:      nil,
 		},
@@ -491,6 +505,7 @@ func Properties() ([]any, errors.E) {
 			Mnemonic:               "MNEMONIC",
 			Description:            nil,
 			IdentifierLinkTemplate: "",
+			ExcludeFromTextSearch:  false,
 			SubpropertyOf: []Ref{{
 				ID: []string{Namespace, "NAMING"},
 			}},
@@ -522,6 +537,7 @@ func Properties() ([]any, errors.E) {
 			Mnemonic:               "IN_LANGUAGE",
 			Description:            nil,
 			IdentifierLinkTemplate: "",
+			ExcludeFromTextSearch:  true,
 			SubpropertyOf:          nil,
 			InversePropertyOf:      nil,
 		},
@@ -561,6 +577,7 @@ func Properties() ([]any, errors.E) {
 			Mnemonic:               "IN_LOCATION",
 			Description:            nil,
 			IdentifierLinkTemplate: "",
+			ExcludeFromTextSearch:  false,
 			SubpropertyOf:          nil,
 			InversePropertyOf:      nil,
 		},
@@ -600,6 +617,7 @@ func Properties() ([]any, errors.E) {
 				}},
 			}},
 			IdentifierLinkTemplate: "",
+			ExcludeFromTextSearch:  false,
 			SubpropertyOf:          nil,
 			InversePropertyOf:      nil,
 		},
@@ -629,6 +647,7 @@ func Properties() ([]any, errors.E) {
 			Mnemonic:               "DEFAULT_VARIANT",
 			Description:            nil,
 			IdentifierLinkTemplate: "",
+			ExcludeFromTextSearch:  false,
 			SubpropertyOf:          nil,
 			InversePropertyOf:      nil,
 		},
@@ -658,6 +677,7 @@ func Properties() ([]any, errors.E) {
 			Mnemonic:               "SELECTED_VARIANT",
 			Description:            nil,
 			IdentifierLinkTemplate: "",
+			ExcludeFromTextSearch:  false,
 			SubpropertyOf:          nil,
 			InversePropertyOf:      nil,
 		},
@@ -697,6 +717,7 @@ func Properties() ([]any, errors.E) {
 				}},
 			}},
 			IdentifierLinkTemplate: "",
+			ExcludeFromTextSearch:  false,
 			SubpropertyOf:          nil,
 			InversePropertyOf:      nil,
 		},
@@ -736,6 +757,7 @@ func Properties() ([]any, errors.E) {
 				}},
 			}},
 			IdentifierLinkTemplate: "",
+			ExcludeFromTextSearch:  false,
 			SubpropertyOf:          nil,
 			InversePropertyOf:      nil,
 		},
@@ -765,6 +787,7 @@ func Properties() ([]any, errors.E) {
 			Mnemonic:               "CODE",
 			Description:            nil,
 			IdentifierLinkTemplate: "",
+			ExcludeFromTextSearch:  false,
 			SubpropertyOf: []Ref{{
 				ID: []string{Namespace, "NAMING"},
 			}},
@@ -831,6 +854,7 @@ func Properties() ([]any, errors.E) {
 			Mnemonic:               "MEDIA_TYPE",
 			Description:            nil,
 			IdentifierLinkTemplate: "",
+			ExcludeFromTextSearch:  false,
 			SubpropertyOf:          nil,
 			InversePropertyOf:      nil,
 		},
@@ -895,6 +919,7 @@ func Properties() ([]any, errors.E) {
 				}},
 			}},
 			IdentifierLinkTemplate: "",
+			ExcludeFromTextSearch:  true,
 			SubpropertyOf:          nil,
 			InversePropertyOf:      nil,
 		},
@@ -924,11 +949,44 @@ func Properties() ([]any, errors.E) {
 			Mnemonic:               "SETTING",
 			Description:            nil,
 			IdentifierLinkTemplate: "",
+			ExcludeFromTextSearch:  false,
 			SubpropertyOf:          nil,
 			InversePropertyOf:      nil,
 		},
 		DocumentFields: DocumentFields{
 			ID: []string{Namespace, "SETTING"},
+			InstanceOf: []Ref{{
+				ID: []string{Namespace, "PROPERTY"},
+			}},
+		},
+	})
+
+	documents = append(documents, &Property{
+		PropertyFields: PropertyFields{
+			Name: []StringWithLanguage{{
+				Value: "exclude from text search",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "en-GB"},
+				}},
+			}, {
+				Value: "izključi iz iskanja po besedilu",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}},
+			ShortName:              nil,
+			AlternativeName:        nil,
+			Mnemonic:               "EXCLUDE_FROM_TEXT_SEARCH",
+			Description:            nil,
+			IdentifierLinkTemplate: "",
+			ExcludeFromTextSearch:  false,
+			SubpropertyOf: []Ref{{
+				ID: []string{Namespace, "SETTING"},
+			}},
+			InversePropertyOf: nil,
+		},
+		DocumentFields: DocumentFields{
+			ID: []string{Namespace, "EXCLUDE_FROM_TEXT_SEARCH"},
 			InstanceOf: []Ref{{
 				ID: []string{Namespace, "PROPERTY"},
 			}},
@@ -953,6 +1011,7 @@ func Properties() ([]any, errors.E) {
 			Mnemonic:               "SECTION",
 			Description:            nil,
 			IdentifierLinkTemplate: "",
+			ExcludeFromTextSearch:  false,
 			SubpropertyOf: []Ref{{
 				ID: []string{Namespace, "SETTING"},
 			}},
@@ -984,6 +1043,7 @@ func Properties() ([]any, errors.E) {
 			Mnemonic:               "FIELD",
 			Description:            nil,
 			IdentifierLinkTemplate: "",
+			ExcludeFromTextSearch:  false,
 			SubpropertyOf: []Ref{{
 				ID: []string{Namespace, "SETTING"},
 			}},
@@ -1015,6 +1075,7 @@ func Properties() ([]any, errors.E) {
 			Mnemonic:               "FIELD_VALUES",
 			Description:            nil,
 			IdentifierLinkTemplate: "",
+			ExcludeFromTextSearch:  false,
 			SubpropertyOf: []Ref{{
 				ID: []string{Namespace, "SETTING"},
 			}},
@@ -1046,6 +1107,7 @@ func Properties() ([]any, errors.E) {
 			Mnemonic:               "FIELD_CONTEXT",
 			Description:            nil,
 			IdentifierLinkTemplate: "",
+			ExcludeFromTextSearch:  false,
 			SubpropertyOf: []Ref{{
 				ID: []string{Namespace, "SETTING"},
 			}},
@@ -1053,6 +1115,132 @@ func Properties() ([]any, errors.E) {
 		},
 		DocumentFields: DocumentFields{
 			ID: []string{Namespace, "FIELD_CONTEXT"},
+			InstanceOf: []Ref{{
+				ID: []string{Namespace, "PROPERTY"},
+			}},
+		},
+	})
+
+	documents = append(documents, &Property{
+		PropertyFields: PropertyFields{
+			Name: []StringWithLanguage{{
+				Value: "all duplicates allowed",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "en-GB"},
+				}},
+			}, {
+				Value: "vse podvojitve dovoljene",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}},
+			ShortName:              nil,
+			AlternativeName:        nil,
+			Mnemonic:               "FIELD_DUPLICATE_ALLOW",
+			Description:            nil,
+			IdentifierLinkTemplate: "",
+			ExcludeFromTextSearch:  false,
+			SubpropertyOf: []Ref{{
+				ID: []string{Namespace, "SETTING"},
+			}},
+			InversePropertyOf: nil,
+		},
+		DocumentFields: DocumentFields{
+			ID: []string{Namespace, "FIELD_DUPLICATE_ALLOW"},
+			InstanceOf: []Ref{{
+				ID: []string{Namespace, "PROPERTY"},
+			}},
+		},
+	})
+	documents = append(documents, &Property{
+		PropertyFields: PropertyFields{
+			Name: []StringWithLanguage{{
+				Value: "duplicate top-level values not allowed",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "en-GB"},
+				}},
+			}, {
+				Value: "podvojene vrhnje vrednosti niso dovoljene",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}},
+			ShortName:              nil,
+			AlternativeName:        nil,
+			Mnemonic:               "FIELD_DUPLICATE_TOP",
+			Description:            nil,
+			IdentifierLinkTemplate: "",
+			ExcludeFromTextSearch:  false,
+			SubpropertyOf: []Ref{{
+				ID: []string{Namespace, "SETTING"},
+			}},
+			InversePropertyOf: nil,
+		},
+		DocumentFields: DocumentFields{
+			ID: []string{Namespace, "FIELD_DUPLICATE_TOP"},
+			InstanceOf: []Ref{{
+				ID: []string{Namespace, "PROPERTY"},
+			}},
+		},
+	})
+	documents = append(documents, &Property{
+		PropertyFields: PropertyFields{
+			Name: []StringWithLanguage{{
+				Value: "field input component",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "en-GB"},
+				}},
+			}, {
+				Value: "vnosna komponenta polja",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}},
+			ShortName:              nil,
+			AlternativeName:        nil,
+			Mnemonic:               "FIELD_INPUT_COMPONENT",
+			Description:            nil,
+			IdentifierLinkTemplate: "",
+			ExcludeFromTextSearch:  false,
+			SubpropertyOf: []Ref{{
+				ID: []string{Namespace, "SETTING"},
+			}},
+			InversePropertyOf: nil,
+		},
+		DocumentFields: DocumentFields{
+			ID: []string{Namespace, "FIELD_INPUT_COMPONENT"},
+			InstanceOf: []Ref{{
+				ID: []string{Namespace, "PROPERTY"},
+			}},
+		},
+	})
+
+	documents = append(documents, &Property{
+		PropertyFields: PropertyFields{
+			Name: []StringWithLanguage{{
+				Value: "component props",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "en-GB"},
+				}},
+			}, {
+				Value: "lastnosti komponente",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}},
+			ShortName:              nil,
+			AlternativeName:        nil,
+			Mnemonic:               "COMPONENT_PROPS",
+			Description:            nil,
+			IdentifierLinkTemplate: "",
+			ExcludeFromTextSearch:  false,
+			SubpropertyOf: []Ref{{
+				ID: []string{Namespace, "SETTING"},
+			}},
+			InversePropertyOf: nil,
+		},
+		DocumentFields: DocumentFields{
+			ID: []string{Namespace, "COMPONENT_PROPS"},
 			InstanceOf: []Ref{{
 				ID: []string{Namespace, "PROPERTY"},
 			}},
@@ -1077,6 +1265,7 @@ func Properties() ([]any, errors.E) {
 			Mnemonic:               "FIELD_INSTRUCTION",
 			Description:            nil,
 			IdentifierLinkTemplate: "",
+			ExcludeFromTextSearch:  false,
 			SubpropertyOf: []Ref{{
 				ID: []string{Namespace, "SETTING"},
 			}},
@@ -1118,6 +1307,7 @@ func Properties() ([]any, errors.E) {
 				}},
 			}},
 			IdentifierLinkTemplate: "",
+			ExcludeFromTextSearch:  false,
 			SubpropertyOf: []Ref{{
 				ID: []string{Namespace, "SETTING"},
 			}},
@@ -1159,6 +1349,7 @@ func Properties() ([]any, errors.E) {
 				}},
 			}},
 			IdentifierLinkTemplate: "",
+			ExcludeFromTextSearch:  false,
 			SubpropertyOf: []Ref{{
 				ID: []string{Namespace, "SETTING"},
 			}},
@@ -1190,6 +1381,7 @@ func Properties() ([]any, errors.E) {
 			Mnemonic:               "HAS_PROPERTY",
 			Description:            nil,
 			IdentifierLinkTemplate: "",
+			ExcludeFromTextSearch:  false,
 			SubpropertyOf: []Ref{{
 				ID: []string{Namespace, "SETTING"},
 			}},
@@ -1221,6 +1413,7 @@ func Properties() ([]any, errors.E) {
 			Mnemonic:               "HAS_VALUE_TYPE",
 			Description:            nil,
 			IdentifierLinkTemplate: "",
+			ExcludeFromTextSearch:  false,
 			SubpropertyOf: []Ref{{
 				ID: []string{Namespace, "SETTING"},
 			}},
@@ -1252,6 +1445,7 @@ func Properties() ([]any, errors.E) {
 			Mnemonic:               "SUB_FIELD",
 			Description:            nil,
 			IdentifierLinkTemplate: "",
+			ExcludeFromTextSearch:  false,
 			SubpropertyOf: []Ref{{
 				ID: []string{Namespace, "SETTING"},
 			}},
@@ -1283,6 +1477,7 @@ func Properties() ([]any, errors.E) {
 			Mnemonic:               "FIELD_DEFAULT",
 			Description:            nil,
 			IdentifierLinkTemplate: "",
+			ExcludeFromTextSearch:  false,
 			SubpropertyOf: []Ref{{
 				ID: []string{Namespace, "SETTING"},
 			}},
@@ -1314,6 +1509,7 @@ func Properties() ([]any, errors.E) {
 			Mnemonic:               "SEARCH_SHORTCUT",
 			Description:            nil,
 			IdentifierLinkTemplate: "",
+			ExcludeFromTextSearch:  false,
 			SubpropertyOf: []Ref{{
 				ID: []string{Namespace, "SETTING"},
 			}},
@@ -1345,6 +1541,7 @@ func Properties() ([]any, errors.E) {
 			Mnemonic:               "CREATE_SHORTCUT",
 			Description:            nil,
 			IdentifierLinkTemplate: "",
+			ExcludeFromTextSearch:  false,
 			SubpropertyOf: []Ref{{
 				ID: []string{Namespace, "SETTING"},
 			}},
@@ -1376,6 +1573,7 @@ func Properties() ([]any, errors.E) {
 			Mnemonic:               "FIELDS",
 			Description:            nil,
 			IdentifierLinkTemplate: "",
+			ExcludeFromTextSearch:  false,
 			SubpropertyOf: []Ref{{
 				ID: []string{Namespace, "SETTING"},
 			}},
@@ -1407,6 +1605,7 @@ func Properties() ([]any, errors.E) {
 			Mnemonic:               "INVERSE_PROPERTY",
 			Description:            nil,
 			IdentifierLinkTemplate: "",
+			ExcludeFromTextSearch:  false,
 			SubpropertyOf: []Ref{{
 				ID: []string{Namespace, "SETTING"},
 			}},
@@ -1438,6 +1637,7 @@ func Properties() ([]any, errors.E) {
 			Mnemonic:               "EMBED_PROPERTY",
 			Description:            nil,
 			IdentifierLinkTemplate: "",
+			ExcludeFromTextSearch:  false,
 			SubpropertyOf: []Ref{{
 				ID: []string{Namespace, "SETTING"},
 			}},
@@ -1469,6 +1669,7 @@ func Properties() ([]any, errors.E) {
 			Mnemonic:               "CARDINALITY",
 			Description:            nil,
 			IdentifierLinkTemplate: "",
+			ExcludeFromTextSearch:  false,
 			SubpropertyOf: []Ref{{
 				ID: []string{Namespace, "SETTING"},
 			}},
@@ -1500,6 +1701,7 @@ func Properties() ([]any, errors.E) {
 			Mnemonic:               "HAS_PERMISSION",
 			Description:            nil,
 			IdentifierLinkTemplate: "",
+			ExcludeFromTextSearch:  true,
 			SubpropertyOf: []Ref{{
 				ID: []string{Namespace, "SETTING"},
 			}},
@@ -1531,6 +1733,7 @@ func Properties() ([]any, errors.E) {
 			Mnemonic:               "HAS_REQUESTED_PERMISSION",
 			Description:            nil,
 			IdentifierLinkTemplate: "",
+			ExcludeFromTextSearch:  true,
 			SubpropertyOf: []Ref{{
 				ID: []string{Namespace, "SETTING"},
 			}},
@@ -1562,6 +1765,7 @@ func Properties() ([]any, errors.E) {
 			Mnemonic:               "PERMISSION_USER",
 			Description:            nil,
 			IdentifierLinkTemplate: "",
+			ExcludeFromTextSearch:  true,
 			SubpropertyOf: []Ref{{
 				ID: []string{Namespace, "SETTING"},
 			}},
@@ -1569,6 +1773,38 @@ func Properties() ([]any, errors.E) {
 		},
 		DocumentFields: DocumentFields{
 			ID: []string{Namespace, "PERMISSION_USER"},
+			InstanceOf: []Ref{{
+				ID: []string{Namespace, "PROPERTY"},
+			}},
+		},
+	})
+
+	documents = append(documents, &Property{
+		PropertyFields: PropertyFields{
+			Name: []StringWithLanguage{{
+				Value: "permission scope",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "en-GB"},
+				}},
+			}, {
+				Value: "obseg dovoljenja",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}},
+			ShortName:              nil,
+			AlternativeName:        nil,
+			Mnemonic:               "PERMISSION_SCOPE",
+			Description:            nil,
+			IdentifierLinkTemplate: "",
+			ExcludeFromTextSearch:  true,
+			SubpropertyOf: []Ref{{
+				ID: []string{Namespace, "SETTING"},
+			}},
+			InversePropertyOf: nil,
+		},
+		DocumentFields: DocumentFields{
+			ID: []string{Namespace, "PERMISSION_SCOPE"},
 			InstanceOf: []Ref{{
 				ID: []string{Namespace, "PROPERTY"},
 			}},

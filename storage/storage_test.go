@@ -230,6 +230,22 @@ func TestHappyPath(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, []byte("bafooqrxzy"), readAndClose(t, fileAtVersion))
 
+	// Open resolves a bare content hash directly into an open handle on the contents.
+	fileFromHash, errE := s.Open(storedData)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, []byte("bafooqrxzy"), readAndClose(t, fileFromHash))
+
+	// Opening an empty hash errors.
+	_, errE = s.Open("")
+	assert.EqualError(t, errE, "invalid stored hash")
+
+	// Only an exact lowercase hex SHA-256 digest addresses a file: a value with path segments or
+	// uppercase hex digits errors instead of being joined into an on-disk path.
+	_, errE = s.Open("../../../../etc/passwd")
+	assert.EqualError(t, errE, "invalid stored hash")
+	_, errE = s.Open(strings.ToUpper(expectedHash))
+	assert.EqualError(t, errE, "invalid stored hash")
+
 	// Verify file metadata Base is recorded and file ID is derivable from it.
 	assert.Equal(t, expectedBase, metadata.Base)
 	assert.Equal(t, expectedFileID, identifier.From(metadata.Base...))

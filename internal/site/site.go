@@ -12,6 +12,7 @@ import (
 
 	"github.com/alecthomas/kong"
 	"github.com/elastic/go-elasticsearch/v9"
+	"github.com/goccy/go-yaml"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/riverqueue/river"
@@ -19,19 +20,27 @@ import (
 	"gitlab.com/tozd/go/x"
 	"gitlab.com/tozd/identifier"
 	"gitlab.com/tozd/waf"
-	"gopkg.in/yaml.v3"
 
 	"gitlab.com/peerdb/peerdb/auth"
 	"gitlab.com/peerdb/peerdb/base"
 	"gitlab.com/peerdb/peerdb/document"
 	internalCore "gitlab.com/peerdb/peerdb/internal/core"
 	internalSearch "gitlab.com/peerdb/peerdb/internal/search"
-	"gitlab.com/peerdb/peerdb/store"
 )
 
 // AllVisibilityLevel is the default name for the top (highest) visibility level: the unfiltered superset
 // that sees all documents. A site that does not configure Visibility indexes into a single level with this name.
 const AllVisibilityLevel = "all"
+
+// Defaults validation fills into a site the configuration (and the SiteDefaults customizer) left unset.
+const (
+	// DefaultSchema is the default database schema name.
+	DefaultSchema = "peerdb"
+	// DefaultIndexPrefix is the default Elasticsearch index prefix. The visibility level name is appended to it to form each per-level index name.
+	DefaultIndexPrefix = "peerdb"
+	// DefaultTitle is the default application title.
+	DefaultTitle = "PeerDB"
+)
 
 // Build contains version and build metadata.
 type Build struct {
@@ -71,10 +80,40 @@ type SiteFeatures struct {
 	// auto-hide behavior (hidden while scrolling down, shown when scrolling up).
 	NavbarPosition string `json:"navbarPosition,omitempty" yaml:"navbarPosition,omitempty"`
 
+	// DisableDocumentPermissions turns off document-level permissions: the permissions tabs of the
+	// document page and of the document edit page and the access request page are not offered, the
+	// request API is not served, the create-session seeding grants the creator nothing, and permission
+	// claims (HAS_PERMISSION and HAS_REQUESTED_PERMISSION) cannot be added to a document at all. Such a
+	// site permits through role grants only. Permissions granted while the feature was on keep applying:
+	// they were granted legitimately, and no new ones can be added to join them.
+	//
+	// Role grants are unaffected: their claim scopes are about ordinary properties (INSTANCE_OF and
+	// the like, see ScopeProperties), never about permission claims.
+	DisableDocumentPermissions bool `json:"disableDocumentPermissions,omitempty" yaml:"disableDocumentPermissions,omitempty"`
+
 	// IndexAncestorProperties enables claim propagation to transitive super-properties
 	// when indexing: a claim for property X is also indexed for every ancestor of X
 	// via SUBPROPERTY_OF. Disabled by default. Backend-only; not exposed to the frontend.
 	IndexAncestorProperties bool `json:"-" yaml:"indexAncestorProperties,omitempty"`
+
+	// HiddenFacetProperties lists property IDs whose facets are hidden from the filters UI: filter
+	// discovery drops facets whose property path contains one of them, top-level and sub-facets
+	// ("parent > prop") alike. The properties stay indexed, and active filters on them keep working
+	// and being shown. When the configuration leaves this unset (nil), site initialization fills in
+	// DefaultHiddenFacetProperties (the permission properties) before the SiteDefaults customizer
+	// runs, so the customizer can extend, replace, or unset the list; an explicitly empty list hides
+	// none. Backend-only; not exposed to the frontend.
+	HiddenFacetProperties []string `json:"-" yaml:"hiddenFacetProperties,omitempty"`
+}
+
+// DefaultHiddenFacetProperties returns the default value site initialization fills into
+// Features.HiddenFacetProperties when the configuration leaves it unset: the permission properties,
+// whose facets would list permission actions and are not useful for searching.
+func DefaultHiddenFacetProperties() []string {
+	return []string{
+		internalCore.HasPermissionPropID.String(),
+		internalCore.HasRequestedPermissionPropID.String(),
+	}
 }
 
 // Favicon configures the site favicon rendered into the page head. When Href is set, a
@@ -92,7 +131,12 @@ type Favicon struct {
 //
 //nolint:revive
 type SiteAuthConfig struct {
-	Issuer       string `json:"-" yaml:"issuer,omitempty"`
+	Issuer string `json:"-" yaml:"issuer,omitempty"`
+	// Organization is the issuer-side organization the site's users belong to. It is what the user API
+	// needs to look up a user other than the caller, because describing another user is not part of
+	// OpenID Connect and the issuer keeps its users under an organization (see the identity lookup in
+	// auth/oidc.go). Without it the site knows about a user only what their own requests carry.
+	Organization string `json:"-" yaml:"organization,omitempty"`
 	ClientID     string `json:"-" yaml:"clientId,omitempty"`
 	ClientSecret string `json:"-" yaml:"clientSecret,omitempty"`
 }
@@ -130,13 +174,20 @@ type Site struct {
 
 	Features SiteFeatures `json:"features" yaml:"features"`
 
-	// Roles is a map of role names to permissions. Its keys also act as
-	// the allowlist of roles a token may bind to a request: any role a
-	// token claims that is not a key here is dropped at authentication
-	// time so it cannot leak into auth.Roles or the Roles response header.
-	// Permissions under the reserved empty name (auth.RoleEveryone) apply
-	// to every caller, authenticated or not.
-	Roles map[string][]string `json:"roles,omitempty" yaml:"roles,omitempty"`
+	// Roles maps role names to the permission actions each role grants and, per action, the permission
+	// scope expressions of the grant (see auth.ParseScopes; the self scope is not allowed here). Actions
+	// are named by their codes (e.g. ACTION_READ, see auth.Actions). The map keys also act as the
+	// allowlist of roles a token may bind to a request: any role a token claims that is not a key here
+	// is dropped at authentication time so it cannot leak into auth.Roles or the Roles response header.
+	// The grants under the reserved empty name (auth.RoleEveryone) apply to every caller, authenticated or
+	// not. When empty, everything is readable by everyone and nothing else is allowed.
+	Roles map[string]auth.RoleGrants `json:"roles,omitempty" yaml:"roles,omitempty"`
+
+	// ScopeProperties are the properties participating in claim scopes of any role grant, resolved
+	// from Roles during validation. Claims of these properties determine which documents role grants
+	// cover, so changing them requires role-granted permissions (document-level permission claims
+	// granting the update action do not allow it).
+	ScopeProperties map[identifier.Identifier]bool `json:"-" yaml:"-"`
 
 	// Visibility is the ordered list of visibility levels, from the lowest
 	// (least access) to the highest (most access). The order lets a request
@@ -177,11 +228,11 @@ type Site struct {
 
 	// Authenticator drives sign-in (SignIn / Callback), sign-out (SignOut)
 	// and request-time token validation (Authenticate) for this site.
-	Authenticator auth.Authenticator
+	Authenticator auth.Authenticator `json:"-" yaml:"-"`
 
 	// DebugRiverHandler is the River UI handler mounted at /debug/river.
 	// Populated only in development mode.
-	DebugRiverHandler http.Handler
+	DebugRiverHandler http.Handler `json:"-" yaml:"-"`
 
 	initialized bool
 }
@@ -193,17 +244,10 @@ func (s *Site) Decode(ctx *kong.DecodeContext) error {
 	if err != nil {
 		return errors.WithStack(err)
 	}
-	decoder := yaml.NewDecoder(strings.NewReader(value))
-	decoder.KnownFields(true)
-	err = decoder.Decode(s) //nolint:musttag
+	err = yaml.NewDecoder(strings.NewReader(value), yaml.DisallowUnknownField()).Decode(s)
 	if err != nil {
-		if yamlErr, ok := errors.AsType[*yaml.TypeError](err); ok {
-			e := "error"
-			if len(yamlErr.Errors) > 1 {
-				e = "errors"
-			}
-			return errors.Errorf("yaml: unmarshal %s: %s", e, strings.Join(yamlErr.Errors, "; "))
-		} else if errors.Is(err, io.EOF) {
+		if errors.Is(err, io.EOF) {
+			// An empty value configures nothing, leaving the site as it is.
 			return nil
 		}
 		return errors.WithStack(err)
@@ -229,12 +273,42 @@ func (s *Site) Validate() error {
 		}
 	}
 
+	s.validateRoles()
+
 	errE := s.validateVisibility()
 	if errE != nil {
 		return errE
 	}
 
+	// These defaults cannot be set through kong (sites come from the configuration as values, not
+	// through per-field flag parsing), so validation fills them, like the Roles and Visibility
+	// defaults above: it runs after the SiteDefaults customizer, so a customizer can default these
+	// fields itself from their raw unset state.
+	if s.IndexPrefix == "" {
+		s.IndexPrefix = DefaultIndexPrefix
+	}
+	if s.Schema == "" {
+		s.Schema = DefaultSchema
+	}
+	if s.Title == "" {
+		s.Title = DefaultTitle
+	}
+
 	return nil
+}
+
+// validateRoles normalizes the Roles configuration (grants are already parsed and validated while
+// unmarshaling, see auth.RoleGrants.UnmarshalYAML) and resolves ScopeProperties from it. When Roles is
+// empty it is set to the default under which everything is readable by everyone and nothing else is
+// allowed; making anything writable requires configuring grants (in the configuration or in code).
+func (s *Site) validateRoles() {
+	if len(s.Roles) == 0 {
+		s.Roles = map[string]auth.RoleGrants{
+			auth.RoleEveryone: auth.MustParseRoleGrants(map[string][]string{auth.ActionReadCode: {auth.ScopeAll}}),
+		}
+	}
+
+	s.ScopeProperties = auth.ScopeProperties(s.Roles)
 }
 
 // validateVisibility checks the Visibility configuration: level names must be unique and non-empty, every
@@ -300,6 +374,16 @@ func (s *Site) validateVisibility() errors.E {
 		}
 	}
 	return nil
+}
+
+// HiddenFacetPropertySet returns Features.HiddenFacetProperties as a set.
+func (s *Site) HiddenFacetPropertySet() map[string]bool {
+	props := s.Features.HiddenFacetProperties
+	set := make(map[string]bool, len(props))
+	for _, prop := range props {
+		set[prop] = true
+	}
+	return set
 }
 
 // LevelNames returns the configured visibility level names, from lowest to highest access.
@@ -378,7 +462,7 @@ func (s *Site) TopIndex() string {
 }
 
 // ReadIndex returns the ElasticSearch index a request should read, derived from the caller's resolved
-// visibility level, so a caller only ever reads the index filtered to its level. It returns store.ErrAccessDenied
+// visibility level, so a caller only ever reads the index filtered to its level. It returns auth.ErrAccessDenied
 // when the caller has no visibility level, so read routes that access ElasticSearch must respond with
 // 403 Forbidden. A site that defines no visibility levels defaults to a single "all" level that is both
 // floor and top, so every request resolves to it and this never denies there; the empty case only arises
@@ -386,7 +470,7 @@ func (s *Site) TopIndex() string {
 func (s *Site) ReadIndex(ctx context.Context) (string, errors.E) {
 	level := auth.Visibility(ctx)
 	if level == "" {
-		return "", errors.WithStack(store.ErrAccessDenied)
+		return "", errors.WithStack(auth.ErrAccessDenied)
 	}
 	return internalSearch.LevelIndex(s.IndexPrefix, level), nil
 }

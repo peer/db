@@ -3,13 +3,15 @@ import type { DeepReadonly, InjectionKey } from "vue"
 import type { Claim, ClaimTypeName, TimePrecision } from "@/document"
 import type { FieldsFormFlush, SaveChangeResult, SaveChangeSpec } from "@/types"
 
-import { equals } from "@/utils"
-
 import {
   CARDINALITY,
+  COMPONENT_PROPS,
   FIELD,
   FIELD_CONTEXT,
   FIELD_DEFAULT,
+  FIELD_DUPLICATE_ALLOW,
+  FIELD_DUPLICATE_TOP,
+  FIELD_INPUT_COMPONENT,
   FIELD_INSTRUCTION,
   FIELD_VALUES,
   FIELDS,
@@ -93,6 +95,77 @@ export interface FieldData {
   // getClaimsForField route each claim to exactly one of the two fields by whether its IRI is
   // a file link (see the isFileLink parameter there).
   fileLinkSibling?: boolean
+  // FIELD_INPUT_COMPONENT value: the name of the component the edit form renders the field's
+  // value with, instead of the one the value type picks. The name is a key into the field input
+  // registry (see registry/field-input), which is what turns it into a component.
+  inputComponent?: string
+  // The COMPONENT_PROPS sub-claim of FIELD_INPUT_COMPONENT: the props the input component is
+  // rendered with, parsed from the claim's query string. Values are strings, so a component
+  // reading them as anything else has to convert them itself.
+  inputComponentProps?: Readonly<Record<string, string>>
+  // How the edit form compares the field's claims for duplicates (see duplicateClaimIds), from the
+  // FIELD_DUPLICATE_TOP and FIELD_DUPLICATE_ALLOW claims: "top" compares each claim's own value
+  // alone, "allow" compares nothing because duplicates are wanted. Unset compares the whole claim,
+  // sub-claims included.
+  duplicate?: "top" | "allow"
+}
+
+// requiresDistinctValues reports whether the field cannot hold the same top-level value twice, which
+// is what lets an input keep a value the field already holds out of the user's way (see
+// takenValuesKey) instead of letting them pick it and be told it is a duplicate on save.
+//
+// Only the field saying so counts. Having no sub-fields does not: sub-fields are what the form
+// renders, sub-claims are what a claim holds, and a sub-field hidden from the form (order "-", e.g.
+// the language of a string) is left out of the schema while its claims still carry the sub-claim. A
+// field like that may hold the same value twice, told apart by what the form does not show, and
+// keeping the value out of the list would deny an entry which is allowed, without saying why.
+export function requiresDistinctValues(field: DeepReadonly<FieldData>): boolean {
+  return field.duplicate === "top"
+}
+
+// duplicateClaimIds returns the ids of every claim among a field's claims which says the same thing
+// as another one of them: two claims are the same when they say the same thing (see
+// Claim.EqualityKey), which never involves the claim ids (those are always distinct) and, unless the
+// field compares top-level values alone, includes their sub-claims in any order. A field allowing
+// duplicates has none by definition.
+//
+// Every claim of a repeated value is returned, the first one included: they are duplicates of each
+// other, and which of them the user meant to keep is not for the form to guess.
+export function duplicateClaimIds(claims: DeepReadonly<readonly Claim[]>, field: DeepReadonly<FieldData>): Set<string> {
+  const duplicates = new Set<string>()
+  if (field.duplicate === "allow") {
+    return duplicates
+  }
+  const byKey = new Map<string, string[]>()
+  for (const claim of claims) {
+    const key = claim.EqualityKey(false, field.duplicate !== "top")
+    byKey.set(key, [...(byKey.get(key) ?? []), claim.id])
+  }
+  for (const ids of byKey.values()) {
+    if (ids.length > 1) {
+      for (const id of ids) {
+        duplicates.add(id)
+      }
+    }
+  }
+  return duplicates
+}
+
+// parseComponentProps parses a COMPONENT_PROPS claim ("key=value&key=value") into the props
+// record. A prop holds one string, so a repeated key keeps its first value, the way
+// URLSearchParams.get reads one. Building the claim from struct tags refuses a repeated key
+// outright, but a claim can be made in other ways too. Returns undefined for a string holding no
+// pair at all, so a component with an empty props claim is the same as one without the claim.
+function parseComponentProps(props: string | undefined): Record<string, string> | undefined {
+  if (!props) {
+    return undefined
+  }
+  const parsed: Record<string, string> = {}
+  const params = new URLSearchParams(props)
+  for (const key of new Set(params.keys())) {
+    parsed[key] = params.get(key)!
+  }
+  return Object.keys(parsed).length > 0 ? parsed : undefined
 }
 
 // fieldShownInView reports whether the read-only views render the field. A field
@@ -252,6 +325,14 @@ function extractFieldData(claimsTypes: DeepReadonly<ClaimTypes> | undefined, par
 
   const contextClaims = getClaimsOfTypeWithConfidence(claimsTypes, "string", FIELD_CONTEXT)
 
+  // Allowing duplicates wins over comparing them, so a field carrying both settings keeps them.
+  const duplicateAllow = getBestClaimOfType(claimsTypes, "has", FIELD_DUPLICATE_ALLOW)
+  const duplicateTop = getBestClaimOfType(claimsTypes, "has", FIELD_DUPLICATE_TOP)
+
+  // The props sit under the component claim, so they cannot be given without one.
+  const inputComponentClaim = getBestClaimOfType(claimsTypes, "string", FIELD_INPUT_COMPONENT)
+  const inputComponentPropsClaim = inputComponentClaim ? getBestClaimOfType(inputComponentClaim.sub, "string", COMPONENT_PROPS) : undefined
+
   const defaultRef = getBestClaimOfType(claimsTypes, "ref", FIELD_DEFAULT)
   let fieldDefault: "none" | "unknown" | undefined
   if (defaultRef?.to.id === VT_NONE) {
@@ -272,6 +353,9 @@ function extractFieldData(claimsTypes: DeepReadonly<ClaimTypes> | undefined, par
     default: fieldDefault,
     claims: claimsTypes,
     context: contextClaims.length > 0 ? contextClaims.map((claim) => claim.string) : undefined,
+    inputComponent: inputComponentClaim?.string || undefined,
+    inputComponentProps: parseComponentProps(inputComponentPropsClaim?.string),
+    duplicate: duplicateAllow ? "allow" : duplicateTop ? "top" : undefined,
   }
 }
 
@@ -454,6 +538,12 @@ export function valueTypeToClaimType(valueTypeId: string): ClaimTypeName {
 // resyncs to the committed state when it observes this error.
 export class ChangeDroppedError extends Error {}
 
+// ChangeDeniedError rejects a queued change which the server refused because the caller may not make
+// it (e.g. a permission claim added by a caller without the permissions action). It is a dropped
+// change, because posting it again could only be refused again, told apart from the other dropped
+// ones so that the form can say that the change is not allowed instead of inviting a retry.
+export class ChangeDeniedError extends ChangeDroppedError {}
+
 // Injection keys for FieldsForm shared services (using Symbol.for for deduplication in dev).
 // See progress.ts for the pattern.
 export const saveChangeKey: InjectionKey<(spec: SaveChangeSpec) => Promise<SaveChangeResult>> =
@@ -468,6 +558,22 @@ export const unregisterForFlushKey: InjectionKey<(instance: FieldsFormFlush) => 
 // a dropped change or a remote conflict.
 export const getCommittedClaimKey: InjectionKey<(id: string) => DeepReadonly<Claim> | null> =
   process.env.NODE_ENV !== "production" ? Symbol.for("peerdb-getCommittedClaim") : Symbol()
+
+// documentClaimsKey provides all claims of the document being edited, with the committed session
+// changes applied. An input which needs more of the document than the value it edits reads them
+// through it (e.g. the users the document grants access to, see InputIdentityFromPermissions), so
+// what it offers follows the document as the session changes it.
+export const documentClaimsKey: InjectionKey<() => DeepReadonly<ClaimTypes> | null> =
+  process.env.NODE_ENV !== "production" ? Symbol.for("peerdb-documentClaims") : Symbol()
+
+// takenValuesKey provides the top-level values the field's entries already hold, for a field which
+// cannot hold the same value twice (see requiresDistinctValues); it is empty for every other field.
+// An input offering a choice reads it to keep those values out of the user's way instead of letting
+// them pick one and be told it is a duplicate on save. The values are the ones the inputs edit (see
+// getClaimValues), so an input compares them with its own candidates directly. They are the values
+// of the whole field, this input's own among them, so an input drops its own value from them.
+// Every field's claims provide their own, so a sub-field never sees its parent's.
+export const takenValuesKey: InjectionKey<() => ReadonlySet<string>> = process.env.NODE_ENV !== "production" ? Symbol.for("peerdb-takenValues") : Symbol()
 
 // Remote conflict handlers: DocumentEdit notifies these with the set of claim ids touched
 // by committed changes from other session editors whenever the subscription applies
@@ -876,14 +982,11 @@ export function cardinalityViolations(
   return violations
 }
 
-// A claim as claimsEquivalent inspects it: an id, its own value fields, and optional nested
-// sub-claims. Kept structural (not the Claim class) so raw JSON claims and reactive proxies both fit.
-type ClaimLike = { id: string; sub?: DeepReadonly<ClaimTypes> | null }
-
 // claimsEquivalent reports whether two claim sets hold the same claims. It mirrors the backend's
 // fillChangedProperties / claimValueStates: every claim (top-level and nested) is flattened into an
-// id-keyed map, and two claims are equal when their own value fields match with their sub-claims
-// excluded (the sub-claims are in the flat map in their own right and compared there). This makes
+// id-keyed map, and two claims are equal when what they say matches with their sub-claims excluded
+// (the sub-claims are in the flat map in their own right and compared there, see Claim.EqualityKey).
+// This makes
 // the comparison order-independent at every level - a claim's position in its type array, and a
 // nested claim's position under its parent, do not matter - so a Revert that restores sub-claims in
 // a different array order still compares equal. Drives net-change detection: an edit session whose
@@ -900,25 +1003,25 @@ type ClaimLike = { id: string; sub?: DeepReadonly<ClaimTypes> | null }
 // own value changes no property's indexed values; reference/structure concerns are handled by
 // separate mechanisms there, e.g. collectChangedReferenceTargets).
 export function claimsEquivalent(a: DeepReadonly<ClaimTypes> | undefined | null, b: DeepReadonly<ClaimTypes> | undefined | null): boolean {
-  const flatten = (claims: DeepReadonly<ClaimTypes> | undefined | null, out: Map<string, ClaimLike>): void => {
+  const flatten = (claims: DeepReadonly<ClaimTypes> | undefined | null, out: Map<string, DeepReadonly<Claim>>): void => {
     if (!claims) {
       return
     }
     // We iterate the (possibly reactive) claims directly rather than through toRaw: a reactive
-    // caller (canSave) must track claim reads so it re-runs when the doc changes, and the deep
-    // equals below compares reactive proxies correctly by reading their values.
+    // caller (canSave) must track claim reads so it re-runs when the doc changes, and the keys
+    // below are built by reading the reactive proxies' values.
     for (const list of Object.values(claims)) {
       if (!Array.isArray(list)) {
         continue
       }
-      for (const claim of list as ClaimLike[]) {
+      for (const claim of list as DeepReadonly<Claim>[]) {
         out.set(claim.id, claim)
         flatten(claim.sub ?? null, out)
       }
     }
   }
-  const flatA = new Map<string, ClaimLike>()
-  const flatB = new Map<string, ClaimLike>()
+  const flatA = new Map<string, DeepReadonly<Claim>>()
+  const flatB = new Map<string, DeepReadonly<Claim>>()
   flatten(a, flatA)
   flatten(b, flatB)
   if (flatA.size !== flatB.size) {
@@ -926,9 +1029,9 @@ export function claimsEquivalent(a: DeepReadonly<ClaimTypes> | undefined | null,
   }
   for (const [id, claim] of flatA) {
     const other = flatB.get(id)
-    // Compare each claim's own value with sub excluded (spreading normalizes sub to undefined on
-    // both sides so equals ignores it), like the backend's claimValueKey marshaling with sub cleared.
-    if (other === undefined || !equals({ ...claim, sub: undefined }, { ...other, sub: undefined })) {
+    // Each claim is compared by what it says with its sub-claims left out (they are in the flat map
+    // in their own right), which is what the claim's key without them is.
+    if (other === undefined || claim.EqualityKey(false, false) !== other.EqualityKey(false, false)) {
       return false
     }
   }

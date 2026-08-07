@@ -4,14 +4,15 @@ package search
 import (
 	"context"
 	"encoding/json"
+	"maps"
 	"math"
 	"net/http"
+	"slices"
 	"strconv"
 	"sync"
 	"time"
 
 	"github.com/elastic/go-elasticsearch/v9"
-	"github.com/elastic/go-elasticsearch/v9/typedapi/esdsl"
 	"github.com/elastic/go-elasticsearch/v9/typedapi/types"
 	"github.com/elastic/go-elasticsearch/v9/typedapi/types/enums/operationtype"
 	"github.com/elastic/go-elasticsearch/v9/typedapi/types/enums/versiontype"
@@ -217,12 +218,24 @@ type Bridge struct {
 
 	// NormalizeHooks are the indexing normalize hooks, run by produceLevels on each level's copy of a
 	// document read from the store for indexing, at that level's visibility. A hook may transform the
-	// document or return store.ErrAccessDenied to hide it at that level (it is then deleted from that
+	// document or return auth.ErrAccessDenied to hide it at that level (it is then deleted from that
 	// level's index). The metadata is the one the document was read with; it is shared across levels and
 	// hooks, so hooks must not mutate it. The base sets these from its own indexing normalize hooks. The
 	// read-path document pre/post hooks are not run during indexing; a site which wants their filtering
 	// during indexing calls them from an indexing normalize hook itself.
 	NormalizeHooks []func(ctx context.Context, doc *document.D, metadata *store.DocumentMetadata) (*document.D, errors.E)
+
+	// SourceCheck, when set, is run by produceLevels for each level after the normalize hooks, on the
+	// level's normalized document, to decide whether the document may serve as a source for other
+	// documents' entries at that level: whether it is visible to everyone who can search the level, not
+	// only to a subset of its readers. Returning auth.ErrAccessDenied hides the document as a source: it
+	// keeps its own entry at the level, but GetDocument reports it as not found (so its labels and claims
+	// are not rendered into other documents' entries), and its reference rows carry a false source flag,
+	// so it contributes no inverse relations and its claims are skipped by reference counting. Any other
+	// error aborts indexing. A nil SourceCheck means every document is a source. The base sets this from
+	// its own indexing source check; see base.B.IndexingSourceCheck for the invariant this maintains and
+	// the purity requirement.
+	SourceCheck func(ctx context.Context, doc *document.D, metadata *store.DocumentMetadata) errors.E
 
 	dbpool *pgxpool.Pool
 	schema string
@@ -330,15 +343,41 @@ func (b *Bridge) Init(
 			CREATE TRIGGER "`+b.Store.Prefix+`BridgeReindexQueueNotAllowed" BEFORE UPDATE OR TRUNCATE ON "`+b.Store.Prefix+`BridgeReindexQueue"
 				FOR EACH STATEMENT EXECUTE FUNCTION "`+b.Store.Prefix+`DoNotAllow"();
 
+			-- "References" holds, per target document and visibility level, the reference rows pointing at that
+			-- document: reference claims (at any depth of nesting, at or above low confidence) from other
+			-- documents, as those source documents are seen at that level, expanded across value hierarchies.
+			-- The bridge upserts and deletes rows as commits change the source documents. Rows are kept per
+			-- level so indexing one level never uses a claim not visible there, and rows exist for every source
+			-- document present at a level, with "isSource" recording whether it is a source there (see
+			-- SourceCheck): counts.references counts only rows with "isSource", while refresh lookups (who
+			-- references a document) use all rows.
+			CREATE TABLE "`+b.Store.Prefix+`References" (
+				-- Target document (B): the document the reference points at.
+				"target" text STORAGE PLAIN COLLATE "C" NOT NULL,
+				-- Visibility level of the source document's version the row is derived from.
+				"level" text STORAGE PLAIN COLLATE "C" NOT NULL,
+				-- Reference claim ID in the source document. Claim IDs are unique per source document but not
+				-- globally, so "source" is part of the key as well.
+				"claim" text STORAGE PLAIN COLLATE "C" NOT NULL,
+				-- Source document (A) that has the reference claim.
+				"source" text STORAGE PLAIN COLLATE "C" NOT NULL,
+				-- Whether the source document is a source at the level (see SourceCheck).
+				"isSource" boolean NOT NULL,
+				PRIMARY KEY ("target", "level", "claim", "source")
+			);
+			-- This allows counts.references to be computed with an index-only scan over exactly the counted rows.
+			CREATE INDEX "`+b.Store.Prefix+`ReferencesCount" ON "`+b.Store.Prefix+`References" ("target", "level") WHERE "isSource";
+
 			-- "InverseRelations" holds, per target document and visibility level, the inverse relations rendered
-			-- onto that document when it is indexed: relation claims from other documents that point to it, as
-			-- those source documents are seen at that level. The bridge upserts and deletes rows as commits change
-			-- the source documents. Rows are kept per level so indexing one level never leaks a source not visible
-			-- there.
+			-- onto that document when it is indexed: relation claims from other documents that point to it
+			-- (expanded across value hierarchies, like their reference rows), as those source documents are seen
+			-- at that level. The bridge upserts and deletes rows as commits change the source documents. Rows are
+			-- kept per level and only for source documents (see SourceCheck), so indexing one level never renders
+			-- a source not visible to everyone searching there.
 			CREATE TABLE "`+b.Store.Prefix+`InverseRelations" (
 				-- Target document (B): the document the inverse relation is rendered onto.
 				"target" text STORAGE PLAIN COLLATE "C" NOT NULL,
-				-- Visibility level at which the source document is visible.
+				-- Visibility level at which the source document is a source.
 				"level" text STORAGE PLAIN COLLATE "C" NOT NULL,
 				-- Relation claim ID in the source document. Claim IDs are unique per source document but not
 				-- globally, so "source" is part of the key as well.
@@ -901,14 +940,15 @@ func (b *Bridge) ResetSeq(ctx context.Context) errors.E {
 	return nil
 }
 
-// ClearSystemManagedMetadata removes all bridge-maintained inverse relations and embedding entries by
-// truncating both tables. A subsequent full reindex (commit-log replay) then rebuilds them from a clean
-// slate instead of diffing new commits on top of stale or wrongly-leveled entries.
+// ClearSystemManagedMetadata removes all bridge-maintained reference rows, inverse relations, and
+// embedding entries by truncating the three tables. A subsequent full reindex (commit-log replay) then
+// rebuilds them from a clean slate instead of diffing new commits on top of stale or wrongly-leveled
+// entries.
 //
 // It must run while the bridge is not processing (before Start), so nothing repopulates the tables concurrently.
 func (b *Bridge) ClearSystemManagedMetadata(ctx context.Context) errors.E {
 	return internalStore.RetryTransaction(ctx, b.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
-		_, err := tx.Exec(ctx, `TRUNCATE "`+b.Store.Prefix+`InverseRelations", "`+b.Store.Prefix+`Embedding"`)
+		_, err := tx.Exec(ctx, `TRUNCATE "`+b.Store.Prefix+`References", "`+b.Store.Prefix+`InverseRelations", "`+b.Store.Prefix+`Embedding"`)
 		return internalStore.WithPgxError(err)
 	})
 }
@@ -1101,6 +1141,9 @@ func (b *Bridge) WaitUntilCaughtUp(ctx context.Context, count, size *x.Counter) 
 	// Find the current maximum seq in CommitLog.
 	var maxSeq int64
 	errE := internalStore.RetryTransaction(ctx, b.dbpool, pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
+		// Initialize in the case transaction is retried.
+		maxSeq = 0
+
 		err := tx.QueryRow(ctx, `SELECT COALESCE(MAX("seq"), 0) FROM "`+b.Store.Prefix+`CommitLog"`).Scan(&maxSeq)
 		return internalStore.WithPgxError(err)
 	})
@@ -1216,11 +1259,11 @@ func (b *Bridge) catchUp(ctx context.Context, lastSeq int64) (int64, int, errors
 			return lastSeq, processed, errE
 		}
 		for _, commit := range commits {
-			addedInverseRelations, removedInverseRelations, referenceTargets, embeds, errE := b.indexCommit(ctx, commit)
+			refs, refreshDocs, embeds, errE := b.indexCommit(ctx, commit)
 			if errE != nil {
 				return lastSeq, processed, errE
 			}
-			errE = b.updateSeq(ctx, commit.Seq, addedInverseRelations, removedInverseRelations, referenceTargets, embeds)
+			errE = b.updateSeq(ctx, commit.Seq, refs, refreshDocs, embeds)
 			if errE != nil {
 				return lastSeq, processed, errE
 			}
@@ -1271,12 +1314,21 @@ type embedChanges struct {
 	fire    map[identifier.Identifier]bool
 }
 
+// referenceChanges collects the maintenance of the references and inverse-relations tables a commit
+// implies: rows to insert and rows to delete, keyed by target document and then by visibility level.
+type referenceChanges struct {
+	Added          map[identifier.Identifier]map[string][]Reference
+	Removed        map[identifier.Identifier]map[string][]Reference
+	AddedInverse   map[identifier.Identifier]map[string][]InverseRelation
+	RemovedInverse map[identifier.Identifier]map[string][]InverseRelation
+}
+
 func (b *Bridge) indexCommit( //nolint:maintidx
 	ctx context.Context,
 	committed store.CommittedChangesets[
 		json.RawMessage, *store.DocumentMetadata, *store.NoMetadata, *store.NoMetadata, *store.CommitMetadata, document.Changes,
 	],
-) (map[identifier.Identifier]map[string][]store.InverseRelation, map[identifier.Identifier]map[string][]store.InverseRelation, map[identifier.Identifier]bool, embedChanges, errors.E) { //nolint:lll
+) (referenceChanges, map[identifier.Identifier]bool, embedChanges, errors.E) {
 	logger := zerolog.Ctx(ctx)
 	start := time.Now()
 	var stats ConversionStats
@@ -1288,7 +1340,7 @@ func (b *Bridge) indexCommit( //nolint:maintidx
 	if errE != nil {
 		errors.Details(errE)["seq"] = committed.Seq
 		errors.Details(errE)["view"] = committed.View.Name()
-		return nil, nil, nil, embedChanges{}, errE
+		return referenceChanges{}, nil, embedChanges{}, errE
 	}
 
 	indexOps := 0
@@ -1311,14 +1363,20 @@ func (b *Bridge) indexCommit( //nolint:maintidx
 	commitVersion := committed.Seq
 	externalGte := versiontype.Externalgte
 
-	// Collect inverse relations from all processed documents, keyed by target document and then by visibility
-	// level: each level's set is computed from the source document as seen at that level.
-	addedInverseRelations := map[identifier.Identifier]map[string][]store.InverseRelation{}
-	removedInverseRelations := map[identifier.Identifier]map[string][]store.InverseRelation{}
+	// Collect reference row and inverse relation changes from all processed documents, keyed by target
+	// document and then by visibility level: each level's rows are computed from the source document as
+	// seen at that level.
+	refs := referenceChanges{
+		Added:          map[identifier.Identifier]map[string][]Reference{},
+		Removed:        map[identifier.Identifier]map[string][]Reference{},
+		AddedInverse:   map[identifier.Identifier]map[string][]InverseRelation{},
+		RemovedInverse: map[identifier.Identifier]map[string][]InverseRelation{},
+	}
 
-	// Collect documents whose counts.references must be refreshed because a processed
-	// document started or stopped referencing them.
-	referenceTargets := map[identifier.Identifier]bool{}
+	// Collect documents which must be re-indexed because a processed document changed something their
+	// entries render: their counts.references or synthetic inverse claims (reference rows pointing at
+	// them changed) or their renders of the processed document itself (its source visibility flipped).
+	refreshDocs := map[identifier.Identifier]bool{}
 
 	// Collect the embedding work this commit implies: which source documents to add to or remove from each
 	// target's embedding set (maintenance of the embedding table), and which documents to re-index because a
@@ -1342,7 +1400,7 @@ func (b *Bridge) indexCommit( //nolint:maintidx
 			page, errE := cs.Changes(ctx, after)
 			changesDuration += time.Since(changesStart)
 			if errE != nil {
-				return nil, nil, nil, embedChanges{}, withCommitDetails(errE, committed.Seq, committed.View.Name(), cs.String(), "")
+				return referenceChanges{}, nil, embedChanges{}, withCommitDetails(errE, committed.Seq, committed.View.Name(), cs.String(), "")
 			}
 			for _, change := range page {
 				// The document changed in this commit, so drop any cached info and fetched content for it,
@@ -1363,24 +1421,24 @@ func (b *Bridge) indexCommit( //nolint:maintidx
 				// each timed on its own. Inverse relations are only needed when the document is indexed, so they
 				// are skipped when it is deleted (it is deleted from every index).
 				getStart := time.Now()
-				docs, metadata, parentChangesets, deleted, errE := b.produceLevels(ctx, change.ID, &change.Version)
+				docs, sources, metadata, parentChangesets, deleted, errE := b.produceLevels(ctx, change.ID, &change.Version)
 				getDuration += time.Since(getStart)
 				if errE != nil {
-					return nil, nil, nil, embedChanges{}, withCommitDetails(errE, committed.Seq, committed.View.Name(), cs.String(), change.ID.String())
+					return referenceChanges{}, nil, embedChanges{}, withCommitDetails(errE, committed.Seq, committed.View.Name(), cs.String(), change.ID.String())
 				}
 				embeddingStart := time.Now()
 				embedding, errE := b.Embedding(ctx, change.ID)
 				embeddingDuration += time.Since(embeddingStart)
 				if errE != nil {
-					return nil, nil, nil, embedChanges{}, withCommitDetails(errE, committed.Seq, committed.View.Name(), cs.String(), change.ID.String())
+					return referenceChanges{}, nil, embedChanges{}, withCommitDetails(errE, committed.Seq, committed.View.Name(), cs.String(), change.ID.String())
 				}
-				var inverseRelations map[string][]store.InverseRelation
+				var inverseRelations map[string][]InverseRelation
 				if !deleted {
 					inverseRelationsStart := time.Now()
 					inverseRelations, errE = b.InverseRelations(ctx, change.ID)
 					inverseRelationsDuration += time.Since(inverseRelationsStart)
 					if errE != nil {
-						return nil, nil, nil, embedChanges{}, withCommitDetails(errE, committed.Seq, committed.View.Name(), cs.String(), change.ID.String())
+						return referenceChanges{}, nil, embedChanges{}, withCommitDetails(errE, committed.Seq, committed.View.Name(), cs.String(), change.ID.String())
 					}
 				}
 
@@ -1391,26 +1449,42 @@ func (b *Bridge) indexCommit( //nolint:maintidx
 					changedProps = map[identifier.Identifier]bool{}
 				}
 
-				// Collect, for other documents, the inverse-relation, counts.references, and embedding changes
-				// implied by this document's change, computed per level from this document's per-level versions.
+				// Collect, for other documents, the reference row and embedding changes implied by this
+				// document's change, computed per level from this document's per-level versions.
 				accumulateFetchBefore := stats.FetchDuration
 				accumulateStart := time.Now()
-				errE = b.accumulateChangeRelations(
-					ctx, change.ID, deleted, docs, parentChangesets,
-					addedInverseRelations, removedInverseRelations, referenceTargets,
+				flippedLevels, errE := b.accumulateChangeRelations(
+					ctx, change.ID, deleted, docs, sources, parentChangesets,
+					&refs, refreshDocs,
 					embeds.set, embeds.removed, changedProps,
 				)
 				accumulateDuration += time.Since(accumulateStart) - (stats.FetchDuration - accumulateFetchBefore)
 				if errE != nil {
-					return nil, nil, nil, embedChanges{}, withCommitDetails(errE, committed.Seq, committed.View.Name(), cs.String(), change.ID.String())
+					return referenceChanges{}, nil, embedChanges{}, withCommitDetails(errE, committed.Seq, committed.View.Name(), cs.String(), change.ID.String())
 				}
 
 				// Re-index the documents that embed claims from this one so their embedded copy is refreshed, but
 				// only those that embed a property which changed in this commit (when the document is deleted every
-				// embedded property counts as changed, so all of them are re-indexed).
+				// embedded property counts as changed, so all of them are re-indexed). A source visibility flip
+				// also re-indexes every embedder: their embedded copies appear or disappear with the flip, without
+				// any embedded property having changed.
 				for embedderID, paths := range embedding {
-					if embedPathsTouch(paths, changedProps) {
+					if len(flippedLevels) > 0 || embedPathsTouch(paths, changedProps) {
 						embeds.fire[embedderID] = true
+					}
+				}
+
+				// Beyond embeds, other entries also render a source document's data through their reference
+				// claims (its display labels, hierarchy paths). On a source visibility flip, re-index every
+				// document referencing this one at a flipped level, so those renders are recomputed under
+				// the new visibility.
+				if len(flippedLevels) > 0 {
+					referrers, errE := b.referrerIDs(ctx, change.ID, flippedLevels)
+					if errE != nil {
+						return referenceChanges{}, nil, embedChanges{}, withCommitDetails(errE, committed.Seq, committed.View.Name(), cs.String(), change.ID.String())
+					}
+					for _, referrer := range referrers {
+						refreshDocs[referrer] = true
 					}
 				}
 
@@ -1422,7 +1496,7 @@ func (b *Bridge) indexCommit( //nolint:maintidx
 					if deleted || docs[i] == nil {
 						err := bulkService.DeleteOp(types.DeleteOperation{Index_: &index, Id_: &id, Version: &commitVersion, VersionType: &externalGte}) //nolint:exhaustruct
 						if err != nil {
-							return nil, nil, nil, embedChanges{}, errors.WithStack(err)
+							return referenceChanges{}, nil, embedChanges{}, errors.WithStack(err)
 						}
 						debugDocs = append(debugDocs, nil)
 						deleteOps++
@@ -1435,11 +1509,11 @@ func (b *Bridge) indexCommit( //nolint:maintidx
 					searchDoc, errE := t.Converter.FromDocument(t.levelContext(ctx), docs[i], &gen, metadata, inverseRelations[t.Level])
 					convertDuration += time.Since(convertStart) - (stats.FetchDuration - convertFetchBefore)
 					if errE != nil {
-						return nil, nil, nil, embedChanges{}, withCommitDetails(errE, committed.Seq, committed.View.Name(), cs.String(), change.ID.String())
+						return referenceChanges{}, nil, embedChanges{}, withCommitDetails(errE, committed.Seq, committed.View.Name(), cs.String(), change.ID.String())
 					}
 					err := bulkService.IndexOp(types.IndexOperation{Index_: &index, Id_: &id, Version: &commitVersion, VersionType: &externalGte}, searchDoc) //nolint:exhaustruct
 					if err != nil {
-						return nil, nil, nil, embedChanges{}, errors.WithStack(err)
+						return referenceChanges{}, nil, embedChanges{}, errors.WithStack(err)
 					}
 					debugDocs = append(debugDocs, searchDoc)
 					indexOps++
@@ -1459,13 +1533,13 @@ func (b *Bridge) indexCommit( //nolint:maintidx
 			Int("deleted", 0).
 			Dur("duration", time.Since(start)).
 			Msg("bridge indexed commit")
-		return nil, nil, nil, embedChanges{}, nil
+		return referenceChanges{}, nil, embedChanges{}, nil
 	}
 
 	bulkStart := time.Now()
 	response, err := bulkService.Do(ctx)
 	if err != nil {
-		return nil, nil, nil, embedChanges{}, WithESError(err)
+		return referenceChanges{}, nil, embedChanges{}, WithESError(err)
 	}
 	bulkDuration := time.Since(bulkStart)
 
@@ -1510,15 +1584,14 @@ func (b *Bridge) indexCommit( //nolint:maintidx
 		errors.Details(errE)["view"] = committed.View.Name()
 		// We do not name this field "errors" to not confuse go-errors package which tries to parse it as joined errors.
 		errors.Details(errE)["esErrors"] = bulkErrors
-		return nil, nil, nil, embedChanges{}, errE
+		return referenceChanges{}, nil, embedChanges{}, errE
 	}
 
-	// The counts here are the work this commit implies for other documents. indexed/deleted are the
-	// bulk operations for the changed documents themselves. inverseAdded/inverseRemoved are the
-	// numbers of target documents whose inverse relations change, and referenceTargets is
-	// the number of documents whose counts.references must be refreshed. The durations are disjoint and
-	// sum to duration (minus small in-memory overhead for cache invalidation, bulk buffering, and the
-	// bulk error scan): changesDuration is reconstructing and reading the committed changesets,
+	// This logs the commit's own phase: indexed/deleted are the bulk operations for the changed
+	// documents themselves, and refreshDocs is the number of documents to re-index because rows
+	// pointing at them changed or because they reference a document whose source visibility flipped.
+	// The durations are disjoint and sum to duration (minus small in-memory overhead for cache invalidation,
+	// bulk buffering, and the bulk error scan): changesDuration is reconstructing and reading the committed changesets,
 	// getDuration is reading and hooking each changed document, embeddingDuration and inverseRelationsDuration
 	// are loading each changed document's embedding set and inverse relations, fetchDuration is the getDocument
 	// store fetches, accumulateDuration and convertDuration are accumulateChangeRelations and ConvertDocument
@@ -1527,9 +1600,7 @@ func (b *Bridge) indexCommit( //nolint:maintidx
 		Int64("seq", committed.Seq).
 		Int("indexed", indexOps).
 		Int("deleted", deleteOps).
-		Int("inverseAdded", len(addedInverseRelations)).
-		Int("inverseRemoved", len(removedInverseRelations)).
-		Int("referenceTargets", len(referenceTargets)).
+		Int("refreshDocs", len(refreshDocs)).
 		Int("docCacheHits", stats.DocCacheHits).
 		Int("docCacheMisses", stats.DocCacheMisses).
 		Int("infoCacheHits", stats.InfoCacheHits).
@@ -1545,44 +1616,46 @@ func (b *Bridge) indexCommit( //nolint:maintidx
 		Dur("duration", time.Since(start)).
 		Msg("bridge indexed commit")
 
-	return addedInverseRelations, removedInverseRelations, referenceTargets, embeds, nil
+	return refs, refreshDocs, embeds, nil
 }
 
-// diffOutgoingInverseRelations compares current and parent outgoing inverse relations,
-// returning added and removed maps. A relation is considered changed (and thus both
-// removed and added) if any of its fields (target, property, confidence) differ,
-// even if the claim ID stays the same.
-func diffOutgoingInverseRelations(
-	current, parent map[identifier.Identifier][]store.InverseRelation,
-) (map[identifier.Identifier][]store.InverseRelation, map[identifier.Identifier][]store.InverseRelation) {
-	currentSet := map[store.InverseRelation]bool{}
-	for _, irs := range current {
-		for _, ir := range irs {
-			currentSet[ir] = true
+// diffTargetRows compares two sets of rows grouped by target, returning the added rows (in current but
+// not in parent) and the removed rows (in parent but not in current), grouped by target again. Rows are
+// compared by their full value as one set across the whole map: a row changed in any field is both
+// removed (the parent's value) and added (the current one), even if its claim ID stays the same. This
+// is sound only because each row determines its own grouping key (both row types carry their target as
+// a field), so a row can never keep its value while moving between targets.
+func diffTargetRows[T comparable](
+	current, parent map[identifier.Identifier][]T,
+) (map[identifier.Identifier][]T, map[identifier.Identifier][]T) {
+	currentSet := map[T]bool{}
+	for _, rows := range current {
+		for _, row := range rows {
+			currentSet[row] = true
 		}
 	}
 
-	parentSet := map[store.InverseRelation]bool{}
-	for _, irs := range parent {
-		for _, ir := range irs {
-			parentSet[ir] = true
+	parentSet := map[T]bool{}
+	for _, rows := range parent {
+		for _, row := range rows {
+			parentSet[row] = true
 		}
 	}
 
-	added := map[identifier.Identifier][]store.InverseRelation{}
-	for targetID, irs := range current {
-		for _, ir := range irs {
-			if !parentSet[ir] {
-				added[targetID] = append(added[targetID], ir)
+	added := map[identifier.Identifier][]T{}
+	for targetID, rows := range current {
+		for _, row := range rows {
+			if !parentSet[row] {
+				added[targetID] = append(added[targetID], row)
 			}
 		}
 	}
 
-	removed := map[identifier.Identifier][]store.InverseRelation{}
-	for targetID, irs := range parent {
-		for _, ir := range irs {
-			if !currentSet[ir] {
-				removed[targetID] = append(removed[targetID], ir)
+	removed := map[identifier.Identifier][]T{}
+	for targetID, rows := range parent {
+		for _, row := range rows {
+			if !currentSet[row] {
+				removed[targetID] = append(removed[targetID], row)
 			}
 		}
 	}
@@ -1592,15 +1665,17 @@ func diffOutgoingInverseRelations(
 
 // produceLevels reads the document once at the given version (or the latest when version is nil) and
 // produces its per-level versions: for each target it runs the indexing normalize hooks on that level's
-// copy of the document, at that level's visibility. The returned slice aligns with b.targets; an entry is
-// nil when a normalize hook denied the document at that level. deleted is true when the document was
-// deleted at the requested version (no level has a document). It always reads the store (the metadata it
-// returns must be current), but on a latest read it warms documentCache for every level via cacheLevels,
-// including negative results for a deleted, never-existed, or hidden document, so repeated references
-// avoid the store read until the id changes.
+// copy of the document, at that level's visibility. The returned docs slice aligns with b.targets; an
+// entry is nil when a normalize hook denied the document at that level. The returned sources slice also
+// aligns with b.targets: sources[i] is true when the document is present at the level and may serve as a
+// source for other documents' entries there (the source check, when set, passed; see SourceCheck).
+// deleted is true when the document was deleted at the requested version (no level has a document). It
+// always reads the store (the metadata it returns must be current), but on a latest read it warms
+// documentCache for every level via cacheLevels, including negative results for a deleted, never-existed,
+// hidden, or non-source document, so repeated references avoid the store read until the id changes.
 func (b *Bridge) produceLevels(
 	ctx context.Context, id identifier.Identifier, version *store.Version,
-) ([]*document.D, *store.DocumentMetadata, []store.Version, bool, errors.E) {
+) ([]*document.D, []bool, *store.DocumentMetadata, []store.Version, bool, errors.E) {
 	gen := b.genOf(id)
 	var data json.RawMessage
 	var metadata *store.DocumentMetadata
@@ -1614,28 +1689,29 @@ func (b *Bridge) produceLevels(
 	if errors.Is(errE, store.ErrValueDeleted) {
 		// A deleted document is a stable latest state: cache it as a negative at every level so repeated
 		// references do not re-read the store. The commit that undeletes this id invalidates the entry.
-		b.cacheLevels(id, version, gen, nil)
-		return nil, metadata, parentChangesets, true, nil
+		b.cacheLevels(id, version, gen, nil, nil)
+		return nil, nil, metadata, parentChangesets, true, nil
 	}
 	if errors.Is(errE, store.ErrValueNotFound) {
 		// A never-existed document (a dangling reference) is likewise a stable latest state: cache it as a
 		// negative. The commit that creates this id later invalidates the entry.
-		b.cacheLevels(id, version, gen, nil)
-		return nil, metadata, parentChangesets, false, errE
+		b.cacheLevels(id, version, gen, nil, nil)
+		return nil, nil, metadata, parentChangesets, false, errE
 	}
 	if errE != nil {
 		// Any other error is transient and must not be cached.
-		return nil, metadata, parentChangesets, false, errE
+		return nil, nil, metadata, parentChangesets, false, errE
 	}
 	var baseDoc *document.D
 	if data != nil {
 		baseDoc = new(document.D)
 		errE = x.UnmarshalWithoutUnknownFields(data, baseDoc)
 		if errE != nil {
-			return nil, metadata, parentChangesets, false, errE
+			return nil, nil, metadata, parentChangesets, false, errE
 		}
 	}
 	docs := make([]*document.D, len(b.targets))
+	sources := make([]bool, len(b.targets))
 	for i, t := range b.targets {
 		if baseDoc == nil {
 			continue
@@ -1652,7 +1728,7 @@ func (b *Bridge) produceLevels(
 		} else {
 			docCopy, errE := baseDoc.Clone()
 			if errE != nil {
-				return nil, metadata, parentChangesets, false, errE
+				return nil, nil, metadata, parentChangesets, false, errE
 			}
 			docL = docCopy
 		}
@@ -1663,18 +1739,30 @@ func (b *Bridge) produceLevels(
 		for _, hook := range b.NormalizeHooks {
 			var errEL errors.E
 			docL, errEL = hook(ctxL, docL, metadata)
-			if errors.Is(errEL, store.ErrAccessDenied) {
+			if errors.Is(errEL, auth.ErrAccessDenied) {
 				denied = true
 				break
 			}
 			if errEL != nil {
-				return nil, metadata, parentChangesets, false, errEL
+				return nil, nil, metadata, parentChangesets, false, errEL
 			}
 		}
 		if denied {
 			continue
 		}
 		docs[i] = docL
+		// Run the source check at this level's visibility. A denied document keeps its entry at the level
+		// (docs[i] is set) but sources[i] stays false, so it does not feed other documents' entries there.
+		if b.SourceCheck != nil {
+			errEL := b.SourceCheck(ctxL, docL, metadata)
+			if errors.Is(errEL, auth.ErrAccessDenied) {
+				continue
+			}
+			if errEL != nil {
+				return nil, nil, metadata, parentChangesets, false, errEL
+			}
+		}
+		sources[i] = true
 	}
 	// The highest (last) level is the unfiltered superset whose hooks must not drop anything, so an existing
 	// document must always be present there. A nil top means the top-level hooks filtered it, violating that
@@ -1684,18 +1772,20 @@ func (b *Bridge) produceLevels(
 	if baseDoc != nil && docs[len(docs)-1] == nil {
 		errE := errors.New("highest visibility level filtered a document, but it must be unfiltered")
 		errors.Details(errE)["id"] = id.String()
-		return nil, metadata, parentChangesets, false, errE
+		return nil, nil, metadata, parentChangesets, false, errE
 	}
-	b.cacheLevels(id, version, gen, docs)
-	return docs, metadata, parentChangesets, false, nil
+	b.cacheLevels(id, version, gen, docs, sources)
+	return docs, sources, metadata, parentChangesets, false, nil
 }
 
 // cacheLevels warms documentCache with the per-level results of a latest (version == nil) read, under the
-// bridge generation snapshot so a read that raced a concurrent commit does not install stale entries. A nil
-// entry in docs, or a nil docs slice for a deleted or never-existed document, is cached as a negative result,
-// so a later GetDocument for that level returns not-found without a store read until the next commit changing
-// the id invalidates the entry. It is a no-op for a versioned read.
-func (b *Bridge) cacheLevels(id identifier.Identifier, version *store.Version, gen uint64, docs []*document.D) {
+// bridge generation snapshot so a read that raced a concurrent commit does not install stale entries. The
+// cache serves only GetDocument, which is the converters' secondary (source) fetch path, so a document
+// which is not a source at a level (sources[i] is false) is cached as a negative for that level, the same
+// as a nil entry in docs or a nil docs slice for a deleted or never-existed document: a later GetDocument
+// for that level returns not-found without a store read until the next commit changing the id invalidates
+// the entry. It is a no-op for a versioned read.
+func (b *Bridge) cacheLevels(id identifier.Identifier, version *store.Version, gen uint64, docs []*document.D, sources []bool) {
 	if version != nil {
 		return
 	}
@@ -1706,7 +1796,7 @@ func (b *Bridge) cacheLevels(id identifier.Identifier, version *store.Version, g
 	}
 	for i, t := range b.targets {
 		var doc *document.D
-		if docs != nil {
+		if docs != nil && sources[i] {
 			doc = docs[i]
 		}
 		b.documentCache[documentCacheKey{level: t.Level, id: id}] = doc
@@ -1723,10 +1813,12 @@ func (b *Bridge) genOf(id identifier.Identifier) uint64 {
 
 // GetDocument returns the latest normalized document for id at the visibility level in ctx. It is the
 // callback each level's converter uses for secondary (referenced-document) fetches while rendering display
-// strings, so it returns only the document. It serves from documentCache (a cached negative is reported as
-// not found) and falls back to produceLevels on a miss, which warms the cache. A document deleted, never
-// existed, or hidden at this level is reported as not found so the referencing document is rendered without
-// it rather than failing to convert.
+// strings, so it returns only the document. Everything it returns can end up rendered into other
+// documents' entries at the level, so it only returns documents that are sources at the level (see
+// SourceCheck). It serves from documentCache (a cached negative is reported as not found) and falls back
+// to produceLevels on a miss, which warms the cache. A document deleted, never existed, hidden at this
+// level, or not a source at this level is reported as not found so the referencing document is rendered
+// without it rather than failing to convert.
 func (b *Bridge) GetDocument(ctx context.Context, id identifier.Identifier) (*document.D, errors.E) {
 	level := auth.Visibility(ctx)
 	b.documentCacheMu.RLock()
@@ -1734,19 +1826,19 @@ func (b *Bridge) GetDocument(ctx context.Context, id identifier.Identifier) (*do
 	b.documentCacheMu.RUnlock()
 	if ok {
 		if doc == nil {
-			// Cached negative: the document is deleted, never existed, or hidden at this level.
+			// Cached negative: the document is deleted, never existed, hidden, or not a source at this level.
 			return nil, errors.WithStack(store.ErrValueNotFound)
 		}
 		return doc, nil
 	}
-	docs, _, _, deleted, errE := b.produceLevels(ctx, id, nil)
+	docs, sources, _, _, deleted, errE := b.produceLevels(ctx, id, nil)
 	if errE != nil {
 		return nil, errE
 	}
 	if !deleted {
 		for i, t := range b.targets {
 			if t.Level == level {
-				if docs[i] != nil {
+				if docs[i] != nil && sources[i] {
 					return docs[i], nil
 				}
 				break
@@ -1783,7 +1875,7 @@ func (b *Bridge) invalidateCaches(ids ...identifier.Identifier) {
 // the caller's visibility level, so display labels and counts.references reflect that level's index. The
 // inverse relations rendered onto it are loaded from the bridge-maintained table for that level.
 //
-// It returns store.ErrAccessDenied when the caller resolves to no level.
+// It returns auth.ErrAccessDenied when the caller resolves to no level.
 func (b *Bridge) ConvertDocument(ctx context.Context, doc *document.D, metadata *store.DocumentMetadata) (*Document, errors.E) {
 	level := auth.Visibility(ctx)
 	for _, t := range b.targets {
@@ -1797,7 +1889,7 @@ func (b *Bridge) ConvertDocument(ctx context.Context, doc *document.D, metadata 
 			return t.Converter.FromDocument(ctx, doc, nil, metadata, inverseRelations[level])
 		}
 	}
-	return nil, errors.WithStack(store.ErrAccessDenied)
+	return nil, errors.WithStack(auth.ErrAccessDenied)
 }
 
 // DocumentHierarchyPaths returns the document's full hierarchy paths in the indexed toPath form
@@ -1806,7 +1898,7 @@ func (b *Bridge) ConvertDocument(ctx context.Context, doc *document.D, metadata 
 // self path ("__SELF__:<id>").
 //
 // The paths reflect the level's own converter, so an ancestor hidden at that level does not appear in
-// them. It returns store.ErrAccessDenied when the caller resolves to no level.
+// them. It returns auth.ErrAccessDenied when the caller resolves to no level.
 func (b *Bridge) DocumentHierarchyPaths(ctx context.Context, id identifier.Identifier) ([]string, errors.E) {
 	level := auth.Visibility(ctx)
 	for _, t := range b.targets {
@@ -1814,135 +1906,139 @@ func (b *Bridge) DocumentHierarchyPaths(ctx context.Context, id identifier.Ident
 			return t.Converter.DocumentHierarchyPaths(ctx, id)
 		}
 	}
-	return nil, errors.WithStack(store.ErrAccessDenied)
+	return nil, errors.WithStack(auth.ErrAccessDenied)
 }
 
-// CountReferencesFunc returns a converter CountReferences callback that counts references in the given
-// index. Each level's converter gets one bound to that level's index.
-func (b *Bridge) CountReferencesFunc(index string) func(ctx context.Context, id identifier.Identifier) (int, errors.E) {
+// CountReferencesFunc returns a converter CountReferences callback that counts references at the given
+// visibility level. Each level's converter gets one bound to its level.
+func (b *Bridge) CountReferencesFunc(level string) func(ctx context.Context, id identifier.Identifier) (int, errors.E) {
 	return func(ctx context.Context, id identifier.Identifier) (int, errors.E) {
-		return b.countReferences(ctx, id, index)
+		return b.countReferences(ctx, id, level)
 	}
 }
 
-// countReferences returns how many documents in the given index reference the document with the given ID
-// via a top-level ref record or a sub-ref record under any parent collection. It runs an ElasticSearch
-// count against the index, so it reflects whatever is indexed at call time. A term on the "to" field
-// matches only rel records with the ref claimType (the other claim types have no "to"), so no claimType term is needed.
-func (b *Bridge) countReferences(ctx context.Context, id identifier.Identifier, index string) (int, errors.E) {
-	shoulds := make([]types.QueryVariant, 0, 8) //nolint:mnd
-	shoulds = append(shoulds, esdsl.NewNestedQuery(
-		esdsl.NewTermQuery("claims.rel.to", esdsl.NewFieldValue().String(id.String())),
-	).Path("claims.rel"))
-	for _, parent := range ParentCollections() {
-		subPath := "claims." + parent + ".sub.rel"
-		shoulds = append(shoulds, esdsl.NewNestedQuery(
-			esdsl.NewNestedQuery(
-				esdsl.NewTermQuery(subPath+".to", esdsl.NewFieldValue().String(id.String())),
-			).Path(subPath),
-		).Path("claims."+parent))
-	}
-	query := esdsl.NewBoolQuery().Should(shoulds...).MinimumShouldMatch(esdsl.NewMinimumShouldMatch().Int(1))
+// countReferences returns how many stored reference claims in other documents reference the document
+// with the given ID at the given visibility level: the rows of the references table, which cover each
+// claim's direct target and its value-hierarchy ancestors, matching the forward expansion in the
+// index. Only rows of documents which are sources at the level are counted: the count is rendered into
+// the target's entry, so it may reflect only claims everyone searching the level may see. Synthetic
+// inverse claims and embedded copies in entries have no rows, so they do not count.
+func (b *Bridge) countReferences(ctx context.Context, id identifier.Identifier, level string) (int, errors.E) {
+	var count int
+	errE := internalStore.RetryTransaction(ctx, b.dbpool, pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
+		// Initialize in the case transaction is retried.
+		count = 0
 
-	res, err := b.ESClient.Count().Index(index).Query(query).Do(ctx)
-	if err != nil {
-		errE := WithESError(err)
-		errors.Details(errE)["id"] = id.String()
-		return 0, errE
-	}
-	// The count endpoint has no allow_partial_search_results flag, so a shard failure
-	// would silently undercount. Treat any failed shard as an error so the caller retries
-	// rather than recording a too-low counts.references.
-	if res.Shards_.Failed > 0 {
-		errE := errors.New("references count had shard failures")
-		errors.Details(errE)["id"] = id.String()
-		errors.Details(errE)["failed"] = res.Shards_.Failed
-		errors.Details(errE)["total"] = res.Shards_.Total
-		errors.Details(errE)["failures"] = res.Shards_.Failures
-		return 0, errE
-	}
-	return int(res.Count), nil
-}
-
-// outgoingRelationsAndTargets returns both the document's outgoing inverse relations (for the
-// inverse-relation table) and the set of all documents it references (for refreshing those
-// targets' counts.references).
-func (b *Bridge) outgoingRelationsAndTargets(
-	ctx context.Context, c *Converter, doc *document.D,
-) (map[identifier.Identifier][]store.InverseRelation, map[identifier.Identifier]bool, errors.E) {
-	outgoing, errE := c.OutgoingInverseRelations(ctx, doc)
+		return internalStore.WithPgxError(tx.QueryRow(ctx, `
+			SELECT COUNT(*) FROM "`+b.Store.Prefix+`References"
+				WHERE "target" = $1 AND "level" = $2 AND "isSource"
+		`, id.String(), level).Scan(&count))
+	})
 	if errE != nil {
-		return nil, nil, errE
+		errors.Details(errE)["id"] = id.String()
+		errors.Details(errE)["level"] = level
+		return 0, errE
 	}
-	return outgoing, c.OutgoingReferenceTargets(doc), nil
+	return count, nil
 }
 
-// collectChangedReferenceTargets adds to out every document that the changed document
-// started or stopped referencing at this level (the symmetric difference of current and parent
-// reference targets), skipping targets ignored for counts.references as seen at this level.
-//
-// c is the converter for the level whose reference sets (current/parent) are passed, and ctx must carry that
-// level's visibility. The ignored-for-counts decision is resolved through that level's converter, because the
-// document hooks may present a different schema per level (for example hiding a class), which can change
-// whether a target belongs to an ignored class, and thus whether it is counted, at that level. out is the
-// shared flat set across levels: a target is collected when it is not ignored at some level it changed in, and
-// its per-level counts.references is then recomputed from each level's own index at re-index time.
-func (b *Bridge) collectChangedReferenceTargets(
-	ctx context.Context, c *Converter, current, parent, out map[identifier.Identifier]bool,
-) errors.E {
-	add := func(targetID identifier.Identifier) errors.E {
-		if out[targetID] {
+// referrerIDs returns the IDs of all documents with a reference row pointing at the document with the
+// given ID at any of the given visibility levels, whether or not they are sources themselves: their own
+// entries render the document's data (display labels, hierarchy paths), so they are the ones to
+// re-index when what the document shows to a level changes.
+func (b *Bridge) referrerIDs(ctx context.Context, id identifier.Identifier, levels []string) ([]identifier.Identifier, errors.E) {
+	var referrers []identifier.Identifier
+	errE := internalStore.RetryTransaction(ctx, b.dbpool, pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
+		// Initialize in the case transaction is retried.
+		referrers = referrers[:0]
+
+		rows, err := tx.Query(ctx, `
+			SELECT DISTINCT "source" FROM "`+b.Store.Prefix+`References"
+				WHERE "target" = $1 AND "level" = ANY($2)
+		`, id.String(), levels)
+		if err != nil {
+			return internalStore.WithPgxError(err)
+		}
+		var source string
+		_, err = pgx.ForEachRow(rows, []any{&source}, func() error {
+			sourceID, errE := identifier.MaybeString(source)
+			if errE != nil {
+				return errE
+			}
+			referrers = append(referrers, sourceID)
 			return nil
-		}
-		ignored, errE := c.ReferencesCountIgnored(ctx, targetID)
-		if errE != nil {
-			return errE
-		}
-		if !ignored {
-			out[targetID] = true
-		}
-		return nil
+		})
+		return internalStore.WithPgxError(err)
+	})
+	if errE != nil {
+		errors.Details(errE)["id"] = id.String()
+		return nil, errE
 	}
-	for targetID := range current {
-		if parent[targetID] {
-			continue
-		}
-		errE := add(targetID)
-		if errE != nil {
-			return errE
-		}
-	}
-	for targetID := range parent {
-		if current[targetID] {
-			continue
-		}
-		errE := add(targetID)
-		if errE != nil {
-			return errE
+	return referrers, nil
+}
+
+// collectRefreshTargets adds to refreshDocs the targets of the given reference row sets: documents
+// whose entries render counts.references derived from those rows, so they must be re-indexed when the
+// rows change. A target ignored for counts.references is skipped: nothing rendered onto it changes
+// through reference rows.
+//
+// c is the converter for the level the rows belong to, and ctx must carry that level's visibility: the
+// ignored-for-counts decision is resolved through that level's converter, because the document hooks
+// may present a different schema per level (for example hiding a class), which can change whether a
+// target belongs to an ignored class at that level. refreshDocs is the shared flat set across levels:
+// each enqueued document is re-indexed at every level, recomputing its per-level counts and inverse
+// claims from the tables.
+func (b *Bridge) collectRefreshTargets(
+	ctx context.Context, c *Converter, rowSets []map[identifier.Identifier][]Reference, refreshDocs map[identifier.Identifier]bool,
+) errors.E {
+	for _, rows := range rowSets {
+		for targetID := range rows {
+			if refreshDocs[targetID] {
+				continue
+			}
+			ignored, errE := c.ReferencesCountIgnored(ctx, targetID)
+			if errE != nil {
+				return errE
+			}
+			if ignored {
+				continue
+			}
+			refreshDocs[targetID] = true
 		}
 	}
 	return nil
 }
 
-// accumulateChangeRelations computes, for a single document change, the inverse-relation and
-// reference-target differences it implies for other documents, per visibility level, and merges them into
-// the provided accumulators. docs are the change's per-level post-hook documents (nil overall when the
-// document is deleted, and a nil entry for a level where it is hidden). parentChangesets are their parent
-// versions.
+// accumulateChangeRelations computes, for a single document change, the reference row and inverse
+// relation differences it implies, per visibility level, and merges them into the provided
+// accumulators. docs are the change's per-level post-hook documents (nil overall when the document is
+// deleted, and a nil entry for a level where it is hidden) and sources are their per-level source flags
+// (see produceLevels). parentChangesets are their parent versions.
 //
-// Inverse relations accumulate per level into addedInverseRelations/removedInverseRelations
-// (target -> level -> relations), so each level's index only ever receives sources visible at that level.
-// Reference targets are also computed per level (a source visibility change can alter a lower level's count
-// without changing the top one), but merged into the single flat referenceTargets set, because the count is
-// recomputed per level from each level's own index at re-index time.
-func (b *Bridge) accumulateChangeRelations(
-	ctx context.Context, changeID identifier.Identifier, deleted bool, docs []*document.D, parentChangesets []store.Version,
-	addedInverseRelations, removedInverseRelations map[identifier.Identifier]map[string][]store.InverseRelation,
-	referenceTargets map[identifier.Identifier]bool,
+// Reference rows are kept for every version present at a level, with each row stamped with the
+// version's source flag, so a source visibility flip without a claim change shows up in the row diff as
+// every row removed (with the old flag) and added again (with the new one). Inverse relations are kept
+// only for versions which are sources at their level, so a flip shows up as their appearance or
+// disappearance. Both accumulate per level into refs (target -> level -> rows), and the targets of
+// changed rows are added to the flat refreshDocs set (for reference rows skipping targets ignored for
+// counts.references, on which nothing rendered changes), because a target's counts.references and
+// synthetic inverse claims are recomputed per level from the tables at re-index time. The embedder-side
+// bookkeeping (setEmbedders/removedEmbedders/changedProps) records what this document's own entry
+// embeds from others and is likewise computed from present versions.
+//
+// The returned flippedLevels are the levels at which the document's source visibility differs between
+// some parent version and the change version (including deletion and undeletion, and presence flips
+// from the normalize hooks). Referrers' entries render a source document's data beyond what the rows
+// carry (display labels of references to it, embedded claims from it), so on a flip the caller
+// re-indexes them.
+func (b *Bridge) accumulateChangeRelations( //nolint:maintidx
+	ctx context.Context, changeID identifier.Identifier, deleted bool, docs []*document.D, sources []bool, parentChangesets []store.Version,
+	refs *referenceChanges,
+	refreshDocs map[identifier.Identifier]bool,
 	setEmbedders map[identifier.Identifier]map[identifier.Identifier][][]identifier.Identifier,
 	removedEmbedders map[identifier.Identifier]map[identifier.Identifier]bool,
 	changedProps map[identifier.Identifier]bool,
-) errors.E {
+) ([]string, errors.E) {
 	// When changedProps is non-nil, the changed document's own changed property IDs are collected into it, so
 	// that committing this document re-indexes only the embedders that embed a property which changed. It is
 	// computed per visibility level (current versus parent versions) and unioned, the same way the embed
@@ -1953,40 +2049,51 @@ func (b *Bridge) accumulateChangeRelations(
 		parentDocsByLevel = make([][]*document.D, len(b.targets))
 	}
 
-	// Aggregate each parent version's outgoing relations and reference targets per level, and its outgoing
-	// embed source paths unioned across levels (one path-set per target document, keyed by encoded path).
-	parentOutgoing := make([]map[identifier.Identifier][]store.InverseRelation, len(b.targets))
-	parentRefTargets := make([]map[identifier.Identifier]bool, len(b.targets))
+	// Aggregate each parent version's outgoing reference rows (stamped with the parent's source flag)
+	// and inverse relations (only when the parent is a source at the level) per level, and its outgoing
+	// embed source paths unioned across levels (one path-set per target document, keyed by encoded
+	// path). While walking the parents, also detect a source visibility flip at any level: a parent
+	// version being a source at a level while the change version is not, or the other way around. A
+	// deleted parent (or a deleted change version) is a source nowhere.
+	flipped := map[string]bool{}
+	parentOutgoing := make([]map[identifier.Identifier][]Reference, len(b.targets))
+	parentInverse := make([]map[identifier.Identifier][]InverseRelation, len(b.targets))
 	parentEmbeds := map[identifier.Identifier]map[string][]identifier.Identifier{}
 	for i := range b.targets {
-		parentOutgoing[i] = map[identifier.Identifier][]store.InverseRelation{}
-		parentRefTargets[i] = map[identifier.Identifier]bool{}
+		parentOutgoing[i] = map[identifier.Identifier][]Reference{}
+		parentInverse[i] = map[identifier.Identifier][]InverseRelation{}
 	}
 	for _, pv := range parentChangesets {
-		parentDocs, _, _, parentDeleted, errE := b.produceLevels(ctx, changeID, &pv)
+		parentDocs, parentSources, _, _, parentDeleted, errE := b.produceLevels(ctx, changeID, &pv)
 		if parentDeleted {
-			// Parent was deleted, so it contributes no outgoing relations at any level.
+			// Parent was deleted, so it contributes no rows at any level.
+			for i, t := range b.targets {
+				if !deleted && sources[i] {
+					flipped[t.Level] = true
+				}
+			}
 			continue
 		} else if errE != nil {
-			return errE
+			return nil, errE
 		}
 		for i, t := range b.targets {
+			if parentSources[i] != (!deleted && sources[i]) {
+				flipped[t.Level] = true
+			}
 			if parentDocs[i] == nil {
 				continue
 			}
-			po, pt, errE := b.outgoingRelationsAndTargets(t.levelContext(ctx), t.Converter, parentDocs[i])
+			po, pi, errE := t.Converter.OutgoingReferences(t.levelContext(ctx), parentDocs[i])
 			if errE != nil {
-				return errE
+				return nil, errE
 			}
-			for targetID, irs := range po {
-				parentOutgoing[i][targetID] = append(parentOutgoing[i][targetID], irs...)
-			}
-			for targetID := range pt {
-				parentRefTargets[i][targetID] = true
+			mergeReferenceRows(parentOutgoing[i], po, parentSources[i])
+			if parentSources[i] {
+				mergeInverseRelations(parentInverse[i], pi)
 			}
 			outgoingEmbeds, errE := t.Converter.OutgoingEmbeds(parentDocs[i])
 			if errE != nil {
-				return errE
+				return nil, errE
 			}
 			mergeEmbeds(parentEmbeds, outgoingEmbeds)
 			if changedProps != nil {
@@ -1999,41 +2106,62 @@ func (b *Bridge) accumulateChangeRelations(
 	for i, t := range b.targets {
 		ctxL := t.levelContext(ctx)
 
-		currentOutgoing := map[identifier.Identifier][]store.InverseRelation{}
-		currentRefTargets := map[identifier.Identifier]bool{}
+		currentOutgoing := map[identifier.Identifier][]Reference{}
+		currentInverse := map[identifier.Identifier][]InverseRelation{}
 		if !deleted && docs[i] != nil {
-			var errE errors.E
-			currentOutgoing, currentRefTargets, errE = b.outgoingRelationsAndTargets(ctxL, t.Converter, docs[i])
+			po, pi, errE := t.Converter.OutgoingReferences(ctxL, docs[i])
 			if errE != nil {
-				return errE
+				return nil, errE
+			}
+			mergeReferenceRows(currentOutgoing, po, sources[i])
+			if sources[i] {
+				mergeInverseRelations(currentInverse, pi)
 			}
 			outgoingEmbeds, errE := t.Converter.OutgoingEmbeds(docs[i])
 			if errE != nil {
-				return errE
+				return nil, errE
 			}
 			mergeEmbeds(currentEmbeds, outgoingEmbeds)
 		}
 
-		added, removed := diffOutgoingInverseRelations(currentOutgoing, parentOutgoing[i])
-		for targetID, irs := range added {
-			if addedInverseRelations[targetID] == nil {
-				addedInverseRelations[targetID] = map[string][]store.InverseRelation{}
+		added, removed := diffTargetRows(currentOutgoing, parentOutgoing[i])
+		for targetID, rows := range added {
+			if refs.Added[targetID] == nil {
+				refs.Added[targetID] = map[string][]Reference{}
 			}
-			addedInverseRelations[targetID][t.Level] = append(addedInverseRelations[targetID][t.Level], irs...)
+			refs.Added[targetID][t.Level] = append(refs.Added[targetID][t.Level], rows...)
 		}
-		for targetID, irs := range removed {
-			if removedInverseRelations[targetID] == nil {
-				removedInverseRelations[targetID] = map[string][]store.InverseRelation{}
+		for targetID, rows := range removed {
+			if refs.Removed[targetID] == nil {
+				refs.Removed[targetID] = map[string][]Reference{}
 			}
-			removedInverseRelations[targetID][t.Level] = append(removedInverseRelations[targetID][t.Level], irs...)
+			refs.Removed[targetID][t.Level] = append(refs.Removed[targetID][t.Level], rows...)
 		}
 
-		// A target's counts.references changes when this document starts or stops referencing it at this
-		// level. The per-level symmetric difference is merged into the one flat reference-target set, with the
-		// ignored-for-counts decision resolved through this level's converter at this level's visibility.
-		errE := b.collectChangedReferenceTargets(ctxL, t.Converter, currentRefTargets, parentRefTargets[i], referenceTargets)
+		// A target's counts.references changes when the counted rows pointing at it change at this
+		// level. Rows carry the source flag, so a flip shows up in the diff too. Targets ignored for
+		// counts.references are skipped: nothing rendered on them changes through reference rows.
+		errE := b.collectRefreshTargets(ctxL, t.Converter, []map[identifier.Identifier][]Reference{added, removed}, refreshDocs)
 		if errE != nil {
-			return errE
+			return nil, errE
+		}
+
+		// A target's synthetic inverse claims change when the inverse relations pointing at it change
+		// at this level, so it is re-indexed unconditionally.
+		addedInverse, removedInverse := diffTargetRows(currentInverse, parentInverse[i])
+		for targetID, rows := range addedInverse {
+			if refs.AddedInverse[targetID] == nil {
+				refs.AddedInverse[targetID] = map[string][]InverseRelation{}
+			}
+			refs.AddedInverse[targetID][t.Level] = append(refs.AddedInverse[targetID][t.Level], rows...)
+			refreshDocs[targetID] = true
+		}
+		for targetID, rows := range removedInverse {
+			if refs.RemovedInverse[targetID] == nil {
+				refs.RemovedInverse[targetID] = map[string][]InverseRelation{}
+			}
+			refs.RemovedInverse[targetID][t.Level] = append(refs.RemovedInverse[targetID][t.Level], rows...)
+			refreshDocs[targetID] = true
 		}
 	}
 
@@ -2068,18 +2196,39 @@ func (b *Bridge) accumulateChangeRelations(
 			}
 			errE := fillChangedProperties(changedProps, current, parentDocsByLevel[i])
 			if errE != nil {
-				return errE
+				return nil, errE
 			}
 		}
 	}
 
-	return nil
+	return slices.Sorted(maps.Keys(flipped)), nil
+}
+
+// mergeReferenceRows merges the outgoing reference rows of one document version into dst, stamping
+// each row with the version's source flag.
+func mergeReferenceRows(dst, rows map[identifier.Identifier][]Reference, isSource bool) {
+	for targetID, targetRows := range rows {
+		for _, row := range targetRows {
+			row.IsSource = isSource
+			dst[targetID] = append(dst[targetID], row)
+		}
+	}
+}
+
+// mergeInverseRelations merges the outgoing inverse relations of one document version into dst.
+func mergeInverseRelations(dst, rows map[identifier.Identifier][]InverseRelation) {
+	for targetID, targetRows := range rows {
+		dst[targetID] = append(dst[targetID], targetRows...)
+	}
 }
 
 // getSeq reads the current last-indexed seq from the bridge table.
 func (b *Bridge) getSeq(ctx context.Context) (int64, errors.E) {
 	var seq int64
 	errE := internalStore.RetryTransaction(ctx, b.dbpool, pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
+		// Initialize in the case transaction is retried.
+		seq = 0
+
 		err := tx.QueryRow(ctx, `SELECT "seq" FROM "`+b.Store.Prefix+`Bridge"`).Scan(&seq)
 		return internalStore.WithPgxError(err)
 	})
@@ -2087,13 +2236,15 @@ func (b *Bridge) getSeq(ctx context.Context) (int64, errors.E) {
 }
 
 // InverseRelations returns the inverse relations maintained for the document with the given id, grouped by
-// visibility level, in the form the converter renders them onto the document when indexing it. An empty map
-// (never nil) is returned when there are none.
-func (b *Bridge) InverseRelations(ctx context.Context, id identifier.Identifier) (map[string][]store.InverseRelation, errors.E) {
-	result := map[string][]store.InverseRelation{}
+// visibility level, in the form the converter renders them onto the document when indexing it. The table
+// holds rows only from documents which are sources at the row's level, so no further filtering is needed.
+// An empty map (never nil) is returned when there are none.
+func (b *Bridge) InverseRelations(ctx context.Context, id identifier.Identifier) (map[string][]InverseRelation, errors.E) {
+	result := map[string][]InverseRelation{}
 	errE := internalStore.RetryTransaction(ctx, b.dbpool, pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
 		// Initialize in the case transaction is retried.
 		clear(result)
+
 		rows, err := tx.Query(ctx, `
 			SELECT "level", "claim", "source", "targetProp", "sourceProp", "confidence"
 				FROM "`+b.Store.Prefix+`InverseRelations" WHERE "target" = $1
@@ -2103,43 +2254,33 @@ func (b *Bridge) InverseRelations(ctx context.Context, id identifier.Identifier)
 		}
 		var level, claim, source, targetProp, sourceProp string
 		var confidence float64
-		var scanErrE errors.E
 		_, err = pgx.ForEachRow(rows, []any{&level, &claim, &source, &targetProp, &sourceProp, &confidence}, func() error {
 			claimID, errE := identifier.MaybeString(claim)
 			if errE != nil {
-				scanErrE = errE
 				return errE
 			}
 			sourceID, errE := identifier.MaybeString(source)
 			if errE != nil {
-				scanErrE = errE
 				return errE
 			}
 			targetPropID, errE := identifier.MaybeString(targetProp)
 			if errE != nil {
-				scanErrE = errE
 				return errE
 			}
 			sourcePropID, errE := identifier.MaybeString(sourceProp)
 			if errE != nil {
-				scanErrE = errE
 				return errE
 			}
-			result[level] = append(result[level], store.InverseRelation{
-				InverseRelationKey: store.InverseRelationKey{
-					Claim:      claimID,
-					Source:     sourceID,
-					TargetProp: targetPropID,
-				},
+			result[level] = append(result[level], InverseRelation{
+				Claim:      claimID,
+				Source:     sourceID,
+				TargetProp: targetPropID,
 				SourceProp: sourcePropID,
 				Target:     id,
 				Confidence: document.Confidence(confidence),
 			})
 			return nil
 		})
-		if scanErrE != nil {
-			return scanErrE
-		}
 		return internalStore.WithPgxError(err)
 	})
 	if errE != nil {
@@ -2156,6 +2297,7 @@ func (b *Bridge) Embedding(ctx context.Context, id identifier.Identifier) (map[i
 	errE := internalStore.RetryTransaction(ctx, b.dbpool, pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
 		// Initialize in the case transaction is retried.
 		clear(result)
+
 		rows, err := tx.Query(ctx, `
 			SELECT "embedder", "paths" FROM "`+b.Store.Prefix+`Embedding" WHERE "target" = $1
 		`, id.String())
@@ -2164,25 +2306,19 @@ func (b *Bridge) Embedding(ctx context.Context, id identifier.Identifier) (map[i
 		}
 		var embedder string
 		var pathsJSON []byte
-		var scanErrE errors.E
 		_, err = pgx.ForEachRow(rows, []any{&embedder, &pathsJSON}, func() error {
 			embedderID, errE := identifier.MaybeString(embedder)
 			if errE != nil {
-				scanErrE = errE
 				return errE
 			}
 			var paths [][]identifier.Identifier
 			errE = x.UnmarshalWithoutUnknownFields(pathsJSON, &paths)
 			if errE != nil {
-				scanErrE = errE
 				return errE
 			}
 			result[embedderID] = paths
 			return nil
 		})
-		if scanErrE != nil {
-			return scanErrE
-		}
 		return internalStore.WithPgxError(err)
 	})
 	if errE != nil {
@@ -2192,60 +2328,79 @@ func (b *Bridge) Embedding(ctx context.Context, id identifier.Identifier) (map[i
 	return result, nil
 }
 
-// anyNonEmpty reports whether any visibility level in a per-level inverse-relation map holds a relation.
-func anyNonEmpty(byLevel map[string][]store.InverseRelation) bool {
-	for _, irs := range byLevel {
-		if len(irs) > 0 {
-			return true
-		}
-	}
-	return false
-}
-
-// updateSeq advances the bridge table to seq, maintains the inverse-relation and embedding tables for the
-// documents whose relations changed, and enqueues for re-indexing the documents whose inverse relations
-// changed (they gain or lose a synthetic inverse claim), whose counts.references must be refreshed
-// (referenceTargets), and which embed from a committed document (embeds.fire), all in a single transaction.
-// Documents whose only change is their own embedding set are updated in the table but not enqueued: their
-// search document does not depend on which documents embed from them.
+// updateSeq advances the bridge table to seq, maintains the references, inverse-relations, and
+// embedding tables for the documents whose rows changed, and enqueues for re-indexing the documents whose entries must be
+// re-rendered (refreshDocs: reference rows pointing at them changed, or they reference a document whose
+// source visibility flipped) and which embed from a committed document (embeds.fire), all in a single
+// transaction. Documents whose only change is their own embedding set are updated in the table but not
+// enqueued: their search document does not depend on which documents embed from them.
 //
 // The tables are keyed by target document id, so the maintenance never reads a document: a target is upserted
 // or deleted even if it does not exist yet or has been deleted (a stale entry for it is then simply never
 // rendered).
-func (b *Bridge) updateSeq(
+func (b *Bridge) updateSeq( //nolint:maintidx
 	ctx context.Context, seq int64,
-	addedInverseRelations, removedInverseRelations map[identifier.Identifier]map[string][]store.InverseRelation,
-	referenceTargets map[identifier.Identifier]bool,
+	refs referenceChanges,
+	refreshDocs map[identifier.Identifier]bool,
 	embeds embedChanges,
 ) errors.E {
 	logger := zerolog.Ctx(ctx)
 	start := time.Now()
 
-	// Build the batched arguments for the inverse-relation table maintenance. A removal deletes every row
-	// matching a (target, level, claim); claim IDs are effectively unique per source document, matching how
-	// the removal set is keyed. An addition upserts the full row.
-	var remTargets, remLevels, remClaims []string
-	for targetID, byLevel := range removedInverseRelations {
-		for level, irs := range byLevel {
-			for i := range irs {
+	// Build the batched arguments for the references table maintenance. A removal deletes the row
+	// matching the full primary key: a row changed only in a non-key field (for example the source
+	// flag) is in both the removed and the added set, and the delete-then-upsert order nets its new
+	// state. An addition upserts the full row.
+	var remTargets, remLevels, remClaims, remSources []string
+	for targetID, byLevel := range refs.Removed {
+		for level, rows := range byLevel {
+			for i := range rows {
 				remTargets = append(remTargets, targetID.String())
 				remLevels = append(remLevels, level)
-				remClaims = append(remClaims, irs[i].Claim.String())
+				remClaims = append(remClaims, rows[i].Claim.String())
+				remSources = append(remSources, rows[i].Source.String())
 			}
 		}
 	}
-	var addTargets, addLevels, addClaims, addSources, addTargetProps, addSourceProps []string
-	var addConfidences []float64
-	for targetID, byLevel := range addedInverseRelations {
-		for level, irs := range byLevel {
-			for i := range irs {
+	var addTargets, addLevels, addClaims, addSources []string
+	var addIsSources []bool
+	for targetID, byLevel := range refs.Added {
+		for level, rows := range byLevel {
+			for i := range rows {
 				addTargets = append(addTargets, targetID.String())
 				addLevels = append(addLevels, level)
-				addClaims = append(addClaims, irs[i].Claim.String())
-				addSources = append(addSources, irs[i].Source.String())
-				addTargetProps = append(addTargetProps, irs[i].TargetProp.String())
-				addSourceProps = append(addSourceProps, irs[i].SourceProp.String())
-				addConfidences = append(addConfidences, float64(irs[i].Confidence))
+				addClaims = append(addClaims, rows[i].Claim.String())
+				addSources = append(addSources, rows[i].Source.String())
+				addIsSources = append(addIsSources, rows[i].IsSource)
+			}
+		}
+	}
+
+	// Build the batched arguments for the inverse-relations table maintenance the same way.
+	var invRemTargets, invRemLevels, invRemClaims, invRemSources, invRemTargetProps []string
+	for targetID, byLevel := range refs.RemovedInverse {
+		for level, rows := range byLevel {
+			for i := range rows {
+				invRemTargets = append(invRemTargets, targetID.String())
+				invRemLevels = append(invRemLevels, level)
+				invRemClaims = append(invRemClaims, rows[i].Claim.String())
+				invRemSources = append(invRemSources, rows[i].Source.String())
+				invRemTargetProps = append(invRemTargetProps, rows[i].TargetProp.String())
+			}
+		}
+	}
+	var invAddTargets, invAddLevels, invAddClaims, invAddSources, invAddTargetProps, invAddSourceProps []string
+	var invAddConfidences []float64
+	for targetID, byLevel := range refs.AddedInverse {
+		for level, rows := range byLevel {
+			for i := range rows {
+				invAddTargets = append(invAddTargets, targetID.String())
+				invAddLevels = append(invAddLevels, level)
+				invAddClaims = append(invAddClaims, rows[i].Claim.String())
+				invAddSources = append(invAddSources, rows[i].Source.String())
+				invAddTargetProps = append(invAddTargetProps, rows[i].TargetProp.String())
+				invAddSourceProps = append(invAddSourceProps, rows[i].SourceProp.String())
+				invAddConfidences = append(invAddConfidences, float64(rows[i].Confidence))
 			}
 		}
 	}
@@ -2272,55 +2427,71 @@ func (b *Bridge) updateSeq(
 		}
 	}
 
-	// Enqueue the documents that must be re-indexed: those whose inverse relations changed (they gain or lose
-	// a synthetic inverse claim), those whose counts.references must be refreshed, and those that embed from a
-	// committed document (their embedded copy must be refreshed). Reference targets and embed-firing documents
-	// get no table update; documents whose only change is their own embedding set get a table update but no
-	// enqueue.
+	// Enqueue the documents that must be re-indexed: those whose entries must be re-rendered (reference
+	// rows pointing at them changed, or they reference a document whose source visibility flipped) and
+	// those that embed from a committed document (their embedded copy must be refreshed). Documents
+	// whose only change is their own embedding set get a table update but no enqueue.
 	enqueue := map[identifier.Identifier]bool{}
-	for docID, byLevel := range addedInverseRelations {
-		if anyNonEmpty(byLevel) {
-			enqueue[docID] = true
-		}
-	}
-	for docID, byLevel := range removedInverseRelations {
-		if anyNonEmpty(byLevel) {
-			enqueue[docID] = true
-		}
-	}
-	for docID := range referenceTargets {
-		enqueue[docID] = true
-	}
-	for docID := range embeds.fire {
-		enqueue[docID] = true
-	}
+	maps.Copy(enqueue, refreshDocs)
+	maps.Copy(enqueue, embeds.fire)
 
-	// In a single transaction: maintain the inverse-relation and embedding tables, enqueue document IDs for
-	// re-indexing, and then advance the bridge seq. The order matters: the INSERT into BridgeReindexQueue
-	// triggers a notification BEFORE the UPDATE of Bridge seq triggers the BridgeSeq notification. Since
-	// notifications are delivered in order within a transaction and processed sequentially by the listener,
-	// the handler for BridgeReindexQueueMinSeq queries the current MIN(seq) and updates reindexQueueMinSeq
-	// before the BridgeSeq handler unblocks waitForLastSeq. The inverse-relation and embedding tables carry no
-	// triggers, so their maintenance produces no notifications and runs first. Serialization conflicts between
-	// concurrent bridges writing the same rows are handled by RetryTransaction.
+	// In a single transaction: maintain the references, inverse-relations, and embedding tables, enqueue
+	// document IDs for re-indexing, and then advance the bridge seq. The order matters: the INSERT into
+	// BridgeReindexQueue triggers a notification BEFORE the UPDATE of Bridge seq triggers the BridgeSeq
+	// notification. Since notifications are delivered in order within a transaction and processed
+	// sequentially by the listener, the handler for BridgeReindexQueueMinSeq queries the current MIN(seq)
+	// and updates reindexQueueMinSeq before the BridgeSeq handler unblocks waitForLastSeq. The references,
+	// inverse-relations, and embedding tables carry no triggers, so their maintenance produces no
+	// notifications and runs first. Serialization conflicts between concurrent bridges writing the same
+	// rows are handled by RetryTransaction.
 	errE := internalStore.RetryTransaction(ctx, b.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
 		if len(remTargets) > 0 {
 			_, err := tx.Exec(ctx, `
-				DELETE FROM "`+b.Store.Prefix+`InverseRelations" q
-					USING (SELECT unnest($1::text[]) AS "target", unnest($2::text[]) AS "level", unnest($3::text[]) AS "claim") v
+				DELETE FROM "`+b.Store.Prefix+`References" q
+					USING (
+						SELECT unnest($1::text[]) AS "target", unnest($2::text[]) AS "level",
+							unnest($3::text[]) AS "claim", unnest($4::text[]) AS "source"
+					) v
 					WHERE q."target" = v."target" AND q."level" = v."level" AND q."claim" = v."claim"
-			`, remTargets, remLevels, remClaims)
+						AND q."source" = v."source"
+			`, remTargets, remLevels, remClaims, remSources)
 			if err != nil {
 				return internalStore.WithPgxError(err)
 			}
 		}
 		if len(addTargets) > 0 {
 			_, err := tx.Exec(ctx, `
+				INSERT INTO "`+b.Store.Prefix+`References" ("target", "level", "claim", "source", "isSource")
+					SELECT unnest($1::text[]), unnest($2::text[]), unnest($3::text[]), unnest($4::text[]), unnest($5::bool[])
+					ON CONFLICT ("target", "level", "claim", "source") DO UPDATE
+						SET "isSource" = EXCLUDED."isSource"
+			`, addTargets, addLevels, addClaims, addSources, addIsSources)
+			if err != nil {
+				return internalStore.WithPgxError(err)
+			}
+		}
+		if len(invRemTargets) > 0 {
+			_, err := tx.Exec(ctx, `
+				DELETE FROM "`+b.Store.Prefix+`InverseRelations" q
+					USING (
+						SELECT unnest($1::text[]) AS "target", unnest($2::text[]) AS "level", unnest($3::text[]) AS "claim",
+							unnest($4::text[]) AS "source", unnest($5::text[]) AS "targetProp"
+					) v
+					WHERE q."target" = v."target" AND q."level" = v."level" AND q."claim" = v."claim"
+						AND q."source" = v."source" AND q."targetProp" = v."targetProp"
+			`, invRemTargets, invRemLevels, invRemClaims, invRemSources, invRemTargetProps)
+			if err != nil {
+				return internalStore.WithPgxError(err)
+			}
+		}
+		if len(invAddTargets) > 0 {
+			_, err := tx.Exec(ctx, `
 				INSERT INTO "`+b.Store.Prefix+`InverseRelations" ("target", "level", "claim", "source", "targetProp", "sourceProp", "confidence")
-					SELECT unnest($1::text[]), unnest($2::text[]), unnest($3::text[]), unnest($4::text[]), unnest($5::text[]), unnest($6::text[]), unnest($7::float8[])
+					SELECT unnest($1::text[]), unnest($2::text[]), unnest($3::text[]), unnest($4::text[]),
+						unnest($5::text[]), unnest($6::text[]), unnest($7::float8[])
 					ON CONFLICT ("target", "level", "claim", "source", "targetProp") DO UPDATE
 						SET "sourceProp" = EXCLUDED."sourceProp", "confidence" = EXCLUDED."confidence"
-			`, addTargets, addLevels, addClaims, addSources, addTargetProps, addSourceProps, addConfidences)
+			`, invAddTargets, invAddLevels, invAddClaims, invAddSources, invAddTargetProps, invAddSourceProps, invAddConfidences)
 			if err != nil {
 				return internalStore.WithPgxError(err)
 			}
@@ -2377,10 +2548,12 @@ func (b *Bridge) updateSeq(
 
 	logger.Debug().
 		Int64("seq", seq).
-		Int("inverseRelationsRemoved", len(remTargets)).
-		Int("inverseRelationsAdded", len(addTargets)).
-		Int("embeddingRemoved", len(embRemTargets)).
+		Int("referencesAdded", len(addTargets)).
+		Int("referencesRemoved", len(remTargets)).
+		Int("inverseRelationsAdded", len(invAddTargets)).
+		Int("inverseRelationsRemoved", len(invRemTargets)).
 		Int("embeddingSet", len(embSetTargets)).
+		Int("embeddingRemoved", len(embRemTargets)).
 		Int("enqueued", len(enqueue)).
 		Bool("jobSubmitted", len(enqueue) > 0).
 		Dur("duration", time.Since(start)).
@@ -2705,7 +2878,7 @@ func (b *Bridge) fetchReindexBatch(ctx context.Context, snapshotSeq int64, stats
 	queryStart := time.Now()
 	errE := internalStore.RetryTransaction(ctx, b.dbpool, pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
 		// Initialize in the case transaction is retried.
-		fetched = nil
+		fetched = fetched[:0]
 
 		rows, err := tx.Query(ctx, `
 			SELECT "id", MAX("seq") FROM "`+b.Store.Prefix+`BridgeReindexQueue"
@@ -2898,7 +3071,7 @@ func (b *Bridge) convertForReindex(ctx context.Context, docID identifier.Identif
 		gens[i] = t.Converter.genOf(docID)
 	}
 	getLatestStart := time.Now()
-	docs, metadata, _, deleted, errE := b.produceLevels(ctx, docID, nil)
+	docs, _, metadata, _, deleted, errE := b.produceLevels(ctx, docID, nil)
 	stats.GetLatestDuration += time.Since(getLatestStart)
 	if deleted {
 		// Document does not exist anymore. The commit that deleted it already removed it from the indices.

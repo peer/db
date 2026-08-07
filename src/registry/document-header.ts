@@ -9,9 +9,10 @@ type Holder = {
 const g = globalThis as unknown as Holder
 const documentHeaderComponents: ShallowRef<Raw<Component>[]> = (g[KEY] ??= shallowRef<Raw<Component>[]>([]))
 
-// Registered components render at the top of the document view, above the document card (and thus
-// on every tab), and receive the document id as the id prop. The document navigation (search
-// session and previous/next ids) is available to them through useDocumentNavigation.
+// Registered components render at the top of the document view, above the document card (and thus on
+// every tab), and receive the document as the doc prop, null until the view has read it: the view reads
+// it once for the whole page, so a header component does not read it again. The document navigation
+// (search session and previous/next ids) is available to them through useDocumentNavigation.
 export function registerDocumentHeaderComponent(component: Component): void {
   documentHeaderComponents.value = [...documentHeaderComponents.value, markRaw(component)]
 }

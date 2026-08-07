@@ -20,7 +20,8 @@ import { computed, nextTick, onBeforeUnmount, ref, useTemplateRef, watch } from 
 import { useI18n } from "vue-i18n"
 import { useRouter } from "vue-router"
 
-import { CAN_EDIT_FILE, hasPermission } from "@/auth"
+import { hasFilePermission } from "@/auth"
+import { ACTION_CREATE } from "@/core"
 import Button from "@/components/Button.vue"
 import InputStyled from "@/components/InputStyled.vue"
 import WithLock from "@/components/WithLock.vue"
@@ -55,7 +56,11 @@ const props = withDefaults(
 const model = defineModel<string>({ default: "" })
 const errors = ref<ValidationError[]>([])
 
-const emit = defineEmits<{ errors: [ValidationError[]] }>()
+// completeChange reports a change which is a complete decision on its own: a finished upload and a
+// cleared file are both done when they happen and there is no natural blur after them (the file
+// dialog and the upload leave focus where it was), so the enclosing slot commits them right away.
+// The form resetting the input is not one of them: it is not the user deciding anything.
+const emit = defineEmits<{ errors: [ValidationError[]]; completeChange: [] }>()
 watch(errors, (v) => emit("errors", v), { flush: "sync" })
 
 const invalid = computed(() => props.invalid || errors.value.length > 0)
@@ -217,7 +222,7 @@ async function onUpload(file: File) {
   // Handling of progress here is slightly different from the rest of the codebase
   // and we set it explicitly to 1 instead of increasing it (and in finally then to 0).
   // This is because uploadFile manages progress and total specially.
-  if (!hasPermission(CAN_EDIT_FILE)) return
+  if (!hasFilePermission(ACTION_CREATE)) return
   if (progress.value !== 0) {
     throw new Error("upload already in progress")
   }
@@ -234,6 +239,7 @@ async function onUpload(file: File) {
       return
     }
     model.value = router.resolve({ name: "StorageGet", params: { id: fileId } }).href
+    emit("completeChange")
     // Move focus onto the uploaded file's link: the browse button which held focus
     // unmounts together with the empty state, and the link is what the user acts on
     // next (inspecting the uploaded file).
@@ -301,6 +307,7 @@ async function onClear() {
   if (inactive.value) return
   clearing = true
   model.value = ""
+  emit("completeChange")
   // The user intentionally cleared the field; drop any error now (the required
   // check returns on the next leave-validation) so it does not flash.
   errors.value = []
@@ -358,7 +365,7 @@ async function onDrop(e: DragEvent) {
       <Button type="button" class="px-2.5 py-1" @click.prevent="onClear" @blur="onBlur">{{ t("common.buttons.clear") }}</Button>
     </div>
   </div>
-  <div v-else-if="!hasPermission(CAN_EDIT_FILE)" v-tw-merge class="pd-inputfile text-gray-500 italic">{{ t("partials.input.InputFile.noPermission") }}</div>
+  <div v-else-if="!hasFilePermission(ACTION_CREATE)" v-tw-merge class="pd-inputfile text-gray-500 italic">{{ t("partials.input.InputFile.noPermission") }}</div>
   <template v-else>
     <!-- Fall-through attrs (e.g. aria-describedby pointing at InputField's error) go on the browse button, the focusable control. -->
     <div v-tw-merge class="pd-inputfile flex w-full flex-row gap-2">

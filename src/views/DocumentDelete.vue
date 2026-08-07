@@ -1,14 +1,18 @@
 <script setup lang="ts">
+import type { D } from "@/document"
+
 import { onBeforeUnmount } from "vue"
 import { useI18n } from "vue-i18n"
 import { useRouter } from "vue-router"
 
 import { deleteFromCache, postJSON } from "@/api"
-import { CAN_DELETE_DOCUMENT, hasPermission } from "@/auth"
+import { hasDocumentPermission } from "@/auth"
+import { ACTION_DELETE } from "@/core"
 import Button from "@/components/Button.vue"
+import WithDocument from "@/components/WithDocument.vue"
 import Footer from "@/partials/Footer.vue"
 import NavBar from "@/partials/NavBar.vue"
-import SearchResult from "@/partials/SearchResult.vue"
+import SearchResultDocument from "@/partials/SearchResultDocument.vue"
 import { useBusy } from "@/progress"
 
 const props = defineProps<{
@@ -19,6 +23,8 @@ const { t } = useI18n({ useScope: "global" })
 const router = useRouter()
 
 const busy = useBusy()
+
+const WithDocumentD = WithDocument<D>
 
 const abortController = new AbortController()
 onBeforeUnmount(() => {
@@ -80,18 +86,32 @@ async function onDelete() {
     <NavBar />
   </Teleport>
   <div class="pd-documentdelete mt-[var(--pd-navbar-offset)] flex w-full flex-col gap-y-1 border-t border-transparent p-1 sm:gap-y-4 sm:p-4">
-    <template v-if="hasPermission(CAN_DELETE_DOCUMENT)">
-      <div>
-        <h1 class="text-3xl font-bold drop-shadow-xs">{{ t("views.DocumentDelete.title") }}</h1>
-        <p class="mt-1 text-gray-700">{{ t("views.DocumentDelete.confirm") }}</p>
-      </div>
-      <SearchResult :result="{ id }" />
-      <div class="flex flex-row justify-between gap-4">
-        <Button id="documentdelete-button-cancel" type="button" @click.prevent="onCancel">{{ t("common.buttons.cancel") }}</Button>
-        <Button id="documentdelete-button-delete" type="button" primary :progress="busy" @click.prevent="onDelete">{{ t("common.buttons.delete") }}</Button>
-      </div>
-    </template>
-    <div v-else class="my-1 text-center sm:my-4">{{ t("common.status.deletingNotAllowed") }}</div>
+    <div class="flex flex-col gap-y-4 rounded-sm border border-gray-200 bg-white p-4 shadow-sm">
+      <!--
+        The delete action is decided on the document, because the document's own permission claims can
+        grant it and the caller's roles alone cannot tell. The document is fetched once here and is what
+        the result below renders, on the card this page already provides.
+      -->
+      <WithDocumentD :id="id" name="DocumentGet">
+        <template #default="{ doc }">
+          <form v-if="hasDocumentPermission(ACTION_DELETE, doc)" class="flex flex-col gap-y-4" @submit.prevent="onDelete">
+            <div>
+              <h1 class="text-3xl font-bold drop-shadow-xs">{{ t("views.DocumentDelete.title") }}</h1>
+              <p class="mt-1 text-gray-700">{{ t("views.DocumentDelete.confirm") }}</p>
+            </div>
+            <SearchResultDocument :doc="doc" />
+            <div class="flex flex-row justify-between gap-4">
+              <Button id="documentdelete-button-cancel" type="button" @click.prevent="onCancel">{{ t("common.buttons.cancel") }}</Button>
+              <Button id="documentdelete-button-delete" type="submit" primary :progress="busy">{{ t("common.buttons.delete") }}</Button>
+            </div>
+          </form>
+          <div v-else class="my-1 text-center sm:my-4">{{ t("common.status.deletingNotAllowed") }}</div>
+        </template>
+        <template #loading>
+          <div class="my-1 text-center sm:my-4">{{ t("common.status.loading") }}</div>
+        </template>
+      </WithDocumentD>
+    </div>
   </div>
   <Teleport to="footer">
     <Footer class="border-t border-slate-50 bg-slate-200 shadow-sm" />

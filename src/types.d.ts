@@ -4,6 +4,7 @@ import type { Composer } from "vue-i18n"
 import type { Router } from "vue-router"
 
 import type { ClaimTypes } from "@/document/claims"
+import type { D } from "@/document/document"
 
 export type RefSearchResult = {
   props: readonly string[]
@@ -117,12 +118,12 @@ export type RefFilterValueToken = { kind: "value"; id: string; direct: boolean }
 
 // ClassCreateResult is one class returned by the DocumentCreateOptions endpoint. paths are the SUBCLASS_OF
 // ancestor chains (root to immediate parent), one per parent, so the class renders once under each parent.
-// canCreate is true when a document can be created for the class; non-creatable classes appear only as
+// creatable is true when a document can be created for the class; non-creatable classes appear only as
 // structural ancestors of creatable ones.
 export type ClassCreateResult = {
   id: string
   paths?: string[][]
-  canCreate: boolean
+  creatable: boolean
 }
 
 export type ClassCreateTreeNode = TreeNode<ClassCreateResult>
@@ -335,11 +336,27 @@ export type SiteContext = {
     // language (instead of the plain rendering), so sites do not have to pass the localized prop through claim
     // value components.
     localizedTimeDisplay?: boolean
+    // Turns off document-level permissions: the permissions tabs of the document page and of the document edit
+    // page and the access request page are not offered, and the backend neither serves the request API nor
+    // accepts permission claims. Such a site permits through role grants only.
+    disableDocumentPermissions?: boolean
   }
+  // Role grants resolved by the backend: per role, per permission action (an ACTION_* document ID), the
+  // permission scope entries (literal scopes or "property=value" with resolved document IDs).
   roles?: {
-    [roleName: string]: string[]
+    [roleName: string]: {
+      [action: string]: string[]
+    }
   }
   metadataHeaderPrefix?: string
+}
+
+// Identity is what the site knows about one of its users, as the user API returns it: who they are and
+// which of the site's roles they hold. Keep in sync with auth.Identity in auth/auth.go.
+export type Identity = {
+  subject: string
+  username?: string
+  roles: string[]
 }
 
 export type RouteOptions = {
@@ -403,18 +420,37 @@ export type DocumentEditStatus = {
   version?: string
   changeset?: string
   discarded?: boolean
+  errored?: boolean
 }
 
 export type DocumentCreateResponse = {
   id: string
   base: string[]
   session: string
+  lastChange: number
 }
 
 export type DocumentBeginEditResponse = {
   session: string
   version: string
 }
+
+// One edit session the caller is taking part in and can open, as the sessions API returns it (see
+// DocumentSessionsGetAPI in document.go): the document is the state the session has it in, create tells
+// whether the session creates the document or edits one which exists, and the timestamps with the users
+// are of when the session began and when a change was last appended to it, by whom. A user is absent
+// when what they did was done unauthenticated.
+export type DocumentSessionResponse = {
+  session: string
+  doc: D
+  create: boolean
+  at: string
+  by?: DocumentUser
+  lastChangeAt: string
+  lastChangeBy?: DocumentUser
+}
+
+export type DocumentSessionsResponse = DocumentSessionResponse[]
 
 export type DocumentEndEditResponse = {
   changeset: string
@@ -428,8 +464,8 @@ export type DocumentBeginMetadata = {
   version?: string
 }
 
-// A user who contributed to a document version. id is the auth subject string.
-export type HistoryUser = {
+// A user who contributed to a document version or took part in an edit session. id is the auth subject string.
+export type DocumentUser = {
   id: string
 }
 
@@ -440,7 +476,7 @@ export type DocumentHistoryItem = {
   changeset: string
   version: string
   at: string
-  authors?: HistoryUser[]
+  authors?: DocumentUser[]
 }
 
 export type ViewType = "table" | "feed"

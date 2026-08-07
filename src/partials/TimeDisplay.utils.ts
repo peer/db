@@ -1,6 +1,13 @@
 import type { TimePrecision } from "@/document"
 
+import { ref } from "vue"
+
 import { parseTimeString, TIME_PRECISIONS_ORDERED } from "@/document/time"
+
+// Display format shared across all TimeDisplay instances. null means no global choice has been made yet,
+// so each instance falls back to its own initial format prop. The first click on any instance sets this,
+// switching every instance to the same format from then on.
+export const globalTimeFormat = ref<"absolute" | "relative" | null>(null)
 
 type DisplayTimePart = { text: string; precise: boolean }
 

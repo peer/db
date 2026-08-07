@@ -156,6 +156,7 @@ func setupBridge(t *testing.T) (context.Context, *bridgeEnv) {
 		ESClient:       esClient,
 		IndexPrefix:    index,
 		NormalizeHooks: nil,
+		SourceCheck:    nil,
 	}
 	errE = b.Init(ctx, dbpool, listener, r)
 	require.NoError(t, errE, "% -+#.1v", errE)
@@ -745,7 +746,7 @@ func denyDocumentAtLevel(id identifier.Identifier, level string) func(
 ) (*document.D, errors.E) {
 	return func(ctx context.Context, doc *document.D, _ *store.DocumentMetadata) (*document.D, errors.E) {
 		if doc.ID == id && auth.Visibility(ctx) == level {
-			return doc, errors.WithStack(store.ErrAccessDenied)
+			return doc, errors.WithStack(auth.ErrAccessDenied)
 		}
 		return doc, nil
 	}
@@ -1746,7 +1747,7 @@ func TestBridgeReferencesCountIncremental(t *testing.T) {
 
 	converter := newTestBridgeConverter(t)
 	// Compute counts.references at index time, as the production converter does.
-	converter.CountReferences = b.CountReferencesFunc(b.IndexPrefix)
+	converter.CountReferences = b.CountReferencesFunc("all")
 	startBridge(ctx, t, env, converter)
 
 	waitAndRefresh := func() {
@@ -1984,4 +1985,149 @@ func TestBridgeFieldInverseRelationFoldsSourceLabelIntoText(t *testing.T) {
 		t, docHasReference(ctx, t, esClient, b.IndexPrefix, exhibition, hasArtist, artist),
 		"exhibition should have forward reference exhibition --hasArtist--> artist",
 	)
+}
+
+// makeMarkedDocWithRelationJSON creates a document with a relation claim and, when marked, a string
+// claim with the marker property, which the source check in TestBridgeSourceCheck denies documents by.
+func makeMarkedDocWithRelationJSON(t *testing.T, docID, relProp, targetID, markerProp identifier.Identifier, marked bool) json.RawMessage {
+	t.Helper()
+	claims := &document.ClaimTypes{
+		Reference: []document.ReferenceClaim{
+			{
+				CoreClaim: document.CoreClaim{ID: identifier.New(), Confidence: document.HighConfidence},
+				Prop:      document.Reference{ID: relProp},
+				To:        document.Reference{ID: targetID},
+			},
+		},
+	}
+	if marked {
+		claims.String = []document.StringClaim{
+			{
+				CoreClaim: document.CoreClaim{ID: identifier.New(), Confidence: document.HighConfidence},
+				Prop:      document.Reference{ID: markerProp},
+				String:    "hidden",
+			},
+		}
+	}
+	doc := document.D{
+		CoreDocument: document.CoreDocument{ID: docID}, //nolint:exhaustruct
+		Claims:       claims,
+	}
+	data, errE := x.MarshalWithoutEscapeHTML(doc)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	return data
+}
+
+// esDocVersion returns the current ES version of the document with the given ID in the index.
+func esDocVersion(ctx context.Context, t *testing.T, esClient *elasticsearch.TypedClient, index, id string) int64 {
+	t.Helper()
+	res, err := esClient.Get(index, id).Do(ctx)
+	testutils.RequireNoESError(t, err)
+	require.True(t, res.Found, "document should exist in ES")
+	require.NotNil(t, res.Version_)
+	return *res.Version_
+}
+
+// TestBridgeSourceCheck verifies the source check end to end on a single level: a document denied by the
+// check keeps its own entry (marked sourceHidden) but stops feeding other documents' entries. Its
+// relations produce no inverse relations, reference counting skips its entry, GetDocument reports it as
+// not found (so conversion renders referencing documents without it), and flipping the check's outcome
+// re-indexes the documents referencing it.
+func TestBridgeSourceCheck(t *testing.T) {
+	t.Parallel()
+
+	ctx, env := setupBridge(t)
+	s, b, esClient := env.store, env.bridge, env.esClient
+
+	propX := identifier.New()
+	propY := identifier.New()
+	refProp := identifier.New()
+	markerProp := identifier.New()
+	docA := identifier.New()
+	docB := identifier.New()
+	docR := identifier.New()
+
+	// The source check denies any document carrying a string claim with the marker property, so the test
+	// flips a document between source and non-source by adding and removing that claim.
+	b.SourceCheck = func(_ context.Context, doc *document.D, _ *store.DocumentMetadata) errors.E {
+		if len(document.GetClaimsOfTypeWithConfidence[document.StringClaim](doc, markerProp, document.LowConfidence)) > 0 {
+			return errors.WithStack(auth.ErrAccessDenied)
+		}
+		return nil
+	}
+
+	converter := makeConverterWithInverse(t, propX, propY, s)
+	// Compute counts.references at index time, as the production converter does.
+	converter.CountReferences = b.CountReferencesFunc("all")
+	startBridge(ctx, t, env, converter)
+
+	waitAndRefresh := func() {
+		t.Helper()
+		errE := b.WaitUntilCaughtUp(ctx, nil, nil)
+		require.NoError(t, errE, "% -+#.1v", errE)
+		_, err := esClient.Indices.Refresh().Index(b.IndexPrefix).Do(ctx)
+		testutils.RequireNoESError(t, err)
+	}
+
+	_, errE := s.Insert(ctx, propX, makePropertyDocJSON(t, propX, &propY), dummyMetadata(), dummyCommitMetadata())
+	require.NoError(t, errE, "% -+#.1v", errE)
+	_, errE = s.Insert(ctx, propY, makePropertyDocJSON(t, propY, nil), dummyMetadata(), dummyCommitMetadata())
+	require.NoError(t, errE, "% -+#.1v", errE)
+	// B is the target of A's relation; R references A via a plain property.
+	_, errE = s.Insert(ctx, docB, makeDocJSON(t, docB), dummyMetadata(), dummyCommitMetadata())
+	require.NoError(t, errE, "% -+#.1v", errE)
+	_, errE = s.Insert(ctx, docR, makeDocWithRelationJSON(t, docR, refProp, docA), dummyMetadata(), dummyCommitMetadata())
+	require.NoError(t, errE, "% -+#.1v", errE)
+	// A is a source (no marker), with a relation A --X--> B.
+	vA, errE := s.Insert(ctx, docA, makeMarkedDocWithRelationJSON(t, docA, propX, docB, markerProp, false), dummyMetadata(), dummyCommitMetadata())
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	waitAndRefresh()
+
+	ctxAll := auth.WithVisibility(ctx, "all")
+
+	// Baseline: A is a source. B has the inverse relation and counts A, and GetDocument serves A.
+	count, ok := esReferencesCount(ctx, t, esClient, b.IndexPrefix, docB.String())
+	require.True(t, ok, "docB should carry a counts.references")
+	assert.Equal(t, 1, count, "docB should count its one referrer docA")
+	assert.True(t, testutils.DocHasReference(ctx, t, esClient, b.IndexPrefix, docB, propY, docA), "docB should have inverse B --Y--> A")
+	doc, errE := b.GetDocument(ctxAll, docA)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, docA, doc.ID)
+
+	versionR := esDocVersion(ctx, t, esClient, b.IndexPrefix, docR.String())
+
+	// Flip A to a non-source by adding the marker claim. Its relation claim stays, so its own entry still
+	// carries the reference to B, which is exactly what reference counting must now skip.
+	vA2, errE := s.Replace(ctx, docA, vA.Changeset, makeMarkedDocWithRelationJSON(t, docA, propX, docB, markerProp, true), dummyMetadata(), dummyCommitMetadata())
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	waitAndRefresh()
+
+	// A keeps its own entry (esDocVersion requires it to exist in the index).
+	_ = esDocVersion(ctx, t, esClient, b.IndexPrefix, docA.String())
+	count, ok = esReferencesCount(ctx, t, esClient, b.IndexPrefix, docB.String())
+	require.True(t, ok)
+	assert.Equal(t, 0, count, "docB must not count the hidden docA, even though docA's entry still references it")
+	assert.False(t, testutils.DocHasReference(ctx, t, esClient, b.IndexPrefix, docB, propY, docA), "docB must not have inverse B --Y--> A anymore")
+	_, errE = b.GetDocument(ctxAll, docA)
+	assert.ErrorIs(t, errE, store.ErrValueNotFound, "GetDocument must not serve the hidden docA")
+	versionRHidden := esDocVersion(ctx, t, esClient, b.IndexPrefix, docR.String())
+	assert.Greater(t, versionRHidden, versionR, "docR should have been re-indexed on docA's flip to non-source")
+
+	// Flip A back to a source by removing the marker claim.
+	_, errE = s.Replace(ctx, docA, vA2.Changeset, makeMarkedDocWithRelationJSON(t, docA, propX, docB, markerProp, false), dummyMetadata(), dummyCommitMetadata())
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	waitAndRefresh()
+
+	count, ok = esReferencesCount(ctx, t, esClient, b.IndexPrefix, docB.String())
+	require.True(t, ok)
+	assert.Equal(t, 1, count, "docB should count docA again")
+	assert.True(t, testutils.DocHasReference(ctx, t, esClient, b.IndexPrefix, docB, propY, docA), "docB should have inverse B --Y--> A again")
+	doc, errE = b.GetDocument(ctxAll, docA)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, docA, doc.ID)
+	versionRVisible := esDocVersion(ctx, t, esClient, b.IndexPrefix, docR.String())
+	assert.Greater(t, versionRVisible, versionRHidden, "docR should have been re-indexed on docA's flip back to source")
 }

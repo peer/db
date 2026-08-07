@@ -5,6 +5,7 @@ package coordinator
 
 import (
 	"context"
+	"encoding/json"
 	"runtime"
 	"time"
 
@@ -108,6 +109,8 @@ func cancelPermanentError(errE errors.E) error {
 		} else if errors.Is(errE, store.ErrConflict) {
 			return river.JobCancel(errE) //nolint:wrapcheck
 		} else if errors.Is(errE, ErrInvalidSessionData) {
+			return river.JobCancel(errE) //nolint:wrapcheck
+		} else if errors.Is(errE, ErrSessionNotAllowed) {
 			return river.JobCancel(errE) //nolint:wrapcheck
 		}
 		return errE
@@ -230,6 +233,9 @@ type Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, CompleteDa
 	// for coordinators whose completion can be slow.
 	CompleteSessionTimeout time.Duration `exhaustruct:"optional"`
 
+	// MetadataIndex enables indices on metadata of sessions and their operations.
+	MetadataIndex bool `exhaustruct:"optional"`
+
 	// AppendedSize is the size of the channel to which operations are sent when they are appended.
 	//
 	// Set to a negative value to disable creating the channel.
@@ -309,6 +315,7 @@ func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, Comple
 				"metadata" `+c.MetadataType+` NOT NULL,
 				PRIMARY KEY ("session", "operation")
 			);
+			`+c.metadataIndexes()+`
 
 			CREATE FUNCTION "`+c.Prefix+`EndSession"(_session text, _metadata `+c.MetadataType+`)
 				RETURNS void LANGUAGE plpgsql AS $$
@@ -852,6 +859,98 @@ func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, Comple
 		details["session"] = session.String()
 	}
 	return beginMetadata, endMetadata, completeMetadata, errE
+}
+
+// metadataIndexes is the DDL creating the indexes MetadataIndex asks for, and nothing when it does not.
+func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, CompleteData, CompleteMetadata]) metadataIndexes() string {
+	if !c.MetadataIndex {
+		return ""
+	}
+	return `
+		CREATE INDEX ON "` + c.Prefix + `Sessions" USING gin ("beginMetadata" jsonb_path_ops);
+		CREATE INDEX ON "` + c.Prefix + `Operations" USING gin ("metadata" jsonb_path_ops);
+	`
+}
+
+// SessionInfo is one session ListNotEnded returns: the session itself, the metadata it began with, and
+// the operation appended to it last, which is operation 0 with the zero metadata when nothing has been
+// appended to it yet.
+type SessionInfo[BeginMetadata, OperationMetadata any] struct {
+	Session           identifier.Identifier
+	BeginMetadata     BeginMetadata
+	LastOperation     int64
+	OperationMetadata OperationMetadata
+}
+
+// ListNotEnded returns every session which has not ended yet and to which the given metadata belongs:
+// a session does when the metadata it began with contains it, and when the metadata of any operation
+// appended to it does (JSON containment, see the @> PostgreSQL jsonb operator).
+//
+// The sessions are returned in no particular order.
+//
+// Matching this way requires MetadataType to be jsonb.
+func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, CompleteData, CompleteMetadata]) ListNotEnded(
+	ctx context.Context, metadata json.RawMessage,
+) ([]SessionInfo[BeginMetadata, OperationMetadata], errors.E) {
+	var sessions []SessionInfo[BeginMetadata, OperationMetadata]
+	errE := internalStore.RetryTransaction(ctx, c.dbpool, pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
+		// Initialize in the case transaction is retried.
+		sessions = sessions[:0]
+
+		rows, err := tx.Query(ctx, `
+			SELECT s."session", s."beginMetadata", COALESCE(l."operation", 0), l."metadata"
+				FROM "`+c.Prefix+`Sessions" AS s
+				LEFT JOIN LATERAL (
+					SELECT "operation", "metadata"
+						FROM "`+c.Prefix+`Operations"
+						WHERE "session"=s."session"
+						ORDER BY "operation" DESC
+						LIMIT 1
+				) AS l ON TRUE
+				WHERE s."endMetadata" IS NULL
+					AND (
+						s."beginMetadata" @> $1
+						OR EXISTS (
+							SELECT 1 FROM "`+c.Prefix+`Operations"
+								WHERE "session"=s."session" AND "metadata" @> $1
+						)
+					)
+		`, metadata)
+		if err != nil {
+			return internalStore.WithPgxError(err)
+		}
+		var sessionText string
+		var beginMetadata BeginMetadata
+		var lastOperation int64
+		// A session without operations has no metadata to scan, so the column is read as nullable
+		// and the zero value is what such a session carries.
+		var operationMetadata *OperationMetadata
+		_, err = pgx.ForEachRow(rows, []any{&sessionText, &beginMetadata, &lastOperation, &operationMetadata}, func() error {
+			session, errE := identifier.MaybeString(sessionText)
+			if errE != nil {
+				return errE
+			}
+			info := SessionInfo[BeginMetadata, OperationMetadata]{
+				Session:           session,
+				BeginMetadata:     beginMetadata,
+				LastOperation:     lastOperation,
+				OperationMetadata: *new(OperationMetadata),
+			}
+			if operationMetadata != nil {
+				info.OperationMetadata = *operationMetadata
+			}
+			sessions = append(sessions, info)
+			return nil
+		})
+		return internalStore.WithPgxError(err)
+	})
+	if errE != nil {
+		details := errors.Details(errE)
+		details["schema"] = c.schema
+		details["prefix"] = c.Prefix
+		return nil, errE
+	}
+	return sessions, nil
 }
 
 // HandleNotification implements pgxlisten.Handler interface.

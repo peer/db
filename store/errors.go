@@ -3,7 +3,6 @@ package store
 import "gitlab.com/tozd/go/errors"
 
 var (
-	ErrAccessDenied       = errors.Base("access denied")
 	ErrViewNotFound       = errors.Base("view not found")
 	ErrValueNotFound      = errors.Base("value not found")
 	ErrChangesetNotFound  = errors.Base("changeset not found")

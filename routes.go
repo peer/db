@@ -210,6 +210,19 @@ func (s *Service) setRoutes() { //nolint:maintidx
 				},
 			},
 		},
+		"DocumentSessions": {
+			RouteOptions: waf.RouteOptions{
+				Handlers: map[string]waf.Handler{
+					http.MethodGet: s.DocumentSessionsGet,
+				},
+			},
+			Path: "/d/session",
+			API: waf.RouteOptions{
+				Handlers: map[string]waf.Handler{
+					http.MethodGet: s.DocumentSessionsGetAPI,
+				},
+			},
+		},
 		"DocumentCreateOptions": {
 			Path: "/d/createOptions",
 			API: waf.RouteOptions{
@@ -297,6 +310,43 @@ func (s *Service) setRoutes() { //nolint:maintidx
 			API: waf.RouteOptions{
 				Handlers: map[string]waf.Handler{
 					http.MethodGet: s.DocumentEditGetAPI,
+				},
+			},
+		},
+		"DocumentList": {
+			Path: "/d",
+			API: waf.RouteOptions{
+				Handlers: map[string]waf.Handler{
+					http.MethodGet: s.DocumentListGetAPI,
+				},
+			},
+		},
+		"DocumentRequest": {
+			RouteOptions: waf.RouteOptions{
+				Handlers: map[string]waf.Handler{
+					http.MethodGet: s.DocumentRequestGet,
+				},
+			},
+			Path: "/d/request/:id",
+			API: waf.RouteOptions{
+				Handlers: map[string]waf.Handler{
+					http.MethodPost: s.DocumentRequestPostAPI,
+				},
+			},
+		},
+		"UserGet": {
+			Path: "/u/:id",
+			API: waf.RouteOptions{
+				Handlers: map[string]waf.Handler{
+					http.MethodGet: s.UserGetAPI,
+				},
+			},
+		},
+		"DocumentDeleteRequest": {
+			Path: "/d/deleteRequest/:id",
+			API: waf.RouteOptions{
+				Handlers: map[string]waf.Handler{
+					http.MethodPost: s.DocumentDeleteRequestPostAPI,
 				},
 			},
 		},
@@ -432,6 +482,14 @@ func (s *Service) setRoutes() { //nolint:maintidx
 				},
 			},
 			Path: "/auth/callback",
+		},
+		"AuthMockSignIn": {
+			RouteOptions: waf.RouteOptions{
+				Handlers: map[string]waf.Handler{
+					http.MethodGet: s.AuthMockSignInGet,
+				},
+			},
+			Path: "/auth/mock",
 		},
 		"AuthSignOut": {
 			Path: "/auth/signOut",

@@ -66,6 +66,9 @@ type Field = internalCore.Field
 // Fields represents a list of fields of an entity.
 type Fields = internalCore.Fields
 
+// ComponentWithProps represents a frontend component with the props it is rendered with.
+type ComponentWithProps = internalCore.ComponentWithProps
+
 // DocumentFields contains common fields for all documents.
 type DocumentFields struct {
 	ID []string `documentid:"" json:"id"`
@@ -129,6 +132,7 @@ type PropertyFields struct {
 	Mnemonic               string                `cardinality:"0..1" json:"mnemonic,omitempty"               property:"MNEMONIC"`
 	Description            []RawHTMLWithLanguage `cardinality:"0.."  json:"description,omitempty"            property:"DESCRIPTION"`
 	IdentifierLinkTemplate string                `cardinality:"0..1" json:"identifierLinkTemplate,omitempty" property:"IDENTIFIER_LINK_TEMPLATE"`
+	ExcludeFromTextSearch  bool                  `cardinality:"0..1" json:"excludeFromTextSearch,omitempty"  property:"EXCLUDE_FROM_TEXT_SEARCH"`
 	SubpropertyOf          []Ref                 `cardinality:"0.."  json:"subpropertyOf,omitempty"          property:"SUBPROPERTY_OF"           values:"core.peerdb.org,INSTANCE_OF=core.peerdb.org,PROPERTY"`
 	InversePropertyOf      *Ref                  `cardinality:"0..1" json:"inversePropertyOf,omitempty"      property:"INVERSE_PROPERTY_OF"      values:"core.peerdb.org,INSTANCE_OF=core.peerdb.org,PROPERTY"`
 }

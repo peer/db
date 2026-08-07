@@ -13,6 +13,7 @@ import (
 	"gitlab.com/tozd/identifier"
 	"gitlab.com/tozd/waf"
 
+	"gitlab.com/peerdb/peerdb/auth"
 	"gitlab.com/peerdb/peerdb/document"
 	internalCore "gitlab.com/peerdb/peerdb/internal/core"
 	internalSearch "gitlab.com/peerdb/peerdb/internal/search"
@@ -22,13 +23,13 @@ import (
 
 // ClassCreateOption is one class offered in the create-document view. Paths are the SUBCLASS_OF ancestor
 // chains (root to immediate parent), one entry per parent class, so the frontend renders the class once
-// under each parent (matching the instance-of filter tree). CanCreate is true when a document can be
+// under each parent (matching the instance-of filter tree). Creatable is true when a document can be
 // created for the class (it is not abstract and it defines fields); a non-creatable class is included only
 // as a structural ancestor of a creatable one.
 type ClassCreateOption struct {
 	ID        string     `json:"id"`
 	Paths     [][]string `json:"paths,omitempty"`
-	CanCreate bool       `json:"canCreate"`
+	Creatable bool       `json:"creatable"`
 }
 
 // classCreatable reports whether a document can be created for the class: it must not be abstract and must
@@ -94,6 +95,10 @@ func pathsContain(paths [][]string, id string) bool {
 // not found or not accessible, so the class is skipped) to determine createability, and documentHierarchyPaths
 // resolves its SUBCLASS_OF ancestor paths.
 //
+// canCreate, when non-nil, additionally decides per class whether the caller may create a document of it,
+// so that the view offers only what creating it would accept; a class it denies is not creatable here and
+// is pruned with the rest. Without it every class a document can be created for is offered.
+//
 // When limit is non-empty, the offering is restricted to that class id and its descendants: only they keep
 // their creatability, the limit class's ancestors are kept solely as structural labels (forced
 // non-creatable) so the tree still renders from a root down to the limit, and every other class is dropped.
@@ -103,6 +108,7 @@ func CreateOptions(
 	getSearchService func() *esSearch.Search,
 	accessFilter types.QueryVariant,
 	loadDocument func(context.Context, identifier.Identifier) (*document.D, errors.E),
+	canCreate func(context.Context, identifier.Identifier) bool,
 	documentHierarchyPaths func(context.Context, identifier.Identifier) ([]string, errors.E),
 	limit string,
 ) ([]ClassCreateOption, errors.E) {
@@ -117,7 +123,7 @@ func CreateOptions(
 
 	type classEntry struct {
 		Res       RefFilterResult
-		CanCreate bool
+		Creatable bool
 	}
 	entries := make([]classEntry, 0, len(ids))
 	for _, id := range ids {
@@ -125,7 +131,7 @@ func CreateOptions(
 		if errE != nil {
 			// A class enumerated a moment ago may be gone or hidden by the caller's access level; skip it
 			// rather than failing the whole listing.
-			if errors.Is(errE, store.ErrValueNotFound) || errors.Is(errE, store.ErrAccessDenied) {
+			if errors.Is(errE, store.ErrValueNotFound) || errors.Is(errE, auth.ErrAccessDenied) {
 				continue
 			}
 			return nil, errE
@@ -137,6 +143,10 @@ func CreateOptions(
 		if errE != nil {
 			return nil, errE
 		}
+		creatable := classCreatable(doc)
+		if creatable && canCreate != nil {
+			creatable = canCreate(ctx, id)
+		}
 		entries = append(entries, classEntry{
 			Res: RefFilterResult{
 				ID:                id.String(),
@@ -145,7 +155,7 @@ func CreateOptions(
 				ChildCountAtLeast: false,
 				Paths:             ancestorChains(fullPaths),
 			},
-			CanCreate: classCreatable(doc),
+			Creatable: creatable,
 		})
 	}
 
@@ -175,7 +185,7 @@ func CreateOptions(
 			switch {
 			case e.Res.ID == limit:
 			case limitAncestors[e.Res.ID]:
-				e.CanCreate = false
+				e.Creatable = false
 			case pathsContain(e.Res.Paths, limit):
 			default:
 				continue
@@ -188,7 +198,7 @@ func CreateOptions(
 	// Collect every class that is an ancestor of a creatable class; these are kept as structural nodes.
 	creatableAncestors := map[string]bool{}
 	for _, e := range entries {
-		if !e.CanCreate {
+		if !e.Creatable {
 			continue
 		}
 		for _, path := range e.Res.Paths {
@@ -203,7 +213,7 @@ func CreateOptions(
 	// ancestors are all marked above), so no kept class ever references a dropped parent.
 	kept := make([]classEntry, 0, len(entries))
 	for _, e := range entries {
-		if e.CanCreate || creatableAncestors[e.Res.ID] {
+		if e.Creatable || creatableAncestors[e.Res.ID] {
 			kept = append(kept, e)
 		}
 	}
@@ -219,7 +229,7 @@ func CreateOptions(
 		options = append(options, ClassCreateOption{
 			ID:        e.Res.ID,
 			Paths:     e.Res.Paths,
-			CanCreate: e.CanCreate,
+			Creatable: e.Creatable,
 		})
 	}
 	return options, nil

@@ -12,4 +12,7 @@ var (
 	// ErrInvalidSessionData is a base error for session data which deterministically
 	// fails validation when completing the session, so retrying cannot succeed.
 	ErrInvalidSessionData = errors.Base("invalid session data")
+	// ErrSessionNotAllowed is a base error for a session whose commit is rejected by a permission
+	// check when completing the session. The rejection is deterministic, so retrying cannot succeed.
+	ErrSessionNotAllowed = errors.Base("session not allowed")
 )

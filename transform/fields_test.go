@@ -1432,3 +1432,116 @@ func TestFieldsContext(t *testing.T) {
 	require.Error(t, errE)
 	assert.EqualError(t, errE, "context tag cannot be used with value tag")
 }
+
+type FieldsWithInputComponent struct {
+	Name string `cardinality:"1"                                                                                             json:"name" property:"NAME"`
+	Code string `cardinality:"0..1" inputComponent:"AppInputCode" inputComponentProps:"variant=compact&placeholder=a%20code" json:"code" property:"CODE"`
+}
+
+type InputComponentValueStruct struct {
+	Value string `inputComponent:"AppInputSlider" inputComponentProps:"min=0&max=10" json:"value" value:""`
+
+	Notes string `cardinality:"0..1" json:"notes,omitempty" property:"NOTES"`
+}
+
+type FieldsWithInputComponentOnValue struct {
+	Data InputComponentValueStruct `cardinality:"1" json:"data" property:"DATA"`
+}
+
+type FieldsWithInputComponentPropsOnly struct {
+	Name string `cardinality:"1" inputComponentProps:"variant=compact" json:"name" property:"NAME"`
+}
+
+type FieldsWithRepeatedInputComponentProps struct {
+	Name string `cardinality:"1" inputComponent:"AppInputCode" inputComponentProps:"variant=compact&variant=wide" json:"name" property:"NAME"`
+}
+
+type FieldsWithInvalidInputComponentProps struct {
+	Name string `cardinality:"1" inputComponent:"AppInputCode" inputComponentProps:"variant=%zz" json:"name" property:"NAME"`
+}
+
+func TestFieldsInputComponent(t *testing.T) {
+	t.Parallel()
+
+	mnemonics := fieldsTestMnemonics()
+
+	result, errE := transform.Fields[FieldsWithInputComponent](mnemonics, nil, nil)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	require.Len(t, result.Field, 2)
+	// A field naming no component keeps the input its value type picks.
+	assert.Nil(t, result.Field[0].InputComponent)
+	assert.Equal(t, &core.ComponentWithProps{
+		Value: "AppInputCode",
+		Props: "variant=compact&placeholder=a%20code",
+	}, result.Field[1].InputComponent)
+
+	// For a struct field the tags are read from its value field, like the values and default tags are.
+	valueResult, errE := transform.Fields[FieldsWithInputComponentOnValue](mnemonics, nil, nil)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	require.Len(t, valueResult.Field, 1)
+	assert.Equal(t, &core.ComponentWithProps{
+		Value: "AppInputSlider",
+		Props: "min=0&max=10",
+	}, valueResult.Field[0].InputComponent)
+
+	// Props describe a named component, so they cannot be given on their own.
+	_, errE = transform.Fields[FieldsWithInputComponentPropsOnly](mnemonics, nil, nil)
+	require.Error(t, errE)
+	assert.EqualError(t, errE, "inputComponentProps tag requires inputComponent tag")
+
+	// A prop holds one string, so the same key twice is a mistake rather than a list.
+	_, errE = transform.Fields[FieldsWithRepeatedInputComponentProps](mnemonics, nil, nil)
+	require.Error(t, errE)
+	assert.EqualError(t, errE, "repeated key in inputComponentProps tag")
+
+	// Props which do not parse as a query string fail the build instead of reaching the frontend.
+	_, errE = transform.Fields[FieldsWithInvalidInputComponentProps](mnemonics, nil, nil)
+	require.Error(t, errE)
+	assert.EqualError(t, errE, "invalid inputComponentProps tag: invalid URL escape \"%zz\"")
+}
+
+type FieldsWithDuplicate struct {
+	Name  []string `cardinality:"0.."                   json:"name"  property:"NAME"`
+	Tags  []string `cardinality:"0.." duplicate:"top"   json:"tags"  property:"DESCRIPTION"`
+	Notes []string `cardinality:"0.." duplicate:"allow" json:"notes" property:"NOTES"`
+}
+
+type DuplicateValueStruct struct {
+	Value string `duplicate:"top" json:"value" value:""`
+
+	Name string `json:"name" property:"NAME"`
+}
+
+type FieldsWithDuplicateOnValue struct {
+	Data DuplicateValueStruct `cardinality:"1" json:"data" property:"DATA"`
+}
+
+type FieldsWithInvalidDuplicate struct {
+	Name []string `cardinality:"0.." duplicate:"sometimes" json:"name" property:"NAME"`
+}
+
+func TestFieldsDuplicate(t *testing.T) {
+	t.Parallel()
+
+	mnemonics := fieldsTestMnemonics()
+
+	result, errE := transform.Fields[FieldsWithDuplicate](mnemonics, nil, nil)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	require.Len(t, result.Field, 3)
+	// Without the tag the whole claim is compared, which neither setting says.
+	assert.False(t, result.Field[0].DuplicateTop)
+	assert.False(t, result.Field[0].DuplicateAllow)
+	assert.True(t, result.Field[1].DuplicateTop)
+	assert.False(t, result.Field[1].DuplicateAllow)
+	assert.False(t, result.Field[2].DuplicateTop)
+	assert.True(t, result.Field[2].DuplicateAllow)
+
+	// The tag is about the field's claims, so it does not belong on the value of one of them.
+	_, errE = transform.Fields[FieldsWithDuplicateOnValue](mnemonics, nil, nil)
+	require.Error(t, errE)
+	assert.EqualError(t, errE, "duplicate tag cannot be used with value tag")
+
+	_, errE = transform.Fields[FieldsWithInvalidDuplicate](mnemonics, nil, nil)
+	require.Error(t, errE)
+	assert.EqualError(t, errE, "duplicate tag must be \"top\" or \"allow\"")
+}

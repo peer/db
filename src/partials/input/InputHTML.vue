@@ -42,7 +42,8 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref, shallowReadonly, u
 import { useI18n } from "vue-i18n"
 import { useRouter } from "vue-router"
 
-import { CAN_EDIT_FILE, hasPermission } from "@/auth"
+import { hasFilePermission } from "@/auth"
+import { ACTION_CREATE } from "@/core"
 import Button from "@/components/Button.vue"
 import ButtonStyled from "@/components/ButtonStyled.vue"
 import InputStyled from "@/components/InputStyled.vue"
@@ -595,7 +596,7 @@ function onAttachFile() {
 // files inserted before the error stay.
 async function startAttachUpload(files: File[]) {
   if (files.length === 0) return
-  if (!hasPermission(CAN_EDIT_FILE)) return
+  if (!hasFilePermission(ACTION_CREATE)) return
   uploadError.value = false
   uploadAbort = new AbortController()
   try {
@@ -677,7 +678,7 @@ function onWrapperDragEnter(event: DragEvent) {
   // link / cite edit) still count toward the depth so dragleave stays
   // balanced and the drop is still claimed (in dragover / drop) - we
   // just do not light up a target the user cannot use.
-  if (isInactive.value || uploadingFile.value !== null || isLinkInputDirty.value || !hasPermission(CAN_EDIT_FILE)) return
+  if (isInactive.value || uploadingFile.value !== null || isLinkInputDirty.value || !hasFilePermission(ACTION_CREATE)) return
   isDraggingFile.value = true
 }
 
@@ -720,7 +721,7 @@ async function onWrapperDrop(event: DragEvent) {
   if (files.length === 0) return
   event.preventDefault()
   resetDragState()
-  if (isInactive.value || uploadingFile.value !== null || isLinkInputDirty.value || !view || !hasPermission(CAN_EDIT_FILE)) return
+  if (isInactive.value || uploadingFile.value !== null || isLinkInputDirty.value || !view || !hasFilePermission(ACTION_CREATE)) return
   if (bottomMode.value === "file-edit") {
     const range = resolveLinkRange(view.state, editPin.value)
     if (!range) return
@@ -801,7 +802,7 @@ function onReplaceFileClick() {
 // failure leaves the editor untouched.
 async function startReplaceUpload(file: File) {
   if (!view || editPin.value?.kind !== "link") return
-  if (!hasPermission(CAN_EDIT_FILE)) return
+  if (!hasFilePermission(ACTION_CREATE)) return
   uploadError.value = false
   uploadingFile.value = file
   uploadProgress.value = 1
@@ -1791,7 +1792,7 @@ watch(
           <LinkIcon class="size-6" aria-hidden="true" />
         </button>
         <button
-          v-if="hasPermission(CAN_EDIT_FILE)"
+          v-if="hasFilePermission(ACTION_CREATE)"
           type="button"
           class="m-0.5 rounded-sm px-2 py-0.5 align-middle outline-none first:ml-1 last:mr-1 hover:bg-slate-100 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 disabled:cursor-not-allowed disabled:text-gray-500 disabled:hover:bg-transparent"
           :disabled="isInactive || !canApplyLinkMark || uploadingFile !== null || isLinkInputDirty"
@@ -1829,7 +1830,7 @@ watch(
         contenteditable root so any browser translation layer leaves the filename
         alone.
       -->
-      <input v-if="hasPermission(CAN_EDIT_FILE)" ref="fileInputRef" type="file" multiple class="hidden" @change="onFilePicked" />
+      <input v-if="hasFilePermission(ACTION_CREATE)" ref="fileInputRef" type="file" multiple class="hidden" @change="onFilePicked" />
     </div>
 
     <!--
@@ -1901,7 +1902,7 @@ watch(
           semantics. target="_blank" sends the user to the file in a fresh tab.
         -->
         <ButtonStyled as="a" :href="currentLinkValue" target="_blank" class="shrink-0 px-3 py-2">{{ t("common.buttons.open") }}</ButtonStyled>
-        <template v-if="hasPermission(CAN_EDIT_FILE)">
+        <template v-if="hasFilePermission(ACTION_CREATE)">
           <Button
             type="button"
             class="min-w-0 flex-1 px-3 py-2"

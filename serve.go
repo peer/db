@@ -55,7 +55,7 @@ type Service struct {
 //nolint:ireturn
 func (s *Service) lookupSiteAuthenticator(
 	w http.ResponseWriter, req *http.Request,
-) (auth.Authenticator, map[string][]string, []auth.VisibilityLevel, bool) {
+) (auth.Authenticator, map[string]auth.RoleGrants, []auth.VisibilityLevel, bool) {
 	site, ok := waf.GetSite[*internalSite.Site](req.Context())
 	if !ok {
 		s.InternalServerErrorWithError(w, req, errors.New("no site in request context"))
@@ -68,30 +68,6 @@ func (s *Service) lookupSiteAuthenticator(
 		return nil, nil, nil, true
 	}
 	return site.Authenticator, site.Roles, site.Visibility, false
-}
-
-// HasPermission reports whether the caller currently holds the given
-// permission on the site this request targets. A permission is granted
-// when it is declared under the reserved auth.RoleEveryone name (which
-// applies to every caller, authenticated or not) or when any role bound
-// to the request (auth.Roles) maps via Site.Roles to a permission list
-// that contains it. Returns nil on success and a "permission denied"
-// error otherwise (including when no site is in ctx). In sync with
-// src/auth/index.ts.
-func (s *Service) HasPermission(ctx context.Context, permission string) errors.E {
-	site, ok := waf.GetSite[*internalSite.Site](ctx)
-	if !ok {
-		return errors.New("permission denied")
-	}
-	if slices.Contains(site.Roles[auth.RoleEveryone], permission) {
-		return nil
-	}
-	for _, role := range auth.Roles(ctx) {
-		if slices.Contains(site.Roles[role], permission) {
-			return nil
-		}
-	}
-	return errors.New("permission denied")
 }
 
 // siteRoleNames returns the sorted names of the roles the site declares.
@@ -141,6 +117,7 @@ func (c *ServeCommand) Init(ctx context.Context, globals *Globals, files fs.FS) 
 			LanguageCodes:        nil,
 			Features:             internalSite.SiteFeatures{},
 			Roles:                nil,
+			ScopeProperties:      nil,
 			Visibility:           nil,
 			Auth:                 internalSite.SiteAuthConfig{},
 			MetadataHeaderPrefix: "",
@@ -186,15 +163,13 @@ func (c *ServeCommand) Init(ctx context.Context, globals *Globals, files fs.FS) 
 		}
 	}
 
-	// Apply consumer site defaults also to sites synthesized above from the domain or the certificates.
-	// Sites from the configuration already received them during configuration validation. SiteDefaults is
-	// idempotent so the repeated application is safe.
-	if globals.Customize.SiteDefaults != nil {
-		for i := range globals.Sites {
-			errE := globals.Customize.SiteDefaults(&globals.Sites[i])
-			if errE != nil {
-				return nil, nil, errE
-			}
+	// Apply site defaults (PeerDB defaults followed by the consumer customizer) also to sites synthesized
+	// above from the domain or the certificates. Sites from the configuration already received them during
+	// configuration validation. Applying site defaults is idempotent so the repeated application is safe.
+	for i := range globals.Sites {
+		errE := applySiteDefaults(globals.Customize, &globals.Sites[i])
+		if errE != nil {
+			return nil, nil, errE
 		}
 	}
 
@@ -303,15 +278,33 @@ func (c *ServeCommand) Init(ctx context.Context, globals *Globals, files fs.FS) 
 			return "https://" + host + callbackPath
 		})
 
+		// Where a mock sign-in chooses the roles to sign in with, which stands in for the issuer's own
+		// sign-in page (see auth.MockAuthenticator.SignIn).
+		mockSignInURI := sync.OnceValue(func() string {
+			host, errE := c.Server.Host(site.Domain)
+			if errE != nil {
+				return ""
+			}
+			signInPath, errE := service.Reverse("AuthMockSignIn", nil, nil)
+			if errE != nil {
+				return ""
+			}
+			return "https://" + host + signInPath
+		})
+
 		// Site.Validate makes sure that or all three settings are set or none.
 		if site.Auth.Issuer != "" {
-			site.Authenticator, errE = auth.NewOIDCAuthenticator(siteCtx, site.DBPool, site.Auth.Issuer, site.Auth.ClientID, site.Auth.ClientSecret, redirectURI)
+			site.Authenticator, errE = auth.NewOIDCAuthenticator(
+				siteCtx, site.DBPool, site.Auth.Issuer, site.Auth.Organization, site.Auth.ClientID, site.Auth.ClientSecret, redirectURI,
+			)
 			if errE != nil {
 				return nil, onShutdown, errE
 			}
 			globals.Logger.Info().Str("domain", site.Domain).Str("issuer", site.Auth.Issuer).Str("clientId", site.Auth.ClientID).Msg("OIDC authentication enabled")
 		} else {
-			site.Authenticator, errE = auth.NewMockAuthenticator(siteCtx, site.DBPool, site.Domain, func() []string { return siteRoleNames(site) }, redirectURI)
+			site.Authenticator, errE = auth.NewMockAuthenticator(
+				siteCtx, site.DBPool, site.Domain, func() []string { return siteRoleNames(site) }, redirectURI, mockSignInURI,
+			)
 			if errE != nil {
 				return nil, onShutdown, errE
 			}

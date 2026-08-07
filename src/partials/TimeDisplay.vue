@@ -12,9 +12,11 @@ import {
   formatAbsoluteParts,
   getPrecisionIndex,
   getRelativeTimeInfo,
+  globalTimeFormat,
   parseTimestamp,
   zonedEpochMs,
 } from "@/partials/TimeDisplay.utils"
+import { isPlainClick } from "@/utils"
 
 const props = withDefaults(
   defineProps<{
@@ -46,8 +48,9 @@ const props = withDefaults(
 
 const { t, locale } = useI18n({ useScope: "global" })
 
-// Current display format, can be toggled by the user.
-const currentFormat = ref(props.format)
+// Current display format: the global choice once any instance has been clicked, otherwise this instance's
+// initial format prop.
+const currentFormat = computed(() => globalTimeFormat.value ?? props.format)
 
 // Timer for reactive relative time updates.
 let updateTimer: ReturnType<typeof setTimeout> | null = null
@@ -184,12 +187,16 @@ const relativeDisplay = computed(() => {
   return { text, nextUpdateMs: info.nextUpdateMs }
 })
 
-// Toggle between formats.
-function toggleFormat() {
+// Toggle between formats on a plain click. The choice is global: switching this instance switches every
+// other TimeDisplay to the same format.
+function toggleFormat(event: MouseEvent) {
   if (!props.toggle) {
     return
   }
-  currentFormat.value = currentFormat.value === "absolute" ? "relative" : "absolute"
+  if (!isPlainClick(event)) {
+    return
+  }
+  globalTimeFormat.value = currentFormat.value === "absolute" ? "relative" : "absolute"
 }
 
 // In absolute mode the tooltip shows the relative phrasing computed from now,

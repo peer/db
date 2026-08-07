@@ -3,6 +3,7 @@ package peerdb
 import (
 	"net/http"
 
+	"gitlab.com/peerdb/peerdb/auth"
 	internalSite "gitlab.com/peerdb/peerdb/internal/site"
 	"gitlab.com/peerdb/peerdb/store"
 
@@ -69,7 +70,7 @@ func (s *Service) DebugIndexedGetAPI(w http.ResponseWriter, req *http.Request, p
 	}
 
 	searchDoc, errE := site.Base.IndexedDocument(ctx, dataJSON, metadata)
-	if errors.Is(errE, store.ErrAccessDenied) {
+	if errors.Is(errE, auth.ErrAccessDenied) {
 		s.ForbiddenWithError(w, req, errE)
 		return
 	} else if errE != nil {

@@ -16,6 +16,7 @@ import ButtonLink from "@/components/ButtonLink.vue"
 import { useNavbarSearchQuery } from "@/navbar"
 import { useLocked } from "@/progress"
 import { prefiltersMatch, queryToPrefilterPayloads, searchShortcutControllerKey } from "@/search"
+import { isPlainClick } from "@/utils"
 
 const props = withDefaults(
   defineProps<{
@@ -54,8 +55,8 @@ function onClickCapture(event: MouseEvent) {
     return
   }
   // Leave modified clicks (open in new tab/window) and middle/aux clicks to the normal link behavior,
-  // mirroring vue-router's guardEvent, so for example ctrl/cmd-click still loads a fresh search session.
-  if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.altKey || event.ctrlKey || event.shiftKey) {
+  // so for example ctrl/cmd-click still loads a fresh search session.
+  if (!isPlainClick(event)) {
     return
   }
   event.preventDefault()

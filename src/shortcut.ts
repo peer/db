@@ -5,6 +5,19 @@ import { Identifier } from "@tozd/identifier"
 import siteContext from "@/context"
 import { encodeQuery } from "@/utils"
 
+// The separators of the shortcut grammar, from coarsest to finest.
+//
+// Keep in sync with internal/shortcut/shortcut.go.
+
+// ENTRY_SEPARATOR separates the entries of a list.
+export const ENTRY_SEPARATOR = "&"
+// KEY_VALUE_SEPARATOR separates the key from the value within an entry, at its first occurrence.
+export const KEY_VALUE_SEPARATOR = "="
+// PATH_SEPARATOR separates the segments of a path (a nested "parent:prop" key).
+export const PATH_SEPARATOR = ":"
+// PART_SEPARATOR separates the base parts of a single identifier token.
+export const PART_SEPARATOR = ","
+
 // Reserved tokens in the search shortcut grammar.
 export const RESERVED_REVERSE = "reverse"
 // RESERVED_ID is the key whose values are document IDs the search is scoped to (documents whose own ID
@@ -36,8 +49,8 @@ export const RESERVED_QUERY = "q"
 // via Identifier.from; single tokens are returned as-is and are expected to
 // already be a valid 22-character identifier.
 export async function resolveShortcutID(token: string): Promise<string> {
-  if (token.includes(",")) {
-    return (await Identifier.from(...token.split(","))).toString()
+  if (token.includes(PART_SEPARATOR)) {
+    return (await Identifier.from(...token.split(PART_SEPARATOR))).toString()
   }
   return token
 }
@@ -65,10 +78,21 @@ function enabledLanguageIds(): string[] {
   return ids
 }
 
-// parseShortcut splits a search shortcut string into raw key/value pairs and
-// validates the structural rules shared with the backend validator in
-// transform/shortcut.go:
-//   - first "=" separates a non-empty key from a non-empty value,
+// parseEntry splits a single "key=value" entry into its key and value at the first "=". A missing "="
+// or an empty side (an empty key or an empty value) is an error: an entry always has a non-empty key
+// and value. In sync with shortcut.ParseEntry in internal/shortcut/shortcut.go, except that the two
+// sides are kept as raw strings instead of parsed segments: callers resolve identifier tokens
+// themselves as needed. Throws on a violation.
+export function parseEntry(entry: string): ShortcutPair {
+  const eq = entry.indexOf(KEY_VALUE_SEPARATOR)
+  if (eq <= 0 || eq === entry.length - 1) {
+    throw new Error(`entry must have a non-empty key and value separated by '=': ${entry}`)
+  }
+  return { key: entry.substring(0, eq), value: entry.substring(eq + 1) }
+}
+
+// parseShortcut splits a search shortcut string into raw key/value pairs (see parseEntry) and
+// validates the structural rules shared with the backend validator in transform/shortcut.go:
 //   - the key contains at most one ":" (nested "parent:prop" form),
 //   - "reverse" and "id" are not allowed inside a nested key.
 // Throws on the first violation.
@@ -77,24 +101,19 @@ export function parseShortcut(s: string): ShortcutPair[] {
     throw new Error("search shortcut must not be empty")
   }
   const pairs: ShortcutPair[] = []
-  for (const part of s.split("&")) {
-    const eq = part.indexOf("=")
-    if (eq <= 0 || eq === part.length - 1) {
-      throw new Error(`search shortcut part must have a non-empty key and value separated by '=': ${part}`)
-    }
-    const key = part.substring(0, eq)
-    const value = part.substring(eq + 1)
-    const keyParts = key.split(":")
+  for (const part of s.split(ENTRY_SEPARATOR)) {
+    const pair = parseEntry(part)
+    const keyParts = pair.key.split(PATH_SEPARATOR)
     if (keyParts.length > 2) {
-      throw new Error(`search shortcut key must contain at most one ':': ${key}`)
+      throw new Error(`search shortcut key must contain at most one ':': ${pair.key}`)
     }
     if (keyParts.length === 2 && (keyParts[0] === RESERVED_REVERSE || keyParts[1] === RESERVED_REVERSE)) {
-      throw new Error(`"reverse" is not allowed inside a nested key: ${key}`)
+      throw new Error(`"reverse" is not allowed inside a nested key: ${pair.key}`)
     }
     if (keyParts.length === 2 && (keyParts[0] === RESERVED_ID || keyParts[1] === RESERVED_ID)) {
-      throw new Error(`"id" is not allowed inside a nested key: ${key}`)
+      throw new Error(`"id" is not allowed inside a nested key: ${pair.key}`)
     }
-    pairs.push({ key, value })
+    pairs.push(pair)
   }
   return pairs
 }
@@ -131,8 +150,8 @@ async function resolveShortcut(s: string, self?: string): Promise<resolvedPair[]
       continue
     }
     const prop: string[] = []
-    if (key.includes(":")) {
-      const [parentKey, nestedKey] = key.split(":")
+    if (key.includes(PATH_SEPARATOR)) {
+      const [parentKey, nestedKey] = key.split(PATH_SEPARATOR)
       prop.push(await resolveShortcutID(parentKey), await resolveShortcutID(nestedKey))
     } else {
       prop.push(await resolveShortcutID(key))
@@ -174,7 +193,7 @@ export async function shortcutToFilters(s: string, self?: string): Promise<JustR
       payload.ids.push(r.value)
       continue
     }
-    const key = r.prop.join(":")
+    const key = r.prop.join(PATH_SEPARATOR)
     let g = byProp.get(key)
     if (!g) {
       g = { prop: r.prop, to: [], direct: [], missing: false }
@@ -222,7 +241,7 @@ export async function shortcutToFilters(s: string, self?: string): Promise<JustR
 export async function shortcutToQuery(s: string, self?: string): Promise<QueryValues> {
   const filter: Record<string, string[]> = {}
   for (const r of await resolveShortcut(s, self)) {
-    const k = r.reverse ? RESERVED_REVERSE : r.id ? RESERVED_ID : r.prop.join(":")
+    const k = r.reverse ? RESERVED_REVERSE : r.id ? RESERVED_ID : r.prop.join(PATH_SEPARATOR)
     let v = r.value
     if (r.kind === "missing") {
       v = RESERVED_MISSING

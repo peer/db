@@ -6,6 +6,7 @@ package storage
 import (
 	"cmp"
 	"context"
+	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
 	"io"
@@ -227,8 +228,30 @@ func (s *Storage) Coordinator() *coordinator.Coordinator[[]byte, *chunkMetadata,
 //
 // Files are content-addressed: the hash is the file name, placed under two levels of subdirectories
 // named after its first and second characters so that no single directory holds too many files.
-func (s *Storage) filePath(hash string) string {
-	return filepath.Join(s.Dir, hash[0:1], hash[1:2], hash)
+func (s *Storage) filePath(hash string) (string, errors.E) {
+	// The hash is joined into an on-disk path, so only an exact lowercase hex SHA-256 digest is
+	// accepted: anything else could address a path outside the storage directory (e.g. through path
+	// separators or dot segments) or alias another file on a case-insensitive filesystem (through
+	// uppercase hex digits).
+	if !isContentHash(hash) {
+		errE := errors.New("invalid stored hash")
+		errors.Details(errE)["hash"] = hash
+		return "", errE
+	}
+	return filepath.Join(s.Dir, hash[0:1], hash[1:2], hash), nil
+}
+
+// isContentHash reports whether hash is a well-formed content hash, a lowercase hex SHA-256 digest.
+func isContentHash(hash string) bool {
+	if len(hash) != hex.EncodedLen(sha256.Size) {
+		return false
+	}
+	for _, c := range hash {
+		if (c < '0' || c > '9') && (c < 'a' || c > 'f') {
+			return false
+		}
+	}
+	return true
 }
 
 // etagToHash converts a strong ETag (a quoted, base64url-encoded SHA-256 digest) into the lowercase
@@ -273,7 +296,10 @@ func (s *Storage) WriteFile(reader io.ReadSeeker) (string, string, int64, errors
 	if errE != nil {
 		return "", "", 0, errE
 	}
-	path := s.filePath(hash)
+	path, errE := s.filePath(hash)
+	if errE != nil {
+		return "", "", 0, errE
+	}
 
 	_, err := os.Stat(path)
 	if err == nil {
@@ -376,7 +402,10 @@ func (s *Storage) finalizeTempFile(tmp *os.File, hash string) errors.E {
 		return errE
 	}
 
-	path := s.filePath(hash)
+	path, errE := s.filePath(hash)
+	if errE != nil {
+		return errE
+	}
 	_, err = os.Stat(path)
 	if err == nil {
 		// The file is already stored with complete and durable contents, but it might have been
@@ -390,7 +419,7 @@ func (s *Storage) finalizeTempFile(tmp *os.File, hash string) errors.E {
 	}
 
 	dir := filepath.Dir(path)
-	errE := mkdirAllSynced(dir, storedDirMode)
+	errE = mkdirAllSynced(dir, storedDirMode)
 	if errE != nil {
 		return errE
 	}
@@ -465,10 +494,13 @@ func mkdirAllSynced(dir string, perm os.FileMode) errors.E {
 	return errE
 }
 
-// openFile opens the file addressed by the given content hash in the storage directory. The caller
-// is responsible for closing the returned handle.
-func (s *Storage) openFile(hash string) (*os.File, errors.E) {
-	path := s.filePath(hash)
+// Open returns an open handle on the file addressed by the given content hash in the storage directory.
+// The caller is responsible for closing the returned handle.
+func (s *Storage) Open(hash string) (io.ReadSeekCloser, errors.E) {
+	path, errE := s.filePath(hash)
+	if errE != nil {
+		return nil, errE
+	}
 	file, err := os.Open(path) //nolint:gosec
 	if err != nil {
 		errE := errors.WithStack(err)
@@ -491,13 +523,9 @@ func (s *Storage) resolveFile(
 	if errE != nil {
 		return nil, metadata, version, parentChangesets, errE
 	}
-	if hash == "" {
-		errE = errors.New("stored file hash is empty")
-		errors.Details(errE)["version"] = version.String()
-		return nil, metadata, version, parentChangesets, errE
-	}
-	file, errE := s.openFile(hash)
+	file, errE := s.Open(hash)
 	if errE != nil {
+		errors.Details(errE)["version"] = version.String()
 		return nil, metadata, version, parentChangesets, errE
 	}
 	return file, metadata, version, parentChangesets, nil

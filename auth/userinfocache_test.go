@@ -21,9 +21,9 @@ func TestUserInfoCacheSetThenGet(t *testing.T) {
 	t.Parallel()
 
 	c := auth.TestingNewUserInfoCache("", nil)
-	c.TestingSet("user-1", auth.TestingUserInfo{Subject: "user-1", Username: "alice"})
+	c.TestingSet("user-1", auth.TestingUserInfo{Subject: "user-1", Username: "alice", Roles: nil})
 
-	info, errE := c.Get(t.Context(), "user-1", "any-token")
+	info, errE := c.GetSelf(t.Context(), "user-1", "any-token", nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, "user-1", info.Subject)
 	assert.Equal(t, "alice", info.Username)
@@ -31,13 +31,13 @@ func TestUserInfoCacheSetThenGet(t *testing.T) {
 
 // TestUserInfoCacheMissNoEndpoint covers the "Authenticate ignores
 // userinfo errors" contract from the production side: when the cache
-// misses and no upstream endpoint is configured (mock authenticator
-// case), Get returns an error that the caller is expected to swallow.
+// misses and the issuer advertises no userinfo endpoint, Get returns an
+// error that the caller is expected to log and fall back from.
 func TestUserInfoCacheMissNoEndpoint(t *testing.T) {
 	t.Parallel()
 
 	c := auth.TestingNewUserInfoCache("", nil)
-	_, errE := c.Get(t.Context(), "user-1", "any-token")
+	_, errE := c.GetSelf(t.Context(), "user-1", "any-token", nil)
 	require.Error(t, errE, "missing endpoint must surface an error so the caller can fall back to subject-only")
 }
 
@@ -62,7 +62,7 @@ func TestUserInfoCacheFetchesThenCaches(t *testing.T) {
 
 	c := auth.TestingNewUserInfoCache(ts.URL, cleanhttp.DefaultPooledClient())
 
-	info, errE := c.Get(t.Context(), "user-1", "my-token")
+	info, errE := c.GetSelf(t.Context(), "user-1", "my-token", nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, "user-1", info.Subject)
 	assert.Equal(t, "alice", info.Username)
@@ -70,7 +70,7 @@ func TestUserInfoCacheFetchesThenCaches(t *testing.T) {
 
 	// Second call must be served from the cache without hitting the
 	// upstream endpoint.
-	info, errE = c.Get(t.Context(), "user-1", "my-token")
+	info, errE = c.GetSelf(t.Context(), "user-1", "my-token", nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, "alice", info.Username)
 	assert.Equal(t, int32(1), calls.Load(), "second Get must come from cache")
@@ -91,18 +91,47 @@ func TestUserInfoCacheFetchFailureNotCached(t *testing.T) {
 
 	c := auth.TestingNewUserInfoCache(ts.URL, cleanhttp.DefaultPooledClient())
 
-	_, errE := c.Get(t.Context(), "user-1", "my-token")
+	_, errE := c.GetSelf(t.Context(), "user-1", "my-token", nil)
 	require.Error(t, errE)
 
-	_, errE = c.Get(t.Context(), "user-1", "my-token")
+	_, errE = c.GetSelf(t.Context(), "user-1", "my-token", nil)
 	require.Error(t, errE)
 	assert.Equal(t, int32(2), calls.Load(), "failed fetch must not be cached; second Get must retry")
 }
 
-// TestUserInfoCacheFallsBackToSubject covers the "issuer omits sub"
-// case: when the response body has no sub field, the cache fills it
-// in from the lookup key so the UserInfo header always carries one.
-func TestUserInfoCacheFallsBackToSubject(t *testing.T) {
+// TestUserInfoCacheRejectsSubjectMismatch covers the answer which is about
+// another user: it says nothing about the subject looked up, so it is an
+// error rather than an entry cached under them.
+func TestUserInfoCacheRejectsSubjectMismatch(t *testing.T) {
+	t.Parallel()
+
+	var calls atomic.Int32
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		calls.Add(1)
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]string{
+			"sub":                "user-2",
+			"preferred_username": "bob",
+		})
+	}))
+	t.Cleanup(ts.Close)
+
+	c := auth.TestingNewUserInfoCache(ts.URL, cleanhttp.DefaultPooledClient())
+
+	_, errE := c.GetSelf(t.Context(), "user-1", "my-token", nil)
+	assert.EqualError(t, errE, "lookup returned a different subject")
+
+	// Nothing was cached, so the next Get asks again.
+	_, errE = c.GetSelf(t.Context(), "user-1", "my-token", nil)
+	assert.EqualError(t, errE, "lookup returned a different subject")
+	assert.Equal(t, int32(2), calls.Load())
+}
+
+// TestUserInfoCacheRejectsMissingSubject covers the "issuer omits sub"
+// case: a response without one does not say who it is about, which OIDC
+// does not allow of a userinfo response, so it is an error rather than an
+// answer assumed to be about the subject looked up.
+func TestUserInfoCacheRejectsMissingSubject(t *testing.T) {
 	t.Parallel()
 
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
@@ -115,8 +144,6 @@ func TestUserInfoCacheFallsBackToSubject(t *testing.T) {
 
 	c := auth.TestingNewUserInfoCache(ts.URL, cleanhttp.DefaultPooledClient())
 
-	info, errE := c.Get(t.Context(), "user-1", "tok")
-	require.NoError(t, errE, "% -+#.1v", errE)
-	assert.Equal(t, "user-1", info.Subject, "missing sub must be backfilled from the lookup key")
-	assert.Equal(t, "alice", info.Username)
+	_, errE := c.GetSelf(t.Context(), "user-1", "tok", nil)
+	assert.EqualError(t, errE, "lookup returned no subject")
 }

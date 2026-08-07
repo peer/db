@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/hex"
 	"math"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -14,6 +15,7 @@ import (
 	"gitlab.com/tozd/go/x"
 	"gitlab.com/tozd/identifier"
 
+	"gitlab.com/peerdb/peerdb/auth"
 	"gitlab.com/peerdb/peerdb/document"
 	internalCore "gitlab.com/peerdb/peerdb/internal/core"
 	"gitlab.com/peerdb/peerdb/store"
@@ -53,13 +55,24 @@ func findRefTo(recs []RelClaim, to identifier.Identifier) *RelClaim {
 }
 
 // newIR creates an InverseRelation with the given fields.
-func newIR(claim, source, sourceProp, targetProp, target identifier.Identifier, confidence document.Confidence) store.InverseRelation {
-	return store.InverseRelation{
-		InverseRelationKey: store.InverseRelationKey{Claim: claim, Source: source, TargetProp: targetProp},
-		SourceProp:         sourceProp,
-		Target:             target,
-		Confidence:         confidence,
+func newIR(claim, source, sourceProp, targetProp, target identifier.Identifier, confidence document.Confidence) InverseRelation {
+	return InverseRelation{
+		Claim:      claim,
+		Source:     source,
+		TargetProp: targetProp,
+		SourceProp: sourceProp,
+		Target:     target,
+		Confidence: confidence,
 	}
+}
+
+// outgoingInverseRows runs OutgoingReferences and returns its inverse relations, keyed by target, so
+// the inverse-resolution tests assert exactly the inverse rows.
+func outgoingInverseRows(t *testing.T, c *Converter, doc *document.D) map[identifier.Identifier][]InverseRelation {
+	t.Helper()
+	_, inverse, errE := c.OutgoingReferences(t.Context(), doc)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	return inverse
 }
 
 // makePropertyDoc creates a property document (instance of PROPERTY class) with optional SUBPROPERTY_OF relation.
@@ -1614,7 +1627,7 @@ func TestMarkReferenceLeaves(t *testing.T) {
 	}
 
 	v := &convertVisitor{ //nolint:exhaustruct
-		result: &Document{ //nolint:exhaustruct
+		Result: &Document{ //nolint:exhaustruct
 			Claims: ClaimTypes{ //nolint:exhaustruct
 				Rel: []RelClaim{
 					// Instance of two sibling leaf classes (painter, sculptor), both narrower than artist.
@@ -1644,12 +1657,12 @@ func TestMarkReferenceLeaves(t *testing.T) {
 	}
 
 	// Both sibling classes are most-specific; their shared ancestor is not.
-	assert.True(t, relLeaf(v.result.Claims.Rel, instanceOf, painter))
-	assert.True(t, relLeaf(v.result.Claims.Rel, instanceOf, sculptor))
-	assert.False(t, relLeaf(v.result.Claims.Rel, instanceOf, artist))
+	assert.True(t, relLeaf(v.Result.Claims.Rel, instanceOf, painter))
+	assert.True(t, relLeaf(v.Result.Claims.Rel, instanceOf, sculptor))
+	assert.False(t, relLeaf(v.Result.Claims.Rel, instanceOf, artist))
 	// Leaf detection is per property: under otherProp artist has no narrower value present, so it
 	// is most-specific there even though it is not under instanceOf.
-	assert.True(t, relLeaf(v.result.Claims.Rel, otherProp, artist))
+	assert.True(t, relLeaf(v.Result.Claims.Rel, otherProp, artist))
 
 	// Sub-references get the same treatment, each parent claim's Sub container being its own scope:
 	// in the first container dog is a leaf and mammal (its ancestor) is not, while in the second
@@ -2526,7 +2539,8 @@ func TestConvertAmountDegenerateWindow(t *testing.T) {
 	require.NotNil(t, r.LessThanOrEqual)
 	assert.Nil(t, r.LessThan)
 	assert.Equal(t, *r.GreaterThanOrEqual, *r.LessThanOrEqual) //nolint:testifylint
-	require.NoError(t, r.Validate())
+	errE = r.Validate()
+	require.NoError(t, errE, "% -+#.1v", errE)
 }
 
 func TestConvertAmountWithUnit(t *testing.T) {
@@ -8643,8 +8657,7 @@ func TestOutgoingInverseRelations(t *testing.T) {
 		},
 	}
 
-	outgoing, errE := c.OutgoingInverseRelations(t.Context(), doc)
-	require.NoError(t, errE)
+	outgoing := outgoingInverseRows(t, c, doc)
 
 	// Should have an entry for the target document.
 	require.Contains(t, outgoing, testTargetDocID)
@@ -8698,8 +8711,7 @@ func TestOutgoingInverseRelationsHierarchyExpansion(t *testing.T) {
 		},
 	}
 
-	outgoing, errE := c.OutgoingInverseRelations(t.Context(), doc)
-	require.NoError(t, errE, "% -+#.1v", errE)
+	outgoing := outgoingInverseRows(t, c, doc)
 
 	// The inverse relation lands on both the direct target (city) and its ancestor (country).
 	require.Contains(t, outgoing, city)
@@ -8722,14 +8734,14 @@ func TestInverseRelationClaimIDDeterministic(t *testing.T) {
 	t.Parallel()
 
 	base := []string{"base"}
-	irKey := store.InverseRelationKey{
+	ir := InverseRelation{ //nolint:exhaustruct
 		Claim:      identifier.New(),
 		Source:     identifier.New(),
 		TargetProp: identifier.New(),
 	}
 
-	id1 := inverseReferenceClaimID(base, irKey)
-	id2 := inverseReferenceClaimID(base, irKey)
+	id1 := inverseReferenceClaimID(base, ir)
+	id2 := inverseReferenceClaimID(base, ir)
 
 	assert.Equal(t, id1, id2)
 }
@@ -8743,8 +8755,8 @@ func TestInverseRelationClaimIDDiffersPerSource(t *testing.T) {
 	sourceA := identifier.New()
 	sourceB := identifier.New()
 
-	idA := inverseReferenceClaimID(base, store.InverseRelationKey{Claim: claim, Source: sourceA, TargetProp: targetProp})
-	idB := inverseReferenceClaimID(base, store.InverseRelationKey{Claim: claim, Source: sourceB, TargetProp: targetProp})
+	idA := inverseReferenceClaimID(base, InverseRelation{Claim: claim, Source: sourceA, TargetProp: targetProp}) //nolint:exhaustruct
+	idB := inverseReferenceClaimID(base, InverseRelation{Claim: claim, Source: sourceB, TargetProp: targetProp}) //nolint:exhaustruct
 
 	assert.NotEqual(t, idA, idB)
 }
@@ -8758,8 +8770,7 @@ func TestOutgoingInverseRelationsEmpty(t *testing.T) {
 		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
 	}
 
-	outgoing, errE := c.OutgoingInverseRelations(t.Context(), doc)
-	require.NoError(t, errE)
+	outgoing := outgoingInverseRows(t, c, doc)
 	assert.Empty(t, outgoing)
 }
 
@@ -8783,8 +8794,7 @@ func TestOutgoingInverseRelationsNoInverse(t *testing.T) {
 		},
 	}
 
-	outgoing, errE := c.OutgoingInverseRelations(t.Context(), doc)
-	require.NoError(t, errE)
+	outgoing := outgoingInverseRows(t, c, doc)
 
 	// No inverse property, so no outgoing relations should be created.
 	assert.Empty(t, outgoing)
@@ -8820,7 +8830,7 @@ func TestFromDocumentIncomingInverseRelation(t *testing.T) {
 		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
 	}
 	// TargetProp is pre-resolved: property X has inverse Y.
-	inverseRelations := []store.InverseRelation{
+	inverseRelations := []InverseRelation{
 		newIR(claimID, sourceDocID, propX, propY, identifier.Identifier{}, document.HighConfidence),
 	}
 
@@ -8864,7 +8874,7 @@ func TestFromDocumentIncomingInverseRelationMultipleInverses(t *testing.T) {
 	doc := &document.D{
 		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
 	}
-	inverseRelations := []store.InverseRelation{
+	inverseRelations := []InverseRelation{
 		newIR(claimID, sourceDocID, propB, propA, identifier.Identifier{}, document.HighConfidence),
 		newIR(claimID, sourceDocID, propB, propC, identifier.Identifier{}, document.HighConfidence),
 	}
@@ -8912,7 +8922,7 @@ func TestFromDocumentIncomingInverseRelationBidirectional(t *testing.T) {
 	}
 
 	// Incoming relation with property A, resolved TargetProp is B.
-	inverseRelations := []store.InverseRelation{
+	inverseRelations := []InverseRelation{
 		newIR(identifier.New(), sourceDocID, propA, propB, identifier.Identifier{}, document.HighConfidence),
 	}
 
@@ -8926,18 +8936,18 @@ func TestFromDocumentIncomingInverseRelationBidirectional(t *testing.T) {
 	assert.Equal(t, sourceDocID, *result.Claims.Rel[0].To)
 }
 
-func TestDiffOutgoingInverseRelationsBothEmpty(t *testing.T) {
+func TestDiffTargetRowsBothEmpty(t *testing.T) {
 	t.Parallel()
 
-	current := map[identifier.Identifier][]store.InverseRelation{}
-	parent := map[identifier.Identifier][]store.InverseRelation{}
+	current := map[identifier.Identifier][]InverseRelation{}
+	parent := map[identifier.Identifier][]InverseRelation{}
 
-	added, removed := diffOutgoingInverseRelations(current, parent)
+	added, removed := diffTargetRows(current, parent)
 	assert.Empty(t, added)
 	assert.Empty(t, removed)
 }
 
-func TestDiffOutgoingInverseRelationsNewClaim(t *testing.T) {
+func TestDiffTargetRowsNewClaim(t *testing.T) {
 	t.Parallel()
 
 	docA := identifier.New()
@@ -8945,19 +8955,19 @@ func TestDiffOutgoingInverseRelationsNewClaim(t *testing.T) {
 	claim1 := identifier.New()
 	prop1 := identifier.New()
 
-	current := map[identifier.Identifier][]store.InverseRelation{
+	current := map[identifier.Identifier][]InverseRelation{
 		targetB: {newIR(claim1, docA, prop1, prop1, targetB, document.HighConfidence)},
 	}
-	parent := map[identifier.Identifier][]store.InverseRelation{}
+	parent := map[identifier.Identifier][]InverseRelation{}
 
-	added, removed := diffOutgoingInverseRelations(current, parent)
+	added, removed := diffTargetRows(current, parent)
 
 	require.Len(t, added[targetB], 1)
 	assert.Equal(t, claim1, added[targetB][0].Claim)
 	assert.Empty(t, removed)
 }
 
-func TestDiffOutgoingInverseRelationsRemovedClaim(t *testing.T) {
+func TestDiffTargetRowsRemovedClaim(t *testing.T) {
 	t.Parallel()
 
 	docA := identifier.New()
@@ -8965,19 +8975,19 @@ func TestDiffOutgoingInverseRelationsRemovedClaim(t *testing.T) {
 	claim1 := identifier.New()
 	prop1 := identifier.New()
 
-	current := map[identifier.Identifier][]store.InverseRelation{}
-	parent := map[identifier.Identifier][]store.InverseRelation{
+	current := map[identifier.Identifier][]InverseRelation{}
+	parent := map[identifier.Identifier][]InverseRelation{
 		targetB: {newIR(claim1, docA, prop1, prop1, targetB, document.HighConfidence)},
 	}
 
-	added, removed := diffOutgoingInverseRelations(current, parent)
+	added, removed := diffTargetRows(current, parent)
 
 	assert.Empty(t, added)
 	require.Len(t, removed[targetB], 1)
 	assert.Equal(t, claim1, removed[targetB][0].Claim)
 }
 
-func TestDiffOutgoingInverseRelationsUnchanged(t *testing.T) {
+func TestDiffTargetRowsUnchanged(t *testing.T) {
 	t.Parallel()
 
 	docA := identifier.New()
@@ -8986,16 +8996,16 @@ func TestDiffOutgoingInverseRelationsUnchanged(t *testing.T) {
 	prop1 := identifier.New()
 
 	ir := newIR(claim1, docA, prop1, prop1, targetB, document.HighConfidence)
-	current := map[identifier.Identifier][]store.InverseRelation{targetB: {ir}}
-	parent := map[identifier.Identifier][]store.InverseRelation{targetB: {ir}}
+	current := map[identifier.Identifier][]InverseRelation{targetB: {ir}}
+	parent := map[identifier.Identifier][]InverseRelation{targetB: {ir}}
 
-	added, removed := diffOutgoingInverseRelations(current, parent)
+	added, removed := diffTargetRows(current, parent)
 
 	assert.Empty(t, added)
 	assert.Empty(t, removed)
 }
 
-func TestDiffOutgoingInverseRelationsChangedTarget(t *testing.T) {
+func TestDiffTargetRowsChangedTarget(t *testing.T) {
 	t.Parallel()
 
 	docA := identifier.New()
@@ -9006,14 +9016,14 @@ func TestDiffOutgoingInverseRelationsChangedTarget(t *testing.T) {
 	prop1 := identifier.New()
 
 	// Parent had A -> B, current has A -> C (different claim IDs because the claim was replaced).
-	parent := map[identifier.Identifier][]store.InverseRelation{
+	parent := map[identifier.Identifier][]InverseRelation{
 		targetB: {newIR(claimOld, docA, prop1, prop1, targetB, document.HighConfidence)},
 	}
-	current := map[identifier.Identifier][]store.InverseRelation{
+	current := map[identifier.Identifier][]InverseRelation{
 		targetC: {newIR(claimNew, docA, prop1, prop1, targetC, document.HighConfidence)},
 	}
 
-	added, removed := diffOutgoingInverseRelations(current, parent)
+	added, removed := diffTargetRows(current, parent)
 
 	require.Len(t, added[targetC], 1)
 	assert.Equal(t, claimNew, added[targetC][0].Claim)
@@ -9024,7 +9034,7 @@ func TestDiffOutgoingInverseRelationsChangedTarget(t *testing.T) {
 	assert.Empty(t, removed[targetC])
 }
 
-func TestDiffOutgoingInverseRelationsMultipleParents(t *testing.T) {
+func TestDiffTargetRowsMultipleParents(t *testing.T) {
 	t.Parallel()
 
 	docA := identifier.New()
@@ -9035,20 +9045,20 @@ func TestDiffOutgoingInverseRelationsMultipleParents(t *testing.T) {
 	prop1 := identifier.New()
 
 	// Two parents contributed claims, current keeps claim1 and adds claimNew but drops claim2.
-	parent := map[identifier.Identifier][]store.InverseRelation{
+	parent := map[identifier.Identifier][]InverseRelation{
 		targetB: {
 			newIR(claim1, docA, prop1, prop1, targetB, document.HighConfidence),
 			newIR(claim2, docA, prop1, prop1, targetB, document.HighConfidence),
 		},
 	}
-	current := map[identifier.Identifier][]store.InverseRelation{
+	current := map[identifier.Identifier][]InverseRelation{
 		targetB: {
 			newIR(claim1, docA, prop1, prop1, targetB, document.HighConfidence),
 			newIR(claimNew, docA, prop1, prop1, targetB, document.HighConfidence),
 		},
 	}
 
-	added, removed := diffOutgoingInverseRelations(current, parent)
+	added, removed := diffTargetRows(current, parent)
 
 	require.Len(t, added[targetB], 1)
 	assert.Equal(t, claimNew, added[targetB][0].Claim)
@@ -9057,7 +9067,7 @@ func TestDiffOutgoingInverseRelationsMultipleParents(t *testing.T) {
 	assert.Equal(t, claim2, removed[targetB][0].Claim)
 }
 
-func TestDiffOutgoingInverseRelationsSameClaimChangedTarget(t *testing.T) {
+func TestDiffTargetRowsSameClaimChangedTarget(t *testing.T) {
 	t.Parallel()
 
 	docA := identifier.New()
@@ -9067,14 +9077,14 @@ func TestDiffOutgoingInverseRelationsSameClaimChangedTarget(t *testing.T) {
 	prop1 := identifier.New()
 
 	// Same claim ID, but target changed from B to C.
-	parent := map[identifier.Identifier][]store.InverseRelation{
+	parent := map[identifier.Identifier][]InverseRelation{
 		targetB: {newIR(claim1, docA, prop1, prop1, targetB, document.HighConfidence)},
 	}
-	current := map[identifier.Identifier][]store.InverseRelation{
+	current := map[identifier.Identifier][]InverseRelation{
 		targetC: {newIR(claim1, docA, prop1, prop1, targetC, document.HighConfidence)},
 	}
 
-	added, removed := diffOutgoingInverseRelations(current, parent)
+	added, removed := diffTargetRows(current, parent)
 
 	// Should detect the move: removed from B, added to C.
 	require.Len(t, added[targetC], 1)
@@ -9086,7 +9096,7 @@ func TestDiffOutgoingInverseRelationsSameClaimChangedTarget(t *testing.T) {
 	assert.Empty(t, removed[targetC])
 }
 
-func TestDiffOutgoingInverseRelationsSameClaimChangedProp(t *testing.T) {
+func TestDiffTargetRowsSameClaimChangedProp(t *testing.T) {
 	t.Parallel()
 
 	docA := identifier.New()
@@ -9096,14 +9106,14 @@ func TestDiffOutgoingInverseRelationsSameClaimChangedProp(t *testing.T) {
 	prop2 := identifier.New()
 
 	// Same claim ID and target, but property changed.
-	parent := map[identifier.Identifier][]store.InverseRelation{
+	parent := map[identifier.Identifier][]InverseRelation{
 		targetB: {newIR(claim1, docA, prop1, prop1, targetB, document.HighConfidence)},
 	}
-	current := map[identifier.Identifier][]store.InverseRelation{
+	current := map[identifier.Identifier][]InverseRelation{
 		targetB: {newIR(claim1, docA, prop2, prop2, targetB, document.HighConfidence)},
 	}
 
-	added, removed := diffOutgoingInverseRelations(current, parent)
+	added, removed := diffTargetRows(current, parent)
 
 	// Should detect the property change as removal + addition.
 	require.Len(t, added[targetB], 1)
@@ -9113,7 +9123,7 @@ func TestDiffOutgoingInverseRelationsSameClaimChangedProp(t *testing.T) {
 	assert.Equal(t, prop1, removed[targetB][0].SourceProp)
 }
 
-func TestDiffOutgoingInverseRelationsSameClaimChangedConfidence(t *testing.T) {
+func TestDiffTargetRowsSameClaimChangedConfidence(t *testing.T) {
 	t.Parallel()
 
 	docA := identifier.New()
@@ -9122,14 +9132,14 @@ func TestDiffOutgoingInverseRelationsSameClaimChangedConfidence(t *testing.T) {
 	prop1 := identifier.New()
 
 	// Same claim ID, target, and prop, but confidence changed.
-	parent := map[identifier.Identifier][]store.InverseRelation{
+	parent := map[identifier.Identifier][]InverseRelation{
 		targetB: {newIR(claim1, docA, prop1, prop1, targetB, document.HighConfidence)},
 	}
-	current := map[identifier.Identifier][]store.InverseRelation{
+	current := map[identifier.Identifier][]InverseRelation{
 		targetB: {newIR(claim1, docA, prop1, prop1, targetB, document.LowConfidence)},
 	}
 
-	added, removed := diffOutgoingInverseRelations(current, parent)
+	added, removed := diffTargetRows(current, parent)
 
 	// Should detect the confidence change as removal + addition.
 	require.Len(t, added[targetB], 1)
@@ -9416,10 +9426,10 @@ func TestFromDocumentEmbed(t *testing.T) {
 	assert.Equal(t, destProp, embedded.Prop)
 }
 
-// TestFromDocumentEmbedStringNotInText verifies that an embedded string sub-claim is indexed as
-// a structured string record in the reference record's Sub container but, like native string
-// sub-claims, is not folded into the document's top-level text.
-func TestFromDocumentEmbedStringNotInText(t *testing.T) {
+// TestFromDocumentEmbedStringInText verifies that an embedded string sub-claim is indexed as a
+// structured string record in the reference record's Sub container and, like native string
+// sub-claims, is folded into the document's top-level text.
+func TestFromDocumentEmbedStringInText(t *testing.T) {
 	t.Parallel()
 
 	classID := identifier.New()
@@ -9481,7 +9491,10 @@ func TestFromDocumentEmbedStringNotInText(t *testing.T) {
 	assert.Equal(t, destProp, parentRec.Sub.String[0].Prop)
 	assert.Equal(t, "embedded text value", parentRec.Sub.String[0].String["und"])
 
-	// Like native string sub-claims, it is not folded into the document's top-level text.
+	// Like native string sub-claims, it is folded into the document's top-level text, so the document
+	// is findable by the data it embeds. Embedding only ever copies from documents which are sources
+	// at the level (see the indexing source check), so the entry's text exposes nothing its records do
+	// not already.
 	found := false
 	for _, values := range result.Text {
 		for _, value := range values {
@@ -9490,7 +9503,7 @@ func TestFromDocumentEmbedStringNotInText(t *testing.T) {
 			}
 		}
 	}
-	assert.False(t, found, "embedded string should not be folded into text, got %+v", result.Text)
+	assert.True(t, found, "embedded string should be folded into text, got %+v", result.Text)
 }
 
 func TestEmbedPathsTouch(t *testing.T) {
@@ -9636,8 +9649,7 @@ func TestOutgoingInverseRelationsFieldLevel(t *testing.T) {
 
 	addInstanceOf(doc, classID, document.HighConfidence)
 
-	outgoing, errE := c.OutgoingInverseRelations(t.Context(), doc)
-	require.NoError(t, errE)
+	outgoing := outgoingInverseRows(t, c, doc)
 
 	require.Contains(t, outgoing, targetDocID)
 	require.Len(t, outgoing[targetDocID], 1)
@@ -9681,8 +9693,7 @@ func TestOutgoingInverseRelationsFieldLevelPrecedence(t *testing.T) {
 
 	addInstanceOf(doc, classID, document.HighConfidence)
 
-	outgoing, errE := c.OutgoingInverseRelations(t.Context(), doc)
-	require.NoError(t, errE)
+	outgoing := outgoingInverseRows(t, c, doc)
 
 	// Field-level inverse takes precedence over property-level.
 	require.Contains(t, outgoing, targetDocID)
@@ -9731,8 +9742,7 @@ func TestOutgoingInverseRelationsSubFieldInverse(t *testing.T) {
 
 	addInstanceOf(doc, classID, document.HighConfidence)
 
-	outgoing, errE := c.OutgoingInverseRelations(t.Context(), doc)
-	require.NoError(t, errE)
+	outgoing := outgoingInverseRows(t, c, doc)
 
 	require.Contains(t, outgoing, targetDocID)
 	require.Len(t, outgoing[targetDocID], 1)
@@ -9800,8 +9810,7 @@ func TestOutgoingInverseRelationsDifferentPathsSameProperty(t *testing.T) {
 	addInstanceOf(doc, classID, document.HighConfidence)
 	addInstanceOf(doc, classB, document.HighConfidence)
 
-	outgoing, errE := c.OutgoingInverseRelations(t.Context(), doc)
-	require.NoError(t, errE)
+	outgoing := outgoingInverseRows(t, c, doc)
 
 	// Each should have the correct inverse based on its path.
 	require.Contains(t, outgoing, targetDoc1)
@@ -9838,8 +9847,7 @@ func TestOutgoingInverseRelationsPropertyFallback(t *testing.T) {
 		},
 	}
 
-	outgoing, errE := c.OutgoingInverseRelations(t.Context(), doc)
-	require.NoError(t, errE)
+	outgoing := outgoingInverseRows(t, c, doc)
 
 	// Should use property-level inverse.
 	require.Contains(t, outgoing, targetDocID)
@@ -9891,8 +9899,7 @@ func TestOutgoingInverseRelationsStringSubClaimReference(t *testing.T) {
 
 	addInstanceOf(doc, classID, document.HighConfidence)
 
-	outgoing, errE := c.OutgoingInverseRelations(t.Context(), doc)
-	require.NoError(t, errE)
+	outgoing := outgoingInverseRows(t, c, doc)
 
 	// Should find the reference inside the string claim's sub-claims.
 	require.Contains(t, outgoing, langDocID)
@@ -9994,7 +10001,7 @@ func TestFromDocumentFinalizeHooks(t *testing.T) {
 	doc := &document.D{
 		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
 	}
-	inverseRelations := []store.InverseRelation{
+	inverseRelations := []InverseRelation{
 		newIR(identifier.New(), sourceDocID, propX, propY, identifier.Identifier{}, document.HighConfidence),
 	}
 
@@ -10030,4 +10037,236 @@ func TestFromDocumentFinalizeHooks(t *testing.T) {
 	require.Len(t, result.Claims.Rel, 1)
 	assert.Equal(t, propX, result.Claims.Rel[0].Prop)
 	assert.Nil(t, doc.Claims)
+}
+
+// TestExcludeFromTextSearch verifies the EXCLUDE_FROM_TEXT_SEARCH setting: a reference claim with a
+// marked property does not fold its target's display label into the searchable text, while the same
+// claim with an unmarked property does, and the target's label stays indexed on the claim itself
+// (toDisplay) either way, so facets still show and match it. Textual values (identifier and string
+// claims) of marked properties likewise stay out of the text while remaining indexed on the claims.
+func TestExcludeFromTextSearch(t *testing.T) {
+	t.Parallel()
+
+	markedProp := identifier.New()
+	plainProp := identifier.New()
+	target := identifier.New()
+
+	// The marked property carries the setting as a boolean has claim.
+	markedPropDoc := makeNamingDoc(markedProp, "marked property")
+	markedPropDoc.Claims.Has = append(markedPropDoc.Claims.Has, document.HasClaim{
+		CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+		Prop:      document.Reference{ID: internalCore.ExcludeFromTextSearchPropID},
+	})
+	plainPropDoc := makeNamingDoc(plainProp, "plain property")
+	targetDoc := makeNamingDoc(target, "Slovenian")
+
+	c := newTestConverter(
+		t, []*document.D{markedPropDoc, plainPropDoc}, nil,
+		map[identifier.Identifier]*document.D{target: targetDoc},
+	)
+
+	makeDoc := func(prop identifier.Identifier) *document.D {
+		return &document.D{
+			CoreDocument: document.CoreDocument{ID: identifier.New()}, //nolint:exhaustruct
+			Claims: &document.ClaimTypes{
+				Reference: []document.ReferenceClaim{
+					{
+						CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+						Prop:      document.Reference{ID: prop},
+						To:        document.Reference{ID: target},
+					},
+				},
+			},
+		}
+	}
+
+	// The marked property: the target's label is on the claim but not in the text.
+	result, errE := c.FromDocument(t.Context(), makeDoc(markedProp), nil, nil, nil)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	require.Len(t, result.Claims.Rel, 1)
+	assert.Equal(t, ClaimTypeRef, result.Claims.Rel[0].ClaimType)
+	assert.Contains(t, result.Claims.Rel[0].ToDisplay["und"], "Slovenian")
+	for lang, vals := range result.Text {
+		assert.NotContains(t, vals, "Slovenian", "language %s", lang)
+	}
+
+	// The plain property: the target's label folds into the text.
+	result, errE = c.FromDocument(t.Context(), makeDoc(plainProp), nil, nil, nil)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	folded := false
+	for _, vals := range result.Text {
+		if slices.Contains(vals, "Slovenian") {
+			folded = true
+		}
+	}
+	assert.True(t, folded, "the target's label should be folded into the text")
+
+	// Textual values of marked properties stay out of the text too: the values remain indexed on the
+	// claims themselves.
+	valueDoc := &document.D{
+		CoreDocument: document.CoreDocument{ID: identifier.New()}, //nolint:exhaustruct
+		Claims: &document.ClaimTypes{
+			Identifier: []document.IdentifierClaim{
+				{
+					CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+					Prop:      document.Reference{ID: markedProp},
+					Value:     "some-user",
+				},
+			},
+			String: []document.StringClaim{
+				{
+					CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+					Prop:      document.Reference{ID: markedProp},
+					String:    "self",
+				},
+			},
+		},
+	}
+	result, errE = c.FromDocument(t.Context(), valueDoc, nil, nil, nil)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	require.Len(t, result.Claims.Identifier, 1)
+	assert.Equal(t, "some-user", result.Claims.Identifier[0].Value)
+	require.Len(t, result.Claims.String, 1)
+	for lang, vals := range result.Text {
+		assert.NotContains(t, vals, "some-user", "language %s", lang)
+		assert.NotContains(t, vals, "self", "language %s", lang)
+	}
+
+	// Sub-claims fold their values into the text like top-level claims do, so a document is findable
+	// by what its sub-claims say, and an excluded claim excludes its whole subtree: the sub-claims of
+	// a marked claim fold nothing even though their own property is not marked (this is what keeps a
+	// permission claim's user and note out of the text). The sub-claims stay indexed either way.
+	subDoc := func(prop identifier.Identifier) *document.D {
+		return &document.D{
+			CoreDocument: document.CoreDocument{ID: identifier.New()}, //nolint:exhaustruct
+			Claims: &document.ClaimTypes{
+				Reference: []document.ReferenceClaim{
+					{
+						CoreClaim: makeCoreClaim(document.HighConfidence, &document.ClaimTypes{
+							String: []document.StringClaim{
+								{
+									CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+									Prop:      document.Reference{ID: plainProp},
+									String:    "a note under the claim",
+								},
+							},
+						}),
+						Prop: document.Reference{ID: prop},
+						To:   document.Reference{ID: target},
+					},
+				},
+			},
+		}
+	}
+
+	result, errE = c.FromDocument(t.Context(), subDoc(plainProp), nil, nil, nil)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	require.Len(t, result.Claims.Rel, 1)
+	require.NotNil(t, result.Claims.Rel[0].Sub)
+	require.Len(t, result.Claims.Rel[0].Sub.String, 1)
+	folded = false
+	for _, vals := range result.Text {
+		if slices.Contains(vals, "a note under the claim") {
+			folded = true
+		}
+	}
+	assert.True(t, folded, "the sub-claim's value should be folded into the text")
+
+	result, errE = c.FromDocument(t.Context(), subDoc(markedProp), nil, nil, nil)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	require.Len(t, result.Claims.Rel, 1)
+	require.NotNil(t, result.Claims.Rel[0].Sub)
+	require.Len(t, result.Claims.Rel[0].Sub.String, 1)
+	for lang, vals := range result.Text {
+		assert.NotContains(t, vals, "a note under the claim", "language %s", lang)
+	}
+}
+
+// TestReadAccessFields verifies the read-access fields the converter computes at indexing time: which
+// roles may read the document per its claims and the role grants, and which users the document's own
+// permission claims grant actions to.
+func TestReadAccessFields(t *testing.T) {
+	t.Parallel()
+
+	instanceOf := identifier.New()
+	grantedClass := identifier.New()
+	otherClass := identifier.New()
+
+	c := newTestConverter(
+		t,
+		[]*document.D{
+			makeNamingDoc(instanceOf, "instance of"),
+			makeNamingDoc(internalCore.HasPermissionPropID, "has permission"),
+			makeNamingDoc(internalCore.PermissionUserPropID, "permission user"),
+			makeNamingDoc(internalCore.PermissionScopePropID, "permission scope"),
+		},
+		nil,
+		map[identifier.Identifier]*document.D{
+			grantedClass:    makeNamingDoc(grantedClass, "granted class"),
+			otherClass:      makeNamingDoc(otherClass, "other class"),
+			auth.ActionRead: makeNamingDoc(auth.ActionRead, "read"),
+		},
+	)
+	c.Roles = map[string]auth.RoleGrants{
+		auth.RoleEveryone: auth.MustParseRoleGrants(map[string][]string{
+			auth.ActionReadCode: {instanceOf.String() + "=" + grantedClass.String()},
+		}),
+		"admin": auth.MustParseRoleGrants(map[string][]string{auth.ActionReadCode: {auth.ScopeAll}}),
+	}
+
+	makeDoc := func(class identifier.Identifier) *document.D {
+		return &document.D{
+			CoreDocument: document.CoreDocument{ID: identifier.New()}, //nolint:exhaustruct
+			Claims: &document.ClaimTypes{
+				Reference: []document.ReferenceClaim{
+					{
+						CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+						Prop:      document.Reference{ID: instanceOf},
+						To:        document.Reference{ID: class},
+					},
+				},
+			},
+		}
+	}
+
+	// A document of the granted class is readable by everyone and by the admin.
+	result, errE := c.FromDocument(t.Context(), makeDoc(grantedClass), nil, nil, nil)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, []string{auth.RoleEveryone, "admin"}, result.ReadableByRoles)
+	assert.Empty(t, result.ReadableByUsers)
+
+	// A document of another class is readable only by the admin, and its own permission claim
+	// additionally grants a user the read action.
+	doc := makeDoc(otherClass)
+	permClaim := &document.ReferenceClaim{
+		CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+		Prop:      document.Reference{ID: internalCore.HasPermissionPropID},
+		To:        document.Reference{ID: auth.ActionRead},
+	}
+	errE = permClaim.Add(&document.IdentifierClaim{
+		CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+		Prop:      document.Reference{ID: internalCore.PermissionUserPropID},
+		Value:     "user1",
+	})
+	require.NoError(t, errE, "% -+#.1v", errE)
+	errE = permClaim.Add(&document.StringClaim{
+		CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+		Prop:      document.Reference{ID: internalCore.PermissionScopePropID},
+		String:    auth.ScopeSelf,
+	})
+	require.NoError(t, errE, "% -+#.1v", errE)
+	errE = doc.Add(permClaim)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	result, errE = c.FromDocument(t.Context(), doc, nil, nil, nil)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, []string{"admin"}, result.ReadableByRoles)
+	assert.Equal(t, []string{"user1"}, result.ReadableByUsers)
+
+	// Without roles configured, the field is omitted while permissions stay claim-derived.
+	c.Roles = nil
+	result, errE = c.FromDocument(t.Context(), doc, nil, nil, nil)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Nil(t, result.ReadableByRoles)
+	assert.Equal(t, []string{"user1"}, result.ReadableByUsers)
 }

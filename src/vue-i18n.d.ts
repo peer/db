@@ -21,6 +21,10 @@ declare module "vue-i18n" {
         create: string
         upload: string
         edit: string
+        editPermissions: string
+        requestPermissions: string
+        manageRequests: string
+        permissions: string
         delete: string
         save: string
         discard: string
@@ -47,6 +51,7 @@ declare module "vue-i18n" {
       }
       errors: {
         unexpected: string
+        notAllowed: string
         upload: string
       }
       status: {
@@ -88,15 +93,34 @@ declare module "vue-i18n" {
       }
       validation: {
         required: string
+        duplicate: string
         requiredPrecision: string
         invalid: string
         invalidPrecision: string
         unfinished: string
       }
+      permissionActions: {
+        read: string
+        history: string
+        update: string
+        permissions: string
+        delete: string
+      }
+      permissionActionHints: {
+        read: string
+        history: string
+        update: string
+        permissions: string
+        delete: string
+      }
     }
     partials: {
       LanguageSwitcher: {
         selectLanguage: string
+      }
+      NavBarUser: {
+        copyId: string
+        copied: string
       }
       input: {
         InputHTML: {
@@ -136,10 +160,15 @@ declare module "vue-i18n" {
           dropOrBrowse: string
           noPermission: string
         }
+        InputIdentityFromPermissions: {
+          noMoreUsers: string
+          noUsers: string
+        }
         InputLink: {
           hint: string
         }
         InputRef: {
+          alreadyUsed: string
           invalidValue: string
           noResults: string
         }
@@ -304,8 +333,36 @@ declare module "vue-i18n" {
           inGigaYears: string
         }
       }
+      PermissionsForm: {
+        approve: string
+        deny: string
+        noRequests: string
+        noUsers: string
+        removeAccess: string
+        requestsTitle: string
+        usersTitle: string
+        requestedAction: string
+        cannotGrant: string
+        addUser: string
+        addUserHint: string
+        nothingToGrant: string
+        alreadyGranted: string
+      }
+      PermissionsView: {
+        usersTitle: string
+        noUsers: string
+        requestsTitle: string
+        noRequests: string
+        requestedAction: string
+      }
     }
     views: {
+      AuthMockSignIn: {
+        title: string
+        description: string
+        noRoles: string
+        noState: string
+      }
       DocumentCreate: {
         title: string
         noClasses: string
@@ -314,11 +371,22 @@ declare module "vue-i18n" {
         title: string
         confirm: string
       }
+      DocumentSessions: {
+        title: string
+        notSignedIn: string
+        noSessions: string
+        started: string
+        lastChange: string
+        create: string
+        edit: string
+        open: string
+      }
       DocumentGet: {
         tabs: {
           allProperties: string
           content: string
           history: string
+          permissions: string
         }
         history: {
           author: string
@@ -332,11 +400,13 @@ declare module "vue-i18n" {
       DocumentEdit: {
         tabs: {
           allProperties: string
+          permissions: string
         }
         addClaim: string
         editClaim: string
         addSubClaim: string
         potentialDuplicates: string
+        sessionEnded: string
         claimTypes: {
           identifier: string
           string: string
@@ -363,6 +433,18 @@ declare module "vue-i18n" {
           from: string
           to: string
         }
+      }
+      DocumentRequest: {
+        confirm: string
+        notSignedIn: string
+        request: string
+        requested: string
+        title: string
+        note: string
+        notAvailable: string
+        permission: string
+        noteHint: string
+        nothingToRequest: string
       }
     }
   }

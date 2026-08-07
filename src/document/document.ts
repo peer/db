@@ -1,9 +1,10 @@
 import type { Claim, ClaimsContainer } from "@/document/claims"
-import type { Reference } from "@/document/types"
+import type { Confidence, Reference } from "@/document/types"
 
 import { Identifier } from "@tozd/identifier"
 
 import { ClaimTypes } from "@/document/claims"
+import { LowConfidence } from "@/document/confidence"
 import { clone } from "@/utils"
 
 // CoreDocument contains the core fields present in all PeerDB documents.
@@ -81,6 +82,13 @@ export class D extends CoreDocument implements ClaimsContainer {
   // SizeWithSub returns the total number of claims in the document, counting recursively into sub-claims.
   SizeWithSub(): number {
     return this.claims.SizeWithSub()
+  }
+
+  // SizeWithSubWithConfidence returns the total number of claims in the document with confidence
+  // equal to or higher than the specified minimum confidence, counting recursively into sub-claims,
+  // where a claim below the minimum is skipped together with its whole subtree.
+  SizeWithSubWithConfidence(confidence: Confidence = LowConfidence): number {
+    return this.claims.SizeWithSubWithConfidence(confidence)
   }
 
   AllClaims(): Claim[] {

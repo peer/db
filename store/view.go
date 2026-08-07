@@ -253,7 +253,7 @@ func (v View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMeta
 		data = *new(Data)
 		metadata = *new(Metadata)
 		version = Version{}
-		parentChangesets = nil
+		parentChangesets = parentChangesets[:0]
 
 		var changeset string
 		var revision int64
@@ -363,7 +363,7 @@ func (v View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMeta
 		data = *new(Data)
 		metadata = *new(Metadata)
 		resolved = Version{}
-		parentChangesets = nil
+		parentChangesets = parentChangesets[:0]
 
 		var dataIsNull bool
 		var resolvedRevision int64
@@ -444,10 +444,10 @@ func (v View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMeta
 		// We want to make sure that after value really exists.
 		afterCondition = `WHERE EXISTS (SELECT 1 FROM "viewPath" JOIN "` + v.store.Prefix + `CommittedValues" USING ("view") WHERE "id"=$2) AND "id">$2`
 	}
-	var values []identifier.Identifier
+	values := make([]identifier.Identifier, 0, MaxPageLength)
 	errE := internalStore.RetryTransaction(ctx, v.store.dbpool, pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
 		// Initialize in the case transaction is retried.
-		values = make([]identifier.Identifier, 0, MaxPageLength)
+		values = values[:0]
 
 		rows, err := tx.Query(ctx, `
 			WITH "viewPath" AS (
@@ -604,10 +604,10 @@ func (v View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMeta
 	arguments := []any{
 		v.name, id.String(),
 	}
-	var changesets []identifier.Identifier
+	changesets := make([]identifier.Identifier, 0, MaxPageLength)
 	errE := internalStore.RetryTransaction(ctx, v.store.dbpool, pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
 		// Initialize in the case transaction is retried.
-		changesets = make([]identifier.Identifier, 0, MaxPageLength)
+		changesets = changesets[:0]
 
 		rows, err := tx.Query(ctx, `
 			WITH "viewPath" AS (
@@ -681,10 +681,10 @@ func (v View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMeta
 	arguments := []any{
 		v.name, id.String(), after.String(),
 	}
-	var changesets []identifier.Identifier
+	changesets := make([]identifier.Identifier, 0, MaxPageLength)
 	errE := internalStore.RetryTransaction(ctx, v.store.dbpool, pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
 		// Initialize in the case transaction is retried.
-		changesets = make([]identifier.Identifier, 0, MaxPageLength)
+		changesets = changesets[:0]
 
 		rows, err := tx.Query(ctx, `
 			WITH "viewPath" AS (

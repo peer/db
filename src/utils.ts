@@ -391,21 +391,30 @@ export const UNKNOWN_VALUE_ID = "__UNKNOWN__"
 // migrated out of the pooled has facet.
 export const HAS_PROPERTY_VALUE_ID = "__HAS__"
 
-// specialValueLabelKey maps a special entry's synthetic id to its translation key, or returns null for a
-// regular value id.
-export function specialValueLabelKey(id: string): string | null {
+// specialValueLabel maps a special entry's synthetic id to its label, or returns null for a regular
+// value id, which is labelled by the document it stands for instead.
+//
+// The labels are t() call results and not message keys, so that a search for a translation finds where
+// it is used.
+export function specialValueLabel(id: string, t: (key: string) => string): string | null {
   switch (id) {
     case MISSING_VALUE_ID:
-      return "common.values.missing"
+      return t("common.values.missing")
     case NONE_VALUE_ID:
-      return "common.values.none"
+      return t("common.values.none")
     case UNKNOWN_VALUE_ID:
-      return "common.values.unknown"
+      return t("common.values.unknown")
     case HAS_PROPERTY_VALUE_ID:
-      return "common.values.hasProperty"
+      return t("common.values.hasProperty")
     default:
       return null
   }
+}
+
+// isSpecialValueId reports whether the id is one of the synthetic ids of the special entries, which
+// stand for a state of the property path rather than for a document (see specialValueLabel).
+export function isSpecialValueId(id: string): boolean {
+  return id === MISSING_VALUE_ID || id === NONE_VALUE_ID || id === UNKNOWN_VALUE_ID || id === HAS_PROPERTY_VALUE_ID
 }
 
 // specialsToIds flattens a specials selection into the synthetic ids the checkbox state carries.
@@ -536,6 +545,13 @@ export function listFormatParts(locale: string, count: number, type: "conjunctio
   return formatter
     .formatToParts(indices)
     .map((part) => (part.type === "literal" ? { type: "literal", value: part.value } : { type: "element", index: Number(part.value) }))
+}
+
+// formatList formats the items into one string, with the locale's separators between them (and any
+// trailing conjunction), via Intl.ListFormat. It is listFormatParts for a list of plain strings, where
+// the result is text and not elements to render, and takes the same enumeration types.
+export function formatList(locale: string, items: readonly string[], type: "conjunction" | "disjunction" | "unit" = "unit"): string {
+  return new Intl.ListFormat(locale, { style: "long", type }).format(items)
 }
 
 // Approximate seconds-per-year used when picking a coarser-than-day precision.
@@ -1147,6 +1163,17 @@ export function useOnScrollOrResize(els: Ref<Element | null>[], callback: () => 
 
     resizeObserver.disconnect()
   })
+}
+
+// isPlainClick reports whether a mouse event is a plain left-click the app should handle itself: the
+// primary (left) button, no modifier keys, and default not already prevented. Modified clicks (ctrl/cmd/
+// shift/alt) and middle/aux clicks are left to the browser, so for example ctrl/cmd-click still opens a
+// link in a new tab/window. This mirrors vue-router's guardEvent.
+export function isPlainClick(event: MouseEvent): boolean {
+  if (event.defaultPrevented) return false
+  if (event.button !== 0) return false
+  if (event.metaKey || event.altKey || event.ctrlKey || event.shiftKey) return false
+  return true
 }
 
 export function redirectServerSide(url: string, replace: boolean, lock: Ref<number>) {

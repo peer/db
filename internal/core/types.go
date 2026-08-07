@@ -221,17 +221,30 @@ type Section struct {
 //
 //nolint:lll
 type Field struct {
-	Property        Ref                   `cardinality:"1"    json:"property"                  property:"HAS_PROPERTY"      values:"core.peerdb.org,INSTANCE_OF=core.peerdb.org,PROPERTY"`
-	ValueType       Ref                   `cardinality:"1"    json:"valueType"                 property:"HAS_VALUE_TYPE"    values:"core.peerdb.org,INSTANCE_OF=core.peerdb.org,VALUE_TYPE"`
+	Property        Ref                   `cardinality:"1"    json:"property"                  property:"HAS_PROPERTY"          values:"core.peerdb.org,INSTANCE_OF=core.peerdb.org,PROPERTY"`
+	ValueType       Ref                   `cardinality:"1"    json:"valueType"                 property:"HAS_VALUE_TYPE"        values:"core.peerdb.org,INSTANCE_OF=core.peerdb.org,VALUE_TYPE"`
 	OrderInList     Amount[float64]       `cardinality:"1"    json:"orderInList"               property:"ORDER_IN_LIST"`
 	Cardinality     Interval[Amount[int]] `cardinality:"1"    json:"cardinality"               property:"CARDINALITY"`
 	Values          []string              `cardinality:"0.."  json:"values,omitempty"          property:"FIELD_VALUES"`
 	SubField        []Field               `cardinality:"0.."  json:"subField,omitempty"        property:"SUB_FIELD"`
-	InverseProperty *Ref                  `cardinality:"0..1" json:"inverseProperty,omitempty" property:"INVERSE_PROPERTY"  values:"core.peerdb.org,INSTANCE_OF=core.peerdb.org,PROPERTY"`
+	InverseProperty *Ref                  `cardinality:"0..1" json:"inverseProperty,omitempty" property:"INVERSE_PROPERTY"      values:"core.peerdb.org,INSTANCE_OF=core.peerdb.org,PROPERTY"`
 	Embed           []string              `cardinality:"0.."  json:"embed,omitempty"           property:"EMBED_PROPERTY"`
 	Context         []string              `cardinality:"0.."  json:"context,omitempty"         property:"FIELD_CONTEXT"`
-	Default         *Ref                  `cardinality:"0..1" json:"default,omitempty"         property:"FIELD_DEFAULT"     values:"core.peerdb.org,INSTANCE_OF=core.peerdb.org,VALUE_TYPE"`
+	Default         *Ref                  `cardinality:"0..1" json:"default,omitempty"         property:"FIELD_DEFAULT"         values:"core.peerdb.org,INSTANCE_OF=core.peerdb.org,VALUE_TYPE"`
 	Instruction     []RawHTMLWithLanguage `cardinality:"0.."  json:"instruction,omitempty"     property:"FIELD_INSTRUCTION"`
+	InputComponent  *ComponentWithProps   `cardinality:"0..1" json:"inputComponent,omitempty"  property:"FIELD_INPUT_COMPONENT"`
+	DuplicateTop    bool                  `cardinality:"0..1" json:"duplicateTop,omitempty"    property:"FIELD_DUPLICATE_TOP"`
+	DuplicateAllow  bool                  `cardinality:"0..1" json:"duplicateAllow,omitempty"  property:"FIELD_DUPLICATE_ALLOW"`
+}
+
+// ComponentWithProps represents a frontend component with the props it is rendered with. The value
+// is the name the frontend registers the component under, and the props are a query string
+// ("key=value&key=value") of string values, under the component so they cannot be given without one.
+// A key can appear only once, because a prop holds a single string.
+type ComponentWithProps struct {
+	Value string `json:"value" value:""`
+
+	Props string `cardinality:"0..1" json:"props,omitempty" property:"COMPONENT_PROPS"`
 }
 
 // Fields represents a list of fields of an entity.

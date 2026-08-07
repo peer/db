@@ -80,9 +80,10 @@ const (
 )
 
 // duplicateClauses builds one scoring should-clause per distinct stated claim of doc that can be
-// matched structurally against the index. Each clause is a nested query matching documents that have
-// the same property and value, wrapped in constant_score so that matching it contributes exactly the
-// claim type's weight to the document's score, regardless of corpus term statistics.
+// matched structurally against the index, together with the targets doc is asserted to be distinct
+// from. Each clause is a nested query matching documents that have the same property and value,
+// wrapped in constant_score so that matching it contributes exactly the claim type's weight to the
+// document's score, regardless of corpus term statistics.
 //
 // Only top-level claims are considered (sub-claims are not walked), and only those at or above
 // LowConfidence, mirroring what the indexer keeps. Identical clauses (same type, property and value)
@@ -92,118 +93,200 @@ func duplicateClauses(doc *document.D, enabledLanguages []string) ([]types.Query
 	if doc == nil || doc.Claims == nil {
 		return nil, nil
 	}
-
-	var clauses []types.QueryVariant
-	var distinctFrom []identifier.Identifier
-	seen := map[string]bool{}
-	add := func(key string, weight float32, query types.QueryVariant) {
-		if query == nil || seen[key] {
-			return
-		}
-		seen[key] = true
-		clauses = append(clauses, esdsl.NewConstantScoreQuery(query).Boost(weight))
+	v := &duplicateVisitor{
+		EnabledLanguages: enabledLanguages,
+		Clauses:          nil,
+		DistinctFrom:     nil,
+		Seen:             map[string]bool{},
 	}
+	// The visit methods never fail and never drop a claim, so the walk cannot return an error and
+	// leaves the document unchanged. The document's own claims are visited, not its sub-claims: the
+	// visit methods do not recurse.
+	_ = doc.Claims.Visit(v)
+	return v.Clauses, v.DistinctFrom
+}
 
-	c := doc.Claims
+// duplicateVisitor turns a document's stated claims into the duplicate-detection scoring clauses.
+// Implementing document.Visitor makes every claim type a decision taken here: a type which
+// contributes no clause says so in its own method, instead of being left out of a walk over some of
+// the types, where a type added later would be silently ignored.
+type duplicateVisitor struct {
+	// EnabledLanguages scopes the per-language fields the string and HTML clauses query.
+	EnabledLanguages []string
+	// Clauses are the scoring clauses collected so far.
+	Clauses []types.QueryVariant
+	// DistinctFrom are the targets of DISTINCT_FROM claims, which are excluded from the results (in
+	// duplicatesQuery) instead of contributing a clause.
+	DistinctFrom []identifier.Identifier
+	// Seen keys the claims already turned into a clause, by claim type, property, and value.
+	Seen map[string]bool
+}
 
-	for i := range c.Identifier {
-		claim := &c.Identifier[i]
-		if claim.GetConfidence() < document.LowConfidence || claim.Value == "" {
-			continue
-		}
-		add("id\x00"+claim.Prop.ID.String()+"\x00"+claim.Value, identifierDuplicateWeight, esdsl.NewNestedQuery(
+var _ document.Visitor = (*duplicateVisitor)(nil)
+
+// Add collects the clause for the claim identified by key, weighted by its claim type. A key already
+// collected contributes nothing, so repeating a value does not double-count, and so does a nil query,
+// which is how a claim whose clause cannot be built is skipped.
+func (v *duplicateVisitor) Add(key string, weight float32, query types.QueryVariant) (document.VisitResult, errors.E) {
+	if query != nil && !v.Seen[key] {
+		v.Seen[key] = true
+		v.Clauses = append(v.Clauses, esdsl.NewConstantScoreQuery(query).Boost(weight))
+	}
+	return document.Keep, nil
+}
+
+// Skip reports whether the claim contributes nothing because it is below the confidence at which the
+// indexer keeps a claim, so nothing in the index could match it anyway.
+func (v *duplicateVisitor) Skip(claim document.Claim) bool {
+	return claim.GetConfidence() < document.LowConfidence
+}
+
+func (v *duplicateVisitor) VisitIdentifier(claim *document.IdentifierClaim) (document.VisitResult, errors.E) {
+	if v.Skip(claim) || claim.Value == "" {
+		return document.Keep, nil
+	}
+	return v.Add(
+		"id\x00"+claim.Prop.ID.String()+"\x00"+claim.Value, identifierDuplicateWeight,
+		esdsl.NewNestedQuery(
 			esdsl.NewBoolQuery().Must(
 				esdsl.NewTermQuery("claims.id.prop", esdsl.NewFieldValue().String(claim.Prop.ID.String())),
 				esdsl.NewMatchPhraseQuery("claims.id.value", claim.Value),
 			),
-		).Path("claims.id"))
-	}
+		).Path("claims.id"),
+	)
+}
 
-	for i := range c.String {
-		claim := &c.String[i]
-		if claim.GetConfidence() < document.LowConfidence || claim.String == "" {
-			continue
-		}
-		add("string\x00"+claim.Prop.ID.String()+"\x00"+claim.String, stringDuplicateWeight,
-			stringDuplicateNested(claim.Prop.ID, claim.String, enabledLanguages))
+func (v *duplicateVisitor) VisitString(claim *document.StringClaim) (document.VisitResult, errors.E) {
+	if v.Skip(claim) || claim.String == "" {
+		return document.Keep, nil
 	}
+	return v.Add(
+		"string\x00"+claim.Prop.ID.String()+"\x00"+claim.String, stringDuplicateWeight,
+		stringDuplicateNested(claim.Prop.ID, claim.String, v.EnabledLanguages),
+	)
+}
 
-	for i := range c.HTML {
-		claim := &c.HTML[i]
-		if claim.GetConfidence() < document.LowConfidence || claim.HTML == "" {
-			continue
-		}
-		add("html\x00"+claim.Prop.ID.String()+"\x00"+claim.HTML, htmlDuplicateWeight,
-			htmlDuplicateNested(claim.Prop.ID, claim.HTML, enabledLanguages))
+func (v *duplicateVisitor) VisitHTML(claim *document.HTMLClaim) (document.VisitResult, errors.E) {
+	if v.Skip(claim) || claim.HTML == "" {
+		return document.Keep, nil
 	}
+	return v.Add(
+		"html\x00"+claim.Prop.ID.String()+"\x00"+claim.HTML, htmlDuplicateWeight,
+		htmlDuplicateNested(claim.Prop.ID, claim.HTML, v.EnabledLanguages),
+	)
+}
 
-	for i := range c.Link {
-		claim := &c.Link[i]
-		if claim.GetConfidence() < document.LowConfidence || claim.IRI == "" {
-			continue
-		}
-		add("link\x00"+claim.Prop.ID.String()+"\x00"+claim.IRI, linkDuplicateWeight, esdsl.NewNestedQuery(
+func (v *duplicateVisitor) VisitAmount(claim *document.AmountClaim) (document.VisitResult, errors.E) {
+	if v.Skip(claim) {
+		return document.Keep, nil
+	}
+	return v.Add(
+		"amount\x00"+claim.Prop.ID.String()+"\x00"+claim.Amount.String()+"\x00"+strconv.FormatFloat(claim.Precision, 'g', -1, 64),
+		amountDuplicateWeight, amountDuplicateNested(claim),
+	)
+}
+
+func (v *duplicateVisitor) VisitAmountInterval(claim *document.AmountIntervalClaim) (document.VisitResult, errors.E) {
+	if v.Skip(claim) {
+		return document.Keep, nil
+	}
+	from, to, ok := amountIntervalWindow(claim)
+	if !ok {
+		return document.Keep, nil
+	}
+	return v.Add(
+		intervalKey("amountInterval", claim.Prop.ID, from, to), amountDuplicateWeight,
+		rangeDuplicateNested(amountPath, claim.Prop.ID, from, to),
+	)
+}
+
+func (v *duplicateVisitor) VisitTime(claim *document.TimeClaim) (document.VisitResult, errors.E) {
+	if v.Skip(claim) {
+		return document.Keep, nil
+	}
+	return v.Add(
+		"time\x00"+claim.Prop.ID.String()+"\x00"+claim.Time.String()+"\x00"+strconv.Itoa(int(claim.Precision)),
+		timeDuplicateWeight, timeDuplicateNested(claim),
+	)
+}
+
+func (v *duplicateVisitor) VisitTimeInterval(claim *document.TimeIntervalClaim) (document.VisitResult, errors.E) {
+	if v.Skip(claim) {
+		return document.Keep, nil
+	}
+	from, to, ok := timeIntervalWindow(claim)
+	if !ok {
+		return document.Keep, nil
+	}
+	return v.Add(
+		intervalKey("timeInterval", claim.Prop.ID, from, to), timeDuplicateWeight,
+		rangeDuplicateNested(timePath, claim.Prop.ID, from, to),
+	)
+}
+
+func (v *duplicateVisitor) VisitLink(claim *document.LinkClaim) (document.VisitResult, errors.E) {
+	if v.Skip(claim) || claim.IRI == "" {
+		return document.Keep, nil
+	}
+	return v.Add(
+		"link\x00"+claim.Prop.ID.String()+"\x00"+claim.IRI, linkDuplicateWeight,
+		esdsl.NewNestedQuery(
 			esdsl.NewBoolQuery().Must(
 				esdsl.NewTermQuery("claims.link.prop", esdsl.NewFieldValue().String(claim.Prop.ID.String())),
 				esdsl.NewMatchPhraseQuery("claims.link.iri", claim.IRI),
 			),
-		).Path("claims.link"))
-	}
+		).Path("claims.link"),
+	)
+}
 
-	for i := range c.Reference {
-		claim := &c.Reference[i]
-		if claim.GetConfidence() < document.LowConfidence {
-			continue
-		}
-		if claim.Prop.ID == internalCore.DistinctFromPropID {
-			// The target is asserted to be a different entity, so it is excluded from the results (in
-			// duplicatesQuery) rather than scored as a similarity.
-			distinctFrom = append(distinctFrom, claim.To.ID)
-			continue
-		}
-		// The index expands a reference to the target and all its hierarchy ancestors, so matching the
-		// stated (most-specific) target also matches documents that reference a narrower value of it.
-		// A term on "to" matches only rel records with the ref claimType, so no claimType term is needed.
-		add("ref\x00"+claim.Prop.ID.String()+"\x00"+claim.To.ID.String(), referenceDuplicateWeight, esdsl.NewNestedQuery(
+func (v *duplicateVisitor) VisitReference(claim *document.ReferenceClaim) (document.VisitResult, errors.E) {
+	if v.Skip(claim) {
+		return document.Keep, nil
+	}
+	if claim.Prop.ID == internalCore.DistinctFromPropID {
+		// The target is asserted to be a different entity, so it is excluded from the results (in
+		// duplicatesQuery) rather than scored as a similarity.
+		v.DistinctFrom = append(v.DistinctFrom, claim.To.ID)
+		return document.Keep, nil
+	}
+	// The index expands a reference to the target and all its hierarchy ancestors, so matching the
+	// stated (most-specific) target also matches documents that reference a narrower value of it.
+	// A term on "to" matches only rel records with the ref claimType, so no claimType term is needed.
+	return v.Add(
+		"ref\x00"+claim.Prop.ID.String()+"\x00"+claim.To.ID.String(), referenceDuplicateWeight,
+		esdsl.NewNestedQuery(
 			esdsl.NewBoolQuery().Must(
 				esdsl.NewTermQuery(relPath+".prop", esdsl.NewFieldValue().String(claim.Prop.ID.String())),
 				esdsl.NewTermQuery(relPath+".to", esdsl.NewFieldValue().String(claim.To.ID.String())),
 			),
-		).Path(relPath))
-	}
+		).Path(relPath),
+	)
+}
 
-	for i := range c.Amount {
-		claim := &c.Amount[i]
-		if claim.GetConfidence() < document.LowConfidence {
-			continue
-		}
-		add("amount\x00"+claim.Prop.ID.String()+"\x00"+claim.Amount.String()+"\x00"+strconv.FormatFloat(claim.Precision, 'g', -1, 64),
-			amountDuplicateWeight, amountDuplicateNested(claim))
+func (v *duplicateVisitor) VisitHas(claim *document.HasClaim) (document.VisitResult, errors.E) {
+	if v.Skip(claim) {
+		return document.Keep, nil
 	}
-
-	for i := range c.Time {
-		claim := &c.Time[i]
-		if claim.GetConfidence() < document.LowConfidence {
-			continue
-		}
-		add("time\x00"+claim.Prop.ID.String()+"\x00"+claim.Time.String()+"\x00"+strconv.Itoa(int(claim.Precision)),
-			timeDuplicateWeight, timeDuplicateNested(claim))
-	}
-
-	for i := range c.Has {
-		claim := &c.Has[i]
-		if claim.GetConfidence() < document.LowConfidence {
-			continue
-		}
-		add("has\x00"+claim.Prop.ID.String(), hasDuplicateWeight, esdsl.NewNestedQuery(
+	return v.Add(
+		"has\x00"+claim.Prop.ID.String(), hasDuplicateWeight,
+		esdsl.NewNestedQuery(
 			esdsl.NewBoolQuery().Must(
 				claimTypeTerm(relPath, internalSearch.ClaimTypeHas),
 				esdsl.NewTermQuery(relPath+".prop", esdsl.NewFieldValue().String(claim.Prop.ID.String())),
 			),
-		).Path(relPath))
-	}
+		).Path(relPath),
+	)
+}
 
-	return clauses, distinctFrom
+// A none claim asserts that the document has no value for the property. Two documents agreeing that
+// something is absent does not make them the same entity, so it contributes nothing.
+func (v *duplicateVisitor) VisitNone(*document.NoneClaim) (document.VisitResult, errors.E) {
+	return document.Keep, nil
+}
+
+// An unknown claim asserts that a value exists but is not known, which is not identifying either.
+func (v *duplicateVisitor) VisitUnknown(*document.UnknownClaim) (document.VisitResult, errors.E) {
+	return document.Keep, nil
 }
 
 // stringDuplicateNested matches documents that have a string claim for prop whose value matches value
@@ -261,12 +344,31 @@ func htmlDuplicateNested(prop identifier.Identifier, html string, enabledLanguag
 	).Path("claims.html")
 }
 
+// rangeDuplicateNested matches documents whose claim for prop in the amount or time collection at path
+// has a value window overlapping [from, to]. Both sides are ranges, so the default range-on-range
+// INTERSECTS relation finds the same or an indistinguishable value. Units are not constrained: a
+// property carries a consistent measure, so the property already scopes the comparison.
+func rangeDuplicateNested(path string, prop identifier.Identifier, from, to float64) types.QueryVariant { //nolint:ireturn
+	return esdsl.NewNestedQuery(
+		esdsl.NewBoolQuery().Must(
+			esdsl.NewTermQuery(path+".prop", esdsl.NewFieldValue().String(prop.String())),
+			esdsl.NewNumberRangeQuery(path+".range").Gte(types.Float64(from)).Lte(types.Float64(to)),
+		),
+	).Path(path)
+}
+
+// intervalKey keys an interval's clause by the window it queries rather than by the bounds as they
+// are stated, so two claims stating the same interval differently (decreasing order, an unknown bound
+// beside a stated one) share one clause.
+func intervalKey(claimType string, prop identifier.Identifier, from, to float64) string {
+	return claimType + "\x00" + prop.String() +
+		"\x00" + strconv.FormatFloat(from, 'g', -1, 64) +
+		"\x00" + strconv.FormatFloat(to, 'g', -1, 64)
+}
+
 // amountDuplicateNested matches documents whose amount claim for the same property has a value window
 // overlapping this claim's window. The window is computed exactly as the indexer computes the stored
-// range, so an overlapping range query (the default range-on-range INTERSECTS relation) finds the same
-// or an indistinguishable value. It returns nil (the claim is skipped) when the window cannot be
-// computed. Units are not constrained: a property carries a consistent measure, so the property already
-// scopes the comparison.
+// range. It returns nil (the claim is skipped) when the window cannot be computed.
 func amountDuplicateNested(claim *document.AmountClaim) types.QueryVariant { //nolint:ireturn
 	from, errE := claim.Amount.WindowStartFloat64(claim.Precision, false)
 	if errE != nil {
@@ -276,12 +378,7 @@ func amountDuplicateNested(claim *document.AmountClaim) types.QueryVariant { //n
 	if errE != nil {
 		return nil
 	}
-	return esdsl.NewNestedQuery(
-		esdsl.NewBoolQuery().Must(
-			esdsl.NewTermQuery("claims.amount.prop", esdsl.NewFieldValue().String(claim.Prop.ID.String())),
-			esdsl.NewNumberRangeQuery("claims.amount.range").Gte(types.Float64(from)).Lte(types.Float64(to)),
-		),
-	).Path("claims.amount")
+	return rangeDuplicateNested(amountPath, claim.Prop.ID, from, to)
 }
 
 // timeDuplicateNested matches documents whose time claim for the same property has a value window
@@ -296,12 +393,119 @@ func timeDuplicateNested(claim *document.TimeClaim) types.QueryVariant { //nolin
 	if errE != nil {
 		return nil
 	}
-	return esdsl.NewNestedQuery(
-		esdsl.NewBoolQuery().Must(
-			esdsl.NewTermQuery("claims.time.prop", esdsl.NewFieldValue().String(claim.Prop.ID.String())),
-			esdsl.NewNumberRangeQuery("claims.time.range").Gte(types.Float64(from)).Lte(types.Float64(to)),
-		),
-	).Path("claims.time")
+	return rangeDuplicateNested(timePath, claim.Prop.ID, from, to)
+}
+
+// An interval claim occupies a value window just like a point claim does, so it is matched the same
+// way, against the window the indexer computes for it (see convertAmountInterval and
+// convertTimeInterval):
+//
+//   - Two stated bounds span from the lower bound's window to the upper one's, with a bound stated as
+//     open excluding its own window. Bounds stated in decreasing order are swapped, like the indexer
+//     swaps them.
+//   - A bound stated beside one which is unknown collapses the interval to a point at the stated
+//     bound, which is how the indexer stores it too.
+//   - Anything else occupies no window worth matching: an interval with a bound stated as absent is
+//     unbounded on that side, so it overlaps a large part of the corpus and says nothing about two
+//     documents being the same, and an interval with neither bound stated is stored as an unknown
+//     record, which is not a duplicate signal either (see VisitUnknown).
+//
+// The window functions report an error for a value a precision cannot represent; such a claim is
+// skipped, like one whose window cannot be computed on the point path.
+
+// amountIntervalWindow returns the value window an amount interval claim occupies, and whether it
+// occupies one at all.
+func amountIntervalWindow(claim *document.AmountIntervalClaim) (float64, float64, bool) {
+	var from, to *document.Amount
+	var fromPrecision, toPrecision *float64
+	var fromIsOpen, toIsOpen bool
+	switch {
+	case claim.From != nil && claim.To != nil:
+		from, fromPrecision, fromIsOpen = claim.From, claim.FromPrecision, claim.FromIsOpen
+		to, toPrecision, toIsOpen = claim.To, claim.ToPrecision, claim.ToIsOpen
+	case claim.From != nil && claim.ToIsUnknown:
+		from, fromPrecision = claim.From, claim.FromPrecision
+		to, toPrecision = claim.From, claim.FromPrecision
+	case claim.To != nil && claim.FromIsUnknown:
+		from, fromPrecision = claim.To, claim.ToPrecision
+		to, toPrecision = claim.To, claim.ToPrecision
+	default:
+		return 0, 0, false
+	}
+	window := func(lo *document.Amount, loPrecision *float64, loIsOpen bool, hi *document.Amount, hiPrecision *float64, hiIsOpen bool) (float64, float64, bool) {
+		if loPrecision == nil || hiPrecision == nil {
+			return 0, 0, false
+		}
+		lower, errE := lo.WindowStartFloat64(*loPrecision, loIsOpen)
+		if errE != nil {
+			return 0, 0, false
+		}
+		upper, errE := hi.WindowEndFloat64(*hiPrecision, hiIsOpen)
+		if errE != nil {
+			return 0, 0, false
+		}
+		return lower, upper, true
+	}
+	lower, upper, ok := window(from, fromPrecision, fromIsOpen, to, toPrecision, toIsOpen)
+	if !ok {
+		return 0, 0, false
+	}
+	if lower <= upper {
+		return lower, upper, true
+	}
+	// The bounds are stated in decreasing order, so they are swapped, like the indexer swaps them, and
+	// the window is computed again: a bound stated as open excludes the window at the end it bounds,
+	// which is the other end now.
+	return window(to, toPrecision, toIsOpen, from, fromPrecision, fromIsOpen)
+}
+
+// timeIntervalWindow returns the value window a time interval claim occupies, and whether it occupies
+// one at all.
+func timeIntervalWindow(claim *document.TimeIntervalClaim) (float64, float64, bool) {
+	var from, to *document.Time
+	var fromPrecision, toPrecision *document.TimePrecision
+	var fromIsOpen, toIsOpen bool
+	switch {
+	case claim.From != nil && claim.To != nil:
+		from, fromPrecision, fromIsOpen = claim.From, claim.FromPrecision, claim.FromIsOpen
+		to, toPrecision, toIsOpen = claim.To, claim.ToPrecision, claim.ToIsOpen
+	case claim.From != nil && claim.ToIsUnknown:
+		from, fromPrecision = claim.From, claim.FromPrecision
+		to, toPrecision = claim.From, claim.FromPrecision
+	case claim.To != nil && claim.FromIsUnknown:
+		from, fromPrecision = claim.To, claim.ToPrecision
+		to, toPrecision = claim.To, claim.ToPrecision
+	default:
+		return 0, 0, false
+	}
+	window := func(
+		lo *document.Time, loPrecision *document.TimePrecision, loIsOpen bool,
+		hi *document.Time, hiPrecision *document.TimePrecision, hiIsOpen bool,
+	) (float64, float64, bool) {
+		if loPrecision == nil || hiPrecision == nil {
+			return 0, 0, false
+		}
+		lower, errE := lo.WindowStartFloat64(*loPrecision, loIsOpen)
+		if errE != nil {
+			return 0, 0, false
+		}
+		upper, errE := hi.WindowEndFloat64(*hiPrecision, hiIsOpen)
+		if errE != nil {
+			return 0, 0, false
+		}
+		return lower, upper, true
+	}
+	lower, upper, ok := window(from, fromPrecision, fromIsOpen, to, toPrecision, toIsOpen)
+	if !ok {
+		return 0, 0, false
+	}
+	if lower <= upper {
+		return lower, upper, true
+	}
+	// The bounds are stated in decreasing order, so they are swapped, like the indexer swaps them, and
+	// the window is computed again: a bound stated as open excludes the window at the end it bounds,
+	// which is the other end now.
+	return window(to, toPrecision, toIsOpen, from, fromPrecision, fromIsOpen)
 }
 
 // duplicatesQuery builds the ElasticSearch query that finds potential duplicates of doc: a bool whose

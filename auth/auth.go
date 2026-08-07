@@ -79,21 +79,31 @@ type Authenticator interface {
 	// headers consumed by the frontend. On failure the original ctx is
 	// returned unchanged and no headers are written.
 	Authenticate(
-		w http.ResponseWriter, req *http.Request, metadataHeaderPrefix string, allowedRoles map[string][]string, visibility []VisibilityLevel,
+		w http.ResponseWriter, req *http.Request, metadataHeaderPrefix string, allowedRoles map[string]RoleGrants, visibility []VisibilityLevel,
 	) context.Context
 
 	// SignIn begins a fresh sign-in flow. uiLocales is the user's preferred UI language (forwarded to the
 	// issuer as the OIDC ui_locales request parameter, empty when unknown) so the issuer can render its UI to match.
 	SignIn(ctx context.Context, redirect, uiLocales string) (authURL string, errE errors.E)
 
-	// Callback finishes a sign-in flow.
+	// Callback finishes a sign-in flow. allowedRoles is the allowlist of role names the site recognizes.
 	//
 	// Every client-side failure is wrapped with ErrSignInFailed. Internal errors
 	// are returned without that wrapping.
-	Callback(ctx context.Context, values url.Values) (token string, expiry time.Time, redirect string, errE errors.E)
+	Callback(ctx context.Context, values url.Values, allowedRoles map[string]RoleGrants) (token string, expiry time.Time, redirect string, errE errors.E)
 
 	// SignOut revokes the access token the caller presented.
 	SignOut(w http.ResponseWriter, req *http.Request) errors.E
+
+	// Identity returns what is known about the user with the given subject: their profile fields and
+	// the roles they hold, filtered by allowedRoles. The caller has to be authenticated, and their access
+	// token is what authorizes the lookup upstream, but the answer is cached per subject and not per
+	// caller, so what one user of the site learned about somebody answers every other user as well. It
+	// assumes that the issuer describes a user the same way to all of them.
+	//
+	// It returns an error wrapping ErrIdentityNotFound when the issuer does not know the subject, and
+	// one wrapping ErrAccessDenied when the request is not authenticated.
+	Identity(w http.ResponseWriter, req *http.Request, subject string, allowedRoles map[string]RoleGrants) (*Identity, errors.E)
 
 	// CleanupExpired prunes rows that have aged out of the
 	// Authenticator's internal flow and revocation stores. It is meant
@@ -102,17 +112,31 @@ type Authenticator interface {
 	CleanupExpired(ctx context.Context) errors.E
 }
 
+// Identity is what a site knows about one of its users: who they are and which of the site's roles
+// they hold. It is what the user API returns.
+//
+// It describes a user, it does not authorize them: what a caller may do follows from the roles of
+// their own verified access token (see Roles), and never from what this says about anybody.
+type Identity struct {
+	Subject  string   `json:"subject"`
+	Username string   `json:"username,omitempty"`
+	Roles    []string `json:"roles"`
+}
+
+// ErrIdentityNotFound is returned when the issuer does not know the requested subject, or does not
+// tell the caller about them, which is the same thing as far as the caller is concerned.
+var ErrIdentityNotFound = errors.Base("identity not found")
+
 // baseAuthenticator holds the state shared between OIDCAuthenticator and
 // MockAuthenticator: the token verifier (which key set differs but the
-// validation contract is the same), the userinfo cache (mock primes it at
-// sign-in so the cache is always warm, OIDC re-fetches from the issuer on
-// miss), the per-site flow store, and the per-site revocation store that
-// remembers which tokens were explicitly signed out.
+// validation contract is the same), the userinfo cache (each of them gives it
+// its own way of looking a user up), the per-site flow store, and the per-site
+// revocation store that remembers which tokens were explicitly signed out.
 type baseAuthenticator struct {
-	tokenVerifier   *oidc.IDTokenVerifier
-	userInfoCache   *userInfoCache
-	flowStore       *flowStore
-	revocationStore *revocationStore
+	TokenVerifier   *oidc.IDTokenVerifier
+	UserInfoCache   *userInfoCache
+	FlowStore       *flowStore
+	RevocationStore *revocationStore
 }
 
 // Authenticate validates the caller's access token (Authorization Bearer
@@ -155,7 +179,7 @@ type baseAuthenticator struct {
 // emitting them lets a cached signed-in response self-correct to signed-out
 // instead of retaining a stale identity. Callers should continue handling.
 func (b *baseAuthenticator) Authenticate(
-	w http.ResponseWriter, req *http.Request, metadataHeaderPrefix string, allowedRoles map[string][]string, visibility []VisibilityLevel,
+	w http.ResponseWriter, req *http.Request, metadataHeaderPrefix string, allowedRoles map[string]RoleGrants, visibility []VisibilityLevel,
 ) context.Context {
 	ctx := req.Context()
 	subject, roles, token, ok := b.authenticatedIdentity(ctx, w, req, allowedRoles)
@@ -171,7 +195,7 @@ func (b *baseAuthenticator) Authenticate(
 		// Emit empty Roles and UserInfo headers for an unauthenticated request so
 		// a cached signed-in response self-corrects on revalidation.
 		b.writeRolesHeader(w, metadataHeaderPrefix, nil)
-		b.writeUserInfoHeader(ctx, w, metadataHeaderPrefix, "", "")
+		b.writeUserInfoHeader(ctx, w, metadataHeaderPrefix, "", "", nil)
 		return ctx
 	}
 	ctx = WithSubject(ctx, subject)
@@ -181,7 +205,7 @@ func (b *baseAuthenticator) Authenticate(
 	// WithRoles tags the context logger, so we here also tag the canonical logger.
 	waf.SetCanonicalLogField(ctx, "roles", roles)
 	b.writeRolesHeader(w, metadataHeaderPrefix, roles)
-	b.writeUserInfoHeader(ctx, w, metadataHeaderPrefix, subject, token)
+	b.writeUserInfoHeader(ctx, w, metadataHeaderPrefix, subject, token, roles)
 	// Authenticated responses carry per-user data, keep them out of
 	// shared caches. Browser caches still store them (keyed by
 	// Authorization/Cookie via the Vary headers resolveAccessToken
@@ -196,7 +220,7 @@ func (b *baseAuthenticator) Authenticate(
 // invalid or revoked token, or a role-extraction failure. The caller then
 // treats the request as anonymous.
 func (b *baseAuthenticator) authenticatedIdentity(
-	ctx context.Context, w http.ResponseWriter, req *http.Request, allowedRoles map[string][]string,
+	ctx context.Context, w http.ResponseWriter, req *http.Request, allowedRoles map[string]RoleGrants,
 ) (string, []string, string, bool) {
 	token, _ := resolveAccessToken(w, req)
 	if token == "" {
@@ -207,13 +231,13 @@ func (b *baseAuthenticator) authenticatedIdentity(
 	// for JWT validation, so the returned *oidc.IDToken is just a
 	// parsed-JWT struct here. The validation contract (signature,
 	// issuer, audience, expiry) is the same either way.
-	claims, err := b.tokenVerifier.Verify(ctx, token)
+	claims, err := b.TokenVerifier.Verify(ctx, token)
 	if err != nil {
 		return "", nil, "", false
 	}
 	// Revocation check: a token that passed the JWT signature/exp gate
 	// may still have been explicitly signed out.
-	revoked, errE := b.revocationStore.IsRevoked(ctx, token, claims.Expiry)
+	revoked, errE := b.RevocationStore.IsRevoked(ctx, token, claims.Expiry)
 	if errE == nil && revoked {
 		return "", nil, "", false
 	}
@@ -257,10 +281,15 @@ func (b *baseAuthenticator) writeRolesHeader(w http.ResponseWriter, prefix strin
 // For an unauthenticated caller (empty subject) it emits subject="" with no
 // upstream lookup; the header is still written so a 304 revalidation replaces
 // a stale signed-in UserInfo rather than keeping it.
-func (b *baseAuthenticator) writeUserInfoHeader(ctx context.Context, w http.ResponseWriter, prefix, subject, token string) {
+func (b *baseAuthenticator) writeUserInfoHeader(ctx context.Context, w http.ResponseWriter, prefix, subject, token string, roles []string) {
 	metadata := map[string]any{"subject": subject}
 	if subject != "" {
-		info, _ := b.userInfoCache.Get(ctx, subject, token)
+		info, errE := b.UserInfoCache.GetSelf(ctx, subject, token, roles)
+		if errE != nil {
+			// The header is written without the username rather than not at all, but the site is not
+			// learning who its users are, so the failure is worth knowing about.
+			zerolog.Ctx(ctx).Warn().Err(errE).Str("subject", subject).Msg("userinfo lookup failed")
+		}
 		if info.Subject != "" {
 			metadata["subject"] = info.Subject
 		}
@@ -277,13 +306,69 @@ func (b *baseAuthenticator) writeUserInfoHeader(ctx context.Context, w http.Resp
 	w.Header().Add(prefix+userInfoHeader, buf.String())
 }
 
+// Identity resolves what is known about subject for the caller of req (see Authenticator.Identity).
+// The caller's own identity is answered from what their token says (the issuer's userinfo endpoint is
+// about them, and their roles are in their token), while any other user is looked up on the caller's
+// behalf, each with the lookup the authenticator gave the userinfo cache. Both are stored in that same
+// cache, so a user shown repeatedly (say once per access request on a document) is fetched once.
+func (b *baseAuthenticator) Identity(
+	w http.ResponseWriter, req *http.Request, subject string, allowedRoles map[string]RoleGrants,
+) (*Identity, errors.E) {
+	ctx := req.Context()
+
+	if subject == "" {
+		return nil, errors.WithStack(ErrIdentityNotFound)
+	}
+
+	callerSubject, callerRoles, token, ok := b.authenticatedIdentity(ctx, w, req, allowedRoles)
+	if !ok {
+		return nil, errors.WithStack(ErrAccessDenied)
+	}
+
+	var info userInfo
+	var errE errors.E
+	if subject == callerSubject {
+		info, errE = b.UserInfoCache.GetSelf(ctx, subject, token, callerRoles)
+		if errE != nil {
+			// The issuer's userinfo endpoint is not reachable, but the token itself already says who the
+			// caller is, so they still learn about themselves, without their profile fields.
+			zerolog.Ctx(ctx).Warn().Err(errE).Str("subject", subject).Msg("userinfo lookup failed")
+			info = userInfo{Subject: callerSubject, Username: "", Roles: callerRoles}
+		}
+	} else {
+		info, errE = b.UserInfoCache.GetOther(ctx, subject, token, allowedRoles)
+		if errE != nil {
+			return nil, errE
+		}
+	}
+
+	return &Identity{
+		Subject:  info.Subject,
+		Username: info.Username,
+		Roles:    info.Roles,
+	}, nil
+}
+
+// filterRoles keeps only the roles the site recognizes: a role the site does not configure grants
+// nothing, so it is not part of what the site knows about a user. The result is never nil, so that a
+// user without any roles has an empty list of them and not a missing one.
+func filterRoles(roles []string, allowedRoles map[string]RoleGrants) []string {
+	filtered := make([]string, 0, len(roles))
+	for _, role := range roles {
+		if _, ok := allowedRoles[role]; ok {
+			filtered = append(filtered, role)
+		}
+	}
+	return filtered
+}
+
 // CleanupExpired prunes expired rows from both the flow store and the
 // revocation store. Each store is asked to clean up independently so a
 // transient failure in one does not leave the other unpruned. Errors
 // from the two stores are joined so the caller learns about both.
 func (b *baseAuthenticator) CleanupExpired(ctx context.Context) errors.E {
-	errFlow := b.flowStore.cleanupExpired(ctx)
-	errRevocation := b.revocationStore.cleanupExpired(ctx)
+	errFlow := b.FlowStore.cleanupExpired(ctx)
+	errRevocation := b.RevocationStore.cleanupExpired(ctx)
 	return errors.Join(errFlow, errRevocation)
 }
 
@@ -333,7 +418,8 @@ func callbackFlow(
 	ctx context.Context,
 	fs *flowStore,
 	values url.Values,
-	exchangeCode func(ctx context.Context, code, codeVerifier, nonce string) (string, time.Time, errors.E),
+	allowedRoles map[string]RoleGrants,
+	exchangeCode func(ctx context.Context, code, codeVerifier, nonce string, allowedRoles map[string]RoleGrants) (string, time.Time, errors.E),
 ) (string, time.Time, string, errors.E) {
 	if fs == nil {
 		return "", time.Time{}, "", errors.New("authenticator has no flow store")
@@ -371,7 +457,7 @@ func callbackFlow(
 		return "", time.Time{}, "", errE
 	}
 
-	token, expiry, errE := exchangeCode(ctx, code, flow.CodeVerifier, flow.Nonce)
+	token, expiry, errE := exchangeCode(ctx, code, flow.CodeVerifier, flow.Nonce, allowedRoles)
 	if errE != nil {
 		// Token exchange / JWT validation failures are caller-induced
 		// (bad code, signature mismatch, nonce mismatch, ...).
@@ -504,10 +590,11 @@ func addVary(w http.ResponseWriter, header string) {
 // (non-nil) slice rather than an error so authenticated tokens without any
 // roles still authorize.
 //
-// allowedRoles acts as a allowlist: only roles whose name is a key in the map
-// pass through. Values are ignored. A nil or empty map drops every role. This
-// guarantees that auth.Roles never carries a role the site has not declared.
-func extractRoles(idToken *oidc.IDToken, allowedRoles map[string][]string) ([]string, errors.E) {
+// allowedRoles acts as an allowlist (see filterRoles): only roles whose name is
+// a key in the map pass through. Values are ignored. A nil or empty map drops
+// every role. This guarantees that auth.Roles never carries a role the site has
+// not declared.
+func extractRoles(idToken *oidc.IDToken, allowedRoles map[string]RoleGrants) ([]string, errors.E) {
 	var claims struct {
 		Scope string   `json:"scope"`
 		SCP   []string `json:"scp"`
@@ -536,14 +623,11 @@ func extractRoles(idToken *oidc.IDToken, allowedRoles map[string][]string) ([]st
 		if role == "" {
 			continue
 		}
-		if _, ok := allowedRoles[role]; !ok {
-			continue
-		}
 		if seen[role] {
 			continue
 		}
 		seen[role] = true
 		roles = append(roles, role)
 	}
-	return roles, nil
+	return filterRoles(roles, allowedRoles), nil
 }

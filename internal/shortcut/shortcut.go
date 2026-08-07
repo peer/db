@@ -25,6 +25,7 @@ import (
 	"gitlab.com/tozd/identifier"
 )
 
+// Keep in sync with src/shortcut.ts.
 const (
 	// EntrySeparator separates the entries of a list.
 	EntrySeparator = "&"

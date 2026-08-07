@@ -12,6 +12,7 @@ import {
   buildRefTree,
   capitalizeFirstLetter,
   computeRefCheckStates,
+  isPlainClick,
   mergeRefOverlay,
   parseUrl,
   timePrecisionForRange,
@@ -675,5 +676,33 @@ describe("capitalizeFirstLetter", () => {
     assert.equal(capitalizeFirstLetter("istanbul", "en"), "Istanbul")
     assert.equal(capitalizeFirstLetter("istanbul", "tr"), "İstanbul")
     assert.equal(capitalizeFirstLetter("čas", "sl"), "Čas")
+  })
+})
+
+// isPlainClick only reads these few MouseEvent fields, so a partial stand-in is enough; the test
+// runs in a node environment where MouseEvent cannot be constructed.
+function mouseEvent(overrides: Partial<Pick<MouseEvent, "defaultPrevented" | "button" | "metaKey" | "altKey" | "ctrlKey" | "shiftKey">> = {}): MouseEvent {
+  return { defaultPrevented: false, button: 0, metaKey: false, altKey: false, ctrlKey: false, shiftKey: false, ...overrides } as unknown as MouseEvent
+}
+
+describe("isPlainClick", () => {
+  test("a primary-button click with no modifiers is a plain click", () => {
+    assert.isTrue(isPlainClick(mouseEvent()))
+  })
+
+  test("non-primary (middle/right) buttons are not plain clicks", () => {
+    assert.isFalse(isPlainClick(mouseEvent({ button: 1 })))
+    assert.isFalse(isPlainClick(mouseEvent({ button: 2 })))
+  })
+
+  test("any modifier key disqualifies a plain click", () => {
+    assert.isFalse(isPlainClick(mouseEvent({ metaKey: true })))
+    assert.isFalse(isPlainClick(mouseEvent({ altKey: true })))
+    assert.isFalse(isPlainClick(mouseEvent({ ctrlKey: true })))
+    assert.isFalse(isPlainClick(mouseEvent({ shiftKey: true })))
+  })
+
+  test("an already-prevented event is not a plain click", () => {
+    assert.isFalse(isPlainClick(mouseEvent({ defaultPrevented: true })))
   })
 })

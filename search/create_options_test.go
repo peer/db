@@ -117,15 +117,15 @@ func TestCreateOptionsIntegration(t *testing.T) {
 		return fullPaths[id], nil
 	}
 
-	options, errE := search.CreateOptions(ctx, getSearchService, nil, loadDocument, documentHierarchyPaths, "")
+	options, errE := search.CreateOptions(ctx, getSearchService, nil, loadDocument, nil, documentHierarchyPaths, "")
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	ids := make([]string, 0, len(options))
-	canCreate := map[string]bool{}
+	creatable := map[string]bool{}
 	paths := map[string][][]string{}
 	for _, o := range options {
 		ids = append(ids, o.ID)
-		canCreate[o.ID] = o.CanCreate
+		creatable[o.ID] = o.Creatable
 		paths[o.ID] = o.Paths
 	}
 
@@ -133,33 +133,54 @@ func TestCreateOptionsIntegration(t *testing.T) {
 	// ordered by instance count descending then depth ascending (A and B have five, C and E have three).
 	assert.Equal(t, []string{classA.String(), classB.String(), classC.String(), classE.String()}, ids)
 	// Abstract classA is kept only as a structural ancestor; the others can be created.
-	assert.False(t, canCreate[classA.String()])
-	assert.True(t, canCreate[classB.String()])
-	assert.True(t, canCreate[classC.String()])
-	assert.True(t, canCreate[classE.String()])
+	assert.False(t, creatable[classA.String()])
+	assert.True(t, creatable[classB.String()])
+	assert.True(t, creatable[classC.String()])
+	assert.True(t, creatable[classE.String()])
 	// classA is a root (no ancestor paths); classE renders under both of its parents.
 	assert.Empty(t, paths[classA.String()])
 	assert.ElementsMatch(t, [][]string{{classA.String(), classB.String()}, {classA.String(), classC.String()}}, paths[classE.String()])
 
 	// With a limit on classB, only classB and its descendant classE are offered; the limit's ancestor classA
 	// is kept as a non-creatable label, and the unrelated classC and classD are dropped.
-	limited, errE := search.CreateOptions(ctx, getSearchService, nil, loadDocument, documentHierarchyPaths, classB.String())
+	limited, errE := search.CreateOptions(ctx, getSearchService, nil, loadDocument, nil, documentHierarchyPaths, classB.String())
 	require.NoError(t, errE, "% -+#.1v", errE)
 	limitedIDs := make([]string, 0, len(limited))
-	limitedCanCreate := map[string]bool{}
+	limitedCreatable := map[string]bool{}
 	for _, o := range limited {
 		limitedIDs = append(limitedIDs, o.ID)
-		limitedCanCreate[o.ID] = o.CanCreate
+		limitedCreatable[o.ID] = o.Creatable
 	}
 	assert.Equal(t, []string{classA.String(), classB.String(), classE.String()}, limitedIDs)
-	assert.False(t, limitedCanCreate[classA.String()])
-	assert.True(t, limitedCanCreate[classB.String()])
-	assert.True(t, limitedCanCreate[classE.String()])
+	assert.False(t, limitedCreatable[classA.String()])
+	assert.True(t, limitedCreatable[classB.String()])
+	assert.True(t, limitedCreatable[classE.String()])
 
 	// An unknown limit id yields nothing.
-	none, errE := search.CreateOptions(ctx, getSearchService, nil, loadDocument, documentHierarchyPaths, identifier.From("createClassMissing").String())
+	none, errE := search.CreateOptions(ctx, getSearchService, nil, loadDocument, nil, documentHierarchyPaths, identifier.From("createClassMissing").String())
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Empty(t, none)
+
+	// A caller who may create only classE is offered it alone, with the classes which place it kept as
+	// labels; classD's branch stays pruned as it has nothing creatable under it either way.
+	canCreate := func(_ context.Context, id identifier.Identifier) bool {
+		return id == classE
+	}
+	scoped, errE := search.CreateOptions(ctx, getSearchService, nil, loadDocument, canCreate, documentHierarchyPaths, "")
+	require.NoError(t, errE, "% -+#.1v", errE)
+	scopedCreatable := map[string]bool{}
+	for _, o := range scoped {
+		scopedCreatable[o.ID] = o.Creatable
+	}
+	assert.Equal(t, map[string]bool{classA.String(): false, classB.String(): false, classC.String(): false, classE.String(): true}, scopedCreatable)
+
+	// A caller who may create nothing is offered nothing, not even the classes which would place it.
+	denyAll := func(_ context.Context, _ identifier.Identifier) bool {
+		return false
+	}
+	nothing, errE := search.CreateOptions(ctx, getSearchService, nil, loadDocument, denyAll, documentHierarchyPaths, "")
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Empty(t, nothing)
 }
 
 func TestClassCreatable(t *testing.T) {

@@ -203,27 +203,27 @@ func TestFiltersGetSpecialSearchDiscoveryIntegration(t *testing.T) {
 	}
 
 	// Baseline: both facets are offered, total is two.
-	results, metadata, errE := search.FiltersGet(ctx, getSearchService, session, nil, "")
+	results, metadata, errE := search.FiltersGet(ctx, getSearchService, session, nil, "", nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.True(t, has(results, propNone))
 	assert.True(t, has(results, propPlain))
 	assert.Equal(t, "2", metadata["total"])
 
 	// Searching "none" keeps only the property that has a none statement; the total stays two.
-	results, metadata, errE = search.FiltersGet(ctx, getSearchService, session, nil, "none*")
+	results, metadata, errE = search.FiltersGet(ctx, getSearchService, session, nil, "none*", nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.True(t, has(results, propNone))
 	assert.False(t, has(results, propPlain))
 	assert.Equal(t, "2", metadata["total"])
 
 	// Searching "unknown" keeps neither (no unknown statements, and the text matches no name or value).
-	results, _, errE = search.FiltersGet(ctx, getSearchService, session, nil, "unknown*")
+	results, _, errE = search.FiltersGet(ctx, getSearchService, session, nil, "unknown*", nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.False(t, has(results, propNone))
 	assert.False(t, has(results, propPlain))
 
 	// Searching "missing" is broad: both facets have missing documents, so both are kept.
-	results, metadata, errE = search.FiltersGet(ctx, getSearchService, session, nil, "missing*")
+	results, metadata, errE = search.FiltersGet(ctx, getSearchService, session, nil, "missing*", nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.True(t, has(results, propNone))
 	assert.True(t, has(results, propPlain))
@@ -231,7 +231,7 @@ func TestFiltersGetSpecialSearchDiscoveryIntegration(t *testing.T) {
 
 	// Searching "direct" keeps neither: both properties are flat (no hierarchy), so neither can carry a
 	// direct entry. The direct gate is selective (hierarchy only), not every ref facet.
-	results, _, errE = search.FiltersGet(ctx, getSearchService, session, nil, "direct*")
+	results, _, errE = search.FiltersGet(ctx, getSearchService, session, nil, "direct*", nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.False(t, has(results, propNone))
 	assert.False(t, has(results, propPlain))
@@ -293,14 +293,14 @@ func TestFiltersGetSpecialBeyondCapValueQueryIntegration(t *testing.T) {
 	}
 
 	// Searching "none" surfaces the beyond-cap none-only facet (and not the direct one).
-	results, metadata, errE := search.FiltersGet(ctx, getSearchService, session, nil, "none*")
+	results, metadata, errE := search.FiltersGet(ctx, getSearchService, session, nil, "none*", nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.True(t, has(results, noneBeyondProp), "beyond-cap none facet surfaced by the none label")
 	assert.False(t, has(results, directBeyondProp))
 	assert.Equal(t, strconv.Itoa(search.MaxResultsCount)+"+", metadata["total"])
 
 	// Searching "direct" surfaces the beyond-cap hierarchical facet (and not the none one).
-	results, _, errE = search.FiltersGet(ctx, getSearchService, session, nil, "direct*")
+	results, _, errE = search.FiltersGet(ctx, getSearchService, session, nil, "direct*", nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.True(t, has(results, directBeyondProp), "beyond-cap direct facet surfaced by the direct label")
 	assert.False(t, has(results, noneBeyondProp))
@@ -337,7 +337,7 @@ func TestFiltersGetSubSpecialBeyondCapValueQueryIntegration(t *testing.T) {
 
 	session := createSession(t, ctx, search.SessionData{})
 
-	results, _, errE := search.FiltersGet(ctx, getSearchService, session, nil, "none*")
+	results, _, errE := search.FiltersGet(ctx, getSearchService, session, nil, "none*", nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	found := false
 	for _, r := range results {
@@ -377,7 +377,7 @@ func TestFiltersGetSubSpecialBeyondParentCapValueQueryIntegration(t *testing.T) 
 
 	session := createSession(t, ctx, search.SessionData{})
 
-	results, _, errE := search.FiltersGet(ctx, getSearchService, session, nil, "none*")
+	results, _, errE := search.FiltersGet(ctx, getSearchService, session, nil, "none*", nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	found := false
 	for _, r := range results {
@@ -409,12 +409,12 @@ func TestHasFilterGetHasPropertySearchIntegration(t *testing.T) {
 	f := search.HasFilter{Props: nil}
 
 	// A plain property-name search narrows to the matching property.
-	results, _, errE := f.Get(ctx, getSearchService, session.ToQuery(nil), "col*", searchLangs(enabledLanguages))
+	results, _, errE := f.Get(ctx, getSearchService, session.ToQuery(nil), "col*", nil, searchLangs(enabledLanguages))
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, []search.HasFilterResult{{ID: color.String(), Count: 1}}, results)
 
 	// The "has property" label shows the whole facet, both properties.
-	results, metadata, errE := f.Get(ctx, getSearchService, session.ToQuery(nil), "has property*", searchLangs(enabledLanguages))
+	results, metadata, errE := f.Get(ctx, getSearchService, session.ToQuery(nil), "has property*", nil, searchLangs(enabledLanguages))
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.ElementsMatch(t, []search.HasFilterResult{
 		{ID: color.String(), Count: 1},

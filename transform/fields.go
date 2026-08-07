@@ -3,6 +3,7 @@ package transform
 import (
 	"cmp"
 	"maps"
+	"net/url"
 	"reflect"
 	"slices"
 	"strconv"
@@ -17,8 +18,8 @@ import (
 // Fields extracts field descriptions from a struct type using struct tags.
 //
 // It reads the same struct tags as [Documents] (property, cardinality, type, value)
-// plus additional tags (section, order, values) to produce a [core.Fields]
-// describing the struct's field schema.
+// plus additional tags (section, order, values, inputComponent, inputComponentProps)
+// to produce a [core.Fields] describing the struct's field schema.
 //
 // The section tag can be used on embedded structs to define a section (with its order)
 // and set the default section for fields inside. The section tag can also be used on
@@ -46,6 +47,11 @@ import (
 // sub-field paths continue through the nested struct's fields. Each instruction
 // becomes a FIELD_INSTRUCTION claim (one per language) with the language as an
 // IN_LANGUAGE sub-claim. A path not matching any field is an error.
+//
+// An instruction is shared by every document of the class, so a link in it targeting
+// the document being edited uses the RFC 6570 level 1 expression {self} in place of
+// the document's id (e.g. "/d/request/{self}" for its request page), which the edit
+// form expands when it renders the instruction.
 func Fields[T any](
 	mnemonics map[string][]string,
 	sections map[string]map[string]string,
@@ -257,6 +263,11 @@ func (fc *fieldsCollector) processLevel(
 				errors.Details(errE)["field"] = strings.Join(newFieldPath, ".")
 				return errE
 			}
+			if field.Tag.Get("duplicate") != "" {
+				errE := errors.New("duplicate tag cannot be used with value tag")
+				errors.Details(errE)["field"] = strings.Join(newFieldPath, ".")
+				return errE
+			}
 			continue
 		}
 
@@ -384,6 +395,11 @@ func (fc *fieldsCollector) processSubFields(
 			}
 			if field.Tag.Get("context") != "" {
 				errE := errors.New("context tag cannot be used with value tag")
+				errors.Details(errE)["field"] = strings.Join(newFieldPath, ".")
+				return nil, errE
+			}
+			if field.Tag.Get("duplicate") != "" {
+				errE := errors.New("duplicate tag cannot be used with value tag")
 				errors.Details(errE)["field"] = strings.Join(newFieldPath, ".")
 				return nil, errE
 			}
@@ -556,6 +572,22 @@ func (fc *fieldsCollector) makeField(
 		return internalCore.Field{}, errE
 	}
 
+	// Parse inputComponent and inputComponentProps tags. Both describe the value's input, so like
+	// the values and default tags they can sit on the property field or on the value:"" field of a
+	// struct field.
+	inputComponent, errE := parseFieldInputComponent(structField)
+	if errE != nil {
+		errors.Details(errE)["field"] = strings.Join(fieldPath, ".")
+		return internalCore.Field{}, errE
+	}
+
+	// Parse duplicate tag, which says how the edit form compares the field's claims for duplicates.
+	duplicateTop, duplicateAllow, errE := parseDuplicateTag(structField)
+	if errE != nil {
+		errors.Details(errE)["field"] = strings.Join(fieldPath, ".")
+		return internalCore.Field{}, errE
+	}
+
 	return internalCore.Field{
 		Property:        propertyRef,
 		ValueType:       valueTypeRef,
@@ -568,6 +600,9 @@ func (fc *fieldsCollector) makeField(
 		Context:         parseContextTag(structField),
 		Default:         defaultRef,
 		Instruction:     fc.fieldInstruction(fieldPath),
+		InputComponent:  inputComponent,
+		DuplicateTop:    duplicateTop,
+		DuplicateAllow:  duplicateAllow,
 	}, nil
 }
 
@@ -852,6 +887,25 @@ func parseValuesTag(field reflect.StructField) ([]string, errors.E) {
 	return values, nil
 }
 
+// parseDuplicateTag reads the field's "duplicate" tag, which says how the edit form compares the
+// field's claims for duplicates: "top" compares each claim's own value alone, so entries repeating a
+// value are duplicates however their sub-claims differ, and "allow" keeps duplicates and compares
+// nothing. Without the tag the whole claim, sub-claims included, is compared.
+func parseDuplicateTag(field reflect.StructField) (bool, bool, errors.E) {
+	switch tag := strings.TrimSpace(field.Tag.Get("duplicate")); tag {
+	case "":
+		return false, false, nil
+	case duplicateTop:
+		return true, false, nil
+	case duplicateAllow:
+		return false, true, nil
+	default:
+		errE := errors.New("duplicate tag must be \"top\" or \"allow\"")
+		errors.Details(errE)["duplicate"] = tag
+		return false, false, errE
+	}
+}
+
 // parseContextTag parses the "context" struct tag into a slice of opaque context
 // identifiers, separated by ",". Transform does not interpret them; consumers
 // decide what they mean.
@@ -927,6 +981,86 @@ func defaultValueTypeRef(tag string) (*internalCore.Ref, errors.E) {
 		errors.Details(errE)["default"] = tag
 		return nil, errE
 	}
+}
+
+// parseFieldInputComponent returns the field's input component with the props it is rendered with,
+// from the "inputComponent" and "inputComponentProps" tags. It is nil when the field names no
+// component of its own, in which case the edit form picks the input by the field's value type. Like
+// the "values" and "default" tags, the tags are read from the property field for simple fields and
+// from the value:"" field inside for struct fields, because they describe the field's value.
+//
+// The props are a query string of string values ("key=value&key=value"), validated here so a
+// malformed one fails the build instead of reaching the frontend. Props without a component are an
+// error: they would be props for the input the value type picks, which is not what they describe.
+// A repeated key is an error too, because a prop holds one string and only the first value of a
+// repeated key would be used.
+func parseFieldInputComponent(field reflect.StructField) (*internalCore.ComponentWithProps, errors.E) {
+	component := strings.TrimSpace(field.Tag.Get("inputComponent"))
+	props := strings.TrimSpace(field.Tag.Get("inputComponentProps"))
+
+	// Neither tag on the property field, so the value:"" field of a struct field decides.
+	if component == "" && props == "" {
+		component, props = structValueFieldInputComponent(field.Type)
+	}
+
+	if props != "" {
+		if component == "" {
+			errE := errors.New("inputComponentProps tag requires inputComponent tag")
+			errors.Details(errE)["inputComponentProps"] = props
+			return nil, errE
+		}
+		values, err := url.ParseQuery(props)
+		if err != nil {
+			errE := errors.WithMessage(err, "invalid inputComponentProps tag")
+			errors.Details(errE)["inputComponentProps"] = props
+			return nil, errE
+		}
+		for _, key := range slices.Sorted(maps.Keys(values)) {
+			if len(values[key]) > 1 {
+				errE := errors.New("repeated key in inputComponentProps tag")
+				errors.Details(errE)["key"] = key
+				errors.Details(errE)["inputComponentProps"] = props
+				return nil, errE
+			}
+		}
+	}
+
+	if component == "" {
+		return nil, nil //nolint:nilnil
+	}
+
+	return &internalCore.ComponentWithProps{
+		Value: component,
+		Props: props,
+	}, nil
+}
+
+// structValueFieldInputComponent looks inside a struct type for a value:"" field and returns its
+// "inputComponent" and "inputComponentProps" tags. Both are empty if the type is not a struct or
+// has no value field carrying either tag.
+func structValueFieldInputComponent(fieldType reflect.Type) (string, string) {
+	fieldType = internalCore.UnwrapSliceAndPointer(fieldType)
+
+	if fieldType.Kind() != reflect.Struct {
+		return "", ""
+	}
+
+	for i := range fieldType.NumField() {
+		field := fieldType.Field(i)
+		if _, ok := field.Tag.Lookup("value"); ok {
+			return strings.TrimSpace(field.Tag.Get("inputComponent")), strings.TrimSpace(field.Tag.Get("inputComponentProps"))
+		}
+
+		// Recurse into embedded structs.
+		if field.Anonymous && field.Type.Kind() == reflect.Struct {
+			component, props := structValueFieldInputComponent(field.Type)
+			if component != "" || props != "" {
+				return component, props
+			}
+		}
+	}
+
+	return "", ""
 }
 
 // parseStructValueFieldDefault looks inside a struct type for a value:"" field and returns the

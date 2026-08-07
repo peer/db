@@ -10,6 +10,10 @@
       "create": "Create",
       "upload": "Upload",
       "edit": "Edit",
+      "editPermissions": "Edit permissions",
+      "requestPermissions": "Request permissions",
+      "manageRequests": "Manage requests",
+      "permissions": "Permissions",
       "delete": "Delete",
       "save": "Save",
       "discard": "Discard",
@@ -36,6 +40,7 @@
     },
     "errors": {
       "unexpected": "Unexpected error. Please try again.",
+      "notAllowed": "This change is not allowed.",
       "upload": "Upload failed. Please try again."
     },
     "status": {
@@ -77,15 +82,34 @@
     },
     "validation": {
       "required": "Required value.",
+      "duplicate": "Duplicate value.",
       "requiredPrecision": "Required precision.",
       "invalid": "Invalid value.",
       "invalidPrecision": "Invalid precision.",
       "unfinished": "Unfinished value."
+    },
+    "permissionActions": {
+      "read": "read",
+      "history": "history",
+      "update": "update",
+      "permissions": "permissions",
+      "delete": "delete"
+    },
+    "permissionActionHints": {
+      "read": "See the document and its content.",
+      "history": "See earlier versions of the document, including those from before this access was granted.",
+      "update": "Change the document and its content.",
+      "permissions": "Grant and remove access to the document for other users.",
+      "delete": "Delete the document."
     }
   },
   "partials": {
     "LanguageSwitcher": {
       "selectLanguage": "Select language"
+    },
+    "NavBarUser": {
+      "copyId": "Copy user ID",
+      "copied": "User ID copied."
     },
     "input": {
       "InputHTML": {
@@ -125,10 +149,15 @@
         "dropOrBrowse": "Drop file here or click to browse",
         "noPermission": "Uploading files not allowed."
       },
+      "InputIdentityFromPermissions": {
+        "noMoreUsers": "There are no more users with access to choose from.",
+        "noUsers": "There are no users with access to choose from."
+      },
       "InputLink": {
         "hint": "Example: https://example.com"
       },
       "InputRef": {
+        "alreadyUsed": "already used",
         "invalidValue": "invalid value",
         "noResults": "No results found."
       },
@@ -292,9 +321,37 @@
         "inMegaYears": "in 1M years | in {count}M years",
         "inGigaYears": "in 1G years | in {count}G years"
       }
+    },
+    "PermissionsForm": {
+      "approve": "Approve",
+      "deny": "Deny",
+      "noRequests": "There are no pending requests.",
+      "noUsers": "No users have been granted access.",
+      "removeAccess": "Remove access",
+      "requestsTitle": "Pending requests",
+      "usersTitle": "Users with access",
+      "requestedAction": "Requested permission",
+      "cannotGrant": "You cannot grant a permission which you do not hold yourself.",
+      "addUser": "Another user",
+      "addUserHint": "The ID of a user to grant access to.",
+      "nothingToGrant": "This user already has full access to the document (all permissions).",
+      "alreadyGranted": "The checked permissions are granted to this user already, and can be taken away in their entry above."
+    },
+    "PermissionsView": {
+      "usersTitle": "@:partials.PermissionsForm.usersTitle",
+      "noUsers": "@:partials.PermissionsForm.noUsers",
+      "requestsTitle": "@:partials.PermissionsForm.requestsTitle",
+      "noRequests": "@:partials.PermissionsForm.noRequests",
+      "requestedAction": "@:partials.PermissionsForm.requestedAction"
     }
   },
   "views": {
+    "AuthMockSignIn": {
+      "title": "Mock sign-in",
+      "description": "This site signs in without an identity provider. Choose the roles to sign in with.",
+      "noRoles": "This site declares no roles, so there are none to sign in with.",
+      "noState": "There is no sign-in to finish. Start it from the sign-in button."
+    },
     "DocumentCreate": {
       "title": "Create a new document",
       "noClasses": "There are no document types available to create."
@@ -303,11 +360,22 @@
       "title": "Delete document",
       "confirm": "Do you want to delete the document?"
     },
+    "DocumentSessions": {
+      "title": "Editing sessions",
+      "notSignedIn": "You need to sign in to see the editing sessions.",
+      "noSessions": "There are no active editing sessions.",
+      "started": "Started: {time}, user {user}",
+      "lastChange": "Last change: {time}, user {user}",
+      "create": "create",
+      "edit": "edit",
+      "open": "Open"
+    },
     "DocumentGet": {
       "tabs": {
         "allProperties": "All properties",
         "content": "Content",
-        "history": "History"
+        "history": "History",
+        "permissions": "Permissions"
       },
       "history": {
         "author": "Author",
@@ -320,12 +388,14 @@
     },
     "DocumentEdit": {
       "tabs": {
-        "allProperties": "@:views.DocumentGet.tabs.allProperties"
+        "allProperties": "@:views.DocumentGet.tabs.allProperties",
+        "permissions": "@:views.DocumentGet.tabs.permissions"
       },
       "addClaim": "Add value",
       "editClaim": "Edit value",
       "addSubClaim": "Add sub-value",
       "potentialDuplicates": "Potential duplicates",
+      "sessionEnded": "Edit session of {document} has ended.",
       "claimTypes": {
         "identifier": "Identifier",
         "string": "String",
@@ -352,6 +422,18 @@
         "from": "From",
         "to": "To"
       }
+    },
+    "DocumentRequest": {
+      "confirm": "Do you want to request access to the document?",
+      "notSignedIn": "You need to sign in to request access to the document.",
+      "request": "Request",
+      "requested": "Access to the document has been requested.",
+      "title": "Request access",
+      "note": "Note",
+      "notAvailable": "Requesting access to documents is not available.",
+      "permission": "Permission",
+      "noteHint": "Why do you need this access?",
+      "nothingToRequest": "You already have full access to the document (all permissions)."
     }
   }
 }

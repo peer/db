@@ -177,6 +177,10 @@ func TestRevocationStoreCleanupExpired(t *testing.T) {
 	// Verify directly via SQL: the aged row is gone, the fresh row stays.
 	var expiredCount, freshCount int
 	errE = internalStore.RetryTransaction(ctx, rs.DBPool, pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
+		// Initialize in the case transaction is retried.
+		expiredCount = 0
+		freshCount = 0
+
 		err := tx.QueryRow(ctx, `SELECT COUNT(*) FROM "RevokedTokens" WHERE "tokenHash" = $1`, auth.TestingHashToken(expiredToken)).Scan(&expiredCount)
 		if err != nil {
 			return internalStore.WithPgxError(err)

@@ -11,6 +11,7 @@ import (
 	"gitlab.com/tozd/go/x"
 	"gitlab.com/tozd/identifier"
 
+	"gitlab.com/peerdb/peerdb/auth"
 	"gitlab.com/peerdb/peerdb/coordinator"
 	"gitlab.com/peerdb/peerdb/document"
 	internalStore "gitlab.com/peerdb/peerdb/internal/store"
@@ -27,7 +28,7 @@ func (b *B) GetDocument(
 	ctx context.Context, id identifier.Identifier, version store.Version,
 ) (json.RawMessage, *store.DocumentMetadata, store.Version, []store.Version, errors.E) {
 	return b.withHooks(ctx, id, &version, func() (json.RawMessage, *store.DocumentMetadata, store.Version, []store.Version, errors.E) {
-		return b.documents.Get(ctx, id, version)
+		return b.Documents().Get(ctx, id, version)
 	})
 }
 
@@ -39,7 +40,7 @@ func (b *B) GetDocumentLatest(
 	ctx context.Context, id identifier.Identifier,
 ) (json.RawMessage, *store.DocumentMetadata, store.Version, []store.Version, errors.E) {
 	return b.withHooks(ctx, id, nil, func() (json.RawMessage, *store.DocumentMetadata, store.Version, []store.Version, errors.E) {
-		return b.documents.GetLatest(ctx, id)
+		return b.Documents().GetLatest(ctx, id)
 	})
 }
 
@@ -50,7 +51,7 @@ func (b *B) GetDocumentLatest(
 func (b *B) GetDocumentLatestDoc(ctx context.Context, id identifier.Identifier) (*document.D, *store.DocumentMetadata, store.Version, []store.Version, errors.E) {
 	return b.withDocumentHooks(ctx, id, nil,
 		func() (json.RawMessage, *store.DocumentMetadata, store.Version, []store.Version, errors.E) {
-			return b.documents.GetLatest(ctx, id)
+			return b.Documents().GetLatest(ctx, id)
 		},
 	)
 }
@@ -66,7 +67,7 @@ func (b *B) DocumentChangeset(ctx context.Context, id identifier.Identifier) (
 	store.Changeset[json.RawMessage, *store.DocumentMetadata, *store.NoMetadata, *store.NoMetadata, *store.CommitMetadata, document.Changes],
 	errors.E,
 ) {
-	return b.documents.Changeset(ctx, id)
+	return b.Documents().Changeset(ctx, id)
 }
 
 // GetDocumentFromChangeset returns the document at the given revision in the changeset as raw JSON.
@@ -78,8 +79,11 @@ func (b *B) DocumentChangeset(ctx context.Context, id identifier.Identifier) (
 func (b *B) GetDocumentFromChangeset(
 	ctx context.Context, changesetID, id identifier.Identifier, revision int64,
 ) (json.RawMessage, *store.DocumentMetadata, store.Version, []store.Version, errors.E) {
-	return b.withHooks(ctx, id, nil, func() (json.RawMessage, *store.DocumentMetadata, store.Version, []store.Version, errors.E) {
-		changeset, errE := b.documents.Changeset(ctx, changesetID)
+	// A changeset read is a versioned read: the version is the changeset at the given revision, with
+	// revision 0 meaning the changeset's latest revision.
+	version := store.Version{Changeset: changesetID, Revision: revision}
+	return b.withHooks(ctx, id, &version, func() (json.RawMessage, *store.DocumentMetadata, store.Version, []store.Version, errors.E) {
+		changeset, errE := b.DocumentChangeset(ctx, changesetID)
 		if errE != nil {
 			return nil, nil, store.Version{}, nil, errE
 		}
@@ -92,7 +96,14 @@ func (b *B) FileChangeset(ctx context.Context, id identifier.Identifier) (
 	store.Changeset[string, *storage.FileMetadata, *store.NoMetadata, *store.NoMetadata, *store.CommitMetadata, store.None],
 	errors.E,
 ) {
-	return b.files.Store().Changeset(ctx, id)
+	return b.Files().Changeset(ctx, id)
+}
+
+// Files returns the underlying files store. It reads the raw stored file entries directly and
+// unfiltered, without the read-path file hooks (and thus any permission checks), and without
+// opening the files themselves.
+func (b *B) Files() *store.Store[string, *storage.FileMetadata, *store.NoMetadata, *store.NoMetadata, *store.CommitMetadata, store.None] {
+	return b.files.Store()
 }
 
 // GetFileFromChangeset returns an open handle on the file at the given revision in the changeset.
@@ -105,17 +116,12 @@ func (b *B) FileChangeset(ctx context.Context, id identifier.Identifier) (
 func (b *B) GetFileFromChangeset(
 	ctx context.Context, changesetID, id identifier.Identifier, revision int64,
 ) (io.ReadSeekCloser, *storage.FileMetadata, store.Version, []store.Version, errors.E) {
-	for _, hook := range b.FilePreHooks {
-		errE := hook(ctx, id, nil)
-		if errE != nil {
-			return nil, nil, store.Version{}, nil, errE
-		}
-	}
-	file, metadata, version, parentChangesets, errE := b.files.GetFromChangeset(ctx, changesetID, id, revision)
-	for _, hook := range b.FilePostHooks {
-		file, metadata, version, parentChangesets, errE = hook(ctx, file, metadata, version, parentChangesets, errE)
-	}
-	return file, metadata, version, parentChangesets, errE
+	// A changeset read is a versioned read: the version is the changeset at the given revision, with
+	// revision 0 meaning the changeset's latest revision.
+	version := store.Version{Changeset: changesetID, Revision: revision}
+	return b.withFileHooks(ctx, id, &version, func() (io.ReadSeekCloser, *storage.FileMetadata, store.Version, []store.Version, errors.E) {
+		return b.files.GetFromChangeset(ctx, changesetID, id, revision)
+	})
 }
 
 // InsertDocument inserts a new document.
@@ -137,7 +143,7 @@ func (b *B) InsertDocument(ctx context.Context, doc *document.D) errors.E {
 	changesetBase := slices.Clone(doc.Base)
 	changesetBase = append(changesetBase, "CHANGESET", "FIRST")
 	user := store.UserFromContext(ctx)
-	_, errE = b.documents.Insert(ctx, doc.ID, documentJSON, &store.DocumentMetadata{
+	_, errE = b.Documents().Insert(ctx, doc.ID, documentJSON, &store.DocumentMetadata{
 		At:    store.Time(time.Now().UTC()),
 		Users: internalStore.SortedUniqueUsers([]*store.User{user}),
 	}, &store.CommitMetadata{
@@ -170,43 +176,30 @@ func (b *B) DeleteDocument(ctx context.Context, id identifier.Identifier) errors
 		Users: internalStore.SortedUniqueUsers([]*store.User{user}),
 	}
 
-	_, errE = b.documents.Delete(ctx, id, version.Changeset, metadata, &store.CommitMetadata{
+	_, errE = b.Documents().Delete(ctx, id, version.Changeset, metadata, &store.CommitMetadata{
 		Base: changesetBase,
 		User: user,
 	})
 	return errE
 }
 
-// TODO: Add also a version of BeginEditDocumentLatest method which allows you to specify the version of the document from which the edit session should start.
-
-// BeginEditDocumentLatest begins an edit session for the latest version of the document.
-//
-// It returns session ID and the version of the document from which the edit session started.
-func (b *B) BeginEditDocumentLatest(ctx context.Context, id identifier.Identifier) (identifier.Identifier, store.Version, errors.E) {
-	documentJSON, _, version, _, errE := b.GetDocumentLatest(ctx, id)
-	if errE != nil {
-		// TODO: ErrValueNotFound error should make the caller return NotFoundWithError.
-		return identifier.Identifier{}, store.Version{}, errE
-	}
-
-	var doc document.D
-	errE = x.UnmarshalWithoutUnknownFields(documentJSON, &doc)
-	if errE != nil {
-		return identifier.Identifier{}, store.Version{}, errE
-	}
-
-	session, errE := b.coordinator.Begin(ctx, &DocumentBeginMetadata{
+// BeginEditDocument begins an edit session of the document at the given version. The caller provides
+// the document itself (typically fetched together with the version), whose ID and Base feed the
+// session's begin metadata. A context marked with WithSystemSession begins a system session (see
+// DocumentBeginMetadata.System), which no caller can access through the API.
+func (b *B) BeginEditDocument(ctx context.Context, version store.Version, doc *document.D) (identifier.Identifier, errors.E) {
+	return b.coordinator.Begin(ctx, &DocumentBeginMetadata{
 		At:         store.Time(time.Now().UTC()),
-		DocumentID: id,
+		DocumentID: doc.ID,
 		Base:       doc.Base,
 		Version: &store.Version{
 			Changeset: version.Changeset,
 			// Revision 0 resolves to the changeset's latest revision when the session completes.
 			Revision: 0,
 		},
-		User: store.UserFromContext(ctx),
+		User:   store.UserFromContext(ctx),
+		System: isSystemSession(ctx),
 	})
-	return session, version, errE
 }
 
 // BeginCreateDocument opens a coordinator session for creating a brand-new document.
@@ -224,6 +217,7 @@ func (b *B) BeginCreateDocument(ctx context.Context, base []string) (identifier.
 		Base:       base,
 		Version:    nil,
 		User:       store.UserFromContext(ctx),
+		System:     isSystemSession(ctx),
 	})
 }
 
@@ -307,6 +301,21 @@ func (b *B) AppendDocumentChange(ctx context.Context, session identifier.Identif
 		return 0, errors.WrapWith(errE, ErrInvalidChange)
 	}
 
+	// Only the application can append to a session it owns (see DocumentBeginMetadata.System), and it
+	// does so with a system context. Appending to it otherwise is a programming error: the change is
+	// not a caller's change (the session has no caller to check it against), so it is rejected rather
+	// than let through unchecked.
+	if beginMetadata.System && !isSystemSession(ctx) {
+		return 0, errors.New("system session appended to without a system context")
+	}
+
+	if b.ChangePermissionCheck != nil && !isSystemSession(ctx) {
+		errE = b.ChangePermissionCheck(ctx, doc, validated, change)
+		if errE != nil {
+			return 0, errE
+		}
+	}
+
 	operation, errE := b.coordinator.Append(ctx, session, data, &documentChangeMetadata{
 		At:   store.Time(time.Now().UTC()),
 		User: store.UserFromContext(ctx),
@@ -316,6 +325,27 @@ func (b *B) AppendDocumentChange(ctx context.Context, session identifier.Identif
 	}
 
 	b.sessionDocs.Store(session, validated, seqNo)
+	return operation, nil
+}
+
+// AppendDocumentChanges appends the changes to the edit session as operations startOperation+1
+// onward. It returns the operation number of the last appended change (startOperation when there
+// are none, or the last successfully appended one on an error).
+func (b *B) AppendDocumentChanges(
+	ctx context.Context, session identifier.Identifier, changes document.Changes, startOperation int64,
+) (int64, errors.E) {
+	operation := startOperation
+	for _, change := range changes {
+		data, errE := document.ChangeMarshalJSON(change)
+		if errE != nil {
+			return operation, errE
+		}
+		_, errE = b.AppendDocumentChange(ctx, session, data, operation+1)
+		if errE != nil {
+			return operation, errE
+		}
+		operation++
+	}
 	return operation, nil
 }
 
@@ -338,12 +368,130 @@ func (b *B) EndEditDocument(ctx context.Context, session identifier.Identifier, 
 		At:        store.Time(time.Now().UTC()),
 		Discarded: discard,
 		User:      store.UserFromContext(ctx),
+		Roles:     auth.Roles(ctx),
+		System:    isSystemSession(ctx),
 	})
-	if errE == nil {
-		// No further operations can be appended to an ended session.
-		b.sessionDocs.Delete(session)
-	}
+	// The cached session state is kept until the session completes (see completeDocumentSessionTx):
+	// permission checks keep consulting it while the ended session is completing asynchronously.
 	return errE
+}
+
+// SessionDocumentRaw returns the edit session's current document state (the parent document for edit
+// sessions, or an empty document for create sessions, with all committed changes applied), together
+// with the session's begin metadata. It works also for an ended session while it is completing
+// asynchronously (its changes are frozen, so its state is final), but fails with
+// coordinator.ErrAlreadyCompleted once the session has completed: its result (if any) is then a
+// committed document version and the session has no own state anymore.
+//
+// The state is raw, as the name says: neither the document pre and post hooks nor the session document
+// hooks are run on it (for edit sessions the parent document is loaded directly from the store), so it
+// can reveal documents, or parts of documents, which those hooks would deny or filter. It is the state
+// to check permissions against, because the checks read claims a filter may hide, and it must not be
+// handed to a caller as it is: run it through FilterSessionDocument for that.
+func (b *B) SessionDocumentRaw(ctx context.Context, session identifier.Identifier) (*DocumentBeginMetadata, *document.D, errors.E) {
+	beginMetadata, _, completeMetadata, errE := b.coordinator.Get(ctx, session)
+	if errE != nil {
+		return nil, nil, errE
+	} else if completeMetadata != nil {
+		return nil, nil, errors.WithStack(coordinator.ErrAlreadyCompleted)
+	}
+
+	doc, cachedOperation := b.sessionDocs.Get(session)
+	var from *document.D
+	if doc != nil {
+		// The cached state is shared, so changes are applied to a clone.
+		from, errE = doc.Clone()
+		if errE != nil {
+			return nil, nil, errE
+		}
+	}
+	rebuilt, lastOperation, errE := b.rebuildSessionDocument(ctx, session, beginMetadata, from, cachedOperation)
+	if errE != nil {
+		return nil, nil, errE
+	}
+	b.sessionDocs.Store(session, rebuilt, lastOperation)
+
+	// The stored state is shared, so a clone is returned.
+	result, errE := rebuilt.Clone()
+	if errE != nil {
+		return nil, nil, errE
+	}
+	return beginMetadata, result, nil
+}
+
+// EditSession is one edit session a user is taking part in, as ListEditSessions returns it.
+type EditSession struct {
+	Session identifier.Identifier
+	// DocumentID is the document the session edits, which for a create session is the document it will
+	// create once it is saved.
+	DocumentID identifier.Identifier
+	// Create tells the two apart: it is true for a session creating a new document and false for one
+	// editing a document which exists.
+	Create bool
+	// At is when the session began, and LastChangeAt when a change was last appended to it, which is
+	// when it began while nothing has been appended.
+	At           store.Time
+	LastChangeAt store.Time
+	// By is who began the session, and LastChangeBy who appended the change last, which is who began
+	// it while nothing has been appended. Either is nil when done unauthenticated.
+	By           *store.User
+	LastChangeBy *store.User
+}
+
+// ListEditSessions returns the edit sessions which have not ended yet and which the user in ctx is
+// taking part in: those they began and those they appended a change to, which are the users a session
+// records on what it commits (see store.DocumentMetadata.Users). Sessions the application drives
+// itself are left out (see DocumentBeginMetadata.System), and an unauthenticated caller takes part in
+// none, so they get nothing.
+//
+// The sessions come newest first, by when they began. Whether the caller may still access each of them
+// is a separate question (see Service.HasSessionPermission), and so is what each of them holds by now
+// (see SessionDocumentRaw).
+func (b *B) ListEditSessions(ctx context.Context) ([]EditSession, errors.E) {
+	user := store.UserFromContext(ctx)
+	if user == nil {
+		return nil, nil
+	}
+
+	// The metadata a session begins with and the metadata of every change record the user under the
+	// same key, so one match finds a session whichever of the two the user is in.
+	metadata, errE := x.MarshalWithoutEscapeHTML(struct {
+		User *store.User `json:"user"`
+	}{user})
+	if errE != nil {
+		return nil, errE
+	}
+
+	infos, errE := b.coordinator.ListNotEnded(ctx, metadata)
+	if errE != nil {
+		return nil, errE
+	}
+
+	sessions := make([]EditSession, 0, len(infos))
+	for _, info := range infos {
+		if info.BeginMetadata.System {
+			continue
+		}
+		lastChangeAt := info.BeginMetadata.At
+		lastChangeBy := info.BeginMetadata.User
+		if info.LastOperation > 0 {
+			lastChangeAt = info.OperationMetadata.At
+			lastChangeBy = info.OperationMetadata.User
+		}
+		sessions = append(sessions, EditSession{
+			Session:      info.Session,
+			DocumentID:   info.BeginMetadata.DocumentID,
+			Create:       info.BeginMetadata.Version == nil,
+			At:           info.BeginMetadata.At,
+			LastChangeAt: lastChangeAt,
+			By:           info.BeginMetadata.User,
+			LastChangeBy: lastChangeBy,
+		})
+	}
+	slices.SortFunc(sessions, func(a, b EditSession) int {
+		return time.Time(b.At).Compare(time.Time(a.At))
+	})
+	return sessions, nil
 }
 
 // GetEditDocumentSession returns the begin metadata of the edit session, a flag indicating
@@ -426,7 +574,7 @@ func (b *B) GetUploadSession(ctx context.Context, session identifier.Identifier)
 // CountFiles returns the number of stored files currently in storage,
 // excluding files whose latest committed version has been deleted.
 func (b *B) CountFiles(ctx context.Context) (int64, errors.E) {
-	return b.files.Store().Count(ctx, false)
+	return b.Files().Count(ctx, false)
 }
 
 // GetFile returns an open handle on a stored file at the given version. The caller is responsible
@@ -438,17 +586,9 @@ func (b *B) CountFiles(ctx context.Context) (int64, errors.E) {
 func (b *B) GetFile(
 	ctx context.Context, id identifier.Identifier, version store.Version,
 ) (io.ReadSeekCloser, *storage.FileMetadata, store.Version, []store.Version, errors.E) {
-	for _, hook := range b.FilePreHooks {
-		errE := hook(ctx, id, &version)
-		if errE != nil {
-			return nil, nil, store.Version{}, nil, errE
-		}
-	}
-	file, metadata, version, parentChangesets, errE := b.files.Get(ctx, id, version)
-	for _, hook := range b.FilePostHooks {
-		file, metadata, version, parentChangesets, errE = hook(ctx, file, metadata, version, parentChangesets, errE)
-	}
-	return file, metadata, version, parentChangesets, errE
+	return b.withFileHooks(ctx, id, &version, func() (io.ReadSeekCloser, *storage.FileMetadata, store.Version, []store.Version, errors.E) {
+		return b.files.Get(ctx, id, version)
+	})
 }
 
 // GetFileLatest returns an open handle on the latest version of a stored file. The caller is
@@ -457,15 +597,7 @@ func (b *B) GetFile(
 // It returns also file metadata, the version of the file, and parent
 // changesets of the file at this version.
 func (b *B) GetFileLatest(ctx context.Context, id identifier.Identifier) (io.ReadSeekCloser, *storage.FileMetadata, store.Version, []store.Version, errors.E) {
-	for _, hook := range b.FilePreHooks {
-		errE := hook(ctx, id, nil)
-		if errE != nil {
-			return nil, nil, store.Version{}, nil, errE
-		}
-	}
-	file, metadata, version, parentChangesets, errE := b.files.GetLatest(ctx, id)
-	for _, hook := range b.FilePostHooks {
-		file, metadata, version, parentChangesets, errE = hook(ctx, file, metadata, version, parentChangesets, errE)
-	}
-	return file, metadata, version, parentChangesets, errE
+	return b.withFileHooks(ctx, id, nil, func() (io.ReadSeekCloser, *storage.FileMetadata, store.Version, []store.Version, errors.E) {
+		return b.files.GetLatest(ctx, id)
+	})
 }

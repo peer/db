@@ -21,12 +21,12 @@ import (
 type fakeAuthenticator struct {
 	authCalls         int
 	lastPrefix        string
-	lastAllowedRoles  map[string][]string
+	lastAllowedRoles  map[string]auth.RoleGrants
 	lastSubjectMarker string
 }
 
 func (f *fakeAuthenticator) Authenticate(
-	_ http.ResponseWriter, req *http.Request, prefix string, allowedRoles map[string][]string, _ []auth.VisibilityLevel,
+	_ http.ResponseWriter, req *http.Request, prefix string, allowedRoles map[string]auth.RoleGrants, _ []auth.VisibilityLevel,
 ) context.Context {
 	f.authCalls++
 	f.lastPrefix = prefix
@@ -37,11 +37,15 @@ func (f *fakeAuthenticator) Authenticate(
 	return context.WithValue(req.Context(), markerKey{}, f.lastSubjectMarker)
 }
 
+func (*fakeAuthenticator) Identity(_ http.ResponseWriter, _ *http.Request, _ string, _ map[string]auth.RoleGrants) (*auth.Identity, errors.E) {
+	return nil, errors.New("not implemented")
+}
+
 func (*fakeAuthenticator) SignIn(_ context.Context, _, _ string) (string, errors.E) {
 	return "", errors.New("not implemented")
 }
 
-func (*fakeAuthenticator) Callback(_ context.Context, _ url.Values) (string, time.Time, string, errors.E) {
+func (*fakeAuthenticator) Callback(_ context.Context, _ url.Values, _ map[string]auth.RoleGrants) (string, time.Time, string, errors.E) {
 	return "", time.Time{}, "", errors.New("not implemented")
 }
 
@@ -61,7 +65,7 @@ func TestMiddlewareCallsAuthenticateAndNext(t *testing.T) {
 	t.Parallel()
 
 	fake := &fakeAuthenticator{}
-	allowed := map[string][]string{"admin": {"canEdit"}}
+	allowed := map[string]auth.RoleGrants{"admin": {}}
 
 	var (
 		nextCalls int
@@ -72,7 +76,7 @@ func TestMiddlewareCallsAuthenticateAndNext(t *testing.T) {
 		nextReq = req
 	})
 
-	mw := auth.Middleware("Prefix-", func(_ http.ResponseWriter, _ *http.Request) (auth.Authenticator, map[string][]string, []auth.VisibilityLevel, bool) {
+	mw := auth.Middleware("Prefix-", func(_ http.ResponseWriter, _ *http.Request) (auth.Authenticator, map[string]auth.RoleGrants, []auth.VisibilityLevel, bool) {
 		return fake, allowed, nil, false
 	})
 
@@ -106,7 +110,7 @@ func TestMiddlewareShortCircuitsWhenHandled(t *testing.T) {
 		nextCalls++
 	})
 
-	mw := auth.Middleware("Prefix-", func(w http.ResponseWriter, _ *http.Request) (auth.Authenticator, map[string][]string, []auth.VisibilityLevel, bool) {
+	mw := auth.Middleware("Prefix-", func(w http.ResponseWriter, _ *http.Request) (auth.Authenticator, map[string]auth.RoleGrants, []auth.VisibilityLevel, bool) {
 		http.Error(w, "no site", http.StatusInternalServerError)
 		return nil, nil, nil, true
 	})
