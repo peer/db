@@ -97,6 +97,39 @@ const bulkOpOverhead = 256
 
 var errCommittedChannelClosed = errors.Base("committed channel is closed")
 
+// errDocumentNotAtLevel reports a document which the visibility level in the context does not see: it is
+// hidden at the level, or it is not a source at the level. It wraps store.ErrValueNotFound, so callers
+// which only need to know that there is no document to render are unaffected, while callers which report
+// a missing document can tell this expected case apart from a document which is really gone.
+var errDocumentNotAtLevel = errors.BaseWrap(store.ErrValueNotFound, "document not at level")
+
+// cachedDocument is an entry of a cache of per-level documents. Doc is nil for a negative entry, and
+// NotAtLevel then tells whether the document is missing only because the level does not see it, rather
+// than because it is deleted or never existed.
+type cachedDocument struct {
+	Doc        *document.D
+	NotAtLevel bool
+}
+
+// notFound returns the error a negative entry is reported with.
+func (c cachedDocument) notFound() errors.E {
+	if c.NotAtLevel {
+		return errors.WithStack(errDocumentNotAtLevel)
+	}
+	return errors.WithStack(store.ErrValueNotFound)
+}
+
+// notFoundLevel returns the level to log a document which could not be fetched while converting another
+// document at. A document the level does not see is how the levels are meant to work and happens for
+// every document referencing it, so it is logged at debug; a document which is really gone points at data
+// which no longer holds together and is logged at warning.
+func notFoundLevel(errE errors.E) zerolog.Level {
+	if errors.Is(errE, errDocumentNotAtLevel) {
+		return zerolog.DebugLevel
+	}
+	return zerolog.WarnLevel
+}
+
 type bulkError struct {
 	ID         string            `json:"id,omitempty"`
 	Index      string            `json:"index,omitempty"`
@@ -253,7 +286,7 @@ type Bridge struct {
 	// on latest reads and GetDocument serves it to each level's converter for secondary (referenced-document)
 	// fetches. It is dropped for changed documents on each commit via invalidateCaches. Documents are stored
 	// by pointer and shared with the converters' own caches.
-	documentCache map[documentCacheKey]*document.D
+	documentCache map[documentCacheKey]cachedDocument
 	// cacheGenMu protects cacheGen.
 	cacheGenMu sync.RWMutex
 	// cacheGen holds a per-document monotonic generation, bumped by invalidateCaches before the cached
@@ -440,7 +473,7 @@ func (b *Bridge) Init(
 	if errE != nil {
 		return errE
 	}
-	b.documentCache = map[documentCacheKey]*document.D{}
+	b.documentCache = map[documentCacheKey]cachedDocument{}
 	b.cacheGen = map[identifier.Identifier]uint64{}
 	listener.Handle(b.bridgeSeqChannel, b)
 	listener.Handle(b.bridgeReindexQueueMinSeqChannel, b)
@@ -1795,11 +1828,17 @@ func (b *Bridge) cacheLevels(id identifier.Identifier, version *store.Version, g
 		return
 	}
 	for i, t := range b.targets {
-		var doc *document.D
-		if docs != nil && sources[i] {
-			doc = docs[i]
+		entry := cachedDocument{Doc: nil, NotAtLevel: false}
+		if docs != nil {
+			// The document itself is there, so a negative entry here is only about this level: either the
+			// level does not see the document (docs[i] is nil) or the document is not a source at it.
+			if sources[i] && docs[i] != nil {
+				entry.Doc = docs[i]
+			} else {
+				entry.NotAtLevel = true
+			}
 		}
-		b.documentCache[documentCacheKey{level: t.Level, id: id}] = doc
+		b.documentCache[documentCacheKey{level: t.Level, id: id}] = entry
 	}
 }
 
@@ -1822,14 +1861,14 @@ func (b *Bridge) genOf(id identifier.Identifier) uint64 {
 func (b *Bridge) GetDocument(ctx context.Context, id identifier.Identifier) (*document.D, errors.E) {
 	level := auth.Visibility(ctx)
 	b.documentCacheMu.RLock()
-	doc, ok := b.documentCache[documentCacheKey{level: level, id: id}]
+	entry, ok := b.documentCache[documentCacheKey{level: level, id: id}]
 	b.documentCacheMu.RUnlock()
 	if ok {
-		if doc == nil {
+		if entry.Doc == nil {
 			// Cached negative: the document is deleted, never existed, hidden, or not a source at this level.
-			return nil, errors.WithStack(store.ErrValueNotFound)
+			return nil, entry.notFound()
 		}
-		return doc, nil
+		return entry.Doc, nil
 	}
 	docs, sources, _, _, deleted, errE := b.produceLevels(ctx, id, nil)
 	if errE != nil {
@@ -1841,7 +1880,8 @@ func (b *Bridge) GetDocument(ctx context.Context, id identifier.Identifier) (*do
 				if docs[i] != nil && sources[i] {
 					return docs[i], nil
 				}
-				break
+				// The document is there, so this level is the only reason it cannot be used here.
+				return nil, errors.WithStack(errDocumentNotAtLevel)
 			}
 		}
 	}

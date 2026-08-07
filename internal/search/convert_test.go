@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gitlab.com/tozd/go/errors"
@@ -744,6 +745,37 @@ func TestGetDocumentCacheSkipsWriteOnConcurrentInvalidation(t *testing.T) {
 	_, errE = c.getDocument(ctx, testDocID)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, 2, callCount, "the previous fetch should have been cached")
+}
+
+func TestGetDocumentCacheKeepsNotAtLevelApartFromMissing(t *testing.T) {
+	t.Parallel()
+
+	missingDocID := identifier.New()
+	getDocument := func(_ context.Context, id identifier.Identifier) (*document.D, errors.E) {
+		if id == testDocID {
+			// The document is there, this level just does not see it.
+			return nil, errors.WithStack(errDocumentNotAtLevel)
+		}
+		return nil, errors.WithStack(store.ErrValueNotFound)
+	}
+	c, errE := NewConverter(nil, nil, nil, nil, getDocument)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	ctx := t.Context()
+
+	// Both are not found, so both leave the referencing document without the reference, but only a
+	// document which is really gone is worth reporting. The distinction has to survive the negative
+	// caching, because a reference to a hidden document is refetched for every document referencing it.
+	for range 2 {
+		_, errE := c.getDocument(ctx, testDocID)
+		assert.ErrorIs(t, errE, store.ErrValueNotFound)
+		assert.ErrorIs(t, errE, errDocumentNotAtLevel)
+		assert.Equal(t, zerolog.DebugLevel, notFoundLevel(errE))
+
+		_, errE = c.getDocument(ctx, missingDocID)
+		assert.ErrorIs(t, errE, store.ErrValueNotFound)
+		require.NotErrorIs(t, errE, errDocumentNotAtLevel)
+		assert.Equal(t, zerolog.WarnLevel, notFoundLevel(errE))
+	}
 }
 
 func TestDocumentInfoCacheSkipsWriteOnConcurrentInvalidation(t *testing.T) {

@@ -379,7 +379,7 @@ type Converter struct {
 	// getDocumentCache caches raw documents fetched via getDocument, keyed by document ID.
 	// The bridge invalidates entries for documents changed in each commit via InvalidateCaches.
 	// TODO: Bound this cache (for example with an LRU) to limit memory usage; it currently grows unbounded.
-	getDocumentCache map[identifier.Identifier]*document.D
+	getDocumentCache map[identifier.Identifier]cachedDocument
 }
 
 // ConversionStats accumulates per-document conversion metrics. Attach a *ConversionStats to the
@@ -427,18 +427,18 @@ func (c *Converter) getDocument(ctx context.Context, id identifier.Identifier) (
 		}
 	}
 	c.getDocumentMu.RLock()
-	doc, ok := c.getDocumentCache[id]
+	entry, ok := c.getDocumentCache[id]
 	c.getDocumentMu.RUnlock()
 	stats := conversionStatsFromContext(ctx)
 	if ok {
 		if stats != nil {
 			stats.DocCacheHits++
 		}
-		if doc == nil {
+		if entry.Doc == nil {
 			// Cached negative: the document is deleted, never existed, or hidden at this level.
-			return nil, errors.WithStack(store.ErrValueNotFound)
+			return nil, entry.notFound()
 		}
-		return doc, nil
+		return entry.Doc, nil
 	}
 	start := time.Now()
 	doc, errE := c.getDocumentFunc(ctx, id)
@@ -453,7 +453,7 @@ func (c *Converter) getDocument(ctx context.Context, id identifier.Identifier) (
 			// InvalidateCaches drops it, and the documentInfo of every dependent, when the id changes.
 			c.getDocumentMu.Lock()
 			if c.genOf(id) == gen {
-				c.getDocumentCache[id] = nil
+				c.getDocumentCache[id] = cachedDocument{Doc: nil, NotAtLevel: errors.Is(errE, errDocumentNotAtLevel)}
 			}
 			c.getDocumentMu.Unlock()
 		}
@@ -465,7 +465,7 @@ func (c *Converter) getDocument(ctx context.Context, id identifier.Identifier) (
 	// the in-flight conversion but do not install it. The bridge reindexes the affected documents from
 	// their new versions regardless.
 	if c.genOf(id) == gen {
-		c.getDocumentCache[id] = doc
+		c.getDocumentCache[id] = cachedDocument{Doc: doc, NotAtLevel: false}
 	}
 	c.getDocumentMu.Unlock()
 	return doc, nil
@@ -604,7 +604,7 @@ func NewConverter(
 		documentInfoCache:        map[identifier.Identifier]documentInfo{},
 		documentInfoMu:           sync.RWMutex{},
 		infoDependents:           map[identifier.Identifier]map[identifier.Identifier]bool{},
-		getDocumentCache:         map[identifier.Identifier]*document.D{},
+		getDocumentCache:         map[identifier.Identifier]cachedDocument{},
 		getDocumentMu:            sync.RWMutex{},
 	}
 	c.buildLanguageDetector()
@@ -999,9 +999,9 @@ func (c *Converter) computeDocumentInfo(
 		doc, errE = c.getDocument(ctx, id)
 		if errE != nil {
 			if errors.Is(errE, store.ErrValueNotFound) {
-				// Referenced document does not exist (or was deleted). Return empty
-				// info without caching so that a later re-index can pick it up.
-				zerolog.Ctx(ctx).Warn().Err(errE).
+				// Referenced document does not exist (or was deleted, or this level does not see it).
+				// Return empty info without caching so that a later re-index can pick it up.
+				zerolog.Ctx(ctx).WithLevel(notFoundLevel(errE)).Err(errE).
 					Str("id", id.String()).
 					Msg("referenced document not found, using empty info")
 				return documentInfo{}, nil
@@ -1325,8 +1325,8 @@ func (c *Converter) displayLabelTemplate(ctx context.Context, doc *document.D) (
 		classDoc, errE := c.getDocument(ctx, rel.To.ID)
 		if errE != nil {
 			if errors.Is(errE, store.ErrValueNotFound) {
-				// Class document does not exist, skip it.
-				zerolog.Ctx(ctx).Warn().Err(errE).
+				// Class document does not exist (or this level does not see it), skip it.
+				zerolog.Ctx(ctx).WithLevel(notFoundLevel(errE)).Err(errE).
 					Str("id", doc.ID.String()).
 					Str("classId", rel.To.ID.String()).
 					Msg("class document for the document not found, skipping it for display label template")
@@ -1452,7 +1452,7 @@ func (c *Converter) templateFuncs(ctx context.Context, lang string) template.Fun
 		}
 		d, errE := c.getDocument(ctx, rc.To.ID)
 		if errE != nil && errors.Is(errE, store.ErrValueNotFound) {
-			zerolog.Ctx(ctx).Warn().Err(errE).
+			zerolog.Ctx(ctx).WithLevel(notFoundLevel(errE)).Err(errE).
 				Str("id", doc.ID.String()).
 				Str("propId", propID.String()).
 				Str("referenceId", rc.To.ID.String()).
