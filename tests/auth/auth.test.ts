@@ -24,7 +24,7 @@ test.describe("PeerDB Mock Sign-In", () => {
     await expect(menuButton).toHaveText("mock-admin")
     await menuButton.click()
     await expect(page.locator(".pd-navbaruser-roles")).toHaveText("admin")
-    await expect(page.locator(".pd-navbaruser-id span")).toHaveText("mock-user-admin@localhost")
+    await expect(page.locator(".pd-navbaruser-id span")).toHaveText("mock-user-admin@peerdb-container")
 
     // The role is what the session holds, so what it grants is offered: creating documents here.
     await expect(page.getByRole("link", { name: "Create" })).toBeVisible()
@@ -50,7 +50,7 @@ test.describe("PeerDB Mock Sign-In", () => {
     await expect(menuButton).toHaveText("mock")
     await menuButton.click()
     await expect(page.locator(".pd-navbaruser-roles")).toHaveCount(0)
-    await expect(page.locator(".pd-navbaruser-id span")).toHaveText("mock-user@localhost")
+    await expect(page.locator(".pd-navbaruser-id span")).toHaveText("mock-user@peerdb-container")
 
     console.log("Successfully signed in through the mock sign-in page as a user holding no role.")
   })
