@@ -82,8 +82,8 @@ async function onDelete() {
   <div class="pd-documentdelete mt-[var(--pd-navbar-offset)] flex w-full flex-col gap-y-1 border-t border-transparent p-1 sm:gap-y-4 sm:p-4">
     <template v-if="hasPermission(CAN_DELETE_DOCUMENT)">
       <div>
-        <h1 class="text-3xl font-bold drop-shadow-xs">{{ t("views.DocumentDelete.title") }}</h1>
-        <p class="mt-1 text-gray-700">{{ t("views.DocumentDelete.confirm") }}</p>
+        <h1 id="documentdelete-title" class="text-3xl font-bold drop-shadow-xs">{{ t("views.DocumentDelete.title") }}</h1>
+        <p id="documentdelete-text-confirm" class="mt-1 text-gray-700">{{ t("views.DocumentDelete.confirm") }}</p>
       </div>
       <SearchResult :result="{ id }" />
       <div class="flex flex-row justify-between gap-4">
@@ -91,7 +91,7 @@ async function onDelete() {
         <Button id="documentdelete-button-delete" type="button" primary :progress="busy" @click.prevent="onDelete">{{ t("common.buttons.delete") }}</Button>
       </div>
     </template>
-    <div v-else class="my-1 text-center sm:my-4">{{ t("common.status.deletingNotAllowed") }}</div>
+    <div v-else id="documentdelete-text-notallowed" class="my-1 text-center sm:my-4">{{ t("common.status.deletingNotAllowed") }}</div>
   </div>
   <Teleport to="footer">
     <Footer class="border-t border-slate-50 bg-slate-200 shadow-sm" />

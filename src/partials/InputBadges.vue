@@ -16,8 +16,12 @@ const { t } = useI18n({ useScope: "global" })
 </script>
 
 <template>
-  <span v-if="required" class="rounded-xs bg-slate-100 px-1.5 py-0.5 text-xs leading-none text-gray-600 shadow-xs">{{ t("common.labels.required") }}</span>
-  <span v-if="multiple" class="rounded-xs bg-slate-100 px-1.5 py-0.5 text-xs leading-none text-gray-600 shadow-xs">{{ t("common.labels.multiple") }}</span>
+  <span v-if="required" class="pd-inputbadges-badge-required rounded-xs bg-slate-100 px-1.5 py-0.5 text-xs leading-none text-gray-600 shadow-xs">{{
+    t("common.labels.required")
+  }}</span>
+  <span v-if="multiple" class="pd-inputbadges-badge-multiple rounded-xs bg-slate-100 px-1.5 py-0.5 text-xs leading-none text-gray-600 shadow-xs">{{
+    t("common.labels.multiple")
+  }}</span>
   <!--
     The "changed" badge doubles as a per-field revert button. At rest it looks
     identical to the original static badge; on hover/focus it picks up the
@@ -39,7 +43,7 @@ const { t } = useI18n({ useScope: "global" })
   <button
     type="button"
     :title="t('common.buttons.revert')"
-    class="flex flex-row items-center gap-1 rounded-xs bg-primary-300 px-1.5 py-0.5 text-xs leading-none text-gray-100 shadow-xs outline-none hover:cursor-pointer hover:bg-primary-400 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 active:bg-primary-500 @max-[12rem]/labels:px-0.5"
+    class="pd-inputbadges-button-revert flex flex-row items-center gap-1 rounded-xs bg-primary-300 px-1.5 py-0.5 text-xs leading-none text-gray-100 shadow-xs outline-none hover:cursor-pointer hover:bg-primary-400 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 active:bg-primary-500 @max-[12rem]/labels:px-0.5"
     :class="{ invisible: !changed }"
     @click="emit('revert')"
   >

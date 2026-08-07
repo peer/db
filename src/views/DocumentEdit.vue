@@ -1460,19 +1460,21 @@ function canSave(): boolean {
               <Tab
                 v-if="classTabId && mergedFieldsData"
                 :key="classTabId"
-                class="rounded-sm border border-gray-300 bg-white px-4 py-2 leading-tight font-medium uppercase text-gray-700 outline-none select-none not-aria-selected:hover:bg-gray-50 focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-1 aria-selected:border-primary-600 aria-selected:bg-primary-600 aria-selected:text-white"
+                class="pd-documentedit-tab-fields rounded-sm border border-gray-300 bg-white px-4 py-2 leading-tight font-medium text-gray-700 uppercase outline-none select-none not-aria-selected:hover:bg-gray-50 focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-1 aria-selected:border-primary-600 aria-selected:bg-primary-600 aria-selected:text-white"
                 ><DocumentRefInline :id="classTabId" :link="false"
               /></Tab>
               <Tab
-                class="rounded-sm border border-gray-300 bg-white px-4 py-2 leading-tight font-medium uppercase text-gray-700 outline-none select-none not-aria-selected:hover:bg-gray-50 focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-1 aria-selected:border-primary-600 aria-selected:bg-primary-600 aria-selected:text-white"
+                class="pd-documentedit-tab-allproperties rounded-sm border border-gray-300 bg-white px-4 py-2 leading-tight font-medium text-gray-700 uppercase outline-none select-none not-aria-selected:hover:bg-gray-50 focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-1 aria-selected:border-primary-600 aria-selected:bg-primary-600 aria-selected:text-white"
                 >{{ t("views.DocumentEdit.tabs.allProperties") }}</Tab
               >
             </TabList>
-            <h1 v-show="displayLabelComponent?.displayLabel" class="mb-4 text-3xl font-bold drop-shadow-xs"><DisplayLabel ref="displayLabelComponent" :doc="doc" /></h1>
+            <h1 v-show="displayLabelComponent?.displayLabel" id="documentedit-title" class="mb-4 text-3xl font-bold drop-shadow-xs"
+              ><DisplayLabel ref="displayLabelComponent" :doc="doc"
+            /></h1>
             <!-- We explicitly disable tabbing. See: https://github.com/tailwindlabs/headlessui/discussions/1433 -->
             <TabPanels as="template">
               <!-- Class-specific tab. -->
-              <TabPanel v-if="classTabId && mergedFieldsData" :key="classTabId" tabindex="-1" class="outline-none">
+              <TabPanel v-if="classTabId && mergedFieldsData" :key="classTabId" tabindex="-1" class="pd-documentedit-panel-fields outline-none">
                 <div @focusout="onFieldsBlur">
                   <FieldsForm
                     ref="fieldsFormRef"
@@ -1486,7 +1488,7 @@ function canSave(): boolean {
                 </div>
               </TabPanel>
               <!-- "All properties" tab panel. -->
-              <TabPanel tabindex="-1" class="outline-none">
+              <TabPanel tabindex="-1" class="pd-documentedit-panel-allproperties outline-none">
                 <table class="w-full table-auto border-collapse">
                   <thead>
                     <tr>
@@ -1509,8 +1511,8 @@ function canSave(): boolean {
                     />
                   </tbody>
                 </table>
-                <form ref="claimFormRef" @submit.prevent="onSubmit" @reset="onReset">
-                  <h2 class="mt-4 text-xl font-medium">{{
+                <form id="documentedit-form-claim" ref="claimFormRef" @submit.prevent="onSubmit" @reset="onReset">
+                  <h2 id="documentedit-title-claim" class="mt-4 text-xl font-medium">{{
                     editingClaimId ? t("views.DocumentEdit.editClaim") : subClaimParentId ? t("views.DocumentEdit.addSubClaim") : t("views.DocumentEdit.addClaim")
                   }}</h2>
                   <TabGroup :selected-index="selectedClaimTab" @change="onChangeClaimTab">
@@ -1519,68 +1521,71 @@ function canSave(): boolean {
                         v-for="type in claimTypes"
                         :key="type"
                         :disabled="claimTypeDisabled(type)"
-                        class="rounded-sm border border-gray-300 bg-white px-4 py-2 leading-tight font-medium uppercase text-gray-700 outline-none select-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-1 aria-selected:border-primary-600 aria-selected:bg-primary-600 aria-selected:text-white"
-                        :class="claimTypeDisabled(type) ? 'cursor-not-allowed opacity-50' : 'not-aria-selected:hover:bg-gray-50'"
+                        class="pd-documentedit-tab-claimtype rounded-sm border border-gray-300 bg-white px-4 py-2 leading-tight font-medium text-gray-700 uppercase outline-none select-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-1 aria-selected:border-primary-600 aria-selected:bg-primary-600 aria-selected:text-white"
+                        :class="[
+                          `pd-documentedit-tab-claimtype-${type.toLowerCase()}`,
+                          claimTypeDisabled(type) ? 'cursor-not-allowed opacity-50' : 'not-aria-selected:hover:bg-gray-50',
+                        ]"
                         >{{ claimTypeLabel(type) }}</Tab
                       >
                     </TabList>
                     <TabPanels as="template">
                       <!-- We explicitly disable tabbing. See: https://github.com/tailwindlabs/headlessui/discussions/1433 -->
                       <TabPanel tabindex="-1" class="flex flex-col outline-none">
-                        <InputField required :label="t('common.labels.property')" class="mt-4">
+                        <InputField required :label="t('common.labels.property')" class="pd-documentedit-field-property mt-4">
                           <template #input="inputProps">
                             <InputRef v-bind="inputProps" v-model="claimProp" :filter="PROPERTY_FILTER" />
                           </template>
                         </InputField>
-                        <InputField required :label="t('views.DocumentEdit.labels.identifier')" class="mt-4">
+                        <InputField required :label="t('views.DocumentEdit.labels.identifier')" class="pd-documentedit-field-value mt-4">
                           <template #input="inputProps">
                             <InputIdentifier v-bind="inputProps" v-model="claimValue" />
                           </template>
                         </InputField>
                       </TabPanel>
                       <TabPanel tabindex="-1" class="flex flex-col outline-none">
-                        <InputField required :label="t('common.labels.property')" class="mt-4">
+                        <InputField required :label="t('common.labels.property')" class="pd-documentedit-field-property mt-4">
                           <template #input="inputProps">
                             <InputRef v-bind="inputProps" v-model="claimProp" :filter="PROPERTY_FILTER" />
                           </template>
                         </InputField>
-                        <InputField required :label="t('views.DocumentEdit.labels.string')" class="mt-4">
+                        <InputField required :label="t('views.DocumentEdit.labels.string')" class="pd-documentedit-field-value mt-4">
                           <template #input="inputProps">
                             <InputString v-bind="inputProps" v-model="claimValue" />
                           </template>
                         </InputField>
                       </TabPanel>
                       <TabPanel tabindex="-1" class="flex flex-col outline-none">
-                        <InputField required :label="t('common.labels.property')" class="mt-4">
+                        <InputField required :label="t('common.labels.property')" class="pd-documentedit-field-property mt-4">
                           <template #input="inputProps">
                             <InputRef v-bind="inputProps" v-model="claimProp" :filter="PROPERTY_FILTER" />
                           </template>
                         </InputField>
-                        <InputField required :label="t('views.DocumentEdit.labels.html')" class="mt-4">
+                        <InputField required :label="t('views.DocumentEdit.labels.html')" class="pd-documentedit-field-value mt-4">
                           <template #input="inputProps">
                             <InputHTML v-bind="inputProps" v-model="claimValue" />
                           </template>
                         </InputField>
                       </TabPanel>
                       <TabPanel tabindex="-1" class="flex flex-col outline-none">
-                        <InputField required :label="t('common.labels.property')" class="mt-4">
+                        <InputField required :label="t('common.labels.property')" class="pd-documentedit-field-property mt-4">
                           <template #input="inputProps">
                             <InputRef v-bind="inputProps" v-model="claimProp" :filter="PROPERTY_FILTER" />
                           </template>
                         </InputField>
-                        <InputField required class="mt-4">
+                        <InputField required class="pd-documentedit-field-value mt-4">
                           <template #input="inputProps">
                             <InputAmount v-bind="inputProps" v-model="claimValue" v-model:precision="claimAmountPrecision" />
                           </template>
                         </InputField>
                       </TabPanel>
                       <TabPanel tabindex="-1" class="flex flex-col outline-none">
-                        <InputField required :label="t('common.labels.property')" class="mt-4">
+                        <InputField required :label="t('common.labels.property')" class="pd-documentedit-field-property mt-4">
                           <template #input="inputProps">
                             <InputRef v-bind="inputProps" v-model="claimProp" :filter="PROPERTY_FILTER" />
                           </template>
                         </InputField>
-                        <InputField required :label="t('views.DocumentEdit.labels.from')" class="mt-4">
+                        <InputField required :label="t('views.DocumentEdit.labels.from')" class="pd-documentedit-field-from mt-4">
                           <template #input="inputProps">
                             <InputMissing v-bind="inputProps" v-model:unknown="claimFromUnknown" v-model:none="claimFromNone">
                               <template #default="missingProps">
@@ -1589,7 +1594,7 @@ function canSave(): boolean {
                             </InputMissing>
                           </template>
                         </InputField>
-                        <InputField required :label="t('views.DocumentEdit.labels.to')" class="mt-4">
+                        <InputField required :label="t('views.DocumentEdit.labels.to')" class="pd-documentedit-field-to mt-4">
                           <template #input="inputProps">
                             <InputMissing v-bind="inputProps" v-model:unknown="claimToUnknown" v-model:none="claimToNone">
                               <template #default="missingProps">
@@ -1600,24 +1605,24 @@ function canSave(): boolean {
                         </InputField>
                       </TabPanel>
                       <TabPanel tabindex="-1" class="flex flex-col outline-none">
-                        <InputField required :label="t('common.labels.property')" class="mt-4">
+                        <InputField required :label="t('common.labels.property')" class="pd-documentedit-field-property mt-4">
                           <template #input="inputProps">
                             <InputRef v-bind="inputProps" v-model="claimProp" :filter="PROPERTY_FILTER" />
                           </template>
                         </InputField>
-                        <InputField required class="mt-4">
+                        <InputField required class="pd-documentedit-field-value mt-4">
                           <template #input="inputProps">
                             <InputTime v-bind="inputProps" v-model="claimValue" v-model:precision="claimTimePrecision" />
                           </template>
                         </InputField>
                       </TabPanel>
                       <TabPanel tabindex="-1" class="flex flex-col outline-none">
-                        <InputField required :label="t('common.labels.property')" class="mt-4">
+                        <InputField required :label="t('common.labels.property')" class="pd-documentedit-field-property mt-4">
                           <template #input="inputProps">
                             <InputRef v-bind="inputProps" v-model="claimProp" :filter="PROPERTY_FILTER" />
                           </template>
                         </InputField>
-                        <InputField required :label="t('views.DocumentEdit.labels.from')" class="mt-4">
+                        <InputField required :label="t('views.DocumentEdit.labels.from')" class="pd-documentedit-field-from mt-4">
                           <template #input="inputProps">
                             <InputMissing v-bind="inputProps" v-model:unknown="claimFromUnknown" v-model:none="claimFromNone">
                               <template #default="missingProps">
@@ -1626,7 +1631,7 @@ function canSave(): boolean {
                             </InputMissing>
                           </template>
                         </InputField>
-                        <InputField required :label="t('views.DocumentEdit.labels.to')" class="mt-4">
+                        <InputField required :label="t('views.DocumentEdit.labels.to')" class="pd-documentedit-field-to mt-4">
                           <template #input="inputProps">
                             <InputMissing v-bind="inputProps" v-model:unknown="claimToUnknown" v-model:none="claimToNone">
                               <template #default="missingProps">
@@ -1637,57 +1642,57 @@ function canSave(): boolean {
                         </InputField>
                       </TabPanel>
                       <TabPanel tabindex="-1" class="flex flex-col outline-none">
-                        <InputField required :label="t('common.labels.property')" class="mt-4">
+                        <InputField required :label="t('common.labels.property')" class="pd-documentedit-field-property mt-4">
                           <template #input="inputProps">
                             <InputRef v-bind="inputProps" v-model="claimProp" :filter="PROPERTY_FILTER" />
                           </template>
                         </InputField>
-                        <InputField required :label="t('views.DocumentEdit.labels.iri')" class="mt-4">
+                        <InputField required :label="t('views.DocumentEdit.labels.iri')" class="pd-documentedit-field-value mt-4">
                           <template #input="inputProps">
                             <InputLink v-bind="inputProps" v-model="claimValue" />
                           </template>
                         </InputField>
                       </TabPanel>
                       <TabPanel tabindex="-1" class="flex flex-col outline-none">
-                        <InputField required :label="t('common.labels.property')" class="mt-4">
+                        <InputField required :label="t('common.labels.property')" class="pd-documentedit-field-property mt-4">
                           <template #input="inputProps">
                             <InputRef v-bind="inputProps" v-model="claimProp" :filter="PROPERTY_FILTER" />
                           </template>
                         </InputField>
-                        <InputField required :label="t('views.DocumentEdit.labels.file')" class="mt-4">
+                        <InputField required :label="t('views.DocumentEdit.labels.file')" class="pd-documentedit-field-value mt-4">
                           <template #input="inputProps">
                             <InputFile v-bind="inputProps" v-model="claimValue" />
                           </template>
                         </InputField>
                       </TabPanel>
                       <TabPanel tabindex="-1" class="flex flex-col outline-none">
-                        <InputField required :label="t('common.labels.property')" class="mt-4">
+                        <InputField required :label="t('common.labels.property')" class="pd-documentedit-field-property mt-4">
                           <template #input="inputProps">
                             <InputRef v-bind="inputProps" v-model="claimProp" :filter="PROPERTY_FILTER" />
                           </template>
                         </InputField>
-                        <InputField required :label="t('views.DocumentEdit.labels.to')" class="mt-4">
+                        <InputField required :label="t('views.DocumentEdit.labels.to')" class="pd-documentedit-field-value mt-4">
                           <template #input="inputProps">
                             <InputRef v-bind="inputProps" v-model="claimValue" />
                           </template>
                         </InputField>
                       </TabPanel>
                       <TabPanel tabindex="-1" class="flex flex-col outline-none">
-                        <InputField required :label="t('common.labels.property')" class="mt-4">
+                        <InputField required :label="t('common.labels.property')" class="pd-documentedit-field-property mt-4">
                           <template #input="inputProps">
                             <InputRef v-bind="inputProps" v-model="claimProp" :filter="PROPERTY_FILTER" />
                           </template>
                         </InputField>
                       </TabPanel>
                       <TabPanel tabindex="-1" class="flex flex-col outline-none">
-                        <InputField required :label="t('common.labels.property')" class="mt-4">
+                        <InputField required :label="t('common.labels.property')" class="pd-documentedit-field-property mt-4">
                           <template #input="inputProps">
                             <InputRef v-bind="inputProps" v-model="claimProp" :filter="PROPERTY_FILTER" />
                           </template>
                         </InputField>
                       </TabPanel>
                       <TabPanel tabindex="-1" class="flex flex-col outline-none">
-                        <InputField required :label="t('common.labels.property')" class="mt-4">
+                        <InputField required :label="t('common.labels.property')" class="pd-documentedit-field-property mt-4">
                           <template #input="inputProps">
                             <InputRef v-bind="inputProps" v-model="claimProp" :filter="PROPERTY_FILTER" />
                           </template>
@@ -1695,20 +1700,22 @@ function canSave(): boolean {
                       </TabPanel>
                     </TabPanels>
                   </TabGroup>
-                  <div v-if="claimFormError" class="mt-4 text-error-600">{{ t("common.errors.unexpected") }}</div>
+                  <div v-if="claimFormError" id="documentedit-error-claim" class="mt-4 text-error-600">{{ t("common.errors.unexpected") }}</div>
                   <div class="mt-4 flex flex-row justify-end gap-4">
-                    <Button type="reset" :disabled="allEmpty && !anyError">{{ t("common.buttons.cancel") }}</Button>
+                    <Button id="documentedit-button-cancelclaim" type="reset" :disabled="allEmpty && !anyError">{{ t("common.buttons.cancel") }}</Button>
                     <!--
                     We do enable button even when inputs are invalid because we want the user to
                     attempt a add/update and force validation (and focus to first invalid input).
                   -->
-                    <Button type="submit" :disabled="!anyDirty">{{ editingClaimId ? t("common.buttons.update") : t("common.buttons.add") }}</Button>
+                    <Button id="documentedit-button-addclaim" type="submit" :disabled="!anyDirty">{{
+                      editingClaimId ? t("common.buttons.update") : t("common.buttons.add")
+                    }}</Button>
                   </div>
                 </form>
               </TabPanel>
             </TabPanels>
           </TabGroup>
-          <div v-if="sessionError" class="mt-4 text-error-600">{{ t("common.errors.unexpected") }}</div>
+          <div v-if="sessionError" id="documentedit-error-session" class="mt-4 text-error-600">{{ t("common.errors.unexpected") }}</div>
           <div class="mt-4 flex flex-row justify-between gap-4">
             <Button id="documentedit-button-discard" type="button" :progress="saveBusy" @click.prevent="onDiscard">{{ t("common.buttons.discard") }}</Button>
             <Button id="documentedit-button-save" type="submit" primary :disabled="!canSave()" :progress="saveBusy" @click.prevent="onSave">{{
@@ -1716,9 +1723,11 @@ function canSave(): boolean {
             }}</Button>
           </div>
         </template>
-        <div v-else-if="!hasPermission(CAN_EDIT_DOCUMENT)" class="my-1 text-center sm:my-4">{{ t("common.status.editingNotAllowed") }}</div>
-        <div v-else-if="!classesInitialized" class="my-1 text-center sm:my-4">{{ t("common.status.loading") }}</div>
-        <div v-else class="my-1 text-center sm:my-4">{{ t("common.status.loading") }}</div>
+        <div v-else-if="!hasPermission(CAN_EDIT_DOCUMENT)" id="documentedit-text-notallowed" class="my-1 text-center sm:my-4">{{
+          t("common.status.editingNotAllowed")
+        }}</div>
+        <div v-else-if="!classesInitialized" id="documentedit-loading" class="my-1 text-center sm:my-4">{{ t("common.status.loading") }}</div>
+        <div v-else id="documentedit-loading" class="my-1 text-center sm:my-4">{{ t("common.status.loading") }}</div>
       </div>
     </div>
   </div>

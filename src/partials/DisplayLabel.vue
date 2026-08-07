@@ -56,6 +56,6 @@ defineExpose({
   <i v-else-if="getError(displayLabel)" class="pd-displaylabel-error text-error-600">{{ t("common.status.error") }}</i>
   <template v-else-if="displayLabel">{{ capitalizeFirst(displayLabel) }}</template>
   <template v-else
-    ><i>{{ t("common.values.noName") }}</i></template
+    ><i class="pd-displaylabel-empty">{{ t("common.values.noName") }}</i></template
   >
 </template>

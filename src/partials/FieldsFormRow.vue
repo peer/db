@@ -271,28 +271,53 @@ function onCompleteInput() {
     input through InputField's slot props.
   -->
   <!-- id -->
-  <InputField v-if="claimType === 'id'" :required="required" :invalid="invalid" :labelledby="labelId" hide-badge hide-hints>
+  <InputField v-if="claimType === 'id'" class="pd-fieldsformrow pd-fieldsformrow-id" :required="required" :invalid="invalid" :labelledby="labelId" hide-badge hide-hints>
     <template #input="inputProps">
       <InputIdentifier v-bind="inputProps" v-model="value" :readonly="readonly" @update:model-value="onInput" />
     </template>
   </InputField>
 
   <!-- string -->
-  <InputField v-else-if="claimType === 'string'" :required="required" :invalid="invalid" :labelledby="labelId" hide-badge hide-hints>
+  <InputField
+    v-else-if="claimType === 'string'"
+    class="pd-fieldsformrow pd-fieldsformrow-string"
+    :required="required"
+    :invalid="invalid"
+    :labelledby="labelId"
+    hide-badge
+    hide-hints
+  >
     <template #input="inputProps">
       <InputString v-bind="inputProps" v-model="value" :readonly="readonly" @update:model-value="onInput" />
     </template>
   </InputField>
 
   <!-- html -->
-  <InputField v-else-if="claimType === 'html'" :required="required" :invalid="invalid" :labelledby="labelId" hide-badge hide-hints>
+  <InputField
+    v-else-if="claimType === 'html'"
+    class="pd-fieldsformrow pd-fieldsformrow-html"
+    :required="required"
+    :invalid="invalid"
+    :labelledby="labelId"
+    hide-badge
+    hide-hints
+  >
     <template #input="inputProps">
       <InputHTML v-bind="inputProps" v-model="value" :readonly="readonly" @update:model-value="onInput" />
     </template>
   </InputField>
 
   <!-- amount -->
-  <InputField v-else-if="claimType === 'amount'" :required="required" :invalid="invalid" :labelledby="labelId" hide-badge hide-hints :hide-labels="hideLabels">
+  <InputField
+    v-else-if="claimType === 'amount'"
+    class="pd-fieldsformrow pd-fieldsformrow-amount"
+    :required="required"
+    :invalid="invalid"
+    :labelledby="labelId"
+    hide-badge
+    hide-hints
+    :hide-labels="hideLabels"
+  >
     <template #input="inputProps">
       <InputAmount
         v-bind="inputProps"
@@ -311,8 +336,9 @@ function onCompleteInput() {
     flex base (max-content) sizes, so the bounds never shrink to avoid wrapping;
     no breakpoint and no observer needed.
   -->
-  <div v-else-if="claimType === 'amountInterval'" class="flex min-w-0 flex-row flex-wrap items-start gap-x-8 gap-y-4">
+  <div v-else-if="claimType === 'amountInterval'" class="pd-fieldsformrow pd-fieldsformrow-amountinterval flex min-w-0 flex-row flex-wrap items-start gap-x-8 gap-y-4">
     <InputField
+      class="pd-fieldsformrow-field-from"
       :required="required"
       hide-required-badge
       :invalid="invalid"
@@ -344,6 +370,7 @@ function onCompleteInput() {
       </template>
     </InputField>
     <InputField
+      class="pd-fieldsformrow-field-to"
       :required="required"
       hide-required-badge
       :invalid="invalid"
@@ -377,15 +404,25 @@ function onCompleteInput() {
   </div>
 
   <!-- time -->
-  <InputField v-else-if="claimType === 'time'" :required="required" :invalid="invalid" :labelledby="labelId" hide-badge hide-hints :hide-labels="hideLabels">
+  <InputField
+    v-else-if="claimType === 'time'"
+    class="pd-fieldsformrow pd-fieldsformrow-time"
+    :required="required"
+    :invalid="invalid"
+    :labelledby="labelId"
+    hide-badge
+    hide-hints
+    :hide-labels="hideLabels"
+  >
     <template #input="inputProps">
       <InputTime v-bind="inputProps" v-model="value" v-model:precision="timePrecision" :readonly="readonly" @update:model-value="onInput" @update:precision="onInput" />
     </template>
   </InputField>
 
   <!-- timeInterval - "from" and "to", laid out like amountInterval above. -->
-  <div v-else-if="claimType === 'timeInterval'" class="flex min-w-0 flex-row flex-wrap items-start gap-x-8 gap-y-4">
+  <div v-else-if="claimType === 'timeInterval'" class="pd-fieldsformrow pd-fieldsformrow-timeinterval flex min-w-0 flex-row flex-wrap items-start gap-x-8 gap-y-4">
     <InputField
+      class="pd-fieldsformrow-field-from"
       :required="required"
       hide-required-badge
       :invalid="invalid"
@@ -417,6 +454,7 @@ function onCompleteInput() {
       </template>
     </InputField>
     <InputField
+      class="pd-fieldsformrow-field-to"
       :required="required"
       hide-required-badge
       :invalid="invalid"
@@ -450,21 +488,45 @@ function onCompleteInput() {
   </div>
 
   <!-- link (no file affordance) -->
-  <InputField v-else-if="claimType === 'link' && !isFile" :required="required" :invalid="invalid" :labelledby="labelId" hide-badge hide-hints>
+  <InputField
+    v-else-if="claimType === 'link' && !isFile"
+    class="pd-fieldsformrow pd-fieldsformrow-link"
+    :required="required"
+    :invalid="invalid"
+    :labelledby="labelId"
+    hide-badge
+    hide-hints
+  >
     <template #input="inputProps">
       <InputLink v-bind="inputProps" v-model="value" :readonly="readonly" @update:model-value="onInput" />
     </template>
   </InputField>
 
   <!-- link with file value type: render the file-upload affordance instead. -->
-  <InputField v-else-if="claimType === 'link' && isFile" :required="required" :invalid="invalid" :labelledby="labelId" hide-badge hide-hints>
+  <InputField
+    v-else-if="claimType === 'link' && isFile"
+    class="pd-fieldsformrow pd-fieldsformrow-file"
+    :required="required"
+    :invalid="invalid"
+    :labelledby="labelId"
+    hide-badge
+    hide-hints
+  >
     <template #input="inputProps">
       <InputFile v-bind="inputProps" v-model="value" :readonly="readonly" @update:model-value="onCompleteInput" />
     </template>
   </InputField>
 
   <!-- ref -->
-  <InputField v-else-if="claimType === 'ref'" :required="required" :invalid="invalid" :labelledby="labelId" hide-badge hide-hints>
+  <InputField
+    v-else-if="claimType === 'ref'"
+    class="pd-fieldsformrow pd-fieldsformrow-ref"
+    :required="required"
+    :invalid="invalid"
+    :labelledby="labelId"
+    hide-badge
+    hide-hints
+  >
     <template #input="inputProps">
       <!-- TODO: Pass "self" prop as the current document's ID. -->
       <InputRef v-bind="inputProps" v-model="value" :readonly="readonly" :filter="field.values" @update:model-value="onInput" />

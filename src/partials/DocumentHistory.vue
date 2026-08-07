@@ -64,11 +64,11 @@ function formatAuthors(item: DocumentHistoryItem): string {
 </script>
 
 <template>
-  <div ref="el" :data-url="url">
+  <div ref="el" class="pd-documenthistory" :data-url="url">
     <i v-if="error" class="pd-documenthistory-error text-error-600">{{ t("common.status.loadingDataFailed") }}</i>
     <div v-else-if="history === null" class="pd-documenthistory-loading text-center">{{ t("common.status.loading") }}</div>
     <i v-else-if="history.length === 0" class="pd-documenthistory-empty text-gray-500">{{ t("views.DocumentGet.history.empty") }}</i>
-    <table v-else class="w-full table-auto border-collapse">
+    <table v-else class="pd-documenthistory-list w-full table-auto border-collapse">
       <thead>
         <tr>
           <th class="w-1/2 border-r border-slate-200 px-2 py-1 text-left font-bold">{{ t("common.labels.time") }}</th>
@@ -76,13 +76,13 @@ function formatAuthors(item: DocumentHistoryItem): string {
         </tr>
       </thead>
       <tbody>
-        <tr v-for="item in history" :key="item.changeset" class="border-t border-slate-200">
+        <tr v-for="item in history" :key="item.changeset" class="pd-documenthistory-item border-t border-slate-200">
           <td class="border-r border-slate-200 px-2 py-1 align-top">
-            <RouterLink class="link" :to="{ name: 'DocumentGet', params: { id }, query: encodeQuery({ version: item.version }) }"
+            <RouterLink class="pd-documenthistory-link-version link" :to="{ name: 'DocumentGet', params: { id }, query: encodeQuery({ version: item.version }) }"
               ><TimeDisplay :timestamp="timeString(item.at)" precision="s" :toggle="false"
             /></RouterLink>
           </td>
-          <td class="border-l border-slate-200 px-2 py-1 align-top">{{ formatAuthors(item) }}</td>
+          <td class="pd-documenthistory-text-author border-l border-slate-200 px-2 py-1 align-top">{{ formatAuthors(item) }}</td>
         </tr>
       </tbody>
     </table>

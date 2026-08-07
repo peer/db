@@ -11,5 +11,5 @@ defineProps<{
 </script>
 
 <template>
-  <DocumentRefInline :id="claim?.to.id || null" />
+  <DocumentRefInline :id="claim?.to.id || null" class="pd-claimvalueref" />
 </template>

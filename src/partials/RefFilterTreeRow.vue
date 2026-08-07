@@ -41,35 +41,41 @@ const inputId = computed(() => "ref/" + props.propsKey + "/" + props.node.key)
 </script>
 
 <template>
-  <li>
+  <li class="pd-reffiltertreerow">
     <div class="flex items-baseline gap-x-1">
       <!--
         A "values not shown" marker is non-interactive: it has no checkbox and is not a selectable value. It
         marks a parent whose children were truncated by the server cap and shows the document gap in parens.
       -->
       <template v-if="node.res.id.startsWith(VALUES_NOT_SHOWN_PREFIX)">
-        <span class="text-gray-600"
+        <span class="pd-reffiltertreerow-text-notshown text-gray-600"
           ><i>{{ t("common.status.valuesNotShownShort") }}</i> ({{ node.res.count }})</span
         >
       </template>
       <template v-else>
-        <CheckBox :id="inputId" :model-value="checked" :indeterminate="indeterminate" @update:model-value="handleToggle" />
+        <CheckBox :id="inputId" class="pd-reffiltertreerow-checkbox" :model-value="checked" :indeterminate="indeterminate" @update:model-value="handleToggle" />
         <template v-if="node.res.id === MISSING_VALUE_ID">
-          <label :for="inputId" :class="locked ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
+          <label :for="inputId" class="pd-reffiltertreerow-label-missing" :class="locked ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
             ><i>{{ t("common.values.missing") }}</i></label
           >
-          <label :for="inputId" :class="locked ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'">({{ node.res.count }})</label>
+          <label :for="inputId" class="pd-reffiltertreerow-count-missing" :class="locked ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
+            >({{ node.res.count }})</label
+          >
         </template>
         <template v-else-if="node.res.id.startsWith(DIRECT_REF_FILTER_PREFIX)">
-          <label :for="inputId" :class="locked ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
+          <label :for="inputId" class="pd-reffiltertreerow-label-direct" :class="locked ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
             ><i>{{ t("common.values.direct") }}</i></label
           >
-          <label :for="inputId" :class="locked ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'">({{ node.res.count }})</label>
+          <label :for="inputId" class="pd-reffiltertreerow-count-direct" :class="locked ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
+            >({{ node.res.count }})</label
+          >
         </template>
         <template v-else>
           <WithDocumentD :id="node.res.id" name="DocumentGet">
             <template #default="{ doc, url }">
-              <label :for="inputId" :class="locked ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'" :data-url="url"><DisplayLabel :doc="doc" /></label>
+              <label :for="inputId" class="pd-reffiltertreerow-label" :class="locked ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'" :data-url="url"
+                ><DisplayLabel :doc="doc"
+              /></label>
             </template>
             <template #loading="{ url }">
               <div
@@ -80,19 +86,19 @@ const inputId = computed(() => "ref/" + props.propsKey + "/" + props.node.key)
               ></div>
             </template>
           </WithDocumentD>
-          <label :for="inputId" :class="locked ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'">({{ node.res.count }})</label>
+          <label :for="inputId" class="pd-reffiltertreerow-count" :class="locked ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'">({{ node.res.count }})</label>
           <!--
             tabindex="-1" keeps the open-link icon out of the keyboard tab
             order so Tab jumps between filters without stopping
             on each row's icon. Mouse users can still click it.
           -->
-          <RouterLink :to="{ name: 'DocumentGet', params: { id: node.res.id } }" class="link" tabindex="-1"
+          <RouterLink :to="{ name: 'DocumentGet', params: { id: node.res.id } }" class="pd-reffiltertreerow-link link" tabindex="-1"
             ><ArrowTopRightOnSquareIcon :alt="t('common.icons.link')" class="inline size-5 align-text-top"
           /></RouterLink>
         </template>
       </template>
     </div>
-    <ul v-if="node.children.length > 0" class="pl-6">
+    <ul v-if="node.children.length > 0" class="pd-reffiltertreerow-list pl-6">
       <RefFilterTreeRow v-for="child in node.children" :key="child.key" :node="child" :props-key="propsKey" :check-states="checkStates" :on-toggle="onToggle" />
     </ul>
   </li>

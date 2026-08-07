@@ -83,20 +83,22 @@ function onSubClaim(id: string) {
 
 <template>
   <template v-for="claim in claims.id" :key="claim.id">
-    <tr>
+    <tr class="pd-propertiesrows-row">
       <td
-        class="border-r border-slate-200 py-1 pr-2 align-top whitespace-nowrap"
+        class="pd-propertiesrows-label border-r border-slate-200 py-1 pr-2 align-top whitespace-nowrap"
         :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"
         :style="{ 'padding-left': 0.5 + level * 0.75 + 'rem' }"
         ><DocumentRefInline :id="claim.prop.id"
       /></td>
-      <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"><ClaimValueId :claim="claim" /></td>
+      <td class="pd-propertiesrows-value border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"
+        ><ClaimValueId :claim="claim"
+      /></td>
       <td v-if="editable" class="border-slate-200 py-1 pl-2 align-top whitespace-nowrap" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }">
         <Button
           type="button"
           :primary="editingClaimId === claim.id"
           :disabled="editingClaimId === claim.id"
-          class="w-full px-3 py-1.5"
+          class="pd-propertiesrows-button-edit w-full px-3 py-1.5"
           @click.prevent="onEdit(claim.id)"
           >{{ t("common.buttons.edit") }}</Button
         >
@@ -106,13 +108,13 @@ function onSubClaim(id: string) {
           type="button"
           :primary="subClaimParentId === claim.id"
           :disabled="subClaimParentId === claim.id"
-          class="w-full px-3 py-1.5"
+          class="pd-propertiesrows-button-subclaim w-full px-3 py-1.5"
           @click.prevent="onSubClaim(claim.id)"
           >{{ t("common.buttons.subClaim") }}</Button
         >
       </td>
       <td v-if="editable" class="border-slate-200 py-1 pl-1 align-top whitespace-nowrap" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }">
-        <Button type="button" class="w-full px-3 py-1.5" @click.prevent="onRemove(claim.id)">{{ t("common.buttons.remove") }}</Button>
+        <Button type="button" class="pd-propertiesrows-button-remove w-full px-3 py-1.5" @click.prevent="onRemove(claim.id)">{{ t("common.buttons.remove") }}</Button>
       </td>
     </tr>
     <PropertiesRows
@@ -127,20 +129,22 @@ function onSubClaim(id: string) {
     />
   </template>
   <template v-for="claim in claims.string" :key="claim.id">
-    <tr>
+    <tr class="pd-propertiesrows-row">
       <td
-        class="border-r border-slate-200 py-1 pr-2 align-top whitespace-nowrap"
+        class="pd-propertiesrows-label border-r border-slate-200 py-1 pr-2 align-top whitespace-nowrap"
         :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"
         :style="{ 'padding-left': 0.5 + level * 0.75 + 'rem' }"
         ><DocumentRefInline :id="claim.prop.id"
       /></td>
-      <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"><ClaimValueString :claim="claim" /></td>
+      <td class="pd-propertiesrows-value border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"
+        ><ClaimValueString :claim="claim"
+      /></td>
       <td v-if="editable" class="border-slate-200 py-1 pl-2 align-top whitespace-nowrap" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }">
         <Button
           type="button"
           :primary="editingClaimId === claim.id"
           :disabled="editingClaimId === claim.id"
-          class="w-full px-3 py-1.5"
+          class="pd-propertiesrows-button-edit w-full px-3 py-1.5"
           @click.prevent="onEdit(claim.id)"
           >{{ t("common.buttons.edit") }}</Button
         >
@@ -150,13 +154,13 @@ function onSubClaim(id: string) {
           type="button"
           :primary="subClaimParentId === claim.id"
           :disabled="subClaimParentId === claim.id"
-          class="w-full px-3 py-1.5"
+          class="pd-propertiesrows-button-subclaim w-full px-3 py-1.5"
           @click.prevent="onSubClaim(claim.id)"
           >{{ t("common.buttons.subClaim") }}</Button
         >
       </td>
       <td v-if="editable" class="border-slate-200 py-1 pl-1 align-top whitespace-nowrap" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }">
-        <Button type="button" class="w-full px-3 py-1.5" @click.prevent="onRemove(claim.id)">{{ t("common.buttons.remove") }}</Button>
+        <Button type="button" class="pd-propertiesrows-button-remove w-full px-3 py-1.5" @click.prevent="onRemove(claim.id)">{{ t("common.buttons.remove") }}</Button>
       </td>
     </tr>
     <PropertiesRows
@@ -171,20 +175,22 @@ function onSubClaim(id: string) {
     />
   </template>
   <template v-for="claim in claims.html" :key="claim.id">
-    <tr>
+    <tr class="pd-propertiesrows-row">
       <td
-        class="border-r border-slate-200 py-1 pr-2 align-top whitespace-nowrap"
+        class="pd-propertiesrows-label border-r border-slate-200 py-1 pr-2 align-top whitespace-nowrap"
         :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"
         :style="{ 'padding-left': 0.5 + level * 0.75 + 'rem' }"
         ><DocumentRefInline :id="claim.prop.id"
       /></td>
-      <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"><ClaimValueHtml :claim="claim" /></td>
+      <td class="pd-propertiesrows-value border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"
+        ><ClaimValueHtml :claim="claim"
+      /></td>
       <td v-if="editable" class="border-slate-200 py-1 pl-2 align-top whitespace-nowrap" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }">
         <Button
           type="button"
           :primary="editingClaimId === claim.id"
           :disabled="editingClaimId === claim.id"
-          class="w-full px-3 py-1.5"
+          class="pd-propertiesrows-button-edit w-full px-3 py-1.5"
           @click.prevent="onEdit(claim.id)"
           >{{ t("common.buttons.edit") }}</Button
         >
@@ -194,13 +200,13 @@ function onSubClaim(id: string) {
           type="button"
           :primary="subClaimParentId === claim.id"
           :disabled="subClaimParentId === claim.id"
-          class="w-full px-3 py-1.5"
+          class="pd-propertiesrows-button-subclaim w-full px-3 py-1.5"
           @click.prevent="onSubClaim(claim.id)"
           >{{ t("common.buttons.subClaim") }}</Button
         >
       </td>
       <td v-if="editable" class="border-slate-200 py-1 pl-1 align-top whitespace-nowrap" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }">
-        <Button type="button" class="w-full px-3 py-1.5" @click.prevent="onRemove(claim.id)">{{ t("common.buttons.remove") }}</Button>
+        <Button type="button" class="pd-propertiesrows-button-remove w-full px-3 py-1.5" @click.prevent="onRemove(claim.id)">{{ t("common.buttons.remove") }}</Button>
       </td>
     </tr>
     <PropertiesRows
@@ -215,20 +221,22 @@ function onSubClaim(id: string) {
     />
   </template>
   <template v-for="claim in claims.amount" :key="claim.id">
-    <tr>
+    <tr class="pd-propertiesrows-row">
       <td
-        class="border-r border-slate-200 py-1 pr-2 align-top whitespace-nowrap"
+        class="pd-propertiesrows-label border-r border-slate-200 py-1 pr-2 align-top whitespace-nowrap"
         :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"
         :style="{ 'padding-left': 0.5 + level * 0.75 + 'rem' }"
         ><DocumentRefInline :id="claim.prop.id"
       /></td>
-      <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"><ClaimValueAmount :claim="claim" /></td>
+      <td class="pd-propertiesrows-value border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"
+        ><ClaimValueAmount :claim="claim"
+      /></td>
       <td v-if="editable" class="border-slate-200 py-1 pl-2 align-top whitespace-nowrap" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }">
         <Button
           type="button"
           :primary="editingClaimId === claim.id"
           :disabled="editingClaimId === claim.id"
-          class="w-full px-3 py-1.5"
+          class="pd-propertiesrows-button-edit w-full px-3 py-1.5"
           @click.prevent="onEdit(claim.id)"
           >{{ t("common.buttons.edit") }}</Button
         >
@@ -238,13 +246,13 @@ function onSubClaim(id: string) {
           type="button"
           :primary="subClaimParentId === claim.id"
           :disabled="subClaimParentId === claim.id"
-          class="w-full px-3 py-1.5"
+          class="pd-propertiesrows-button-subclaim w-full px-3 py-1.5"
           @click.prevent="onSubClaim(claim.id)"
           >{{ t("common.buttons.subClaim") }}</Button
         >
       </td>
       <td v-if="editable" class="border-slate-200 py-1 pl-1 align-top whitespace-nowrap" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }">
-        <Button type="button" class="w-full px-3 py-1.5" @click.prevent="onRemove(claim.id)">{{ t("common.buttons.remove") }}</Button>
+        <Button type="button" class="pd-propertiesrows-button-remove w-full px-3 py-1.5" @click.prevent="onRemove(claim.id)">{{ t("common.buttons.remove") }}</Button>
       </td>
     </tr>
     <PropertiesRows
@@ -259,14 +267,14 @@ function onSubClaim(id: string) {
     />
   </template>
   <template v-for="claim in claims.amountInterval" :key="claim.id">
-    <tr>
+    <tr class="pd-propertiesrows-row">
       <td
-        class="border-r border-slate-200 py-1 pr-2 align-top whitespace-nowrap"
+        class="pd-propertiesrows-label border-r border-slate-200 py-1 pr-2 align-top whitespace-nowrap"
         :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"
         :style="{ 'padding-left': 0.5 + level * 0.75 + 'rem' }"
         ><DocumentRefInline :id="claim.prop.id"
       /></td>
-      <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"
+      <td class="pd-propertiesrows-value border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"
         ><ClaimValueAmountInterval :claim="claim"
       /></td>
       <td v-if="editable" class="border-slate-200 py-1 pl-2 align-top whitespace-nowrap" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }">
@@ -274,7 +282,7 @@ function onSubClaim(id: string) {
           type="button"
           :primary="editingClaimId === claim.id"
           :disabled="editingClaimId === claim.id"
-          class="w-full px-3 py-1.5"
+          class="pd-propertiesrows-button-edit w-full px-3 py-1.5"
           @click.prevent="onEdit(claim.id)"
           >{{ t("common.buttons.edit") }}</Button
         >
@@ -284,13 +292,13 @@ function onSubClaim(id: string) {
           type="button"
           :primary="subClaimParentId === claim.id"
           :disabled="subClaimParentId === claim.id"
-          class="w-full px-3 py-1.5"
+          class="pd-propertiesrows-button-subclaim w-full px-3 py-1.5"
           @click.prevent="onSubClaim(claim.id)"
           >{{ t("common.buttons.subClaim") }}</Button
         >
       </td>
       <td v-if="editable" class="border-slate-200 py-1 pl-1 align-top whitespace-nowrap" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }">
-        <Button type="button" class="w-full px-3 py-1.5" @click.prevent="onRemove(claim.id)">{{ t("common.buttons.remove") }}</Button>
+        <Button type="button" class="pd-propertiesrows-button-remove w-full px-3 py-1.5" @click.prevent="onRemove(claim.id)">{{ t("common.buttons.remove") }}</Button>
       </td>
     </tr>
     <PropertiesRows
@@ -305,20 +313,22 @@ function onSubClaim(id: string) {
     />
   </template>
   <template v-for="claim in claims.time" :key="claim.id">
-    <tr>
+    <tr class="pd-propertiesrows-row">
       <td
-        class="border-r border-slate-200 py-1 pr-2 align-top whitespace-nowrap"
+        class="pd-propertiesrows-label border-r border-slate-200 py-1 pr-2 align-top whitespace-nowrap"
         :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"
         :style="{ 'padding-left': 0.5 + level * 0.75 + 'rem' }"
         ><DocumentRefInline :id="claim.prop.id"
       /></td>
-      <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"><ClaimValueTime :claim="claim" /></td>
+      <td class="pd-propertiesrows-value border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"
+        ><ClaimValueTime :claim="claim"
+      /></td>
       <td v-if="editable" class="border-slate-200 py-1 pl-2 align-top whitespace-nowrap" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }">
         <Button
           type="button"
           :primary="editingClaimId === claim.id"
           :disabled="editingClaimId === claim.id"
-          class="w-full px-3 py-1.5"
+          class="pd-propertiesrows-button-edit w-full px-3 py-1.5"
           @click.prevent="onEdit(claim.id)"
           >{{ t("common.buttons.edit") }}</Button
         >
@@ -328,13 +338,13 @@ function onSubClaim(id: string) {
           type="button"
           :primary="subClaimParentId === claim.id"
           :disabled="subClaimParentId === claim.id"
-          class="w-full px-3 py-1.5"
+          class="pd-propertiesrows-button-subclaim w-full px-3 py-1.5"
           @click.prevent="onSubClaim(claim.id)"
           >{{ t("common.buttons.subClaim") }}</Button
         >
       </td>
       <td v-if="editable" class="border-slate-200 py-1 pl-1 align-top whitespace-nowrap" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }">
-        <Button type="button" class="w-full px-3 py-1.5" @click.prevent="onRemove(claim.id)">{{ t("common.buttons.remove") }}</Button>
+        <Button type="button" class="pd-propertiesrows-button-remove w-full px-3 py-1.5" @click.prevent="onRemove(claim.id)">{{ t("common.buttons.remove") }}</Button>
       </td>
     </tr>
     <PropertiesRows
@@ -349,20 +359,22 @@ function onSubClaim(id: string) {
     />
   </template>
   <template v-for="claim in claims.timeInterval" :key="claim.id">
-    <tr>
+    <tr class="pd-propertiesrows-row">
       <td
-        class="border-r border-slate-200 py-1 pr-2 align-top whitespace-nowrap"
+        class="pd-propertiesrows-label border-r border-slate-200 py-1 pr-2 align-top whitespace-nowrap"
         :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"
         :style="{ 'padding-left': 0.5 + level * 0.75 + 'rem' }"
         ><DocumentRefInline :id="claim.prop.id"
       /></td>
-      <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"><ClaimValueTimeInterval :claim="claim" /></td>
+      <td class="pd-propertiesrows-value border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"
+        ><ClaimValueTimeInterval :claim="claim"
+      /></td>
       <td v-if="editable" class="border-slate-200 py-1 pl-2 align-top whitespace-nowrap" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }">
         <Button
           type="button"
           :primary="editingClaimId === claim.id"
           :disabled="editingClaimId === claim.id"
-          class="w-full px-3 py-1.5"
+          class="pd-propertiesrows-button-edit w-full px-3 py-1.5"
           @click.prevent="onEdit(claim.id)"
           >{{ t("common.buttons.edit") }}</Button
         >
@@ -372,13 +384,13 @@ function onSubClaim(id: string) {
           type="button"
           :primary="subClaimParentId === claim.id"
           :disabled="subClaimParentId === claim.id"
-          class="w-full px-3 py-1.5"
+          class="pd-propertiesrows-button-subclaim w-full px-3 py-1.5"
           @click.prevent="onSubClaim(claim.id)"
           >{{ t("common.buttons.subClaim") }}</Button
         >
       </td>
       <td v-if="editable" class="border-slate-200 py-1 pl-1 align-top whitespace-nowrap" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }">
-        <Button type="button" class="w-full px-3 py-1.5" @click.prevent="onRemove(claim.id)">{{ t("common.buttons.remove") }}</Button>
+        <Button type="button" class="pd-propertiesrows-button-remove w-full px-3 py-1.5" @click.prevent="onRemove(claim.id)">{{ t("common.buttons.remove") }}</Button>
       </td>
     </tr>
     <PropertiesRows
@@ -393,20 +405,22 @@ function onSubClaim(id: string) {
     />
   </template>
   <template v-for="claim in claims.link" :key="claim.id">
-    <tr>
+    <tr class="pd-propertiesrows-row">
       <td
-        class="border-r border-slate-200 py-1 pr-2 align-top whitespace-nowrap"
+        class="pd-propertiesrows-label border-r border-slate-200 py-1 pr-2 align-top whitespace-nowrap"
         :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"
         :style="{ 'padding-left': 0.5 + level * 0.75 + 'rem' }"
         ><DocumentRefInline :id="claim.prop.id"
       /></td>
-      <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"><ClaimValueLink :claim="claim" /></td>
+      <td class="pd-propertiesrows-value border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"
+        ><ClaimValueLink :claim="claim"
+      /></td>
       <td v-if="editable" class="border-slate-200 py-1 pl-2 align-top whitespace-nowrap" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }">
         <Button
           type="button"
           :primary="editingClaimId === claim.id"
           :disabled="editingClaimId === claim.id"
-          class="w-full px-3 py-1.5"
+          class="pd-propertiesrows-button-edit w-full px-3 py-1.5"
           @click.prevent="onEdit(claim.id)"
           >{{ t("common.buttons.edit") }}</Button
         >
@@ -416,13 +430,13 @@ function onSubClaim(id: string) {
           type="button"
           :primary="subClaimParentId === claim.id"
           :disabled="subClaimParentId === claim.id"
-          class="w-full px-3 py-1.5"
+          class="pd-propertiesrows-button-subclaim w-full px-3 py-1.5"
           @click.prevent="onSubClaim(claim.id)"
           >{{ t("common.buttons.subClaim") }}</Button
         >
       </td>
       <td v-if="editable" class="border-slate-200 py-1 pl-1 align-top whitespace-nowrap" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }">
-        <Button type="button" class="w-full px-3 py-1.5" @click.prevent="onRemove(claim.id)">{{ t("common.buttons.remove") }}</Button>
+        <Button type="button" class="pd-propertiesrows-button-remove w-full px-3 py-1.5" @click.prevent="onRemove(claim.id)">{{ t("common.buttons.remove") }}</Button>
       </td>
     </tr>
     <PropertiesRows
@@ -437,20 +451,22 @@ function onSubClaim(id: string) {
     />
   </template>
   <template v-for="claim in claims.ref" :key="claim.id">
-    <tr>
+    <tr class="pd-propertiesrows-row">
       <td
-        class="border-r border-slate-200 py-1 pr-2 align-top whitespace-nowrap"
+        class="pd-propertiesrows-label border-r border-slate-200 py-1 pr-2 align-top whitespace-nowrap"
         :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"
         :style="{ 'padding-left': 0.5 + level * 0.75 + 'rem' }"
         ><DocumentRefInline :id="claim.prop.id"
       /></td>
-      <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"><ClaimValueRef :claim="claim" /></td>
+      <td class="pd-propertiesrows-value border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"
+        ><ClaimValueRef :claim="claim"
+      /></td>
       <td v-if="editable" class="border-slate-200 py-1 pl-2 align-top whitespace-nowrap" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }">
         <Button
           type="button"
           :primary="editingClaimId === claim.id"
           :disabled="editingClaimId === claim.id"
-          class="w-full px-3 py-1.5"
+          class="pd-propertiesrows-button-edit w-full px-3 py-1.5"
           @click.prevent="onEdit(claim.id)"
           >{{ t("common.buttons.edit") }}</Button
         >
@@ -460,13 +476,13 @@ function onSubClaim(id: string) {
           type="button"
           :primary="subClaimParentId === claim.id"
           :disabled="subClaimParentId === claim.id"
-          class="w-full px-3 py-1.5"
+          class="pd-propertiesrows-button-subclaim w-full px-3 py-1.5"
           @click.prevent="onSubClaim(claim.id)"
           >{{ t("common.buttons.subClaim") }}</Button
         >
       </td>
       <td v-if="editable" class="border-slate-200 py-1 pl-1 align-top whitespace-nowrap" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }">
-        <Button type="button" class="w-full px-3 py-1.5" @click.prevent="onRemove(claim.id)">{{ t("common.buttons.remove") }}</Button>
+        <Button type="button" class="pd-propertiesrows-button-remove w-full px-3 py-1.5" @click.prevent="onRemove(claim.id)">{{ t("common.buttons.remove") }}</Button>
       </td>
     </tr>
     <PropertiesRows
@@ -481,20 +497,22 @@ function onSubClaim(id: string) {
     />
   </template>
   <template v-for="claim in claims.has" :key="claim.id">
-    <tr>
+    <tr class="pd-propertiesrows-row">
       <td
-        class="border-r border-slate-200 py-1 pr-2 align-top whitespace-nowrap"
+        class="pd-propertiesrows-label border-r border-slate-200 py-1 pr-2 align-top whitespace-nowrap"
         :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"
         :style="{ 'padding-left': 0.5 + level * 0.75 + 'rem' }"
         ><DocumentRefInline :id="claim.prop.id"
       /></td>
-      <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"><ClaimValueHas :claim="claim" /></td>
+      <td class="pd-propertiesrows-value border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"
+        ><ClaimValueHas :claim="claim"
+      /></td>
       <td v-if="editable" class="border-slate-200 py-1 pl-2 align-top whitespace-nowrap" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }">
         <Button
           type="button"
           :primary="editingClaimId === claim.id"
           :disabled="editingClaimId === claim.id"
-          class="w-full px-3 py-1.5"
+          class="pd-propertiesrows-button-edit w-full px-3 py-1.5"
           @click.prevent="onEdit(claim.id)"
           >{{ t("common.buttons.edit") }}</Button
         >
@@ -504,13 +522,13 @@ function onSubClaim(id: string) {
           type="button"
           :primary="subClaimParentId === claim.id"
           :disabled="subClaimParentId === claim.id"
-          class="w-full px-3 py-1.5"
+          class="pd-propertiesrows-button-subclaim w-full px-3 py-1.5"
           @click.prevent="onSubClaim(claim.id)"
           >{{ t("common.buttons.subClaim") }}</Button
         >
       </td>
       <td v-if="editable" class="border-slate-200 py-1 pl-1 align-top whitespace-nowrap" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }">
-        <Button type="button" class="w-full px-3 py-1.5" @click.prevent="onRemove(claim.id)">{{ t("common.buttons.remove") }}</Button>
+        <Button type="button" class="pd-propertiesrows-button-remove w-full px-3 py-1.5" @click.prevent="onRemove(claim.id)">{{ t("common.buttons.remove") }}</Button>
       </td>
     </tr>
     <PropertiesRows
@@ -525,20 +543,22 @@ function onSubClaim(id: string) {
     />
   </template>
   <template v-for="claim in claims.none" :key="claim.id">
-    <tr>
+    <tr class="pd-propertiesrows-row">
       <td
-        class="border-r border-slate-200 py-1 pr-2 align-top whitespace-nowrap"
+        class="pd-propertiesrows-label border-r border-slate-200 py-1 pr-2 align-top whitespace-nowrap"
         :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"
         :style="{ 'padding-left': 0.5 + level * 0.75 + 'rem' }"
         ><DocumentRefInline :id="claim.prop.id"
       /></td>
-      <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"><ClaimValueNone :claim="claim" /></td>
+      <td class="pd-propertiesrows-value border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"
+        ><ClaimValueNone :claim="claim"
+      /></td>
       <td v-if="editable" class="border-slate-200 py-1 pl-2 align-top whitespace-nowrap" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }">
         <Button
           type="button"
           :primary="editingClaimId === claim.id"
           :disabled="editingClaimId === claim.id"
-          class="w-full px-3 py-1.5"
+          class="pd-propertiesrows-button-edit w-full px-3 py-1.5"
           @click.prevent="onEdit(claim.id)"
           >{{ t("common.buttons.edit") }}</Button
         >
@@ -548,13 +568,13 @@ function onSubClaim(id: string) {
           type="button"
           :primary="subClaimParentId === claim.id"
           :disabled="subClaimParentId === claim.id"
-          class="w-full px-3 py-1.5"
+          class="pd-propertiesrows-button-subclaim w-full px-3 py-1.5"
           @click.prevent="onSubClaim(claim.id)"
           >{{ t("common.buttons.subClaim") }}</Button
         >
       </td>
       <td v-if="editable" class="border-slate-200 py-1 pl-1 align-top whitespace-nowrap" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }">
-        <Button type="button" class="w-full px-3 py-1.5" @click.prevent="onRemove(claim.id)">{{ t("common.buttons.remove") }}</Button>
+        <Button type="button" class="pd-propertiesrows-button-remove w-full px-3 py-1.5" @click.prevent="onRemove(claim.id)">{{ t("common.buttons.remove") }}</Button>
       </td>
     </tr>
     <PropertiesRows
@@ -569,20 +589,22 @@ function onSubClaim(id: string) {
     />
   </template>
   <template v-for="claim in claims.unknown" :key="claim.id">
-    <tr>
+    <tr class="pd-propertiesrows-row">
       <td
-        class="border-r border-slate-200 py-1 pr-2 align-top whitespace-nowrap"
+        class="pd-propertiesrows-label border-r border-slate-200 py-1 pr-2 align-top whitespace-nowrap"
         :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"
         :style="{ 'padding-left': 0.5 + level * 0.75 + 'rem' }"
         ><DocumentRefInline :id="claim.prop.id"
       /></td>
-      <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"><ClaimValueUnknown :claim="claim" /></td>
+      <td class="pd-propertiesrows-value border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"
+        ><ClaimValueUnknown :claim="claim"
+      /></td>
       <td v-if="editable" class="border-slate-200 py-1 pl-2 align-top whitespace-nowrap" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }">
         <Button
           type="button"
           :primary="editingClaimId === claim.id"
           :disabled="editingClaimId === claim.id"
-          class="w-full px-3 py-1.5"
+          class="pd-propertiesrows-button-edit w-full px-3 py-1.5"
           @click.prevent="onEdit(claim.id)"
           >{{ t("common.buttons.edit") }}</Button
         >
@@ -592,13 +614,13 @@ function onSubClaim(id: string) {
           type="button"
           :primary="subClaimParentId === claim.id"
           :disabled="subClaimParentId === claim.id"
-          class="w-full px-3 py-1.5"
+          class="pd-propertiesrows-button-subclaim w-full px-3 py-1.5"
           @click.prevent="onSubClaim(claim.id)"
           >{{ t("common.buttons.subClaim") }}</Button
         >
       </td>
       <td v-if="editable" class="border-slate-200 py-1 pl-1 align-top whitespace-nowrap" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }">
-        <Button type="button" class="w-full px-3 py-1.5" @click.prevent="onRemove(claim.id)">{{ t("common.buttons.remove") }}</Button>
+        <Button type="button" class="pd-propertiesrows-button-remove w-full px-3 py-1.5" @click.prevent="onRemove(claim.id)">{{ t("common.buttons.remove") }}</Button>
       </td>
     </tr>
     <PropertiesRows

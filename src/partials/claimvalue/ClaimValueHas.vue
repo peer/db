@@ -9,5 +9,5 @@ defineProps<{
 </script>
 
 <template>
-  <span v-if="claim"></span>
+  <span v-if="claim" class="pd-claimvaluehas"></span>
 </template>

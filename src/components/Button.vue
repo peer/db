@@ -34,6 +34,6 @@ const inactive = () => locked.value || props.disabled
 <template>
   <ButtonStyled as="button" :inactive="inactive()" :primary="primary" :active="active" :invalid="invalid" :disabled="inactive()" class="pd-button">
     <slot />
-    <ProgressBar :progress="progress" :total="total" class="absolute inset-x-0 bottom-0 rounded-b" />
+    <ProgressBar :progress="progress" :total="total" class="pd-button-loading absolute inset-x-0 bottom-0 rounded-b" />
   </ButtonStyled>
 </template>

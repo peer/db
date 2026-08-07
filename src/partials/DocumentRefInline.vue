@@ -45,10 +45,10 @@ const titleAttr = computed<string | undefined>(() => {
 <template>
   <WithDocumentD v-if="id" :id="id" name="DocumentGet">
     <template #default="{ doc, url }">
-      <RouterLink v-if="link" :to="{ name: 'DocumentGet', params: { id } }" :data-url="url" :title="titleAttr" v-bind="$attrs" class="link"
+      <RouterLink v-if="link" :to="{ name: 'DocumentGet', params: { id } }" :data-url="url" :title="titleAttr" v-bind="$attrs" class="pd-documentrefinline link"
         ><DisplayLabel ref="displayLabelRef" :doc="doc"
       /></RouterLink>
-      <span v-else :data-url="url" :title="titleAttr" v-bind="$attrs"><DisplayLabel ref="displayLabelRef" :doc="doc" /></span>
+      <span v-else :data-url="url" :title="titleAttr" v-bind="$attrs" class="pd-documentrefinline"><DisplayLabel ref="displayLabelRef" :doc="doc" /></span>
     </template>
     <template #loading="{ url }">
       <div

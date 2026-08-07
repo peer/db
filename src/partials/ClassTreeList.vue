@@ -35,8 +35,13 @@ const segments = computed((): Segment[] => {
 </script>
 
 <template>
-  <ul class="flex flex-col gap-y-2 sm:gap-y-4">
-    <li v-for="segment in segments" :key="segment.key" :class="segment.kind === 'buttons' ? 'flex flex-row flex-wrap gap-1 sm:gap-4' : undefined">
+  <ul class="pd-classtreelist flex flex-col gap-y-2 sm:gap-y-4">
+    <li
+      v-for="segment in segments"
+      :key="segment.key"
+      class="pd-classtreelist-item"
+      :class="segment.kind === 'buttons' ? 'flex flex-row flex-wrap gap-1 sm:gap-4' : undefined"
+    >
       <template v-if="segment.kind === 'buttons'">
         <ClassTreeLabel v-for="node in segment.nodes" :key="node.key" :node="node" :on-create="onCreate" />
       </template>

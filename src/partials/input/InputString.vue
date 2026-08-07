@@ -58,5 +58,13 @@ defineExpose(validatedInput)
 </script>
 
 <template>
-  <InputText ref="inputTextRef" v-model="model" :readonly="readonly" :invalid="invalid" :validator="validator" @errors="(v: ValidationError[]) => emit('errors', v)" />
+  <InputText
+    ref="inputTextRef"
+    v-model="model"
+    :readonly="readonly"
+    :invalid="invalid"
+    :validator="validator"
+    class="pd-inputstring"
+    @errors="(v: ValidationError[]) => emit('errors', v)"
+  />
 </template>

@@ -359,6 +359,7 @@ async function onFocusOut(event: FocusEvent) {
       spellcheck="false"
       autocorrect="off"
       autocapitalize="none"
+      class="pd-inputtime-input-time"
       @update:model-value="onTimeUpdate"
     />
 
@@ -368,17 +369,19 @@ async function onFocusOut(event: FocusEvent) {
           We add additional padding on the right (pr-10) on top of InputStyled's
           default px-3 to make space for the icon.
         -->
-        <InputStyled :id="precisionButtonId" :as="ListboxButton" :inactive="inactive" :invalid="invalid" class="relative w-full pr-10">
-          <div class="truncate" :title="precisionLabel(precision)">{{ precisionLabel(precision) }}</div>
+        <InputStyled :id="precisionButtonId" :as="ListboxButton" :inactive="inactive" :invalid="invalid" class="pd-inputtime-select-precision relative w-full pr-10">
+          <div class="pd-inputtime-precision truncate" :title="precisionLabel(precision)">{{ precisionLabel(precision) }}</div>
 
           <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">
             <ChevronUpDownIcon class="size-5 text-gray-400" aria-hidden="true" />
           </div>
         </InputStyled>
 
-        <ListboxOptions class="absolute z-10 mt-1 max-h-40 w-full overflow-auto rounded-sm bg-white shadow-sm ring-2 ring-neutral-300 outline-none">
+        <ListboxOptions
+          class="pd-inputtime-list-precision absolute z-10 mt-1 max-h-40 w-full overflow-auto rounded-sm bg-white shadow-sm ring-2 ring-neutral-300 outline-none"
+        >
           <ListboxOption v-for="tp in timePrecisionWithMax" :key="tp" v-slot="{ active, selected }" :value="tp" as="template">
-            <li class="cursor-pointer p-1 outline-none select-none">
+            <li class="pd-inputtime-item-precision cursor-pointer p-1 outline-none select-none" :class="`pd-inputtime-item-precision-${tp}`">
               <!--
                 We have an additional div so that the ring has the space to be shown.
                 li element has p-1 for ring space, together with py-1 and px-2 we get the effective padding

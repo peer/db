@@ -27,11 +27,11 @@ const internalNoView = computed(() => linkClasses.value.includes(LINK_CLASS_INTE
 
 <template>
   <!-- We use RouterLink for internal links with view. -->
-  <RouterLink v-if="internalPath && !internalNoView" :to="internalPath" class="link break-all" :class="linkClasses"
+  <RouterLink v-if="internalPath && !internalNoView" :to="internalPath" class="pd-link link break-all" :class="linkClasses"
     ><slot>{{ internalPath }}</slot></RouterLink
   >
   <!-- We use a for internal links without view and external links. -->
-  <a v-else :href="internalPath || iri" class="link break-all" :rel="internalPath ? undefined : 'noreferrer'" :class="linkClasses"
+  <a v-else :href="internalPath || iri" class="pd-link link break-all" :rel="internalPath ? undefined : 'noreferrer'" :class="linkClasses"
     ><slot>{{ internalPath || iri }}</slot></a
   >
 </template>

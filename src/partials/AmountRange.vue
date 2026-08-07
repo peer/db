@@ -14,7 +14,7 @@ const range = computed(() => amountRangeDisplay(props.from, props.to))
 </script>
 
 <template>
-  <span :title="String(from)">{{ range.from }}</span>
+  <span class="pd-amountrange-from" :title="String(from)">{{ range.from }}</span>
   –
-  <span :title="String(to)">{{ range.to }}</span>
+  <span class="pd-amountrange-to" :title="String(to)">{{ range.to }}</span>
 </template>

@@ -30,11 +30,18 @@ const location = computed(() => (props.claim ? getBestClaimOfType(props.claim.su
 
 <template>
   <template v-if="claim">
-    <TimeDisplay v-if="claim.from" :timestamp="claim.from" :precision="claim.fromPrecision!" :localized="localized" :location="location" />
+    <TimeDisplay
+      v-if="claim.from"
+      :timestamp="claim.from"
+      :precision="claim.fromPrecision!"
+      :localized="localized"
+      :location="location"
+      class="pd-claimvaluetimeinterval-from"
+    />
     <template v-else-if="claim.fromIsUnknown">{{ t("common.values.unknown") }}</template>
     <template v-else-if="claim.fromIsNone">{{ t("common.values.none") }}</template>
     –
-    <TimeDisplay v-if="claim.to" :timestamp="claim.to" :precision="claim.toPrecision!" :localized="localized" :location="location" />
+    <TimeDisplay v-if="claim.to" :timestamp="claim.to" :precision="claim.toPrecision!" :localized="localized" :location="location" class="pd-claimvaluetimeinterval-to" />
     <template v-else-if="claim.toIsUnknown">{{ t("common.values.unknown") }}</template>
     <template v-else-if="claim.toIsNone">{{ t("common.values.none") }}</template>
   </template>

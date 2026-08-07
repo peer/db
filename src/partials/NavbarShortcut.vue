@@ -69,7 +69,7 @@ function onClickCapture(event: MouseEvent) {
 </script>
 
 <template>
-  <ButtonLink :to="to" :active="active" :disabled="disabled" :primary="primary" @click.capture="onClickCapture">
+  <ButtonLink :to="to" :active="active" :disabled="disabled" :primary="primary" class="pd-navbarshortcut" @click.capture="onClickCapture">
     <slot />
   </ButtonLink>
 </template>

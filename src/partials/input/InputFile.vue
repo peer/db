@@ -334,7 +334,7 @@ async function onDrop(e: DragEvent) {
 </script>
 
 <template>
-  <input ref="fileInputEl" type="file" class="hidden" @change="onFileInputChange" />
+  <input ref="fileInputEl" type="file" class="pd-inputfile-input hidden" @change="onFileInputChange" />
   <!--
     Grid wrapper with a single minmax(0,1fr) column so that long display labels
     actually clip with truncate.
@@ -344,7 +344,7 @@ async function onDrop(e: DragEvent) {
       pr-23 reserves space on the right for the Clear button overlay so
       the display label does not slide underneath it.
     -->
-    <InputStyled as="div" :inactive="inactive" :invalid="invalid" class="w-full truncate" :class="readonly ? '' : 'pr-23'">
+    <InputStyled as="div" :inactive="inactive" :invalid="invalid" class="pd-inputfile-value w-full truncate" :class="readonly ? '' : 'pr-23'">
       <!--
         When the current value fails validation (e.g. it is not a route that
         classifies as a file link), rendering ClaimValue/Link could resolve
@@ -355,10 +355,12 @@ async function onDrop(e: DragEvent) {
       <ClaimValue v-else :claim="mockClaim" type="link" />
     </InputStyled>
     <div v-if="!readonly" class="absolute inset-y-0 right-0 flex items-center pr-2">
-      <Button type="button" class="px-2.5 py-1" @click.prevent="onClear" @blur="onBlur">{{ t("common.buttons.clear") }}</Button>
+      <Button type="button" class="pd-inputfile-button-clear px-2.5 py-1" @click.prevent="onClear" @blur="onBlur">{{ t("common.buttons.clear") }}</Button>
     </div>
   </div>
-  <div v-else-if="!hasPermission(CAN_EDIT_FILE)" v-tw-merge class="pd-inputfile text-gray-500 italic">{{ t("partials.input.InputFile.noPermission") }}</div>
+  <div v-else-if="!hasPermission(CAN_EDIT_FILE)" v-tw-merge class="pd-inputfile pd-inputfile-text-nopermission text-gray-500 italic">{{
+    t("partials.input.InputFile.noPermission")
+  }}</div>
   <template v-else>
     <!-- Fall-through attrs (e.g. aria-describedby pointing at InputField's error) go on the browse button, the focusable control. -->
     <div v-tw-merge class="pd-inputfile flex w-full flex-row gap-2">
@@ -366,7 +368,7 @@ async function onDrop(e: DragEvent) {
         ref="browseButtonRef"
         type="button"
         v-bind="$attrs"
-        class="min-w-0 flex-1"
+        class="pd-inputfile-button-browse min-w-0 flex-1"
         :progress="progress"
         :total="total"
         :active="isDragOver"
@@ -383,10 +385,10 @@ async function onDrop(e: DragEvent) {
         >{{ t("partials.input.InputFile.dropOrBrowse") }}</Button
       >
       <WithLock :lock="getParentLockRef">
-        <Button v-if="progress !== 0" type="button" class="shrink-0" @click.prevent="onCancel">{{ t("common.buttons.cancel") }}</Button>
+        <Button v-if="progress !== 0" type="button" class="pd-inputfile-button-cancel shrink-0" @click.prevent="onCancel">{{ t("common.buttons.cancel") }}</Button>
       </WithLock>
     </div>
     <!-- TODO: Push validation error to the parent. -->
-    <p v-if="uploadError" class="mt-1 text-sm text-error-600" role="alert">{{ t("common.errors.upload") }}</p>
+    <p v-if="uploadError" class="pd-inputfile-error mt-1 text-sm text-error-600" role="alert">{{ t("common.errors.upload") }}</p>
   </template>
 </template>

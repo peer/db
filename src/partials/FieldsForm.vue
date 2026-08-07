@@ -66,8 +66,8 @@ defineExpose({
     a group uses gap-8 once any field is non-simple (repeats or has sub-fields),
     else gap-4; sections are separated by gap-12.
   -->
-  <div class="flex w-full flex-col gap-y-12">
-    <table v-if="fieldsData.fields.length > 0" class="flex flex-col" :class="groupGapClass(fieldsData.fields)">
+  <div class="pd-fieldsform flex w-full flex-col gap-y-12">
+    <table v-if="fieldsData.fields.length > 0" class="pd-fieldsform-group flex flex-col" :class="groupGapClass(fieldsData.fields)">
       <FieldsFormField v-for="field in sortedByOrder(fieldsData.fields)" :key="fieldKey(field)" :field="field" :claims="claims" :initial-claims="initialClaims" />
     </table>
 
@@ -76,10 +76,10 @@ defineExpose({
         The id makes the header a scroll/hash target of the table of contents. The
         heading role lets assistive technology jump between sections.
       -->
-      <div :id="sectionElementId(section)" role="heading" aria-level="2" class="border-b border-slate-200 px-2 pb-1 text-lg font-semibold">
+      <div :id="sectionElementId(section)" role="heading" aria-level="2" class="pd-fieldsform-header border-b border-slate-200 px-2 pb-1 text-lg font-semibold">
         {{ getSectionName(section, locale) }}
       </div>
-      <table class="flex flex-col" :class="groupGapClass(section.fields)">
+      <table class="pd-fieldsform-group flex flex-col" :class="groupGapClass(section.fields)">
         <FieldsFormField v-for="field in sortedByOrder(section.fields)" :key="fieldKey(field)" :field="field" :claims="claims" :initial-claims="initialClaims" />
       </table>
     </div>

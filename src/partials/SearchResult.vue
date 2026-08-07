@@ -166,22 +166,24 @@ const rowSpan = computed(() => {
         <div v-if="duplicate">
           <ButtonLink
             :to="{ name: 'DocumentGet', params: { id: resultDoc.id }, query: encodeQuery({ s: searchSessionId }) }"
-            class="pd-print-hidden float-end mb-1 ml-4 px-4"
+            class="pd-searchresult-link-details pd-print-hidden float-end mb-1 ml-4 px-4"
           >
             <ArrowRightIcon class="size-5 sm:hidden" :alt="t('partials.SearchResult.details')" />
             <span class="hidden sm:inline">{{ t("partials.SearchResult.details") }}</span>
           </ButtonLink>
-          <h2 v-show="displayLabelComponent?.displayLabel" class="mb-2 flex items-baseline gap-x-1 text-xl leading-none">
-            <RouterLink :to="{ name: 'DocumentGet', params: { id: resultDoc.id }, query: encodeQuery({ s: searchSessionId }) }" class="link min-w-0"
+          <h2 v-show="displayLabelComponent?.displayLabel" class="pd-searchresult-title mb-2 flex items-baseline gap-x-1 text-xl leading-none">
+            <RouterLink
+              :to="{ name: 'DocumentGet', params: { id: resultDoc.id }, query: encodeQuery({ s: searchSessionId }) }"
+              class="pd-searchresult-link-title link min-w-0"
               ><DisplayLabel ref="displayLabelComponent" :doc="resultDoc"
             /></RouterLink>
             <slot name="labelAside" />
           </h2>
-          <ul v-if="tags.length" class="mb-2 flex flex-row flex-wrap content-start items-baseline gap-1 text-sm">
+          <ul v-if="tags.length" class="pd-searchresult-list-badges mb-2 flex flex-row flex-wrap content-start items-baseline gap-1 text-sm">
             <template v-for="tag of tags" :key="tag.id">
               <WithDocumentD :id="tag.id" name="DocumentGet">
                 <template #default="{ doc, url }">
-                  <li class="rounded-xs bg-slate-100 px-1.5 py-0.5 leading-none text-gray-600 shadow-xs" :data-url="url">
+                  <li class="pd-searchresult-badge-type rounded-xs bg-slate-100 px-1.5 py-0.5 leading-none text-gray-600 shadow-xs" :data-url="url">
                     <DisplayLabel :doc="doc" />
                   </li>
                 </template>
@@ -198,7 +200,7 @@ const rowSpan = computed(() => {
           </ul>
           <i18n-t keypath="partials.SearchResult.resultShownAlready" scope="global" tag="p" class="text-slate-500 italic">
             <template #above>
-              <RouterLink :to="duplicateOfLink" class="link">{{ t("partials.SearchResult.above") }}</RouterLink>
+              <RouterLink :to="duplicateOfLink" class="pd-searchresult-link-duplicate link">{{ t("partials.SearchResult.above") }}</RouterLink>
             </template>
           </i18n-t>
         </div>
@@ -207,22 +209,24 @@ const rowSpan = computed(() => {
         <div v-else-if="!isPage && fieldsData && resultDoc.claims">
           <ButtonLink
             :to="{ name: 'DocumentGet', params: { id: resultDoc.id }, query: encodeQuery({ s: searchSessionId }) }"
-            class="pd-print-hidden float-end mb-1 ml-4 px-4"
+            class="pd-searchresult-link-details pd-print-hidden float-end mb-1 ml-4 px-4"
           >
             <ArrowRightIcon class="size-5 sm:hidden" :alt="t('partials.SearchResult.details')" />
             <span class="hidden sm:inline">{{ t("partials.SearchResult.details") }}</span>
           </ButtonLink>
-          <h2 v-show="displayLabelComponent?.displayLabel" class="mb-2 flex items-baseline gap-x-1 text-xl leading-none">
-            <RouterLink :to="{ name: 'DocumentGet', params: { id: resultDoc.id }, query: encodeQuery({ s: searchSessionId }) }" class="link min-w-0"
+          <h2 v-show="displayLabelComponent?.displayLabel" class="pd-searchresult-title mb-2 flex items-baseline gap-x-1 text-xl leading-none">
+            <RouterLink
+              :to="{ name: 'DocumentGet', params: { id: resultDoc.id }, query: encodeQuery({ s: searchSessionId }) }"
+              class="pd-searchresult-link-title link min-w-0"
               ><DisplayLabel ref="displayLabelComponent" :doc="resultDoc"
             /></RouterLink>
             <slot name="labelAside" />
           </h2>
-          <ul v-if="tags.length" class="mb-2 flex flex-row flex-wrap content-start items-baseline gap-1 text-sm">
+          <ul v-if="tags.length" class="pd-searchresult-list-badges mb-2 flex flex-row flex-wrap content-start items-baseline gap-1 text-sm">
             <template v-for="tag of tags" :key="tag.id">
               <WithDocumentD :id="tag.id" name="DocumentGet">
                 <template #default="{ doc, url }">
-                  <li class="rounded-xs bg-slate-100 px-1.5 py-0.5 leading-none text-gray-600 shadow-xs" :data-url="url">
+                  <li class="pd-searchresult-badge-type rounded-xs bg-slate-100 px-1.5 py-0.5 leading-none text-gray-600 shadow-xs" :data-url="url">
                     <DisplayLabel :doc="doc" />
                   </li>
                 </template>
@@ -241,20 +245,24 @@ const rowSpan = computed(() => {
         </div>
         <div v-else class="grid grid-cols-1 gap-4" :class="previewFiles.length ? `sm:grid-cols-[256px_auto] ${gridRows}` : ''">
           <div>
-            <ButtonLink :to="{ name: 'DocumentGet', params: { id: resultDoc.id }, query: encodeQuery({ s: searchSessionId }) }" class="pd-print-hidden float-end px-4">{{
-              t("partials.SearchResult.details")
-            }}</ButtonLink>
-            <h2 v-show="displayLabelComponent?.displayLabel" class="mb-2 flex items-baseline gap-x-1 text-xl leading-none">
-              <RouterLink :to="{ name: 'DocumentGet', params: { id: resultDoc.id }, query: encodeQuery({ s: searchSessionId }) }" class="link min-w-0"
+            <ButtonLink
+              :to="{ name: 'DocumentGet', params: { id: resultDoc.id }, query: encodeQuery({ s: searchSessionId }) }"
+              class="pd-searchresult-link-details pd-print-hidden float-end px-4"
+              >{{ t("partials.SearchResult.details") }}</ButtonLink
+            >
+            <h2 v-show="displayLabelComponent?.displayLabel" class="pd-searchresult-title mb-2 flex items-baseline gap-x-1 text-xl leading-none">
+              <RouterLink
+                :to="{ name: 'DocumentGet', params: { id: resultDoc.id }, query: encodeQuery({ s: searchSessionId }) }"
+                class="pd-searchresult-link-title link min-w-0"
                 ><DisplayLabel ref="displayLabelComponent" :doc="resultDoc"
               /></RouterLink>
               <slot name="labelAside" />
             </h2>
-            <ul v-if="tags.length" class="flex flex-row flex-wrap content-start items-baseline gap-1 text-sm">
+            <ul v-if="tags.length" class="pd-searchresult-list-badges flex flex-row flex-wrap content-start items-baseline gap-1 text-sm">
               <template v-for="tag of tags" :key="tag.id">
                 <WithDocumentD :id="tag.id" name="DocumentGet">
                   <template #default="{ doc, url }">
-                    <li class="rounded-xs bg-slate-100 px-1.5 py-0.5 leading-none text-gray-600 shadow-xs" :data-url="url">
+                    <li class="pd-searchresult-badge-type rounded-xs bg-slate-100 px-1.5 py-0.5 leading-none text-gray-600 shadow-xs" :data-url="url">
                       <DisplayLabel :doc="doc" />
                     </li>
                   </template>
@@ -276,7 +284,7 @@ const rowSpan = computed(() => {
             /></RouterLink>
           </div>
           <!-- eslint-disable-next-line vue/no-v-html -->
-          <p v-if="description" class="prose max-w-none prose-gray" @click="onDescriptionClick" v-html="transformedDescription"></p>
+          <p v-if="description" class="pd-searchresult-text-description prose max-w-none prose-gray" @click="onDescriptionClick" v-html="transformedDescription"></p>
         </div>
       </template>
       <template #loading>

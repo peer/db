@@ -441,7 +441,7 @@ const WithDocumentD = WithDocument<D>
 
 <template>
   <Teleport to="#navbarsearch-teleport-end">
-    <Button primary class="min-[56rem]:hidden" type="button" @click.prevent="onFilters">
+    <Button primary class="pd-searchresultsfeed-button-filters min-[56rem]:hidden" type="button" @click.prevent="onFilters">
       <FunnelIcon class="size-5" :alt="t('common.buttons.filters')" />
     </Button>
   </Teleport>
@@ -463,14 +463,14 @@ const WithDocumentD = WithDocument<D>
     <div
       id="search-results"
       tabindex="-1"
-      class="pd-searchresults flex-auto basis-3/4 flex-col gap-y-1 rounded-sm [--pd-indent:calc(var(--spacing)*4)] focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-1 focus-visible:outline-none sm:gap-y-4 sm:[--pd-indent:calc(var(--spacing)*6)] min-[56rem]:flex"
+      class="pd-searchresultsfeed-list-results pd-searchresults flex-auto basis-3/4 flex-col gap-y-1 rounded-sm [--pd-indent:calc(var(--spacing)*4)] focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-1 focus-visible:outline-none sm:gap-y-4 sm:[--pd-indent:calc(var(--spacing)*6)] min-[56rem]:flex"
       :class="filtersEnabled ? 'hidden' : 'flex'"
     >
       <!-- Print row: the close and show-all buttons (preview only, left) and a live timestamp (right). -->
       <div class="pd-print-only-flex mb-2 items-center gap-x-2">
         <button
           type="button"
-          class="pd-preview-only items-center gap-x-1 rounded-sm bg-slate-700 px-3 py-2 text-sm text-white shadow-lg outline-none hover:bg-slate-800 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1"
+          class="pd-searchresultsfeed-button-closeprint pd-preview-only items-center gap-x-1 rounded-sm bg-slate-700 px-3 py-2 text-sm text-white shadow-lg outline-none hover:bg-slate-800 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1"
           @click.prevent="printMode = false"
         >
           <XMarkIcon class="size-5" :alt="t('partials.SearchResultsFeed.closePrint')" />
@@ -479,12 +479,12 @@ const WithDocumentD = WithDocument<D>
         <button
           v-if="hasMore || anyHiddenClaims"
           type="button"
-          class="pd-preview-only items-center gap-x-1 rounded-sm bg-primary-600 px-3 py-2 text-sm text-white shadow-lg outline-none hover:bg-primary-700 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1"
+          class="pd-searchresultsfeed-button-loadall pd-preview-only items-center gap-x-1 rounded-sm bg-primary-600 px-3 py-2 text-sm text-white shadow-lg outline-none hover:bg-primary-700 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1"
           @click.prevent="loadAll"
         >
           {{ t("common.buttons.showAll") }}
         </button>
-        <div class="ml-auto text-sm text-slate-600"><TimeDisplay :timestamp="now" precision="s" :toggle="false" /></div>
+        <div class="pd-searchresultsfeed-timestamp ml-auto text-sm text-slate-600"><TimeDisplay :timestamp="now" precision="s" :toggle="false" /></div>
       </div>
 
       <component :is="component" v-for="(component, i) in getSearchHeaderComponents().value" :key="i" :search-session="searchSession" />
@@ -538,7 +538,7 @@ const WithDocumentD = WithDocument<D>
           </i18n-t>
           <button
             type="button"
-            class="pd-preview-only shrink-0 self-center rounded-sm p-0.5 text-slate-400 outline-none hover:bg-slate-200 hover:text-slate-600 focus:ring-2 focus:ring-primary-500"
+            class="pd-searchresultsfeed-button-expandreferencing pd-preview-only shrink-0 self-center rounded-sm p-0.5 text-slate-400 outline-none hover:bg-slate-200 hover:text-slate-600 focus:ring-2 focus:ring-primary-500"
             :title="t('partials.SearchResultsFeed.expandReferencing')"
             @click.prevent="$emit('reverseExpandUpdate', true)"
           >
@@ -551,7 +551,7 @@ const WithDocumentD = WithDocument<D>
             {{ t("partials.SearchResultsFeed.resultsReferencingExpanded") }}
             <button
               type="button"
-              class="pd-preview-only shrink-0 self-center rounded-sm p-0.5 text-slate-400 outline-none hover:bg-slate-200 hover:text-slate-600 focus:ring-2 focus:ring-primary-500"
+              class="pd-searchresultsfeed-button-collapsereferencing pd-preview-only shrink-0 self-center rounded-sm p-0.5 text-slate-400 outline-none hover:bg-slate-200 hover:text-slate-600 focus:ring-2 focus:ring-primary-500"
               :title="t('partials.SearchResultsFeed.collapseReferencing')"
               @click.prevent="$emit('reverseExpandUpdate', false)"
             >
@@ -627,7 +627,7 @@ const WithDocumentD = WithDocument<D>
       id="search-filters"
       ref="filtersEl"
       tabindex="-1"
-      class="pd-searchfilters pd-print-hidden flex-auto basis-1/4 flex-col gap-y-1 rounded-sm focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-1 focus-visible:outline-none sm:gap-y-4 min-[56rem]:flex"
+      class="pd-searchresultsfeed-panel-filters pd-print-hidden flex-auto basis-1/4 flex-col gap-y-1 rounded-sm focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-1 focus-visible:outline-none sm:gap-y-4 min-[56rem]:flex"
       :class="filtersEnabled ? 'flex' : 'hidden'"
       :data-url="filtersURL"
     >
@@ -645,7 +645,7 @@ const WithDocumentD = WithDocument<D>
         <div v-if="searchSession.ids && searchSession.ids.length > 0" class="text-sm">
           <Button
             type="button"
-            class="float-right ml-2 px-2.5 py-1"
+            class="pd-searchresultsfeed-button-clearids float-right ml-2 px-2.5 py-1"
             :title="t('partials.SearchResultsFeed.clearScoped')"
             :aria-label="t('partials.SearchResultsFeed.clearScoped')"
             @click.prevent="$emit('idsClear')"
@@ -657,7 +657,7 @@ const WithDocumentD = WithDocument<D>
         <div v-if="searchSession.reverse" class="text-sm">
           <Button
             type="button"
-            class="float-right ml-2 px-2.5 py-1"
+            class="pd-searchresultsfeed-button-clearreverse float-right ml-2 px-2.5 py-1"
             :title="t('partials.SearchResultsFeed.clearReferencing')"
             :aria-label="t('partials.SearchResultsFeed.clearReferencing')"
             @click.prevent="$emit('reverseClear')"
@@ -685,7 +685,7 @@ const WithDocumentD = WithDocument<D>
         <div v-if="searchSession.prefilters && searchSession.prefilters.length > 0 && !siteContext.features.hidePrefilters" class="text-sm">
           <Button
             type="button"
-            class="float-right ml-2 px-2.5 py-1"
+            class="pd-searchresultsfeed-button-clearprefilters float-right ml-2 px-2.5 py-1"
             :title="t('partials.SearchResultsFeed.clearLimited')"
             :aria-label="t('partials.SearchResultsFeed.clearLimited')"
             @click.prevent="$emit('prefiltersClear')"
@@ -710,7 +710,7 @@ const WithDocumentD = WithDocument<D>
           Active filters keep the pane open even when nothing is available, so they can still be cleared.
         -->
         <div v-if="filtersTotal === 0 && !filterQuery && !hasActiveFilters" class="my-1 sm:my-4">
-          <div class="text-center text-sm">{{ t("partials.SearchResultsFeed.noFilters") }}</div>
+          <div class="pd-searchresultsfeed-empty-filters text-center text-sm">{{ t("partials.SearchResultsFeed.noFilters") }}</div>
         </div>
 
         <template v-else>
@@ -727,11 +727,19 @@ const WithDocumentD = WithDocument<D>
               own name), never the search itself. When only active filters are shown (none available to add), the
               label counts those instead.
             -->
-            <div v-if="filtersTotal > 0" class="mb-1 text-sm">{{ t("partials.SearchResultsFeed.filtersAvailable", { count: filtersTotal }) }}</div>
-            <div v-else-if="hasActiveFilters" class="mb-1 text-sm">{{ t("partials.SearchResultsFeed.filtersAvailable", { count: activeFiltersCount }) }}</div>
+            <div v-if="filtersTotal > 0" class="pd-searchresultsfeed-count-filters mb-1 text-sm">{{
+              t("partials.SearchResultsFeed.filtersAvailable", { count: filtersTotal })
+            }}</div>
+            <div v-else-if="hasActiveFilters" class="pd-searchresultsfeed-count-filters mb-1 text-sm">{{
+              t("partials.SearchResultsFeed.filtersAvailable", { count: activeFiltersCount })
+            }}</div>
 
             <WithLock :lock="getFilterBoxLock">
-              <InputText v-model="filterQuery" class="pd-searchfilters-search pd-print-hidden w-full" :aria-label="t('partials.SearchResultsFeed.filtersSearchLabel')" />
+              <InputText
+                v-model="filterQuery"
+                class="pd-searchresultsfeed-input-filters pd-print-hidden w-full"
+                :aria-label="t('partials.SearchResultsFeed.filtersSearchLabel')"
+              />
             </WithLock>
           </div>
 
@@ -746,9 +754,14 @@ const WithDocumentD = WithDocument<D>
             />
           </template>
 
-          <Button v-if="filtersHasMore" ref="filtersMoreButton" primary class="pd-searchfilters-more w-1/2 min-w-fit self-center" @click.prevent="filtersLoadMore">{{
-            t("partials.SearchResultsFeed.moreFilters")
-          }}</Button>
+          <Button
+            v-if="filtersHasMore"
+            ref="filtersMoreButton"
+            primary
+            class="pd-searchresultsfeed-button-morefilters w-1/2 min-w-fit self-center"
+            @click.prevent="filtersLoadMore"
+            >{{ t("partials.SearchResultsFeed.moreFilters") }}</Button
+          >
 
           <!-- Counts of shown vs returned use the (possibly narrowed) returned facets, not the constant total. -->
           <div v-else-if="filtersResults.length > limitedFiltersResults.length" class="text-center text-sm">{{
@@ -760,7 +773,9 @@ const WithDocumentD = WithDocument<D>
             no always-visible amount or time facet remains), the list is empty on screen, so the no-match message
             takes its place; the box stays above so the query can be changed or cleared.
           -->
-          <div v-if="!anyFilterVisible && filterQuery" class="text-center text-sm">{{ t("partials.SearchResultsFeed.filtersNoMatch") }}</div>
+          <div v-if="!anyFilterVisible && filterQuery" class="pd-searchresultsfeed-empty-nomatch text-center text-sm">{{
+            t("partials.SearchResultsFeed.filtersNoMatch")
+          }}</div>
         </template>
       </template>
     </div>

@@ -143,7 +143,7 @@ defineExpose(validatedInput)
 </script>
 
 <template>
-  <div class="relative">
+  <div class="pd-inputlink relative">
     <!--
       pr-9 reserves space on the right for the absolutely-positioned open-link
       icon overlay so the input text does not slide underneath it.
@@ -154,15 +154,15 @@ defineExpose(validatedInput)
       :readonly="readonly"
       :invalid="invalid"
       :validator="validator"
-      class="w-full"
+      class="pd-inputlink-input w-full"
       :class="canOpen ? 'pr-9' : ''"
       @errors="(v: ValidationError[]) => emit('errors', v)"
     />
     <div v-if="canOpen" class="absolute inset-y-0 right-0 flex items-center pr-2">
-      <RouterLink v-if="useRouterLink && internalPath" :to="internalPath" class="link">
+      <RouterLink v-if="useRouterLink && internalPath" :to="internalPath" class="pd-inputlink-link link">
         <ArrowTopRightOnSquareIcon class="size-5" aria-hidden="true" />
       </RouterLink>
-      <a v-else :href="model.trim()" class="link" rel="noreferrer">
+      <a v-else :href="model.trim()" class="pd-inputlink-link link" rel="noreferrer">
         <ArrowTopRightOnSquareIcon class="size-5" aria-hidden="true" />
       </a>
     </div>

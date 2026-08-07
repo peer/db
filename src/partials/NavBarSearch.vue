@@ -44,13 +44,13 @@ const formRef = useTemplateRef<HTMLFormElement>("formRef")
 // The search shrinks to just its button when the navbar can no longer fit the input at its minimum usable
 // width (pd-searchinput carries that min-width while inline, set in the stylesheet); the input only appears
 // once the user expands it. useNavbarCollapse measures the room left for the input and toggles the
-// pd-navbar-search-collapsible marker on the form, so the search collapses sooner when other items sit next
+// pd-navbarsearch-collapsible marker on the form, so the search collapses sooner when other items sit next
 // to it (for example a filter toggle) and stays inline longer when the navbar is otherwise empty. It is
 // suspended while expanded so the full-width overlay is left alone (focusout closes it).
 const expanded = ref(false)
 const collapsible = useNavbarCollapse(
   () => formRef.value,
-  "pd-navbar-search-collapsible",
+  "pd-navbarsearch-collapsible",
   () => expanded.value,
 )
 
@@ -144,19 +144,19 @@ async function onSubmit() {
 
     When there is no longer room for the input the search is compact: only the button shows, and expanding
     it fills the whole navbar width (every other navbar item, including the menu, is hidden via the
-    pd-navbar-search-expanded state). See the pd-navbar-search rules in the stylesheet.
+    pd-navbarsearch-expanded state). See the pd-navbarsearch rules in the stylesheet.
   -->
   <form
     id="navbarsearch-teleport-end"
     ref="formRef"
-    class="pd-navbar-search contents"
-    :class="{ 'pd-navbar-search-collapsible': collapsible, 'pd-navbar-search-expanded': expanded }"
+    class="pd-navbarsearch contents"
+    :class="{ 'pd-navbarsearch-collapsible': collapsible, 'pd-navbarsearch-expanded': expanded }"
     novalidate
     @submit.prevent="onSubmit()"
     @focusout="onFocusOut"
   >
     <InputText id="search-input-text" v-model="searchQuery" class="pd-searchinput max-w-xl min-w-0 grow" />
-    <Button type="submit" primary class="pd-navbar-search-button" @click="onButtonClick">
+    <Button type="submit" primary class="pd-navbarsearch-button" @click="onButtonClick">
       <MagnifyingGlassIcon class="size-5 min-[56rem]:hidden" :alt="t('common.buttons.search')" />
       <span class="hidden min-[56rem]:inline">{{ t("common.buttons.search") }}</span>
     </Button>

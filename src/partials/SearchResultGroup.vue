@@ -87,10 +87,10 @@ function childPagerIndex(child: DeepReadonly<Result>): number | undefined {
     <SearchResult v-if="expanded" :search-session-id="searchSessionId" :result="node">
       <template #labelAside>
         <span class="flex shrink-0 items-baseline gap-x-1 text-base font-normal text-slate-500">
-          <span v-if="node.count != null">({{ node.count }})</span>
+          <span v-if="node.count != null" class="pd-searchresultgroup-count">({{ node.count }})</span>
           <button
             type="button"
-            class="self-center rounded-sm p-0.5 text-slate-400 outline-none hover:bg-slate-200 hover:text-slate-600 focus:ring-2 focus:ring-primary-500 print:hidden"
+            class="pd-searchresultgroup-button-collapse self-center rounded-sm p-0.5 text-slate-400 outline-none hover:bg-slate-200 hover:text-slate-600 focus:ring-2 focus:ring-primary-500 print:hidden"
             :title="t('partials.SearchResultGroup.collapse')"
             @click.prevent="setExpand(node.col ?? 0, false)"
           >
@@ -100,25 +100,25 @@ function childPagerIndex(child: DeepReadonly<Result>): number | undefined {
       </template>
     </SearchResult>
     <div v-else class="pd-searchresultgroup-header flex items-baseline gap-x-1 border-b border-slate-200 py-1 font-semibold text-slate-700">
-      <i v-if="node.id === MISSING_VALUE_ID" class="min-w-0 truncate">{{ t("common.values.missing") }}</i>
-      <DocumentRefInline v-else :id="node.id" class="min-w-0 truncate" />
-      <span v-if="node.count != null" class="shrink-0 font-normal text-slate-500">({{ node.count }})</span>
+      <i v-if="node.id === MISSING_VALUE_ID" class="pd-searchresultgroup-title min-w-0 truncate">{{ t("common.values.missing") }}</i>
+      <DocumentRefInline v-else :id="node.id" class="pd-searchresultgroup-title min-w-0 truncate" />
+      <span v-if="node.count != null" class="pd-searchresultgroup-count shrink-0 font-normal text-slate-500">({{ node.count }})</span>
       <button
         v-if="!levelExpanded"
         type="button"
-        class="shrink-0 self-center rounded-sm p-0.5 font-normal text-slate-400 outline-none hover:bg-slate-200 hover:text-slate-600 focus:ring-2 focus:ring-primary-500 print:hidden"
+        class="pd-searchresultgroup-button-expand shrink-0 self-center rounded-sm p-0.5 font-normal text-slate-400 outline-none hover:bg-slate-200 hover:text-slate-600 focus:ring-2 focus:ring-primary-500 print:hidden"
         :title="t('partials.SearchResultGroup.expand')"
         @click.prevent="setExpand(node.col ?? 0, true)"
       >
         <ChevronUpDownIcon class="size-5" :alt="t('partials.SearchResultGroup.expand')" />
       </button>
     </div>
-    <ul class="flex flex-col gap-y-1 pl-4 sm:gap-y-4 sm:pl-6">
+    <ul class="pd-searchresultgroup-list flex flex-col gap-y-1 pl-4 sm:gap-y-4 sm:pl-6">
       <template v-for="(child, i) in node.group" :key="`${child.id}-${i}`">
         <li v-if="childPagerIndex(child) !== undefined" class="pd-print-hidden">
           <SearchResultsPager :i="childPagerIndex(child)!" :shown="pager.shown" :total="pager.total" :depth="depth + 1" />
         </li>
-        <li>
+        <li class="pd-searchresultgroup-item">
           <SearchResultGroup :node="child" :search-session-id="searchSessionId" :depth="depth + 1" :expand-levels="expandLevels" />
         </li>
       </template>

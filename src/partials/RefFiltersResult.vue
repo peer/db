@@ -387,11 +387,11 @@ function onToggle(node: RefFilterTreeNode) {
 
 <template>
   <div v-if="!hiddenByQuery" class="pd-reffiltersresult flex flex-col" :class="{ 'data-reloading': laterLoad }" :data-url="resultsUrl">
-    <div :id="labelId">
+    <div :id="labelId" class="pd-filterresult-header">
       <Button
         v-if="filter"
         type="button"
-        class="float-right ml-2 px-2.5 py-1"
+        class="pd-filterresult-button-clear float-right ml-2 px-2.5 py-1"
         :title="t('partials.RefFiltersResult.clearFilter')"
         :aria-label="t('partials.RefFiltersResult.clearFilter')"
         @click.prevent="clearFilter"
@@ -400,7 +400,7 @@ function onToggle(node: RefFilterTreeNode) {
       <span class="pd-filterresult-title mb-1.5 text-lg leading-none"><FilterPropLabel :prop-ids="result.props" /></span>
       ({{ result.count }})
     </div>
-    <ul ref="el" role="group" :aria-labelledby="labelId" class="flex flex-col">
+    <ul ref="el" role="group" :aria-labelledby="labelId" class="pd-filterresult-list flex flex-col">
       <li v-if="error">
         <i class="pd-reffiltersresult-error text-error-600">{{ t("common.status.loadingDataFailed") }}</i>
       </li>
@@ -422,7 +422,7 @@ function onToggle(node: RefFilterTreeNode) {
       @click.prevent="loadMore"
       >{{ t("common.buttons.loadCountMore", { count: optionsRemaining }) }}</Button
     >
-    <div v-else-if="!loading && optionsRemaining > 0" class="mt-2 text-center text-sm">
+    <div v-else-if="!loading && optionsRemaining > 0" class="pd-filterresult-text-notshown mt-2 text-center text-sm">
       {{ t("common.status.valuesNotShown", { count: optionsRemaining }) }}
     </div>
   </div>

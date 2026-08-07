@@ -18,11 +18,18 @@ const WithDocumentD = WithDocument<D>
 <template>
   <WithDocumentD :id="node.res.id" name="DocumentGet">
     <template #default="{ doc, url }">
-      <Button v-if="node.res.canCreate" type="button" :data-url="url" @click.prevent="onCreate(node.res.id)">
+      <Button
+        v-if="node.res.canCreate"
+        type="button"
+        class="pd-classtreelabel-button"
+        :class="`pd-classtreelabel-button-${node.res.id}`"
+        :data-url="url"
+        @click.prevent="onCreate(node.res.id)"
+      >
         <DisplayLabel :doc="doc" />
       </Button>
       <!-- A class a document cannot be created for (abstract, or without fields) is shown only as a structural heading. -->
-      <h2 v-else class="text-xl leading-none font-medium" :data-url="url"><DisplayLabel :doc="doc" /></h2>
+      <h2 v-else class="pd-classtreelabel-title text-xl leading-none font-medium" :data-url="url"><DisplayLabel :doc="doc" /></h2>
     </template>
     <template #loading="{ url }">
       <div

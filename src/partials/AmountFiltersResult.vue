@@ -313,26 +313,26 @@ onBeforeUnmount(() => {
 
 <template>
   <div class="pd-amountfiltersresult flex flex-col" :class="{ 'data-reloading': laterLoad }" :data-url="resultsUrl">
-    <div :id="labelId">
+    <div :id="labelId" class="pd-filterresult-header">
       <Button
         v-if="filter"
         type="button"
-        class="float-right ml-2 px-2.5 py-1"
+        class="pd-filterresult-button-clear float-right ml-2 px-2.5 py-1"
         :title="t('partials.AmountFiltersResult.clearFilter')"
         :aria-label="t('partials.AmountFiltersResult.clearFilter')"
         @click.prevent="clearFilter"
         >{{ t("common.buttons.clear") }}</Button
       >
-      <i18n-t v-if="result.unit" keypath="common.labelWithUnit" scope="global" tag="span" class="mb-1.5 text-lg leading-none">
+      <i18n-t v-if="result.unit" keypath="common.labelWithUnit" scope="global" tag="span" class="pd-filterresult-title mb-1.5 text-lg leading-none">
         <template #label><FilterPropLabel :prop-ids="result.props" /></template>
         <template #unit>
           <DocumentRefInline :id="result.unit" :link="false" />
         </template>
       </i18n-t>
-      <span v-else class="mb-1.5 text-lg leading-none"><FilterPropLabel :prop-ids="result.props" /></span>
+      <span v-else class="pd-filterresult-title mb-1.5 text-lg leading-none"><FilterPropLabel :prop-ids="result.props" /></span>
       ({{ result.count }})
     </div>
-    <ul ref="el" role="group" :aria-labelledby="labelId" class="grid grid-cols-[max-content_auto] gap-x-1 gap-y-3">
+    <ul ref="el" role="group" :aria-labelledby="labelId" class="pd-filterresult-list grid grid-cols-[max-content_auto] gap-x-1 gap-y-3">
       <li v-if="error" class="col-span-2">
         <i class="pd-amountfiltersresult-error text-error-600">{{ t("common.status.loadingDataFailed") }}</i>
       </li>
@@ -346,21 +346,29 @@ onBeforeUnmount(() => {
         </div>
         <div class="my-1.5 h-2 rounded-sm bg-slate-200"></div>
       </li>
-      <li v-else-if="results.length === 1" class="contents">
-        <CheckBox :id="'amount/' + result.props.join('/') + '/' + (result.unit ?? '') + '/value'" v-model="singleValueState" />
+      <li v-else-if="results.length === 1" class="pd-amountfiltersresult-row-value contents">
+        <CheckBox
+          :id="'amount/' + result.props.join('/') + '/' + (result.unit ?? '') + '/value'"
+          v-model="singleValueState"
+          class="pd-amountfiltersresult-checkbox-value"
+        />
         <div class="flex items-baseline gap-x-1">
           <label
             :for="'amount/' + result.props.join('/') + '/' + (result.unit ?? '') + '/value'"
+            class="pd-amountfiltersresult-label-value"
             :class="locked ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
             :title="String(results[0].from)"
             >{{ singleValueDisplay }}</label
           >
-          <label :for="'amount/' + result.props.join('/') + '/' + (result.unit ?? '') + '/value'" :class="locked ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
+          <label
+            :for="'amount/' + result.props.join('/') + '/' + (result.unit ?? '') + '/value'"
+            class="pd-amountfiltersresult-count-value"
+            :class="locked ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
             >({{ results[0].count }})</label
           >
         </div>
       </li>
-      <li v-else-if="from !== to" class="col-span-2">
+      <li v-else-if="from !== to" class="pd-amountfiltersresult-row-histogram col-span-2">
         <!-- We subtract 1 from chartWidth because we subtract 1 from bar width, so there would be a gap after the last one. -->
         <svg :viewBox="`0 0 ${chartWidth - 1} ${chartHeight}`">
           <!-- We subtract 1 from bar width to have a gap between bars. -->
@@ -374,28 +382,35 @@ onBeforeUnmount(() => {
           ></rect>
         </svg>
         <div v-if="rangeDisplay" class="flex flex-row justify-between gap-x-1">
-          <div :title="String(from)">
+          <div class="pd-amountfiltersresult-label-from" :title="String(from)">
             {{ rangeDisplay.from }}
           </div>
-          <div :title="String(to)">
+          <div class="pd-amountfiltersresult-label-to" :title="String(to)">
             {{ rangeDisplay.to }}
           </div>
         </div>
-        <div ref="sliderEl"></div>
+        <div ref="sliderEl" class="pd-amountfiltersresult-input-range"></div>
       </li>
       <!--
         When the property has no documents to histogram, a selected range or single value cannot be drawn on the
         slider, so it is shown here at count 0 (like the augmented reference values): it stays visible so the user
         sees the selection and can uncheck it to clear the range.
       -->
-      <li v-if="total === 0 && rangeState" class="contents">
-        <CheckBox :id="'amount/' + result.props.join('/') + '/' + (result.unit ?? '') + '/range'" v-model="rangeState" />
+      <li v-if="total === 0 && rangeState" class="pd-amountfiltersresult-row-range contents">
+        <CheckBox :id="'amount/' + result.props.join('/') + '/' + (result.unit ?? '') + '/range'" v-model="rangeState" class="pd-amountfiltersresult-checkbox-range" />
         <div class="flex items-baseline gap-x-1">
-          <label :for="'amount/' + result.props.join('/') + '/' + (result.unit ?? '') + '/range'" :class="locked ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'">
+          <label
+            :for="'amount/' + result.props.join('/') + '/' + (result.unit ?? '') + '/range'"
+            class="pd-amountfiltersresult-label-range"
+            :class="locked ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
+          >
             <!-- v-if here is just to satisfy typing, rangeState already checked that. -->
             <AmountRange v-if="filter?.amount?.gte != null" :from="filter.amount.gte" :to="filter.amount.lte" />
           </label>
-          <label :for="'amount/' + result.props.join('/') + '/' + (result.unit ?? '') + '/range'" :class="locked ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
+          <label
+            :for="'amount/' + result.props.join('/') + '/' + (result.unit ?? '') + '/range'"
+            class="pd-amountfiltersresult-count-range"
+            :class="locked ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
             >(0)</label
           >
         </div>
@@ -406,27 +421,39 @@ onBeforeUnmount(() => {
         show (total is 0) while documents with the property exist, and it stays visible
         whenever the exists filter is active so it can be unchecked.
       -->
-      <li v-if="(total === 0 && result.count > 0) || existsState" class="contents">
-        <CheckBox :id="'amount/' + result.props.join('/') + '/' + (result.unit ?? '') + '/exists'" v-model="existsState" />
+      <li v-if="(total === 0 && result.count > 0) || existsState" class="pd-amountfiltersresult-row-exists contents">
+        <CheckBox :id="'amount/' + result.props.join('/') + '/' + (result.unit ?? '') + '/exists'" v-model="existsState" class="pd-amountfiltersresult-checkbox-exists" />
         <div class="flex items-baseline gap-x-1">
-          <label :for="'amount/' + result.props.join('/') + '/' + (result.unit ?? '') + '/exists'" :class="locked ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
+          <label
+            :for="'amount/' + result.props.join('/') + '/' + (result.unit ?? '') + '/exists'"
+            class="pd-amountfiltersresult-label-exists"
+            :class="locked ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
             ><i>{{ t("common.values.exists") }}</i></label
           >
-          <label :for="'amount/' + result.props.join('/') + '/' + (result.unit ?? '') + '/exists'" :class="locked ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
+          <label
+            :for="'amount/' + result.props.join('/') + '/' + (result.unit ?? '') + '/exists'"
+            class="pd-amountfiltersresult-count-exists"
+            :class="locked ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
             >({{ result.count }})</label
           >
         </div>
       </li>
-      <li v-if="(missingCount != null && missingCount > 0) || missingState" class="contents">
-        <CheckBox :id="'amount/' + result.props.join('/') + '/' + (result.unit ?? '') + '/missing'" v-model="missingState" />
+      <li v-if="(missingCount != null && missingCount > 0) || missingState" class="pd-amountfiltersresult-row-missing contents">
+        <CheckBox
+          :id="'amount/' + result.props.join('/') + '/' + (result.unit ?? '') + '/missing'"
+          v-model="missingState"
+          class="pd-amountfiltersresult-checkbox-missing"
+        />
         <div class="flex items-baseline gap-x-1">
           <label
             :for="'amount/' + result.props.join('/') + '/' + (result.unit ?? '') + '/missing'"
+            class="pd-amountfiltersresult-label-missing"
             :class="locked ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
             ><i>{{ t("common.values.missing") }}</i></label
           >
           <label
             :for="'amount/' + result.props.join('/') + '/' + (result.unit ?? '') + '/missing'"
+            class="pd-amountfiltersresult-count-missing"
             :class="locked ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
             >({{ missingCount ?? 0 }})</label
           >

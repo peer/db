@@ -49,7 +49,7 @@ function setupTimelines() {
   const paddingBottom = parseFloat(sidebarStyle.paddingBottom) || 0
   const sidebarInnerHeight = sidebarHeight - paddingTop - paddingBottom
 
-  const items = sidebar.querySelectorAll<HTMLElement>(".pd-toc-item")
+  const items = sidebar.querySelectorAll<HTMLElement>(".pd-tableofcontents-item")
   const count = props.targets.length
   if (count === 0 || items.length === 0) return
 
@@ -59,11 +59,11 @@ function setupTimelines() {
   const contentHeight = lastItem.offsetTop + lastItem.offsetHeight - paddingTop
   // Distance to translate each item from its natural (top-stack) position down to its bottom-stack position.
   const bottomOffset = Math.max(0, sidebarInnerHeight - contentHeight)
-  sidebar.style.setProperty("--pd-toc-bottom-offset", `${bottomOffset}px`)
+  sidebar.style.setProperty("--pd-tableofcontents-bottom-offset", `${bottomOffset}px`)
 
   // Length-based animation end (in pixels of cover scroll). Same for every item - animation runs for bottomOffset
   // pixels (or bottomOffset + |navbar_top| when navbar is hidden, via calc with --pd-navbar-top in CSS).
-  sidebar.style.setProperty("--pd-toc-lockstep-end-base", `${bottomOffset}px`)
+  sidebar.style.setProperty("--pd-tableofcontents-lockstep-end-base", `${bottomOffset}px`)
 
   const vh = window.innerHeight
   const names: string[] = []
@@ -89,11 +89,11 @@ function setupTimelines() {
   // Hoist named timelines to body so TOC items in a different subtree can reference them via animation-timeline.
   document.body.style.setProperty("timeline-scope", names.join(", "))
   // Gate the animation on a class so items default to top-stack until setup is fully wired up.
-  sidebar.classList.add("pd-toc-active")
+  sidebar.classList.add("pd-tableofcontents-active")
 }
 
 function cleanupTimelines() {
-  tocRef.value?.classList.remove("pd-toc-active")
+  tocRef.value?.classList.remove("pd-tableofcontents-active")
   for (const el of timelineTargets) {
     el.style.removeProperty("view-timeline-name")
     el.style.removeProperty("view-timeline-axis")
@@ -105,11 +105,11 @@ function cleanupTimelines() {
   }
   trackedIds.clear()
   document.body.style.removeProperty("timeline-scope")
-  tocRef.value?.style.removeProperty("--pd-toc-bottom-offset")
-  tocRef.value?.style.removeProperty("--pd-toc-lockstep-end-base")
-  tocRef.value?.style.removeProperty("--pd-toc-release-start-base")
-  tocRef.value?.style.removeProperty("--pd-toc-release-end")
-  tocRef.value?.style.removeProperty("--pd-toc-release-amount-base")
+  tocRef.value?.style.removeProperty("--pd-tableofcontents-bottom-offset")
+  tocRef.value?.style.removeProperty("--pd-tableofcontents-lockstep-end-base")
+  tocRef.value?.style.removeProperty("--pd-tableofcontents-release-start-base")
+  tocRef.value?.style.removeProperty("--pd-tableofcontents-release-end")
+  tocRef.value?.style.removeProperty("--pd-tableofcontents-release-amount-base")
 }
 
 // Compute the page-scroll range over which sticky releases at the bottom, and the amount it releases by.
@@ -128,9 +128,9 @@ function updateReleaseRange() {
   const baseReleaseStart = Math.max(0, parentDocBottom - vh)
   const releaseEnd = Math.max(baseReleaseStart, docHeight - vh)
   const baseReleaseAmount = releaseEnd - baseReleaseStart
-  sidebar.style.setProperty("--pd-toc-release-start-base", `${baseReleaseStart}px`)
-  sidebar.style.setProperty("--pd-toc-release-end", `${releaseEnd}px`)
-  sidebar.style.setProperty("--pd-toc-release-amount-base", `${baseReleaseAmount}px`)
+  sidebar.style.setProperty("--pd-tableofcontents-release-start-base", `${baseReleaseStart}px`)
+  sidebar.style.setProperty("--pd-tableofcontents-release-end", `${releaseEnd}px`)
+  sidebar.style.setProperty("--pd-tableofcontents-release-amount-base", `${baseReleaseAmount}px`)
 }
 
 // Coalesce repeated resize events into one update per frame.
@@ -254,7 +254,7 @@ watch(
 </script>
 
 <template>
-  <nav ref="tocRef" :aria-label="t('partials.TableOfContents.title')" class="pd-toc sticky top-[var(--pd-navbar-height)] flex flex-col gap-y-1 py-4">
+  <nav ref="tocRef" :aria-label="t('partials.TableOfContents.title')" class="pd-tableofcontents sticky top-[var(--pd-navbar-height)] flex flex-col gap-y-1 py-4">
     <slot />
     <a
       v-for="target in targets"
@@ -262,7 +262,7 @@ watch(
       :href="`#${target.id}`"
       :aria-current="route.hash === `#${target.id}` ? 'location' : undefined"
       :style="{ animationTimeline: timelineName(target.id) }"
-      class="pd-toc-item link block shrink-0 py-1 text-left text-sm"
+      class="pd-tableofcontents-item link block shrink-0 py-1 text-left text-sm"
       @click="onItemClick($event, target.id)"
     >
       {{ target.label }}

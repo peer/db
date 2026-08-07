@@ -367,7 +367,7 @@ async function onDownloadFiles() {
       ><i class="pd-searchget-error text-error-600">{{ t("common.status.loadingDataFailed") }}</i></div
     >
 
-    <div v-else-if="searchSession === null" class="my-1 text-center sm:my-4">{{ t("common.status.loading") }}</div>
+    <div v-else-if="searchSession === null" class="pd-searchget-loading my-1 text-center sm:my-4">{{ t("common.status.loading") }}</div>
 
     <SearchResultsFeed
       v-else-if="searchSession.view === 'feed'"

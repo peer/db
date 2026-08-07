@@ -40,5 +40,5 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div></div>
+  <div class="pd-searchshortcut"></div>
 </template>

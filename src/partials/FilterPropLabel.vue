@@ -25,7 +25,7 @@ const { t } = useI18n({ useScope: "global" })
 <template>
   <template v-for="(prop, i) in propIds" :key="prop">
     <template v-if="i > 0">{{ " > " }}</template>
-    <DocumentRefInline :id="prop" :link="link" />
+    <DocumentRefInline :id="prop" class="pd-filterproplabel-value" :link="link" />
   </template>
   <template v-if="appendHas">
     <template v-if="propIds.length > 0">{{ " > " }}</template>

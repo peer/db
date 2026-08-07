@@ -966,7 +966,7 @@ defineExpose({
 </script>
 
 <template>
-  <div ref="rootRef" class="flex min-w-0 grow flex-col gap-y-4" @focusout="onSlotFocusOut">
+  <div ref="rootRef" class="pd-claiminput flex min-w-0 grow flex-col gap-y-4" :class="`pd-claiminput-${field.propertyId}`" @focusout="onSlotFocusOut">
     <!--
       Value input. Skipped for presence-only types (HAS / NONE / UNKNOWN);
       for those, see the checkbox / sub-form blocks below.
@@ -1003,7 +1003,14 @@ defineExpose({
       HAS *with* sub-fields skips the checkbox entirely and relies on the
       sub-form to drive presence (lazy create via ensureClaimId).
     -->
-    <CheckBox v-if="showCheckbox" :id="checkboxId" :model-value="currentClaim !== null" :disabled="slotReadonly" @update:model-value="onCheckboxChange" />
+    <CheckBox
+      v-if="showCheckbox"
+      :id="checkboxId"
+      :model-value="currentClaim !== null"
+      :disabled="slotReadonly"
+      class="pd-claiminput-checkbox"
+      @update:model-value="onCheckboxChange"
+    />
 
     <!--
       Sub-fields: one ClaimCardinality per sub-field, each with its property
@@ -1013,7 +1020,7 @@ defineExpose({
       sub-claim can sit under it). For HAS the sub-form is always shown;
       ensureClaimId lazily creates the parent on the first sub add.
     -->
-    <div v-if="showSubFields" class="flex flex-col" :class="subFieldGapClass">
+    <div v-if="showSubFields" class="pd-claiminput-group flex flex-col" :class="subFieldGapClass">
       <!--
         Each sub-field's ClaimCardinality renders its own header (property label +
         whole-sub-field badge) above its slots, in the input column

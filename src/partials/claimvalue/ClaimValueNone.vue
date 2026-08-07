@@ -14,6 +14,6 @@ const { t } = useI18n({ useScope: "global" })
 
 <template>
   <template v-if="claim"
-    ><i>{{ t("common.values.none") }}</i></template
+    ><i class="pd-claimvaluenone">{{ t("common.values.none") }}</i></template
   >
 </template>

@@ -133,7 +133,12 @@ function onRevert(): void {
     capped by the input's declared width: under the default (stretch) content
     alignment the grid would distribute the leftover free space to the auto tracks.
   -->
-  <fieldset v-tw-merge class="grid items-start justify-start gap-x-4" :style="{ gridTemplateColumns }" :aria-labelledby="showLabels ? labelId : labelledby || undefined">
+  <fieldset
+    v-tw-merge
+    class="pd-inputfield grid items-start justify-start gap-x-4"
+    :style="{ gridTemplateColumns }"
+    :aria-labelledby="showLabels ? labelId : labelledby || undefined"
+  >
     <template v-if="showLabels">
       <!--
         The label and its badges stay on one row (no wrap: the always-reserved
@@ -143,7 +148,9 @@ function onRevert(): void {
         for the full badge (see InputBadges).
       -->
       <div v-for="(col, i) in displayColumns" :key="i" class="mb-1 flex flex-row items-center gap-1" :class="{ '@container/labels': i === 0 }">
-        <span v-if="col.label" :id="i === 0 ? labelId : undefined" class="cursor-pointer leading-none" @mousedown="onLabelMousedown($event, col)">{{ col.label }}</span>
+        <span v-if="col.label" :id="i === 0 ? labelId : undefined" class="pd-inputfield-label cursor-pointer leading-none" @mousedown="onLabelMousedown($event, col)">{{
+          col.label
+        }}</span>
         <InputBadges v-if="i === 0 && !hideBadge" :required="required && !hideRequiredBadge" :changed="input?.isDirty ?? false" @revert="onRevert" />
       </div>
     </template>
@@ -155,7 +162,7 @@ function onRevert(): void {
     <div :class="columnCount > 1 ? 'contents' : 'grid grid-cols-[minmax(0,1fr)]'">
       <slot :ref="setInputRef" name="input" :required="required" :invalid="invalid" :aria-describedby="errorMessage ? errorId : undefined" />
     </div>
-    <p v-if="errorMessage" :id="errorId" class="col-span-full mt-1 text-sm text-error-600">{{ errorMessage }}</p>
-    <p v-for="(hint, i) in hints" :key="i" class="col-span-full mt-1 text-sm text-neutral-500 italic">{{ hint }}</p>
+    <p v-if="errorMessage" :id="errorId" class="pd-inputfield-error col-span-full mt-1 text-sm text-error-600">{{ errorMessage }}</p>
+    <p v-for="(hint, i) in hints" :key="i" class="pd-inputfield-text-hint col-span-full mt-1 text-sm text-neutral-500 italic">{{ hint }}</p>
   </fieldset>
 </template>

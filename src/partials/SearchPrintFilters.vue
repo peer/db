@@ -28,8 +28,8 @@ function hasValueParts(values: readonly { id: string }[]): Array<{ separator: st
 
 <template>
   <div v-if="filters.length > 0" class="pd-searchprintfilters">
-    <ul class="list-disc pl-6">
-      <li v-for="filter in filters" :key="filter.id">
+    <ul class="pd-searchprintfilters-list list-disc pl-6">
+      <li v-for="filter in filters" :key="filter.id" class="pd-searchprintfilters-item">
         <RefFilterValues v-if="'ref' in filter" :ref-filter="filter.ref" :link="false">
           <FilterPropLabel :prop-ids="filter.prop" :link="false" />
         </RefFilterValues>

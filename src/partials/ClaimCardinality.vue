@@ -834,9 +834,9 @@ onBeforeUnmount(() => {
     absolutely positioned and does not shift that. Top-level fields render no
     header (their label is in FieldsFormField's left cell).
   -->
-  <div ref="rootRef" class="flex min-w-0 grow flex-col">
-    <div v-if="showHeader" ref="headerRef" class="mb-4 flex flex-row flex-wrap items-center gap-1 pl-4">
-      <span :id="labelId" class="cursor-pointer leading-none font-medium text-gray-700" @mousedown.prevent="onLabelMousedown"
+  <div ref="rootRef" class="pd-claimcardinality flex min-w-0 grow flex-col" :class="`pd-claimcardinality-${field.propertyId}`">
+    <div v-if="showHeader" ref="headerRef" class="pd-claimcardinality-header mb-4 flex flex-row flex-wrap items-center gap-1 pl-4">
+      <span :id="labelId" class="pd-claimcardinality-label-field cursor-pointer leading-none font-medium text-gray-700" @mousedown.prevent="onLabelMousedown"
         ><DocumentRefInline :id="field.propertyId" :link="false"
       /></span>
       <InputBadges :required="fieldIsRequired(field)" :multiple="field.maxCardinality > 1" :changed="isDirty" @revert="onHeaderRevert" />
@@ -891,12 +891,18 @@ onBeforeUnmount(() => {
       <div v-if="!isInterval && hasLabelRow" class="col-span-2 mb-1 grid grid-cols-subgrid items-start pl-4">
         <div></div>
         <div class="grid items-start justify-start gap-x-4" :style="{ gridTemplateColumns: labelsGridTemplateColumns }">
-          <span v-for="(col, i) in slotColumns" :key="i" class="cursor-pointer leading-none" @mousedown.prevent="onColumnLabelMousedown(col)">{{ col.label }}</span>
+          <span
+            v-for="(col, i) in slotColumns"
+            :key="i"
+            class="pd-claimcardinality-label-column cursor-pointer leading-none"
+            @mousedown.prevent="onColumnLabelMousedown(col)"
+            >{{ col.label }}</span
+          >
         </div>
       </div>
       <template v-for="(slot, idx) in slots" :key="slot.key">
         <div
-          class="relative col-span-2 grid grid-cols-subgrid items-start pl-4 before:absolute before:inset-y-0 before:left-0 before:w-1 before:rounded-sm before:content-[''] not-has-[[aria-invalid=true]]:focus-within:before:bg-primary-500 has-[[aria-invalid=true]]:before:bg-error-600"
+          class="pd-claimcardinality-item relative col-span-2 grid grid-cols-subgrid items-start pl-4 before:absolute before:inset-y-0 before:left-0 before:w-1 before:rounded-sm before:content-[''] not-has-[[aria-invalid=true]]:focus-within:before:bg-primary-500 has-[[aria-invalid=true]]:before:bg-error-600"
           :class="[slotDirty(slot.key) ? 'before:bg-primary-300' : 'before:bg-neutral-300', idx > 0 ? entryGapClass : '']"
         >
           <!--
@@ -909,12 +915,12 @@ onBeforeUnmount(() => {
           does not blur the value input first (which would commit before revert).
         -->
           <div class="flex flex-col items-start gap-y-1">
-            <div class="pt-0.5 leading-none font-medium text-gray-700">{{ idx + 1 }}.</div>
+            <div class="pd-claimcardinality-count pt-0.5 leading-none font-medium text-gray-700">{{ idx + 1 }}.</div>
             <button
               v-if="perEntryRevert"
               type="button"
               :title="t('common.buttons.revert')"
-              class="flex items-center justify-center rounded-xs bg-primary-300 p-0.5 text-gray-100 shadow-xs outline-none hover:cursor-pointer hover:bg-primary-400 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 active:bg-primary-500"
+              class="pd-claimcardinality-button-revert flex items-center justify-center rounded-xs bg-primary-300 p-0.5 text-gray-100 shadow-xs outline-none hover:cursor-pointer hover:bg-primary-400 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 active:bg-primary-500"
               :class="{ invisible: !slotDirty(slot.key) }"
               @mousedown.prevent
               @click="revertSlot(slot.key)"
@@ -942,7 +948,7 @@ onBeforeUnmount(() => {
       <div v-if="slotHints.length > 0 || instructions.length > 0" class="col-span-2 mt-1 grid grid-cols-subgrid items-start pl-4">
         <div></div>
         <!-- eslint-disable vue/no-v-html -->
-        <div :class="hintsAndInstructionsClasses" @click="onInternalLinksClick" v-html="hintsAndInstructionsHtml"></div>
+        <div class="pd-claimcardinality-text-hints" :class="hintsAndInstructionsClasses" @click="onInternalLinksClick" v-html="hintsAndInstructionsHtml"></div>
         <!-- eslint-enable vue/no-v-html -->
       </div>
     </div>
@@ -950,7 +956,7 @@ onBeforeUnmount(() => {
       <div
         v-for="(slot, idx) in slots"
         :key="slot.key"
-        class="relative pl-4 before:absolute before:inset-y-0 before:left-0 before:w-1 before:rounded-sm before:content-[''] not-has-[[aria-invalid=true]]:focus-within:before:bg-primary-500 has-[[aria-invalid=true]]:before:bg-error-600"
+        class="pd-claimcardinality-item relative pl-4 before:absolute before:inset-y-0 before:left-0 before:w-1 before:rounded-sm before:content-[''] not-has-[[aria-invalid=true]]:focus-within:before:bg-primary-500 has-[[aria-invalid=true]]:before:bg-error-600"
         :class="slotDirty(slot.key) ? 'before:bg-primary-300' : 'before:bg-neutral-300'"
       >
         <ClaimInput
@@ -979,7 +985,7 @@ onBeforeUnmount(() => {
     -->
     <div v-if="(slotHints.length > 0 || instructions.length > 0) && (refOptions !== null || !isRepeated)" class="mt-1 pl-4">
       <!-- eslint-disable vue/no-v-html -->
-      <div :class="hintsAndInstructionsClasses" @click="onInternalLinksClick" v-html="hintsAndInstructionsHtml"></div>
+      <div class="pd-claimcardinality-text-hints" :class="hintsAndInstructionsClasses" @click="onInternalLinksClick" v-html="hintsAndInstructionsHtml"></div>
       <!-- eslint-enable vue/no-v-html -->
     </div>
   </div>

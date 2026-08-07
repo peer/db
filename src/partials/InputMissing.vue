@@ -253,7 +253,7 @@ async function onFocusOut(event: FocusEvent) {
     display:contents so the wrapped input's columns and our checkbox column
     become direct grid items of the enclosing component.
   -->
-  <div ref="rootRef" class="contents" @focusout="onFocusOut">
+  <div ref="rootRef" class="pd-inputmissing contents" @focusout="onFocusOut">
     <slot v-bind="$attrs" :invalid="invalid || showRequired" @errors="(v: ValidationError[]) => (innerErrors = v)" />
     <!--
       The labels prevent mousedown so clicking them does not blur the previously focused
@@ -268,13 +268,19 @@ async function onFocusOut(event: FocusEvent) {
         does not extend past the text (the column is as wide as the widest label).
       -->
       <div class="flex flex-col items-start">
-        <label class="flex cursor-pointer items-center gap-1 leading-5" @mousedown.prevent @click="focusCheckbox(unknownCheckboxId)"
-          ><CheckBox :id="unknownCheckboxId" v-model="isUnknown" :disabled="readonly" :invalid="invalid || showRequired" /><span>{{
-            t("common.values.unknown")
-          }}</span></label
+        <label class="pd-inputmissing-label-unknown flex cursor-pointer items-center gap-1 leading-5" @mousedown.prevent @click="focusCheckbox(unknownCheckboxId)"
+          ><CheckBox
+            :id="unknownCheckboxId"
+            v-model="isUnknown"
+            :disabled="readonly"
+            :invalid="invalid || showRequired"
+            class="pd-inputmissing-checkbox-unknown"
+          /><span>{{ t("common.values.unknown") }}</span></label
         >
-        <label class="flex cursor-pointer items-center gap-1 leading-5" @mousedown.prevent @click="focusCheckbox(noneCheckboxId)"
-          ><CheckBox :id="noneCheckboxId" v-model="isNone" :disabled="readonly" :invalid="invalid || showRequired" /><span>{{ t("common.values.none") }}</span></label
+        <label class="pd-inputmissing-label-none flex cursor-pointer items-center gap-1 leading-5" @mousedown.prevent @click="focusCheckbox(noneCheckboxId)"
+          ><CheckBox :id="noneCheckboxId" v-model="isNone" :disabled="readonly" :invalid="invalid || showRequired" class="pd-inputmissing-checkbox-none" /><span>{{
+            t("common.values.none")
+          }}</span></label
         >
       </div>
     </WithLock>
