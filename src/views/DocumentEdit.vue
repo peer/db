@@ -68,7 +68,7 @@ import {
   unregisterRemoteAddsKey,
   unregisterRemoteConflictKey,
 } from "@/fields"
-import { classifyLink, LINK_CLASS_FILE } from "@/internal-links"
+import { classifyLink, LINK_CLASS_FILE, selfDocumentKey } from "@/internal-links"
 import DisplayLabel from "@/partials/DisplayLabel.vue"
 import DocumentDuplicates from "@/partials/DocumentDuplicates.vue"
 import DocumentRefInline from "@/partials/DocumentRefInline.vue"
@@ -548,6 +548,10 @@ async function drainSaveChanges(): Promise<void> {
     await tail
   } while (tail !== saveChainTail)
 }
+
+// HTML rendered in the form is not written per document (a field's instructions are shared by every
+// document of the class), so it links to the document being edited through the {self} expression.
+provide(selfDocumentKey, () => props.id)
 
 provide(getCommittedClaimKey, (id: string) => (doc.value?.claims.GetByID(id) ?? null) as DeepReadonly<Claim> | null)
 provide(documentClaimsKey, () => doc.value?.claims ?? null)

@@ -47,6 +47,11 @@ import (
 // sub-field paths continue through the nested struct's fields. Each instruction
 // becomes a FIELD_INSTRUCTION claim (one per language) with the language as an
 // IN_LANGUAGE sub-claim. A path not matching any field is an error.
+//
+// An instruction is shared by every document of the class, so a link in it targeting
+// the document being edited uses the RFC 6570 level 1 expression {self} in place of
+// the document's id (e.g. "/d/request/{self}" for its request page), which the edit
+// form expands when it renders the instruction.
 func Fields[T any](
 	mnemonics map[string][]string,
 	sections map[string]map[string]string,
