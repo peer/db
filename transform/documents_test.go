@@ -8,6 +8,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/identifier"
 
 	"gitlab.com/peerdb/peerdb/document"
@@ -1061,6 +1062,67 @@ func TestDocuments_NestedWithoutValue(t *testing.T) {
 	assert.Equal(t, identifier.From("test", "doc1", "ADDRESS", "0", "LOCATION", "0"), hasClaim.Sub.Reference[0].ID)
 	assert.Len(t, hasClaim.Sub.TimeInterval, 1)
 	assert.Equal(t, identifier.From("test", "doc1", "ADDRESS", "0", "PERIOD", "0"), hasClaim.Sub.TimeInterval[0].ID)
+}
+
+func TestDocuments_RepeatedFieldErrorIsIndexed(t *testing.T) {
+	t.Parallel()
+
+	mnemonics := createMnemonics()
+	start := time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC)
+	end := time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC)
+
+	// Only the second entry of History has an interval without a "to" bound. Every entry of a repeated
+	// field is at the same field path, so the error is only useful if it says which entry it is about.
+	docs := []any{
+		&DocWithNestedNoValue{
+			ID: []string{"test", "doc1"},
+			Address: NestedWithoutValue{
+				Location: core.Ref{ID: []string{"location", "1"}},
+				Period: core.Interval[core.Time]{
+					From:          &core.Time{Time: start, Precision: document.TimePrecisionYear},
+					FromIsOpen:    false,
+					FromIsUnknown: false,
+					FromIsNone:    false,
+					To:            &core.Time{Time: end, Precision: document.TimePrecisionYear},
+					ToIsOpen:      false,
+					ToIsUnknown:   false,
+					ToIsNone:      false,
+				},
+			},
+			History: []NestedWithoutValue{
+				{
+					Location: core.Ref{ID: []string{"location", "2"}},
+					Period: core.Interval[core.Time]{
+						From:          &core.Time{Time: start, Precision: document.TimePrecisionYear},
+						FromIsOpen:    false,
+						FromIsUnknown: false,
+						FromIsNone:    false,
+						To:            &core.Time{Time: end, Precision: document.TimePrecisionYear},
+						ToIsOpen:      false,
+						ToIsUnknown:   false,
+						ToIsNone:      false,
+					},
+				},
+				{
+					Location: core.Ref{ID: []string{"location", "3"}},
+					Period: core.Interval[core.Time]{
+						From:          &core.Time{Time: start, Precision: document.TimePrecisionYear},
+						FromIsOpen:    false,
+						FromIsUnknown: false,
+						FromIsNone:    false,
+						To:            nil,
+						ToIsOpen:      false,
+						ToIsUnknown:   false,
+						ToIsNone:      false,
+					},
+				},
+			},
+		},
+	}
+
+	_, errE := transform.Documents(t.Context(), mnemonics, docs)
+	assert.EqualError(t, errE, `interval's "to" bound is not set`)
+	assert.Equal(t, "History[1].Period", errors.Details(errE)["field"])
 }
 
 func TestDocuments_SkippedFields(t *testing.T) {

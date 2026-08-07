@@ -521,6 +521,18 @@ func (tr *transformer) processStructFields(
 	return nil
 }
 
+// indexedFieldPath returns the field path of the i-th value of a repeated field, by indexing the
+// field the path ends with. Field paths only ever describe where an error comes from, and without
+// the index every value of a slice reports the same path, which does not say which of them failed.
+func indexedFieldPath(fieldPath []string, i int) []string {
+	if len(fieldPath) == 0 {
+		return fieldPath
+	}
+	indexed := slices.Clone(fieldPath)
+	indexed[len(indexed)-1] += "[" + strconv.Itoa(i) + "]"
+	return indexed
+}
+
 // processField processes one field of a struct.
 //
 // It supports simple types of values and slices, pointers and non-core structs.
@@ -545,7 +557,9 @@ func (tr *transformer) processField(
 	if fieldValue.Kind() == reflect.Slice {
 		for i := range fieldValue.Len() {
 			elem := fieldValue.Index(i)
-			errE := tr.processSingleValue(elem, elem.Type(), propertyID, typeTag, precisionTag, locationTag, confidence, idPath, fieldPath, claims)
+			errE := tr.processSingleValue(
+				elem, elem.Type(), propertyID, typeTag, precisionTag, locationTag, confidence, idPath, indexedFieldPath(fieldPath, i), claims,
+			)
 			if errors.Is(errE, errClaimNotMade) {
 				continue
 			} else if errE != nil {
@@ -1111,6 +1125,9 @@ func makeClaim(
 		} else if interval.FromIsNone {
 			claim.FromIsNone = true
 		} else {
+			// A bound is set by giving From, or by marking it with FromIsUnknown (the bound exists but is not
+			// known) or FromIsNone (the bound does not exist). FromIsOpen is not one of them: it only marks a
+			// From value as exclusive and is read above, so on its own it leaves the bound unset.
 			return nil, errors.New(`interval's "from" bound is not set`)
 		}
 
@@ -1126,6 +1143,9 @@ func makeClaim(
 		} else if interval.ToIsNone {
 			claim.ToIsNone = true
 		} else {
+			// A bound is set by giving To, or by marking it with ToIsUnknown (the bound exists but is not known)
+			// or ToIsNone (the bound does not exist). ToIsOpen is not one of them: it only marks a To value as
+			// exclusive and is read above, so on its own it leaves the bound unset.
 			return nil, errors.New(`interval's "to" bound is not set`)
 		}
 
@@ -1200,6 +1220,9 @@ func makeClaim(
 		} else if fromIsNone {
 			claim.FromIsNone = true
 		} else {
+			// A bound is set by giving From, or by marking it with FromIsUnknown (the bound exists but is not
+			// known) or FromIsNone (the bound does not exist). FromIsOpen is not one of them: it only marks a
+			// From value as exclusive and is read above, so on its own it leaves the bound unset.
 			return nil, errors.New(`interval's "from" bound is not set`)
 		}
 
@@ -1231,6 +1254,9 @@ func makeClaim(
 		} else if toIsNone {
 			claim.ToIsNone = true
 		} else {
+			// A bound is set by giving To, or by marking it with ToIsUnknown (the bound exists but is not known)
+			// or ToIsNone (the bound does not exist). ToIsOpen is not one of them: it only marks a To value as
+			// exclusive and is read above, so on its own it leaves the bound unset.
 			return nil, errors.New(`interval's "to" bound is not set`)
 		}
 
