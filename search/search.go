@@ -644,7 +644,9 @@ type SessionData struct {
 	ReverseExpand bool                    `json:"reverseExpand,omitempty"`
 	IDs           []identifier.Identifier `json:"ids,omitempty"`
 	// Sort is the effective sort order: an ordered list of columns. Empty means the default order
-	// (relevance, then time, then display label). A leading run of group=true ref columns groups results.
+	// (relevance, then time, then display label). Whatever the columns are, the document id is appended as
+	// the last key, which is the tiebreaker making the order total. A leading run of group=true ref columns
+	// groups results.
 	Sort []SortKey `json:"sort,omitempty"`
 }
 
@@ -1421,7 +1423,7 @@ func ResultsGet(
 	//
 	//       Implement the flag by dropping relevance ranking when a per-document ACL is active: wrap the matching query in
 	//       constant_score (every match scores the same), skip the counts.score function_score, do not expose _score (set
-	//       track_scores false), and order only by stable per-document keys (time, then displaySort) that do not depend on collection
+	//       track_scores false), and order only by stable per-document keys (time, then displaySort, then id) that do not depend on collection
 	//       statistics. Matching then reduces to a per-document boolean test and the order is independent of inaccessible documents,
 	//       so nothing observable leaks term statistics. A mapping-level alternative to constant_score is to give the text field the
 	//       boolean similarity (it scores on query boosts only, no TF/IDF). (Per-shard IDF noise is not a defense.)
@@ -1450,7 +1452,8 @@ func ResultsGet(
 
 	// A leading run of group=true sort keys groups the results (feed view only); the remaining keys order
 	// documents within each leaf group. Without group keys, the results are a flat sorted list ordered by
-	// the sort keys, then the default tail (relevance, then earliest time, then display label).
+	// the sort keys, or by the default order (relevance, then earliest time, then display label) when there
+	// are none, and by the document id last in either case.
 	groupCols := leadingGroupKeys(searchData.Sort)
 	grouped := len(groupCols) > 0 && searchData.View == ViewFeed
 

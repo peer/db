@@ -9,6 +9,7 @@ var (
 	TestingAmountStepDown          = amountStepDown
 	TestingAmountUnitFilter        = amountUnitFilter
 	TestingAncestorChains          = ancestorChains
+	TestingBuildSort               = buildSort
 	TestingClassCreatable          = classCreatable
 	TestingComputeInterval         = computeInterval
 	TestingDistinctValuesTotal     = distinctValuesTotal

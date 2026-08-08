@@ -84,6 +84,44 @@ func refreshIndex(t *testing.T, ctx context.Context, esClient *elasticsearch.Typ
 	testutils.RequireNoESError(t, err)
 }
 
+// indexSortDoc indexes a document which carries no claims, only the fields the default sort tail uses:
+// the given earliest time (nil for none) and the given English display-sort label. An empty displaySort
+// leaves the document without any display-sort label at all, which is what documents without a rendered
+// display label look like.
+func indexSortDoc(t *testing.T, ctx context.Context, esClient *elasticsearch.TypedClient, index, id string, tm *float64, displaySort string) { //nolint:revive
+	t.Helper()
+
+	var ds map[string]string
+	if displaySort != "" {
+		ds = map[string]string{"en": displaySort}
+	}
+	indexDocument(t, ctx, esClient, index, internalSearch.Document{
+		DisplaySort: ds,
+		ID:          identifier.From(id),
+		Display:     nil,
+		Text:        nil,
+		Time:        tm,
+		LastUpdated: nil,
+		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
+		Claims: internalSearch.ClaimTypes{
+			Identifier: nil,
+			String:     nil,
+			HTML:       nil,
+			Amount:     nil,
+			Time:       nil,
+			Link:       nil,
+			Reference:  nil,
+			Has:        nil,
+			None:       nil,
+			Unknown:    nil,
+			SubRef:     nil,
+			SubAmount:  nil,
+			SubTime:    nil,
+			SubHas:     nil,
+		},
+	})
+}
+
 // indexAmountDoc indexes a document carrying a single point-amount claim of the given
 // value with precision 1 under amountProp with unitID. It mirrors what convertAmount
 // produces: the endpoints are the edges of the symmetric precision window

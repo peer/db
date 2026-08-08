@@ -2,6 +2,7 @@ package search_test
 
 import (
 	"math"
+	"slices"
 	"sort"
 	"testing"
 
@@ -1273,46 +1274,13 @@ func TestResultsGetSortOrderIntegration(t *testing.T) {
 	t100 := float64(100)
 	t200 := float64(200)
 
-	// indexSortDoc indexes a document with the given earliest time and English display-sort label.
-	indexSortDoc := func(id string, tm *float64, displaySort string) {
-		var ds map[string]string
-		if displaySort != "" {
-			ds = map[string]string{"en": displaySort}
-		}
-		indexDocument(t, ctx, esClient, index, internalSearch.Document{
-			DisplaySort: ds,
-			ID:          identifier.From(id),
-			Display:     nil,
-			Text:        nil,
-			Time:        tm,
-			LastUpdated: nil,
-			Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
-			Claims: internalSearch.ClaimTypes{
-				Identifier: nil,
-				String:     nil,
-				HTML:       nil,
-				Amount:     nil,
-				Time:       nil,
-				Link:       nil,
-				Reference:  nil,
-				Has:        nil,
-				None:       nil,
-				Unknown:    nil,
-				SubRef:     nil,
-				SubAmount:  nil,
-				SubTime:    nil,
-				SubHas:     nil,
-			},
-		})
-	}
-
 	// No query, filters, or prefilters, so every document scores 0 and ordering is decided by the time
 	// key (newer first) and then the display-label key (a before z). The document without a time sorts
 	// last regardless of its label.
-	indexSortDoc("docNewerB", &t200, "b")
-	indexSortDoc("docNewerA", &t200, "a")
-	indexSortDoc("docOlder", &t100, "b")
-	indexSortDoc("docNoTime", nil, "a")
+	indexSortDoc(t, ctx, esClient, index, "docNewerB", &t200, "b")
+	indexSortDoc(t, ctx, esClient, index, "docNewerA", &t200, "a")
+	indexSortDoc(t, ctx, esClient, index, "docOlder", &t100, "b")
+	indexSortDoc(t, ctx, esClient, index, "docNoTime", nil, "a")
 	refreshIndex(t, ctx, esClient, index)
 
 	session := createSession(t, ctx, search.SessionData{
@@ -1340,4 +1308,55 @@ func TestResultsGetSortOrderIntegration(t *testing.T) {
 		identifier.From("docOlder").String(),
 		identifier.From("docNoTime").String(),
 	}, gotIDs)
+}
+
+func TestResultsGetSortTieBreakByIDIntegration(t *testing.T) {
+	t.Parallel()
+
+	ctx := t.Context()
+	esClient, getSearchService, index := initES(t)
+
+	tm := float64(100)
+
+	// Every document shares the same time and has no display-sort label, and with no query they all score
+	// the same, so all three keys of the default sort tail ahead of the id tie. The id keyword is then the
+	// only key which can order them, and it orders them ascending by its string value.
+	names := []string{"tie1", "tie2", "tie3", "tie4", "tie5"}
+	nameByID := make(map[string]string, len(names))
+	expectedIDs := make([]string, 0, len(names))
+	for _, name := range names {
+		id := identifier.From(name).String()
+		nameByID[id] = name
+		expectedIDs = append(expectedIDs, id)
+	}
+	sort.Strings(expectedIDs)
+
+	// Index in descending id order, so the index's internal document order is the reverse of the expected
+	// one. Without the id key the tie would fall through to internal document order and the results would
+	// come back reversed, which is what makes this assertion a real check rather than a restatement.
+	for _, id := range slices.Backward(expectedIDs) {
+		indexSortDoc(t, ctx, esClient, index, nameByID[id], &tm, "")
+	}
+	refreshIndex(t, ctx, esClient, index)
+
+	session := createSession(t, ctx, search.SessionData{
+		Sort:          nil,
+		Language:      "",
+		View:          "",
+		Query:         "",
+		Filters:       nil,
+		Prefilters:    nil,
+		Reverse:       nil,
+		ReverseExpand: false,
+		IDs:           nil,
+	})
+
+	results, _, errE := search.ResultsGet(ctx, getSearchService, &session.SessionData, nil, 0)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	gotIDs := make([]string, 0, len(results))
+	for _, r := range results {
+		gotIDs = append(gotIDs, r.ID)
+	}
+	assert.Equal(t, expectedIDs, gotIDs)
 }

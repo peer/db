@@ -223,8 +223,9 @@ export type SearchSessionData = {
   ids?: string[]
   // language is the session's UI language. The backend resolves an empty value to the site default and stores it on the session.
   language?: string
-  // sort is the effective sort order. Empty means the default order (relevance, time, display label). A
-  // leading run of group=true ref columns groups the feed results.
+  // sort is the effective sort order. Empty means the default order (relevance, time, display label).
+  // Whatever the columns are, the document id is appended as the last key, which is the tiebreaker making
+  // the order total. A leading run of group=true ref columns groups the feed results.
   sort?: SortKey[]
 }
 

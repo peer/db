@@ -1,6 +1,7 @@
 package search_test
 
 import (
+	"slices"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -260,4 +261,46 @@ func TestResultsGetGroupedMultiLevelMissing(t *testing.T) {
 	assert.Equal(t, alice.String(), missingMedium.Group[0].ID)
 	assert.Equal(t, 1, missingMedium.Group[0].Col)
 	assert.ElementsMatch(t, []string{doc4.String()}, leafIDs(missingMedium.Group[0].Group))
+}
+
+func TestResultsGetGroupedSortTieBreakByIDIntegration(t *testing.T) {
+	t.Parallel()
+
+	ctx := t.Context()
+	esClient, getSearchService, index := initES(t)
+
+	medium := identifier.From("tieMediumProp")
+	poster := identifier.From("tiePoster")
+	posterRef := flatRef(medium, poster, "Poster")
+
+	// Every document lands in the same group and carries no time, no display-sort label, and no text, so
+	// within the group the three keys of the default sort tail ahead of the id all tie. The within-group
+	// order is the same buildSort output as the flat path, threaded into the leaf top_hits aggregation, so
+	// the id key has to order them there too.
+	names := []string{"tieGroup1", "tieGroup2", "tieGroup3", "tieGroup4", "tieGroup5"}
+	nameByID := make(map[string]string, len(names))
+	expectedIDs := make([]string, 0, len(names))
+	for _, name := range names {
+		id := identifier.From(name).String()
+		nameByID[id] = name
+		expectedIDs = append(expectedIDs, id)
+	}
+	slices.Sort(expectedIDs)
+
+	// Index in descending id order so the index's internal document order is the reverse of the expected one.
+	for _, id := range slices.Backward(expectedIDs) {
+		indexDocument(t, ctx, esClient, index, hierDoc(identifier.From(nameByID[id]), []internalSearch.ReferenceClaim{posterRef}))
+	}
+	refreshIndex(t, ctx, esClient, index)
+
+	session := createSession(t, ctx, search.SessionData{ //nolint:exhaustruct
+		Sort: []search.SortKey{{Type: "ref", Prop: []string{medium.String()}, Group: true}}, //nolint:exhaustruct
+	})
+
+	results, _, errE := search.ResultsGet(ctx, getSearchService, &session.SessionData, []string{"en"}, 0)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	require.Len(t, results, 1)
+	assert.Equal(t, poster.String(), results[0].ID)
+	assert.Equal(t, expectedIDs, leafIDs(results[0].Group))
 }
