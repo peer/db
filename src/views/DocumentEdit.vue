@@ -856,6 +856,12 @@ async function loadAndSubscribe() {
   // TODO: Use websocket to watch for new changes.
   const timer = setInterval(() => {
     loadChanges().catch((error) => {
+      // Leaving the view aborts the request this poll has in flight at that moment, which rejects it.
+      // Nothing failed and there is no view left to report to, so clearing the interval just below is
+      // the whole of what has to happen.
+      if (abortController.signal.aborted) {
+        return
+      }
       // TODO: Show error state to the user.
       console.error("loadAndSubscribe interval", error)
     })

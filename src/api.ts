@@ -28,6 +28,23 @@ export class FetchError extends Error {
   }
 }
 
+// True while the page is going away. The browser then cancels every request in flight, which rejects it
+// with a TypeError saying nothing about the server, and there is nobody left to report it to. The fetch
+// helpers below answer null in that case, the same answer they give for an abort, so a caller which
+// already stops on null stops here too.
+//
+// The page is hidden rather than discarded when it goes into the back/forward cache, which keeps this
+// module's state, so coming back from there unsets the flag again.
+let unloading = false
+if (typeof window !== "undefined") {
+  window.addEventListener("pagehide", () => {
+    unloading = true
+  })
+  window.addEventListener("pageshow", () => {
+    unloading = false
+  })
+}
+
 export function deleteFromCache(url: string) {
   localGetCache.delete(url)
 }
@@ -40,8 +57,8 @@ export function clearCache() {
 }
 
 // getURL fetches the document at the URL, going through the request queue and the in-process GET cache, and returns it together with its decoded metadata.
-// It returns null when abortSignal is aborted, in which case nothing is cached. It throws FetchError when the response is not JSON, and rejects with the
-// abort reason when the abort lands while the request is queued or in flight.
+// It returns null when abortSignal is aborted or the page is going away, in which case nothing is cached. It throws FetchError when the response is not
+// JSON, and rejects with the abort reason when the abort lands while the request is queued or in flight.
 //
 // TODO: Improve priority with "el".
 export async function getURL<T>(
@@ -80,6 +97,12 @@ export async function getURL<T>(
     }
     localGetCache.set(url, res)
     return res
+  } catch (err) {
+    // The page going away cancels the request, which is not a failure anyone can act on.
+    if (unloading) {
+      return null
+    }
+    throw err
   } finally {
     if (progress) {
       progress.value -= 1
@@ -88,8 +111,8 @@ export async function getURL<T>(
 }
 
 // getURLDirect fetches the document at the URL, bypassing both the request queue and the in-process GET cache, and returns it together with its decoded
-// metadata. It returns null when abortSignal is aborted. It throws FetchError when the response is not JSON, and rejects with the abort reason when the
-// abort lands while the request is in flight.
+// metadata. It returns null when abortSignal is aborted or the page is going away. It throws FetchError when the response is not JSON, and rejects with
+// the abort reason when the abort lands while the request is in flight.
 export async function getURLDirect<T>(url: string, abortSignal: AbortSignal, progress: Ref<number> | null): Promise<{ doc: T; metadata: Metadata } | null> {
   if (progress) {
     progress.value += 1
@@ -124,6 +147,12 @@ export async function getURLDirect<T>(url: string, abortSignal: AbortSignal, pro
       return null
     }
     return { doc, metadata: decodeMetadata(response.headers, siteContext.metadataHeaderPrefix ?? "") }
+  } catch (err) {
+    // The page going away cancels the request, which is not a failure anyone can act on.
+    if (unloading) {
+      return null
+    }
+    throw err
   } finally {
     if (progress) {
       progress.value -= 1
@@ -131,8 +160,8 @@ export async function getURLDirect<T>(url: string, abortSignal: AbortSignal, pro
   }
 }
 
-// headURLDirect makes a HEAD request for the URL and returns the response headers. It returns null when abortSignal is aborted. It throws FetchError when
-// the response is not successful, and rejects with the abort reason when the abort lands while the request is in flight.
+// headURLDirect makes a HEAD request for the URL and returns the response headers. It returns null when abortSignal is aborted or the page is going away.
+// It throws FetchError when the response is not successful, and rejects with the abort reason when the abort lands while the request is in flight.
 export async function headURLDirect(url: string, abortSignal: AbortSignal, progress: Ref<number> | null): Promise<Headers | null> {
   if (progress) {
     progress.value += 1
@@ -158,6 +187,12 @@ export async function headURLDirect(url: string, abortSignal: AbortSignal, progr
       })
     }
     return response.headers
+  } catch (err) {
+    // The page going away cancels the request, which is not a failure anyone can act on.
+    if (unloading) {
+      return null
+    }
+    throw err
   } finally {
     if (progress) {
       progress.value -= 1
@@ -165,8 +200,8 @@ export async function headURLDirect(url: string, abortSignal: AbortSignal, progr
   }
 }
 
-// postJSON posts data as JSON to the URL and returns the parsed JSON response. It returns null when abortSignal is aborted. It throws FetchError when the
-// response is not JSON, and rejects with the abort reason when the abort lands while the request is in flight.
+// postJSON posts data as JSON to the URL and returns the parsed JSON response. It returns null when abortSignal is aborted or the page is going away.
+// It throws FetchError when the response is not JSON, and rejects with the abort reason when the abort lands while the request is in flight.
 export async function postJSON<T>(url: string, data: object, abortSignal: AbortSignal, progress: Ref<number> | null): Promise<T | null> {
   if (progress) {
     progress.value += 1
@@ -204,6 +239,12 @@ export async function postJSON<T>(url: string, data: object, abortSignal: AbortS
       return null
     }
     return doc
+  } catch (err) {
+    // The page going away cancels the request, which is not a failure anyone can act on.
+    if (unloading) {
+      return null
+    }
+    throw err
   } finally {
     if (progress) {
       progress.value -= 1
@@ -211,8 +252,8 @@ export async function postJSON<T>(url: string, data: object, abortSignal: AbortS
   }
 }
 
-// postBlob posts a blob to the URL and returns the parsed JSON response. It returns null when abortSignal is aborted. It throws FetchError when the
-// response is not JSON, and rejects with the abort reason when the abort lands while the request is in flight.
+// postBlob posts a blob to the URL and returns the parsed JSON response. It returns null when abortSignal is aborted or the page is going away.
+// It throws FetchError when the response is not JSON, and rejects with the abort reason when the abort lands while the request is in flight.
 export async function postBlob<T>(url: string, data: Blob, abortSignal: AbortSignal, progress: Ref<number> | null): Promise<T | null> {
   if (progress) {
     progress.value += 1
@@ -249,6 +290,12 @@ export async function postBlob<T>(url: string, data: Blob, abortSignal: AbortSig
       return null
     }
     return doc
+  } catch (err) {
+    // The page going away cancels the request, which is not a failure anyone can act on.
+    if (unloading) {
+      return null
+    }
+    throw err
   } finally {
     if (progress) {
       progress.value -= 1
