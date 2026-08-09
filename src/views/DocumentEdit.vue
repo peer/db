@@ -216,6 +216,13 @@ const { resetAll, firstInputEl, allEmpty, anyDirty, anyError, inputs, validateAl
   claimFormError.value = ""
 })
 
+// The controller of the work the view has in flight. It is replaced, and the one it replaces aborted, on
+// three occasions: the view reloading for another document or session, a save ending the session, and a
+// discard ending it. Every function which awaits under it therefore takes a copy of the instance it starts
+// with and asks that one whether it was aborted, instead of reading this variable again after an await.
+// Reading it again would judge the work of the session which has just ended against the controller of the
+// one which replaced it, which is not aborted, so the work would carry on: at best it reports its own abort
+// as a failure, at worst it writes what it fetched for the previous session into the fresh one.
 let abortController = new AbortController()
 
 // Armed on every (re)load; cleared once initial focus has moved into the
@@ -369,8 +376,9 @@ function runDocApplySerialized<T>(fn: () => Promise<T>): Promise<T> {
 // doc reaches the state after the change without refetching it. Skipped when the doc is
 // not exactly at the state before the change (then the poll path applies it instead).
 async function applyOwnChange(changeNumber: number, change: object): Promise<void> {
+  const controller = abortController
   await runDocApplySerialized(async () => {
-    if (abortController.signal.aborted) {
+    if (controller.signal.aborted) {
       return
     }
     if (!_doc.value || committedChange.value !== changeNumber - 1) {
@@ -378,7 +386,7 @@ async function applyOwnChange(changeNumber: number, change: object): Promise<voi
     }
     try {
       await changeFrom(change).Apply(_doc.value)
-      if (abortController.signal.aborted) {
+      if (controller.signal.aborted) {
         return
       }
       committedChange.value = changeNumber
@@ -409,8 +417,9 @@ async function applyOwnChange(changeNumber: number, change: object): Promise<voi
 //     a pause. If the failed POST actually reached the server, the retry conflicts with
 //     it and the comparison above resolves it as committed.
 async function postChange(spec: SaveChangeSpec): Promise<SaveChangeResult> {
+  const controller = abortController
   while (true) {
-    abortController.signal.throwIfAborted()
+    controller.signal.throwIfAborted()
     // Bring the doc to the state after the last known committed change. In the common
     // case the doc is already there: our own posts apply through applyOwnChange, and the
     // poll keeps committedChange at lastServerChange otherwise.
@@ -418,19 +427,19 @@ async function postChange(spec: SaveChangeSpec): Promise<SaveChangeResult> {
       try {
         await syncChanges()
       } catch (err) {
-        abortController.signal.throwIfAborted()
+        controller.signal.throwIfAborted()
         console.error("DocumentEdit.postChange sync", err)
-        await delay(saveRetryInterval, abortController.signal)
+        await delay(saveRetryInterval, controller.signal)
         continue
       }
-      abortController.signal.throwIfAborted()
+      controller.signal.throwIfAborted()
     }
     const changeNumber = lastServerChange + 1
     const { change, id } = await materializeChange(spec, changeNumber)
     const applies = await changeApplies(change, changeNumber)
     // Both awaits above yield, and an abort during changeApplies surfaces as false, which would be
     // reported as a dropped change. The abort is raised here instead, before the change is dropped.
-    abortController.signal.throwIfAborted()
+    controller.signal.throwIfAborted()
     if (!applies) {
       // TODO: Implement better conflict handling instead of just dropping it.
       throw new ChangeDroppedError(`change does not apply: ${JSON.stringify(change)}`)
@@ -443,19 +452,19 @@ async function postChange(spec: SaveChangeSpec): Promise<SaveChangeResult> {
           query: encodeQuery({ change: String(changeNumber) }),
         }).href,
         change,
-        abortController.signal,
+        controller.signal,
         null,
       )
       // The change may have reached the server, but the session is gone, so none of its bookkeeping
       // is recorded and the abort is reported to the caller like any other abort of this function.
-      abortController.signal.throwIfAborted()
+      controller.signal.throwIfAborted()
       lastServerChange = changeNumber
       ownChangeNumbers.add(changeNumber)
       ownClaimChanges.set(id, changeNumber)
       await applyOwnChange(changeNumber, change)
       return { id }
     } catch (err) {
-      if (abortController.signal.aborted) {
+      if (controller.signal.aborted) {
         throw err
       }
       if (err instanceof FetchError && err.status === 409) {
@@ -464,10 +473,10 @@ async function postChange(spec: SaveChangeSpec): Promise<SaveChangeResult> {
             name: "DocumentGetChange",
             params: { session: props.session, change: changeNumber },
           }).href,
-          abortController.signal,
+          controller.signal,
           null,
         )
-        if (abortController.signal.aborted || existingResponse === null) {
+        if (controller.signal.aborted || existingResponse === null) {
           throw err
         }
         const existing = existingResponse.doc
@@ -490,8 +499,8 @@ async function postChange(spec: SaveChangeSpec): Promise<SaveChangeResult> {
       if (err instanceof FetchError && err.status === 400) {
         throw new ChangeDroppedError(`change rejected by the server: ${JSON.stringify(change)}`, { cause: err })
       }
-      await delay(saveRetryInterval, abortController.signal)
-      if (abortController.signal.aborted) {
+      await delay(saveRetryInterval, controller.signal)
+      if (controller.signal.aborted) {
         throw err
       }
     }
@@ -521,11 +530,12 @@ provide(saveChangeKey, saveChange)
 // once the session is aborted, so callers check the signal after it to tell a full drain apart
 // from an aborted one.
 async function drainSaveChanges(): Promise<void> {
+  const controller = abortController
   let tail: Promise<unknown>
   do {
     tail = saveChainTail
     await tail
-    if (abortController.signal.aborted) {
+    if (controller.signal.aborted) {
       return
     }
   } while (tail !== saveChainTail)
@@ -641,6 +651,7 @@ function claimAncestry(claims: ClaimTypes | undefined, id: string): string[] | n
 // committedChange, so the initial load can build the doc off-tree and publish it
 // atomically (see loadAndSubscribe).
 async function applyPendingChanges(target: D, fromChange: number): Promise<{ next: number; remoteTouched: Set<string> }> {
+  const controller = abortController
   const remoteTouched = new Set<string>()
   const lastChangeResponse = await getURLDirect<LastOperationResponse>(
     router.apiResolve({
@@ -649,10 +660,10 @@ async function applyPendingChanges(target: D, fromChange: number): Promise<{ nex
         session: props.session,
       },
     }).href,
-    abortController.signal,
+    controller.signal,
     null,
   )
-  if (abortController.signal.aborted || lastChangeResponse === null) {
+  if (controller.signal.aborted || lastChangeResponse === null) {
     return { next: fromChange, remoteTouched }
   }
   const lastChange = lastChangeResponse.doc.lastOperation
@@ -670,10 +681,10 @@ async function applyPendingChanges(target: D, fromChange: number): Promise<{ nex
         },
       }).href,
       null,
-      abortController.signal,
+      controller.signal,
       null,
     )
-    if (abortController.signal.aborted || changeResponse === null) {
+    if (controller.signal.aborted || changeResponse === null) {
       return { next: current, remoteTouched }
     }
     const changeDoc = changeResponse.doc
@@ -700,7 +711,7 @@ async function applyPendingChanges(target: D, fromChange: number): Promise<{ nex
     // Applying the change yields, and on the loadChanges path target is the live doc, so the loop
     // stops here rather than fetching and applying further changes. The change numbered current + 1
     // has been applied, so that is the new highest applied change.
-    if (abortController.signal.aborted) {
+    if (controller.signal.aborted) {
       return { next: current + 1, remoteTouched }
     }
   }
@@ -724,13 +735,14 @@ async function applyPendingChanges(target: D, fromChange: number): Promise<{ nex
 // docApplyChain so it cannot interleave with applyOwnChange.
 let loadChangesRunning: Promise<void> | null = null
 function loadChanges(): Promise<void> {
+  const controller = abortController
   if (loadChangesRunning) {
     return loadChangesRunning
   }
   loadChangesRunning = runDocApplySerialized(async () => {
     try {
       const { next, remoteTouched } = await applyPendingChanges(_doc.value!, committedChange.value)
-      if (abortController.signal.aborted) {
+      if (controller.signal.aborted) {
         return
       }
       committedChange.value = next
@@ -749,7 +761,7 @@ function loadChanges(): Promise<void> {
         }
         for (let round = 0; round < 10; round++) {
           await nextTick()
-          if (abortController.signal.aborted) {
+          if (controller.signal.aborted) {
             return
           }
           let added = false
@@ -772,9 +784,10 @@ function loadChanges(): Promise<void> {
 // in-flight loadChanges may have fetched the changes list before, so it is awaited first
 // and a fresh run started after.
 async function syncChanges(): Promise<void> {
+  const controller = abortController
   if (loadChangesRunning) {
     await loadChangesRunning.catch(() => undefined)
-    if (abortController.signal.aborted) {
+    if (controller.signal.aborted) {
       return
     }
   }
@@ -782,6 +795,7 @@ async function syncChanges(): Promise<void> {
 }
 
 async function loadAndSubscribe() {
+  const controller = abortController
   const editStatusResponse = await getURL<DocumentEditStatus>(
     router.apiResolve({
       name: "DocumentEdit",
@@ -791,10 +805,10 @@ async function loadAndSubscribe() {
       },
     }).href,
     null,
-    abortController.signal,
+    controller.signal,
     null,
   )
-  if (abortController.signal.aborted || editStatusResponse === null) {
+  if (controller.signal.aborted || editStatusResponse === null) {
     return
   }
   const editStatus = editStatusResponse.doc
@@ -816,10 +830,10 @@ async function loadAndSubscribe() {
         query: encodeQuery({ version: editStatus.version }),
       }).href,
       null,
-      abortController.signal,
+      controller.signal,
       null,
     )
-    if (abortController.signal.aborted || fetched === null) {
+    if (controller.signal.aborted || fetched === null) {
       return
     }
     initialDoc = fetched.doc
@@ -846,7 +860,7 @@ async function loadAndSubscribe() {
   const localDoc = new D(initialDoc)
   const pristine = localDoc.Clone()
   const { next: initialChange } = await applyPendingChanges(localDoc, 0)
-  if (abortController.signal.aborted) {
+  if (controller.signal.aborted) {
     return
   }
   _doc.value = localDoc
@@ -856,17 +870,17 @@ async function loadAndSubscribe() {
   // TODO: Use websocket to watch for new changes.
   const timer = setInterval(() => {
     loadChanges().catch((error) => {
-      // Leaving the view aborts the request this poll has in flight at that moment, which rejects it.
-      // Nothing failed and there is no view left to report to, so clearing the interval just below is
-      // the whole of what has to happen.
-      if (abortController.signal.aborted) {
+      // Leaving the view, reloading it, saving and discarding all abort the request this poll has in flight
+      // at that moment, which rejects it. Nothing failed and there is nothing left to report to, so clearing
+      // the interval just below is the whole of what has to happen.
+      if (controller.signal.aborted) {
         return
       }
       // TODO: Show error state to the user.
       console.error("loadAndSubscribe interval", error)
     })
   }, pollInterval)
-  abortController.signal.addEventListener("abort", () => {
+  controller.signal.addEventListener("abort", () => {
     clearInterval(timer)
   })
 }
@@ -910,6 +924,7 @@ watch(
 watch(
   () => fieldsFormRef.value?.inputs.size ?? 0,
   async (size) => {
+    const controller = abortController
     const creating = isCreating.value
     if (!pendingInitialFocus || size === 0 || creating === null) {
       return
@@ -917,7 +932,7 @@ watch(
     pendingInitialFocus = false
     // Let the just-registered inputs finish rendering before focusing.
     await nextTick()
-    if (abortController.signal.aborted || !fieldsFormRef.value) {
+    if (controller.signal.aborted || !fieldsFormRef.value) {
       return
     }
     focusFirstInput(fieldsFormRef.value.inputs, creating)
@@ -948,6 +963,7 @@ function flattenFields(data: DeepReadonly<FieldsData>): DeepReadonly<FieldData>[
 // under). A dropped add skips its subtree. When the session is aborted it stops posting and
 // returns the ids added so far.
 async function executeFills(fills: readonly CardinalityFill[], parentId: string | undefined): Promise<string[]> {
+  const controller = abortController
   const added: string[] = []
   for (const fill of fills) {
     const under = fill.under ?? parentId
@@ -963,11 +979,11 @@ async function executeFills(fills: readonly CardinalityFill[], parentId: string 
     added.push(result.id)
     // The change was committed, so its id stays in the returned list (a rollback still has to remove
     // it), but no further fill is posted once the session is aborted.
-    if (abortController.signal.aborted) {
+    if (controller.signal.aborted) {
       return added
     }
     added.push(...(await executeFills(fill.children, result.id)))
-    if (abortController.signal.aborted) {
+    if (controller.signal.aborted) {
       return added
     }
   }
@@ -975,7 +991,8 @@ async function executeFills(fills: readonly CardinalityFill[], parentId: string 
 }
 
 async function onSave() {
-  if (abortController.signal.aborted) {
+  const sessionController = abortController
+  if (sessionController.signal.aborted) {
     return
   }
 
@@ -987,8 +1004,8 @@ async function onSave() {
   // first invalid input and abort the save - no changes flushed, the session
   // stays open for the user to fix the field.
   if (fieldsFormRef.value) {
-    await fieldsFormRef.value.validateAll(abortController.signal, { final: true })
-    if (abortController.signal.aborted) {
+    await fieldsFormRef.value.validateAll(sessionController.signal, { final: true })
+    if (sessionController.signal.aborted) {
       return
     }
     if (fieldsFormInvalid.value) {
@@ -1005,12 +1022,12 @@ async function onSave() {
     await instance.flush()
     // Each flush commits a value by queueing a change, so no further slot is flushed once the
     // editor is going away (only an unmount or a route change aborts this controller).
-    if (abortController.signal.aborted) {
+    if (sessionController.signal.aborted) {
       return
     }
   }
   await drainSaveChanges()
-  if (abortController.signal.aborted) {
+  if (sessionController.signal.aborted) {
     return
   }
 
@@ -1032,7 +1049,7 @@ async function onSave() {
     const fields = flattenFields(mergedFieldsData.value)
     const addedFillIds = await executeFills(computeCardinalityFills(fields, doc.value.claims, isFileLink), undefined)
     await drainSaveChanges()
-    if (abortController.signal.aborted) {
+    if (sessionController.signal.aborted) {
       return
     }
     const violations = cardinalityViolations(fields, doc.value.claims, isFileLink)
@@ -1049,12 +1066,12 @@ async function onSave() {
           }
         }
         // A partial rollback is acceptable once the session is being torn down.
-        if (abortController.signal.aborted) {
+        if (sessionController.signal.aborted) {
           return
         }
       }
       await drainSaveChanges()
-      if (abortController.signal.aborted) {
+      if (sessionController.signal.aborted) {
         return
       }
       sessionError.value = "cardinality"
@@ -1064,8 +1081,9 @@ async function onSave() {
 
   // Stop polling for changes before ending the session by aborting and creating a fresh controller.
   // The fresh controller is needed for the save request itself.
-  abortController.abort()
+  sessionController.abort()
   abortController = new AbortController()
+  const saveController = abortController
 
   saveBusy.value += 1
   try {
@@ -1077,10 +1095,10 @@ async function onSave() {
         },
       }).href,
       {},
-      abortController.signal,
+      saveController.signal,
       saveBusy,
     )
-    if (abortController.signal.aborted) {
+    if (saveController.signal.aborted) {
       return
     }
 
@@ -1093,12 +1111,12 @@ async function onSave() {
       },
     }).href
     while (true) {
-      await delay(pollInterval, abortController.signal)
-      if (abortController.signal.aborted) {
+      await delay(pollInterval, saveController.signal)
+      if (saveController.signal.aborted) {
         return
       }
-      const statusResponse = await getURLDirect<DocumentEditStatus>(editStatusURL, abortController.signal, saveBusy)
-      if (abortController.signal.aborted || statusResponse === null) {
+      const statusResponse = await getURLDirect<DocumentEditStatus>(editStatusURL, saveController.signal, saveBusy)
+      if (saveController.signal.aborted || statusResponse === null) {
         return
       }
       const status = statusResponse.doc
@@ -1122,7 +1140,7 @@ async function onSave() {
       },
     })
   } catch (err) {
-    if (abortController.signal.aborted) {
+    if (saveController.signal.aborted) {
       return
     }
     console.error("DocumentEdit.onSave", err)
@@ -1134,7 +1152,8 @@ async function onSave() {
 }
 
 async function onDiscard() {
-  if (abortController.signal.aborted) {
+  const sessionController = abortController
+  if (sessionController.signal.aborted) {
     return
   }
 
@@ -1142,8 +1161,9 @@ async function onDiscard() {
 
   // Stop polling for changes before discarding the session by aborting and creating a fresh controller.
   // The fresh controller is needed for the discard request itself.
-  abortController.abort()
+  sessionController.abort()
   abortController = new AbortController()
+  const discardController = abortController
 
   saveBusy.value += 1
   try {
@@ -1155,10 +1175,10 @@ async function onDiscard() {
         },
       }).href,
       {},
-      abortController.signal,
+      discardController.signal,
       saveBusy,
     )
-    if (abortController.signal.aborted) {
+    if (discardController.signal.aborted) {
       return
     }
 
@@ -1169,7 +1189,7 @@ async function onDiscard() {
       },
     })
   } catch (err) {
-    if (abortController.signal.aborted) {
+    if (discardController.signal.aborted) {
       return
     }
     console.error("DocumentEdit.onDiscard", err)
@@ -1254,15 +1274,16 @@ function makePatch(): object {
 }
 
 async function onSubmit() {
-  if (abortController.signal.aborted) {
+  const controller = abortController
+  if (controller.signal.aborted) {
     return
   }
 
   // Run validation across every registered input in the claim form.
   // If any field surfaces an error, focus the first one and abort the
   // submit so the user can fix it before we hit the backend.
-  await validateAll(abortController.signal, { final: true })
-  if (abortController.signal.aborted) {
+  await validateAll(controller.signal, { final: true })
+  if (controller.signal.aborted) {
     return
   }
   if (anyError.value) {
@@ -1278,14 +1299,14 @@ async function onSubmit() {
         ? { type: "add", patch, under: subClaimParentId.value }
         : { type: "add", patch }
     await saveChange(spec)
-    if (abortController.signal.aborted) {
+    if (controller.signal.aborted) {
       return
     }
     // Dispatches the reset event, which runs onReset (resetAll) and clears
     // any native form controls so the form is ready for the next claim.
     claimFormRef.value?.reset()
   } catch (err) {
-    if (abortController.signal.aborted) {
+    if (controller.signal.aborted) {
       return
     }
     console.error("DocumentEdit.onSubmit", err)
@@ -1295,6 +1316,7 @@ async function onSubmit() {
 }
 
 async function onReset() {
+  const controller = abortController
   // We do not use .prevent so the browser also resets plain inputs.
   // Here we reset registered input components.
   resetAll()
@@ -1306,14 +1328,15 @@ async function onReset() {
   // (which would keep the submit button enabled after a Cancel from edit
   // mode). Wait one tick before checkpointing for reset to propagate.
   await nextTick()
-  if (abortController.signal.aborted) {
+  if (controller.signal.aborted) {
     return
   }
   checkpointAll()
 }
 
 async function onEditClaim(id: string) {
-  if (abortController.signal.aborted) {
+  const controller = abortController
+  if (controller.signal.aborted) {
     return
   }
   if (!doc.value) {
@@ -1335,7 +1358,7 @@ async function onEditClaim(id: string) {
   // primary-button label do not flip back to "Add value" during this gap.
   lockedClaimType.value = null
   await nextTick()
-  if (abortController.signal.aborted) {
+  if (controller.signal.aborted) {
     return
   }
 
@@ -1419,7 +1442,7 @@ async function onEditClaim(id: string) {
   // Wait for the new panel's inputs to mount and register, then move focus
   // to the first focusable one so the user can start editing immediately.
   await nextTick()
-  if (abortController.signal.aborted) {
+  if (controller.signal.aborted) {
     return
   }
   firstInputEl()?.focus()
@@ -1433,7 +1456,8 @@ async function onEditClaim(id: string) {
 // dance but leaves the form blank (we are adding, not editing). Tabs stay
 // unlocked because the user picks the type for the new sub-claim.
 async function onSubClaimAdd(id: string) {
-  if (abortController.signal.aborted) {
+  const controller = abortController
+  if (controller.signal.aborted) {
     return
   }
 
@@ -1444,7 +1468,7 @@ async function onSubClaimAdd(id: string) {
   lockedClaimType.value = null
 
   await nextTick()
-  if (abortController.signal.aborted) {
+  if (controller.signal.aborted) {
     return
   }
   firstInputEl()?.focus()
@@ -1452,17 +1476,18 @@ async function onSubClaimAdd(id: string) {
 }
 
 async function onRemoveClaim(id: string) {
-  if (abortController.signal.aborted) {
+  const controller = abortController
+  if (controller.signal.aborted) {
     return
   }
 
   try {
     await saveChange({ type: "remove", id })
-    if (abortController.signal.aborted) {
+    if (controller.signal.aborted) {
       return
     }
   } catch (err) {
-    if (abortController.signal.aborted) {
+    if (controller.signal.aborted) {
       return
     }
     // TODO: Show notification with error.

@@ -288,6 +288,13 @@ watch(
 
 async function onFileInputChange() {
   const file = fileInputEl.value?.files?.[0]
+  // The input is emptied as soon as the file has been taken out of it. It holds on to the picked file
+  // otherwise, and picking that same file again then leaves the input's value unchanged, which fires no
+  // change event at all, so an upload which was cancelled or which failed could not be retried with the
+  // file it was made with. The File taken out above stays readable after the input no longer holds it.
+  if (fileInputEl.value) {
+    fileInputEl.value.value = ""
+  }
   if (!file) {
     return
   }
