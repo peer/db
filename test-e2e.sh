@@ -12,6 +12,7 @@ set -o pipefail
 #  sh -c " \
 #    dockerd-entrypoint.sh --feature containerd-snapshotter=true > /tmp/dockerd.log 2>&1 & \
 #    sleep 2 && \
+#    apk --update add bash && \
 #    DOCKER_HOST=unix:///var/run/docker.sock ./test-e2e.sh \
 #  "
 
@@ -180,7 +181,16 @@ docker run --rm \
   --elastic.url=http://peerdb-elastic:9200 \
   -S /data/.storage \
   db reindex
-echo "8. Starting PeerDB container..."
+
+echo "8. Merging away deleted documents in Elasticsearch..."
+
+# Populating and reindexing rewrite documents, and every rewrite leaves the copy it replaced behind as a
+# deleted document. A deleted document still counts towards the term statistics BM25 computes a score from,
+# and how many of them are left over differs from one run to the next, which reorders the results of every
+# search carrying a query and makes the screenshots of those searches differ for no reason of their own.
+docker exec peerdb-elastic curl -sf -XPOST "http://localhost:9200/_forcemerge?max_num_segments=1" > /dev/null
+
+echo "9. Starting PeerDB container..."
 
 # Start PeerDB container with certificates.
 docker run -d \
@@ -199,10 +209,10 @@ docker run -d \
   -S /data/.storage
 cleanup_peerdb_container=1
 
-echo "9. Waiting for PeerDB service to be ready..."
+echo "10. Waiting for PeerDB service to be ready..."
 for i in $(seq 1 120); do docker exec peerdb-elastic curl -sf -k "https://$PEERDB_CONTAINER:8080/" && break || { [ "$i" -eq 120 ] && exit 1; sleep 1; }; done
 
-echo "10. Running Playwright tests..."
+echo "11. Running Playwright tests..."
 
 # Set environment variables for Playwright.
 export LINK_PUBLISH_JOB_ID="${CI_JOB_ID}"
@@ -229,7 +239,7 @@ docker run --rm \
   "$PLAYWRIGHT_IMAGE"
 
 # Stop the PeerDB container and check its exit code.
-echo "11. Stopping PeerDB container..."
+echo "12. Stopping PeerDB container..."
 docker stop "$PEERDB_CONTAINER"
 PEERDB_EXIT_CODE=$(docker wait "$PEERDB_CONTAINER")
 
