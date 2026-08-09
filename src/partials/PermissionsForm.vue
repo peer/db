@@ -263,19 +263,21 @@ const WithDocumentIdentity = WithDocument<Identity>
 </script>
 
 <template>
-  <div class="flex flex-col gap-y-4">
-    <div>
-      <h2 class="text-xl font-bold">{{ t("partials.PermissionsForm.usersTitle") }}</h2>
-      <p v-if="users.length === 0" class="mt-1 text-gray-700">{{ t("partials.PermissionsForm.noUsers") }}</p>
+  <div class="pd-permissionsform flex flex-col gap-y-4">
+    <div class="pd-permissionsform-section-users">
+      <h2 class="pd-permissionsform-title text-xl font-bold">{{ t("partials.PermissionsForm.usersTitle") }}</h2>
+      <p v-if="users.length === 0" class="pd-permissionsform-empty-users mt-1 text-gray-700">{{ t("partials.PermissionsForm.noUsers") }}</p>
       <ul v-else class="mt-2 flex flex-col gap-y-3">
-        <li v-for="grant of users" :key="grant.user" class="flex flex-col gap-y-2 rounded border border-slate-300 p-3">
+        <li v-for="grant of users" :key="grant.user" class="pd-permissionsform-item-user flex flex-col gap-y-2 rounded border border-slate-300 p-3">
           <!-- The checkboxes need the user's roles, so that an action their roles already cover is not offered. -->
           <WithDocumentIdentity :id="grant.user" name="UserGet">
             <template #default="{ doc: identity }">
               <div class="flex flex-row items-center justify-between gap-4">
                 <IdentityLabel :identity="identity" class="font-medium" />
                 <!-- TODO: Remove should be shown even on loading error, so that on can remove the request for non-existing user. -->
-                <Button type="button" :progress="busy" @click.prevent="onRemoveUser(grant)">{{ t("partials.PermissionsForm.removeAccess") }}</Button>
+                <Button type="button" class="pd-permissionsform-button-remove" :progress="busy" @click.prevent="onRemoveUser(grant)">{{
+                  t("partials.PermissionsForm.removeAccess")
+                }}</Button>
               </div>
               <div class="flex flex-col gap-y-1">
                 <div class="flex flex-row flex-wrap gap-x-6 gap-y-1">
@@ -368,12 +370,16 @@ const WithDocumentIdentity = WithDocument<Identity>
         </WithDocumentIdentity>
       </div>
     </div>
-    <div>
-      <h2 class="text-xl font-bold">{{ t("partials.PermissionsForm.requestsTitle") }}</h2>
-      <p v-if="requests.length === 0" class="mt-1 text-gray-700">{{ t("partials.PermissionsForm.noRequests") }}</p>
+    <div class="pd-permissionsform-section-requests">
+      <h2 class="pd-permissionsform-title text-xl font-bold">{{ t("partials.PermissionsForm.requestsTitle") }}</h2>
+      <p v-if="requests.length === 0" class="pd-permissionsform-empty-requests mt-1 text-gray-700">{{ t("partials.PermissionsForm.noRequests") }}</p>
       <ul v-else class="mt-2 flex flex-col gap-y-3">
         <!-- One claim can ask on behalf of several users, so it takes both to tell its requests apart. -->
-        <li v-for="request of requests" :key="`${request.claimID}-${request.user}`" class="flex flex-col gap-y-2 rounded border border-slate-300 p-3">
+        <li
+          v-for="request of requests"
+          :key="`${request.claimID}-${request.user}`"
+          class="pd-permissionsform-item-request flex flex-col gap-y-2 rounded border border-slate-300 p-3"
+        >
           <!--
             The whole request is shown only once the user is known: deciding it has to know what they
             already hold, and whether it can be approved at all is part of what the request says, so a
@@ -385,10 +391,13 @@ const WithDocumentIdentity = WithDocument<Identity>
                 <IdentityLabel :identity="identity" class="font-medium" />
                 <div class="flex flex-row gap-x-2">
                   <!-- TODO: Deny should be shown even on loading error, so that on can remove the request for non-existing user. -->
-                  <Button type="button" :progress="busy" @click.prevent="onDeny(request)">{{ t("partials.PermissionsForm.deny") }}</Button>
+                  <Button type="button" class="pd-permissionsform-button-deny" :progress="busy" @click.prevent="onDeny(request)">{{
+                    t("partials.PermissionsForm.deny")
+                  }}</Button>
                   <Button
                     type="button"
                     primary
+                    class="pd-permissionsform-button-approve"
                     :progress="busy"
                     :disabled="!canGrant(missingActions(identity as Identity, request.action))"
                     @click.prevent="onApprove(identity as Identity, request)"

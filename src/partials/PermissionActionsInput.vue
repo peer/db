@@ -109,7 +109,7 @@ async function onFocusout(): Promise<void> {
     role="group"
     :aria-labelledby="labelledby"
     :aria-describedby="errorMessage ? errorId : undefined"
-    class="pd-permissionactions flex flex-col gap-y-2"
+    class="pd-permissionactionsinput flex flex-col gap-y-2"
     @focusout="onFocusout"
   >
     <!-- The grid's second column aligns the hint under the label's text. -->

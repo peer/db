@@ -14,7 +14,7 @@ const { t } = useI18n({ useScope: "global" })
 </script>
 
 <template>
-  <div class="pd-searchresultsendbar pd-pager-end pd-print-hidden my-1 sm:my-4">
+  <div class="pd-searchresultsendbar pd-print-hidden my-1 sm:my-4">
     <div v-if="moreThanTotal" class="pd-searchresultsendbar-text text-center text-sm">{{ t("common.status.allResultsMoreThan", { first, count: total }) }}</div>
     <div v-else-if="first < total" class="pd-searchresultsendbar-text text-center text-sm">{{ t("common.status.allResultsOnly", { first, count: total }) }}</div>
     <div v-else-if="first === total" class="pd-searchresultsendbar-text text-center text-sm">{{ t("common.status.allResults", { count: first }) }}</div>

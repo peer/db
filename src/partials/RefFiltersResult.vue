@@ -406,20 +406,20 @@ function onToggle(node: RefFilterTreeNode) {
 
 <template>
   <div v-if="!hiddenByQuery" class="pd-reffiltersresult flex flex-col" :class="{ 'data-reloading': laterLoad }" :data-url="resultsUrl">
-    <div :id="labelId" class="pd-filterresult-header">
+    <div :id="labelId" class="pd-filtersresult-header">
       <Button
         v-if="filter || specials"
         type="button"
-        class="pd-filterresult-button-clear float-right ml-2 px-2.5 py-1"
+        class="pd-filtersresult-button-clear float-right ml-2 px-2.5 py-1"
         :title="t('partials.RefFiltersResult.clearFilter')"
         :aria-label="t('partials.RefFiltersResult.clearFilter')"
         @click.prevent="clearFilter"
         >{{ t("common.buttons.clear") }}</Button
       >
-      <span class="pd-filterresult-title mb-1.5 text-lg leading-none"><FilterPropLabel :prop-ids="result.props" /></span>
+      <span class="pd-filtersresult-title mb-1.5 text-lg leading-none"><FilterPropLabel :prop-ids="result.props" /></span>
       ({{ result.count }})
     </div>
-    <ul ref="el" role="group" :aria-labelledby="labelId" class="pd-filterresult-list flex flex-col">
+    <ul ref="el" role="group" :aria-labelledby="labelId" class="pd-filtersresult-list flex flex-col">
       <li v-if="error">
         <i class="pd-reffiltersresult-error text-error-600">{{ t("common.status.loadingDataFailed") }}</i>
       </li>
@@ -437,11 +437,11 @@ function onToggle(node: RefFilterTreeNode) {
     <Button
       v-if="!loading && hasMore && moreRowsAvailable && optionsRemaining > 0"
       primary
-      class="pd-filterresult-more mt-2 w-1/2 min-w-fit self-center"
+      class="pd-filtersresult-more mt-2 w-1/2 min-w-fit self-center"
       @click.prevent="loadMore"
       >{{ t("common.buttons.loadCountMore", { count: optionsRemaining }) }}</Button
     >
-    <div v-else-if="!loading && optionsRemaining > 0" class="pd-filterresult-text-notshown mt-2 text-center text-sm">
+    <div v-else-if="!loading && optionsRemaining > 0" class="pd-filtersresult-text-notshown mt-2 text-center text-sm">
       {{ t("common.status.valuesNotShown", { count: optionsRemaining }) }}
     </div>
   </div>

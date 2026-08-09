@@ -22,7 +22,7 @@ const { t } = useI18n({ useScope: "global" })
 </script>
 
 <template>
-  <ButtonLink v-if="hasDocumentPermission(ACTION_CREATE)" :to="{ name: 'DocumentCreate' }" primary class="pd-createbutton pd-navbar-create">
+  <ButtonLink v-if="hasDocumentPermission(ACTION_CREATE)" :to="{ name: 'DocumentCreate' }" primary class="pd-createbutton">
     <template v-if="home">{{ t("common.buttons.create") }}</template>
     <template v-else>
       <PlusIcon class="size-5 sm:hidden" :alt="t('common.buttons.create')" />

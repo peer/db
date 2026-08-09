@@ -28,18 +28,18 @@ const WithDocumentIdentity = WithDocument<Identity>
 <template>
   <WithDocumentIdentity :id="subject" name="UserGet">
     <template #default="{ doc, url }">
-      <IdentityLabel :identity="doc" :data-url="url" v-bind="$attrs" />
+      <IdentityLabel :identity="doc" class="pd-identityinline" :data-url="url" v-bind="$attrs" />
     </template>
     <template #loading="{ url }">
       <div
-        class="pd-identityinline-loading inline-block h-2 rounded-sm bg-slate-200 motion-safe:animate-pulse"
+        class="pd-identityinline pd-identityinline-loading inline-block h-2 rounded-sm bg-slate-200 motion-safe:animate-pulse"
         :data-url="url"
         :class="[loadingWidth(props.subject)]"
         aria-hidden="true"
       />
     </template>
     <template #error="{ url }">
-      <span class="pd-identityinline-error" :data-url="url" v-bind="$attrs">{{ props.subject }}</span>
+      <span class="pd-identityinline pd-identityinline-error" :data-url="url" v-bind="$attrs">{{ props.subject }}</span>
     </template>
   </WithDocumentIdentity>
 </template>

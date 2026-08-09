@@ -176,20 +176,20 @@ const WithDocumentD = WithDocument<D>
 
 <template>
   <div v-if="!hiddenByQuery" class="pd-hasfiltersresult flex flex-col" :class="{ 'data-reloading': laterLoad }" :data-url="resultsUrl">
-    <div :id="labelId" class="pd-filterresult-header">
+    <div :id="labelId" class="pd-filtersresult-header">
       <Button
         v-if="filter"
         type="button"
-        class="pd-filterresult-button-clear float-right ml-2 px-2.5 py-1"
+        class="pd-filtersresult-button-clear float-right ml-2 px-2.5 py-1"
         :title="t('partials.HasFiltersResult.clearFilter')"
         :aria-label="t('partials.HasFiltersResult.clearFilter')"
         @click.prevent="clearFilter"
         >{{ t("common.buttons.clear") }}</Button
       >
-      <span class="pd-filterresult-title mb-1.5 text-lg leading-none"><FilterPropLabel :prop-ids="result.props ?? []" append-has /></span>
+      <span class="pd-filtersresult-title mb-1.5 text-lg leading-none"><FilterPropLabel :prop-ids="result.props ?? []" append-has /></span>
       ({{ result.count }})
     </div>
-    <ul ref="el" role="group" :aria-labelledby="labelId" class="pd-filterresult-list grid grid-cols-[max-content_auto] gap-x-1">
+    <ul ref="el" role="group" :aria-labelledby="labelId" class="pd-filtersresult-list grid grid-cols-[max-content_auto] gap-x-1">
       <li v-if="error" class="col-span-2">
         <i class="pd-hasfiltersresult-error text-error-600">{{ t("common.status.loadingDataFailed") }}</i>
       </li>
@@ -243,10 +243,10 @@ const WithDocumentD = WithDocument<D>
         </li>
       </template>
     </ul>
-    <Button v-if="!loading && hasMore" primary class="pd-filterresult-more mt-2 w-1/2 min-w-fit self-center" @click.prevent="loadMore">{{
+    <Button v-if="!loading && hasMore" primary class="pd-filtersresult-more mt-2 w-1/2 min-w-fit self-center" @click.prevent="loadMore">{{
       t("common.buttons.loadCountMore", { count: displayTotal - limitedResults.length })
     }}</Button>
-    <div v-else-if="!loading && displayTotal > limitedResults.length" class="pd-filterresult-text-notshown mt-2 text-center text-sm">
+    <div v-else-if="!loading && displayTotal > limitedResults.length" class="pd-filtersresult-text-notshown mt-2 text-center text-sm">
       {{ t("common.status.valuesNotShown", { count: displayTotal - limitedResults.length }) }}
     </div>
   </div>

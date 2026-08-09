@@ -27,16 +27,12 @@ const breakoutStyle = computed(() => (props.depth > 0 ? { marginLeft: `calc(var(
 </script>
 
 <template>
-  <div class="pd-searchresultspager pd-pager pd-print-hidden my-1 sm:my-4" :style="breakoutStyle">
-    <div v-if="shown < total" class="pd-searchresultspager-count pd-count text-center text-sm">{{
-      t("partials.SearchResultsFeed.shownResultsOnly", { i, count: shown })
-    }}</div>
-    <div v-else-if="shown === total" class="pd-searchresultspager-count pd-count text-center text-sm">{{
-      t("partials.SearchResultsFeed.shownResults", { i, count: shown })
-    }}</div>
+  <div class="pd-searchresultspager pd-print-hidden my-1 sm:my-4" :style="breakoutStyle">
+    <div v-if="shown < total" class="pd-searchresultspager-count text-center text-sm">{{ t("partials.SearchResultsFeed.shownResultsOnly", { i, count: shown }) }}</div>
+    <div v-else-if="shown === total" class="pd-searchresultspager-count text-center text-sm">{{ t("partials.SearchResultsFeed.shownResults", { i, count: shown }) }}</div>
     <!-- We do not use ProgressBar here because we plan to make this an interactive bar on which you can click to move to that location. -->
-    <div class="pd-track relative h-2 w-full bg-slate-200">
-      <div class="pd-thumb absolute inset-y-0 left-0 bg-secondary-400" :style="{ width: (i / shown) * 100 + '%' }" />
+    <div class="pd-searchresultspager-track relative h-2 w-full bg-slate-200">
+      <div class="pd-searchresultspager-thumb absolute inset-y-0 left-0 bg-secondary-400" :style="{ width: (i / shown) * 100 + '%' }" />
     </div>
   </div>
 </template>

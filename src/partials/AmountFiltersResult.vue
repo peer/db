@@ -373,26 +373,26 @@ onBeforeUnmount(() => {
 
 <template>
   <div class="pd-amountfiltersresult flex flex-col" :class="{ 'data-reloading': laterLoad }" :data-url="resultsUrl">
-    <div :id="labelId" class="pd-filterresult-header">
+    <div :id="labelId" class="pd-filtersresult-header">
       <Button
         v-if="filter || specials"
         type="button"
-        class="pd-filterresult-button-clear float-right ml-2 px-2.5 py-1"
+        class="pd-filtersresult-button-clear float-right ml-2 px-2.5 py-1"
         :title="t('partials.AmountFiltersResult.clearFilter')"
         :aria-label="t('partials.AmountFiltersResult.clearFilter')"
         @click.prevent="clearFilter"
         >{{ t("common.buttons.clear") }}</Button
       >
-      <i18n-t v-if="result.unit" keypath="common.labelWithUnit" scope="global" tag="span" class="pd-filterresult-title mb-1.5 text-lg leading-none">
+      <i18n-t v-if="result.unit" keypath="common.labelWithUnit" scope="global" tag="span" class="pd-filtersresult-title mb-1.5 text-lg leading-none">
         <template #label><FilterPropLabel :prop-ids="result.props" /></template>
         <template #unit>
           <DocumentRefInline :id="result.unit" :link="false" />
         </template>
       </i18n-t>
-      <span v-else class="pd-filterresult-title mb-1.5 text-lg leading-none"><FilterPropLabel :prop-ids="result.props" /></span>
+      <span v-else class="pd-filtersresult-title mb-1.5 text-lg leading-none"><FilterPropLabel :prop-ids="result.props" /></span>
       ({{ result.count }})
     </div>
-    <ul ref="el" role="group" :aria-labelledby="labelId" class="pd-filterresult-list grid grid-cols-[max-content_auto] gap-x-1">
+    <ul ref="el" role="group" :aria-labelledby="labelId" class="pd-filtersresult-list grid grid-cols-[max-content_auto] gap-x-1">
       <li v-if="error" class="col-span-2">
         <i class="pd-amountfiltersresult-error text-error-600">{{ t("common.status.loadingDataFailed") }}</i>
       </li>

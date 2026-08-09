@@ -376,20 +376,20 @@ onBeforeUnmount(() => {
 
 <template>
   <div class="pd-timefiltersresult flex flex-col" :class="{ 'data-reloading': laterLoad }" :data-url="resultsUrl">
-    <div :id="labelId" class="pd-filterresult-header">
+    <div :id="labelId" class="pd-filtersresult-header">
       <Button
         v-if="filter || specials"
         type="button"
-        class="pd-filterresult-button-clear float-right ml-2 px-2.5 py-1"
+        class="pd-filtersresult-button-clear float-right ml-2 px-2.5 py-1"
         :title="t('partials.TimeFiltersResult.clearFilter')"
         :aria-label="t('partials.TimeFiltersResult.clearFilter')"
         @click.prevent="clearFilter"
         >{{ t("common.buttons.clear") }}</Button
       >
-      <span class="pd-filterresult-title mb-1.5 text-lg leading-none"><FilterPropLabel :prop-ids="result.props" /></span>
+      <span class="pd-filtersresult-title mb-1.5 text-lg leading-none"><FilterPropLabel :prop-ids="result.props" /></span>
       ({{ result.count }})
     </div>
-    <ul ref="el" role="group" :aria-labelledby="labelId" class="pd-filterresult-list grid grid-cols-[max-content_auto] gap-x-1">
+    <ul ref="el" role="group" :aria-labelledby="labelId" class="pd-filtersresult-list grid grid-cols-[max-content_auto] gap-x-1">
       <li v-if="error" class="col-span-2">
         <i class="pd-timefiltersresult-error text-error-600">{{ t("common.status.loadingDataFailed") }}</i>
       </li>

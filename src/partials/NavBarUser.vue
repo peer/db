@@ -47,10 +47,10 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <ul v-if="currentRoles.length" class="pd-navbaruser-roles flex flex-row flex-wrap items-baseline gap-1 px-2 py-1 text-sm">
+  <ul v-if="currentRoles.length" class="pd-navbaruser pd-navbaruser-roles flex flex-row flex-wrap items-baseline gap-1 px-2 py-1 text-sm">
     <li v-for="role of currentRoles" :key="role" class="rounded-xs bg-slate-100 px-1.5 py-0.5 leading-none text-gray-600 shadow-xs">{{ role }}</li>
   </ul>
-  <div class="pd-navbaruser-id flex flex-row items-center gap-x-1 px-2 py-1">
+  <div class="pd-navbaruser pd-navbaruser-id flex flex-row items-center gap-x-1 px-2 py-1">
     <span class="min-w-0 truncate font-mono text-xs text-gray-700" :title="currentIdentityId">{{ currentIdentityId }}</span>
     <button
       type="button"
@@ -64,7 +64,7 @@ onBeforeUnmount(() => {
   </div>
   <RouterLink
     :to="{ name: 'DocumentSessions' }"
-    class="pd-navbaruser-sessions rounded-sm px-2 py-1.5 text-sm leading-tight font-medium text-gray-700 outline-none hover:bg-slate-300 focus:ring-2 focus:ring-primary-500 active:bg-slate-100"
+    class="pd-navbaruser pd-navbaruser-sessions rounded-sm px-2 py-1.5 text-sm leading-tight font-medium text-gray-700 outline-none hover:bg-slate-300 focus:ring-2 focus:ring-primary-500 active:bg-slate-100"
     >{{ t("views.DocumentSessions.title") }}</RouterLink
   >
 </template>

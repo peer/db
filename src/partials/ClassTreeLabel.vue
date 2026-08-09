@@ -39,7 +39,7 @@ const WithDocumentD = WithDocument<D>
       <Button
         v-if="node.res.creatable"
         type="button"
-        class="pd-classtreelabel-button"
+        class="pd-classtreelabel pd-classtreelabel-button"
         :class="`pd-classtreelabel-button-${node.res.id}`"
         :data-url="url"
         :progress="creating"
@@ -48,7 +48,7 @@ const WithDocumentD = WithDocument<D>
         <DisplayLabel :doc="doc" />
       </Button>
       <!-- A class a document cannot be created for (abstract, or without fields) is shown only as a structural heading. -->
-      <h2 v-else class="pd-classtreelabel-title text-xl leading-none font-medium" :data-url="url"><DisplayLabel :doc="doc" /></h2>
+      <h2 v-else class="pd-classtreelabel pd-classtreelabel-title text-xl leading-none font-medium" :data-url="url"><DisplayLabel :doc="doc" /></h2>
     </template>
     <template #loading="{ url }">
       <div

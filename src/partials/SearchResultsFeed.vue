@@ -496,7 +496,7 @@ const WithDocumentD = WithDocument<D>
       id="search-results"
       ref="resultsEl"
       tabindex="-1"
-      class="pd-searchresultsfeed-list-results pd-searchresults flex-auto basis-3/4 flex-col gap-y-1 rounded-sm [--pd-indent:calc(var(--spacing)*4)] focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-1 focus-visible:outline-none sm:gap-y-4 sm:[--pd-indent:calc(var(--spacing)*6)] min-[56rem]:flex"
+      class="pd-searchresultsfeed-list-results flex-auto basis-3/4 flex-col gap-y-1 rounded-sm [--pd-indent:calc(var(--spacing)*4)] focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-1 focus-visible:outline-none sm:gap-y-4 sm:[--pd-indent:calc(var(--spacing)*6)] min-[56rem]:flex"
       :class="filtersEnabled ? 'hidden' : 'flex'"
     >
       <!-- Print row: the close and show-all buttons (preview only, left) and a live timestamp (right). -->
