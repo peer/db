@@ -72,8 +72,6 @@ The latest successfully built development (`main` branch) image is available as:
 
 `registry.gitlab.com/peerdb/peerdb/branch/main:latest`
 
-generated in the current directory as described above:
-
 ## Usage
 
 PeerDB requires a [PostgreSQL](https://www.postgresql.org/) database. Using Docker, you can run:
@@ -183,8 +181,8 @@ At a high-level PeerDB documents look like:
     "amountInterval": [...],
     "time": [...],
     "timeInterval": [...],
+    "link": [...],
     "ref": [...],
-    "rel": [...],
     "has": [...],
     "none": [...],
     "unknown": [...]
@@ -197,19 +195,43 @@ in claims (seen under `claims` above) which are then organized based on claim
 (data) type. For example, there are `id` claims which are used to store external
 ID values. `prop` is a reference to a property document which describes the ID value.
 
+There are twelve claim types, each with its own collection under `claims`:
+
+- `id`: an external identifier, stored as a string under `value`.
+- `string`: a plain text value, stored under `string`.
+- `html`: a rich text value, stored as HTML under `html`.
+- `amount`: a numeric `amount` with its `precision`.
+- `amountInterval`: a numeric interval with `from` and `to` bounds.
+- `time`: a timestamp `time` with its `precision`.
+- `timeInterval`: a time interval with `from` and `to` bounds.
+- `link`: a link, stored as an `iri`.
+- `ref`: a reference `to` another document.
+- `has`: only a property, without any value.
+- `none`: the property explicitly has no value.
+- `unknown`: the property has a value, but the value is unknown.
+
+Every claim has its own `id`, a `prop` reference to the property document describing it,
+and a `confidence` between -1 and 1, where a negative value expresses confidence in the
+negation of the claim. A claim can also have `sub`, a nested collection of claims of the
+same twelve types, describing the claim itself, e.g., the language a `string` claim is in,
+or where the claim came from. `has` claims exist primarily to group such nested claims
+under a property without providing a value of their own.
+
 Which properties you use and how you use them to map your data to PeerDB documents
-is left to you. We do suggest that you first populate the index using core PeerDB
-properties. You can do that by running:
+is left to you. We do suggest that you first populate the database using core PeerDB
+properties and classes. You can do that by running:
 
 ```sh
 ./peerdb populate
 ```
 
-This also creates an ElasticSearch index if it does not yet exist and configures it
-with PeerDB ElasticSearch mapping. Otherwise you have to create such index
-yourself.
+On first run PeerDB creates the PostgreSQL schemas and the ElasticSearch indices if they do
+not yet exist, configuring the indices with PeerDB ElasticSearch mapping. Documents are
+stored in PostgreSQL and indexed into ElasticSearch automatically. You can pass
+`--output DIR` to `populate` to also save generated core documents as JSON files,
+to see what they look like.
 
-Then you populate the index with documents for properties for you data. For example, if you
+Then you populate the database with documents for properties for your data. For example, if you
 have a blog post like:
 
 ```json
@@ -234,9 +256,10 @@ To convert the blog post:
 - Author's `displayName` can be mapped to `NAME` core property.
 - Another property document is needed for the `author` property.
 - Documents should also have additional claims to describe relations between them.
-  Properties should be marked as instances of the `PROPERTY` class.
-  It is useful to create classes for user documents, in this case blog posts,
-  which can in turn be subclasses of the `DOCUMENT` core class.
+  Properties should be marked as instances of the `PROPERTY` core class.
+  It is useful to create classes for user documents, in this case blog posts.
+  Classes are marked as instances of the `CLASS` core class and can in turn be
+  subclasses of another class, including a core one like `PAGE`.
 
 Assuming that the author does not yet have its document, you could convert the above blog
 post into the following two PeerDB documents:
@@ -266,7 +289,7 @@ post into the following two PeerDB documents:
         "value": "foobar"
       }
     ],
-    "rel": [
+    "ref": [
       {
         "id": "sgpzxwxPyn51j5VfH992ZQ",
         "confidence": 1.0,
@@ -317,7 +340,7 @@ post into the following two PeerDB documents:
         "value": "123"
       }
     ],
-    "rel": [
+    "ref": [
       {
         "id": "xbufQEChDXvtg3hh4i1PvT",
         "confidence": 1.0,
@@ -361,7 +384,7 @@ post into the following two PeerDB documents:
         "string": "author username"
       }
     ],
-    "rel": [
+    "ref": [
       {
         "id": "5zZZ6nJFKuA5oNBu9QbsYY",
         "confidence": 1.0,
@@ -392,7 +415,7 @@ post into the following two PeerDB documents:
         "string": "blog post ID"
       }
     ],
-    "rel": [
+    "ref": [
       {
         "id": "DWYDFZ2DbasS4Tyehnko2U",
         "confidence": 1.0,
@@ -423,7 +446,7 @@ post into the following two PeerDB documents:
         "string": "author"
       }
     ],
-    "rel": [
+    "ref": [
       {
         "id": "gK8nXxJ3AXErTmGPoAVF78",
         "confidence": 1.0,
@@ -454,7 +477,7 @@ post into the following two PeerDB documents:
         "string": "user"
       }
     ],
-    "rel": [
+    "ref": [
       {
         "id": "79m7fNMHy7SRinSmB3WARM",
         "confidence": 1.0,
@@ -463,16 +486,6 @@ post into the following two PeerDB documents:
         },
         "to": {
           "id": "SdQgTgtcqTm7xHV4PV1oAd" // CLASS
-        }
-      },
-      {
-        "id": "EuGC7ZRK7weuHNoZLDC8ah",
-        "confidence": 1.0,
-        "prop": {
-          "id": "UrBttJgHvm7kbFe7X9WcS1" // SUBCLASS_OF
-        },
-        "to": {
-          "id": "MneSnmJvyYd9u7RKzhyS5p" // DOCUMENT
         }
       }
     ]
@@ -495,7 +508,7 @@ post into the following two PeerDB documents:
         "string": "blog post"
       }
     ],
-    "rel": [
+    "ref": [
       {
         "id": "c24VwrPEMwZUhRgECzSn1b",
         "confidence": 1.0,
@@ -513,7 +526,7 @@ post into the following two PeerDB documents:
           "id": "UrBttJgHvm7kbFe7X9WcS1" // SUBCLASS_OF
         },
         "to": {
-          "id": "MneSnmJvyYd9u7RKzhyS5p" // DOCUMENT
+          "id": "QvgAfv1g75ffMw9SVF36Kh" // PAGE
         }
       }
     ]
@@ -595,6 +608,21 @@ Open [https://localhost:8080/](https://localhost:8080/) in your browser, which w
 you to the backend which then proxies unknown requests (non-API requests) to the frontend.
 
 ### Testing
+
+Backend tests require both PostgreSQL and ElasticSearch to be running, as described in
+the [Usage section](#usage). They also require
+[gotestsum](https://github.com/gotestyourself/gotestsum):
+
+```sh
+go install gotest.tools/gotestsum@latest
+make test
+```
+
+Frontend tests use [Vitest](https://vitest.dev/):
+
+```sh
+npm run test-ci
+```
 
 We use [Playwright](https://playwright.dev/) for end-to-end testing. Run tests with:
 
