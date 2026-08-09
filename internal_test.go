@@ -1,14 +1,31 @@
 package peerdb
 
 import (
+	"context"
 	"net/url"
 
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/identifier"
+
+	internalSite "gitlab.com/peerdb/peerdb/internal/site"
 )
 
 //nolint:gochecknoglobals
 var TestingClearDirContents = clearDirContents
+
+// TestingListReadableDocuments re-exports listReadableDocuments for tests, returning the readable document
+// IDs directly.
+func TestingListReadableDocuments(ctx context.Context, site *internalSite.Site, after *identifier.Identifier) ([]identifier.Identifier, errors.E) {
+	documents, errE := listReadableDocuments(ctx, site, after)
+	if errE != nil {
+		return nil, errE
+	}
+	ids := make([]identifier.Identifier, len(documents))
+	for i, document := range documents {
+		ids[i] = document.ID
+	}
+	return ids, nil
+}
 
 // Embeds the parsed key and group so their exported fields are promoted as-is.
 type TestingShortcutQueryGroup struct {
