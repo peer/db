@@ -77,7 +77,7 @@ function formatAuthors(item: DocumentHistoryItem): string {
       </thead>
       <tbody>
         <tr v-for="item in history" :key="item.changeset" class="pd-documenthistory-item border-t border-slate-200">
-          <td class="border-r border-slate-200 px-2 py-1 align-top">
+          <td class="pd-documenthistory-text-time border-r border-slate-200 px-2 py-1 align-top">
             <RouterLink class="pd-documenthistory-link-version link" :to="{ name: 'DocumentGet', params: { id }, query: encodeQuery({ version: item.version }) }"
               ><TimeDisplay :timestamp="timeString(item.at)" precision="s" :toggle="false"
             /></RouterLink>

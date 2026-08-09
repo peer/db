@@ -1847,7 +1847,7 @@ watch(
       Shift-Tab is intercepted so it returns to the top toolbar rather
       than diving back into the contenteditable.
     -->
-    <span ref="escapeSentinel" tabindex="-1" aria-hidden="true" class="sr-only" @keydown="onEscapeSentinelKeyDown"></span>
+    <span ref="escapeSentinel" tabindex="-1" aria-hidden="true" class="pd-inputhtml-sentinel sr-only" @keydown="onEscapeSentinelKeyDown"></span>
     <!--
       Context-sensitive bottom toolbar. Shown only when showBottomToolbar
       is true - i.e. bottomMode resolves to something non-null.
