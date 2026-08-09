@@ -102,7 +102,7 @@ func sortKeyToOption(k SortKey, lang string) types.SortCombinationsVariant { //n
 // buildSort builds the ElasticSearch sort options for the given sort keys, always ending in the document
 // id so that the ordering is a total order. Unknown keys are skipped. When no key yields an option, the
 // default order is used instead, so a session without a sort and a session whose columns are all unknown
-// both fall back to it. id is appended to the end of the sort options, so that the ordering is a total order.
+// both fall back to it.
 func buildSort(keys []SortKey, lang string) []types.SortCombinationsVariant {
 	// Room for the keys, or for the three keys of the default order when there are none, plus the id.
 	sorts := make([]types.SortCombinationsVariant, 0, max(len(keys), 3)+1) //nolint:mnd
