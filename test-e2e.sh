@@ -24,6 +24,9 @@ PEERDB_IMAGE="peerdb-image"
 PLAYWRIGHT_IMAGE="peerdb-playwright-image"
 NETWORK="peerdb-e2e-network"
 
+LOGS_DIR="logs"
+mkdir -p "$LOGS_DIR"
+
 cleanup_peerdb_container=0
 cleanup_elasticsearch_container=0
 cleanup_postgres_container=0
@@ -36,8 +39,8 @@ cleanup() {
   set +e
 
   if [ "$cleanup_peerdb_container" -ne 0 ]; then
-    echo "Logs PeerDB"
-    docker logs "$PEERDB_CONTAINER"
+    echo "Storing logs of PeerDB into $LOGS_DIR/peerdb.log"
+    docker logs "$PEERDB_CONTAINER" > "$LOGS_DIR/peerdb.log" 2>&1
 
     echo "Stopping PeerDB Docker container (if still running)"
     docker stop "$PEERDB_CONTAINER"
@@ -45,8 +48,8 @@ cleanup() {
   fi
 
   if [ "$cleanup_elasticsearch_container" -ne 0 ]; then
-    echo "Logs elasticsearch"
-    docker logs peerdb-elastic
+    echo "Storing logs of elasticsearch into $LOGS_DIR/elasticsearch.log"
+    docker logs peerdb-elastic > "$LOGS_DIR/elasticsearch.log" 2>&1
 
     echo "Stopping elasticsearch Docker container (if still running)"
     docker stop peerdb-elastic
@@ -54,8 +57,8 @@ cleanup() {
   fi
 
   if [ "$cleanup_postgres_container" -ne 0 ]; then
-    echo "Logs postgres"
-    docker logs peerdb-postgres
+    echo "Storing logs of postgres into $LOGS_DIR/postgres.log"
+    docker logs peerdb-postgres > "$LOGS_DIR/postgres.log" 2>&1
 
     echo "Stopping postgres Docker container (if still running)"
     docker stop peerdb-postgres
@@ -166,7 +169,7 @@ docker run --rm \
   -d /data/.postgresql.secret \
   --elastic.url=http://peerdb-elastic:9200 \
   -S /data/.storage \
-  populate
+  populate > "$LOGS_DIR/populate.log" 2>&1 || { tail -n 50 "$LOGS_DIR/populate.log"; exit 1; }
 
 echo "7. Reindex PeerDB..."
 
@@ -180,7 +183,7 @@ docker run --rm \
   -d /data/.postgresql.secret \
   --elastic.url=http://peerdb-elastic:9200 \
   -S /data/.storage \
-  db reindex
+  db reindex > "$LOGS_DIR/reindex.log" 2>&1 || { tail -n 50 "$LOGS_DIR/reindex.log"; exit 1; }
 
 echo "8. Merging away deleted documents in Elasticsearch..."
 

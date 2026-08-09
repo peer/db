@@ -171,6 +171,7 @@ test_e2e:
       - coverage/
       - coverage-frontend/
       - a11y-report/a11y-report.html
+      - logs/
     expire_in: never
 
 # Gitlab displays the job name as the source of the coverage data. Thus creating a new job.
