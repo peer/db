@@ -378,6 +378,9 @@ async function applyOwnChange(changeNumber: number, change: object): Promise<voi
     }
     try {
       await changeFrom(change).Apply(_doc.value)
+      if (abortController.signal.aborted) {
+        return
+      }
       committedChange.value = changeNumber
     } catch (error) {
       // The change was validated against this exact state before it was posted, so this
@@ -424,7 +427,11 @@ async function postChange(spec: SaveChangeSpec): Promise<SaveChangeResult> {
     }
     const changeNumber = lastServerChange + 1
     const { change, id } = await materializeChange(spec, changeNumber)
-    if (!(await changeApplies(change, changeNumber))) {
+    const applies = await changeApplies(change, changeNumber)
+    // Both awaits above yield, and an abort during changeApplies surfaces as false, which would be
+    // reported as a dropped change. The abort is raised here instead, before the change is dropped.
+    abortController.signal.throwIfAborted()
+    if (!applies) {
       // TODO: Implement better conflict handling instead of just dropping it.
       throw new ChangeDroppedError(`change does not apply: ${JSON.stringify(change)}`)
     }
@@ -439,6 +446,9 @@ async function postChange(spec: SaveChangeSpec): Promise<SaveChangeResult> {
         abortController.signal,
         null,
       )
+      // The change may have reached the server, but the session is gone, so none of its bookkeeping
+      // is recorded and the abort is reported to the caller like any other abort of this function.
+      abortController.signal.throwIfAborted()
       lastServerChange = changeNumber
       ownChangeNumbers.add(changeNumber)
       ownClaimChanges.set(id, changeNumber)
@@ -449,7 +459,7 @@ async function postChange(spec: SaveChangeSpec): Promise<SaveChangeResult> {
         throw err
       }
       if (err instanceof FetchError && err.status === 409) {
-        const { doc: existing } = await getURLDirect<object>(
+        const existingResponse = await getURLDirect<object>(
           router.apiResolve({
             name: "DocumentGetChange",
             params: { session: props.session, change: changeNumber },
@@ -457,9 +467,10 @@ async function postChange(spec: SaveChangeSpec): Promise<SaveChangeResult> {
           abortController.signal,
           null,
         )
-        if (abortController.signal.aborted) {
+        if (abortController.signal.aborted || existingResponse === null) {
           throw err
         }
+        const existing = existingResponse.doc
         // The comparison relies on the change serializing exactly as it was posted: no
         // key is ever set to undefined (which JSON.stringify would drop) - the patch
         // builders assign concrete values in every branch and materializeChange adds
@@ -506,12 +517,17 @@ function saveChange(spec: SaveChangeSpec): Promise<SaveChangeResult> {
 provide(saveChangeKey, saveChange)
 
 // drainSaveChanges waits until every queued change has settled, including changes queued
-// while waiting (e.g. by the focusout commit fired by the Save click itself).
+// while waiting (e.g. by the focusout commit fired by the Save click itself). It stops waiting
+// once the session is aborted, so callers check the signal after it to tell a full drain apart
+// from an aborted one.
 async function drainSaveChanges(): Promise<void> {
   let tail: Promise<unknown>
   do {
     tail = saveChainTail
     await tail
+    if (abortController.signal.aborted) {
+      return
+    }
   } while (tail !== saveChainTail)
 }
 
@@ -626,7 +642,7 @@ function claimAncestry(claims: ClaimTypes | undefined, id: string): string[] | n
 // atomically (see loadAndSubscribe).
 async function applyPendingChanges(target: D, fromChange: number): Promise<{ next: number; remoteTouched: Set<string> }> {
   const remoteTouched = new Set<string>()
-  const { doc: lastChangeResponse } = await getURLDirect<LastOperationResponse>(
+  const lastChangeResponse = await getURLDirect<LastOperationResponse>(
     router.apiResolve({
       name: "DocumentLastChange",
       params: {
@@ -636,16 +652,16 @@ async function applyPendingChanges(target: D, fromChange: number): Promise<{ nex
     abortController.signal,
     null,
   )
-  if (abortController.signal.aborted) {
+  if (abortController.signal.aborted || lastChangeResponse === null) {
     return { next: fromChange, remoteTouched }
   }
-  const lastChange = lastChangeResponse.lastOperation
+  const lastChange = lastChangeResponse.doc.lastOperation
   if (lastChange > lastServerChange) {
     lastServerChange = lastChange
   }
   let current = fromChange
   for (; current < lastChange; current++) {
-    const { doc: changeDoc } = await getURL<object>(
+    const changeResponse = await getURL<object>(
       router.apiResolve({
         name: "DocumentGetChange",
         params: {
@@ -657,9 +673,10 @@ async function applyPendingChanges(target: D, fromChange: number): Promise<{ nex
       abortController.signal,
       null,
     )
-    if (abortController.signal.aborted) {
+    if (abortController.signal.aborted || changeResponse === null) {
       return { next: current, remoteTouched }
     }
+    const changeDoc = changeResponse.doc
     // A change from another editor: its target claim id, or null for our own changes.
     const remoteId = !ownChangeNumbers.has(current + 1) && "id" in changeDoc && typeof changeDoc.id === "string" ? changeDoc.id : null
     const isAdd = "type" in changeDoc && changeDoc.type === "add"
@@ -679,6 +696,12 @@ async function applyPendingChanges(target: D, fromChange: number): Promise<{ nex
       for (const claimId of chain ?? [remoteId]) {
         remoteTouched.add(claimId)
       }
+    }
+    // Applying the change yields, and on the loadChanges path target is the live doc, so the loop
+    // stops here rather than fetching and applying further changes. The change numbered current + 1
+    // has been applied, so that is the new highest applied change.
+    if (abortController.signal.aborted) {
+      return { next: current + 1, remoteTouched }
     }
   }
   // Do not notify about claims we have a newer committed change for which is not applied
@@ -751,12 +774,15 @@ function loadChanges(): Promise<void> {
 async function syncChanges(): Promise<void> {
   if (loadChangesRunning) {
     await loadChangesRunning.catch(() => undefined)
+    if (abortController.signal.aborted) {
+      return
+    }
   }
   await loadChanges()
 }
 
 async function loadAndSubscribe() {
-  const { doc: editStatus } = await getURL<DocumentEditStatus>(
+  const editStatusResponse = await getURL<DocumentEditStatus>(
     router.apiResolve({
       name: "DocumentEdit",
       params: {
@@ -768,9 +794,10 @@ async function loadAndSubscribe() {
     abortController.signal,
     null,
   )
-  if (abortController.signal.aborted) {
+  if (abortController.signal.aborted || editStatusResponse === null) {
     return
   }
+  const editStatus = editStatusResponse.doc
 
   // For edit sessions the API returns a parent version we fetch the document
   // at. For create sessions there is no parent yet (the document is materialized
@@ -792,7 +819,7 @@ async function loadAndSubscribe() {
       abortController.signal,
       null,
     )
-    if (abortController.signal.aborted) {
+    if (abortController.signal.aborted || fetched === null) {
       return
     }
     initialDoc = fetched.doc
@@ -912,7 +939,8 @@ function flattenFields(data: DeepReadonly<FieldsData>): DeepReadonly<FieldData>[
 // is added under the id assigned to its parent), and returns the ids added, parents before
 // children, so a revert can remove them children-first. parentId is the id assigned to the fill
 // whose children these are, or undefined at the top level (where each fill carries its own
-// under). A dropped add skips its subtree.
+// under). A dropped add skips its subtree. When the session is aborted it stops posting and
+// returns the ids added so far.
 async function executeFills(fills: readonly CardinalityFill[], parentId: string | undefined): Promise<string[]> {
   const added: string[] = []
   for (const fill of fills) {
@@ -927,7 +955,15 @@ async function executeFills(fills: readonly CardinalityFill[], parentId: string 
       throw err
     }
     added.push(result.id)
+    // The change was committed, so its id stays in the returned list (a rollback still has to remove
+    // it), but no further fill is posted once the session is aborted.
+    if (abortController.signal.aborted) {
+      return added
+    }
     added.push(...(await executeFills(fill.children, result.id)))
+    if (abortController.signal.aborted) {
+      return added
+    }
   }
   return added
 }
@@ -961,6 +997,11 @@ async function onSave() {
   // outside the flush, e.g. by the focusout commit fired by the Save click itself.
   for (const instance of flushRegistry) {
     await instance.flush()
+    // Each flush commits a value by queueing a change, so no further slot is flushed once the
+    // editor is going away (only an unmount or a route change aborts this controller).
+    if (abortController.signal.aborted) {
+      return
+    }
   }
   await drainSaveChanges()
   if (abortController.signal.aborted) {
@@ -1001,8 +1042,15 @@ async function onSave() {
             throw err
           }
         }
+        // A partial rollback is acceptable once the session is being torn down.
+        if (abortController.signal.aborted) {
+          return
+        }
       }
       await drainSaveChanges()
+      if (abortController.signal.aborted) {
+        return
+      }
       sessionError.value = "cardinality"
       return
     }
@@ -1043,10 +1091,11 @@ async function onSave() {
       if (abortController.signal.aborted) {
         return
       }
-      const { doc: status } = await getURLDirect<DocumentEditStatus>(editStatusURL, abortController.signal, saveBusy)
-      if (abortController.signal.aborted) {
+      const statusResponse = await getURLDirect<DocumentEditStatus>(editStatusURL, abortController.signal, saveBusy)
+      if (abortController.signal.aborted || statusResponse === null) {
         return
       }
+      const status = statusResponse.doc
       if (status.changeset || status.discarded) {
         break
       }
@@ -1251,6 +1300,9 @@ async function onReset() {
   // (which would keep the submit button enabled after a Cancel from edit
   // mode). Wait one tick before checkpointing for reset to propagate.
   await nextTick()
+  if (abortController.signal.aborted) {
+    return
+  }
   checkpointAll()
 }
 
@@ -1277,6 +1329,9 @@ async function onEditClaim(id: string) {
   // primary-button label do not flip back to "Add value" during this gap.
   lockedClaimType.value = null
   await nextTick()
+  if (abortController.signal.aborted) {
+    return
+  }
 
   // Start from a clean slate so stale fields from a prior add/edit do not
   // leak into the patch sent on save.
@@ -1358,6 +1413,9 @@ async function onEditClaim(id: string) {
   // Wait for the new panel's inputs to mount and register, then move focus
   // to the first focusable one so the user can start editing immediately.
   await nextTick()
+  if (abortController.signal.aborted) {
+    return
+  }
   firstInputEl()?.focus()
   // Record the populated values as the checkpoint so the form is not
   // dirty until the user actually changes something.
@@ -1380,6 +1438,9 @@ async function onSubClaimAdd(id: string) {
   lockedClaimType.value = null
 
   await nextTick()
+  if (abortController.signal.aborted) {
+    return
+  }
   firstInputEl()?.focus()
   checkpointAll()
 }

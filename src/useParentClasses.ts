@@ -22,7 +22,9 @@ export function useParentClasses(
   // Uses a separate abort controller tied to component lifecycle (not route changes),
   // because useParentClasses watches doc reactively and handles route changes via doc becoming null.
   const abortController = new AbortController()
-  onBeforeUnmount(() => abortController.abort())
+  onBeforeUnmount(() => {
+    abortController.abort()
+  })
 
   const router = useRouter()
   const _classDocs = ref<D[]>([])
@@ -32,7 +34,7 @@ export function useParentClasses(
 
   async function fetchClassDocument(classId: string): Promise<D | null> {
     try {
-      const { doc: rawDoc } = await getURL<object>(
+      const res = await getURL<object>(
         router.apiResolve({
           name: "DocumentGet",
           params: {
@@ -43,10 +45,10 @@ export function useParentClasses(
         abortController.signal,
         progress,
       )
-      if (abortController.signal.aborted) {
+      if (abortController.signal.aborted || res === null) {
         return null
       }
-      return new D(rawDoc)
+      return new D(res.doc)
     } catch (err) {
       if (abortController.signal.aborted) {
         return null

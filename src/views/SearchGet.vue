@@ -114,7 +114,11 @@ async function applyPrefilters(payloads: PrefilterPayload[] | null) {
     prefilters = []
     for (const payload of payloads) {
       const filterBase = [...searchSession.value.base, "FILTER", Identifier.new().toString()]
+      // Deriving the identifier is asynchronous, so the view can be left in the middle of the loop.
       const id = (await Identifier.from(...filterBase)).toString()
+      if (abortController.signal.aborted) {
+        return
+      }
       prefilters.push({
         id,
         base: filterBase,
@@ -220,7 +224,11 @@ async function onFilterUpdate(filterId: string, updatedFilter: Filter) {
   } else {
     // New filter: generate Base/ID and add it.
     const filterBase = [...searchSession.value!.base, "FILTER", Identifier.new().toString()]
+    // Deriving the identifier is asynchronous, so the view can be left before the update is sent.
     const id = (await Identifier.from(...filterBase)).toString()
+    if (abortController.signal.aborted) {
+      return
+    }
     const newFilter = { ...updatedFilter, base: filterBase, id }
     await onFiltersUpdate([...filters.value, newFilter])
   }

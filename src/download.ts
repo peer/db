@@ -213,10 +213,14 @@ export function useDownload(abortController: AbortController, router: Router, re
 
   // HEAD a file to read its Content-Disposition filename and build a DownloadFile.
   // Falls back to the file id as the name when no usable filename is advertised.
-  async function fetchFileMetadata(id: string, signal: AbortSignal): Promise<DownloadFile> {
+  // Returns null when the signal is aborted.
+  async function fetchFileMetadata(id: string, signal: AbortSignal): Promise<DownloadFile | null> {
     // Absolute URL so the worker (which has no document base) can fetch it.
     const url = new URL(router.resolve({ name: "StorageGet", params: { id } }).href, window.location.origin).href
     const headers = await headURLDirect(url, signal, null)
+    if (signal.aborted || headers === null) {
+      return null
+    }
     const name = parseContentDispositionFilename(headers.get("content-disposition")) ?? id
     completed.value += 1
     return { name, url }
@@ -237,7 +241,7 @@ export function useDownload(abortController: AbortController, router: Router, re
 
     // Dedupe by file id, and reuse the same in-flight HEAD promise across documents that
     // reference the same file.
-    const files = new Map<string, Promise<DownloadFile>>()
+    const files = new Map<string, Promise<DownloadFile | null>>()
 
     function recordFile(iri: string) {
       const id = matchStorageRoute(iri)
@@ -249,8 +253,11 @@ export function useDownload(abortController: AbortController, router: Router, re
 
     const docPromises = snapshot.map(async (r) => {
       const url = router.apiResolve({ name: "DocumentGet", params: { id: r.id } }).href
-      const { doc: rawDoc } = await getURL<object>(url, null, signal, null)
-      const d = new D(rawDoc)
+      const res = await getURL<object>(url, null, signal, null)
+      if (signal.aborted || res === null) {
+        return
+      }
+      const d = new D(res.doc)
       for (const claim of d.claims.AllClaimsWithSub()) {
         if (claim instanceof LinkClaim) {
           // Extract every link claim that points at our StorageGet route.
@@ -269,8 +276,12 @@ export function useDownload(abortController: AbortController, router: Router, re
       completed.value += 1
     })
 
+    // We do not check for aborted signal here because we want to await all the promises, but we check it soon after.
     await Promise.all(docPromises)
-    const resolved = await Promise.all(files.values())
+    // A file whose HEAD request stopped resolves to null, which happens only on abort, so once the abort is
+    // raised none of them can be null any more.
+    const resolved = (await Promise.all(files.values())) as DownloadFile[]
+    signal.throwIfAborted()
     // Sort by url for a deterministic order (the url embeds the file id).
     resolved.sort((a, b) => (a.url < b.url ? -1 : a.url > b.url ? 1 : 0))
 
@@ -333,6 +344,11 @@ export function useDownload(abortController: AbortController, router: Router, re
       cancelCurrent = () => preparationController.abort()
 
       const files = await prepareFiles(preparationController.signal)
+      // The worker only registers an abort listener, so a worker started for an already aborted
+      // download would run to completion. Stop before the phase refs are written and before it is created.
+      if (abortController.signal.aborted || preparationController.signal.aborted) {
+        return
+      }
 
       if (files.length === 0) {
         downloadingPhase.value = "empty"
@@ -407,6 +423,11 @@ export function useDownload(abortController: AbortController, router: Router, re
       cancelCurrent = () => preparationController.abort()
 
       const files = await prepareFiles(preparationController.signal)
+      // The worker only registers an abort listener, so a worker started for an already aborted
+      // download would run to completion. Stop before the phase refs are written and before it is created.
+      if (abortController.signal.aborted || preparationController.signal.aborted) {
+        return
+      }
 
       if (files.length === 0) {
         downloadingPhase.value = "empty"

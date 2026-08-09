@@ -73,15 +73,16 @@ async function loadClasses() {
 
   busy.value += 1
   try {
-    const { doc } = await getURL<CreateOptionsResponse>(
+    const response = await getURL<CreateOptionsResponse>(
       router.apiResolve({ name: "DocumentCreateOptions", query: encodeQuery({ limit: requested || undefined }) }).href,
       null,
       abortController.signal,
       null,
     )
-    if (abortController.signal.aborted || requested !== limit.value) {
+    if (abortController.signal.aborted || response === null || requested !== limit.value) {
       return
     }
+    const doc = response.doc
 
     classes.value = doc.classes
     loaded.value = true
@@ -111,6 +112,17 @@ watch(limit, () => loadClasses().catch((err) => console.error("DocumentCreate.lo
 
 // saveRefClaim appends one reference claim (prop and to are IDs) to the create session as the given change.
 async function saveRefClaim(createResponse: DocumentCreateResponse, change: number, prop: string, to: string) {
+  // Building the change resolves an identifier asynchronously, so the view can be left while it runs.
+  const claimChange = await makeAddClaimChange(createResponse.base, createResponse.session, change, {
+    type: "ref",
+    confidence: HighConfidence,
+    prop,
+    to,
+  })
+  if (abortController.signal.aborted) {
+    return
+  }
+
   await postJSON(
     router.apiResolve({
       name: "DocumentSaveChange",
@@ -119,12 +131,7 @@ async function saveRefClaim(createResponse: DocumentCreateResponse, change: numb
       },
       query: encodeQuery({ change: String(change) }),
     }).href,
-    await makeAddClaimChange(createResponse.base, createResponse.session, change, {
-      type: "ref",
-      confidence: HighConfidence,
-      prop,
-      to,
-    }),
+    claimChange,
     abortController.signal,
     null,
   )
@@ -143,7 +150,7 @@ async function onCreate(classId: string, replace = false) {
     // the session holds all pending changes (starting with instance_of below)
     // and the backend materializes the document only on Save.
     const createResponse = await postJSON<DocumentCreateResponse>(router.apiResolve({ name: "DocumentCreate" }).href, {}, abortController.signal, null)
-    if (abortController.signal.aborted) {
+    if (abortController.signal.aborted || createResponse === null) {
       return
     }
 

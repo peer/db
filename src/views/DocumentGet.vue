@@ -269,7 +269,7 @@ async function fetchShortcutCount(query: QueryValues, signal: AbortSignal): Prom
   const url = router.apiResolve({ name: "SearchJustResults", query }).href
   // TODO: Use headURL when it will be available.
   const headers = await headURLDirect(url, signal, null)
-  if (signal.aborted) {
+  if (signal.aborted || headers === null) {
     return null
   }
   const metadata = decodeMetadata(headers, siteContext.metadataHeaderPrefix ?? "")
@@ -316,12 +316,20 @@ watch(
     const result: ResolvedShortcut[] = []
     for (const shortcut of shortcuts) {
       try {
+        // Resolving a shortcut computes identifiers asynchronously, so the component can be torn down
+        // in the middle of the loop, before searchShortcuts is written below.
         const query = await shortcutToQuery(shortcut.raw, props.id)
+        if (abortController.signal.aborted) {
+          return
+        }
         // A malformed create shortcut should not drop the whole search shortcut, so it is resolved on its own.
         let createQuery: QueryValues | null = null
         if (shortcut.createRaw) {
           try {
             createQuery = await createShortcutToQuery(shortcut.createRaw, props.id)
+            if (abortController.signal.aborted) {
+              return
+            }
           } catch (err) {
             console.error("DocumentGet.createShortcut", shortcut, err)
           }
@@ -445,7 +453,7 @@ async function onEdit() {
       abortController.signal,
       editBusy,
     )
-    if (abortController.signal.aborted) {
+    if (abortController.signal.aborted || editResponse === null) {
       return
     }
     await router.push({

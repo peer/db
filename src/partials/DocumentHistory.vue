@@ -36,7 +36,8 @@ onUnmounted(() => {
 onMounted(async () => {
   try {
     const response = await getURL<DocumentHistoryItem[]>(url.value, el, abortController.signal, rootProgress)
-    if (abortController.signal.aborted) {
+    // getURL returns null only on abort.
+    if (abortController.signal.aborted || response === null) {
       return
     }
     history.value = response.doc

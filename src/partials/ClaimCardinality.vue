@@ -50,7 +50,7 @@ const props = withDefaults(
     modelValue: DeepReadonly<readonly Claim[]>
     initialClaims: DeepReadonly<readonly Claim[]>
     field: DeepReadonly<FieldData>
-    parentClaimId?: () => Promise<string>
+    parentClaimId?: () => Promise<string | null>
     // parentCleanup asks the enclosing slot to remove its lazily-created base claim
     // (an empty HAS or a default none/unknown form) once this sub-field's revert has
     // emptied it. The base came into existence implicitly with the first sub-claim, so
@@ -170,8 +170,14 @@ const modeResolved = ref(!selectEligible.value)
 
 const router = useRouter()
 const progress = useProgress()
-const modeAbortController = new AbortController()
-onBeforeUnmount(() => modeAbortController.abort())
+
+// onBeforeUnmount, not onUnmounted: a parent's beforeUnmount runs before its children's, while onUnmounted
+// hooks run children-first, and the revert drives each slot's own input across an await. Aborting at the
+// earlier hook is what stops this component from driving children which are themselves tearing down.
+const abortController = new AbortController()
+onBeforeUnmount(() => {
+  abortController.abort()
+})
 
 onBeforeMount(async () => {
   if (!selectEligible.value) {
@@ -182,20 +188,19 @@ onBeforeMount(async () => {
     // shortcutToFilters throws on filters referencing "self" (no self document is
     // available here) and on parse errors; such fields keep the combobox slots.
     const filters = props.field.values ? await shortcutToFilters(props.field.values) : null
-    const results = await postJSON<Result[]>(
-      router.apiResolve({ name: "SearchJustResults" }).href,
-      { query: "", ...(filters ?? {}) },
-      modeAbortController.signal,
-      progress,
-    )
-    if (modeAbortController.signal.aborted) {
+    if (abortController.signal.aborted) {
+      return
+    }
+    const results = await postJSON<Result[]>(router.apiResolve({ name: "SearchJustResults" }).href, { query: "", ...(filters ?? {}) }, abortController.signal, progress)
+    // postJSON returns null only on abort.
+    if (abortController.signal.aborted || results === null) {
       return
     }
     if (results.length <= SELECT_MODE_MAX) {
       refOptions.value = results
     }
   } catch (err) {
-    if (modeAbortController.signal.aborted) {
+    if (abortController.signal.aborted) {
       return
     }
     console.error("ClaimCardinality.selectMode", err)
@@ -362,7 +367,15 @@ function revertSlot(key: string): void {
 }
 
 // cleanupParentIfEmpty runs the enclosing slot's base cleanup once a revert has left
-// this whole (sub)field without claims.
+// this whole (sub)field without claims. It does nothing while any slot still holds one.
+//
+// TODO: Make a field revert either complete or leave nothing behind.
+//       The revert is a sequence of document mutations (re-add the missing baselines, revert each slot,
+//       drop the leftovers, clean up the parent base claim) and nothing makes it atomic. This cleanup
+//       reads the state the earlier steps are expected to have produced, so a revert which stops part
+//       way, because a step failed or because this component went away with work still to do, leaves the
+//       field half reverted and this cleanup silently doing nothing, which is how an empty base claim is
+//       left behind with no control on the page able to remove it.
 async function cleanupParentIfEmpty(): Promise<void> {
   if (!props.parentCleanup) {
     return
@@ -763,6 +776,11 @@ async function revertField(): Promise<void> {
   for (const baseline of slotsCheckpoint.value) {
     if (representedBaselineIds.has(baseline.id)) continue
     const under = props.parentClaimId ? await props.parentClaimId() : undefined
+    // Resolving the parent can run the parent's whole commit, so this is the longest wait in the revert.
+    // A null parent id says the parent is gone, and there is nothing to re-add under it.
+    if (abortController.signal.aborted || under === null) {
+      return
+    }
     const values = getClaimValues(baseline)
     const patch = makePatchForField(props.field, values)
     let result: SaveChangeResult
@@ -784,6 +802,12 @@ async function revertField(): Promise<void> {
   // accordingly, serialized with the slot's other operations so an in-flight commit
   // cannot race it. Iterate over a snapshot: a removed slot's update splices
   // slots.value while we go through it.
+  //
+  // The abort signal is deliberately not checked in this loop, unlike after the other awaits here. Each
+  // slot's revert checks the slot's own signal first, so once this component is going away the remaining
+  // iterations do nothing anyway. Leaving the loop early would be worse than not checking: the cleanup
+  // below runs only when every slot ended up without a claim, which is what this loop establishes, so
+  // stopping part way through leaves the field half reverted and silently skips that cleanup.
   for (const slot of [...slots.value]) {
     if (!slot.claim) continue
     const input = slotInputs.get(slot.key)

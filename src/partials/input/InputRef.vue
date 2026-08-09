@@ -203,7 +203,11 @@ watch(
     // shortcutToFilters throws synchronously if filter references "self"
     // without a self prop, and on any structural parse error. We let the
     // throw propagate so misconfigured callers surface immediately.
-    filterPayload.value = await shortcutToFilters(filter, self)
+    const payload = await shortcutToFilters(filter, self)
+    if (mainAbortController.signal.aborted) {
+      return
+    }
+    filterPayload.value = payload
   },
   { immediate: true },
 )
@@ -229,7 +233,7 @@ async function search(q: string) {
       signal,
       searchProgress,
     )
-    if (signal.aborted) {
+    if (signal.aborted || response === null) {
       return
     }
 
@@ -271,6 +275,9 @@ async function enterEditMode() {
   editMode.value = true
   // Wait for the ComboboxInput to render, then focus its underlying input.
   await nextTick()
+  if (mainAbortController.signal.aborted) {
+    return
+  }
   const el = comboboxInputRef.value?.$el as HTMLInputElement | undefined
   el?.focus()
 }
@@ -296,6 +303,9 @@ let clearing = false
 // chip back with the same document still picked.
 async function onWrapperFocusout() {
   await nextTick()
+  if (mainAbortController.signal.aborted) {
+    return
+  }
   // A clear is in progress: the value was intentionally emptied and focus is
   // being moved to the search input, so skip the required-validation (it
   // returns on the next real leave).
@@ -331,6 +341,11 @@ async function clearSelection() {
   // text: the prior search is the likely starting point for picking a replacement.
   // Focus the search input so focus is not dropped to the body.
   await nextTick()
+  // The component is being torn down, so the focus move is pointless and the
+  // clearing flag no longer has a focusout to suppress.
+  if (mainAbortController.signal.aborted) {
+    return
+  }
   ;(comboboxInputRef.value?.$el as HTMLInputElement | undefined)?.focus()
   clearing = false
 }

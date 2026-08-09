@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import type { InputColumn, ValidatedInput, ValidationError } from "@/types"
 
-import { computed, ref, useId, useTemplateRef, watch } from "vue"
+import { computed, onBeforeUnmount, ref, useId, useTemplateRef, watch } from "vue"
 import { useI18n } from "vue-i18n"
 
 import CheckBox from "@/components/CheckBox.vue"
 import WithLock from "@/components/WithLock.vue"
 import { getParentLock, useLock } from "@/progress"
+import { anySignal } from "@/utils"
 import { useRegisterForValidation, useValidationRegistry } from "@/validation"
 
 const props = defineProps<{
@@ -173,6 +174,15 @@ const rootRef = useTemplateRef<HTMLDivElement>("rootRef")
 const unknownCheckpoint = ref<boolean>(unknown.value)
 const noneCheckpoint = ref<boolean>(none.value)
 
+// onBeforeUnmount, not onUnmounted: Vue runs a parent's beforeUnmount before its children's, while
+// onUnmounted hooks run children-first. The wrapped input's useValidation aborts its own controller in
+// its own onBeforeUnmount, so aborting here is what makes this signal already aborted while the wrapped
+// input tears down, whatever its validation then does with the abort.
+const abortController = new AbortController()
+onBeforeUnmount(() => {
+  abortController.abort()
+})
+
 const validatedInput: ValidatedInput = {
   validate: async (signal, options) => {
     // When a missing-state checkbox is checked the wrapped input is
@@ -183,7 +193,14 @@ const validatedInput: ValidatedInput = {
       clearShowRequired()
       return
     }
-    await validateChildAll(signal, options)
+    // The caller's signal is combined with ours, never replaced by it: the caller aborts a superseded
+    // run, we abort on teardown, and both must cancel the wrapped input's validation.
+    const effective = signal ? anySignal(signal, abortController.signal) : abortController.signal
+    await validateChildAll(effective, options)
+    // A superseded or torn-down validation run must not paint the required state.
+    if (effective.aborted) {
+      return
+    }
     if (props.required && allChildEmpty.value) {
       showRequired.value = true
       // TODO: Use standard codes.

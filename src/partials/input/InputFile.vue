@@ -238,6 +238,9 @@ async function onUpload(file: File) {
     // unmounts together with the empty state, and the link is what the user acts on
     // next (inspecting the uploaded file).
     await nextTick()
+    if (abortController.signal.aborted) {
+      return
+    }
     uploadedRef.value?.querySelector("a")?.focus()
   } catch (err) {
     if (abortController.signal.aborted) {

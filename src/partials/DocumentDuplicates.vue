@@ -41,7 +41,8 @@ async function refresh() {
 
   try {
     const results = await postJSON<Result[]>(router.apiResolve({ name: "DocumentFindDuplicates" }).href, { doc: props.doc }, signal, null)
-    if (signal.aborted) {
+    // postJSON returns null only on abort.
+    if (signal.aborted || results === null) {
       return
     }
     duplicates.value = results

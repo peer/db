@@ -86,7 +86,7 @@ watch(
 
     try {
       const response = await getURL<T>(newURL, el, abortController.signal, rootProgress)
-      if (abortController.signal.aborted) {
+      if (abortController.signal.aborted || response === null) {
         return
       }
 
