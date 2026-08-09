@@ -117,7 +117,11 @@ async function applyPrefilters(payloads: PrefilterPayload[] | null) {
     for (const payload of payloads) {
       if (payload.to.length > 0 || payload.direct.length > 0) {
         const filterBase = [...searchSession.value.base, "FILTER", Identifier.new().toString()]
+        // Deriving the identifier is asynchronous, so the view can be left in the middle of the loop.
         const id = (await Identifier.from(...filterBase)).toString()
+        if (abortController.signal.aborted) {
+          return
+        }
         prefilters.push({
           id,
           base: filterBase,
@@ -131,6 +135,9 @@ async function applyPrefilters(payloads: PrefilterPayload[] | null) {
       if (payload.missing) {
         const filterBase = [...searchSession.value.base, "FILTER", Identifier.new().toString()]
         const id = (await Identifier.from(...filterBase)).toString()
+        if (abortController.signal.aborted) {
+          return
+        }
         prefilters.push({
           id,
           base: filterBase,
@@ -238,7 +245,11 @@ async function onFilterUpdates(updates: FilterUpdate[]) {
     } else {
       // New filter: generate Base/ID and add it.
       const filterBase = [...searchSession.value!.base, "FILTER", Identifier.new().toString()]
+      // Deriving the identifier is asynchronous, so the view can be left in the middle of the batch.
       const id = (await Identifier.from(...filterBase)).toString()
+      if (abortController.signal.aborted) {
+        return
+      }
       updatedFilters.push({ ...filter, base: filterBase, id })
     }
   }
@@ -386,7 +397,7 @@ async function onDownloadFiles() {
       ><i class="pd-searchget-error text-error-600">{{ t("common.status.loadingDataFailed") }}</i></div
     >
 
-    <div v-else-if="searchSession === null" class="my-1 text-center sm:my-4">{{ t("common.status.loading") }}</div>
+    <div v-else-if="searchSession === null" class="pd-searchget-loading my-1 text-center sm:my-4">{{ t("common.status.loading") }}</div>
 
     <SearchResultsFeed
       v-else-if="searchSession.view === 'feed'"

@@ -294,7 +294,7 @@ const WithDocumentD = WithDocument<D>
                   <template #default="{ doc, url }">
                     <Button
                       :data-url="url"
-                      class="flex w-full max-w-100 flex-row items-center justify-between gap-x-1 p-2 leading-none shadow-none inset-ring-0"
+                      class="pd-searchresultstable-button-filter flex w-full max-w-100 flex-row items-center justify-between gap-x-1 p-2 leading-none shadow-none inset-ring-0"
                       @click.prevent="onOpenFilterModal(filter)"
                     >
                       <span class="truncate"><DisplayLabel :doc="doc" /></span>
@@ -316,20 +316,27 @@ const WithDocumentD = WithDocument<D>
         </thead>
 
         <!-- Results -->
-        <tbody class="divide-y divide-gray-200">
+        <tbody class="pd-searchresultstable-list-results divide-y divide-gray-200">
           <template v-for="(result, index) in limitedSearchResults" :key="result.id">
             <WithDocumentD :id="result.id" name="DocumentGet">
               <template #default="{ doc, url }">
-                <tr :id="`result-${result.id}`" :ref="track(result.id)" class="odd:bg-white even:bg-slate-100 hover:bg-slate-200" :data-url="url">
+                <tr
+                  :id="`result-${result.id}`"
+                  :ref="track(result.id)"
+                  class="pd-searchresultstable-row-result odd:bg-white even:bg-slate-100 hover:bg-slate-200"
+                  :data-url="url"
+                >
                   <td class="flex items-center justify-between gap-1 p-2">
-                    <RouterLink :to="{ name: 'DocumentGet', params: { id: result.id }, query: encodeQuery({ s: searchSession.id }) }" class="link">{{
-                      index + 1
-                    }}</RouterLink>
+                    <RouterLink
+                      :to="{ name: 'DocumentGet', params: { id: result.id }, query: encodeQuery({ s: searchSession.id }) }"
+                      class="pd-searchresultstable-link-document link"
+                      >{{ index + 1 }}</RouterLink
+                    >
 
                     <Button
                       v-if="canRowExpand(result.id) || isRowExpanded(result.id)"
                       :title="getButtonTitle(result.id)"
-                      class="p-0 shadow-none inset-ring-0"
+                      class="pd-searchresultstable-button-expandrow p-0 shadow-none inset-ring-0"
                       @click.prevent="onToggleRow(result.id)"
                     >
                       <ChevronDownUpIcon v-if="isRowExpanded(result.id)" class="size-5" aria-expanded="true" :aria-controls="`result-${result.id}`" />
@@ -344,7 +351,7 @@ const WithDocumentD = WithDocument<D>
                     />
                   </td>
                   <template v-for="filter in limitedFiltersResults" v-else :key="filter.filterId ?? filterResultKey(filter)">
-                    <td v-if="supportedFilter(filter)" class="align-top">
+                    <td v-if="supportedFilter(filter)" class="pd-searchresultstable-value align-top">
                       <LocalScope
                         v-slot="{ rowExpanded, cellTruncated, cellExpanded }"
                         :row-expanded="isRowExpanded(result.id)"
@@ -364,7 +371,7 @@ const WithDocumentD = WithDocument<D>
                             <RouterLink
                               v-if="cellTruncated && rowExpanded"
                               :to="{ name: 'DocumentGet', params: { id: result.id }, query: encodeQuery({ s: searchSession.id }) }"
-                              class="link"
+                              class="pd-searchresultstable-link-open link"
                             >
                               <ArrowTopRightOnSquareIcon class="size-5" />
                             </RouterLink>
@@ -372,7 +379,7 @@ const WithDocumentD = WithDocument<D>
                             <Button
                               v-if="cellExpanded || cellTruncated"
                               :title="getButtonTitle(result.id)"
-                              class="p-0 shadow-none inset-ring-0"
+                              class="pd-searchresultstable-button-expandrow p-0 shadow-none inset-ring-0"
                               @click.prevent="onToggleRow(result.id)"
                             >
                               <ChevronDownUpIcon v-if="rowExpanded" class="size-5" aria-expanded="true" :aria-controls="`result-${result.id}`" />
@@ -399,9 +406,11 @@ const WithDocumentD = WithDocument<D>
                 -->
                 <tr class="pd-withdocument-loading-wrapper odd:bg-white even:bg-slate-100 hover:bg-slate-200" :data-url="url">
                   <td class="p-2">
-                    <RouterLink :to="{ name: 'DocumentGet', params: { id: result.id }, query: encodeQuery({ s: searchSession.id }) }" class="link">{{
-                      index + 1
-                    }}</RouterLink>
+                    <RouterLink
+                      :to="{ name: 'DocumentGet', params: { id: result.id }, query: encodeQuery({ s: searchSession.id }) }"
+                      class="pd-searchresultstable-link-document link"
+                      >{{ index + 1 }}</RouterLink
+                    >
                   </td>
                   <td :colspan="rowColspan" class="p-2">
                     <div
@@ -416,9 +425,11 @@ const WithDocumentD = WithDocument<D>
               <template #error="{ message, accessDenied, url }">
                 <tr class="pd-withdocument-error-wrapper odd:bg-white even:bg-slate-100 hover:bg-slate-200" :data-url="url">
                   <td class="p-2">
-                    <RouterLink :to="{ name: 'DocumentGet', params: { id: result.id }, query: encodeQuery({ s: searchSession.id }) }" class="link">{{
-                      index + 1
-                    }}</RouterLink>
+                    <RouterLink
+                      :to="{ name: 'DocumentGet', params: { id: result.id }, query: encodeQuery({ s: searchSession.id }) }"
+                      class="pd-searchresultstable-link-document link"
+                      >{{ index + 1 }}</RouterLink
+                    >
                   </td>
                   <td :colspan="rowColspan" class="p-2">
                     <i :class="['pd-withdocument-error', accessDenied ? 'text-gray-500' : 'text-error-600']">{{ message }}</i>
@@ -431,9 +442,13 @@ const WithDocumentD = WithDocument<D>
       </table>
 
       <div v-if="filtersHasMore" class="sticky top-[37.5%] z-20 h-full">
-        <Button ref="filtersMoreButton" primary class="h-1/4 min-h-fit [writing-mode:sideways-lr]" @click.prevent="filtersLoadMore">{{
-          t("partials.SearchResultsTable.moreColumns")
-        }}</Button>
+        <Button
+          ref="filtersMoreButton"
+          primary
+          class="pd-searchresultstable-button-morecolumns h-1/4 min-h-fit [writing-mode:sideways-lr]"
+          @click.prevent="filtersLoadMore"
+          >{{ t("partials.SearchResultsTable.moreColumns") }}</Button
+        >
       </div>
     </div>
 
@@ -444,17 +459,21 @@ const WithDocumentD = WithDocument<D>
     -->
     <div class="sticky left-0 z-20 w-0">
       <div class="w-container flex justify-center p-1 sm:p-4">
-        <Button v-if="searchHasMore" ref="searchMoreButton" primary class="w-1/4 min-w-fit" @click.prevent="searchLoadMore">{{ t("common.buttons.loadMore") }}</Button>
+        <Button v-if="searchHasMore" id="searchresultstable-button-loadmore" ref="searchMoreButton" primary class="w-1/4 min-w-fit" @click.prevent="searchLoadMore">{{
+          t("common.buttons.loadMore")
+        }}</Button>
 
         <div v-else class="my-1 sm:my-4">
           <!-- Here we assume that MaxResultsCount is always set to a smaller value than what TrackTotalHits is set to. -->
-          <div v-if="searchMoreThanTotal" class="text-center text-sm">{{
+          <div v-if="searchMoreThanTotal" class="pd-searchresultstable-count-results text-center text-sm">{{
             t("common.status.allResultsMoreThan", { first: searchResults.length, count: searchTotal })
           }}</div>
-          <div v-else-if="searchResults.length < searchTotal" class="text-center text-sm">{{
+          <div v-else-if="searchResults.length < searchTotal" class="pd-searchresultstable-count-results text-center text-sm">{{
             t("common.status.allResultsOnly", { first: searchResults.length, count: searchTotal })
           }}</div>
-          <div v-else-if="searchResults.length === searchTotal" class="text-center text-sm">{{ t("common.status.allResults", { count: searchResults.length }) }}</div>
+          <div v-else-if="searchResults.length === searchTotal" class="pd-searchresultstable-count-results text-center text-sm">{{
+            t("common.status.allResults", { count: searchResults.length })
+          }}</div>
         </div>
       </div>
     </div>
@@ -474,11 +493,15 @@ const WithDocumentD = WithDocument<D>
     <!-- Full-screen container to center the panel. -->
     <div class="fixed inset-0 flex items-center justify-center">
       <DialogPanel
-        class="flex h-full w-full flex-col overflow-y-auto rounded-none bg-white p-1 shadow-none sm:relative sm:inset-auto sm:h-auto sm:max-h-150 sm:max-w-xl sm:rounded-sm sm:p-4 sm:shadow-sm"
+        class="pd-searchresultstable-panel-filter flex h-full w-full flex-col overflow-y-auto rounded-none bg-white p-1 shadow-none sm:relative sm:inset-auto sm:h-auto sm:max-h-150 sm:max-w-xl sm:rounded-sm sm:p-4 sm:shadow-sm"
       >
         <FiltersResult :result="activeFilter!" :search-session="searchSession" :filters="filters" @filter-updates="(updates) => $emit('filterUpdates', updates)" />
 
-        <Button class="absolute top-1 right-1 p-0 shadow-none inset-ring-0 sm:top-4 sm:right-4" title="Close" @click="onCloseFilterModal">
+        <Button
+          class="pd-searchresultstable-button-closefilter absolute top-1 right-1 p-0 shadow-none inset-ring-0 sm:top-4 sm:right-4"
+          title="Close"
+          @click="onCloseFilterModal"
+        >
           <XMarkIcon class="size-5" />
         </Button>
       </DialogPanel>

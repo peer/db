@@ -63,7 +63,7 @@ const props = withDefaults(
     // parentClaimId is a callback that returns the parent's claim id
     // (creating it lazily if the parent is a HAS slot whose claim has
     // not been committed yet). Undefined for top-level claims.
-    parentClaimId?: () => Promise<string>
+    parentClaimId?: () => Promise<string | null>
     invalid?: boolean
     // Marks the slot as one of the field's min-cardinality "designated" slots:
     // it shows the "required" badge and lets the inner input surface its own
@@ -376,9 +376,27 @@ const subFieldsActive = computed<boolean>(() => props.required || !isEmpty.value
 const pendingCount = ref(0)
 const slotReadonly = computed<boolean>(() => props.readonly || pendingCount.value > 0)
 
+// Aborted when the slot goes away. It is aborted in onBeforeUnmount and not in onUnmounted because
+// teardown starts at the earlier hook and nulls the template refs, which the deferred focusout path
+// and the serialized operation bodies dereference. It means "this slot is gone, stop touching its
+// state and stop queueing more changes", never "cancel the request", and it is never handed to one:
+// saving goes through the injected saveChange, and the requests it makes belong to the editing
+// session, which cancels them with the abort controller of DocumentEdit.
+//
+// A change already handed to that queue must still be posted. The backend takes a change only when its
+// number is exactly one past the last change it committed for the session (AppendDocumentChange in
+// base/api.go, which answers a conflict otherwise), so a change dropped while in flight leaves every
+// later change of the session conflicting until the client renumbers them.
+const abortController = new AbortController()
+onBeforeUnmount(() => {
+  abortController.abort()
+})
+
 // Slot operations (commit, revert, slot cleanup, checkbox toggle, lazy parent create)
 // are serialized so a second trigger (e.g. Save's flush while the focusout commit is
 // still posting) observes the state left behind by the first instead of racing it.
+// A body queued behind an operation which is still in flight starts running only after an
+// implicit await, so a body which writes state or posts a change checks the abort signal first.
 let operationChain: Promise<unknown> = Promise.resolve()
 function runSerialized<T>(fn: () => Promise<T>): Promise<T> {
   const run = operationChain.then(fn)
@@ -398,12 +416,23 @@ function resyncCommitted(claim: DeepReadonly<Claim> | null): void {
 // submitChange queues one change and tracks it as pending for this slot. Returns null
 // when the change was dropped (it lost its change number to a concurrent change and does
 // not apply anymore, see ChangeDroppedError); the slot has then already been resynced to
-// the committed state and the caller should stop its flow.
+// the committed state and the caller should stop its flow. It also returns null when the
+// slot went away while the change was in flight, which is what makes every caller's
+// existing dropped-change branch stop the flow on unmount as well.
 async function submitChange(spec: SaveChangeSpec): Promise<SaveChangeResult | null> {
   pendingCount.value += 1
   try {
-    return await saveChange(spec)
+    const result = await saveChange(spec)
+    if (abortController.signal.aborted) {
+      return null
+    }
+    return result
   } catch (err) {
+    // A gone slot has no state left to resync, and a change rejected because the whole edit session
+    // was aborted must not escape the void-called handlers as an unhandled rejection.
+    if (abortController.signal.aborted) {
+      return null
+    }
     if (err instanceof ChangeDroppedError) {
       resyncCommitted(spec.type === "add" ? null : getCommittedClaim(spec.id))
       return null
@@ -496,10 +525,12 @@ forwardInteraction = notifyOuter
 // the value input (preventing the blur commit, see ClaimRefSelect), yet its
 // add needs the parent claim to exist. Serialized with the slot's other
 // operations so a concurrent commit cannot create the base claim twice.
-function ensureClaimId(): Promise<string> {
+// Returns null when the slot is gone, so a descendant which asked for the id stops instead of adding
+// under a claim which is not there.
+function ensureClaimId(): Promise<string | null> {
   return runSerialized(doEnsureClaimId)
 }
-async function doEnsureClaimId(): Promise<string> {
+async function doEnsureClaimId(): Promise<string | null> {
   if (currentClaim.value !== null) {
     return currentClaim.value.id
   }
@@ -519,6 +550,11 @@ async function doEnsureClaimId(): Promise<string> {
     throw new Error("ensureClaimId called with no committable value on a non-HAS slot without a default")
   }
   const newClaim = await addClaimWithParent(patch)
+  // There is no id to hand back and none may be invented, and a descendant which is gone together with
+  // this slot has nothing to report an error to, so the caller is told to stop rather than made to throw.
+  if (abortController.signal.aborted) {
+    return null
+  }
   if (!newClaim) {
     throw new Error("lazily created base claim was dropped")
   }
@@ -534,6 +570,7 @@ async function doEnsureClaimId(): Promise<string> {
 // empty claim would keep the field flagged as changed with no control left to remove it.
 function cleanupEmptyBase(): Promise<void> {
   return runSerialized(async () => {
+    if (abortController.signal.aborted) return
     const committed = currentClaim.value
     if (!committed) {
       return
@@ -559,11 +596,22 @@ function cleanupEmptyBase(): Promise<void> {
 }
 
 // addClaimWithParent commits an AddClaimChange for the given patch and returns the new
-// claim (with the id assigned by the change queue), or null when the add was dropped. It
-// resolves the (possibly lazily-created) parent FIRST so the parent is committed before
-// this claim is queued: a sub-claim's under has to reference a committed claim id.
+// claim (with the id assigned by the change queue), or null when the add was dropped or the
+// slot went away. It resolves the (possibly lazily-created) parent FIRST so the parent is
+// committed before this claim is queued: a sub-claim's under has to reference a committed
+// claim id.
 async function addClaimWithParent(patch: object): Promise<Claim | null> {
+  if (abortController.signal.aborted) {
+    return null
+  }
+  // Resolving the parent can run the parent's whole commit, so this is the longest wait in the
+  // slot's operations and the one most likely to outlive it.
   const under = props.parentClaimId ? await props.parentClaimId() : undefined
+  // A null parent id says the parent slot is gone, which this slot cannot outlive meaningfully: there is
+  // nothing to add under.
+  if (abortController.signal.aborted || under === null) {
+    return null
+  }
   const result = await submitChange(under === undefined ? { type: "add", patch } : { type: "add", patch, under })
   if (!result) {
     return null
@@ -590,6 +638,7 @@ function commit(): Promise<void> {
   return runSerialized(() => doCommit(hadFocus))
 }
 async function doCommit(hadFocus: boolean): Promise<void> {
+  if (abortController.signal.aborted) return
   if (isPresenceOnly.value) return
   const committed = currentClaim.value
   const valueType = valueTypeToClaimType(props.field.valueType)
@@ -636,7 +685,9 @@ async function doCommit(hadFocus: boolean): Promise<void> {
   // (e.g. "htt" for an IRI) stays in the form uncommitted. Sub-cardinality validation is
   // deliberately excluded - see formRowRef definition for why.
   if (formRowRef.value) {
-    await formRowRef.value.validate()
+    await formRowRef.value.validate(abortController.signal)
+    // Vue nulls the template ref during teardown, so the narrowing above does not survive the await.
+    if (abortController.signal.aborted) return
     if (formRowRef.value.errors.length > 0) return
     // Refuse to Set/Add a value-less claim. We reach the non-empty path because
     // localIsEmpty counts precision, so a stray precision on an empty value looks
@@ -711,20 +762,14 @@ async function onSlotFocusOut(event: FocusEvent): Promise<void> {
   // remove the just-cleared claim (and splice the slot) under the user mid-edit.
   if (!next) {
     await nextTick()
-    if (unmounting) return
+    if (abortController.signal.aborted) return
     const active = document.activeElement
     if (active && active !== document.body && rootRef.value?.contains(active)) return
   }
   await commit()
+  if (abortController.signal.aborted) return
   await cleanupResidue()
 }
-
-// Set while the component tears down, so the deferred focusout check above does not
-// commit from a slot that got unmounted during its tick.
-let unmounting = false
-onBeforeUnmount(() => {
-  unmounting = true
-})
 
 // A missing-state checkbox (unknown/none of an interval bound) was toggled. CHECKING a
 // state is a complete decision, so it commits immediately. Deferring it to blur would
@@ -781,6 +826,7 @@ async function cleanupResidue(): Promise<void> {
   const defersToSlotLeave = props.field.default !== undefined || (isHas.value && props.field.subFields.length > 0)
   if (!defersToSlotLeave) return
   await runSerialized(async () => {
+    if (abortController.signal.aborted) return
     const committed = currentClaim.value
     if (!committed) return
     if (!isEmpty.value) return // still has a value or mid-edit (uncommitted) sub-fields
@@ -804,6 +850,7 @@ async function onCheckboxChange(checked: boolean | undefined): Promise<void> {
   // Captured at request time, like in commit above.
   const checkboxHadFocus = rootRef.value?.contains(document.activeElement) ?? false
   await runSerialized(async () => {
+    if (abortController.signal.aborted) return
     const committed = currentClaim.value
     if (desired === (committed !== null)) return
     if (desired) {
@@ -842,6 +889,7 @@ function revertField(): Promise<void> {
   return runSerialized(() => doRevertField(hadFocus))
 }
 async function doRevertField(hadFocus: boolean): Promise<void> {
+  if (abortController.signal.aborted) return
   const committed = currentClaim.value
   const baseline = checkpointClaim.value
   const baselineValue = checkpointEntry.value
@@ -915,6 +963,7 @@ function revertBound(side: "from" | "to"): Promise<void> {
   return runSerialized(() => doRevertBound(side, hadFocus))
 }
 async function doRevertBound(side: "from" | "to", hadFocus: boolean): Promise<void> {
+  if (abortController.signal.aborted) return
   const baselineValue = checkpointEntry.value
   const restored = { ...local.value }
   if (side === "from") {
@@ -934,6 +983,7 @@ async function doRevertBound(side: "from" | "to", hadFocus: boolean): Promise<vo
   // Let the restored values propagate into the inner inputs before committing, so the
   // bound's changed badge clears and the commit's row validation observes them.
   await nextTick()
+  if (abortController.signal.aborted) return
   const empty = equalFieldEntryValue(restored, emptyFieldEntryValue())
   const fromResolved = !!restored.value || restored.fromUnknown || restored.fromNone
   const toResolved = !!restored.valueTo || restored.toUnknown || restored.toNone
@@ -957,7 +1007,7 @@ onBeforeUnmount(() => unregisterForFlush(flushInstance))
 // Pass-through callback: sub-ClaimCardinality receives this as its
 // parent-claim-id; it forwards to each sub-ClaimInput, which calls it at
 // the moment of Add to know what to set under to.
-const ensureClaimIdCallback: () => Promise<string> = ensureClaimId
+const ensureClaimIdCallback: () => Promise<string | null> = ensureClaimId
 
 // Sub-field label ids (so a sub-field's bare value input is named via
 // labelledby). Each sub-field's ClaimCardinality renders its own label + whole-
@@ -994,7 +1044,13 @@ defineExpose({
 </script>
 
 <template>
-  <div ref="rootRef" class="flex min-w-0 grow flex-col gap-y-4" :aria-invalid="invalidSlot" @focusout="onSlotFocusOut">
+  <div
+    ref="rootRef"
+    class="pd-claiminput flex min-w-0 grow flex-col gap-y-4"
+    :class="`pd-claiminput-${field.propertyId}`"
+    :aria-invalid="invalidSlot"
+    @focusout="onSlotFocusOut"
+  >
     <!--
       Value input. Skipped for presence-only types (HAS / NONE / UNKNOWN);
       for those, see the checkbox / sub-form blocks below.
@@ -1041,6 +1097,7 @@ defineExpose({
         :model-value="currentClaim !== null"
         :disabled="slotReadonly"
         :invalid="(errors?.length ?? 0) > 0"
+        class="pd-claiminput-checkbox"
         @update:model-value="onCheckboxChange"
       />
       <p v-if="errorMessage" class="mt-1 text-sm text-error-600">{{ errorMessage }}</p>
@@ -1059,7 +1116,7 @@ defineExpose({
       rather than about any one sub-field, so it stands apart from the last one by the same gap
       that separates the sub-fields.
     -->
-    <div v-if="showSubFields" class="flex flex-col" :class="subFieldGapClass">
+    <div v-if="showSubFields" class="pd-claiminput-group flex flex-col" :class="subFieldGapClass">
       <!--
         Each sub-field's ClaimCardinality renders its own header (property label +
         whole-sub-field badge) above its slots, in the input column

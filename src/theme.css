@@ -105,7 +105,7 @@
 
 /*
   Collapsible navbar search (see NavBarSearch, which measures the room left for the input and toggles the
-  pd-navbar-search-collapsible and pd-navbar-search-expanded classes on the form). These are plain rules
+  pd-navbarsearch-collapsible and pd-navbarsearch-expanded classes on the form). These are plain rules
   rather than utilities on the input because a consumer theme may restyle the input through its pd- classes
   with unlayered rules, which would beat layered utilities.
 
@@ -114,7 +114,7 @@
   search collapses based on the room actually left for it (sooner when e.g. a filter toggle sits next to it,
   later when the navbar is otherwise empty) rather than at a fixed viewport width.
 */
-.pd-navbar-search:not(.pd-navbar-search-collapsible) .pd-searchinput {
+.pd-navbarsearch:not(.pd-navbarsearch-collapsible) .pd-searchinput {
   min-width: 8rem;
 }
 
@@ -122,7 +122,7 @@
   Collapsed: the input takes no space and is not interactive, so only the button shows; its horizontal
   padding and border are zeroed too, otherwise they would keep the border box wider than the zero width.
 */
-.pd-navbar-search-collapsible:not(.pd-navbar-search-expanded) .pd-searchinput {
+.pd-navbarsearch-collapsible:not(.pd-navbarsearch-expanded) .pd-searchinput {
   max-width: 0;
   min-width: 0;
   flex-grow: 0;
@@ -138,32 +138,32 @@
   and the input grows to cover the whole navbar width. The trailing spacer is hidden too: its auto left
   margin would otherwise absorb the free space and stop the input from growing to fill.
 */
-.pd-navbar:has(.pd-navbar-search-expanded) > *:not(.pd-navbar-search) {
+.pd-navbar:has(.pd-navbarsearch-expanded) > *:not(.pd-navbarsearch) {
   display: none;
 }
 
 /* Also hide anything the search hosts other than the input and its button (e.g. a teleported filter toggle). */
-.pd-navbar-search-expanded > *:not(.pd-searchinput):not(.pd-navbar-search-button) {
+.pd-navbarsearch-expanded > *:not(.pd-searchinput):not(.pd-navbarsearch-button) {
   display: none;
 }
 
 /*
   Document-page search-session bar (see DocumentGet, which measures the room left for the query link and
-  toggles pd-navbar-searchlink-collapsible on the bar). Inline, the query link keeps a minimum usable width;
+  toggles pd-navbarshortcut-collapsible on the bar). Inline, the query link keeps a minimum usable width;
   once the navbar can no longer fit it there the link is hidden and the button shows instead. Both link back
   to the search results, so the button is a compact "back to the search" affordance.
 */
-.pd-navbar-searchlink:not(.pd-navbar-searchlink-collapsible) .pd-inputtextlink {
+.pd-navbarshortcut:not(.pd-navbarshortcut-collapsible) .pd-inputtextlink {
   min-width: 8rem;
 }
-.pd-navbar-searchlink-button {
+.pd-navbarshortcut-button {
   display: none;
 }
 /* .pd-navbar prefix so this outweighs a consumer theme styling the link's display through .pd-navbar .pd-inputtextlink. */
-.pd-navbar .pd-navbar-searchlink-collapsible .pd-inputtextlink {
+.pd-navbar .pd-navbarshortcut-collapsible .pd-inputtextlink {
   display: none;
 }
-.pd-navbar-searchlink-collapsible .pd-navbar-searchlink-button {
+.pd-navbarshortcut-collapsible .pd-navbarshortcut-button {
   display: inline-flex;
 }
 
@@ -345,7 +345,7 @@
     }
   }
 
-  .pd-toc {
+  .pd-tableofcontents {
     /* Height grows when navbar auto-hides so the sidebar still reaches the viewport bottom. The navbar-height variable already carries the responsive value. */
     height: calc(100dvh - var(--pd-navbar-height) - var(--pd-navbar-top, 0px));
     /* Top of TOC follows navbar's current viewport top (set by useNavbar). */
@@ -359,27 +359,27 @@
       Range start and amount include var(--pd-navbar-top) to handle the navbar-hidden case where
       the sidebar is taller and sticky needs to release earlier and by more.
     */
-    .pd-toc {
-      animation-name: pd-toc-compensate;
+    .pd-tableofcontents {
+      animation-name: pd-tableofcontents-compensate;
       animation-duration: auto;
       animation-timing-function: linear;
       animation-fill-mode: both;
       animation-timeline: scroll(root block);
-      animation-range: calc(var(--pd-toc-release-start-base, 0px) + var(--pd-navbar-top, 0px)) var(--pd-toc-release-end, 100%);
+      animation-range: calc(var(--pd-tableofcontents-release-start-base, 0px) + var(--pd-navbar-top, 0px)) var(--pd-tableofcontents-release-end, 100%);
     }
 
-    @keyframes pd-toc-compensate {
+    @keyframes pd-tableofcontents-compensate {
       from {
         transform: translateY(0);
       }
 
       to {
-        transform: translateY(calc(var(--pd-toc-release-amount-base, 0px) - var(--pd-navbar-top, 0px)));
+        transform: translateY(calc(var(--pd-tableofcontents-release-amount-base, 0px) - var(--pd-navbar-top, 0px)));
       }
     }
 
-    .pd-toc-active .pd-toc-item {
-      animation-name: pd-toc-track;
+    .pd-tableofcontents-active .pd-tableofcontents-item {
+      animation-name: pd-tableofcontents-track;
       animation-duration: auto;
       animation-timing-function: linear;
       animation-fill-mode: both;
@@ -387,13 +387,13 @@
         Length-based: animation runs over bottomOffset (or bottomOffset + |navbar_top|) px of cover scroll.
         Subtracting var(--pd-navbar-top) (negative when hidden) extends the range to match the grown scrollport.
       */
-      animation-range: cover 0px cover calc(var(--pd-toc-lockstep-end-base, 0px) - var(--pd-navbar-top, 0px));
+      animation-range: cover 0px cover calc(var(--pd-tableofcontents-lockstep-end-base, 0px) - var(--pd-navbar-top, 0px));
     }
 
-    @keyframes pd-toc-track {
+    @keyframes pd-tableofcontents-track {
       from {
         /* Add abs(--pd-navbar-top) (subtract the negative) so bottom-stack items reach the grown sidebar's inner bottom. */
-        transform: translateY(calc(var(--pd-toc-bottom-offset, 0px) - var(--pd-navbar-top, 0px)));
+        transform: translateY(calc(var(--pd-tableofcontents-bottom-offset, 0px) - var(--pd-navbar-top, 0px)));
       }
 
       to {

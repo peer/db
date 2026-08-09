@@ -93,15 +93,16 @@ async function loadClasses() {
 
   busy.value += 1
   try {
-    const { doc } = await getURL<CreateOptionsResponse>(
+    const response = await getURL<CreateOptionsResponse>(
       router.apiResolve({ name: "DocumentCreateOptions", query: encodeQuery({ limit: requested || undefined, ...seeds.value.scoped }) }).href,
       null,
       abortController.signal,
       null,
     )
-    if (abortController.signal.aborted || requested !== limit.value) {
+    if (abortController.signal.aborted || response === null || requested !== limit.value) {
       return
     }
+    const doc = response.doc
 
     classes.value = doc.classes
     loaded.value = true
@@ -131,6 +132,17 @@ watch(limit, () => loadClasses().catch((err) => console.error("DocumentCreate.lo
 
 // saveRefClaim appends one reference claim (prop and to are IDs) to the create session as the given change.
 async function saveRefClaim(createResponse: DocumentCreateResponse, change: number, prop: string, to: string) {
+  // Building the change resolves an identifier asynchronously, so the view can be left while it runs.
+  const claimChange = await makeAddClaimChange(createResponse.base, createResponse.session, change, {
+    type: "ref",
+    confidence: HighConfidence,
+    prop,
+    to,
+  })
+  if (abortController.signal.aborted) {
+    return
+  }
+
   await postJSON(
     router.apiResolve({
       name: "DocumentSaveChange",
@@ -139,12 +151,7 @@ async function saveRefClaim(createResponse: DocumentCreateResponse, change: numb
       },
       query: encodeQuery({ change: String(change) }),
     }).href,
-    await makeAddClaimChange(createResponse.base, createResponse.session, change, {
-      type: "ref",
-      confidence: HighConfidence,
-      prop,
-      to,
-    }),
+    claimChange,
     abortController.signal,
     null,
   )
@@ -178,7 +185,7 @@ async function onCreate(classId: string, replace = false) {
       abortController.signal,
       null,
     )
-    if (abortController.signal.aborted) {
+    if (abortController.signal.aborted || createResponse === null) {
       return
     }
     let change = createResponse.lastChange
@@ -220,10 +227,10 @@ async function onCreate(classId: string, replace = false) {
   </Teleport>
   <div class="pd-documentcreate mt-[var(--pd-navbar-offset)] flex w-full flex-col p-1 sm:p-4 xl:px-16">
     <div class="flex flex-col rounded-sm border border-gray-200 bg-white p-4 shadow-sm">
-      <div v-if="!loaded" class="my-1 sm:my-4">{{ t("common.status.loading") }}</div>
-      <div v-else-if="tree.length === 0" class="my-1 sm:my-4">{{ t("views.DocumentCreate.noClasses") }}</div>
+      <div v-if="!loaded" id="documentcreate-loading" class="my-1 sm:my-4">{{ t("common.status.loading") }}</div>
+      <div v-else-if="tree.length === 0" id="documentcreate-empty" class="my-1 sm:my-4">{{ t("views.DocumentCreate.noClasses") }}</div>
       <div v-else class="flex w-full flex-col gap-y-2 sm:gap-y-4">
-        <h1 class="text-3xl font-bold drop-shadow-xs">{{ t("views.DocumentCreate.title") }}</h1>
+        <h1 id="documentcreate-title" class="text-3xl font-bold drop-shadow-xs">{{ t("views.DocumentCreate.title") }}</h1>
         <ClassTreeList :nodes="tree" :on-create="onCreate" />
       </div>
     </div>

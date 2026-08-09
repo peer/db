@@ -10,10 +10,10 @@ import (
 	internalSearch "gitlab.com/peerdb/peerdb/internal/search"
 )
 
-// defaultSortTail is the stable default ordering appended after the user's sort keys (and used alone
-// when no sort is configured): relevance first, then the document's earliest time (newest first), then
-// its display label in the session's language. Documents missing a sort field sort last.
-func defaultSortTail(lang string) []types.SortCombinationsVariant {
+// defaultSortOrder is the ordering used when the session has no sort columns of its own: relevance first,
+// then the document's earliest time (newest first), then its display label in the session's language.
+// Documents missing a sort field sort last.
+func defaultSortOrder(lang string) []types.SortCombinationsVariant {
 	return []types.SortCombinationsVariant{
 		esdsl.NewSortOptions().Score_(esdsl.NewScoreSort().Order(sortorder.Desc)),
 		esdsl.NewSortOptions().AddSortOption("time", esdsl.NewFieldSort(sortorder.Desc).Missing(esdsl.NewMissing().String("_last"))),
@@ -23,6 +23,15 @@ func defaultSortTail(lang string) []types.SortCombinationsVariant {
 			esdsl.NewFieldSort(sortorder.Asc).UnmappedType(fieldtype.Keyword).Missing(esdsl.NewMissing().String("_last")),
 		),
 	}
+}
+
+// idTieBreak is the final key of every sort, which makes the ordering a total order so that the result
+// never depends on the index's internal document order. The top-level "id" keyword is always mapped and
+// always populated, so it needs neither unmapped_type nor missing handling. The document's own id field is
+// used and not the Lucene _id metadata field, because sorting on _id requires fielddata and is deprecated
+// and expensive.
+func idTieBreak() types.SortCombinationsVariant { //nolint:ireturn
+	return esdsl.NewSortOptions().AddSortOption("id", esdsl.NewFieldSort(sortorder.Asc))
 }
 
 // sortKeyToOption translates one sort key to an ElasticSearch sort option, or returns nil for an
@@ -90,16 +99,21 @@ func sortKeyToOption(k SortKey, lang string) types.SortCombinationsVariant { //n
 	return esdsl.NewSortOptions().AddSortOption(field, fieldSort)
 }
 
-// buildSort builds the ElasticSearch sort options for the given sort keys, followed by the default tail
-// so ties always resolve to a stable order. With no keys it returns just the default tail (the previous
-// hard-coded behavior).
+// buildSort builds the ElasticSearch sort options for the given sort keys, always ending in the document
+// id so that the ordering is a total order. Unknown keys are skipped. When no key yields an option, the
+// default order is used instead, so a session without a sort and a session whose columns are all unknown
+// both fall back to it. id is appended to the end of the sort options, so that the ordering is a total order.
 func buildSort(keys []SortKey, lang string) []types.SortCombinationsVariant {
-	sorts := make([]types.SortCombinationsVariant, 0, len(keys)+3) //nolint:mnd
+	// Room for the keys, or for the three keys of the default order when there are none, plus the id.
+	sorts := make([]types.SortCombinationsVariant, 0, max(len(keys), 3)+1) //nolint:mnd
 	for i := range keys {
 		opt := sortKeyToOption(keys[i], lang)
 		if opt != nil {
 			sorts = append(sorts, opt)
 		}
 	}
-	return append(sorts, defaultSortTail(lang)...)
+	if len(sorts) == 0 {
+		sorts = append(sorts, defaultSortOrder(lang)...)
+	}
+	return append(sorts, idTieBreak())
 }

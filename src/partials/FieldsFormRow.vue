@@ -138,6 +138,10 @@ const { t } = useI18n({ useScope: "global" })
 const claimType = computed(() => valueTypeToClaimType(props.field.valueType))
 const isFile = computed(() => props.field.valueType === VT_FILE)
 
+// A CSS class naming which value type this row edits, so a row can be styled by its type. A link field
+// carrying a file is named after the file affordance it renders and not after the link claim behind it.
+const rowClass = computed(() => "pd-fieldsformrow-" + (isFile.value ? "file" : claimType.value.toLowerCase()))
+
 // The component the field names for its value, looked up in the field input registry. A field naming
 // a component nothing is registered under falls back to the claim type's input below: the form stays
 // usable, and what is missing is the registration, not the field.
@@ -323,6 +327,8 @@ function onCompleteInput() {
   <!-- amount -->
   <InputField
     v-if="claimType === 'amount'"
+    class="pd-fieldsformrow"
+    :class="rowClass"
     :required="required"
     :invalid="invalid"
     :errors="errors"
@@ -351,8 +357,9 @@ function onCompleteInput() {
     flex base (max-content) sizes, so the bounds never shrink to avoid wrapping;
     no breakpoint and no observer needed.
   -->
-  <div v-else-if="claimType === 'amountInterval'" class="flex min-w-0 flex-row flex-wrap items-start gap-x-8 gap-y-4">
+  <div v-else-if="claimType === 'amountInterval'" class="pd-fieldsformrow flex min-w-0 flex-row flex-wrap items-start gap-x-8 gap-y-4" :class="rowClass">
     <InputField
+      class="pd-fieldsformrow-field-from"
       :required="required"
       hide-required-badge
       :invalid="invalid"
@@ -387,6 +394,7 @@ function onCompleteInput() {
       </template>
     </InputField>
     <InputField
+      class="pd-fieldsformrow-field-to"
       :required="required"
       hide-required-badge
       :invalid="invalid"
@@ -425,6 +433,8 @@ function onCompleteInput() {
   <!-- time -->
   <InputField
     v-else-if="claimType === 'time'"
+    class="pd-fieldsformrow"
+    :class="rowClass"
     :required="required"
     :invalid="invalid"
     :errors="errors"
@@ -448,8 +458,9 @@ function onCompleteInput() {
   </InputField>
 
   <!-- timeInterval - "from" and "to", laid out like amountInterval above. -->
-  <div v-else-if="claimType === 'timeInterval'" class="flex min-w-0 flex-row flex-wrap items-start gap-x-8 gap-y-4">
+  <div v-else-if="claimType === 'timeInterval'" class="pd-fieldsformrow flex min-w-0 flex-row flex-wrap items-start gap-x-8 gap-y-4" :class="rowClass">
     <InputField
+      class="pd-fieldsformrow-field-from"
       :required="required"
       hide-required-badge
       :invalid="invalid"
@@ -484,6 +495,7 @@ function onCompleteInput() {
       </template>
     </InputField>
     <InputField
+      class="pd-fieldsformrow-field-to"
       :required="required"
       hide-required-badge
       :invalid="invalid"
@@ -519,7 +531,17 @@ function onCompleteInput() {
     </InputField>
   </div>
   <!-- ref: the only input given the field's candidate filter. -->
-  <InputField v-else-if="claimType === 'ref'" :required="required" :invalid="invalid" :errors="errors" :labelledby="labelId" hide-badge hide-hints>
+  <InputField
+    v-else-if="claimType === 'ref'"
+    class="pd-fieldsformrow"
+    :class="rowClass"
+    :required="required"
+    :invalid="invalid"
+    :errors="errors"
+    :labelledby="labelId"
+    hide-badge
+    hide-hints
+  >
     <template #input="inputProps">
       <!-- TODO: Pass "self" prop as the current document's ID. -->
       <component
@@ -538,7 +560,7 @@ function onCompleteInput() {
     Every other value type: one value, edited by one input inside one InputField. Which input that is
     comes from the claim type (or from the field itself, see the field input registry).
   -->
-  <InputField v-else :required="required" :invalid="invalid" :errors="errors" :labelledby="labelId" hide-badge hide-hints>
+  <InputField v-else class="pd-fieldsformrow" :class="rowClass" :required="required" :invalid="invalid" :errors="errors" :labelledby="labelId" hide-badge hide-hints>
     <template #input="inputProps">
       <component
         :is="input"

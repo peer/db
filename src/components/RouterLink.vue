@@ -31,8 +31,8 @@ async function onClick(event: MouseEvent) {
 </script>
 
 <template>
-  <span v-if="disabled">
+  <span v-if="disabled" class="pd-routerlink">
     <slot />
   </span>
-  <a v-else :href="href" @click="onClick"><slot /></a>
+  <a v-else :href="href" class="pd-routerlink" @click="onClick"><slot /></a>
 </template>

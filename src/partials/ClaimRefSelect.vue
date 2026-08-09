@@ -24,7 +24,7 @@ import type { FieldData } from "@/fields"
 import type { Result, SaveChangeResult, SaveChangeSpec, ValidatedInput, ValidationError } from "@/types"
 
 import { ArrowTopRightOnSquareIcon } from "@heroicons/vue/20/solid"
-import { computed, inject, nextTick, ref, shallowRef, useId, useTemplateRef, watch } from "vue"
+import { computed, inject, nextTick, onUnmounted, ref, shallowRef, useId, useTemplateRef, watch } from "vue"
 import { useI18n } from "vue-i18n"
 
 import CheckBox from "@/components/CheckBox.vue"
@@ -51,7 +51,7 @@ const props = withDefaults(
     // Checkboxes (repeated field) instead of deselectable radio buttons.
     multiple: boolean
     // See ClaimInput's prop of the same name.
-    parentClaimId?: () => Promise<string>
+    parentClaimId?: () => Promise<string | null>
     // parentCleanup asks the enclosing slot to remove its lazily-created base claim
     // once a removal leaves this field without claims, mirroring the slots'
     // updateSlotClaim; see ClaimCardinality's prop of the same name.
@@ -77,6 +77,13 @@ const { t } = useI18n({ useScope: "global" })
 
 const baseId = useId()
 const fieldsetRef = useTemplateRef<HTMLFieldSetElement>("fieldsetRef")
+
+// onUnmounted is early enough here: what the signal guards is the focus handling which resumes after a
+// nextTick, and nothing this component owns is torn down by a child before that.
+const abortController = new AbortController()
+onUnmounted(() => {
+  abortController.abort()
+})
 
 // claimTarget returns the document id a reference claim points to.
 function claimTarget(claim: DeepReadonly<Claim>): string {
@@ -142,11 +149,17 @@ function runSerialized<T>(fn: () => Promise<T>): Promise<T> {
 
 // submitChange queues one change and tracks it as pending. On a dropped change
 // (lost to a concurrent change, see ChangeDroppedError) the local claims resync
-// to the committed state and the caller stops its flow.
+// to the committed state and the caller stops its flow. It returns null in that
+// case and when the component was unmounted while the change was in flight, so
+// callers stop instead of writing into a component which is gone.
 async function submitChange(spec: SaveChangeSpec): Promise<SaveChangeResult | null> {
   pendingCount.value += 1
   try {
-    return await saveChange(spec)
+    const result = await saveChange(spec)
+    if (abortController.signal.aborted) {
+      return null
+    }
+    return result
   } catch (err) {
     if (err instanceof ChangeDroppedError) {
       current.value = current.value.map((claim) => getCommittedClaim(claim.id)).filter((claim): claim is DeepReadonly<Claim> => claim !== null)
@@ -167,6 +180,11 @@ function patchFor(target: string): object {
 async function doAdd(target: string): Promise<void> {
   const patch = patchFor(target)
   const under = props.parentClaimId ? await props.parentClaimId() : undefined
+  // Resolving the parent yields, so do not queue a new change for a component which is gone, and a null
+  // parent id says the parent itself is gone and there is nothing to add under.
+  if (abortController.signal.aborted || under === null) {
+    return
+  }
   const result = await submitChange(under === undefined ? { type: "add", patch } : { type: "add", patch, under })
   if (!result) {
     return
@@ -276,6 +294,9 @@ const errorMessage = computed<string | null>(() => pickErrorMessage(errors.value
 // focusout fires while document.activeElement is still in transition.
 async function onFocusout(): Promise<void> {
   await nextTick()
+  if (abortController.signal.aborted) {
+    return
+  }
   if (fieldsetRef.value?.contains(document.activeElement)) {
     return
   }
@@ -304,13 +325,21 @@ function revert(): Promise<void> {
       return
     }
     const baselineTargets = new Set(baseline.map(claimTarget))
+    // Each iteration awaits, so an unmount partway through stops the reconciliation
+    // instead of queueing a change for every remaining claim.
     for (const claim of [...current.value]) {
+      if (abortController.signal.aborted) {
+        break
+      }
       if (!baselineTargets.has(claimTarget(claim))) {
         await doRemove(claim)
       }
     }
     const currentTargets = new Set(current.value.map(claimTarget))
     for (const target of baselineTargets) {
+      if (abortController.signal.aborted) {
+        break
+      }
       if (!currentTargets.has(target)) {
         await doAdd(target)
       }
@@ -362,7 +391,7 @@ const WithPeerDBDocument = WithDocument<D>
 
 <template>
   <fieldset ref="fieldsetRef" class="pd-claimrefselect" :aria-labelledby="labelId || undefined" @focusout="onFocusout">
-    <ul class="grid grid-cols-[max-content_auto] gap-x-1">
+    <ul class="pd-claimrefselect-list grid grid-cols-[max-content_auto] gap-x-1">
       <!--
         The controls and labels prevent mousedown so clicking them does not blur the
         previously focused element first: that blur's commit would flash the enclosing
@@ -373,7 +402,7 @@ const WithPeerDBDocument = WithDocument<D>
         control afterwards (a control disabled by the immediate commit refuses focus,
         which is harmless - nothing was blurred either).
       -->
-      <li v-for="row in rows" :key="row" class="contents">
+      <li v-for="row in rows" :key="row" class="pd-claimrefselect-item contents" :class="`pd-claimrefselect-item-${row}`">
         <RadioButton
           v-if="!multiple"
           :id="`${baseId}-${row}`"
@@ -382,6 +411,7 @@ const WithPeerDBDocument = WithDocument<D>
           :value="row"
           :disabled="inactive"
           :invalid="invalid"
+          class="pd-claimrefselect-radio"
           @mousedown.prevent
           @click="focusControl(row)"
         />
@@ -391,6 +421,7 @@ const WithPeerDBDocument = WithDocument<D>
           :model-value="selectedTargets.has(row)"
           :disabled="inactive"
           :invalid="invalid"
+          class="pd-claimrefselect-checkbox"
           @mousedown.prevent
           @click="focusControl(row)"
           @update:model-value="(v) => toggle(row, !!v)"
@@ -400,6 +431,7 @@ const WithPeerDBDocument = WithDocument<D>
             <template #default="{ doc, url }">
               <label
                 :for="`${baseId}-${row}`"
+                class="pd-claimrefselect-label"
                 :class="inactive ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
                 :data-url="url"
                 @mousedown.prevent
@@ -425,15 +457,15 @@ const WithPeerDBDocument = WithDocument<D>
             row's icon. Mouse users can still click it; the icon is here as
             a "view document" affordance, not a primary action.
           -->
-          <RouterLink :to="{ name: 'DocumentGet', params: { id: row } }" class="link" tabindex="-1"
+          <RouterLink :to="{ name: 'DocumentGet', params: { id: row } }" class="pd-claimrefselect-link link" tabindex="-1"
             ><ArrowTopRightOnSquareIcon :alt="t('common.icons.link')" class="inline size-5 align-text-top"
           /></RouterLink>
         </div>
       </li>
-      <li v-if="rows.length === 0" class="col-span-2 p-2"
+      <li v-if="rows.length === 0" class="pd-claimrefselect-empty col-span-2 p-2"
         ><i>{{ t("partials.ClaimRefSelect.noOptions") }}</i></li
       >
     </ul>
-    <p v-if="errorMessage" class="mt-1 text-sm text-error-600">{{ errorMessage }}</p>
+    <p v-if="errorMessage" class="pd-claimrefselect-error mt-1 text-sm text-error-600">{{ errorMessage }}</p>
   </fieldset>
 </template>

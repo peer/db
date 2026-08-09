@@ -47,7 +47,7 @@ export async function testDocumentPageDirect(page: Page, id: string, expectedTit
   await expect(documentGet).toBeVisible()
 
   // Without a search session the navbar shows a search button, not prev/next button navigation.
-  const navBarSearch = page.locator(".pd-navbar-search")
+  const navBarSearch = page.locator(".pd-navbarsearch")
   await expect(navBarSearch).toBeVisible()
 
   await checkpoint(page, `document-direct-${expectedTitle}`)

@@ -52,14 +52,14 @@ const valueParts = computed(
       <template v-for="(part, i) in valueParts" :key="i">
         <template v-if="'separator' in part">{{ part.separator }}</template>
         <template v-else>
-          <i v-if="part.token.kind === 'special'">{{ specialValueLabel(part.token.id, t) ?? t("common.values.missing") }}</i>
+          <i v-if="part.token.kind === 'special'" class="pd-reffiltervalues-special">{{ specialValueLabel(part.token.id, t) ?? t("common.values.missing") }}</i>
           <i18n-t v-else-if="part.token.direct" keypath="common.valueWithDirect" scope="global">
-            <template #value><DocumentRefInline :id="part.token.id" :link="link" /></template>
+            <template #value><DocumentRefInline :id="part.token.id" class="pd-reffiltervalues-value" :link="link" /></template>
             <template #direct
-              ><i>{{ t("common.values.direct") }}</i></template
+              ><i class="pd-reffiltervalues-direct">{{ t("common.values.direct") }}</i></template
             >
           </i18n-t>
-          <DocumentRefInline v-else :id="part.token.id" :link="link" />
+          <DocumentRefInline v-else :id="part.token.id" class="pd-reffiltervalues-value" :link="link" />
         </template>
       </template>
     </template>

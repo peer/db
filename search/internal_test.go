@@ -12,6 +12,7 @@ type TestingRequestedSpecials = requestedSpecials
 var (
 	TestingAmountStepDown          = amountStepDown
 	TestingAncestorChains          = ancestorChains
+	TestingBuildSort               = buildSort
 	TestingClassCreatable          = classCreatable
 	TestingComputeInterval         = computeInterval
 	TestingDistinctValuesTotal     = distinctValuesTotal

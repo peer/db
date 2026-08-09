@@ -43,12 +43,12 @@ watch(
       }).href
 
       // TODO: Pass element as el argument.
-      const { doc: rawDoc } = await getURL<object>(url, null, abortController.signal, progress)
-      if (abortController.signal.aborted) {
+      const response = await getURL<object>(url, null, abortController.signal, progress)
+      if (abortController.signal.aborted || response === null) {
         return
       }
 
-      const doc = new D(rawDoc)
+      const doc = new D(response.doc)
       linkTemplate.value = getBestClaimOfType(doc.claims, "string", IDENTIFIER_LINK_TEMPLATE)?.string ?? null
     } catch (err) {
       if (abortController.signal.aborted) {
@@ -79,7 +79,7 @@ const identifierUrl = computed(() => {
 
 <template>
   <template v-if="claim"
-    ><Link v-if="identifierUrl" :iri="identifierUrl">{{ claim.value }}</Link
+    ><Link v-if="identifierUrl" :iri="identifierUrl" class="pd-claimvalueid">{{ claim.value }}</Link
     ><template v-else>{{ claim.value }}</template></template
   >
 </template>

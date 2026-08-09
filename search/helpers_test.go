@@ -114,6 +114,31 @@ func claimsDoc(id string, claims internalSearch.ClaimTypes) internalSearch.Docum
 	}
 }
 
+// indexSortDoc indexes a document which carries no claims, only the fields the default sort order uses:
+// the given earliest time (nil for none) and the given English display-sort label. An empty displaySort
+// leaves the document without any display-sort label at all, which is what documents without a rendered
+// display label look like.
+func indexSortDoc(t *testing.T, ctx context.Context, esClient *elasticsearch.TypedClient, index, id string, tm *float64, displaySort string) { //nolint:revive
+	t.Helper()
+
+	var ds map[string]string
+	if displaySort != "" {
+		ds = map[string]string{"en": displaySort}
+	}
+	indexDocument(t, ctx, esClient, index, internalSearch.Document{
+		ID:              identifier.From(id),
+		Display:         nil,
+		DisplaySort:     ds,
+		Text:            nil,
+		Time:            tm,
+		LastUpdated:     nil,
+		Counts:          internalSearch.Counts{References: nil, Claims: nil, Score: nil},
+		Claims:          internalSearch.ClaimTypes{Rel: nil, Amount: nil, Time: nil, Identifier: nil, String: nil, HTML: nil, Link: nil},
+		ReadableByRoles: nil,
+		ReadableByUsers: nil,
+	})
+}
+
 // refRecord builds a ref rel record for prop pointing at to, with a self hierarchy path and
 // IsLeaf true, matching what the converter produces for a flat (no hierarchy) target. sub is the
 // record's Sub container (nil for none).

@@ -393,6 +393,7 @@ async function onFocusOut(event: FocusEvent) {
       spellcheck="false"
       autocorrect="off"
       autocapitalize="none"
+      class="pd-inputamount-input-amount"
       @update:model-value="onAmountUpdate"
     />
 
@@ -412,7 +413,7 @@ async function onFocusOut(event: FocusEvent) {
       autocorrect="off"
       autocapitalize="none"
       size="1"
-      class="min-w-24"
+      class="pd-inputamount-input-precision min-w-24"
       @update:model-value="onPrecisionUpdate"
     />
   </div>

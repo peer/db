@@ -76,6 +76,9 @@ async function run(files: DownloadFile[], directoryHandle: FileSystemDirectoryHa
       self.postMessage({ type: "progress", completed: i, total: files.length, currentFile: file.name } satisfies DownloadFilesWorkerOutput)
 
       const response = await fetch(file.url, { signal })
+      if (signal.aborted) {
+        break
+      }
       if (!response.ok) {
         throw new Error(`failed to fetch ${file.name}: ${response.status} ${response.statusText}`)
       }
@@ -86,6 +89,9 @@ async function run(files: DownloadFile[], directoryHandle: FileSystemDirectoryHa
       // Sanitize the name so OS/filesystem-invalid characters and Windows-reserved device names
       // don't make getFileHandle reject. Then dedupe so we never overwrite an existing entry.
       const targetName = await uniqueFilename(directoryHandle, safeFilename(file.name))
+      if (signal.aborted) {
+        break
+      }
       pendingName = targetName
       const fileHandle = await directoryHandle.getFileHandle(targetName, { create: true })
       const writable = await fileHandle.createWritable()
@@ -95,6 +101,17 @@ async function run(files: DownloadFile[], directoryHandle: FileSystemDirectoryHa
       // pipeTo resolved => close ran => content is committed. Anything from now on counts as
       // a "fully written" file and should not be removed if a later iteration cancels.
       pendingName = null
+      if (signal.aborted) {
+        break
+      }
+    }
+
+    if (signal.aborted) {
+      // Cancelled by the main thread while a step was in flight. Every break above happens with
+      // pendingName null, so there is no partial file to remove. Report a clean completion so the
+      // overlay closes, but without a final progress message claiming that all files were written.
+      self.postMessage({ type: "done" } satisfies DownloadFilesWorkerOutput)
+      return
     }
 
     self.postMessage({ type: "progress", completed: files.length, total: files.length, currentFile: "" } satisfies DownloadFilesWorkerOutput)

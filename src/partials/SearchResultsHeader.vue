@@ -86,30 +86,32 @@ function countFilters(): number {
     <div
       class="pd-searchresultsheader-status flex w-full flex-wrap items-start justify-between gap-x-4 gap-y-0.5 rounded-sm bg-slate-200 px-2 py-1 sm:px-4 sm:py-2 print:bg-transparent print:px-1 print:py-0"
     >
-      <div v-if="searchTotal === null && searchSession.query">
+      <div v-if="searchTotal === null && searchSession.query" class="pd-searchresultsheader-text-query">
         <i18n-t keypath="partials.SearchResultsHeader.searchingQueryFiltersInProgress" :plural="countFilters()" scope="global">
           <template #query>
             <i>{{ searchSession.query }}</i>
           </template>
         </i18n-t>
       </div>
-      <div v-else-if="searchTotal !== null && searchSession.query">
+      <div v-else-if="searchTotal !== null && searchSession.query" class="pd-searchresultsheader-text-query">
         <i18n-t keypath="partials.SearchResultsHeader.searchingQueryFilters" :plural="countFilters()" scope="global">
           <template #query>
             <i>{{ searchSession.query }}</i>
           </template>
         </i18n-t>
       </div>
-      <div v-if="searchTotal === null && !searchSession.query">
+      <div v-if="searchTotal === null && !searchSession.query" class="pd-searchresultsheader-text-query">
         {{ t("partials.SearchResultsHeader.searchingNoQueryFiltersInProgress", { count: countFilters() }) }}
       </div>
-      <div v-else-if="searchTotal !== null && !searchSession.query">
+      <div v-else-if="searchTotal !== null && !searchSession.query" class="pd-searchresultsheader-text-query">
         {{ t("partials.SearchResultsHeader.searchingNoQueryFilters", { count: countFilters() }) }}
       </div>
       <template v-if="searchTotal !== null">
-        <div v-if="searchTotal === 0">{{ t("partials.SearchResultsHeader.noResults") }}</div>
-        <div v-else-if="searchMoreThanTotal">{{ t("partials.SearchResultsHeader.resultsFoundMoreThan", { count: searchTotal }) }}</div>
-        <div v-else>{{ t("partials.SearchResultsHeader.resultsFound", { count: searchTotal }) }}</div>
+        <div v-if="searchTotal === 0" class="pd-searchresultsheader-count-results">{{ t("partials.SearchResultsHeader.noResults") }}</div>
+        <div v-else-if="searchMoreThanTotal" class="pd-searchresultsheader-count-results">{{
+          t("partials.SearchResultsHeader.resultsFoundMoreThan", { count: searchTotal })
+        }}</div>
+        <div v-else class="pd-searchresultsheader-count-results">{{ t("partials.SearchResultsHeader.resultsFound", { count: searchTotal }) }}</div>
       </template>
     </div>
 
@@ -120,7 +122,7 @@ function countFilters(): number {
     <div class="pd-searchresultsheader-toolbar flex flex-row gap-x-1 sm:contents">
       <div v-if="sortable && !siteContext.features.disableSearchSort" class="pd-print-hidden flex shrink-0 items-center rounded-sm bg-slate-200 px-1 py-1">
         <button
-          class="pd-searchresultsheader-button h-full rounded-sm px-2 py-0.5 outline-none hover:bg-slate-100 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1"
+          class="pd-searchresultsheader-button pd-searchresultsheader-button-sort h-full rounded-sm px-2 py-0.5 outline-none hover:bg-slate-100 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1"
           type="button"
           :title="t('partials.SearchResultsHeader.sort')"
           @click.prevent="$emit('sortOpen')"
@@ -133,13 +135,13 @@ function countFilters(): number {
         v-if="siteContext.features.searchResultsTable"
         :model-value="searchSession.view"
         :options="selectButtonOptions"
-        class="pd-print-hidden shrink-0"
+        class="pd-searchresultsheader-select-view pd-print-hidden shrink-0"
         @update:model-value="(v) => $emit('viewChange', v)"
       />
 
       <div v-if="printable && !siteContext.features.disablePrintView" class="pd-print-hidden flex shrink-0 items-center rounded-sm bg-slate-200 px-1 py-1">
         <button
-          class="pd-searchresultsheader-button h-full rounded-sm px-2 py-0.5 outline-none hover:bg-slate-100 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1"
+          class="pd-searchresultsheader-button pd-searchresultsheader-button-print h-full rounded-sm px-2 py-0.5 outline-none hover:bg-slate-100 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1"
           type="button"
           :title="t('partials.SearchResultsHeader.print')"
           @click.prevent="$emit('printOpen')"
@@ -153,7 +155,7 @@ function countFilters(): number {
         class="pd-print-hidden flex shrink-0 items-center gap-1 rounded-sm bg-slate-200 px-1 py-1"
       >
         <button
-          class="pd-searchresultsheader-button h-full rounded-sm px-2 py-0.5 outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-1"
+          class="pd-searchresultsheader-button pd-searchresultsheader-button-downloadzip h-full rounded-sm px-2 py-0.5 outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-1"
           :class="{
             'cursor-not-allowed text-gray-500': isDownloading, // Disabled style.
             'hover:bg-slate-100': !isDownloading, // Enabled style.
@@ -166,7 +168,7 @@ function countFilters(): number {
         </button>
         <button
           v-if="directoryPickerSupported"
-          class="pd-searchresultsheader-button h-full rounded-sm px-2 py-0.5 outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-1"
+          class="pd-searchresultsheader-button pd-searchresultsheader-button-downloadfiles h-full rounded-sm px-2 py-0.5 outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-1"
           :class="{
             'cursor-not-allowed text-gray-500': isDownloading, // Disabled style.
             'hover:bg-slate-100': !isDownloading, // Enabled style.

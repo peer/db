@@ -26,7 +26,7 @@ const name = computed<string | null>(() => {
 </script>
 
 <template>
-  <Link v-if="claim" :iri="claim.iri"
+  <Link v-if="claim" :iri="claim.iri" class="pd-claimvaluelink"
     ><template v-if="name">{{ name }}</template></Link
   >
 </template>

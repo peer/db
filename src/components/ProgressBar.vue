@@ -46,7 +46,7 @@ watch(
   <div v-if="determinate || progress > 0" v-tw-merge class="pd-progressbar relative h-1 w-full overflow-hidden">
     <div
       v-if="determinate"
-      class="absolute inset-y-0 left-0 bg-secondary-400 motion-safe:transition-all motion-safe:duration-300"
+      class="pd-progressbar-value absolute inset-y-0 left-0 bg-secondary-400 motion-safe:transition-all motion-safe:duration-300"
       :style="{ width: percent + '%', transition: skipTransition ? 'none' : undefined }"
     />
     <template v-else>

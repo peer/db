@@ -50,34 +50,34 @@ function onCancel() {
 </script>
 
 <template>
-  <Dialog as="div" class="relative z-50" :open="open" @close="onClose">
+  <Dialog as="div" class="pd-downloadoverlay relative z-50" :open="open" @close="onClose">
     <!-- Backdrop. -->
     <div class="fixed inset-0 bg-black/30" aria-hidden="true" />
 
     <!-- Full-screen container to center the panel. -->
     <div class="fixed inset-0 flex items-center justify-center">
-      <DialogPanel class="relative flex w-full max-w-md flex-col gap-y-4 rounded-sm bg-white p-4 shadow-sm sm:p-6">
+      <DialogPanel class="pd-downloadoverlay-dialog relative flex w-full max-w-md flex-col gap-y-4 rounded-sm bg-white p-4 shadow-sm sm:p-6">
         <div class="flex flex-col gap-y-2">
-          <div v-if="downloadingPhase === 'preparing'" class="font-medium">
+          <div v-if="downloadingPhase === 'preparing'" class="pd-downloadoverlay-text-preparing font-medium">
             {{ t("partials.DownloadOverlay.preparing") }}
           </div>
-          <div v-else-if="downloadingPhase === 'downloading'" class="font-medium">
+          <div v-else-if="downloadingPhase === 'downloading'" class="pd-downloadoverlay-text-downloading font-medium">
             {{ t("partials.DownloadOverlay.downloadingFile", { completed: currentIndex, total }) }}
           </div>
-          <div v-else-if="downloadingPhase === 'empty'" class="font-medium">
+          <div v-else-if="downloadingPhase === 'empty'" class="pd-downloadoverlay-text-empty font-medium">
             {{ t("partials.DownloadOverlay.noFiles") }}
           </div>
 
-          <div v-if="currentFile" class="truncate text-sm text-neutral-500">{{ currentFile }}</div>
+          <div v-if="currentFile" class="pd-downloadoverlay-text-file truncate text-sm text-neutral-500">{{ currentFile }}</div>
 
           <!-- Determinate progress bar. -->
-          <ProgressBar v-if="showProgress" :progress="completed" :total="total" class="h-2 bg-slate-200" />
+          <ProgressBar v-if="showProgress" :progress="completed" :total="total" class="pd-downloadoverlay-progress h-2 bg-slate-200" />
 
-          <div v-if="error" class="text-error-600">{{ t("partials.DownloadOverlay.error") }}</div>
+          <div v-if="error" class="pd-downloadoverlay-error text-error-600">{{ t("partials.DownloadOverlay.error") }}</div>
         </div>
 
         <div class="flex flex-row justify-end">
-          <Button @click="onCancel">{{ closeOnly ? t("common.buttons.close") : t("common.buttons.cancel") }}</Button>
+          <Button id="downloadoverlay-button-cancel" @click="onCancel">{{ closeOnly ? t("common.buttons.close") : t("common.buttons.cancel") }}</Button>
         </div>
       </DialogPanel>
     </div>

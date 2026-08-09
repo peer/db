@@ -109,11 +109,14 @@ async function revertField(): Promise<void> {
     content is from them: the rails' pl-4 minus the w-1 rail bar itself
     leaves 12px right of the bar.
   -->
-  <tbody class="grid grid-cols-1 gap-y-4 md:grid-cols-[20%_1fr] md:items-start md:gap-x-3 md:gap-y-1 md:px-2">
+  <tbody
+    class="pd-fieldsformfield grid grid-cols-1 gap-y-4 md:grid-cols-[20%_1fr] md:items-start md:gap-x-3 md:gap-y-1 md:px-2"
+    :class="`pd-fieldsformfield-${field.propertyId}`"
+  >
     <tr class="contents">
       <th ref="labelCellRef" scope="row" class="pl-4 text-left font-medium text-gray-700 md:pl-0">
         <div class="flex flex-row flex-wrap items-center gap-1 md:flex-col md:items-start">
-          <span :id="labelId" class="cursor-pointer pt-0.5 leading-none" @mousedown.prevent="onLabelMousedown"
+          <span :id="labelId" class="pd-fieldsformfield-label cursor-pointer pt-0.5 leading-none" @mousedown.prevent="onLabelMousedown"
             ><DocumentRefInline :id="field.propertyId" :link="false"
           /></span>
           <div class="flex flex-row flex-wrap gap-1">
@@ -121,7 +124,7 @@ async function revertField(): Promise<void> {
           </div>
         </div>
       </th>
-      <td>
+      <td class="pd-fieldsformfield-value">
         <ClaimCardinality ref="cardinalityRef" :model-value="claimsForField" :initial-claims="initialClaimsForField" :field="field" :label-id="labelId" />
       </td>
     </tr>

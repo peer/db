@@ -127,7 +127,7 @@ export function prefiltersMatch(prefilters: DeepReadonly<Filter[]> | undefined, 
   return have.every((sig, i) => sig === want[i])
 }
 
-// createSearchSession creates a new search session for the query and navigates to it.
+// createSearchSession creates a new search session for the query and navigates to it. It returns without navigating when abortSignal is aborted.
 export async function createSearchSession(router: Router, query: string, language: string, abortSignal: AbortSignal, progress: Ref<number>): Promise<void> {
   const response = await postJSON<CreateSearchSessionResponse>(
     router.apiResolve({
@@ -137,7 +137,7 @@ export async function createSearchSession(router: Router, query: string, languag
     abortSignal,
     progress,
   )
-  if (abortSignal.aborted) {
+  if (abortSignal.aborted || response === null) {
     return
   }
   await router.push({
@@ -148,7 +148,7 @@ export async function createSearchSession(router: Router, query: string, languag
   })
 }
 
-// createShortcutSession creates a session from the search shortcut navigates to it.
+// createShortcutSession creates a session from the search shortcut navigates to it. It returns without navigating when abortSignal is aborted.
 export async function createShortcutSession(router: Router, query: LocationQuery, language: string, abortSignal: AbortSignal, progress: Ref<number>): Promise<void> {
   // We add the current UI language to the shortcut query unless it already sets one explicitly.
   const augmentedQuery: LocationQuery = { ...query }
@@ -163,7 +163,7 @@ export async function createShortcutSession(router: Router, query: LocationQuery
     abortSignal,
     progress,
   )
-  if (abortSignal.aborted) {
+  if (abortSignal.aborted || response === null) {
     return
   }
   await router.replace({
@@ -174,6 +174,7 @@ export async function createShortcutSession(router: Router, query: LocationQuery
   })
 }
 
+// updateSearchSession stores the search data into the session and returns the server's response. It returns null when abortSignal is aborted.
 export async function updateSearchSession(
   router: Router,
   sessionId: string,
@@ -203,7 +204,7 @@ export async function updateSearchSession(
     abortSignal,
     progress,
   )
-  if (abortSignal.aborted) {
+  if (abortSignal.aborted || response === null) {
     return null
   }
   return response
@@ -918,10 +919,11 @@ async function getSearchResults<T extends Result | FilterResult | RefFilterResul
   abortSignal: AbortSignal,
   progress: Ref<number>,
 ): Promise<{ results: T[]; total: number | string }> {
-  const { doc, metadata } = await getURL(url, el, abortSignal, progress)
-  if (abortSignal.aborted) {
+  const res = await getURL(url, el, abortSignal, progress)
+  if (abortSignal.aborted || res === null) {
     return { results: [], total: 0 }
   }
+  const { doc, metadata } = res
 
   if (!("total" in metadata)) {
     throw new Error(`"total" metadata is missing`)
@@ -946,10 +948,11 @@ async function getHistogramValues<T extends HistogramAmountResult | HistogramTim
   to?: string
   interval?: string
 }> {
-  const { doc, metadata } = await getURL(url, el, abortSignal, progress)
-  if (abortSignal.aborted) {
+  const fetched = await getURL(url, el, abortSignal, progress)
+  if (abortSignal.aborted || fetched === null) {
     return { results: [], total: 0 }
   }
+  const { doc, metadata } = fetched
 
   if (!("total" in metadata)) {
     throw new Error(`"total" metadata is missing`)
@@ -1056,7 +1059,7 @@ export function useSearchSession(
         _error.value = `${err}`
         return
       }
-      if (signal.aborted) {
+      if (signal.aborted || data === null) {
         return
       }
       _searchSession.value = data.doc

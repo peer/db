@@ -50,7 +50,7 @@ const props = withDefaults(
     modelValue: DeepReadonly<readonly Claim[]>
     initialClaims: DeepReadonly<readonly Claim[]>
     field: DeepReadonly<FieldData>
-    parentClaimId?: () => Promise<string>
+    parentClaimId?: () => Promise<string | null>
     // parentCleanup asks the enclosing slot to remove its lazily-created base claim
     // (an empty HAS or a default none/unknown form) once this sub-field's revert has
     // emptied it. The base came into existence implicitly with the first sub-claim, so
@@ -179,8 +179,14 @@ const modeResolved = ref(!selectEligible.value)
 
 const router = useRouter()
 const progress = useProgress()
-const modeAbortController = new AbortController()
-onBeforeUnmount(() => modeAbortController.abort())
+
+// onBeforeUnmount, not onUnmounted: a parent's beforeUnmount runs before its children's, while onUnmounted
+// hooks run children-first, and the revert drives each slot's own input across an await. Aborting at the
+// earlier hook is what stops this component from driving children which are themselves tearing down.
+const abortController = new AbortController()
+onBeforeUnmount(() => {
+  abortController.abort()
+})
 
 onBeforeMount(async () => {
   if (!selectEligible.value) {
@@ -191,20 +197,19 @@ onBeforeMount(async () => {
     // shortcutToFilters throws on filters referencing "self" (no self document is
     // available here) and on parse errors; such fields keep the combobox slots.
     const filters = props.field.values ? await shortcutToFilters(props.field.values) : null
-    const results = await postJSON<Result[]>(
-      router.apiResolve({ name: "SearchJustResults" }).href,
-      { query: "", ...(filters ?? {}) },
-      modeAbortController.signal,
-      progress,
-    )
-    if (modeAbortController.signal.aborted) {
+    if (abortController.signal.aborted) {
+      return
+    }
+    const results = await postJSON<Result[]>(router.apiResolve({ name: "SearchJustResults" }).href, { query: "", ...(filters ?? {}) }, abortController.signal, progress)
+    // postJSON returns null only on abort.
+    if (abortController.signal.aborted || results === null) {
       return
     }
     if (results.length <= SELECT_MODE_MAX) {
       refOptions.value = results
     }
   } catch (err) {
-    if (modeAbortController.signal.aborted) {
+    if (abortController.signal.aborted) {
       return
     }
     console.error("ClaimCardinality.selectMode", err)
@@ -420,7 +425,15 @@ function revertSlot(key: string): void {
 }
 
 // cleanupParentIfEmpty runs the enclosing slot's base cleanup once a revert has left
-// this whole (sub)field without claims.
+// this whole (sub)field without claims. It does nothing while any slot still holds one.
+//
+// TODO: Make a field revert either complete or leave nothing behind.
+//       The revert is a sequence of document mutations (re-add the missing baselines, revert each slot,
+//       drop the leftovers, clean up the parent base claim) and nothing makes it atomic. This cleanup
+//       reads the state the earlier steps are expected to have produced, so a revert which stops part
+//       way, because a step failed or because this component went away with work still to do, leaves the
+//       field half reverted and this cleanup silently doing nothing, which is how an empty base claim is
+//       left behind with no control on the page able to remove it.
 async function cleanupParentIfEmpty(): Promise<void> {
   if (!props.parentCleanup) {
     return
@@ -832,6 +845,11 @@ async function revertField(): Promise<void> {
   for (const baseline of slotsCheckpoint.value) {
     if (representedBaselineIds.has(baseline.id)) continue
     const under = props.parentClaimId ? await props.parentClaimId() : undefined
+    // Resolving the parent can run the parent's whole commit, so this is the longest wait in the revert.
+    // A null parent id says the parent is gone, and there is nothing to re-add under it.
+    if (abortController.signal.aborted || under === null) {
+      return
+    }
     const values = getClaimValues(baseline)
     const patch = makePatchForField(props.field, values)
     let result: SaveChangeResult
@@ -853,6 +871,12 @@ async function revertField(): Promise<void> {
   // accordingly, serialized with the slot's other operations so an in-flight commit
   // cannot race it. Iterate over a snapshot: a removed slot's update splices
   // slots.value while we go through it.
+  //
+  // The abort signal is deliberately not checked in this loop, unlike after the other awaits here. Each
+  // slot's revert checks the slot's own signal first, so once this component is going away the remaining
+  // iterations do nothing anyway. Leaving the loop early would be worse than not checking: the cleanup
+  // below runs only when every slot ended up without a claim, which is what this loop establishes, so
+  // stopping part way through leaves the field half reverted and silently skips that cleanup.
   for (const slot of [...slots.value]) {
     if (!slot.claim) continue
     const input = slotInputs.get(slot.key)
@@ -905,9 +929,9 @@ onBeforeUnmount(() => {
     absolutely positioned and does not shift that. Top-level fields render no
     header (their label is in FieldsFormField's left cell).
   -->
-  <div ref="rootRef" class="flex min-w-0 grow flex-col">
-    <div v-if="showHeader" ref="headerRef" class="mb-4 flex flex-row flex-wrap items-center gap-1 pl-4">
-      <span :id="labelId" class="cursor-pointer leading-none font-medium text-gray-700" @mousedown.prevent="onLabelMousedown"
+  <div ref="rootRef" class="pd-claimcardinality flex min-w-0 grow flex-col" :class="`pd-claimcardinality-${field.propertyId}`">
+    <div v-if="showHeader" ref="headerRef" class="pd-claimcardinality-header mb-4 flex flex-row flex-wrap items-center gap-1 pl-4">
+      <span :id="labelId" class="pd-claimcardinality-label-field cursor-pointer leading-none font-medium text-gray-700" @mousedown.prevent="onLabelMousedown"
         ><DocumentRefInline :id="field.propertyId" :link="false"
       /></span>
       <InputBadges :required="requiredEnforced" :multiple="field.maxCardinality > 1" :changed="isDirty" @revert="onHeaderRevert" />
@@ -962,12 +986,18 @@ onBeforeUnmount(() => {
       <div v-if="!isInterval && hasLabelRow" class="col-span-2 mb-1 grid grid-cols-subgrid items-start pl-4">
         <div></div>
         <div class="grid items-start justify-start gap-x-4" :style="{ gridTemplateColumns: labelsGridTemplateColumns }">
-          <span v-for="(col, i) in slotColumns" :key="i" class="cursor-pointer leading-none" @mousedown.prevent="onColumnLabelMousedown(col)">{{ col.label }}</span>
+          <span
+            v-for="(col, i) in slotColumns"
+            :key="i"
+            class="pd-claimcardinality-label-column cursor-pointer leading-none"
+            @mousedown.prevent="onColumnLabelMousedown(col)"
+            >{{ col.label }}</span
+          >
         </div>
       </div>
       <template v-for="(slot, idx) in slots" :key="slot.key">
         <div
-          class="relative col-span-2 grid grid-cols-subgrid items-start pl-4 before:absolute before:inset-y-0 before:left-0 before:w-1 before:rounded-sm before:content-[''] not-has-[[aria-invalid=true]]:focus-within:before:bg-primary-500 has-[[aria-invalid=true]]:before:bg-error-600"
+          class="pd-claimcardinality-item relative col-span-2 grid grid-cols-subgrid items-start pl-4 before:absolute before:inset-y-0 before:left-0 before:w-1 before:rounded-sm before:content-[''] not-has-[[aria-invalid=true]]:focus-within:before:bg-primary-500 has-[[aria-invalid=true]]:before:bg-error-600"
           :class="[slotDirty(slot.key) ? 'before:bg-primary-300' : 'before:bg-neutral-300', idx > 0 ? entryGapClass : '']"
         >
           <!--
@@ -980,12 +1010,12 @@ onBeforeUnmount(() => {
           does not blur the value input first (which would commit before revert).
         -->
           <div class="flex flex-col items-start gap-y-1">
-            <div class="pt-0.5 leading-none font-medium text-gray-700">{{ idx + 1 }}.</div>
+            <div class="pd-claimcardinality-count pt-0.5 leading-none font-medium text-gray-700">{{ idx + 1 }}.</div>
             <button
               v-if="perEntryRevert"
               type="button"
               :title="t('common.buttons.revert')"
-              class="flex items-center justify-center rounded-xs bg-primary-300 p-0.5 text-gray-100 shadow-xs outline-none hover:cursor-pointer hover:bg-primary-400 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 active:bg-primary-500"
+              class="pd-claimcardinality-button-revert flex items-center justify-center rounded-xs bg-primary-300 p-0.5 text-gray-100 shadow-xs outline-none hover:cursor-pointer hover:bg-primary-400 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 active:bg-primary-500"
               :class="{ invisible: !slotDirty(slot.key) }"
               @mousedown.prevent
               @click="revertSlot(slot.key)"
@@ -1014,7 +1044,7 @@ onBeforeUnmount(() => {
       <div v-if="slotHints.length > 0 || instructions.length > 0" class="col-span-2 mt-1 grid grid-cols-subgrid items-start pl-4">
         <div></div>
         <!-- eslint-disable vue/no-v-html -->
-        <div :class="hintsAndInstructionsClasses" @click="onInternalLinksClick" v-html="hintsAndInstructionsHtml"></div>
+        <div class="pd-claimcardinality-text-hints" :class="hintsAndInstructionsClasses" @click="onInternalLinksClick" v-html="hintsAndInstructionsHtml"></div>
         <!-- eslint-enable vue/no-v-html -->
       </div>
     </div>
@@ -1022,7 +1052,7 @@ onBeforeUnmount(() => {
       <div
         v-for="(slot, idx) in slots"
         :key="slot.key"
-        class="relative pl-4 before:absolute before:inset-y-0 before:left-0 before:w-1 before:rounded-sm before:content-[''] not-has-[[aria-invalid=true]]:focus-within:before:bg-primary-500 has-[[aria-invalid=true]]:before:bg-error-600"
+        class="pd-claimcardinality-item relative pl-4 before:absolute before:inset-y-0 before:left-0 before:w-1 before:rounded-sm before:content-[''] not-has-[[aria-invalid=true]]:focus-within:before:bg-primary-500 has-[[aria-invalid=true]]:before:bg-error-600"
         :class="slotDirty(slot.key) ? 'before:bg-primary-300' : 'before:bg-neutral-300'"
       >
         <ClaimInput
@@ -1052,7 +1082,7 @@ onBeforeUnmount(() => {
     -->
     <div v-if="(slotHints.length > 0 || instructions.length > 0) && (refOptions !== null || !isRepeated)" class="mt-1 pl-4">
       <!-- eslint-disable vue/no-v-html -->
-      <div :class="hintsAndInstructionsClasses" @click="onInternalLinksClick" v-html="hintsAndInstructionsHtml"></div>
+      <div class="pd-claimcardinality-text-hints" :class="hintsAndInstructionsClasses" @click="onInternalLinksClick" v-html="hintsAndInstructionsHtml"></div>
       <!-- eslint-enable vue/no-v-html -->
     </div>
   </div>

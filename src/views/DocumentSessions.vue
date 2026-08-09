@@ -37,11 +37,11 @@ onBeforeUnmount(() => {
 async function loadSessions() {
   busy.value += 1
   try {
-    const { doc } = await getURL<DocumentSessionsResponse>(router.apiResolve({ name: "DocumentSessions" }).href, null, abortController.signal, busy)
-    if (abortController.signal.aborted) {
+    const response = await getURL<DocumentSessionsResponse>(router.apiResolve({ name: "DocumentSessions" }).href, null, abortController.signal, busy)
+    if (abortController.signal.aborted || response === null) {
       return
     }
-    sessions.value = doc
+    sessions.value = response.doc
   } catch (err) {
     if (abortController.signal.aborted) {
       return

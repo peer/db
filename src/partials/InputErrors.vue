@@ -24,5 +24,5 @@ const message = computed<string | null>(() => pickErrorMessage(errors.value, t))
 
 <template>
   <slot v-bind="$attrs" :aria-describedby="errors.length > 0 ? errorId : undefined" @errors="(v: ValidationError[]) => (errors = v)" />
-  <p v-if="message" :id="errorId" class="mt-1 text-sm text-error-600">{{ message }}</p>
+  <p v-if="message" :id="errorId" class="pd-inputerrors-error mt-1 text-sm text-error-600">{{ message }}</p>
 </template>

@@ -25,5 +25,5 @@ const location = computed(() => (props.claim ? getBestClaimOfType(props.claim.su
 </script>
 
 <template>
-  <TimeDisplay v-if="claim" :timestamp="claim.time" :precision="claim.precision" :localized="localized" :location="location" />
+  <TimeDisplay v-if="claim" :timestamp="claim.time" :precision="claim.precision" :localized="localized" :location="location" class="pd-claimvaluetime" />
 </template>

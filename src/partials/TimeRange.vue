@@ -15,7 +15,7 @@ const range = computed(() => timeRangeDisplay(props.from, props.to))
 </script>
 
 <template>
-  <TimeDisplay :timestamp="range.from" :precision="range.precision" />
+  <TimeDisplay :timestamp="range.from" :precision="range.precision" class="pd-timerange-from" />
   –
-  <TimeDisplay :timestamp="range.to" :precision="range.precision" />
+  <TimeDisplay :timestamp="range.to" :precision="range.precision" class="pd-timerange-to" />
 </template>

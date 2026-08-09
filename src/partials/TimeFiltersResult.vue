@@ -376,20 +376,20 @@ onBeforeUnmount(() => {
 
 <template>
   <div class="pd-timefiltersresult flex flex-col" :class="{ 'data-reloading': laterLoad }" :data-url="resultsUrl">
-    <div :id="labelId">
+    <div :id="labelId" class="pd-filterresult-header">
       <Button
         v-if="filter || specials"
         type="button"
-        class="float-right ml-2 px-2.5 py-1"
+        class="pd-filterresult-button-clear float-right ml-2 px-2.5 py-1"
         :title="t('partials.TimeFiltersResult.clearFilter')"
         :aria-label="t('partials.TimeFiltersResult.clearFilter')"
         @click.prevent="clearFilter"
         >{{ t("common.buttons.clear") }}</Button
       >
-      <span class="mb-1.5 text-lg leading-none"><FilterPropLabel :prop-ids="result.props" /></span>
+      <span class="pd-filterresult-title mb-1.5 text-lg leading-none"><FilterPropLabel :prop-ids="result.props" /></span>
       ({{ result.count }})
     </div>
-    <ul ref="el" role="group" :aria-labelledby="labelId" class="grid grid-cols-[max-content_auto] gap-x-1">
+    <ul ref="el" role="group" :aria-labelledby="labelId" class="pd-filterresult-list grid grid-cols-[max-content_auto] gap-x-1">
       <li v-if="error" class="col-span-2">
         <i class="pd-timefiltersresult-error text-error-600">{{ t("common.status.loadingDataFailed") }}</i>
       </li>
@@ -403,19 +403,27 @@ onBeforeUnmount(() => {
         </div>
         <div class="my-1.5 h-2 rounded-sm bg-slate-200"></div>
       </li>
-      <li v-else-if="results.length === 1" class="contents">
-        <CheckBox :id="'time/' + result.props.join('/') + '/value'" v-model="singleValueState" />
+      <li v-else-if="results.length === 1" class="pd-timefiltersresult-row-value contents">
+        <CheckBox :id="'time/' + result.props.join('/') + '/value'" v-model="singleValueState" class="pd-timefiltersresult-checkbox-value" />
         <div class="flex items-baseline gap-x-1">
           <!-- v-if here is just to satisfy typing, results.length === 1 already checked that. -->
-          <label v-if="singleValueDisplay" :for="'time/' + result.props.join('/') + '/value'" :class="locked ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'">
+          <label
+            v-if="singleValueDisplay"
+            :for="'time/' + result.props.join('/') + '/value'"
+            class="pd-timefiltersresult-label-value"
+            :class="locked ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
+          >
             <TimeDisplay :timestamp="singleValueDisplay.timestamp" :precision="singleValueDisplay.precision" />
           </label>
-          <label :for="'time/' + result.props.join('/') + '/value'" :class="locked ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
+          <label
+            :for="'time/' + result.props.join('/') + '/value'"
+            class="pd-timefiltersresult-count-value"
+            :class="locked ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
             >({{ results[0].count }})</label
           >
         </div>
       </li>
-      <li v-else-if="from !== to" class="col-span-2 mb-3">
+      <li v-else-if="from !== to" class="pd-timefiltersresult-row-histogram col-span-2 mb-3">
         <!-- We subtract 1 from chartWidth because we subtract 1 from bar width, so there would be a gap after the last one. -->
         <svg :viewBox="`0 0 ${chartWidth - 1} ${chartHeight}`">
           <!-- We subtract 1 from bar width to have a gap between bars. -->
@@ -429,24 +437,33 @@ onBeforeUnmount(() => {
           ></rect>
         </svg>
         <div v-if="rangeDisplay" class="flex flex-row justify-between gap-x-1">
-          <TimeDisplay :timestamp="rangeDisplay.from" :precision="rangeDisplay.precision" />
-          <TimeDisplay :timestamp="rangeDisplay.to" :precision="rangeDisplay.precision" />
+          <TimeDisplay :timestamp="rangeDisplay.from" :precision="rangeDisplay.precision" class="pd-timefiltersresult-label-from" />
+          <TimeDisplay :timestamp="rangeDisplay.to" :precision="rangeDisplay.precision" class="pd-timefiltersresult-label-to" />
         </div>
-        <div ref="sliderEl"></div>
+        <div ref="sliderEl" class="pd-timefiltersresult-input-range"></div>
       </li>
       <!--
         When the property has no documents to histogram, a selected range or single value cannot be drawn on the
         slider, so it is shown here at count 0 (like the augmented reference values): it stays visible so the user
         sees the selection and can uncheck it to clear the range.
       -->
-      <li v-if="total === 0 && rangeState" class="contents">
-        <CheckBox :id="'time/' + result.props.join('/') + '/range'" v-model="rangeState" />
+      <li v-if="total === 0 && rangeState" class="pd-timefiltersresult-row-range contents">
+        <CheckBox :id="'time/' + result.props.join('/') + '/range'" v-model="rangeState" class="pd-timefiltersresult-checkbox-range" />
         <div class="flex items-baseline gap-x-1">
-          <label :for="'time/' + result.props.join('/') + '/range'" :class="locked ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'">
+          <label
+            :for="'time/' + result.props.join('/') + '/range'"
+            class="pd-timefiltersresult-label-range"
+            :class="locked ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
+          >
             <!-- v-if here is just to satisfy typing, rangeState already checked that. -->
             <TimeRange v-if="filter?.time?.gte != null" :from="filter.time.gte" :to="filter.time.lte" />
           </label>
-          <label :for="'time/' + result.props.join('/') + '/range'" :class="locked ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'">(0)</label>
+          <label
+            :for="'time/' + result.props.join('/') + '/range'"
+            class="pd-timefiltersresult-count-range"
+            :class="locked ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
+            >(0)</label
+          >
         </div>
       </li>
       <!--
@@ -455,53 +472,87 @@ onBeforeUnmount(() => {
         show (total is 0) while documents with the property exist, and it stays visible
         whenever the exists filter is active so it can be unchecked.
       -->
-      <li v-if="(total === 0 && result.count > 0) || existsState" class="contents">
-        <CheckBox :id="'time/' + result.props.join('/') + '/exists'" v-model="existsState" />
+      <li v-if="(total === 0 && result.count > 0) || existsState" class="pd-timefiltersresult-row-exists contents">
+        <CheckBox :id="'time/' + result.props.join('/') + '/exists'" v-model="existsState" class="pd-timefiltersresult-checkbox-exists" />
         <div class="flex items-baseline gap-x-1">
-          <label :for="'time/' + result.props.join('/') + '/exists'" :class="locked ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
+          <label
+            :for="'time/' + result.props.join('/') + '/exists'"
+            class="pd-timefiltersresult-label-exists"
+            :class="locked ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
             ><i>{{ t("common.values.exists") }}</i></label
           >
-          <label :for="'time/' + result.props.join('/') + '/exists'" :class="locked ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'">({{ result.count }})</label>
+          <label
+            :for="'time/' + result.props.join('/') + '/exists'"
+            class="pd-timefiltersresult-count-exists"
+            :class="locked ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
+            >({{ result.count }})</label
+          >
         </div>
       </li>
-      <li v-if="(hasPropertyCount != null && hasPropertyCount > 0) || hasPropertyState" class="contents">
-        <CheckBox :id="'time/' + result.props.join('/') + '/hasProperty'" v-model="hasPropertyState" />
+      <li v-if="(hasPropertyCount != null && hasPropertyCount > 0) || hasPropertyState" class="pd-timefiltersresult-row-hasproperty contents">
+        <CheckBox :id="'time/' + result.props.join('/') + '/hasProperty'" v-model="hasPropertyState" class="pd-timefiltersresult-checkbox-hasproperty" />
         <div class="flex items-baseline gap-x-1">
-          <label :for="'time/' + result.props.join('/') + '/hasProperty'" :class="locked ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
+          <label
+            :for="'time/' + result.props.join('/') + '/hasProperty'"
+            class="pd-timefiltersresult-label-hasproperty"
+            :class="locked ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
             ><i>{{ t("common.values.hasProperty") }}</i></label
           >
-          <label :for="'time/' + result.props.join('/') + '/hasProperty'" :class="locked ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
+          <label
+            :for="'time/' + result.props.join('/') + '/hasProperty'"
+            class="pd-timefiltersresult-count-hasproperty"
+            :class="locked ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
             >({{ hasPropertyCount ?? 0 }})</label
           >
         </div>
       </li>
-      <li v-if="(unknownCount != null && unknownCount > 0) || unknownState" class="contents">
-        <CheckBox :id="'time/' + result.props.join('/') + '/unknown'" v-model="unknownState" />
+      <li v-if="(unknownCount != null && unknownCount > 0) || unknownState" class="pd-timefiltersresult-row-unknown contents">
+        <CheckBox :id="'time/' + result.props.join('/') + '/unknown'" v-model="unknownState" class="pd-timefiltersresult-checkbox-unknown" />
         <div class="flex items-baseline gap-x-1">
-          <label :for="'time/' + result.props.join('/') + '/unknown'" :class="locked ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
+          <label
+            :for="'time/' + result.props.join('/') + '/unknown'"
+            class="pd-timefiltersresult-label-unknown"
+            :class="locked ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
             ><i>{{ t("common.values.unknown") }}</i></label
           >
-          <label :for="'time/' + result.props.join('/') + '/unknown'" :class="locked ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
+          <label
+            :for="'time/' + result.props.join('/') + '/unknown'"
+            class="pd-timefiltersresult-count-unknown"
+            :class="locked ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
             >({{ unknownCount ?? 0 }})</label
           >
         </div>
       </li>
-      <li v-if="(noneCount != null && noneCount > 0) || noneState" class="contents">
-        <CheckBox :id="'time/' + result.props.join('/') + '/none'" v-model="noneState" />
+      <li v-if="(noneCount != null && noneCount > 0) || noneState" class="pd-timefiltersresult-row-none contents">
+        <CheckBox :id="'time/' + result.props.join('/') + '/none'" v-model="noneState" class="pd-timefiltersresult-checkbox-none" />
         <div class="flex items-baseline gap-x-1">
-          <label :for="'time/' + result.props.join('/') + '/none'" :class="locked ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
+          <label
+            :for="'time/' + result.props.join('/') + '/none'"
+            class="pd-timefiltersresult-label-none"
+            :class="locked ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
             ><i>{{ t("common.values.none") }}</i></label
           >
-          <label :for="'time/' + result.props.join('/') + '/none'" :class="locked ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'">({{ noneCount ?? 0 }})</label>
+          <label
+            :for="'time/' + result.props.join('/') + '/none'"
+            class="pd-timefiltersresult-count-none"
+            :class="locked ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
+            >({{ noneCount ?? 0 }})</label
+          >
         </div>
       </li>
-      <li v-if="(missingCount != null && missingCount > 0) || missingState" class="contents">
-        <CheckBox :id="'time/' + result.props.join('/') + '/missing'" v-model="missingState" />
+      <li v-if="(missingCount != null && missingCount > 0) || missingState" class="pd-timefiltersresult-row-missing contents">
+        <CheckBox :id="'time/' + result.props.join('/') + '/missing'" v-model="missingState" class="pd-timefiltersresult-checkbox-missing" />
         <div class="flex items-baseline gap-x-1">
-          <label :for="'time/' + result.props.join('/') + '/missing'" :class="locked ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
+          <label
+            :for="'time/' + result.props.join('/') + '/missing'"
+            class="pd-timefiltersresult-label-missing"
+            :class="locked ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
             ><i>{{ t("common.values.missing") }}</i></label
           >
-          <label :for="'time/' + result.props.join('/') + '/missing'" :class="locked ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
+          <label
+            :for="'time/' + result.props.join('/') + '/missing'"
+            class="pd-timefiltersresult-count-missing"
+            :class="locked ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
             >({{ missingCount ?? 0 }})</label
           >
         </div>

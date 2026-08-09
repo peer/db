@@ -11,7 +11,7 @@ defineProps<{
 </script>
 
 <template>
-  <span class="pd-prefilter-label">
+  <span class="pd-prefilterlabel">
     <RefFilterValues v-if="'ref' in filter" :ref-filter="filter.ref">
       <FilterPropLabel :prop-ids="filter.prop" />
     </RefFilterValues>

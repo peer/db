@@ -40,6 +40,12 @@ function colKey(c: { type: string; prop?: readonly string[]; unit?: string }): s
   return `${c.type}|${c.prop?.join("/") ?? ""}|${c.unit ?? ""}`
 }
 
+// CSS class is colKey in a form usable inside a CSS class name: the type alone for a built-in column,
+// and the type followed by the property (and unit) identifiers for a filter column.
+function colClass(c: { type: string; prop?: readonly string[]; unit?: string }): string {
+  return [c.type, ...(c.prop ?? []), ...(c.unit ? [c.unit] : [])].join("-")
+}
+
 const sort = computed<DeepReadonly<SortKey[]>>(() => props.searchSession.sort ?? [])
 
 // Filter columns usable for sorting: top-level ref/amount/time filters (has-filters have no orderable value).
@@ -162,18 +168,23 @@ function builtinLabel(type: string): string {
     <div class="fixed inset-0 bg-black/30" aria-hidden="true" />
     <div class="fixed inset-0 flex items-center justify-center">
       <DialogPanel
-        class="flex h-full w-full flex-col overflow-y-auto rounded-none bg-white p-1 shadow-none sm:relative sm:inset-auto sm:h-auto sm:max-h-150 sm:max-w-xl sm:rounded-sm sm:p-4 sm:shadow-sm"
+        class="pd-searchsortdialog-panel flex h-full w-full flex-col overflow-y-auto rounded-none bg-white p-1 shadow-none sm:relative sm:inset-auto sm:h-auto sm:max-h-150 sm:max-w-xl sm:rounded-sm sm:p-4 sm:shadow-sm"
       >
-        <h2 class="mb-4 text-lg font-medium">{{ t("partials.SearchSortDialog.title") }}</h2>
+        <h2 class="pd-searchsortdialog-title mb-4 text-lg font-medium">{{ t("partials.SearchSortDialog.title") }}</h2>
 
-        <h3 class="text-sm font-semibold text-slate-700">{{ t("partials.SearchSortDialog.sortOrder") }}</h3>
-        <p v-if="sort.length === 0" class="mt-1 text-sm text-slate-500">{{ t("partials.SearchSortDialog.empty") }}</p>
-        <ul v-else class="mt-2 flex flex-col gap-y-1">
-          <li v-for="(key, i) in sort" :key="colKey(key)" class="flex items-center gap-x-2 rounded-sm border border-slate-200 bg-slate-50 p-2">
+        <h3 class="pd-searchsortdialog-header-sort text-sm font-semibold text-slate-700">{{ t("partials.SearchSortDialog.sortOrder") }}</h3>
+        <p v-if="sort.length === 0" class="pd-searchsortdialog-empty mt-1 text-sm text-slate-500">{{ t("partials.SearchSortDialog.empty") }}</p>
+        <ul v-else class="pd-searchsortdialog-list-sort mt-2 flex flex-col gap-y-1">
+          <li
+            v-for="(key, i) in sort"
+            :key="colKey(key)"
+            class="pd-searchsortdialog-item-sort flex items-center gap-x-2 rounded-sm border border-slate-200 bg-slate-50 p-2"
+            :class="`pd-searchsortdialog-item-sort-${colClass(key)}`"
+          >
             <div class="flex flex-col">
               <button
                 type="button"
-                class="rounded-sm outline-none hover:bg-slate-200 focus:ring-2 focus:ring-primary-500 disabled:cursor-not-allowed disabled:text-slate-300"
+                class="pd-searchsortdialog-button-moveup rounded-sm outline-none hover:bg-slate-200 focus:ring-2 focus:ring-primary-500 disabled:cursor-not-allowed disabled:text-slate-300"
                 :disabled="i === 0"
                 :title="t('common.buttons.moveUp')"
                 @click.prevent="move(i, -1)"
@@ -182,7 +193,7 @@ function builtinLabel(type: string): string {
               </button>
               <button
                 type="button"
-                class="rounded-sm outline-none hover:bg-slate-200 focus:ring-2 focus:ring-primary-500 disabled:cursor-not-allowed disabled:text-slate-300"
+                class="pd-searchsortdialog-button-movedown rounded-sm outline-none hover:bg-slate-200 focus:ring-2 focus:ring-primary-500 disabled:cursor-not-allowed disabled:text-slate-300"
                 :disabled="i === sort.length - 1"
                 :title="t('common.buttons.moveDown')"
                 @click.prevent="move(i, 1)"
@@ -190,7 +201,7 @@ function builtinLabel(type: string): string {
                 <ChevronDownIcon class="size-4" :alt="t('common.buttons.moveDown')" />
               </button>
             </div>
-            <span class="min-w-0 grow truncate">
+            <span class="pd-searchsortdialog-label-column min-w-0 grow truncate">
               <i18n-t v-if="key.prop && key.unit" keypath="common.labelWithUnit" scope="global" tag="span">
                 <template #label><DocumentRefInline :id="key.prop[0]" :link="false" /></template>
                 <template #unit><DocumentRefInline :id="key.unit" :link="false" /></template>
@@ -200,24 +211,24 @@ function builtinLabel(type: string): string {
             </span>
             <button
               type="button"
-              class="shrink-0 rounded-sm p-1 outline-none hover:bg-slate-200 focus:ring-2 focus:ring-primary-500"
+              class="pd-searchsortdialog-button-direction shrink-0 rounded-sm p-1 outline-none hover:bg-slate-200 focus:ring-2 focus:ring-primary-500"
               :title="key.descending ? t('partials.SearchSortDialog.descending') : t('partials.SearchSortDialog.ascending')"
               @click.prevent="toggleDirection(i)"
             >
               <BarsArrowDownIcon v-if="key.descending" class="size-5" :alt="t('partials.SearchSortDialog.descending')" />
               <BarsArrowUpIcon v-else class="size-5" :alt="t('partials.SearchSortDialog.ascending')" />
             </button>
-            <label v-if="canGroup(i)" class="flex shrink-0 cursor-pointer items-center gap-x-1 text-sm">
-              <CheckBox :model-value="key.group ?? false" @update:model-value="toggleGroup(i)" />
+            <label v-if="canGroup(i)" class="pd-searchsortdialog-label-group flex shrink-0 cursor-pointer items-center gap-x-1 text-sm">
+              <CheckBox class="pd-searchsortdialog-checkbox-group" :model-value="key.group ?? false" @update:model-value="toggleGroup(i)" />
               {{ t("partials.SearchSortDialog.group") }}
             </label>
-            <label v-if="canGroup(i) && key.group" class="flex shrink-0 cursor-pointer items-center gap-x-1 text-sm">
-              <CheckBox :model-value="key.expand ?? false" @update:model-value="toggleExpand(i)" />
+            <label v-if="canGroup(i) && key.group" class="pd-searchsortdialog-label-expand flex shrink-0 cursor-pointer items-center gap-x-1 text-sm">
+              <CheckBox class="pd-searchsortdialog-checkbox-expand" :model-value="key.expand ?? false" @update:model-value="toggleExpand(i)" />
               {{ t("partials.SearchSortDialog.expand") }}
             </label>
             <button
               type="button"
-              class="shrink-0 rounded-sm p-1 text-error-600 outline-none hover:bg-error-50 focus:ring-2 focus:ring-error-500"
+              class="pd-searchsortdialog-button-remove shrink-0 rounded-sm p-1 text-error-600 outline-none hover:bg-error-50 focus:ring-2 focus:ring-error-500"
               :title="t('common.buttons.remove')"
               @click.prevent="removeColumn(i)"
             >
@@ -227,16 +238,17 @@ function builtinLabel(type: string): string {
         </ul>
 
         <template v-if="availableColumns.length > 0">
-          <h3 class="mt-4 text-sm font-semibold text-slate-700">{{ t("partials.SearchSortDialog.addColumn") }}</h3>
-          <ul class="mt-2 flex flex-col gap-y-1">
+          <h3 class="pd-searchsortdialog-header-available mt-4 text-sm font-semibold text-slate-700">{{ t("partials.SearchSortDialog.addColumn") }}</h3>
+          <ul class="pd-searchsortdialog-list-available mt-2 flex flex-col gap-y-1">
             <li v-for="entry in availableColumns" :key="colKey(entry.col)">
               <button
                 type="button"
-                class="flex w-full items-center gap-x-1 rounded-sm p-2 text-left outline-none hover:bg-slate-100 focus:ring-2 focus:ring-primary-500"
+                class="pd-searchsortdialog-button-add flex w-full items-center gap-x-1 rounded-sm p-2 text-left outline-none hover:bg-slate-100 focus:ring-2 focus:ring-primary-500"
+                :class="`pd-searchsortdialog-button-add-${colClass(entry.col)}`"
                 @click.prevent="addColumn(entry.col, entry.descending)"
               >
                 <PlusIcon class="size-4 shrink-0 text-primary-600" :alt="t('partials.SearchSortDialog.addColumn')" />
-                <span class="min-w-0 grow truncate">
+                <span class="pd-searchsortdialog-label-available min-w-0 grow truncate">
                   <i18n-t v-if="entry.col.prop && entry.col.unit" keypath="common.labelWithUnit" scope="global" tag="span">
                     <template #label><DocumentRefInline :id="entry.col.prop[0]" :link="false" /></template>
                     <template #unit><DocumentRefInline :id="entry.col.unit" :link="false" /></template>
@@ -249,7 +261,11 @@ function builtinLabel(type: string): string {
           </ul>
         </template>
 
-        <Button class="absolute top-1 right-1 p-0 shadow-none inset-ring-0 sm:top-4 sm:right-4" :title="t('common.buttons.close')" @click.prevent="$emit('close')">
+        <Button
+          class="pd-searchsortdialog-button-close absolute top-1 right-1 p-0 shadow-none inset-ring-0 sm:top-4 sm:right-4"
+          :title="t('common.buttons.close')"
+          @click.prevent="$emit('close')"
+        >
           <XMarkIcon class="size-5" :alt="t('common.buttons.close')" />
         </Button>
       </DialogPanel>

@@ -107,13 +107,11 @@ watch(
       await Promise.all(
         subjects.map(async (subject) => {
           try {
-            const { doc: identity } = await getURL<Identity>(
-              router.apiResolve({ name: "UserGet", params: { id: subject } }).href,
-              null,
-              abortController.signal,
-              lookupProgress,
-            )
-            loaded.set(subject, identity.roles)
+            const response = await getURL<Identity>(router.apiResolve({ name: "UserGet", params: { id: subject } }).href, null, abortController.signal, lookupProgress)
+            if (abortController.signal.aborted || response === null) {
+              return
+            }
+            loaded.set(subject, response.doc.roles)
           } catch (err) {
             if (abortController.signal.aborted) {
               return

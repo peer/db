@@ -171,12 +171,15 @@ const rowSpan = computed(() => {
 <template>
   <div ref="el" class="contents">
     <div v-if="duplicate">
-      <ButtonLink :to="{ name: 'DocumentGet', params: { id: doc.id }, query: encodeQuery({ s: searchSessionId }) }" class="pd-print-hidden float-end mb-1 ml-4 px-4">
+      <ButtonLink
+        :to="{ name: 'DocumentGet', params: { id: doc.id }, query: encodeQuery({ s: searchSessionId }) }"
+        class="pd-searchresult-link-details pd-print-hidden float-end mb-1 ml-4 px-4"
+      >
         <ArrowRightIcon class="size-5 sm:hidden" :alt="t('partials.SearchResult.details')" />
         <span class="hidden sm:inline">{{ t("partials.SearchResult.details") }}</span>
       </ButtonLink>
-      <h2 v-show="displayLabelComponent?.displayLabel" class="mb-2 flex items-baseline gap-x-1 text-xl leading-none">
-        <RouterLink :to="{ name: 'DocumentGet', params: { id: doc.id }, query: encodeQuery({ s: searchSessionId }) }" class="link min-w-0"
+      <h2 v-show="displayLabelComponent?.displayLabel" class="pd-searchresult-title mb-2 flex items-baseline gap-x-1 text-xl leading-none">
+        <RouterLink :to="{ name: 'DocumentGet', params: { id: doc.id }, query: encodeQuery({ s: searchSessionId }) }" class="pd-searchresult-link-title link min-w-0"
           ><DisplayLabel ref="displayLabelComponent" :doc="doc"
         /></RouterLink>
         <slot name="labelAside" />
@@ -184,19 +187,22 @@ const rowSpan = computed(() => {
       <SearchResultTags v-if="tags.length" :tags="tags" class="mb-2" />
       <i18n-t keypath="partials.SearchResult.resultShownAlready" scope="global" tag="p" class="text-slate-500 italic">
         <template #above>
-          <RouterLink :to="duplicateOfLink" class="link">{{ t("partials.SearchResult.above") }}</RouterLink>
+          <RouterLink :to="duplicateOfLink" class="pd-searchresult-link-duplicate link">{{ t("partials.SearchResult.above") }}</RouterLink>
         </template>
       </i18n-t>
     </div>
     <component :is="customResultComponent" v-else-if="customResultComponent" :doc="doc" :search-session-id="searchSessionId" />
     <!-- Pages skip the FieldsView layout (which would dump the Content field into the card) and fall through to the generic card below, which renders title, the instance-of "page" badge, and the description. -->
     <div v-else-if="!isPage && fieldsData && doc.claims">
-      <ButtonLink :to="{ name: 'DocumentGet', params: { id: doc.id }, query: encodeQuery({ s: searchSessionId }) }" class="pd-print-hidden float-end mb-1 ml-4 px-4">
+      <ButtonLink
+        :to="{ name: 'DocumentGet', params: { id: doc.id }, query: encodeQuery({ s: searchSessionId }) }"
+        class="pd-searchresult-link-details pd-print-hidden float-end mb-1 ml-4 px-4"
+      >
         <ArrowRightIcon class="size-5 sm:hidden" :alt="t('partials.SearchResult.details')" />
         <span class="hidden sm:inline">{{ t("partials.SearchResult.details") }}</span>
       </ButtonLink>
-      <h2 v-show="displayLabelComponent?.displayLabel" class="mb-2 flex items-baseline gap-x-1 text-xl leading-none">
-        <RouterLink :to="{ name: 'DocumentGet', params: { id: doc.id }, query: encodeQuery({ s: searchSessionId }) }" class="link min-w-0"
+      <h2 v-show="displayLabelComponent?.displayLabel" class="pd-searchresult-title mb-2 flex items-baseline gap-x-1 text-xl leading-none">
+        <RouterLink :to="{ name: 'DocumentGet', params: { id: doc.id }, query: encodeQuery({ s: searchSessionId }) }" class="pd-searchresult-link-title link min-w-0"
           ><DisplayLabel ref="displayLabelComponent" :doc="doc"
         /></RouterLink>
         <slot name="labelAside" />
@@ -206,11 +212,13 @@ const rowSpan = computed(() => {
     </div>
     <div v-else class="grid grid-cols-1 gap-4" :class="previewFiles.length ? `sm:grid-cols-[256px_auto] ${gridRows}` : ''">
       <div>
-        <ButtonLink :to="{ name: 'DocumentGet', params: { id: doc.id }, query: encodeQuery({ s: searchSessionId }) }" class="pd-print-hidden float-end px-4">{{
-          t("partials.SearchResult.details")
-        }}</ButtonLink>
-        <h2 v-show="displayLabelComponent?.displayLabel" class="mb-2 flex items-baseline gap-x-1 text-xl leading-none">
-          <RouterLink :to="{ name: 'DocumentGet', params: { id: doc.id }, query: encodeQuery({ s: searchSessionId }) }" class="link min-w-0"
+        <ButtonLink
+          :to="{ name: 'DocumentGet', params: { id: doc.id }, query: encodeQuery({ s: searchSessionId }) }"
+          class="pd-searchresult-link-details pd-print-hidden float-end px-4"
+          >{{ t("partials.SearchResult.details") }}</ButtonLink
+        >
+        <h2 v-show="displayLabelComponent?.displayLabel" class="pd-searchresult-title mb-2 flex items-baseline gap-x-1 text-xl leading-none">
+          <RouterLink :to="{ name: 'DocumentGet', params: { id: doc.id }, query: encodeQuery({ s: searchSessionId }) }" class="pd-searchresult-link-title link min-w-0"
             ><DisplayLabel ref="displayLabelComponent" :doc="doc"
           /></RouterLink>
           <slot name="labelAside" />
@@ -223,7 +231,7 @@ const rowSpan = computed(() => {
         /></RouterLink>
       </div>
       <!-- eslint-disable-next-line vue/no-v-html -->
-      <p v-if="description" class="prose max-w-none prose-gray" @click="onDescriptionClick" v-html="transformedDescription"></p>
+      <p v-if="description" class="pd-searchresult-text-description prose max-w-none prose-gray" @click="onDescriptionClick" v-html="transformedDescription"></p>
     </div>
   </div>
 </template>

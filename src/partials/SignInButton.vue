@@ -33,10 +33,10 @@ async function onSignOut() {
 </script>
 
 <template>
-  <Button v-if="isSignedIn()" id="navbar-button-signout" primary type="button" :progress="busy" @click.prevent="onSignOut">
+  <Button v-if="isSignedIn()" id="navbar-button-signout" primary type="button" :progress="busy" class="pd-signinbutton" @click.prevent="onSignOut">
     {{ t("common.buttons.signOut") }}
   </Button>
-  <Button v-else id="navbar-button-signin" primary type="button" :progress="busy" @click.prevent="onSignIn">
+  <Button v-else id="navbar-button-signin" primary type="button" :progress="busy" class="pd-signinbutton" @click.prevent="onSignIn">
     {{ t("common.buttons.signIn") }}
   </Button>
 </template>

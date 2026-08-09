@@ -20,7 +20,7 @@ test.describe("PeerDB Mock Sign-In", () => {
     // Signing in lands back where it started, as the user the chosen roles make: the menu is named by
     // their username and holds the roles and the subject spelling them out.
     await expect(page).toHaveURL(PEERDB_URL + "/")
-    const menuButton = page.locator(".pd-navbar-menu-button")
+    const menuButton = page.locator(".pd-navbarmenu-button")
     await expect(menuButton).toHaveText("mock-admin")
     await menuButton.click()
     await expect(page.locator(".pd-navbaruser-roles")).toHaveText("admin")
@@ -46,7 +46,7 @@ test.describe("PeerDB Mock Sign-In", () => {
     await page.locator("#authmocksignin-button-signin").click()
 
     await expect(page).toHaveURL(PEERDB_URL + "/")
-    const menuButton = page.locator(".pd-navbar-menu-button")
+    const menuButton = page.locator(".pd-navbarmenu-button")
     await expect(menuButton).toHaveText("mock")
     await menuButton.click()
     await expect(page.locator(".pd-navbaruser-roles")).toHaveCount(0)

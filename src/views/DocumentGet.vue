@@ -124,7 +124,7 @@ const { results, error: searchResultsError } = useSearch(searchSession, el, prog
 // longer fit the query link at its minimum usable width, hide the link and show the button (which links back
 // to the results). The bar is present only while a search session is set, so the query returns null
 // otherwise and the measurement is a no-op.
-useNavbarCollapse(() => document.querySelector<HTMLElement>(".pd-navbar .pd-navbar-searchlink"), "pd-navbar-searchlink-collapsible")
+useNavbarCollapse(() => document.querySelector<HTMLElement>(".pd-navbar .pd-navbarshortcut"), "pd-navbarshortcut-collapsible")
 
 // See: https://github.com/vuejs/core/issues/14249
 //eslint-disable-next-line @typescript-eslint/no-misused-promises
@@ -292,7 +292,7 @@ async function fetchShortcutCount(query: QueryValues, signal: AbortSignal): Prom
   const url = router.apiResolve({ name: "SearchJustResults", query }).href
   // TODO: Use headURL when it will be available.
   const headers = await headURLDirect(url, signal, null)
-  if (signal.aborted) {
+  if (signal.aborted || headers === null) {
     return null
   }
   const metadata = decodeMetadata(headers, siteContext.metadataHeaderPrefix ?? "")
@@ -339,12 +339,20 @@ watch(
     const result: ResolvedShortcut[] = []
     for (const shortcut of shortcuts) {
       try {
+        // Resolving a shortcut computes identifiers asynchronously, so the component can be torn down
+        // in the middle of the loop, before searchShortcuts is written below.
         const query = await shortcutToQuery(shortcut.raw, props.id)
+        if (abortController.signal.aborted) {
+          return
+        }
         // A malformed create shortcut should not drop the whole search shortcut, so it is resolved on its own.
         let createQuery: QueryValues | null = null
         if (shortcut.createRaw) {
           try {
             createQuery = await createShortcutToQuery(shortcut.createRaw, props.id)
+            if (abortController.signal.aborted) {
+              return
+            }
           } catch (err) {
             console.error("DocumentGet.createShortcut", shortcut, err)
           }
@@ -470,7 +478,7 @@ async function beginEdit(tab?: string) {
       abortController.signal,
       editBusy,
     )
-    if (abortController.signal.aborted) {
+    if (abortController.signal.aborted || editResponse === null) {
       return
     }
     await router.push({
@@ -504,7 +512,7 @@ async function beginEdit(tab?: string) {
             and the button are the navbar's flex items directly. Both target the results, so the compact
             button is simply a "back to the search" affordance.
           -->
-          <div class="pd-navbar-searchlink contents">
+          <div class="pd-navbarshortcut contents">
             <!-- self-stretch so the query link keeps the row height even when the query is empty, instead of collapsing to its text height. -->
             <InputTextLink
               class="max-w-xl grow self-stretch"
@@ -515,7 +523,7 @@ async function beginEdit(tab?: string) {
             </InputTextLink>
             <ButtonLink
               primary
-              class="pd-navbar-searchlink-button"
+              class="pd-navbarshortcut-button"
               :to="{ name: 'SearchGet', params: { id: searchSession.id }, query: encodeQuery({ at: id }) }"
               :after-click="afterClick"
             >
@@ -600,53 +608,53 @@ async function beginEdit(tab?: string) {
                 <!-- The page content tab. The page title is shown as the h1 heading below. -->
                 <Tab
                   v-if="isPage"
-                  class="rounded-sm border border-gray-300 bg-white px-4 py-2 leading-tight font-medium text-gray-700 uppercase outline-none select-none not-aria-selected:hover:bg-gray-50 focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-1 aria-selected:border-primary-600 aria-selected:bg-primary-600 aria-selected:text-white"
+                  class="pd-documentget-tab-content rounded-sm border border-gray-300 bg-white px-4 py-2 leading-tight font-medium text-gray-700 uppercase outline-none select-none not-aria-selected:hover:bg-gray-50 focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-1 aria-selected:border-primary-600 aria-selected:bg-primary-600 aria-selected:text-white"
                   >{{ t("views.DocumentGet.tabs.content") }}</Tab
                 >
                 <Tab
                   v-for="documentTab in documentTabs"
                   :key="documentTab.id"
-                  class="rounded-sm border border-gray-300 bg-white px-4 py-2 leading-tight font-medium text-gray-700 uppercase outline-none select-none not-aria-selected:hover:bg-gray-50 focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-1 aria-selected:border-primary-600 aria-selected:bg-primary-600 aria-selected:text-white"
+                  class="pd-documentget-tab-registry rounded-sm border border-gray-300 bg-white px-4 py-2 leading-tight font-medium text-gray-700 uppercase outline-none select-none not-aria-selected:hover:bg-gray-50 focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-1 aria-selected:border-primary-600 aria-selected:bg-primary-600 aria-selected:text-white"
                   ><DocumentRefInline :id="documentTab.id" :link="false"
                 /></Tab>
                 <Tab
                   v-if="hasFieldsViewPanel"
-                  class="rounded-sm border border-gray-300 bg-white px-4 py-2 leading-tight font-medium text-gray-700 uppercase outline-none select-none not-aria-selected:hover:bg-gray-50 focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-1 aria-selected:border-primary-600 aria-selected:bg-primary-600 aria-selected:text-white"
+                  class="pd-documentget-tab-properties rounded-sm border border-gray-300 bg-white px-4 py-2 leading-tight font-medium text-gray-700 uppercase outline-none select-none not-aria-selected:hover:bg-gray-50 focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-1 aria-selected:border-primary-600 aria-selected:bg-primary-600 aria-selected:text-white"
                   ><DocumentRefInline :id="classTabId!" :link="false"
                 /></Tab>
                 <Tab
-                  class="rounded-sm border border-gray-300 bg-white px-4 py-2 leading-tight font-medium text-gray-700 uppercase outline-none select-none not-aria-selected:hover:bg-gray-50 focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-1 aria-selected:border-primary-600 aria-selected:bg-primary-600 aria-selected:text-white"
+                  class="pd-documentget-tab-allproperties rounded-sm border border-gray-300 bg-white px-4 py-2 leading-tight font-medium text-gray-700 uppercase outline-none select-none not-aria-selected:hover:bg-gray-50 focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-1 aria-selected:border-primary-600 aria-selected:bg-primary-600 aria-selected:text-white"
                   >{{ t("views.DocumentGet.tabs.allProperties") }}</Tab
                 >
                 <Tab
                   v-if="showPermissionsTab"
-                  class="rounded-sm border border-gray-300 bg-white px-4 py-2 leading-tight font-medium text-gray-700 uppercase outline-none select-none not-aria-selected:hover:bg-gray-50 focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-1 aria-selected:border-primary-600 aria-selected:bg-primary-600 aria-selected:text-white"
+                  class="pd-documentget-tab-permissions rounded-sm border border-gray-300 bg-white px-4 py-2 leading-tight font-medium text-gray-700 uppercase outline-none select-none not-aria-selected:hover:bg-gray-50 focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-1 aria-selected:border-primary-600 aria-selected:bg-primary-600 aria-selected:text-white"
                   >{{ t("views.DocumentGet.tabs.permissions") }}</Tab
                 >
                 <Tab
-                  class="rounded-sm border border-gray-300 bg-white px-4 py-2 leading-tight font-medium text-gray-700 uppercase outline-none select-none not-aria-selected:hover:bg-gray-50 focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-1 aria-selected:border-primary-600 aria-selected:bg-primary-600 aria-selected:text-white"
+                  class="pd-documentget-tab-history rounded-sm border border-gray-300 bg-white px-4 py-2 leading-tight font-medium text-gray-700 uppercase outline-none select-none not-aria-selected:hover:bg-gray-50 focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-1 aria-selected:border-primary-600 aria-selected:bg-primary-600 aria-selected:text-white"
                   >{{ t("views.DocumentGet.tabs.history") }}</Tab
                 >
               </TabList>
-              <h1 v-show="displayLabelComponent?.displayLabel" class="pd-documentget-title mb-4 text-3xl font-bold drop-shadow-xs"
+              <h1 v-show="displayLabelComponent?.displayLabel" id="documentget-title" class="pd-documentget-title mb-4 text-3xl font-bold drop-shadow-xs"
                 ><DisplayLabel ref="displayLabelComponent" :doc="doc"
               /></h1>
               <!-- We explicitly disable tabbing. See: https://github.com/tailwindlabs/headlessui/discussions/1433 -->
               <TabPanels as="template">
                 <!-- Page content tab panel: the document's content rendered as prose, in the current language. -->
-                <TabPanel v-if="isPage" tabindex="-1" class="outline-none">
+                <TabPanel v-if="isPage" tabindex="-1" class="pd-documentget-panel-content outline-none">
                   <ClaimValueHtml v-for="content in pageContent" :key="content.id" :claim="content" />
                 </TabPanel>
                 <!-- Registry tabs. -->
-                <TabPanel v-for="documentTab in documentTabs" :key="documentTab.id" tabindex="-1" class="outline-none">
+                <TabPanel v-for="documentTab in documentTabs" :key="documentTab.id" tabindex="-1" class="pd-documentget-panel-registry outline-none">
                   <component :is="documentTab.component" :doc="doc" />
                 </TabPanel>
                 <!-- Class-specific tab (if there are no registry tabs). -->
-                <TabPanel v-if="hasFieldsViewPanel" tabindex="-1" class="outline-none">
+                <TabPanel v-if="hasFieldsViewPanel" tabindex="-1" class="pd-documentget-panel-properties outline-none">
                   <FieldsView :fields-data="mergedFieldsData!" :claims="doc.claims" sections />
                 </TabPanel>
                 <!-- "All properties" tab panel. -->
-                <TabPanel tabindex="-1" class="outline-none">
+                <TabPanel tabindex="-1" class="pd-documentget-panel-allproperties outline-none">
                   <PropertiesView :claims="doc.claims" />
                 </TabPanel>
                 <!--
@@ -654,13 +662,13 @@ async function beginEdit(tab?: string) {
                   provided document actions (see PermissionsView), so they run under the same lock and
                   progress as the Edit button of the side column.
                 -->
-                <TabPanel v-if="showPermissionsTab" tabindex="-1" class="outline-none">
+                <TabPanel v-if="showPermissionsTab" tabindex="-1" class="pd-documentget-panel-permissions outline-none">
                   <WithLock :lock="getEditLock">
                     <PermissionsView :id="id" :claims="doc.claims" @cancelled="documentEpoch += 1" />
                   </WithLock>
                 </TabPanel>
                 <!-- "History" tab panel. The panel (and thus the data fetch) is mounted only when the tab is selected. -->
-                <TabPanel tabindex="-1" class="outline-none">
+                <TabPanel tabindex="-1" class="pd-documentget-panel-history outline-none">
                   <DocumentHistory :id="id" />
                 </TabPanel>
               </TabPanels>
@@ -680,7 +688,7 @@ async function beginEdit(tab?: string) {
             </div>
           </template>
           <template #error="{ message, accessDenied }">
-            <i :class="['pd-documentget-error', accessDenied ? 'text-gray-500' : 'text-error-600']">{{ message }}</i>
+            <i :class="['pd-documentget-error', accessDenied ? 'pd-documentget-error-accessdenied text-gray-500' : 'text-error-600']">{{ message }}</i>
           </template>
         </WithDocumentD>
       </div>
@@ -690,6 +698,7 @@ async function beginEdit(tab?: string) {
       -->
       <aside
         v-if="withDocument?.doc && hasSidebarContent"
+        id="documentget-sidebar"
         class="pd-documentget-sidebar pd-print-hidden flex-auto basis-1/4 flex-col gap-4 min-[56rem]:flex"
         :class="sidebarOpen ? 'flex' : 'hidden'"
       >
@@ -698,16 +707,21 @@ async function beginEdit(tab?: string) {
           class="flex flex-col gap-2"
         >
           <WithLock v-if="hasDocumentPermission(ACTION_UPDATE, docRef)" :lock="getEditLock">
-            <Button :progress="editBusy" type="button" class="w-full" @click.prevent="beginEdit()">{{ t("common.buttons.edit") }}</Button>
+            <Button id="documentget-button-edit" :progress="editBusy" type="button" class="w-full" @click.prevent="beginEdit()">{{ t("common.buttons.edit") }}</Button>
           </WithLock>
-          <ButtonLink v-if="hasDocumentPermission(ACTION_DELETE, docRef)" :to="{ name: 'DocumentDelete', params: { id } }" class="w-full">{{
-            t("common.buttons.delete")
-          }}</ButtonLink>
+          <ButtonLink
+            v-if="hasDocumentPermission(ACTION_DELETE, docRef)"
+            id="documentget-button-delete"
+            :to="{ name: 'DocumentDelete', params: { id } }"
+            class="w-full"
+            >{{ t("common.buttons.delete") }}</ButtonLink
+          >
         </div>
-        <div class="flex flex-col gap-2">
+        <div class="pd-documentget-list-shortcuts flex flex-col gap-2">
           <template v-for="(shortcut, i) of searchShortcuts" :key="i">
             <SearchShortcutLink
               v-if="showShortcut(shortcut.count)"
+              class="pd-documentget-link-shortcut"
               :query="shortcut.query"
               :label="shortcutLabel(shortcut.name, shortcut.count)"
               :create-query="shortcut.createQuery"
@@ -715,6 +729,7 @@ async function beginEdit(tab?: string) {
           </template>
           <SearchShortcutLink
             v-if="showShortcut(referencedByCount)"
+            id="documentget-button-referencedby"
             :query="encodeQuery({ reverse: id })"
             :label="shortcutLabel(t('views.DocumentGet.referencedBy'), referencedByCount)"
           />

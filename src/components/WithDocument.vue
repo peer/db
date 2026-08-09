@@ -86,7 +86,7 @@ watch(
 
     try {
       const response = await getURL<T>(newURL, el, abortController.signal, rootProgress)
-      if (abortController.signal.aborted) {
+      if (abortController.signal.aborted || response === null) {
         return
       }
 
@@ -129,7 +129,7 @@ defineSlots<{
 <template>
   <slot v-if="doc" :doc="doc as DeepReadonly<T>" :metadata="metadata" :url="url!"></slot>
   <slot v-else-if="error || accessDenied" name="error" :error="error" :message="message" :access-denied="accessDenied" :url="url">
-    <i :class="['pd-withdocument-error', accessDenied ? 'text-gray-500' : 'text-error-600']" :data-url="url">{{ message }}</i>
+    <i :class="['pd-withdocument-error', accessDenied ? 'pd-withdocument-error-accessdenied text-gray-500' : 'text-error-600']" :data-url="url">{{ message }}</i>
   </slot>
   <slot v-else name="loading" :url="url"></slot>
 </template>

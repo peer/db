@@ -42,7 +42,7 @@ const asMenu = computed(() => collapsed.value || props.label !== undefined)
 
 function onClickOutside(event: MouseEvent): void {
   const target = event.target as HTMLElement
-  if (!target.closest(".pd-navbar-menu")) {
+  if (!target.closest(".pd-navbarmenu")) {
     open.value = false
   }
 }
@@ -68,12 +68,12 @@ onBeforeUnmount(() => {
 
 <template>
   <slot v-if="!asMenu" />
-  <div v-else class="pd-navbar-menu relative shrink-0">
+  <div v-else class="pd-navbarmenu relative shrink-0">
     <button
       type="button"
       :aria-label="collapsed ? t('common.buttons.menu') : undefined"
       :aria-expanded="open"
-      class="pd-navbar-menu-button flex items-center rounded-sm text-gray-700 outline-none hover:bg-slate-400 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 active:bg-slate-200"
+      class="pd-navbarmenu-button flex items-center rounded-sm text-gray-700 outline-none hover:bg-slate-400 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 active:bg-slate-200"
       :class="collapsed ? 'p-1.5' : 'px-2 py-1.5 text-sm leading-tight font-medium'"
       @click="open = !open"
     >
@@ -85,10 +85,10 @@ onBeforeUnmount(() => {
     </button>
     <div
       v-if="open"
-      class="pd-navbar-menu-panel absolute top-full right-0 z-50 mt-1 flex flex-col items-stretch gap-1 rounded-sm border border-slate-400 bg-slate-200 p-2 shadow-md"
+      class="pd-navbarmenu-panel absolute top-full right-0 z-50 mt-1 flex flex-col items-stretch gap-1 rounded-sm border border-slate-400 bg-slate-200 p-2 shadow-md"
     >
       <!-- The label names the menu where the button cannot, so the panel opens with whose menu it is. -->
-      <div v-if="collapsed && label !== undefined" class="pd-navbar-menu-label truncate px-2 py-1 text-sm leading-tight font-medium text-gray-700">
+      <div v-if="collapsed && label !== undefined" class="pd-navbarmenu-label truncate px-2 py-1 text-sm leading-tight font-medium text-gray-700">
         {{ label }}
       </div>
       <slot />

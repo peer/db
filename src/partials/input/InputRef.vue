@@ -215,7 +215,11 @@ watch(
     // shortcutToFilters throws synchronously if filter references "self"
     // without a self prop, and on any structural parse error. We let the
     // throw propagate so misconfigured callers surface immediately.
-    filterPayload.value = await shortcutToFilters(filter, self)
+    const payload = await shortcutToFilters(filter, self)
+    if (mainAbortController.signal.aborted) {
+      return
+    }
+    filterPayload.value = payload
   },
   { immediate: true },
 )
@@ -241,7 +245,7 @@ async function search(q: string) {
       signal,
       searchProgress,
     )
-    if (signal.aborted) {
+    if (signal.aborted || response === null) {
       return
     }
 
@@ -283,6 +287,9 @@ async function enterEditMode() {
   editMode.value = true
   // Wait for the ComboboxInput to render, then focus its underlying input.
   await nextTick()
+  if (mainAbortController.signal.aborted) {
+    return
+  }
   const el = comboboxInputRef.value?.$el as HTMLInputElement | undefined
   el?.focus()
 }
@@ -308,6 +315,9 @@ let clearing = false
 // chip back with the same document still picked.
 async function onWrapperFocusout() {
   await nextTick()
+  if (mainAbortController.signal.aborted) {
+    return
+  }
   // A clear is in progress: the value was intentionally emptied and focus is
   // being moved to the search input, so skip the required-validation (it
   // returns on the next real leave).
@@ -343,6 +353,11 @@ async function clearSelection() {
   // text: the prior search is the likely starting point for picking a replacement.
   // Focus the search input so focus is not dropped to the body.
   await nextTick()
+  // The component is being torn down, so the focus move is pointless and the
+  // clearing flag no longer has a focusout to suppress.
+  if (mainAbortController.signal.aborted) {
+    return
+  }
   ;(comboboxInputRef.value?.$el as HTMLInputElement | undefined)?.focus()
   clearing = false
 }
@@ -357,7 +372,7 @@ const WithPeerDBDocument = WithDocument<D>
     target the combobox input), so the wrapper needs explicit flex-item
     classes to stretch in a row-flex parent the way InputString et al. do.
   -->
-  <div ref="wrapperRef" class="min-w-0 flex-auto grow" @focusout="onWrapperFocusout">
+  <div ref="wrapperRef" class="pd-inputref min-w-0 flex-auto grow" @focusout="onWrapperFocusout">
     <Combobox v-slot="{ open }" :model-value="selectedDocument" as="div" immediate by="id" @update:model-value="onSelect">
       <!--
         Grid with a single minmax(0,1fr) column. The "0" min track size
@@ -406,7 +421,7 @@ const WithPeerDBDocument = WithDocument<D>
           :invalid="invalid"
           :aria-readonly="inactive || undefined"
           :aria-invalid="invalid || undefined"
-          class="w-full truncate"
+          class="pd-inputref-value w-full truncate"
           :class="readonly ? '' : 'pr-23'"
           @click="enterEditMode"
           @focus="enterEditMode"
@@ -433,7 +448,7 @@ const WithPeerDBDocument = WithDocument<D>
           :invalid="invalid"
           :aria-readonly="inactive || undefined"
           :aria-invalid="invalid || undefined"
-          class="w-full truncate"
+          class="pd-inputref-value w-full truncate"
           :class="readonly ? 'pr-9' : 'pr-29'"
           @click="enterEditMode"
           @focus="enterEditMode"
@@ -475,7 +490,7 @@ const WithPeerDBDocument = WithDocument<D>
           :readonly="inactive"
           :aria-invalid="invalid || undefined"
           v-bind="$attrs"
-          class="w-full"
+          class="pd-inputref-input w-full"
           :class="{
             'pr-23': selectedDocument?.id && !readonly,
             'pr-9': !selectedDocument?.id || readonly,
@@ -502,12 +517,12 @@ const WithPeerDBDocument = WithDocument<D>
         -->
         <div class="absolute inset-y-0 right-0 flex items-center gap-1 pr-2">
           <template v-if="selectedDocument?.id">
-            <RouterLink v-if="!editMode && !invalid" :to="{ name: 'DocumentGet', params: { id: selectedDocument.id } }" class="link">
+            <RouterLink v-if="!editMode && !invalid" :to="{ name: 'DocumentGet', params: { id: selectedDocument.id } }" class="pd-inputref-link-document link">
               <ArrowTopRightOnSquareIcon class="size-5" aria-hidden="true" />
             </RouterLink>
-            <Button v-if="!readonly" type="button" class="px-2.5 py-1" @click.prevent="clearSelection">{{ t("common.buttons.clear") }}</Button>
+            <Button v-if="!readonly" type="button" class="pd-inputref-button-clear px-2.5 py-1" @click.prevent="clearSelection">{{ t("common.buttons.clear") }}</Button>
           </template>
-          <ComboboxButton v-else class="inline-flex items-center">
+          <ComboboxButton v-else class="pd-inputref-button-open inline-flex items-center">
             <ChevronUpDownIcon
               class="size-5 text-gray-400"
               :class="{
@@ -523,7 +538,7 @@ const WithPeerDBDocument = WithDocument<D>
           Parent-level loading has its own UI in the parent; this bar exists
           solely to indicate that the inline search is in flight.
         -->
-        <ProgressBar :progress="searchProgress" class="absolute inset-x-0 bottom-0 rounded-b" />
+        <ProgressBar :progress="searchProgress" class="pd-inputref-loading absolute inset-x-0 bottom-0 rounded-b" />
 
         <!--
           Visibility is driven by Headless UI's own "open" slot prop,
@@ -544,10 +559,10 @@ const WithPeerDBDocument = WithDocument<D>
         <ComboboxOptions
           v-if="open && !inactive"
           static
-          class="absolute top-full z-20 mt-1 max-h-40 w-full overflow-auto rounded-sm bg-white shadow-sm ring-2 ring-neutral-300 outline-none"
+          class="pd-inputref-list absolute top-full z-20 mt-1 max-h-40 w-full overflow-auto rounded-sm bg-white shadow-sm ring-2 ring-neutral-300 outline-none"
         >
           <ComboboxOption v-if="searchResults.length === 0">
-            <li class="p-2"
+            <li class="pd-inputref-empty p-2"
               ><i>{{ t("partials.input.InputRef.noResults") }}</i></li
             >
           </ComboboxOption>
@@ -562,7 +577,7 @@ const WithPeerDBDocument = WithDocument<D>
               and loaded slot variants below.
             -->
             <ComboboxOption v-for="result in searchResults" :key="result.id" v-slot="{ active }" :value="result" :disabled="taken.has(result.id)" as="template">
-              <li class="p-1 outline-none select-none">
+              <li class="pd-inputref-item p-1 outline-none select-none" :class="`pd-inputref-item-${result.id}`">
                 <!--
                   We have an additional div so that the ring has the space to be shown.
                   li element has p-1 for ring space, together with py-1 and px-2 we get the effective padding
@@ -592,7 +607,7 @@ const WithPeerDBDocument = WithDocument<D>
                         when the user actually wanted to open the link. The click event is
                         independent and still fires, letting RouterLink navigate normally.
                       -->
-                      <RouterLink :to="{ name: 'DocumentGet', params: { id: result.id } }" class="link" @mousedown.stop>
+                      <RouterLink :to="{ name: 'DocumentGet', params: { id: result.id } }" class="pd-inputref-link-result link" @mousedown.stop>
                         <ArrowTopRightOnSquareIcon class="size-5" aria-hidden="true" />
                       </RouterLink>
                     </template>

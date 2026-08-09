@@ -58,9 +58,33 @@ async function run(files: DownloadFile[], fileHandle: FileSystemFileHandle | nul
   let writePromise: Promise<void> = Promise.resolve()
   let zipErrorMessage: string | null = null
 
+  // Throws away any partial output: aborts the writable so its swap file is cleaned up and the
+  // original target is left untouched, then drains the queued writes whose rejections from that
+  // abort would otherwise be unhandled. Does nothing in the Blob fallback, where there is no writable.
+  async function discardOutput() {
+    if (!writable) {
+      return
+    }
+    try {
+      await writable.abort()
+    } catch {
+      // Ignore abort errors.
+    }
+    try {
+      await writePromise
+    } catch {
+      // Ignore errors.
+    }
+  }
+
   try {
     if (fileHandle) {
       writable = await fileHandle.createWritable()
+      if (signal.aborted) {
+        await discardOutput()
+        self.postMessage({ type: "done" } satisfies DownloadZipWorkerOutput)
+        return
+      }
     }
     const w = writable
 
@@ -90,6 +114,9 @@ async function run(files: DownloadFile[], fileHandle: FileSystemFileHandle | nul
       self.postMessage({ type: "progress", completed: i, total: files.length, currentFile: file.name } satisfies DownloadZipWorkerOutput)
 
       const response = await fetch(file.url, { signal })
+      if (signal.aborted) {
+        break
+      }
       if (!response.ok) {
         throw new Error(`failed to fetch ${file.name}: ${response.status} ${response.statusText}`)
       }
@@ -120,6 +147,10 @@ async function run(files: DownloadFile[], fileHandle: FileSystemFileHandle | nul
       let buffered: Uint8Array | null = null
       while (true) {
         const { done, value } = await reader.read()
+        if (signal.aborted) {
+          // The whole archive is discarded below, so this entry does not need its final push.
+          break
+        }
         if (done) {
           entry.push(buffered ?? new Uint8Array(0), true)
           break
@@ -133,9 +164,22 @@ async function run(files: DownloadFile[], fileHandle: FileSystemFileHandle | nul
         buffered = value
       }
 
+      if (signal.aborted) {
+        break
+      }
+
       if (zipErrorMessage !== null) {
         throw new Error(zipErrorMessage)
       }
+    }
+
+    if (signal.aborted) {
+      // Cancelled by the main thread while a step was in flight. Drop the partial archive so
+      // neither a truncated file on disk nor a Blob for the <a download> fallback survives the
+      // cancel, and report a clean completion so the overlay closes.
+      await discardOutput()
+      self.postMessage({ type: "done" } satisfies DownloadZipWorkerOutput)
+      return
     }
 
     self.postMessage({ type: "progress", completed: files.length, total: files.length, currentFile: "" } satisfies DownloadZipWorkerOutput)
@@ -154,20 +198,7 @@ async function run(files: DownloadFile[], fileHandle: FileSystemFileHandle | nul
       self.postMessage({ type: "blob", blob } satisfies DownloadZipWorkerOutput)
     }
   } catch (err) {
-    if (writable) {
-      // Cancel partial output so the swap file is cleaned up and the original target is untouched.
-      try {
-        await writable.abort()
-      } catch {
-        // Ignore abort errors.
-      }
-      // Drain any queued writes that reject from the abort to avoid unhandled rejections.
-      try {
-        await writePromise
-      } catch {
-        // Ignore errors.
-      }
-    }
+    await discardOutput()
     if (signal.aborted) {
       // Cancelled by the main thread: report a clean completion so the overlay closes.
       self.postMessage({ type: "done" } satisfies DownloadZipWorkerOutput)

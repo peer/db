@@ -34,8 +34,9 @@ function capitalizeFirst(label: unknown): unknown {
 const progress = useProgress()
 
 let abortController = new AbortController()
-
-onBeforeUnmount(() => abortController.abort())
+onBeforeUnmount(() => {
+  abortController.abort()
+})
 
 // TODO: Pass "el" in.
 const displayLabel = asyncToReactive(() => getDisplayLabel(props.doc?.claims, router, i18n, null, abortController.signal, progress))
@@ -56,6 +57,6 @@ defineExpose({
   <i v-else-if="getError(displayLabel)" class="pd-displaylabel-error text-error-600">{{ t("common.status.error") }}</i>
   <template v-else-if="displayLabel">{{ capitalizeFirst(displayLabel) }}</template>
   <template v-else
-    ><i>{{ t("common.values.noName") }}</i></template
+    ><i class="pd-displaylabel-empty">{{ t("common.values.noName") }}</i></template
   >
 </template>

@@ -3,7 +3,7 @@ import type { DeepReadonly } from "vue"
 
 import type { AmountFilterEntry, Filter, FilterResult, FilterUpdate, HasFilterEntry, RefFilterEntry, SearchSession, SpecialsFilterEntry, TimeFilterEntry } from "@/types"
 
-import { onBeforeUnmount } from "vue"
+import { computed, onBeforeUnmount } from "vue"
 
 import AmountFiltersResult from "@/partials/AmountFiltersResult.vue"
 import HasFiltersResult from "@/partials/HasFiltersResult.vue"
@@ -40,6 +40,11 @@ const abortController = new AbortController()
 onBeforeUnmount(() => {
   abortController.abort()
 })
+
+// A CSS class naming which facet this is. The facet's type followed by the identifiers of its property path.
+// The type is part of it because a reference facet and a has facet can share the same property path. A has
+// facet on the document itself has no property path and is named by its type alone.
+const filterClass = computed(() => ["pd-filterresult", props.result.type, ...(props.result.props ?? [])].join("-"))
 
 // samePath reports whether a filter's property path equals a facet's property path.
 function samePath(a: readonly string[] | undefined, b: readonly string[] | undefined): boolean {
@@ -86,6 +91,7 @@ function onFilterUpdates(updates: FilterUpdate[]) {
   <RefFiltersResult
     v-if="result.type === 'ref'"
     class="pd-filterresult"
+    :class="filterClass"
     :search-session="searchSession"
     :result="result"
     :filter="findRefFilter(result)"
@@ -98,6 +104,7 @@ function onFilterUpdates(updates: FilterUpdate[]) {
   <AmountFiltersResult
     v-if="result.type === 'amount'"
     class="pd-filterresult"
+    :class="filterClass"
     :search-session="searchSession"
     :result="result"
     :filter="findAmountFilter(result)"
@@ -109,6 +116,7 @@ function onFilterUpdates(updates: FilterUpdate[]) {
   <TimeFiltersResult
     v-if="result.type === 'time'"
     class="pd-filterresult"
+    :class="filterClass"
     :search-session="searchSession"
     :result="result"
     :filter="findTimeFilter(result)"
@@ -120,6 +128,7 @@ function onFilterUpdates(updates: FilterUpdate[]) {
   <HasFiltersResult
     v-if="result.type === 'has'"
     class="pd-filterresult"
+    :class="filterClass"
     :search-session="searchSession"
     :result="result"
     :filter="findHasFilter(result)"

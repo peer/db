@@ -96,8 +96,8 @@ async function onDelete() {
         <template #default="{ doc }">
           <form v-if="hasDocumentPermission(ACTION_DELETE, doc)" class="flex flex-col gap-y-4" @submit.prevent="onDelete">
             <div>
-              <h1 class="text-3xl font-bold drop-shadow-xs">{{ t("views.DocumentDelete.title") }}</h1>
-              <p class="mt-1 text-gray-700">{{ t("views.DocumentDelete.confirm") }}</p>
+              <h1 id="documentdelete-title" class="text-3xl font-bold drop-shadow-xs">{{ t("views.DocumentDelete.title") }}</h1>
+              <p id="documentdelete-text-confirm" class="mt-1 text-gray-700">{{ t("views.DocumentDelete.confirm") }}</p>
             </div>
             <SearchResultDocument :doc="doc" />
             <div class="flex flex-row justify-between gap-4">
@@ -105,7 +105,7 @@ async function onDelete() {
               <Button id="documentdelete-button-delete" type="submit" primary :progress="busy">{{ t("common.buttons.delete") }}</Button>
             </div>
           </form>
-          <div v-else class="my-1 text-center sm:my-4">{{ t("common.status.deletingNotAllowed") }}</div>
+          <div v-else id="documentdelete-text-notallowed" class="my-1 text-center sm:my-4">{{ t("common.status.deletingNotAllowed") }}</div>
         </template>
         <template #loading>
           <div class="my-1 text-center sm:my-4">{{ t("common.status.loading") }}</div>

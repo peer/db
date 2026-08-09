@@ -88,7 +88,7 @@ const availableActions = computed(() =>
 async function loadDocument() {
   busy.value += 1
   try {
-    const { doc: fetched } = await getURL<D>(
+    const response = await getURL<D>(
       router.apiResolve({
         name: "DocumentGet",
         params: {
@@ -99,10 +99,10 @@ async function loadDocument() {
       abortController.signal,
       busy,
     )
-    if (abortController.signal.aborted) {
+    if (abortController.signal.aborted || response === null) {
       return
     }
-    doc.value = fetched
+    doc.value = response.doc
   } catch (err) {
     if (abortController.signal.aborted) {
       return

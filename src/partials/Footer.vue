@@ -22,19 +22,19 @@ const footerBlockComponents = getFooterBlockComponents()
       <component :is="c" />
     </div>
     <div v-bind="$attrs" class="pd-footer-bar w-container flex justify-between gap-x-2 p-2 leading-none sm:gap-x-4 sm:p-4">
-      <ul class="flex gap-x-2 sm:gap-x-4">
-        <li v-for="(c, i) in footerStartComponents" :key="i">
+      <ul class="pd-footer-list-start flex gap-x-2 sm:gap-x-4">
+        <li v-for="(c, i) in footerStartComponents" :key="i" class="pd-footer-item">
           <component :is="c" />
         </li>
       </ul>
-      <ul class="flex gap-x-2 sm:gap-x-4">
-        <li v-for="(c, i) in footerEndComponents" :key="i">
+      <ul class="pd-footer-list-end flex gap-x-2 sm:gap-x-4">
+        <li v-for="(c, i) in footerEndComponents" :key="i" class="pd-footer-item">
           <component :is="c" />
         </li>
-        <li v-if="!creditsDisabled" class="text-neutral-500">
+        <li v-if="!creditsDisabled" class="pd-footer-item pd-footer-item-credits text-neutral-500">
           <i18n-t keypath="partials.Footer.poweredBy" scope="global">
             <template #linkName>
-              <a href="https://gitlab.com/peerdb/peerdb" class="link">PeerDB</a>
+              <a href="https://gitlab.com/peerdb/peerdb" class="pd-footer-link-peerdb link">PeerDB</a>
             </template>
           </i18n-t>
         </li>

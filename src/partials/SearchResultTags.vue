@@ -15,11 +15,11 @@ const WithDocumentD = WithDocument<D>
 </script>
 
 <template>
-  <ul class="flex flex-row flex-wrap content-start items-baseline gap-1 text-sm">
+  <ul class="pd-searchresult-list-badges flex flex-row flex-wrap content-start items-baseline gap-1 text-sm">
     <template v-for="(tag, i) of tags" :key="tag.id ?? `label-${i}`">
       <WithDocumentD v-if="tag.id" :id="tag.id" name="DocumentGet">
         <template #default="{ doc, url }">
-          <li class="rounded-xs bg-slate-100 px-1.5 py-0.5 leading-none text-gray-600 shadow-xs" :data-url="url">
+          <li class="pd-searchresult-badge-type rounded-xs bg-slate-100 px-1.5 py-0.5 leading-none text-gray-600 shadow-xs" :data-url="url">
             <DisplayLabel :doc="doc" />
           </li>
         </template>
@@ -32,7 +32,7 @@ const WithDocumentD = WithDocument<D>
           ></li>
         </template>
       </WithDocumentD>
-      <li v-else class="rounded-xs bg-slate-100 px-1.5 py-0.5 leading-none text-gray-600 shadow-xs">{{ tag.label }}</li>
+      <li v-else class="pd-searchresult-badge-type rounded-xs bg-slate-100 px-1.5 py-0.5 leading-none text-gray-600 shadow-xs">{{ tag.label }}</li>
     </template>
   </ul>
 </template>

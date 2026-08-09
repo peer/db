@@ -7,7 +7,7 @@ import { test as baseTest } from "@playwright/test"
 import { createHtmlReport } from "axe-html-reporter"
 import serialize from "canonicalize"
 import { createHash } from "node:crypto"
-import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs"
+import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, writeFileSync } from "node:fs"
 
 // Allowed console message patterns.
 const CONSOLE_ALLOWLIST = [/^Failed to load resource: the server responded with a status of 400 \(\)$/, /\[vite]/, /\[Vue/]
@@ -182,7 +182,14 @@ export async function checkpoint(page: Page, name: string, { mask = [], fullPage
     const serializedViolation: string = serialize(violation) as string
     const violationHash = createHash("sha256").update(serializedViolation).digest("hex")
     mkdirSync("a11y-report", { recursive: true })
-    writeFileSync(`a11y-report/${violationHash}.json`, serializedViolation, { flag: "w" })
+    // The violation is written through a temporary file and renamed into place. The report is assembled by
+    // reading the whole directory back, and workers run in parallel, so a reader must never come across a
+    // file which is half written. A rename within a directory is atomic, so a reader sees either nothing or
+    // the whole file. The temporary name does not end in .json, so a reader skips it while it is being written.
+    const violationPath = `a11y-report/${violationHash}.json`
+    const violationTempPath = `${violationPath}.${process.pid}.tmp`
+    writeFileSync(violationTempPath, serializedViolation, { flag: "w" })
+    renameSync(violationTempPath, violationPath)
   }
 
   // Check for any console logs.
