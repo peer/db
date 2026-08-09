@@ -46,6 +46,7 @@ codeclimate.json
 /playwright-screenshots
 /test-results
 /a11y-report
+/.nyc_output
 
 # Data
 /.cache

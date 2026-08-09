@@ -167,7 +167,20 @@ docker run --rm \
   -S /data/.storage \
   populate
 
-echo "7. Starting PeerDB container..."
+echo "7. Reindex PeerDB..."
+
+docker run --rm \
+  --network "$NETWORK" \
+  -v "$(pwd):/data" \
+  -e GOCOVERDIR=/data/coverage \
+  -e SSL_CERT_FILE=/data/"$ROOT_CA_FILE" \
+  -e SSL_CERT_DIR=/etc/ssl/certs \
+  "$PEERDB_IMAGE" \
+  -d /data/.postgresql.secret \
+  --elastic.url=http://peerdb-elastic:9200 \
+  -S /data/.storage \
+  db reindex
+echo "8. Starting PeerDB container..."
 
 # Start PeerDB container with certificates.
 docker run -d \
@@ -186,13 +199,19 @@ docker run -d \
   -S /data/.storage
 cleanup_peerdb_container=1
 
-echo "8. Waiting for PeerDB service to be ready..."
+echo "9. Waiting for PeerDB service to be ready..."
 for i in $(seq 1 120); do docker exec peerdb-elastic curl -sf -k "https://$PEERDB_CONTAINER:8080/" && break || { [ "$i" -eq 120 ] && exit 1; sleep 1; }; done
 
-echo "9. Running Playwright tests..."
+echo "10. Running Playwright tests..."
 
 # Set environment variables for Playwright.
 export LINK_PUBLISH_JOB_ID="${CI_JOB_ID}"
+
+# The directories Playwright writes its reports and results into are mounted into the container below.
+# We create them ourselves, because Docker would otherwise create the missing ones owned by root.
+mkdir -p playwright-report test-results playwright-screenshots coverage-frontend a11y-report .nyc_output
+# We chown to the container user so the process running inside Docker container can write to them.
+chown 1000:1000 playwright-report test-results playwright-screenshots coverage-frontend a11y-report .nyc_output
 
 # Run Playwright tests in separate container.
 docker run --rm \
@@ -210,7 +229,7 @@ docker run --rm \
   "$PLAYWRIGHT_IMAGE"
 
 # Stop the PeerDB container and check its exit code.
-echo "10. Stopping PeerDB container..."
+echo "11. Stopping PeerDB container..."
 docker stop "$PEERDB_CONTAINER"
 PEERDB_EXIT_CODE=$(docker wait "$PEERDB_CONTAINER")
 
