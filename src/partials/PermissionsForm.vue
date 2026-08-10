@@ -47,9 +47,9 @@ import type { DeepReadonly } from "vue"
 
 import type { ClaimTypes } from "@/document"
 import type { PermissionGrant, PermissionRequest } from "@/permissions"
-import type { Identity, ValidationError } from "@/types"
+import type { Identity, SaveChangeResult, SaveChangeSpec, ValidationError } from "@/types"
 
-import { computed, inject, ref } from "vue"
+import { computed, inject, onBeforeUnmount, ref } from "vue"
 import { useI18n } from "vue-i18n"
 
 import { actionsClosure, hasDocumentPermission, hasUserDocumentPermission, hasUserRoleDocumentPermission, SCOPE_SELF } from "@/auth"
@@ -80,6 +80,30 @@ const props = defineProps<{
 const { t } = useI18n({ useScope: "global" })
 
 const saveChange = inject(saveChangeKey)
+
+const abortController = new AbortController()
+onBeforeUnmount(() => {
+  abortController.abort()
+})
+
+// submitChange appends one change and reports null once this component is gone, so a decision which
+// spans several changes stops where it is instead of driving the rest into a torn-down edit session.
+// A change rejected because the session itself went away is an abort, not a failure, so it reports
+// null as well rather than escaping the void-called handlers as an unhandled rejection.
+async function submitChange(spec: SaveChangeSpec): Promise<SaveChangeResult | null> {
+  try {
+    const result = await saveChange!(spec)
+    if (abortController.signal.aborted) {
+      return null
+    }
+    return result
+  } catch (err) {
+    if (abortController.signal.aborted) {
+      return null
+    }
+    throw err
+  }
+}
 
 // The user named to be granted access without having asked for it, and what naming them ran into (an
 // unknown subject, see InputIdentity). Granting them anything makes them a user with access, which is
@@ -142,7 +166,7 @@ function actionHint(action: string): string | undefined {
 }
 
 // append runs the changes of one decision, keeping the buttons busy while they are being appended.
-async function append(changes: () => Promise<void>): Promise<void> {
+async function append(changes: () => Promise<unknown>): Promise<void> {
   if (!saveChange) {
     return
   }
@@ -150,6 +174,9 @@ async function append(changes: () => Promise<void>): Promise<void> {
   try {
     await changes()
   } catch (err) {
+    if (abortController.signal.aborted) {
+      return
+    }
     // TODO: Show notification with error.
     console.error("PermissionsForm.append", err)
   } finally {
@@ -158,12 +185,22 @@ async function append(changes: () => Promise<void>): Promise<void> {
 }
 
 // grantActions adds a permission claim per action, each with the user and the self scope under it.
-async function grantActions(user: string, actions: Iterable<string>): Promise<void> {
+async function grantActions(user: string, actions: Iterable<string>): Promise<boolean> {
   for (const action of actions) {
-    const { id: claimID } = await saveChange!({ type: "add", patch: { type: "ref", confidence: HighConfidence, prop: HAS_PERMISSION, to: action } })
-    await saveChange!({ type: "add", under: claimID, patch: { type: "id", confidence: HighConfidence, prop: PERMISSION_USER, value: user } })
-    await saveChange!({ type: "add", under: claimID, patch: { type: "string", confidence: HighConfidence, prop: PERMISSION_SCOPE, string: SCOPE_SELF } })
+    const claim = await submitChange({ type: "add", patch: { type: "ref", confidence: HighConfidence, prop: HAS_PERMISSION, to: action } })
+    if (claim === null) {
+      return false
+    }
+    if ((await submitChange({ type: "add", under: claim.id, patch: { type: "id", confidence: HighConfidence, prop: PERMISSION_USER, value: user } })) === null) {
+      return false
+    }
+    if (
+      (await submitChange({ type: "add", under: claim.id, patch: { type: "string", confidence: HighConfidence, prop: PERMISSION_SCOPE, string: SCOPE_SELF } })) === null
+    ) {
+      return false
+    }
   }
+  return true
 }
 
 // TODO: Take access away from one user without taking it from the others the same claim names.
@@ -174,10 +211,13 @@ async function grantActions(user: string, actions: Iterable<string>): Promise<vo
 //       sub-claim would be precise, but a claim which survives a change counts as granted by
 //       checkChangePermission in permissions.go, so it would ask the caller to hold the very action
 //       they are taking away.
-async function removeClaims(claimIDs: Iterable<string>): Promise<void> {
+async function removeClaims(claimIDs: Iterable<string>): Promise<boolean> {
   for (const claimID of claimIDs) {
-    await saveChange!({ type: "remove", id: claimID })
+    if ((await submitChange({ type: "remove", id: claimID })) === null) {
+      return false
+    }
   }
+  return true
 }
 
 // claimsOf returns the claims granting the user the given actions.
@@ -214,7 +254,9 @@ function onRemoveUser(grant: PermissionGrant) {
 // naming them is done: the name is cleared once the grant has landed, ready for the next user.
 function onGrantNamedUser(identity: Identity, action: string) {
   void append(async () => {
-    await grantActions(identity.subject, missingActions(identity, action))
+    if (!(await grantActions(identity.subject, missingActions(identity, action)))) {
+      return
+    }
     namedUser.value = ""
   })
 }
@@ -250,7 +292,9 @@ function onApprove(identity: Identity, request: PermissionRequest) {
   const decided = new Set([request.action, ...missing])
   const approved = requests.value.filter((other) => other.user === request.user && decided.has(other.action))
   void append(async () => {
-    await grantActions(request.user, missing)
+    if (!(await grantActions(request.user, missing))) {
+      return
+    }
     await removeClaims(approved.map((other) => other.claimID))
   })
 }

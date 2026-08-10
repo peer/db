@@ -107,7 +107,6 @@ const rowColspan = computed(() => {
 const { track, visibles } = useVisibilityTracking()
 
 const abortController = new AbortController()
-
 onBeforeUnmount(() => {
   abortController.abort()
 })

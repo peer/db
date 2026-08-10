@@ -34,6 +34,9 @@ const router = useRouter()
 const busy = useBusy()
 
 const abortController = new AbortController()
+onBeforeUnmount(() => {
+  abortController.abort()
+})
 
 const searchQuery = ref("")
 
@@ -77,10 +80,6 @@ watch(
   },
   { immediate: true, flush: "sync" },
 )
-
-onBeforeUnmount(() => {
-  abortController.abort()
-})
 
 // While collapsed the button expands the input (and focuses it) instead of submitting; the browser's
 // implicit form submission is suppressed for that first click. Once expanded (or when the search is not

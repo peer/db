@@ -37,7 +37,6 @@ const el = useTemplateRef<HTMLElement>("el")
 const labelId = useId()
 
 const abortController = new AbortController()
-
 onBeforeUnmount(() => {
   abortController.abort()
 })

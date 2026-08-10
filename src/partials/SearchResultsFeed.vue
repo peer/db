@@ -361,7 +361,6 @@ const { track, visibles } = useVisibilityTracking()
 provide(searchTrackKey, track)
 
 const abortController = new AbortController()
-
 onBeforeUnmount(() => {
   abortController.abort()
   if (clockTimer !== null) {

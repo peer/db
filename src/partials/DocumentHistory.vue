@@ -29,7 +29,6 @@ const history = ref<DocumentHistoryItem[] | null>(null)
 const error = ref<string | null>(null)
 
 const abortController = new AbortController()
-
 onUnmounted(() => {
   abortController.abort()
 })

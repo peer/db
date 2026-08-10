@@ -193,6 +193,9 @@ let clearing = false
 // the user up.
 async function onWrapperFocusout() {
   await nextTick()
+  if (abortController.signal.aborted) {
+    return
+  }
   if (clearing) {
     return
   }

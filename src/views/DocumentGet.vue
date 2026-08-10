@@ -83,7 +83,6 @@ function getEditLock() {
 const sidebarOpen = ref(false)
 
 const abortController = new AbortController()
-
 onBeforeUnmount(() => {
   abortController.abort()
 })

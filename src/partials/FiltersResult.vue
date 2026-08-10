@@ -36,7 +36,6 @@ defineOptions({
 })
 
 const abortController = new AbortController()
-
 onBeforeUnmount(() => {
   abortController.abort()
 })

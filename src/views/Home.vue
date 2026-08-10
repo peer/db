@@ -22,12 +22,11 @@ const heroLogo = logoVariants().at(-1)?.src ?? null
 const busy = useBusy()
 
 const abortController = new AbortController()
-
-const searchQuery = ref("")
-
 onBeforeUnmount(() => {
   abortController.abort()
 })
+
+const searchQuery = ref("")
 
 onMounted(() => {
   document.getElementById("home-input-search")?.focus()

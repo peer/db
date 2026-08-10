@@ -11,7 +11,7 @@ focus leaves the checkboxes and when the form validates them all, like any other
 <script setup lang="ts">
 import type { ValidatedInput, ValidationError } from "@/types"
 
-import { computed, nextTick, ref, useId, useTemplateRef } from "vue"
+import { computed, nextTick, onBeforeUnmount, ref, useId, useTemplateRef } from "vue"
 import { useI18n } from "vue-i18n"
 
 import CheckBox from "@/components/CheckBox.vue"
@@ -93,9 +93,17 @@ function onToggle(action: string, checked: boolean): void {
   onInteraction()
 }
 
+const abortController = new AbortController()
+onBeforeUnmount(() => {
+  abortController.abort()
+})
+
 // The nextTick is needed because focusout fires while document.activeElement is still in transition.
 async function onFocusout(): Promise<void> {
   await nextTick()
+  if (abortController.signal.aborted) {
+    return
+  }
   if (rootRef.value?.contains(document.activeElement)) {
     return
   }

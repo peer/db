@@ -31,7 +31,6 @@ const router = useRouter()
 const busy = useBusy()
 
 const abortController = new AbortController()
-
 onBeforeUnmount(() => {
   // Aborting the controller also tears down any active download worker via useDownload's abort listener.
   abortController.abort()

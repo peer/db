@@ -32,7 +32,9 @@ watch(
     if (!claim) return
 
     const abortController = new AbortController()
-    onCleanup(() => abortController.abort())
+    onCleanup(() => {
+      abortController.abort()
+    })
 
     try {
       const url = router.apiResolve({

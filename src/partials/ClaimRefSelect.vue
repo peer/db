@@ -161,6 +161,11 @@ async function submitChange(spec: SaveChangeSpec): Promise<SaveChangeResult | nu
     }
     return result
   } catch (err) {
+    // A change rejected because the whole edit session was aborted must not escape the
+    // void-called handlers as an unhandled rejection.
+    if (abortController.signal.aborted) {
+      return null
+    }
     if (err instanceof ChangeDroppedError) {
       current.value = current.value.map((claim) => getCommittedClaim(claim.id)).filter((claim): claim is DeepReadonly<Claim> => claim !== null)
       return null

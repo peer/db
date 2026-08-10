@@ -51,6 +51,9 @@ const claimParams = computed((): { prop: string; to: string }[] => {
 })
 
 const abortController = new AbortController()
+onBeforeUnmount(() => {
+  abortController.abort()
+})
 
 const classes = ref<ClassCreateResult[]>([])
 const loaded = ref(false)
@@ -77,10 +80,6 @@ const seeds = computed((): { scoped: Record<string, string[]>; client: { prop: s
     }
   }
   return { scoped, client }
-})
-
-onBeforeUnmount(() => {
-  abortController.abort()
 })
 
 async function loadClasses() {

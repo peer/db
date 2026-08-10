@@ -14,7 +14,6 @@ const router = useRouter()
 const progress = useProgress()
 
 const abortController = new AbortController()
-
 onBeforeUnmount(() => {
   abortController.abort()
 })
