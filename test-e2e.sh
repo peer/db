@@ -209,8 +209,7 @@ docker run -d \
   -K /data/peerdb-container+2-key.pem \
   -d /data/.postgresql.secret \
   --elastic.url=http://peerdb-elastic:9200 \
-  -S /data/.storage \
-  --logging.main.level=warn
+  -S /data/.storage
 cleanup_peerdb_container=1
 
 echo "10. Waiting for PeerDB service to be ready..."

@@ -27,5 +27,5 @@ fi
 
 # Unzip artifacts if downloaded.
 if [ -f artifacts.zip ]; then
-  unzip -o artifacts.zip -x playwright-report/\* -x test-results/\* -x coverage.html -x coverage.xml -x coverage-frontend/\* -x a11y-report/\*
+  unzip -o artifacts.zip -x playwright-report/\* -x coverage.html -x coverage.xml -x coverage-frontend/\* -x a11y-report/\*
 fi

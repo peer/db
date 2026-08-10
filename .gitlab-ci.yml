@@ -166,7 +166,6 @@ test_e2e:
         - link_publish.env
     paths:
       - playwright-report/
-      - test-results/
       - playwright-screenshots/
       - coverage/
       - coverage-frontend/
