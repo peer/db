@@ -546,7 +546,7 @@ export class ChangeDeniedError extends ChangeDroppedError {}
 
 // Injection keys for FieldsForm shared services (using Symbol.for for deduplication in dev).
 // See progress.ts for the pattern.
-export const saveChangeKey: InjectionKey<(spec: SaveChangeSpec) => Promise<SaveChangeResult>> =
+export const saveChangeKey: InjectionKey<(spec: SaveChangeSpec) => Promise<SaveChangeResult | null>> =
   process.env.NODE_ENV !== "production" ? Symbol.for("peerdb-saveChange") : Symbol()
 export const registerForFlushKey: InjectionKey<(instance: FieldsFormFlush) => void> =
   process.env.NODE_ENV !== "production" ? Symbol.for("peerdb-registerForFlush") : Symbol()

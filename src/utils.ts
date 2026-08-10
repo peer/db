@@ -976,8 +976,9 @@ export function encodeQuery(query: QueryValuesWithOptional): QueryValues {
   return values
 }
 
-// delay resolves after ms milliseconds, or throws the signal's abort reason
-// if the signal aborts (or is already aborted) before then.
+// delay resolves after ms milliseconds, or as soon as the signal aborts, and returns at once when the
+// signal is already aborted. The caller checks the signal after the await, the same way it checks it
+// after any other abortable operation.
 export async function delay(ms: number, signal?: AbortSignal): Promise<void> {
   await new Promise<void>((resolve) => {
     if (signal?.aborted) {
@@ -994,7 +995,6 @@ export async function delay(ms: number, signal?: AbortSignal): Promise<void> {
     }
     signal?.addEventListener("abort", onAbort, { once: true })
   })
-  signal?.throwIfAborted()
 }
 
 // Schemes accepted by parseUrl. Mirrors the schemes validateURL accepts in

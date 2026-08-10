@@ -852,7 +852,7 @@ async function revertField(): Promise<void> {
     }
     const values = getClaimValues(baseline)
     const patch = makePatchForField(props.field, values)
-    let result: SaveChangeResult
+    let result: SaveChangeResult | null
     try {
       result = await saveChange(under === undefined ? { type: "add", patch } : { type: "add", patch, under })
     } catch (err) {
@@ -860,6 +860,10 @@ async function revertField(): Promise<void> {
         continue
       }
       throw err
+    }
+    // The session went away, so there is no baseline left to re-add and nothing to record for it.
+    if (result === null) {
+      return
     }
     const newClaim = claimPatchFrom(patch).New(result.id)
     slots.value.push({ key: nextSlotKey(), claim: newClaim, baseline })

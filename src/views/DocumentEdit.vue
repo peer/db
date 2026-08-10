@@ -447,10 +447,18 @@ async function applyOwnChange(changeNumber: number, change: object): Promise<voi
 // A dropped change is never applied to the local document (that happens only after the
 // server accepted it), so nothing has to be undone when one is dropped: what the user
 // typed stays in the form they typed it in.
-async function postChange(spec: SaveChangeSpec): Promise<SaveChangeResult> {
+//
+// Once the edit session goes away this reports null instead of raising, so a caller which
+// checks the result reads an abort the same way it reads one of its own, and a sequence of
+// changes stops where it is rather than unwinding through the void-called handlers which
+// drive it. A change whose post had already reached the server when the abort landed is
+// reported as an abort too: none of its bookkeeping is recorded, so there is no id to report.
+async function postChange(spec: SaveChangeSpec): Promise<SaveChangeResult | null> {
   const controller = abortController
   while (true) {
-    controller.signal.throwIfAborted()
+    if (controller.signal.aborted) {
+      return null
+    }
     // Bring the doc to the state after the last known committed change. In the common
     // case the doc is already there: our own posts apply through applyOwnChange, and the
     // poll keeps committedChange at lastServerChange otherwise.
@@ -458,19 +466,28 @@ async function postChange(spec: SaveChangeSpec): Promise<SaveChangeResult> {
       try {
         await syncChanges()
       } catch (err) {
-        controller.signal.throwIfAborted()
+        if (controller.signal.aborted) {
+          return null
+        }
         console.error("DocumentEdit.postChange sync", err)
         await delay(saveRetryInterval, controller.signal)
+        if (controller.signal.aborted) {
+          return null
+        }
         continue
       }
-      controller.signal.throwIfAborted()
+      if (controller.signal.aborted) {
+        return null
+      }
     }
     const changeNumber = lastServerChange + 1
     const { change, id } = await materializeChange(spec, changeNumber)
     const applies = await changeApplies(change, changeNumber)
     // Both awaits above yield, and an abort during changeApplies surfaces as false, which would be
-    // reported as a dropped change. The abort is raised here instead, before the change is dropped.
-    controller.signal.throwIfAborted()
+    // reported as a dropped change. The abort is reported here instead, before the change is dropped.
+    if (controller.signal.aborted) {
+      return null
+    }
     if (!applies) {
       // TODO: Implement better conflict handling instead of just dropping it.
       throw new ChangeDroppedError(`change does not apply: ${JSON.stringify(change)}`)
@@ -488,7 +505,9 @@ async function postChange(spec: SaveChangeSpec): Promise<SaveChangeResult> {
       )
       // The change may have reached the server, but the session is gone, so none of its bookkeeping
       // is recorded and the abort is reported to the caller like any other abort of this function.
-      controller.signal.throwIfAborted()
+      if (controller.signal.aborted) {
+        return null
+      }
       lastServerChange = changeNumber
       ownChangeNumbers.add(changeNumber)
       ownClaimChanges.set(id, changeNumber)
@@ -496,7 +515,7 @@ async function postChange(spec: SaveChangeSpec): Promise<SaveChangeResult> {
       return { id }
     } catch (err) {
       if (controller.signal.aborted) {
-        throw err
+        return null
       }
       if (err instanceof FetchError && err.status === 409) {
         const existingResponse = await getURLDirect<object>(
@@ -508,7 +527,7 @@ async function postChange(spec: SaveChangeSpec): Promise<SaveChangeResult> {
           null,
         )
         if (controller.signal.aborted || existingResponse === null) {
-          throw err
+          return null
         }
         const existing = existingResponse.doc
         // The comparison relies on the change serializing exactly as it was posted: no
@@ -535,7 +554,7 @@ async function postChange(spec: SaveChangeSpec): Promise<SaveChangeResult> {
       }
       await delay(saveRetryInterval, controller.signal)
       if (controller.signal.aborted) {
-        throw err
+        return null
       }
     }
   }
@@ -545,7 +564,7 @@ async function postChange(spec: SaveChangeSpec): Promise<SaveChangeResult> {
 // server requires change numbers to arrive in sequence and numbers are assigned only at
 // post time, so a conflict retry renumbers just the change currently being posted.
 let saveChainTail: Promise<unknown> = Promise.resolve()
-function saveChange(spec: SaveChangeSpec): Promise<SaveChangeResult> {
+function saveChange(spec: SaveChangeSpec): Promise<SaveChangeResult | null> {
   pendingChangeCount.value += 1
   const run = saveChainTail.then(() => postChange(spec))
   // Keep the chain alive even if this change is dropped or fails, so a later change is
@@ -1050,17 +1069,21 @@ function flattenFields(data: DeepReadonly<FieldsData>): DeepReadonly<FieldData>[
 }
 
 // executeFills posts the default form claims of a fill tree, parent before child (a child claim
-// is added under the id assigned to its parent), and returns the ids added, parents before
-// children, so a revert can remove them children-first. parentId is the id assigned to the fill
-// whose children these are, or undefined at the top level (where each fill carries its own
-// under). A dropped add skips its subtree. When the session is aborted it stops posting and
-// returns the ids added so far.
-async function executeFills(fills: readonly CardinalityFill[], parentId: string | undefined): Promise<string[]> {
+// is added under the id assigned to its parent). parentId is the id assigned to the fill whose
+// children these are, or undefined at the top level (where each fill carries its own under).
+//
+// It reports the ids added, parents before children, so a revert can remove them children-first,
+// and whether it got through the whole tree. Stopping early means the edit session or the page
+// went away with fills still unposted, which leaves the document short of claims the fills were
+// meant to add: the caller has to tell that apart from a tree which was filled in full, because
+// only the latter says anything about whether the document satisfies its cardinalities. A dropped
+// add is not an early stop: it skips its subtree and the rest of the tree is still filled.
+async function executeFills(fills: readonly CardinalityFill[], parentId: string | undefined): Promise<{ ids: string[]; completed: boolean }> {
   const controller = abortController
   const added: string[] = []
   for (const fill of fills) {
     const under = fill.under ?? parentId
-    let result: SaveChangeResult
+    let result: SaveChangeResult | null
     try {
       result = await saveChange(under === undefined ? { type: "add", patch: fill.patch } : { type: "add", patch: fill.patch, under })
     } catch (err) {
@@ -1069,18 +1092,23 @@ async function executeFills(fills: readonly CardinalityFill[], parentId: string 
       }
       throw err
     }
+    // The session went away with this fill unposted, so the ids collected so far are all there are.
+    if (result === null) {
+      return { ids: added, completed: false }
+    }
     added.push(result.id)
     // The change was committed, so its id stays in the returned list (a rollback still has to remove
     // it), but no further fill is posted once the session is aborted.
     if (controller.signal.aborted) {
-      return added
+      return { ids: added, completed: false }
     }
-    added.push(...(await executeFills(fill.children, result.id)))
-    if (controller.signal.aborted) {
-      return added
+    const children = await executeFills(fill.children, result.id)
+    added.push(...children.ids)
+    if (!children.completed || controller.signal.aborted) {
+      return { ids: added, completed: false }
     }
   }
-  return added
+  return { ids: added, completed: true }
 }
 
 async function onSave() {
@@ -1140,17 +1168,24 @@ async function onSave() {
   // them above). Only the class-tab form is filled; the All-properties tab manages claims itself.
   if (fieldsFormRef.value && mergedFieldsData.value && doc.value) {
     const fields = flattenFields(mergedFieldsData.value)
-    const addedFillIds = await executeFills(computeCardinalityFills(fields, doc.value.claims, isFileLink), undefined)
+    const fill = await executeFills(computeCardinalityFills(fields, doc.value.claims, isFileLink), undefined)
     await drainSaveChanges()
     if (sessionController.signal.aborted) {
+      return
+    }
+    // The fills stopped part way without this session aborting, which is the page going away with
+    // changes still unposted. The document is short of claims the fills were meant to add, so the
+    // cardinality check below would report violations which say nothing about what the user filled
+    // in. Nothing is rolled back and no error is surfaced: the form is going away with the page.
+    if (!fill.completed) {
       return
     }
     const violations = cardinalityViolations(fields, doc.value.claims, isFileLink)
     if (violations.length > 0) {
       console.error("DocumentEdit.onSave cardinality violations after fill", violations)
-      // Roll back the fills children-first (added lists parents before children) so a partly
+      // Roll back the fills children-first (the ids list parents before children) so a partly
       // filled document is not left behind, then surface the error and keep the session open.
-      for (const id of [...addedFillIds].reverse()) {
+      for (const id of [...fill.ids].reverse()) {
         try {
           await saveChange({ type: "remove", id })
         } catch (err) {

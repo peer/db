@@ -93,7 +93,8 @@ onBeforeUnmount(() => {
 async function submitChange(spec: SaveChangeSpec): Promise<SaveChangeResult | null> {
   try {
     const result = await saveChange!(spec)
-    if (abortController.signal.aborted) {
+    // A null result is the edit session reporting its own abort, which reads the same here as ours.
+    if (result === null || abortController.signal.aborted) {
       return null
     }
     return result

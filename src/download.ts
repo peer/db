@@ -286,9 +286,10 @@ export function useDownload(abortController: AbortController, router: Router, re
     resolved.sort((a, b) => (a.url < b.url ? -1 : a.url > b.url ? 1 : 0))
 
     // Hold the progress bar at 100% for MIN_HOLD_MS so the user perceives preparation
-    // completing before the phase transitions to "downloading" or "empty". delay() rejects
-    // with the signal's abort reason if cancel hits during the hold.
+    // completing before the phase transitions to "downloading" or "empty". A cancel during the
+    // hold ends it early, and this raises the abort reason so the preparation unwinds.
     await delay(MIN_HOLD_MS, signal)
+    signal.throwIfAborted()
 
     return resolved
   }
