@@ -106,7 +106,12 @@ const hasContent = computed(() => rows.value.length > 0)
   <table v-if="hasContent" class="pd-propertiesview flex w-full flex-col">
     <tbody class="grid grid-cols-1 sm:grid-cols-[20%_1fr] sm:gap-x-3">
       <template v-for="row in rows" :key="row.claim.id">
-        <tr class="pd-propertiesview-row contents">
+        <!--
+          Every row carries the property it is for in its class name. A property's label is rendered once,
+          on the first of its rows, so a row other than that one cannot be told which property it belongs
+          to from what it renders, while the rows of one property are what code driving the view addresses.
+        -->
+        <tr class="pd-propertiesview-row contents" :class="`pd-propertiesview-row-${row.propId}`">
           <td v-if="editable || row.firstOfProperty" class="pd-propertiesview-label px-2 py-1 align-top">
             <div class="flex flex-row flex-wrap items-center gap-x-2 gap-y-1 sm:flex-col sm:items-start">
               <span class="font-medium text-gray-700" :class="{ 'leading-none sm:pt-0.5': editable }"><DocumentRefInline :id="row.propId" :link="false" /></span>
