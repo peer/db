@@ -1,0 +1,30 @@
+{
+  "id": ["xeno.peerdb.org", "PRACTICE", "G2_CIRCUIT_WALK"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PRACTICE"] }],
+  "name": [{ "value": "The Full Circuit", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Ammelume", "gloss": "the long carry, as against the short work at the face" }],
+  "description": [
+    {
+      "value": "<p>Glass leaves the quarry on the backs of carriers who hold no position in any terrace sequence, and a full circuit of the habitable ring takes something over four years. A carrier walks with the wind on the outward leg and against it coming back, sleeps in the lee of terrace walls by an arrangement nobody has ever written down, and is fed at each stretch out of the position below the drop, which is a duty of the position and not of the household in it. They carry no cord and keep no account; what they are owed is settled where they stand, in food, and never carried forward. Four carriers in the survey have made the circuit more than three times, and one of them uses it to keep up a correspondence with a sibling at the warren at the rate of one message per switching. Terrace households describe carriers as nobody, meaning it as a category and not as an insult, and carriers use the same word of themselves and appear to enjoy it.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Nosilci steklo prenesejo okoli vsega pasu; en obhod traja več kot štiri leta.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>O vidro sai da pedreira às costas de portadores que não ocupam posição nenhuma em qualquer sequência de terraços, e uma volta completa ao anel habitável leva pouco mais de quatro anos. Um portador caminha a favor do vento na ida e contra ele no regresso, dorme ao abrigo dos muros dos terraços por um arranjo que nunca ninguém pôs por escrito e é alimentado, em cada troço, a partir da posição abaixo da queda de água, o que é um dever da posição e não da casa que a ocupa. Não levam corda nem guardam contas; o que lhes é devido salda-se ali mesmo, em comida, e nunca transita. Quatro portadores conhecidos do levantamento fizeram a volta mais de três vezes, e um deles usa-a para manter correspondência com um irmão na toca ao ritmo de uma mensagem por cada desvio das águas. As casas dos terraços dizem dos portadores que são ninguém, entendendo-o como categoria e não como insulto, e os portadores usam a mesma palavra a seu respeito e parecem gostar dela.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G2_GLASS_RELAY"] }],
+  "category": { "id": ["xeno.peerdb.org", "PRACTICE_CATEGORY", "SEASONAL_MIGRATION"] },
+  "periodicity": "a full circuit in something over four years",
+  "participants": {
+    "value": { "from": { "amount": 1, "precision": 1 }, "to": { "amount": 6, "precision": 1 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "firstDocumented": { "time": "2251-01-01T00:00:00Z", "precision": "y" },
+  "relatedPractice": [{ "id": ["xeno.peerdb.org", "PRACTICE", "G2_ELEVEN_DAYS"] }],
+  "image": [{ "value": "/f/NUAVdGBSfxanvBDAofQXtL", "name": "G2_CIRCUIT_WALK.jpg", "caption": "In progress", "source": "Consortium survey archive" }]
+}

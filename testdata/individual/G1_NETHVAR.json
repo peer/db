@@ -1,0 +1,18 @@
+{
+  "id": ["xeno.peerdb.org", "INDIVIDUAL", "G1_NETHVAR"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "INDIVIDUAL"] }],
+  "name": [{ "value": "Nethvar" }],
+  "lineageName": [{ "value": "Threnaf" }],
+  "description": [
+    {
+      "value": "<p>Held the cutting rota for a house of two hundred and was, for thirty years, the person the survey went to when a question about the canopy had no obvious owner. He was the origin of the standing joke about whether a house is a family or a maintenance rota, and he never explained it to anybody who asked directly, including on the two occasions when it was put to him formally. He died in 2310, and the house has not offered a replacement to the register, which is a matter for the house.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "species": { "id": ["xeno.peerdb.org", "SPECIES", "G1_VETHRANI"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G1_CANOPY_HOUSES"] }],
+  "role": [{ "value": "rota holder", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "formOfAddress": "house first, then name",
+  "born": { "time": "2228-01-01T00:00:00Z", "precision": "y" },
+  "died": { "time": "2310-01-01T00:00:00Z", "precision": "y" }
+}

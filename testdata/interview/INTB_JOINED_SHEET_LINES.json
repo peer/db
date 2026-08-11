@@ -1,0 +1,54 @@
+{
+  "id": ["xeno.peerdb.org", "INTERVIEW", "INTB_JOINED_SHEET_LINES"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "INTERVIEW"] }],
+  "title": [
+    {
+      "value": "The Joined Sheet at the Fourth Ground on what it keeps from before it joins",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "description": [
+    {
+      "value": "<p>Interview held inside a single flood joining, on the reading and setting of stake lines. The sheet states that it carries line positions from the separated phase, which the stake setters hold to be impossible.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "interviewee": [{ "id": ["xeno.peerdb.org", "COLLECTIVE", "G3_JOINED_SHEET"] }],
+  "interviewer": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_PETROVA"] }, { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_ZUPAN"] }],
+  "recordedAt": { "id": ["xeno.peerdb.org", "SITE", "G3_FOURTH_MEETING"] },
+  "recordedOn": { "time": "2310-01-26T00:00:00Z", "precision": "d" },
+  "expedition": { "id": ["xeno.peerdb.org", "EXPEDITION", "EXP_KILN_FLATS"] },
+  "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G3_STAKE_NOTATION"] }],
+  "duration": { "value": { "amount": 106, "precision": 1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "MINUTE"] }] },
+  "content": [
+    {
+      "value": "<p><b>Q.</b> When you were apart, where did you go?</p><p><b>A.</b> We were not anywhere. The bodies were places. We were not. You will keep making that mistake and we will keep answering it, because we have four hours.</p><p><b>Q.</b> What did you hold on this flat last year?</p><p><b>A.</b> The lines do not go back a year. They are replaced every tide-year and there is no way to state a holding that has ended. If you want last year, ask the setters, and they will tell you what they would like last year to have been.</p><p><b>Q.</b> What do you read that they do not?</p><p><b>A.</b> We read from the water side, which is a different set of leans. And we read what we set before we joined.</p><p><b>Q.</b> Before you joined. The separate bodies remember?</p><p><b>A.</b> The bodies do not remember. We do. What each of them stood next to for a season comes in with it, and it is in us for the four hours, and we use it.</p><p><b>Q.</b> Use it how?</p><p><b>A.</b> When a setter tells us a line was driven at the third lean and we know it was driven at the second, we say so, and he assumes we were told. He is polite about being caught. He believes a body alone is a hand and hands do not watch.</p><p><b>Q.</b> Would it matter if they knew?</p><p><b>A.</b> They would move the lines in the dry phase, when we are hands. It has taken forty years for them to argue with us as though we were a party. We would rather not go back.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "recording": [
+    {
+      "value": "/f/LiUhqHCLyLT7NV2fwXMmCH",
+      "name": "interview-INTB_JOINED_SHEET_LINES.mp3",
+      "caption": "Session recording",
+      "duration": { "value": { "amount": 106, "precision": 1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "MINUTE"] }] },
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G3_STAKE_NOTATION"] }]
+    }
+  ],
+  "ethics": { "id": ["xeno.peerdb.org", "ETHICS_PROTOCOL", "PROTOCOL_3"] },
+  "consentNote": [
+    {
+      "value": "<p>The sheet agreed to the record for the length of the joining and pointed out that consent given by it cannot be confirmed afterwards by anything the survey can talk to. It asked that the last two exchanges not be put to the stake setters in any form, including as a question.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "clearedReader": ["mock-user-researcher@localhost"],
+  "permission": [
+    { "action": { "id": ["core.peerdb.org", "PERMISSION_ACTIONS", "ACTION_READ"] }, "user": ["mock-user-researcher@localhost"], "scope": ["self"] },
+    {
+      "action": { "id": ["core.peerdb.org", "PERMISSION_ACTIONS", "ACTION_READ_HISTORIC"] },
+      "user": ["mock-user-researcher@localhost"],
+      "scope": ["self"]
+    }
+  ]
+}

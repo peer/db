@@ -1,0 +1,50 @@
+{
+  "id": ["xeno.peerdb.org", "INTERVIEW", "INTB_LODGE_FAR_ROAD"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "INTERVIEW"] }],
+  "title": [
+    {
+      "value": "Thellis on setting down a far road, and on a cord that could not be finished",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "description": [
+    {
+      "value": "<p>Interview with a far route holder of the hauling lodges on how a route is claimed, transferred and given up. Covers the setting down of a road in the previous season and the two haulers whose obligation the cord cannot close.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "interviewee": [{ "id": ["xeno.peerdb.org", "INDIVIDUAL", "G3_THELLIS"] }],
+  "interviewer": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_SUBRAMANIAN"] }, { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_DEMIR"] }],
+  "recordedAt": { "id": ["xeno.peerdb.org", "SITE", "G3_UPPER_HEARTHS"] },
+  "recordedOn": { "time": "2275-02-19T00:00:00Z", "precision": "d" },
+  "expedition": { "id": ["xeno.peerdb.org", "EXPEDITION", "EXP_HOLLOW_BAR_FIRST"] },
+  "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G3_LODGE_CORD"] }],
+  "duration": { "value": { "amount": 74, "precision": 1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "MINUTE"] }] },
+  "content": [
+    {
+      "value": "<p><b>Q.</b> May we photograph the cord and keep the photograph as our record of the route?</p><p><b>A.</b> You may photograph it. Then you will be holding a picture of an open debt, and the lodge will read you as standing in it. I would rather you understood that before you press the thing.</p><p><b>Q.</b> We had thought of the cord as writing.</p><p><b>A.</b> It is not writing. Writing can say a road was walked. A cord can only say a road is walked. There is no way in it to say a road is finished, and there is no way in it to name a person who owes nothing.</p><p><b>Q.</b> Then how is a road given up?</p><p><b>A.</b> The section is cut out. What remains is a cord with a gap in it, which any lodge can read at a glance and no lodge asks about.</p><p><b>Q.</b> You cut a section this season.</p><p><b>A.</b> I did.</p><p><b>Q.</b> Why?</p><p><b>A.</b> Two of mine went out on it in the dark quarter and the load came back and they did not. The cord has no way to say that. It can say they carry an obligation, forever, which is a lie of a kind I am not prepared to keep in my harness.</p><p><b>Q.</b> Does the lodge know why the section was cut?</p><p><b>A.</b> The lodge knows a section was cut. There is a difference and I have been living in it for a year.</p><p><b>Q.</b> Will you say their names for the record?</p><p><b>A.</b> Yes. Put them where they can be read by people who will be asked to account for them, and not in the part your students see.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "ethics": { "id": ["xeno.peerdb.org", "ETHICS_PROTOCOL", "PROTOCOL_3"] },
+  "consentNote": [
+    {
+      "value": "<p>Thellis consented to the whole of the record, including the two names, on the express condition that it sit at named access rather than open, because in his account a name in a cord is a claim on whoever reads it. He declined to have the cut cord deposited.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "clearedReader": ["mock-user@localhost"],
+  "permission": [
+    { "action": { "id": ["core.peerdb.org", "PERMISSION_ACTIONS", "ACTION_READ"] }, "user": ["mock-user@localhost"], "scope": ["self"] },
+    { "action": { "id": ["core.peerdb.org", "PERMISSION_ACTIONS", "ACTION_READ_HISTORIC"] }, "user": ["mock-user@localhost"], "scope": ["self"] }
+  ],
+  "requestedPermission": [
+    { "action": { "id": ["core.peerdb.org", "PERMISSION_ACTIONS", "ACTION_READ"] }, "user": ["mock-user@localhost"], "scope": ["self"] }
+  ],
+  "notes": [
+    {
+      "value": "<p>No recording exists because the exchange was conducted over the harness, and the survey&#39;s audio of a lodge cord reading is a record of two people breathing. The transcript is a translation made on the spot and checked with him the following day.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

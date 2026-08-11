@@ -1,0 +1,41 @@
+{
+  "id": ["xeno.peerdb.org", "CULTURE", "G4_CU_FLOOR_GRADES"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "CULTURE"] }],
+  "name": [{ "value": "Struck Floor Grades", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [
+    {
+      "value": "[those who hold the floors this span]",
+      "gloss": "a gloss of a six-beat figure; the culture has no spoken name because nobody in it has a voice",
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G4_COM_STRUCK_FLOOR"] }]
+    }
+  ],
+  "catalogueCode": "CU-2249-08",
+  "description": [
+    {
+      "value": "<p>Cohorts move together through ranked grades, each grade holding defined duties for its span, and a person struck into a grade takes over the previous holder&#39;s name and with it their debts, in-laws and unfinished quarrels. Public life is conducted on prepared floors whose ring carries for tens of kilometres, so the polity is audible rather than assembled and a grade can be called to order without anyone travelling. The mortuary floor is the exception and the only silent ground the culture keeps: the dead are laid out on polished rock and nothing is ever struck there. Salt cutting in the western pan is held by the grade that has just handed over its duties, because the basin is acoustically dead and a body in it cannot be called back for anything. Since 2261 the culture has also held the survey&#39;s positioning beacons, which it asked to have removed and which it now maintains.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Cele generacije skupaj prehajajo skozi stopnje, ob tem pa prevzamejo ime prejšnjega nosilca z vsemi njegovimi dolgovi.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>As coortes avançam juntas por graus hierarquizados, cada grau com deveres definidos durante o seu período, e quem é percutido para um grau assume o nome do titular anterior e, com ele, as suas dívidas, os seus sogros e as suas zangas por resolver. A vida pública decorre em lajes preparadas cujo ressoar se ouve a dezenas de quilómetros, pelo que a comunidade política é audível em vez de reunida e um grau pode ser chamado à ordem sem que ninguém se desloque. A laje mortuária é a exceção e o único terreno silencioso que esta cultura mantém: os mortos são estendidos sobre rocha polida e ali nunca nada é percutido. O corte do sal na salina ocidental cabe ao grau que acabou de entregar os seus deveres, porque a bacia é acusticamente morta e um corpo lá dentro não pode ser chamado de volta seja para o que for. Desde 2261 a cultura mantém também as balizas de posicionamento do levantamento, cuja remoção pediu e que agora conserva.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "practisedBy": [{ "id": ["xeno.peerdb.org", "SPECIES", "G4_FLOOR_KEEPERS"] }],
+  "presentAt": [{ "id": ["xeno.peerdb.org", "SITE", "G4_QUIET_FLOOR"] }, { "id": ["xeno.peerdb.org", "SITE", "G4_PAN_WORKINGS"] }],
+  "kinshipSystem": { "id": ["xeno.peerdb.org", "KINSHIP_SYSTEM", "NAME_INHERITANCE"] },
+  "socialOrganisation": { "id": ["xeno.peerdb.org", "SOCIAL_ORGANISATION", "AGE_GRADE_POLITY"] },
+  "subsistence": [
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "HERD_FOLLOWING"] },
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "MANAGED_DECAY"] }
+  ],
+  "communication": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G4_COM_STRUCK_FLOOR"] }],
+  "population": {
+    "value": { "from": { "amount": 150000, "precision": 100 }, "to": { "amount": 260000, "precision": 100 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "period": { "from": { "time": "2249-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true }
+}

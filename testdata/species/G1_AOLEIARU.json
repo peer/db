@@ -1,0 +1,74 @@
+{
+  "id": ["xeno.peerdb.org", "SPECIES", "G1_AOLEIARU"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SPECIES"] }],
+  "name": [{ "value": "Long Evaporite People", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [
+    {
+      "value": "Aoleiaru",
+      "gloss": "those who stayed, a name they apply to the world as readily as to themselves",
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G1_BASIN_SPEECH"] }]
+    }
+  ],
+  "exonym": [
+    {
+      "value": "Aoleirau, in the speech of the moon households, being the same word with the stress moved, which both parties consider significant",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "taxonCode": "TX-1322-a",
+  "description": [
+    {
+      "value": "<p>The largest population in the sector, spread thin across the salt basins of a hot and difficult world and organised almost entirely around who may draw water and when. Work is done in the four hours either side of dawn and the rest of the day is spent indoors behind a metre of wall, which makes the afternoon the busiest social period on the planet. Food comes out of flood beds in the deep basins and then out of fermentation pits, and the pit culture is divided when a household divides, so that a person&#39;s kin are exactly those who share a living ferment with them. The deep basins draw labour from every settlement within four days&#39; travel and give back water, which is a relationship the settlements describe as fair and the basins do not describe at all. The argument in the discipline is whether that arrangement is a state, and it has run for sixty years without either side conceding a term.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Ljudstvo velikih solnih kotanj; voda je najstrožje nadzorovana dobrina na planetu.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>A maior população do setor, espalhada com pouca densidade pelas bacias salinas de um mundo quente e difícil e organizada quase inteiramente em torno de quem pode tirar água e quando. Trabalha-se nas quatro horas antes e depois do amanhecer e o resto do dia passa-se dentro de casa, atrás de um metro de parede, o que faz da tarde o período de maior convívio do planeta. A comida sai dos canteiros de cheia das bacias profundas e depois das covas de fermentação, e a cultura da cova divide-se quando uma casa se divide, de maneira que os parentes de uma pessoa são exatamente aqueles que partilham com ela um fermento vivo. As bacias profundas atraem mão de obra de todos os povoados a menos de quatro dias de viagem e devolvem água, uma relação que os povoados descrevem como justa e que as bacias não descrevem de todo. A discussão na disciplina é se tal arranjo constitui um Estado, e dura há sessenta anos sem que nenhum dos lados ceda um termo.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "homeworld": { "id": ["xeno.peerdb.org", "PLANET", "G1_LEDGER_IV"] },
+  "alsoFoundOn": [{ "id": ["xeno.peerdb.org", "MOON", "G1_UNDERCOUNT"] }],
+  "bodyPlan": [
+    {
+      "value": "<p>Tall, narrow and bilaterally symmetrical, with two walking limbs, two arms and a long flexible neck that lets the head work at ground level without the body crouching. The integument is a fine pale scale that reflects hard light and closes flat against the body in dust; the eyes are recessed under a bony hood and see well into the polarised glare. They drink rarely and in quantity, and a great deal of the body plan is given over to storing what they drink.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "typicalHeight": { "value": { "amount": 1.85, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+  "typicalMass": { "value": { "amount": 71.0, "precision": 0.1 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "kg"] }] },
+  "lifespan": {
+    "value": { "from": { "amount": 38, "precision": 1 }, "to": { "amount": 80, "precision": 1 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_YEAR"] }]
+  },
+  "sensoryModality": [
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "THERMAL_RADIANCE"] },
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "HYGRORECEPTION"] },
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "POLARISED_VISION"] }
+  ],
+  "subsistence": [
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "SILT_GARDENING"] },
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "MANAGED_DECAY"] }
+  ],
+  "individuality": { "id": ["xeno.peerdb.org", "INDIVIDUALITY_MODE", "BOUNDED"] },
+  "socialOrganisation": { "id": ["xeno.peerdb.org", "SOCIAL_ORGANISATION", "TRIBUTARY_CENTRE"] },
+  "kinshipSystem": { "id": ["xeno.peerdb.org", "KINSHIP_SYSTEM", "FERMENT_LINEAGE"] },
+  "communication": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G1_BASIN_SPEECH"] }],
+  "population": {
+    "value": { "from": { "amount": 1000000, "precision": 1000 }, "to": { "amount": 1500000, "precision": 1000 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "contactStatus": { "id": ["xeno.peerdb.org", "CONTACT_STATUS", "SUSTAINED"] },
+  "firstContact": { "time": "2230-01-01T00:00:00Z", "precision": "y" },
+  "image": [
+    {
+      "value": "/f/33MFxRZA4qaPNBEA6ANUyR",
+      "name": "G1_AOLEIARU.jpg",
+      "caption": "Field plate",
+      "source": "Drawn in the field; Consortium collection"
+    }
+  ]
+}

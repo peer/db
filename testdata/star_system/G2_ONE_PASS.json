@@ -1,0 +1,18 @@
+{
+  "id": ["xeno.peerdb.org", "STAR_SYSTEM", "G2_ONE_PASS"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "STAR_SYSTEM"] }],
+  "name": [{ "value": "One Pass", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "catalogueCode": "OP-0294",
+  "description": [
+    {
+      "value": "<p>An M6 dwarf on the obscured side, observed for eleven days in 2294 by a ship that did not stop. One planet, one spectrum, one file.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "SECTOR", "G2_UNVISITED_QUARTER"] },
+  "spectralClass": "M6V",
+  "starCount": { "amount": 1, "precision": 1 },
+  "planetCount": { "amount": 1, "precision": 1 },
+  "distanceFromSol": { "value": { "amount": 23610.4, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "PARSEC"] }] },
+  "firstSurveyed": { "time": "2294-01-01T00:00:00Z", "precision": "y" }
+}

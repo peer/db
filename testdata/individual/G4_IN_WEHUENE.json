@@ -1,0 +1,22 @@
+{
+  "id": ["xeno.peerdb.org", "INDIVIDUAL", "G4_IN_WEHUENE"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "INDIVIDUAL"] }],
+  "name": [{ "value": "Wehuene" }],
+  "lineageName": [{ "value": "Water Corporation" }],
+  "description": [
+    {
+      "value": "<p>An officer of the water corporation who judged flow disputes on the upper terraces for thirty-one years and, from 2279, every dispute arising from the tether works that touched water. She gave the Consortium four long interviews on the corporation system and was the source of the standing observation that a body which maintains a thing should judge quarrels about it, since it will have to repair whatever it decides. She died in 2296, two years before the suspension, and never learned what the file would say about the works she had spent a decade adjudicating.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "species": { "id": ["xeno.peerdb.org", "SPECIES", "G4_TERRACE_BUILDERS"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G4_CU_TETHER_GUILDS"] }],
+  "role": [
+    { "value": "water corporation officer", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "judge of flow disputes", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }
+  ],
+  "formOfAddress": "by corporation, then by name",
+  "born": { "time": "2231-01-01T00:00:00Z", "precision": "y" },
+  "died": { "time": "2296-01-01T00:00:00Z", "precision": "y" },
+  "birthplace": { "id": ["xeno.peerdb.org", "SITE", "G4_TETHER_STUMP"] }
+}

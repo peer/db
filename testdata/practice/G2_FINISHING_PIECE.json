@@ -1,0 +1,24 @@
+{
+  "id": ["xeno.peerdb.org", "PRACTICE", "G2_FINISHING_PIECE"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PRACTICE"] }],
+  "name": [{ "value": "Finishing the Piece", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Marrenulle", "gloss": "the finishing, said of the piece and not of the maker" }],
+  "description": [
+    {
+      "value": "<p>Admission to any of the three corporations is by finishing one piece to the corporation&#39;s satisfaction, and there is no other route in, no descent claim and no probation. The candidate is given a rough blank and a fissure to work at, and is left there; nobody teaches during the piece, and asking is not forbidden so much as pointless, since a corporation member who answers has finished the piece for you and the piece is then theirs. Watching is allowed and is how the whole trade is learned, which means the years before a candidacy consist almost entirely of standing near people who are not talking. The finished piece is passed round the corporation at the warmest fissure available and either kept or handed back, and a piece handed back may be reworked and offered again as often as the candidate likes. Cutters have taken candidates on the ninth attempt. Benders are said never to have taken one past the fourth, which the benders neither confirm nor deny and the cutters mention often.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>V ceh te sprejmejo samo z izdelkom; med izdelavo nihče ne uči in vprašanje izdelek razvrednoti.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    }
+  ],
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G2_HEARTH_CORPORATIONS"] }, { "id": ["xeno.peerdb.org", "CULTURE", "G2_CUT_CRUST"] }],
+  "category": { "id": ["xeno.peerdb.org", "PRACTICE_CATEGORY", "CRAFT_TRANSMISSION"] },
+  "periodicity": "whenever somebody offers a piece",
+  "participants": {
+    "value": { "from": { "amount": 2, "precision": 1 }, "to": { "amount": 11, "precision": 1 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "firstDocumented": { "time": "2247-01-01T00:00:00Z", "precision": "y" }
+}

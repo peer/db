@@ -1,0 +1,33 @@
+{
+  "id": ["xeno.peerdb.org", "OBSERVATION", "OBSB_STRIP_HANDING_ON"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "OBSERVATION"] }],
+  "title": [
+    { "value": "Handing on of a stretch at the fourth hearth, Upper Hearths", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>Note on a holding term ending at the fourth of the fourteen banked hearths on the warm edge of the band. Watched from outside the firelight at the request of both households.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "content": [
+    {
+      "value": "<p>17.iv.2272. The outgoing hearth banked its fire at what we would call mid-afternoon and walked coldward with everything it owned, which took two carries and rather less time than we had allowed for. We followed at about eighty metres and were not asked to stop.</p><p>The party stood outside the next door until it was noticed. Nothing whatever was said about the ground. The outgoing holder gave two numbers, in this order:</p><ul><li><p>the number of sleeps the ice front now stands away, given as nine;</p></li><li><p>the number of bodies the household can still feed, given as five.</p></li></ul><p>The incoming holder answered with the same two numbers for herself, eleven and four, and then both households went inside together and the fire was lit from carried coals. No thanks were offered in either direction and none appeared to be expected. Themmis, who had walked out with us, confirmed afterwards that the order of hearths is known to everyone and written by no one.</p><p>What we cannot account for is the pause. The incoming holder was standing in her own doorway for some minutes before she gave any sign of having noticed a household outside it, and the interval was not filled by anything we could detect. Whether the pause is required, or polite, or simply the time it takes to finish what one is doing, we did not establish in four subsequent handings.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "expedition": { "id": ["xeno.peerdb.org", "EXPEDITION", "EXP_HOLLOW_BAR_FIRST"] },
+  "observedBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_WEN"] }, { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_DEMIR"] }],
+  "observedAt": { "id": ["xeno.peerdb.org", "SITE", "G3_UPPER_HEARTHS"] },
+  "observedOn": { "time": "2272-04-17T00:00:00Z", "precision": "d" },
+  "about": [
+    { "id": ["xeno.peerdb.org", "SPECIES", "G3_ILSETH"] },
+    { "id": ["xeno.peerdb.org", "PRACTICE", "G3_HANDING_ON"] },
+    { "id": ["xeno.peerdb.org", "CULTURE", "G3_STRIP_STEWARDSHIP"] }
+  ],
+  "method": [
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "PARTICIPANT_OBSERVATION"] },
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "ACOUSTIC_RECORDING"] }
+  ],
+  "fieldConditions": "Front wind steady off the ice all evening, the usual flat dusk light. Nobody present but the two households and ourselves."
+}

@@ -1,0 +1,18 @@
+{
+  "id": ["xeno.peerdb.org", "INDIVIDUAL", "G1_FOURTH_ENTRANCE"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "INDIVIDUAL"] }],
+  "name": [{ "value": "[dug the fourth entrance]", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "lineageName": [{ "value": "[fostered in the dark]", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "description": [
+    {
+      "value": "<p>Keeps the stores in the night tunnels, forty kilometres of excavation that is the only permanent construction on the planet and, by her account, the only argument on it that has ever been settled. She has an older sibling who went out to the terraces in 2288 and has not come back into the dark since, and she raises this with visitors rather more often than they expect. Her working estimate of what the tunnels hold is accurate to within a few per cent and is kept nowhere but in her.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "species": { "id": ["xeno.peerdb.org", "SPECIES", "G1_GRID44_HOLDERS"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G1_REACH_FOSTERAGE"] }],
+  "role": [{ "value": "store keeper", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "formOfAddress": "her own sign, pressed twice",
+  "born": { "time": "2264-01-01T00:00:00Z", "precision": "y" },
+  "birthplace": { "id": ["xeno.peerdb.org", "SITE", "G1_NIGHT_WARREN"] }
+}

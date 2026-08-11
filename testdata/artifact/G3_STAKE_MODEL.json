@@ -1,0 +1,29 @@
+{
+  "id": ["xeno.peerdb.org", "ARTIFACT", "G3_STAKE_MODEL"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "ARTIFACT"] }],
+  "name": [{ "value": "Line Model", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Onnekki-mu", "gloss": "the small standing count" }],
+  "accessionCode": "CCX-A-31067",
+  "description": [
+    {
+      "value": "<p>A portable lattice of eighty-one miniature stakes set into a bound frame, reproducing the spacing, height and lean of a household&#39;s line at one tide-year. It is read by running the hand across the tops, and the frame is built so that it can only be read in one direction, which is the direction the line is walked. This one was made at the fourth meeting in 2293, in front of the survey, in about forty minutes, and given away at the end of it. Two stakes lean seaward at the outer end, which the maker indicated and did not explain.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "category": { "id": ["xeno.peerdb.org", "ARTIFACT_CATEGORY", "RECORDING_LATTICE"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G3_TIDE_LINES"] }],
+  "foundAt": { "id": ["xeno.peerdb.org", "SITE", "G3_FOURTH_MEETING"] },
+  "material": [
+    { "value": "split stake wood", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "bound fibre frame", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "shell packing", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }
+  ],
+  "dimension": [
+    { "value": { "amount": 0.86, "precision": 0.001 }, "axis": "length", "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+    { "value": { "amount": 0.19, "precision": 0.001 }, "axis": "width", "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+    { "value": { "amount": 0.24, "precision": 0.001 }, "axis": "height", "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] }
+  ],
+  "dateMade": { "time": "2293-01-01T00:00:00Z", "precision": "d" },
+  "collectedBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_LINDQVIST"] }, { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_BONETTI"] }],
+  "image": [{ "value": "/f/AP8KFZNmL6bre41Mp7XRSB", "name": "G3_STAKE_MODEL.jpg", "caption": "Object drawing", "source": "Consortium collection" }]
+}

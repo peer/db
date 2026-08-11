@@ -1,0 +1,23 @@
+{
+  "id": ["xeno.peerdb.org", "RESEARCHER", "RES_FERREIRA"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "RESEARCHER"] }],
+  "name": [{ "value": "Marta" }],
+  "familyName": [{ "value": "Ferreira" }],
+  "researcherCode": "CCX-P-02244",
+  "description": [
+    {
+      "value": "<p>A sampler by training with an unusually literal reading of the return-or-dispose undertaking: she has carried material back to three worlds herself, twice at her own expense. She is the person the ethics apparatus calls when a consent has gone stale and the original custodian is dead. She has never once been late with a deposit.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "affiliatedWith": [{ "id": ["xeno.peerdb.org", "INSTITUTE", "INST_SUBSTRATE"] }, { "id": ["xeno.peerdb.org", "INSTITUTE", "INST_EVENING"] }],
+  "specialisesIn": [
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "MATERIAL_SAMPLING"] },
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "PARTICIPANT_OBSERVATION"] }
+  ],
+  "activePeriod": { "from": { "time": "2269-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true },
+  "born": { "time": "2244-01-01T00:00:00Z", "precision": "y" },
+  "image": [
+    { "value": "/f/2vGXgBts32ETvu1HdhBfXW", "name": "RES_FERREIRA.jpg", "caption": "Staff photograph", "source": "Consortium personnel record" }
+  ]
+}

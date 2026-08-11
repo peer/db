@@ -1,0 +1,26 @@
+{
+  "id": ["xeno.peerdb.org", "ORGANISM", "G1_SOOT_BROWSER"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "ORGANISM"] }],
+  "name": [{ "value": "Soot browser", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "vekhnir" }],
+  "taxonCode": "TX-2409-e",
+  "description": [
+    {
+      "value": "<p>A slow-moving canopy heterotroph that scrapes soot crust and soft growth off column surfaces and spends its whole life above sixty metres. Its gut culture breaks down the particulate that gives visitors a black cough, and a preparation of that culture is the standard local treatment for the same complaint, taken as a bitter paste and disliked by everyone who has been prescribed it. It is not eaten, on the grounds that anything living on soot tastes of soot.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "category": { "id": ["xeno.peerdb.org", "ORGANISM_CATEGORY", "MOTILE_HETEROTROPH"] },
+  "foundOn": [{ "id": ["xeno.peerdb.org", "PLANET", "G1_SIXTEEN_HUNDRED_V"] }],
+  "biome": [{ "id": ["xeno.peerdb.org", "BIOME", "HIGH_CANOPY"] }],
+  "typicalSize": { "value": { "amount": 1.1, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+  "typicalMass": { "value": { "amount": 14.0, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "kg"] }] },
+  "image": [
+    {
+      "value": "/f/1fU1tDdcHUsCoSPWLetTKH",
+      "name": "G1_SOOT_BROWSER.jpg",
+      "caption": "Field plate",
+      "source": "Drawn in the field; Consortium collection"
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "id": ["xeno.peerdb.org", "PRACTICE", "G4_PR_GOING_TO_LEE"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PRACTICE"] }],
+  "name": [{ "value": "Going to the Lee", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "onarumeiwa", "gloss": "the two who come back up" }],
+  "description": [
+    {
+      "value": "<p>A body that has grown past the threshold goes down off the crest into the lee, taking nothing with it, and is followed at a distance by two others who do not speak to it. Division runs some nine days along the midline seam, and throughout it the two watchers knock the same figure at intervals against wet rock, the one figure in the language that names no crest. The two who result come back up separately and by different faces, and each is greeted as somebody returning from an ordinary errand. Neither is the elder and neither inherits: whatever the undivided body carried is left in the lee and is not collected, ever, by anyone. The bands regard the whole business as unremarkable and were visibly puzzled that the survey wished to be present for it.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Um corpo que cresceu para além do limiar desce da crista para o lado de sotavento, sem levar nada consigo, e é seguido a distância por dois outros que não lhe falam. A divisão decorre ao longo de uns nove dias pela costura da linha média, e durante todo esse tempo os dois vigias batem a mesma figura a intervalos contra rocha molhada, a única figura da língua que não nomeia nenhuma crista. Os dois que resultam sobem de novo em separado e por faces diferentes, e cada um é saudado como alguém que regressa de um recado banal. Nenhum é o mais velho e nenhum herda: tudo o que o corpo indiviso trazia fica no sotavento e não é recolhido, nunca, por ninguém. Os bandos consideram todo o assunto banal e ficaram visivelmente intrigados por o levantamento querer estar presente.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G4_CU_RACK_BANDS"] }],
+  "category": { "id": ["xeno.peerdb.org", "PRACTICE_CATEGORY", "RITE_OF_PASSAGE"] },
+  "periodicity": "once in a life, at the threshold",
+  "participants": {
+    "value": { "from": { "amount": 3, "precision": 1 }, "to": { "amount": 5, "precision": 1 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "firstDocumented": { "time": "2251-01-01T00:00:00Z", "precision": "y" },
+  "relatedPractice": [{ "id": ["xeno.peerdb.org", "PRACTICE", "G4_PR_STRIKE_READING"] }]
+}

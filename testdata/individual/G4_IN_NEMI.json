@@ -1,0 +1,21 @@
+{
+  "id": ["xeno.peerdb.org", "INDIVIDUAL", "G4_IN_NEMI"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "INDIVIDUAL"] }],
+  "name": [{ "value": "Nemi" }],
+  "lineageName": [{ "value": "Aunelira Span" }],
+  "description": [
+    {
+      "value": "<p>Speaker for a canopy house that has held the same branch span for longer than the survey has existed, and the party to every agreement made in its name since 2309. She has spent most of her tenure on a boundary case against the house two spans over, which she expects to outlive and has arranged to be inherited. She consented to a photograph and to filtered recording of her flare, and refused, politely and three times, to let the bract dye be assayed, on the ground that the house owns the mark and not the chemistry.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "species": { "id": ["xeno.peerdb.org", "SPECIES", "G4_SMALLFOLK"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G4_CU_LADDER_GORGE"] }],
+  "role": [{ "value": "house speaker", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "formOfAddress": "as the house, in the house's name",
+  "born": { "time": "2296-01-01T00:00:00Z", "precision": "y" },
+  "birthplace": { "id": ["xeno.peerdb.org", "SITE", "G4_LADDER_TERRACES"] },
+  "image": [
+    { "value": "/f/JxqLsDyQyE7phWFanZN7uq", "name": "G4_IN_NEMI.jpg", "caption": "Portrait", "source": "Made with consent; Consortium collection" }
+  ]
+}

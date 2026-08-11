@@ -1,0 +1,58 @@
+{
+  "id": ["xeno.peerdb.org", "SPECIES", "G2_GRATE_COLLECTIVE"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SPECIES"] }],
+  "name": [{ "value": "Grate Fracture Collective", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "taxonCode": "TX-4171-c",
+  "description": [
+    {
+      "value": "<p>The mats in the fracture belt are chemically unlike anything on the neighbouring moons, and since 2279 the working position has been that this is because they are somebody&#39;s work rather than somebody&#39;s remains. Nothing has been met, nothing has been signalled to and nothing is authorised; the entry rests entirely on eleven grams of recovered material and on the regularity of the layering in it, which repeats on a pattern that no proposed abiotic mechanism reproduces. If the reading is right then the person is the whole belt, the mat sheets are components with no standing of their own, and the population figure below is meaningless in the way that counting a person&#39;s cells is meaningless. The figures are given because the register requires figures. The counter-position, that this is ordinary chemistry in an unusual solvent and the pattern is an artefact of how the cores were cut, is held by two of the four people who have examined the material.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    { "value": "<p>O njih vemo samo iz vzorcev; nihče jih ni srečal.</p>", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }] }
+  ],
+  "homeworld": { "id": ["xeno.peerdb.org", "MOON", "G2_GRATE"] },
+  "bodyPlan": [
+    {
+      "value": "<p>The recovered component bodies are thin flexible sheets, a few centimetres across and under a millimetre thick, layered in stacks with brine films between. Each sheet is a bilayer with a mineral-loaded underside that appears to do the chemical work and a soft upper face that binds to the sheet above. No limbs, no aperture and no differentiated region of any kind has been identified in the material available.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "typicalHeight": { "value": { "amount": 0.03, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+  "typicalMass": { "value": { "amount": 0.0009, "precision": 0.1 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "kg"] }] },
+  "lifespan": {
+    "value": { "from": { "amount": 5, "precision": 1 }, "to": { "amount": 800, "precision": 1 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_YEAR"] }]
+  },
+  "sensoryModality": [
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "CHEMICAL_PLUME"] },
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "CONTACT_CHEMO"] },
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "PRESSURE_GRADIENT"] }
+  ],
+  "subsistence": [
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "CHEMO_TENDING"] },
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "DRIFT_HARVESTING"] }
+  ],
+  "individuality": { "id": ["xeno.peerdb.org", "INDIVIDUALITY_MODE", "PERMANENT_COLLECTIVE"] },
+  "contestedIndividuality": { "id": ["xeno.peerdb.org", "INDIVIDUALITY_MODE", "SEASONAL_COLLECTIVE"] },
+  "socialOrganisation": { "id": ["xeno.peerdb.org", "SOCIAL_ORGANISATION", "CONSENSUS_ASSEMBLY"] },
+  "kinshipSystem": { "id": ["xeno.peerdb.org", "KINSHIP_SYSTEM", "SYMBIONT_SHARING"] },
+  "population": {
+    "value": { "from": { "amount": 200, "precision": 1000 }, "to": { "amount": 400000, "precision": 1000 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "contactStatus": { "id": ["xeno.peerdb.org", "CONTACT_STATUS", "NO_CONTACT"] },
+  "image": [
+    {
+      "value": "/f/8WwyqkddngVcrsWdYjTyVz",
+      "name": "G2_GRATE_COLLECTIVE.jpg",
+      "caption": "Field plate",
+      "source": "Drawn in the field; Consortium collection"
+    }
+  ],
+  "notes": [
+    {
+      "value": "<p>The social organisation given is a placeholder entered in 2280 pending assessment. Three review panels have now declined to remove it on the grounds that removing it would imply something.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

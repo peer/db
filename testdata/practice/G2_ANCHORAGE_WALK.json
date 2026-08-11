@@ -1,0 +1,28 @@
+{
+  "id": ["xeno.peerdb.org", "PRACTICE", "G2_ANCHORAGE_WALK"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PRACTICE"] }],
+  "name": [{ "value": "Walking the Anchorages", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Ussamesh", "gloss": "the going round, said of the house and never of its members" }],
+  "description": [
+    {
+      "value": "<p>A house works its named anchorages in a fixed round, moving on when the drift falls off, so that the whole set is walked once in something over a cycle and no anchorage stands unattended for longer than that. There are no landmarks; the walk is held on the planet&#39;s weak field, and it is on the walk that the young are taught, being sent to the back of the line and asked the bearing at every turn and corrected until they stop being wrong. An anchorage arrived at is checked, its poles reset if the ground has moved, and its stretch of cord replaced from the house stock, which is older than anyone walking. Nothing is claimed by being walked, because the house holds the ground whether it is standing on it or not, and a house that stopped walking would still hold it and would simply be a house that had stopped. Two houses meeting mid-flat pass on opposite sides and do not greet, which is not coldness but the only way to keep two headings clean.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Hiša v ustaljenem krogu obhodi svoja sidrišča; mladi hodijo zadaj in jih na vsakem ovinku sprašujejo za smer.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    }
+  ],
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G2_NET_HOUSES"] }],
+  "category": { "id": ["xeno.peerdb.org", "PRACTICE_CATEGORY", "SEASONAL_MIGRATION"] },
+  "periodicity": "a full round in something over one cycle",
+  "participants": {
+    "value": { "from": { "amount": 4, "precision": 1 }, "to": { "amount": 30, "precision": 1 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "firstDocumented": { "time": "2259-01-01T00:00:00Z", "precision": "y" },
+  "relatedPractice": [{ "id": ["xeno.peerdb.org", "PRACTICE", "G2_GAP_CORD"] }],
+  "image": [
+    { "value": "/f/PPNxDpHv3LrsgC9Tin5HLF", "name": "G2_ANCHORAGE_WALK.jpg", "caption": "In progress", "source": "Consortium survey archive" }
+  ]
+}

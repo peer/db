@@ -1,0 +1,38 @@
+{
+  "id": ["xeno.peerdb.org", "CULTURE", "G1_SHELF_LEDGER"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "CULTURE"] }],
+  "name": [{ "value": "The Shelf Ledger", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [
+    {
+      "value": "Fenkhev",
+      "gloss": "what is owed and by whom, which is the only thing they name",
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G1_COLUMN_PERCUSSION"] }]
+    }
+  ],
+  "catalogueCode": "CU-2271-16",
+  "description": [
+    {
+      "value": "<p>The order of the bare plateau above the forest, in which each person is a colony spread across two or three hectares and every relation between persons is an entry in a running account of obligation. Nothing is settled: an account that closed would end the relation it records, and the colonies treat the suggestion as a description of death rather than of accounting. Relatedness is not reckoned in any form, and enquiry into it has been made properly and answered plainly more than once. Bodies are replaced continuously without the colony marking the event, so a person here is the same person across two centuries and none of the material in them is. Business is conducted by drumming the shelf floor, at a rate no single body could sustain and a hectare of them can keep up for days.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>A ordem do planalto nu acima da floresta, em que cada pessoa é uma colónia espalhada por dois ou três hectares e cada relação entre pessoas é um lançamento numa conta corrente de obrigações. Nada é saldado: uma conta que fechasse poria fim à relação que regista, e as colónias tratam a sugestão como uma descrição da morte e não da contabilidade. O aparentamento não é contabilizado sob forma alguma, e a pergunta foi feita como deve ser e respondida com clareza mais do que uma vez. Os corpos são substituídos continuamente sem que a colónia assinale o acontecimento, pelo que uma pessoa aqui é a mesma pessoa ao longo de dois séculos e nada da matéria que a compõe é a mesma. Os assuntos tratam-se tamborilando no chão do planalto, a um ritmo que nenhum corpo sozinho conseguiria manter e que um hectare deles aguenta durante dias.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "practisedBy": [{ "id": ["xeno.peerdb.org", "SPECIES", "G1_KHEVNITH"] }],
+  "presentAt": [{ "id": ["xeno.peerdb.org", "SITE", "G1_CANOPY_TETHER"] }],
+  "kinshipSystem": { "id": ["xeno.peerdb.org", "KINSHIP_SYSTEM", "NOT_RECKONED"] },
+  "socialOrganisation": { "id": ["xeno.peerdb.org", "SOCIAL_ORGANISATION", "OBLIGATION_NETWORK"] },
+  "subsistence": [
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "DRIFT_HARVESTING"] },
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "MANAGED_DECAY"] }
+  ],
+  "communication": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G1_COLUMN_PERCUSSION"] }],
+  "population": {
+    "value": { "from": { "amount": 9000, "precision": 100 }, "to": { "amount": 24000, "precision": 100 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "period": { "from": { "time": "2268-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true },
+  "image": [{ "value": "/f/D6XiyWxNRAMPMWhnrHxjsA", "name": "G1_SHELF_LEDGER.jpg", "caption": "Gathering", "source": "Consortium survey archive" }]
+}

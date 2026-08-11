@@ -1,0 +1,39 @@
+{
+  "id": ["xeno.peerdb.org", "NARRATIVE", "G2_DROP_ORDER_CHANT"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "NARRATIVE"] }],
+  "title": [{ "value": "The Order of Opening", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [
+    {
+      "value": "Anumenulle wenne",
+      "gloss": "the eleven, said out",
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G2_PLATE_LIGHT"] }]
+    }
+  ],
+  "description": [
+    {
+      "value": "<p>The full sequence in which the drops are opened, held in metre so that no line can be taken out without the loss being audible. It is recited once at each assembly by one person, standing, without prompting.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "genre": { "id": ["xeno.peerdb.org", "NARRATIVE_GENRE", "INSTRUCTION_CHANT"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G2_SWITCHING_ASSEMBLY"] }],
+  "recordedBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_BEKELE"] }, { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_BRANDT"] }],
+  "recordedAt": { "id": ["xeno.peerdb.org", "SITE", "G2_TURNING_GROUND"] },
+  "recordedOn": { "time": "2277-01-01T00:00:00Z", "precision": "y" },
+  "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G2_PLATE_LIGHT"] }],
+  "content": [
+    {
+      "value": "<blockquote><p>High one first, and count into the wind.</p><p>Fourth and not third; the third is answered and stays shut.</p><p>Ninth, and wait on the ninth until the ninth is standing.</p><p>Second, sixth, eleventh, and nothing between them.</p><p>Then the long gap, which is opened by whoever is nearest and closed by whoever opened it.</p><p>Then the third, if the wall has changed its mind.</p></blockquote>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "recording": [
+    {
+      "value": "/f/MMU6U6MvEoWCTVp1ES1Tma",
+      "name": "narrative-G2_DROP_ORDER_CHANT.mp3",
+      "caption": "Performance, recorded on site",
+      "duration": { "value": { "amount": 18, "precision": 1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "MINUTE"] }] },
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G2_PLATE_LIGHT"] }]
+    }
+  ]
+}

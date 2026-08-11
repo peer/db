@@ -1,0 +1,28 @@
+{
+  "id": ["xeno.peerdb.org", "SITE", "G2_BEACON_HOUSE"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SITE"] }],
+  "name": [{ "value": "Beacon House", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "localName": [{}],
+  "description": [
+    {
+      "value": "<p>A navigation beacon set down on the ice in 2258 to mark the transect and left running when the ship departed. It was still running in 2298, and the returning team moved into it for eleven weeks rather than deploy a shelter. It now holds the sector&#39;s spare core boxes and a visitors&#39; log with fourteen entries.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "REGION", "G2_FORTY_YEAR_TRANSECT"] },
+  "siteType": { "id": ["xeno.peerdb.org", "SITE_TYPE", "RELAY_STATION"] },
+  "gridReference": "SU-19.4/+07.7",
+  "population": {
+    "value": { "from": { "amount": 0, "precision": 10 }, "to": { "amount": 5, "precision": 10 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "founded": { "time": "2258-01-01T00:00:00Z", "precision": "y" },
+  "occupation": { "from": { "time": "2258-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true },
+  "image": [{ "value": "/f/8ZGQRwsZ75JyEv7T9Mu8cz", "name": "G2_BEACON_HOUSE.jpg", "caption": "General view", "source": "Consortium survey archive" }],
+  "notes": [
+    {
+      "value": "<p>The log&#39;s first and last entries are forty years apart and are in the same hand, the beacon having been deployed and reoccupied by the same person at either end of a career. The twelve entries in between are all supply notes.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

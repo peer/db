@@ -1,0 +1,24 @@
+{
+  "id": ["xeno.peerdb.org", "ETHICS_PROTOCOL", "PROTOCOL_6"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "ETHICS_PROTOCOL"] }],
+  "name": [
+    { "value": "Protocol 6 (researcher records)", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "Protokol 6 (zapisi o raziskovalcih)", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }] },
+    { "value": "Protocolo 6 (registos dos investigadores)", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>Applies to autoethnographic notes, health data and team conflict records; requires deposit and a long embargo. Forbids use in personnel decisions and access by expedition leadership.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Velja za avtoetnografske zapise in zdravstvene podatke: zahteva hrambo z dolgim embargom.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Aplica-se a notas autoetnográficas, dados de saúde e registos de conflitos na equipa; exige depósito e um embargo longo. Proíbe o uso em decisões de pessoal e o acesso pela chefia da expedição.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "code": ["eth-6"]
+}

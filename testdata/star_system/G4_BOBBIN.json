@@ -1,0 +1,18 @@
+{
+  "id": ["xeno.peerdb.org", "STAR_SYSTEM", "G4_BOBBIN"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "STAR_SYSTEM"] }],
+  "name": [{ "value": "Bobbin", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "catalogueCode": "SPW-D/002",
+  "description": [
+    {
+      "value": "<p>The only catalogued star in the Cold Margin: a very late red dwarf with no planets and none of the debris a system usually leaves behind. It is listed chiefly as a fixed point from which to describe the emptiness around it.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "SECTOR", "G4_COLD_MARGIN"] },
+  "spectralClass": "M8V",
+  "starCount": { "amount": 1, "precision": 1 },
+  "planetCount": { "amount": 0, "precision": 1 },
+  "distanceFromSol": { "value": { "amount": 4418.6, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "PARSEC"] }] },
+  "firstSurveyed": { "time": "2259-01-01T00:00:00Z", "precision": "y" }
+}

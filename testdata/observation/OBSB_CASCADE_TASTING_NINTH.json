@@ -1,0 +1,39 @@
+{
+  "id": ["xeno.peerdb.org", "OBSERVATION", "OBSB_CASCADE_TASTING_NINTH"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "OBSERVATION"] }],
+  "title": [
+    { "value": "Tasting down the sixteen fermenting levels on a ninth day", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>The ninth-day tasting in the gorge, at which one batch was refused and the survey twice tried to pay for its dinner.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "content": [
+    {
+      "value": "<p>21.v.2278. Beginning at the bottom of the gorge and working upward, one pot opened on each of the sixteen fermenting levels. Each pot was tasted by the keeper of the level below it. No keeper tasted their own, and the order was not varied for any reason, including for the two levels whose keepers were absent and were stood in for.</p><p>At the ninth level Leiwaunu set the lid upside down on the ground beside the pot and moved on. Nothing was said, nothing was asked, and the batch went down the cascade to the lower terraces within the hour. We are told that a refusal is never explained and may not be argued with, and that this is the entire appeal procedure.</p><p>We were fed at the eleventh level and offered to contribute stores in return. The offer was declined with the phrase used to refuse a batch of ferment, which is not a coincidence. We then offered again, having failed to notice the first time, and were declined in the same words and taken indoors.</p><p>What we cannot yet establish is what the refusal at the ninth level was for. The material tasted, to us, exactly like the material at the eighth and the tenth, and our own analysis found nothing separating them.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "expedition": { "id": ["xeno.peerdb.org", "EXPEDITION", "EXP_LONG_WATER_SHELF"] },
+  "observedBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_HALVORSEN"] }, { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_REYES"] }],
+  "observedAt": { "id": ["xeno.peerdb.org", "SITE", "G4_LADDER_TERRACES"] },
+  "observedOn": { "time": "2278-05-21T00:00:00Z", "precision": "d" },
+  "about": [
+    { "id": ["xeno.peerdb.org", "PRACTICE", "G4_PR_CASCADE_TASTING"] },
+    { "id": ["xeno.peerdb.org", "CULTURE", "G4_CU_LADDER_GORGE"] },
+    { "id": ["xeno.peerdb.org", "SPECIES", "G4_WEIRFOLK"] }
+  ],
+  "method": [
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "PARTICIPANT_OBSERVATION"] },
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "MATERIAL_SAMPLING"] }
+  ],
+  "fieldConditions": "Wet, warm, the cascade running full after rain; canopy closed overhead and the houses above us grazing throughout.",
+  "notes": [
+    {
+      "value": "<p>The refused batch was sampled from the lower terrace with the keeper&#39;s agreement and is held under the gorge material numbers. The keeper asked that it not be described as spoiled, and it is not spoiled.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

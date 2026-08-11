@@ -1,0 +1,30 @@
+{
+  "id": ["xeno.peerdb.org", "SITE", "G1_BEACON_ARCHIVE"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SITE"] }],
+  "name": [{ "value": "Beacon Store", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "localName": [{}],
+  "description": [
+    {
+      "value": "<p>A navigation relay built in 2249, decommissioned in 2281 and reoccupied the following year as a bonded warehouse for material awaiting ethics clearance. The dish is still standing and still pointed at nothing in particular. Between twelve and forty people are stationed here at any time, all of them counting crates.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "REGION", "G1_BEACON_PLAIN"] },
+  "siteType": { "id": ["xeno.peerdb.org", "SITE_TYPE", "RELAY_STATION"] },
+  "gridReference": "LT-716.9/+22.5",
+  "population": {
+    "value": { "from": { "amount": 12, "precision": 10 }, "to": { "amount": 40, "precision": 10 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "founded": { "time": "2249-01-01T00:00:00Z", "precision": "y" },
+  "occupation": { "from": { "time": "2249-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true },
+  "image": [
+    { "value": "/f/3LhKMV8pZ3Lr8QZezrZsoi", "name": "G1_BEACON_ARCHIVE.jpg", "caption": "General view", "source": "Consortium survey archive" }
+  ],
+  "notes": [
+    {
+      "value": "<p>The oldest crate in the store was sealed in 2283 and its clearance is expected in the current decade. Staff have been known to nod at it on the way past.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

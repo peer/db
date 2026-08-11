@@ -1,0 +1,53 @@
+{
+  "id": ["xeno.peerdb.org", "INTERVIEW", "INTB_LEDGER_NEVER_CLOSED"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "INTERVIEW"] }],
+  "title": [{ "value": "Low Gallery Chorus on a position it has never closed", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "description": [
+    {
+      "value": "<p>Interview with the gallery chorus beneath the drum plain on the practice of stating a position before anything else. The chorus explains why no obligation of its has ever been settled.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "interviewee": [{ "id": ["xeno.peerdb.org", "COLLECTIVE", "G4_CO_LOW_GALLERY_CHORUS"] }],
+  "interviewer": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_VIRTANEN"] }, { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_PRASETYO"] }],
+  "recordedAt": { "id": ["xeno.peerdb.org", "SITE", "G4_QUIET_FLOOR"] },
+  "recordedOn": { "time": "2303-04-22T00:00:00Z", "precision": "d" },
+  "expedition": { "id": ["xeno.peerdb.org", "EXPEDITION", "EXP_SOUNDING_FLOOR"] },
+  "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G4_COM_STRUCK_FLOOR"] }],
+  "duration": { "value": { "amount": 156, "precision": 1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "MINUTE"] }] },
+  "content": [
+    {
+      "value": "<p><b>Q.</b> Where are you, so that a team can come to you?</p><p><b>A.</b> We are eleven galleries and forty kilometres. You are standing on the part of us that is nearest.</p><p><b>Q.</b> When did you last close a position?</p><p><b>A.</b> Never. Your own register says so and treats it as an oddity of ours, which we have enjoyed.</p><p><b>Q.</b> Do you find it hard to settle with the other chorus?</p><p><b>A.</b> You have asked whether we find it hard, as though there were a we that could be tired. Ask what closing does.</p><p><b>Q.</b> What does closing do?</p><p><b>A.</b> An open position is struck at every opening, by every gallery, in order. It is the thing that is struck most often and over the longest distance. It is what the far pair have of each other.</p><p><b>Q.</b> And if it closed?</p><p><b>A.</b> The eleventh gallery would have nothing to strike to the first except mat conditions, and mat conditions do not carry forty kilometres. We would come apart in a season and there would be two of us and then four, and none of them would be this.</p><p><b>Q.</b> So the ledger is not about goods.</p><p><b>A.</b> The ledger is the body. We have never said this to the surface people, who take us for very poor traders and are polite about it, and we would rather you left them that.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "recording": [
+    {
+      "value": "/f/MwK5yAWF9ghKnjRUEDbZib",
+      "name": "interview-INTB_LEDGER_NEVER_CLOSED.mp3",
+      "caption": "Session recording",
+      "duration": { "value": { "amount": 156, "precision": 1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "MINUTE"] }] },
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G4_COM_STRUCK_FLOOR"] }]
+    }
+  ],
+  "ethics": { "id": ["xeno.peerdb.org", "ETHICS_PROTOCOL", "PROTOCOL_3"] },
+  "consentNote": [
+    {
+      "value": "<p>The chorus consented to the record as one party and asked only that the material not be struck back onto any floor the surface grades work, which the survey has been able to promise because the archive is not on this world. It declined to nominate a custodian and said the requirement was a category error, politely.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "clearedReader": ["mock-user@localhost", "mock-user-curator@localhost"],
+  "permission": [
+    {
+      "action": { "id": ["core.peerdb.org", "PERMISSION_ACTIONS", "ACTION_READ"] },
+      "user": ["mock-user@localhost", "mock-user-curator@localhost"],
+      "scope": ["self"]
+    },
+    {
+      "action": { "id": ["core.peerdb.org", "PERMISSION_ACTIONS", "ACTION_READ_HISTORIC"] },
+      "user": ["mock-user@localhost", "mock-user-curator@localhost"],
+      "scope": ["self"]
+    }
+  ]
+}

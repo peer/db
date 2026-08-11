@@ -1,0 +1,60 @@
+{
+  "id": ["xeno.peerdb.org", "INTERVIEW", "INTB_CHANNEL_NAME_MOVED"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "INTERVIEW"] }],
+  "title": [
+    {
+      "value": "Meiroa on why a channel can be held, and on a name stone recut after the shift",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "description": [
+    {
+      "value": "<p>Interview with a house head of the channel houses on the ownership of named waters. Meiroa describes recutting a name stone after the 2286 shift so that a name sat over water another house had walked.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "interviewee": [{ "id": ["xeno.peerdb.org", "INDIVIDUAL", "G3_MEIROA"] }],
+  "interviewer": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_PETROVA"] }, { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_VASILAKIS"] }],
+  "recordedAt": { "id": ["xeno.peerdb.org", "SITE", "G3_TIDE_MEET"] },
+  "recordedOn": { "time": "2288-09-24T00:00:00Z", "precision": "d" },
+  "expedition": { "id": ["xeno.peerdb.org", "EXPEDITION", "EXP_SWEEPWATER_YEAR"] },
+  "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G3_SWEEP_CALL"] }],
+  "duration": { "value": { "amount": 66, "precision": 1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "MINUTE"] }] },
+  "content": [
+    {
+      "value": "<p><b>Q.</b> Could you draw the two channels for us?</p><p><b>A.</b> A drawing is of a place. A name is of water in a condition. If I drew it you would come back in four years and hold the drawing up and be wrong in a way that would take me a season to argue with.</p><p><b>Q.</b> The weir keepers say a channel cannot be held at all.</p><p><b>A.</b> That was answered before I was born and repeating an answer weakens it. Ask me something that is still open.</p><p><b>Q.</b> What happened at the shift?</p><p><b>A.</b> The water came out of the old bed over a season and went into a bed that had been walked by the house at the second meet for as long as anyone counts.</p><p><b>Q.</b> And the name?</p><p><b>A.</b> The name is of the water and the water moved. That is the whole of the argument and it is a good one.</p><p><b>Q.</b> Is it the argument you made?</p><p><b>A.</b> It is the argument I would make. What I did was go out at low water with my son and recut the stone at the new head before the other house had finished deciding whether anything had happened.</p><p><b>Q.</b> Have they read it?</p><p><b>A.</b> They walk that ground at the turn of the year. They have read it four times. They have not yet noticed that the cut is new, because a cut in that stone weathers in two seasons and they are not looking for a young cut, they are looking for water.</p><p><b>Q.</b> And when they notice?</p><p><b>A.</b> I am thirty-seven and I intend to be unavailable.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "recording": [
+    {
+      "value": "/f/TERDnMJJE6QM5tVz9hdzRw",
+      "name": "interview-INTB_CHANNEL_NAME_MOVED.mp3",
+      "caption": "Session recording",
+      "duration": { "value": { "amount": 66, "precision": 1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "MINUTE"] }] },
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G3_SWEEP_CALL"] }]
+    }
+  ],
+  "ethics": { "id": ["xeno.peerdb.org", "ETHICS_PROTOCOL", "PROTOCOL_2"] },
+  "consentNote": [
+    {
+      "value": "<p>Meiroa gave named consent for the material on the naming of waters, as the recognised holder of the form, and consented separately to the account of the recutting on the understanding that it is not put in front of the second meet house. She declined to have the stone photographed.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "clearedReader": ["mock-user-curator@localhost"],
+  "permission": [
+    { "action": { "id": ["core.peerdb.org", "PERMISSION_ACTIONS", "ACTION_READ"] }, "user": ["mock-user-curator@localhost"], "scope": ["self"] },
+    {
+      "action": { "id": ["core.peerdb.org", "PERMISSION_ACTIONS", "ACTION_READ_HISTORIC"] },
+      "user": ["mock-user-curator@localhost"],
+      "scope": ["self"]
+    },
+    { "action": { "id": ["core.peerdb.org", "PERMISSION_ACTIONS", "ACTION_UPDATE"] }, "user": ["mock-user-curator@localhost"], "scope": ["self"] },
+    {
+      "action": { "id": ["core.peerdb.org", "PERMISSION_ACTIONS", "ACTION_UPDATE_PERMISSIONS"] },
+      "user": ["mock-user-curator@localhost"],
+      "scope": ["self"]
+    }
+  ]
+}

@@ -1,0 +1,31 @@
+{
+  "id": ["xeno.peerdb.org", "PRACTICE", "G3_PIT_OPENING"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PRACTICE"] }],
+  "name": [{ "value": "Opening at the Stage", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Oarimanue", "gloss": "the share is opened" }],
+  "description": [
+    {
+      "value": "<p>A pit is opened by the person the lid names and by nobody else, at the stage the lid gives, and the first act is to read the rim by hand in front of at least two others so that the reading cannot later be disputed. The lid comes off upwind, the top layer is lifted out and thrown away without being looked at, and what is beneath is portioned by stage and not by weight: everyone present gets some of the same layer, or nobody does. Eating begins when the person who opened the pit has swallowed, and stops when they stand, and the pit is remarked and reclosed the same day whatever is left in it. Households name the meal for the stage rather than for the material, so that the same words describe two entirely different foods four years apart. The survey&#39;s first attempt to sample a rim mark in 2277 was understood as an opening, and the pit was portioned out on the spot to eleven people who had not expected to eat that day.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Jamo odpre le tisti, ki ga imenuje oznaka na pokrovu, in vsi navzoči dobijo isto plast.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    }
+  ],
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G3_FERMENT_HOUSEHOLDS"] }],
+  "category": { "id": ["xeno.peerdb.org", "PRACTICE_CATEGORY", "FOOD_PREPARATION"] },
+  "periodicity": "whenever a pit reaches its stated stage, from months to nine years",
+  "participants": {
+    "value": { "from": { "amount": 4, "precision": 1 }, "to": { "amount": 26, "precision": 1 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "firstDocumented": { "time": "2275-01-01T00:00:00Z", "precision": "y" },
+  "relatedPractice": [{ "id": ["xeno.peerdb.org", "PRACTICE", "G3_REFUSED_SHARE"] }],
+  "notes": [
+    {
+      "value": "<p>The pit opened in error in 2277 was at its fourth stage and is described in the field notes as excellent, which the ethics office required to be struck from the report and which survives in the notes.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

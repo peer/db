@@ -1,0 +1,24 @@
+{
+  "id": ["xeno.peerdb.org", "PLANET_TYPE", "EYEBALL"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PLANET_TYPE"] }],
+  "name": [
+    { "value": "Terminator-band terrestrial", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "Kopenski svet s pasom mraka", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }] },
+    { "value": "Telúrico de faixa do terminador", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>A tidally locked rocky world whose tolerable conditions are confined to a ring along the day-night boundary, between a scorched substellar point and a frozen night hemisphere. Excludes locked worlds carrying a global ocean.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Plimsko vklenjen kamnit svet, kjer so znosne razmere le v obroču ob meji med dnevom in nočjo.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Mundo rochoso aprisionado por maré cujas condições toleráveis se confinam a um anel ao longo da fronteira entre o dia e a noite, entre um ponto subestelar calcinado e um hemisfério noturno gelado. Exclui mundos aprisionados com um oceano global.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "code": ["eyeball"]
+}

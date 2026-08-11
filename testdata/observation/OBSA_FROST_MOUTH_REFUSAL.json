@@ -1,0 +1,37 @@
+{
+  "id": ["xeno.peerdb.org", "OBSERVATION", "OBSA_FROST_MOUTH_REFUSAL"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "OBSERVATION"] }],
+  "title": [
+    { "value": "One strike returned through the plug at the third mouth", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>A traveller refused at a sealed mouth in our presence and fed through the bored hole while we stood there. No reason was given, and in the knock language none can be.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "content": [
+    {
+      "value": "<p>At the third mouth, in the dark, about minus one hundred and thirty at the plug. A traveller struck twice, waited four beats and struck once, which says that one is coming in.</p><p>The tally keeper read the cord for the position claimed and for what the warren can carry. The answer was one strike returned through the plug and nothing else: no reason, no name, no second exchange. The knock language cannot put a hypothetical, so it cannot say what would have been enough.</p><p>Food and a heat brick went out through the bored hole while we stood there, and were entered on the cord. This is a duty and not a kindness and is entered as such. In the sixty-eight refusals on record the warren has never once refused the food.</p><p>The traveller knocked at the second mouth the same day and was let in. We do not know what changed between the two mouths, or whether anything did. Kullekan would not show us the cord and was under no obligation to.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "expedition": { "id": ["xeno.peerdb.org", "EXPEDITION", "EXP_COLD_QUARTER_WARREN"] },
+  "observedBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_SUBRAMANIAN"] }, { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_BONETTI"] }],
+  "observedAt": { "id": ["xeno.peerdb.org", "SITE", "G2_FROST_WARREN"] },
+  "observedOn": { "time": "2308-02-24T00:00:00Z", "precision": "d" },
+  "about": [
+    { "id": ["xeno.peerdb.org", "PRACTICE", "G2_REFUSAL_AT_MOUTH"] },
+    { "id": ["xeno.peerdb.org", "CULTURE", "G2_WARREN_TALLY"] },
+    { "id": ["xeno.peerdb.org", "SPECIES", "G2_MUNNAKULE"] }
+  ],
+  "method": [
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "PARTICIPANT_OBSERVATION"] },
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "ACOUSTIC_RECORDING"] }
+  ],
+  "fieldConditions": "Night hemisphere, no wind, our own lamps only and those kept low at the mouth. Two of us outside with the traveller and the tally keeper somewhere behind a metre of cast ice.",
+  "permission": [
+    { "action": { "id": ["core.peerdb.org", "PERMISSION_ACTIONS", "ACTION_UPDATE"] }, "user": ["mock-user-researcher@localhost"], "scope": ["self"] },
+    { "action": { "id": ["core.peerdb.org", "PERMISSION_ACTIONS", "ACTION_DELETE"] }, "user": ["mock-user-curator@localhost"], "scope": ["self"] }
+  ]
+}

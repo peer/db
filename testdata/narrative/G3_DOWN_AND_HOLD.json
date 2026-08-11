@@ -1,0 +1,35 @@
+{
+  "id": ["xeno.peerdb.org", "NARRATIVE", "G3_DOWN_AND_HOLD"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "NARRATIVE"] }],
+  "title": [{ "value": "Down and Hold", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [
+    { "value": "Ulleth-nesse", "gloss": "the harness count", "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G3_STRIP_SPEECH"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>A hauling count sung by a lodge on the long pull out of the night side, timed so that the pull falls on the held word and the recovery on the short ones. It is sung by everybody on the harness and stops the moment the sledge is moving freely.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "genre": { "id": ["xeno.peerdb.org", "NARRATIVE_GENRE", "WORK_SONG"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G3_ICE_LODGES"] }],
+  "recordedBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_DOYLE"] }, { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_REYES"] }],
+  "recordedAt": { "id": ["xeno.peerdb.org", "SITE", "G3_UPPER_HEARTHS"] },
+  "recordedOn": { "time": "2277-01-01T00:00:00Z", "precision": "y" },
+  "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G3_STRIP_SPEECH"] }],
+  "content": [
+    {
+      "value": "<blockquote><p>Down and hold.</p><p>Down and hold.</p><p>Ice at the back and the back is loaded.</p><p>Nothing in front but the way we came.</p><p>Two sleeps to the hearths, two sleeps, two sleeps.</p><p>Down and hold.</p></blockquote><p>The last line is repeated for as long as the sledge is stuck and is dropped without ceremony when it is not.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "recording": [
+    {
+      "value": "/f/Pr8JHURhXU5MdoUFEtXJ58",
+      "name": "narrative-G3_DOWN_AND_HOLD.mp3",
+      "caption": "Performance, recorded on site",
+      "duration": { "value": { "amount": 26, "precision": 1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "MINUTE"] }] },
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G3_STRIP_SPEECH"] }]
+    }
+  ]
+}

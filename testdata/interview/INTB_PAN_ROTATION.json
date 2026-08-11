@@ -1,0 +1,57 @@
+{
+  "id": ["xeno.peerdb.org", "INTERVIEW", "INTB_PAN_ROTATION"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "INTERVIEW"] }],
+  "title": [
+    { "value": "Ivarre on how the block groups take their turns at the pan", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>Interview cut into salt with the survey&#39;s steadiest informant on the pan, covering the rotation of block groups and what is traded for a turn. Recorded two years before contact was suspended.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "interviewee": [{ "id": ["xeno.peerdb.org", "INDIVIDUAL", "G3_IVARRE"] }],
+  "interviewer": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_SEO"] }, { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_HADDAD"] }],
+  "recordedAt": { "id": ["xeno.peerdb.org", "SITE", "G3_PAN_WORKINGS"] },
+  "recordedOn": { "time": "2296-04-11T00:00:00Z", "precision": "d" },
+  "expedition": { "id": ["xeno.peerdb.org", "EXPEDITION", "EXP_SALTMARCH_CONTACT"] },
+  "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G3_PAN_CUT"] }],
+  "duration": { "value": { "amount": 210, "precision": 1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "MINUTE"] }] },
+  "content": [
+    {
+      "value": "<p><i>Cut over one working day. Each answer is a block; the survey&#39;s questions were cut shallow at the block edge in the same hand.</i></p><p><b>Q.</b> May we lift the blocks and take them to the camp?</p><p><b>A.</b> You are asking to carry a sentence out of the room. Cut what you want onto your own material. These stay until the flood.</p><p><b>Q.</b> How is the order of turns settled?</p><p><b>A.</b> By the block group holders, at the rim, before the water goes down. It takes an afternoon and it looks like nothing.</p><p><b>Q.</b> Settled on what?</p><p><b>A.</b> On who owes whom. A turn on the second channel mouth is worth four turns anywhere else and everyone knows it, so the second mouth is not taken, it is bought.</p><p><b>Q.</b> Bought with what?</p><p><b>A.</b> With debt carried from the last flood, which nobody can prove, because the last flood took the cutting that recorded it. That is not a flaw. That is why anyone agrees to any of it.</p><p><b>Q.</b> Do the pan officers know?</p><p><b>A.</b> They set it. They take a share of the second mouth in every rotation and have since before I was cutting. If you write that down in a language that stays, you should know what you are doing.</p><p><b>Q.</b> We will write it down.</p><p><b>A.</b> Then you will be sent off this world, and it will be about this, and the officers will give a different reason and it will be a good one.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "recording": [
+    {
+      "value": "/f/RkTMpVKBjFMGJcaSorS75m",
+      "name": "interview-INTB_PAN_ROTATION.mp3",
+      "caption": "Session recording",
+      "duration": { "value": { "amount": 210, "precision": 1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "MINUTE"] }] },
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G3_PAN_CUT"] }]
+    }
+  ],
+  "ethics": { "id": ["xeno.peerdb.org", "ETHICS_PROTOCOL", "PROTOCOL_4"] },
+  "consentNote": [
+    {
+      "value": "<p>Ivarre consented to the survey&#39;s transcription and refused the removal of the blocks, on the ground that a statement here is unmade by flooding and a statement that cannot be unmade is a different kind of thing. He was explicit that he understood the transcription outlives the flood and cut the last block anyway.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "clearedReader": ["mock-user-curator@localhost"],
+  "permission": [
+    { "action": { "id": ["core.peerdb.org", "PERMISSION_ACTIONS", "ACTION_READ"] }, "user": ["mock-user-curator@localhost"], "scope": ["self"] },
+    {
+      "action": { "id": ["core.peerdb.org", "PERMISSION_ACTIONS", "ACTION_READ_HISTORIC"] },
+      "user": ["mock-user-curator@localhost"],
+      "scope": ["self"]
+    },
+    { "action": { "id": ["core.peerdb.org", "PERMISSION_ACTIONS", "ACTION_UPDATE"] }, "user": ["mock-user-curator@localhost"], "scope": ["self"] },
+    {
+      "action": { "id": ["core.peerdb.org", "PERMISSION_ACTIONS", "ACTION_UPDATE_PERMISSIONS"] },
+      "user": ["mock-user-curator@localhost"],
+      "scope": ["self"]
+    }
+  ]
+}

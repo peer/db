@@ -1,0 +1,68 @@
+{
+  "id": ["xeno.peerdb.org", "INTERVIEW", "INTB_WEST_LEDGER_INSTRUMENT"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "INTERVIEW"] }],
+  "title": [
+    {
+      "value": "West Ledger Chorus on the instrument in the shaft and three refused settlements",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "description": [
+    {
+      "value": "<p>Interview struck to the survey&#39;s floor plate from the western fracture system, which the programme never reached. The chorus gives its account of the 2281 loss and of what was said at the time.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "interviewee": [{ "id": ["xeno.peerdb.org", "COLLECTIVE", "G4_CO_WEST_LEDGER_CHORUS"] }],
+  "interviewer": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_PRASETYO"] }, { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_NOWAK"] }],
+  "recordedOn": { "time": "2304-11-08T00:00:00Z", "precision": "d" },
+  "expedition": { "id": ["xeno.peerdb.org", "EXPEDITION", "EXP_SOUNDING_FLOOR"] },
+  "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G4_COM_STRUCK_FLOOR"] }],
+  "duration": { "value": { "amount": 194, "precision": 1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "MINUTE"] }] },
+  "content": [
+    {
+      "value": "<p><b>Q.</b> We would like to settle the instrument. What would you accept?</p><p><b>A.</b> That is the fourth time. You are the third party to ask and the second to think the figure is the difficulty.</p><p><b>Q.</b> What is the difficulty?</p><p><b>A.</b> Your deposit record says the instrument was lowered with our agreement. It was lowered while we were stating that the shaft was working ground. We hold what was struck. It does not say what your paper says.</p><p><b>Q.</b> That is a serious claim about a colleague.</p><p><b>A.</b> It is a claim about a person who is in our ledger by name, in the only way we have of holding a name, which is the striking of it. We have carried it for twenty-three years and it does not fade, because nothing in this system fades until it is settled.</p><p><b>Q.</b> Why refuse the settlements, then, if the record is what you want corrected?</p><p><b>A.</b> Because a settlement closes the position and the position is the only reason you keep coming back. Three institutes have sent people down this fracture in twenty-three years. None of them came for the mats.</p><p><b>Q.</b> So the instrument is worth more where it is.</p><p><b>A.</b> The relation is worth more than the instrument, and you plainly agree, or we would be talking to a machine.</p><p><b>Q.</b> Would you accept a correction to the record instead?</p><p><b>A.</b> Strike it into a floor we can reach and we will consider it settled in the part of us that is a creditor. The rest of us would like the shaft back.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "recording": [
+    {
+      "value": "/f/4Dp6XaSd5NxDkDbw9NTrSy",
+      "name": "interview-INTB_WEST_LEDGER_INSTRUMENT.mp3",
+      "caption": "Session recording",
+      "duration": { "value": { "amount": 194, "precision": 1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "MINUTE"] }] },
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G4_COM_STRUCK_FLOOR"] }]
+    }
+  ],
+  "ethics": { "id": ["xeno.peerdb.org", "ETHICS_PROTOCOL", "PROTOCOL_6"] },
+  "consentNote": [
+    {
+      "value": "<p>The chorus consented to the whole record and asked that the passage naming the researcher be kept in, having twice been offered its removal. It regards a record from which the name has been taken out as a second loss of the same kind.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "clearedReader": ["mock-user-curator@localhost"],
+  "permission": [
+    { "action": { "id": ["core.peerdb.org", "PERMISSION_ACTIONS", "ACTION_READ"] }, "user": ["mock-user-curator@localhost"], "scope": ["self"] },
+    {
+      "action": { "id": ["core.peerdb.org", "PERMISSION_ACTIONS", "ACTION_READ_HISTORIC"] },
+      "user": ["mock-user-curator@localhost"],
+      "scope": ["self"]
+    },
+    { "action": { "id": ["core.peerdb.org", "PERMISSION_ACTIONS", "ACTION_UPDATE"] }, "user": ["mock-user-curator@localhost"], "scope": ["self"] },
+    {
+      "action": { "id": ["core.peerdb.org", "PERMISSION_ACTIONS", "ACTION_UPDATE_PERMISSIONS"] },
+      "user": ["mock-user-curator@localhost"],
+      "scope": ["self"]
+    }
+  ],
+  "requestedPermission": [
+    { "action": { "id": ["core.peerdb.org", "PERMISSION_ACTIONS", "ACTION_READ"] }, "user": ["mock-user@localhost"], "scope": ["self"] }
+  ],
+  "notes": [
+    {
+      "value": "<p>Filed under the researcher-records protocol because it names Consortium staff, which places it out of reach of expedition leadership, including the leader of the expedition whose team recorded it. The clearance office has confirmed that this is the correct handling and that nobody is happy about it.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

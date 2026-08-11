@@ -1,0 +1,23 @@
+{
+  "id": ["xeno.peerdb.org", "INDIVIDUAL", "G4_IN_RUMEIO"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "INDIVIDUAL"] }],
+  "name": [{ "value": "Rumeio" }],
+  "description": [
+    {
+      "value": "<p>One of the two people who came out of a division on the third crest in 2291, and the one who continued westward. He holds the whole of the life before the division as his own and describes the other as a fact about the past rather than as a relative. He has walked past the automated weather mast every second season since 2293 and has knocked at it, on the ground that it is on the crest and therefore present.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "species": { "id": ["xeno.peerdb.org", "SPECIES", "G4_RIDGE_DWELLERS"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G4_CU_RACK_BANDS"] }],
+  "role": [{ "value": "band member", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "formOfAddress": "by crest, not by name",
+  "born": { "time": "2277-01-01T00:00:00Z", "precision": "y" },
+  "birthplace": { "id": ["xeno.peerdb.org", "SITE", "G4_RACK_CAMP"] },
+  "notes": [
+    {
+      "value": "<p>The birth year is the year the undivided body began, which is why this entry and the next carry the same one. The register has no field for the date a person became two, and three separate proposals to add one have been withdrawn by their authors.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

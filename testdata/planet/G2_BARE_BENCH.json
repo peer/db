@@ -1,0 +1,36 @@
+{
+  "id": ["xeno.peerdb.org", "PLANET", "G2_BARE_BENCH"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PLANET"] }],
+  "name": [{ "value": "Bare Bench", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "catalogueCode": "SA-0229-a",
+  "description": [
+    {
+      "value": "<p>The exposed iron-nickel core of a world that lost its mantle to a grazing impact early in the galaxy&#39;s history, now circling close in and locked to its star. The dayside is a metallic pavement at around three hundred degrees; the nightside holds frozen sodium in permanent shadow. Long wrinkle ridges cross the surface where the metal contracted as it cooled, one of them running a quarter of the way round the planet. It is lifeless, and the survey was unusually firm that it always was.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>O núcleo de ferro e níquel, exposto, de um mundo que perdeu o manto num impacto rasante no início da história da galáxia, hoje em órbita cerrada e preso à estrela em rotação síncrona. O lado diurno é um pavimento metálico a cerca de trezentos graus; o lado noturno guarda sódio congelado em sombra permanente. Longas cristas de enrugamento atravessam a superfície onde o metal contraiu ao arrefecer, uma delas percorrendo um quarto da volta ao planeta. É um mundo sem vida, e o levantamento foi invulgarmente firme ao afirmar que sempre o foi.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "STAR_SYSTEM", "G2_STANDING_ASH"] },
+  "planetType": { "id": ["xeno.peerdb.org", "PLANET_TYPE", "STRIPPED_CORE"] },
+  "radius": { "value": { "amount": 0.55, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_RADIUS"] }] },
+  "mass": { "value": { "amount": 0.33, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_MASS"] }] },
+  "surfaceGravity": { "value": { "amount": 1.09, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "STANDARD_GRAVITY"] }] },
+  "dayLength": { "value": { "amount": 350.4, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "HOUR"] }] },
+  "orbitalPeriod": { "value": { "amount": 14.6, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_DAY"] }] },
+  "meanTemperature": { "value": { "amount": 62.0, "precision": 0.1 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "°C"] }] },
+  "hydrosphere": { "value": { "amount": 0, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "PERCENT"] }] },
+  "atmosphere": [
+    {
+      "value": "<p>None to speak of: a sodium and potassium exosphere at about ten nanobars, replenished by the star and blown off again. A suit on the surface records no pressure and no sound floor whatsoever.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "biosphereNone": true,
+  "contactStatus": { "id": ["xeno.peerdb.org", "CONTACT_STATUS", "NO_CONTACT"] },
+  "firstSurveyed": { "time": "2229-01-01T00:00:00Z", "precision": "y" },
+  "surveyPeriod": { "from": { "time": "2229-01-01T00:00:00Z", "precision": "y" }, "to": { "time": "2266-01-01T00:00:00Z", "precision": "y" } },
+  "image": [{ "value": "/f/1qG5n5hKbuxVLH4iveapDx", "name": "G2_BARE_BENCH.jpg", "caption": "Approach view", "source": "Consortium survey archive" }]
+}

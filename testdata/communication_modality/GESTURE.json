@@ -1,0 +1,24 @@
+{
+  "id": ["xeno.peerdb.org", "COMMUNICATION_MODALITY", "GESTURE"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_MODALITY"] }],
+  "name": [
+    { "value": "Gesture", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "Kretnje", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }] },
+    { "value": "Gesto", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>Meaningful configuration or motion of body parts, including full sign systems. Excludes posture read only as mood.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Pomenske drže in gibi telesa, vključno s celotnimi znakovnimi sistemi.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Configuração ou movimento significativo de partes do corpo, incluindo sistemas gestuais completos. Exclui a postura lida apenas como estado de espírito.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "code": ["gesture"]
+}

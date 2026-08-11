@@ -1,0 +1,39 @@
+{
+  "id": ["xeno.peerdb.org", "NARRATIVE", "G4_NA_WALL_SONG"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "NARRATIVE"] }],
+  "title": [{ "value": "Wall Song for the Turn of the Tide", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [
+    {
+      "value": "meirau meirau",
+      "gloss": "wall, wall: the opening words, which are also the refrain",
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G4_COM_FLAT_CALL"] }]
+    }
+  ],
+  "description": [
+    {
+      "value": "<p>A call worked along a length while the flood is coming in, one household calling and the next answering down the line, so that the wall is worked in the order in which it is held. It is not sung at low water and cannot be, since the doubled forms would then be instructions and somebody would have to obey them.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "genre": { "id": ["xeno.peerdb.org", "NARRATIVE_GENRE", "WORK_SONG"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G4_CU_WEIR_ORDER"] }],
+  "recordedBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_REYES"] }, { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_VASILAKIS"] }],
+  "recordedAt": { "id": ["xeno.peerdb.org", "SITE", "G4_UPPER_MIDDEN"] },
+  "recordedOn": { "time": "2249-01-01T00:00:00Z", "precision": "y" },
+  "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G4_COM_FLAT_CALL"] }],
+  "content": [
+    {
+      "value": "<blockquote><p>Wall, wall. The water is going out now.</p><p>Forty-one holds. Forty-one holds.</p><p>Give me the end of it. Give me the end of it.</p><p>Wall, wall. The water is coming back.</p><p>Forty-two holds. Forty-two holds.</p><p>I have the end of it. I am not letting go of it.</p></blockquote>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "recording": [
+    {
+      "value": "/f/21EWT6y2yfUNe4RiMM8zf3",
+      "name": "narrative-G4_NA_WALL_SONG.mp3",
+      "caption": "Performance, recorded on site",
+      "duration": { "value": { "amount": 16, "precision": 1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "MINUTE"] }] },
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G4_COM_FLAT_CALL"] }]
+    }
+  ]
+}

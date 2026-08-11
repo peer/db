@@ -1,0 +1,34 @@
+{
+  "id": ["xeno.peerdb.org", "OBSERVATION", "OBSB_STAGE_BOWL_MEAL"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "OBSERVATION"] }],
+  "title": [
+    { "value": "A pit opened at the fourth stage, and the portion that followed", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>Note on an opening and a meal at the drain terraces, at which the survey was portioned by stage along with everybody else.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "content": [
+    {
+      "value": "<p>15.i.2288. The lid named Wenaimu and gave the fourth stage, and Wenaimu opened it, upwind, with Onamu and one other standing where they could see her hands.</p><p>The rim was read by hand before it was touched otherwise, and read aloud, so that the reading could not later be disputed. The top layer was lifted out and thrown down the terrace without being looked at by anyone, including by the person throwing it.</p><p>What came out beneath was portioned by stage and not by weight. Everyone present, including the two of us, received some of each stage present in the pit, which meant that the smallest portion of the evening went to the person who had opened it. Ours was served in a wide thin bowl kept for first portions, glazed dull by long contact with the culture.</p><p>On the food itself the survey has recorded its opinion in the sample appendix, where it belongs. On the procedure we have one question outstanding: nobody has been able to tell us why the top layer must not be looked at, only that it must not be, and that the prohibition is older than the pit.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "expedition": { "id": ["xeno.peerdb.org", "EXPEDITION", "EXP_SWEEPWATER_YEAR"] },
+  "observedBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_OKONKWO"] }, { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_DEMIR"] }],
+  "observedAt": { "id": ["xeno.peerdb.org", "SITE", "G3_DRAIN_TERRACES"] },
+  "observedOn": { "time": "2288-01-15T00:00:00Z", "precision": "d" },
+  "about": [
+    { "id": ["xeno.peerdb.org", "SPECIES", "G3_NAWAIMU"] },
+    { "id": ["xeno.peerdb.org", "PRACTICE", "G3_PIT_OPENING"] },
+    { "id": ["xeno.peerdb.org", "CULTURE", "G3_FERMENT_HOUSEHOLDS"] }
+  ],
+  "method": [
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "PARTICIPANT_OBSERVATION"] },
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "MATERIAL_SAMPLING"] }
+  ],
+  "fieldConditions": "Warm and wet, the basins full from the flood, spill running two terraces down. Eleven of the household present and three from the neighbouring pit.",
+  "image": [{ "value": "/f/H2vGU5gKR64HmxiudhhCsb", "name": "OBSB_STAGE_BOWL_MEAL.jpg", "caption": "Taken at the time", "source": "Field record" }]
+}

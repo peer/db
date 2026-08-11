@@ -1,0 +1,48 @@
+{
+  "id": ["xeno.peerdb.org", "CULTURE", "G3_WARREN_SEASON"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "CULTURE"] }],
+  "name": [{ "value": "The Warren Occupation", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [
+    {
+      "value": "Hesseleth",
+      "gloss": "the time in the stone",
+      "inSystem": [
+        { "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G3_STRIP_SPEECH"] },
+        { "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G3_FACE_TAP"] }
+      ]
+    }
+  ],
+  "catalogueCode": "CU-2264-02",
+  "description": [
+    {
+      "value": "<p>For most of thirty years the lower terraces were lived in rather than merely worked, with households sharing cut passages, storage chambers and, unusually for the band, a common decision-making assembly. Two peoples occupied it together: one kept the herds and the hearths at the surface, the other opened and tended the rock faces below, and the arrangement held because neither could have kept the passages open alone. It ended when the ice front moved beyond a day&#39;s walk and the surface households followed it, leaving the faces to be worked by visits rather than by residence. The passages were empty when the survey returned in 2288 and the doorways have been silting up ever since. Nobody involved described the ending as a loss, and the register has recorded it as one anyway, for want of another column.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Skoraj trideset let so ljudje prebivali v izkopanih terasah, dokler se ledeni rob ni odmaknil predaleč. Leta 2288 so bili rovi prazni.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Durante quase trinta anos os terraços inferiores foram habitados e não apenas trabalhados, com as casas a partilharem passagens escavadas, câmaras de armazenamento e, coisa invulgar na faixa, uma assembleia comum de decisão. Dois povos os ocuparam em conjunto: um guardava as manadas e as lareiras à superfície, o outro abria e cuidava das frentes de rocha em baixo, e o arranjo aguentou-se porque nenhum dos dois teria conseguido manter as passagens abertas sozinho. Terminou quando a frente de gelo se afastou para lá de um dia de marcha e as casas da superfície a seguiram, deixando as frentes a ser trabalhadas por visitas e não por residência. As passagens estavam vazias quando o levantamento regressou em 2288 e as entradas têm vindo a assorear desde então. Nenhum dos envolvidos descreveu o fim como uma perda, e o registo assim o inscreveu mesmo assim, por falta de outra coluna.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "practisedBy": [{ "id": ["xeno.peerdb.org", "SPECIES", "G3_ILSETH"] }, { "id": ["xeno.peerdb.org", "SPECIES", "G3_TESSILEN"] }],
+  "presentAt": [{ "id": ["xeno.peerdb.org", "SITE", "G3_SHELF_WARREN"] }],
+  "kinshipSystem": { "id": ["xeno.peerdb.org", "KINSHIP_SYSTEM", "HEARTH_AFFILIATION"] },
+  "socialOrganisation": { "id": ["xeno.peerdb.org", "SOCIAL_ORGANISATION", "CONSENSUS_ASSEMBLY"] },
+  "subsistence": [
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "COLONY_GRAZING"] },
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "MANAGED_DECAY"] },
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "TRADE_DEPENDENCY"] }
+  ],
+  "communication": [
+    { "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G3_STRIP_SPEECH"] },
+    { "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G3_FACE_TAP"] }
+  ],
+  "population": {
+    "value": { "from": { "amount": 300, "precision": 100 }, "to": { "amount": 1200, "precision": 100 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "period": { "from": { "time": "2259-01-01T00:00:00Z", "precision": "y" }, "to": { "time": "2288-01-01T00:00:00Z", "precision": "y" } }
+}

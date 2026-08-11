@@ -1,0 +1,30 @@
+{
+  "id": ["xeno.peerdb.org", "REGION", "G1_WARM_POOL"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "REGION"] }],
+  "name": [{ "value": "The Warm Pool", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Hurenkath" }],
+  "description": [
+    {
+      "value": "<p>The substellar sea, shallow across most of its width, opaque with mineral suspension and broken everywhere by vent chimneys that reach the surface. Water temperature runs from four degrees at the margin to fifty at the chimneys, and the useful ground is the ring in between. The region was surveyed from orbit in 2259 and has not been walked since the suspension lifted.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "PLANET", "G1_KEPHRA_TWO"] },
+  "biome": [
+    { "id": ["xeno.peerdb.org", "BIOME", "SWEEP_FLAT"] },
+    { "id": ["xeno.peerdb.org", "BIOME", "VENT_FIELD"] },
+    { "id": ["xeno.peerdb.org", "BIOME", "DUSK_BELT"] }
+  ],
+  "area": { "value": { "amount": 2200000, "precision": 100 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "SQUARE_KILOMETRE"] }] },
+  "elevationRange": {
+    "value": { "from": { "amount": -3100, "precision": 10 }, "to": { "amount": 20, "precision": 10 } },
+    "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }]
+  },
+  "image": [{ "value": "/f/7Z15SzxLqhHmyuWifNuaiD", "name": "G1_WARM_POOL.jpg", "caption": "Regional view", "source": "Consortium survey archive" }],
+  "notes": [
+    {
+      "value": "<p>The region holds an estimated four fifths of the planet&#39;s population and not one catalogued site. The 2306 programme lists ground survey here as its first priority and has listed it so for six years.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

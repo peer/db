@@ -1,0 +1,20 @@
+{
+  "id": ["xeno.peerdb.org", "SITE", "G4_GLASS_QUARRY"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SITE"] }],
+  "name": [{ "value": "Glass Quarry", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "localName": [{ "value": "Vesshoth", "gloss": "the cutting place" }],
+  "description": [
+    {
+      "value": "<p>A working face seven hundred metres long in a bed of volcanic glass at the dayward edge of the march, where the wind has stripped the covering grit. Blanks are struck at the face and finished elsewhere. Work is timed against the heat rather than the light, since the light never changes.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "REGION", "G4_DUSK_MARCH"] },
+  "siteType": { "id": ["xeno.peerdb.org", "SITE_TYPE", "EXTRACTION_SITE"] },
+  "gridReference": "DM-231.8/11.2",
+  "population": {
+    "value": { "from": { "amount": 30, "precision": 10 }, "to": { "amount": 210, "precision": 10 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "occupation": { "from": { "time": "2236-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true }
+}

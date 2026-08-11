@@ -1,0 +1,23 @@
+{
+  "id": ["xeno.peerdb.org", "SITE", "G4_LADDER_TERRACES"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SITE"] }],
+  "name": [{ "value": "Ladder Terraces", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "localName": [{ "value": "Meiaure", "gloss": "the climbing steps" }],
+  "description": [
+    {
+      "value": "<p>Sixty-one built terraces cut into a river gorge at the forest edge, retained with timber and stone and fed by a controlled cascade from the top pool. The upper levels grow; the lower levels ferment. Maintenance of the retaining works is continuous and appears to be the main organising activity of the settlement attached to them.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "REGION", "G4_STANDING_WOOD"] },
+  "siteType": { "id": ["xeno.peerdb.org", "SITE_TYPE", "TERRACE_COMPLEX"] },
+  "gridReference": "SW-088.1/12.4",
+  "population": {
+    "value": { "from": { "amount": 2200, "precision": 10 }, "to": { "amount": 3400, "precision": 10 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "occupation": { "from": { "time": "2224-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true },
+  "image": [
+    { "value": "/f/2tuKkf8GJ2tCMZYraNEQbn", "name": "G4_LADDER_TERRACES.jpg", "caption": "General view", "source": "Consortium survey archive" }
+  ]
+}

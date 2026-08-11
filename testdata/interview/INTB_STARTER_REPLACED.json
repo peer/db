@@ -1,0 +1,54 @@
+{
+  "id": ["xeno.peerdb.org", "INTERVIEW", "INTB_STARTER_REPLACED"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "INTERVIEW"] }],
+  "title": [
+    {
+      "value": "Sovithan on a strain that died in the cold and what was put in its place",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "description": [
+    {
+      "value": "<p>Interview with a culture carrier at the frost house on keeping inherited strains through the cold season. Sovithan states that one chamber has been carrying a traded strain since 2289.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "interviewee": [{ "id": ["xeno.peerdb.org", "INDIVIDUAL", "G4_IN_SOVITHAN"] }],
+  "interviewer": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_FARAHANI"] }],
+  "recordedAt": { "id": ["xeno.peerdb.org", "SITE", "G4_FROST_HOUSE"] },
+  "recordedOn": { "time": "2292-12-01T00:00:00Z", "precision": "d" },
+  "expedition": { "id": ["xeno.peerdb.org", "EXPEDITION", "EXP_FETCH_BAND"] },
+  "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G4_COM_MARCH_SPEECH"] }],
+  "duration": { "value": { "amount": 63, "precision": 1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "MINUTE"] }] },
+  "content": [
+    {
+      "value": "<p><b>Q.</b> How long have you lived here?</p><p><b>A.</b> Nobody lives here. You stay. Living is what happens where the hearths are, and a person who said they lived in the frost house would be understood to be unwell.</p><p><b>Q.</b> How long have you stayed, then?</p><p><b>A.</b> Twenty-six days at a time, four times a year, since I was twenty-three.</p><p><b>Q.</b> What is in the third chamber?</p><p><b>A.</b> A strain the households have carried since the refounding. That is what is on the warmer and that is what the households say.</p><p><b>Q.</b> And what is in it?</p><p><b>A.</b> Something I traded off a nightward carrier three winters ago for two glass blanks and a debt I am still paying.</p><p><b>Q.</b> The original died?</p><p><b>A.</b> In the excursion when the door frame cracked. Four days below the line. I opened it and it was dead and I stood in the passage for an hour deciding what kind of person I was going to be.</p><p><b>Q.</b> Who knows?</p><p><b>A.</b> You. The carrier, who has no reason to say and every reason not to. And whoever eventually assays it, which is why I refused your colleague&#39;s assay and will refuse the next one, and now you know that reason too.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "recording": [
+    {
+      "value": "/f/4zWDNxqVSMV21P2LXaRqh1",
+      "name": "interview-INTB_STARTER_REPLACED.mp3",
+      "caption": "Session recording",
+      "duration": { "value": { "amount": 63, "precision": 1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "MINUTE"] }] },
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G4_COM_MARCH_SPEECH"] }]
+    }
+  ],
+  "ethics": { "id": ["xeno.peerdb.org", "ETHICS_PROTOCOL", "PROTOCOL_3"] },
+  "consentNote": [
+    {
+      "value": "<p>Sovithan agreed to the record and to its retention, and asked that no assay of the third chamber be proposed again while he is keeping it, which the expedition has treated as a condition rather than a preference. He declined to be told whether the material would be published.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "clearedReader": ["mock-user-researcher@localhost"],
+  "permission": [
+    { "action": { "id": ["core.peerdb.org", "PERMISSION_ACTIONS", "ACTION_READ"] }, "user": ["mock-user-researcher@localhost"], "scope": ["self"] },
+    {
+      "action": { "id": ["core.peerdb.org", "PERMISSION_ACTIONS", "ACTION_READ_HISTORIC"] },
+      "user": ["mock-user-researcher@localhost"],
+      "scope": ["self"]
+    }
+  ]
+}

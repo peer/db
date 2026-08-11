@@ -1,0 +1,20 @@
+{
+  "id": ["xeno.peerdb.org", "COLLECTIVE", "G3_QUARRY_SELF"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "COLLECTIVE"] }],
+  "name": [{ "value": "The Self at the Quarry", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "description": [
+    {
+      "value": "<p>A self that worked the graphite cuttings at the basin floor and carried blocks up to the rim, recorded at three descents and absent at the fourth. Its drumming stopped at some point between 2299 and 2301 and the bodies that had carried it were taken up by neighbouring selves within a season, which is what ending means here and is not described locally as a death. The discipline records it as one body for the same reason it records the others, and closes the record because the figure has not been heard since.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "species": { "id": ["xeno.peerdb.org", "SPECIES", "G3_RIM_DRUMMERS"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G3_RIM_CONVERGENCE"] }],
+  "role": [{ "value": "worker of the graphite cuttings", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "memberCount": {
+    "value": { "from": { "amount": 30, "precision": 10 }, "to": { "amount": 90, "precision": 10 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "activePeriod": { "from": { "time": "2272-01-01T00:00:00Z", "precision": "y" }, "to": { "time": "2301-01-01T00:00:00Z", "precision": "y" } },
+  "seat": { "id": ["xeno.peerdb.org", "SITE", "G3_BLACK_QUARRY"] }
+}

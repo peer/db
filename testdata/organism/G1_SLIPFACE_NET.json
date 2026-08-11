@@ -1,0 +1,25 @@
+{
+  "id": ["xeno.peerdb.org", "ORGANISM", "G1_SLIPFACE_NET"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "ORGANISM"] }],
+  "name": [{ "value": "Slip-face net", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "taxonCode": "TX-2214-d",
+  "description": [
+    {
+      "value": "<p>A filamentous decomposer network that spreads through the damp layer under the slip faces of the dune sea, breaking down whatever the wind buries and shifting nutrient tens of metres to wherever the next growth is. Browsing herds dig for its fruiting knots, and the walking bands read the herds by reading the network, which surfaces as a faint bloom on the sand after a cold night. It dies within hours of being lifted, which is why the description is still largely inferential.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "category": { "id": ["xeno.peerdb.org", "ORGANISM_CATEGORY", "DECOMPOSER_NETWORK"] },
+  "foundOn": [{ "id": ["xeno.peerdb.org", "PLANET", "G1_LEDGER_IV"] }],
+  "biome": [{ "id": ["xeno.peerdb.org", "BIOME", "REGOLITH_DUNE"] }],
+  "typicalSize": { "value": { "amount": 31.0, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+  "typicalMass": { "value": { "amount": 55.0, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "kg"] }] },
+  "image": [
+    {
+      "value": "/f/5iGXD7EsvLnHjWrzqsGTXu",
+      "name": "G1_SLIPFACE_NET.jpg",
+      "caption": "Field plate",
+      "source": "Drawn in the field; Consortium collection"
+    }
+  ]
+}

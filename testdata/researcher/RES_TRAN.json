@@ -1,0 +1,22 @@
+{
+  "id": ["xeno.peerdb.org", "RESEARCHER", "RES_TRAN"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "RESEARCHER"] }],
+  "name": [{ "value": "Linh" }],
+  "familyName": [{ "value": "Tran" }],
+  "researcherCode": "CCX-P-03330",
+  "description": [
+    {
+      "value": "<p>Led the descent programme that put three probes into an acid haze and got one of them talking, which is a better rate than the budget assumed and a worse one than the proposal promised. She reads other people&#39;s deposited field notes for pleasure and has twice found errors in her own that way.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "affiliatedWith": [{ "id": ["xeno.peerdb.org", "INSTITUTE", "INST_FARSIGHT"] }, { "id": ["xeno.peerdb.org", "INSTITUTE", "INST_CANOPY"] }],
+  "specialisesIn": [
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "REMOTE_SENSING"] },
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "ARCHIVAL_COMPARISON"] }
+  ],
+  "activePeriod": { "from": { "time": "2280-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true },
+  "born": { "time": "2255-01-01T00:00:00Z", "precision": "y" },
+  "website": ["https://observation.ccx.example/people/tran"],
+  "image": [{ "value": "/f/HG89ngjF5Eov1fuCZoefzr", "name": "RES_TRAN.jpg", "caption": "Staff photograph", "source": "Consortium personnel record" }]
+}

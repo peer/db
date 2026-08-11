@@ -1,0 +1,50 @@
+{
+  "id": ["xeno.peerdb.org", "CULTURE", "G3_FERMENT_HOUSEHOLDS"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "CULTURE"] }],
+  "name": [{ "value": "The Ferment Households", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [
+    {
+      "value": "Oarima",
+      "gloss": "the shares, meaning both the cultures and the people who carry them",
+      "inSystem": [
+        { "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G3_PIT_LEDGER"] },
+        { "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G3_SWEEP_CALL"] }
+      ]
+    }
+  ],
+  "catalogueCode": "CU-2274-09",
+  "description": [
+    {
+      "value": "<p>Households garden silt on the warm pool islands and keep fermentation pits whose cultures are older than any lineage and are divided, like an estate, when a household divides. Kin are those who carry a share of the same culture, so a marriage joins two ferments and a serious quarrel is settled by refusing one. Food is almost entirely staged rot, eaten at fixed stages and named for the stage rather than for the material, and a visitor is aware of the pits from a considerable distance for about a week. The register also records two exogamous halves inherited through the mother, which the households say simply follow the cultures; the two codes disagree in roughly one household in nine and nobody has decided which is wrong. Since contact, one culture has been shared outward, which produced a four-year ethics review and a feeding rota at the sector station.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Gospodinjstva si delijo žive kvasne kulture; sorodstvo teče po njih in ne po rojstvu. Prepir se konča z zavrnitvijo deleža.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>As casas cultivam o lodo nas ilhas do lago morno e mantêm covas de fermentação cujas culturas são mais antigas do que qualquer linhagem e se dividem, como um património, quando uma casa se divide. Parentes são os que carregam uma parte da mesma cultura, pelo que um casamento junta dois fermentos e uma zanga séria se resolve recusando um deles. A comida é quase toda podridão em fases, comida em estádios fixos e designada pelo estádio e não pela matéria, e um visitante dá pelas covas a uma distância considerável durante cerca de uma semana. O registo assinala também duas metades exógamas herdadas por via materna, que as casas dizem limitar-se a seguir as culturas; os dois códigos divergem em cerca de uma casa em cada nove e ninguém decidiu qual está errado. Desde o contacto, uma cultura foi partilhada para fora, o que deu origem a uma revisão ética de quatro anos e a uma escala de alimentação na estação do setor.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "practisedBy": [{ "id": ["xeno.peerdb.org", "SPECIES", "G3_NAWAIMU"] }],
+  "presentAt": [{ "id": ["xeno.peerdb.org", "SITE", "G3_DRAIN_TERRACES"] }, { "id": ["xeno.peerdb.org", "SITE", "G3_TIDE_MEET"] }],
+  "kinshipSystem": { "id": ["xeno.peerdb.org", "KINSHIP_SYSTEM", "FERMENT_LINEAGE"] },
+  "socialOrganisation": { "id": ["xeno.peerdb.org", "SOCIAL_ORGANISATION", "MATRILINEAL_MOIETIES"] },
+  "subsistence": [
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "MANAGED_DECAY"] },
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "SILT_GARDENING"] }
+  ],
+  "communication": [
+    { "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G3_PIT_LEDGER"] },
+    { "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G3_SWEEP_CALL"] }
+  ],
+  "population": {
+    "value": { "from": { "amount": 80000, "precision": 100 }, "to": { "amount": 250000, "precision": 100 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "period": { "from": { "time": "2274-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true },
+  "image": [
+    { "value": "/f/V3zUyjAgUsFESeRtjHssfr", "name": "G3_FERMENT_HOUSEHOLDS.jpg", "caption": "Gathering", "source": "Consortium survey archive" }
+  ]
+}

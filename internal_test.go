@@ -21,6 +21,10 @@ var (
 	TestingCheckCreateClassPermission  = checkCreateClassPermission
 	TestingChangedClaimProperties      = changedClaimProperties
 	TestingTopLevelClaimsByID          = topLevelClaimsByID
+	TestingTestDataClasses             = testDataClasses
+	TestingTestDataFilesDirectory      = testDataFilesDirectory
+	TestingLoadTestData                = loadTestData
+	TestingGenerateTestDataDocs        = generateTestDataDocuments
 )
 
 // TestingListReadableDocuments re-exports listReadableDocuments for tests, returning the readable document

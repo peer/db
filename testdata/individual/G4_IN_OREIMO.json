@@ -1,0 +1,24 @@
+{
+  "id": ["xeno.peerdb.org", "INDIVIDUAL", "G4_IN_OREIMO"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "INDIVIDUAL"] }],
+  "name": [{ "value": "Oreimo" }],
+  "lineageName": [{ "value": "of the Seventh Length" }],
+  "description": [
+    {
+      "value": "<p>The Consortium&#39;s principal interlocutor on the northern shelf since 2301, and the first speaker to explain the doubling grammar in terms a linguist could write down, after eight years in which nobody had thought to ask. She works a full tidal cycle before and after every session and has said that the sessions are the restful part. Her brother left the same hearth for the gorge terraces in 2299 and the two have not spoken since, a fact she volunteers and declines to expand on. She consented to a photograph in 2307 and asked that it be taken at low water, when the hide has darkened.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "species": { "id": ["xeno.peerdb.org", "SPECIES", "G4_WEIRFOLK"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G4_CU_WEIR_ORDER"] }],
+  "role": [
+    { "value": "interlocutor", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "wall worker", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }
+  ],
+  "formOfAddress": "by length and term",
+  "born": { "time": "2279-01-01T00:00:00Z", "precision": "y" },
+  "birthplace": { "id": ["xeno.peerdb.org", "SITE", "G4_UPPER_MIDDEN"] },
+  "image": [
+    { "value": "/f/W1du54sp3MqqF9eZjW6WMV", "name": "G4_IN_OREIMO.jpg", "caption": "Portrait", "source": "Made with consent; Consortium collection" }
+  ]
+}

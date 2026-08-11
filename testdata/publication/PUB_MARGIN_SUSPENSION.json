@@ -1,0 +1,41 @@
+{
+  "id": ["xeno.peerdb.org", "PUBLICATION", "PUB_MARGIN_SUSPENSION"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PUBLICATION"] }],
+  "title": [
+    {
+      "value": "Suspension as a Finding: The Margin Note Vent Following, the Leaving on the Ice, and Why We Stopped",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "doi": "10.5281/xeno.2297.0044",
+  "abstract": [
+    {
+      "value": "<p>The vent stewardship of Margin Note III conducts its mortuary practice at the vent line and asked, in the fourth year of our presence, that we not attend it. We report the request, our compliance, and the subsequent decision to suspend the programme entirely, and we treat all three as results rather than as administrative events. Against Vasilakis and Brandt, we hold that the suspension itself demonstrates the insufficiency of distant observation: nothing observable from orbit would have told us that we had been asked to leave, and the request was the most informative thing the stewardship ever said to us. A protocol for recording refusals as data, rather than as gaps in data, is proposed.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "author": [
+    { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_PETROVA"] },
+    { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_VIRTANEN"] },
+    { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_ARAI"] }
+  ],
+  "journal": "Contact Ethics and Protocol",
+  "publishedOn": { "time": "2297-03-01T00:00:00Z", "precision": "m" },
+  "about": [
+    { "id": ["xeno.peerdb.org", "SPECIES", "G1_MERENAU"] },
+    { "id": ["xeno.peerdb.org", "CULTURE", "G1_VENT_STEWARDSHIP"] },
+    { "id": ["xeno.peerdb.org", "PRACTICE", "G1_PLATFORM_LEAVING"] }
+  ],
+  "cites": [
+    { "id": ["xeno.peerdb.org", "PUBLICATION", "PUB_GREETING_ERROR"] },
+    { "id": ["xeno.peerdb.org", "PUBLICATION", "PUB_CANOPY_TETHER_HOUSES"] },
+    { "id": ["xeno.peerdb.org", "PUBLICATION", "PUB_REMOTE_SUFFICIENCY"] }
+  ],
+  "document": [{ "value": "/f/YZDvYtufxt1hmUnv3SUueg", "name": "PUB_MARGIN_SUSPENSION.pdf", "caption": "Author's accepted manuscript" }],
+  "notes": [
+    {
+      "value": "<p>Vasilakis was a member of the same expedition and is thanked in the acknowledgements, which is a fair summary of how the argument has proceeded since.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

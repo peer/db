@@ -1,0 +1,28 @@
+{
+  "id": ["xeno.peerdb.org", "ARTIFACT", "G2_WALL_MALLET"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "ARTIFACT"] }],
+  "name": [{ "value": "Riser Mallet", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Wallamenne mallu", "gloss": "the striker of the asking" }],
+  "accessionCode": "CCX-A-14830",
+  "description": [
+    {
+      "value": "<p>A short mallet with a head of laminated grazer plate on a stone shaft, made light on purpose so that a hard blow is difficult and a second blow is obvious to everybody nearby. The head is built up from nine plate layers glued with silt cement and rebuilt when it splits, which is about every four years. Wear on this one is concentrated on one face, since a mallet is always presented to the wall the same way round. It was retired in 2299 and replaced with one of identical construction.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "category": { "id": ["xeno.peerdb.org", "ARTIFACT_CATEGORY", "INSTRUMENT"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G2_EVENING_ROWS"] }],
+  "foundAt": { "id": ["xeno.peerdb.org", "SITE", "G2_LONG_EVENING_ROWS"] },
+  "material": [
+    { "value": "band grazer plate", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "stone", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "silt cement", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }
+  ],
+  "dimension": [
+    { "value": { "amount": 0.34, "precision": 0.001 }, "axis": "length", "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+    { "value": { "amount": 0.06, "precision": 0.001 }, "axis": "diameter", "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] }
+  ],
+  "dateMade": { "time": "2295-01-01T00:00:00Z", "precision": "y" },
+  "collectedBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_OKONKWO"] }, { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_FARAHANI"] }],
+  "image": [{ "value": "/f/E93z7ui7XxacRknDZSfrXp", "name": "G2_WALL_MALLET.jpg", "caption": "Object drawing", "source": "Consortium collection" }]
+}

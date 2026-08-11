@@ -1,0 +1,47 @@
+{
+  "id": ["xeno.peerdb.org", "PLANET", "G4_ODDMENT"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PLANET"] }],
+  "name": [{ "value": "Oddment", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "catalogueCode": "SPW-D/002-x",
+  "description": [
+    {
+      "value": "<p>An unbound world of 1.79 Earth masses, crossing the Cold Margin at forty-one kilometres a second and bound to nothing. A hydrogen-thickened nitrogen atmosphere holds its surface at minus 213 degrees rather than the minus 260 it would otherwise sit at, and radiogenic heat maintains a brine ocean beneath ninety kilometres of ice. Cell-like material was recovered from a surface crevasse in 2262 and remains the most argued-over sample in the sector. It is catalogued against Bobbin because it was found there, not because it belongs to it.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Svet brez zvezde, ki ga greje le notranja toplota; pod ledom je slanično morje.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Um mundo sem estrela, com 1,79 massas terrestres, que atravessa a Cold Margin a quarenta e um quilómetros por segundo sem estar preso a nada. Uma atmosfera de azoto espessada por hidrogénio mantém a sua superfície a menos 213 graus, em vez dos menos 260 em que de outro modo estaria, e o calor radiogénico sustenta um oceano de salmoura sob noventa quilómetros de gelo. Em 2262 recolheu-se material de aspeto celular numa fenda da superfície, e continua a ser a amostra mais discutida do setor. Está catalogado sob Bobbin porque ali foi encontrado, não porque lhe pertença.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "STAR_SYSTEM", "G4_BOBBIN"] },
+  "planetType": { "id": ["xeno.peerdb.org", "PLANET_TYPE", "UNBOUND"] },
+  "biome": [{ "id": ["xeno.peerdb.org", "BIOME", "ENDOLITH_ZONE"] }, { "id": ["xeno.peerdb.org", "BIOME", "BRINE_SEA"] }],
+  "radius": { "value": { "amount": 1.21, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_RADIUS"] }] },
+  "mass": { "value": { "amount": 1.79, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_MASS"] }] },
+  "surfaceGravity": { "value": { "amount": 1.22, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "STANDARD_GRAVITY"] }] },
+  "dayLength": { "value": { "amount": 8.9, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "HOUR"] }] },
+  "orbitalPeriod": { "value": { "amount": 0, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_DAY"] }] },
+  "meanTemperature": { "value": { "amount": -213.0, "precision": 0.1 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "°C"] }] },
+  "hydrosphere": { "value": { "amount": 0, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "PERCENT"] }] },
+  "atmosphere": [
+    {
+      "value": "<p>Nitrogen with six per cent hydrogen at 3.4 bar, still, black and completely clear. A hand lamp carries further here than anywhere else in the register.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "biosphereUnknown": true,
+  "contactStatus": { "id": ["xeno.peerdb.org", "CONTACT_STATUS", "NO_CONTACT"] },
+  "firstSurveyed": { "time": "2261-01-01T00:00:00Z", "precision": "y" },
+  "surveyPeriod": { "from": { "time": "2261-01-01T00:00:00Z", "precision": "y" }, "to": { "time": "2263-01-01T00:00:00Z", "precision": "y" } },
+  "image": [{ "value": "/f/NuWbkrdkdLeok5nn5hQ9kq", "name": "G4_ODDMENT.jpg", "caption": "Surface view", "source": "Consortium survey archive" }],
+  "notes": [
+    {
+      "value": "<p>The register requires a year length. This entry gives zero, which is wrong in a different way from every other number that could have been put there.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

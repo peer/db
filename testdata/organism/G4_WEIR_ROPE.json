@@ -1,0 +1,32 @@
+{
+  "id": ["xeno.peerdb.org", "ORGANISM", "G4_WEIR_ROPE"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "ORGANISM"] }],
+  "name": [{ "value": "Weir Rope", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Ureiwa" }],
+  "taxonCode": "TX-1104-a",
+  "description": [
+    {
+      "value": "<p>A cemented photosynthetic sessile of the Tall Shoals, growing as a bundle of flat straps up to three metres long that lie flat on the mud at low water and stand in the flood. The straps are stripped, retted in pits and laid into the cordage that ties every weir on the northern shelf, which makes it the most heavily managed organism on the world. Stands are cropped and never lifted, since the holdfast takes eleven years to re-establish.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "category": { "id": ["xeno.peerdb.org", "ORGANISM_CATEGORY", "PHOTO_SESSILE"] },
+  "foundOn": [{ "id": ["xeno.peerdb.org", "PLANET", "G4_LONG_WATER"] }],
+  "biome": [{ "id": ["xeno.peerdb.org", "BIOME", "SWEEP_FLAT"] }],
+  "typicalSize": { "value": { "amount": 3.4, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+  "typicalMass": { "value": { "amount": 11.0, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "kg"] }] },
+  "image": [
+    {
+      "value": "/f/Q6PFimncMToxyzJA3bLgY2",
+      "name": "G4_WEIR_ROPE.jpg",
+      "caption": "Field plate",
+      "source": "Drawn in the field; Consortium collection"
+    }
+  ],
+  "notes": [
+    {
+      "value": "<p>The retting pits are dug well upwind of anywhere anyone sleeps. The 2223 field camp was placed by an ecologist and moved, four days later, by everybody else.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

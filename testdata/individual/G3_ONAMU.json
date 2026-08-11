@@ -1,0 +1,21 @@
+{
+  "id": ["xeno.peerdb.org", "INDIVIDUAL", "G3_ONAMU"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "INDIVIDUAL"] }],
+  "name": [{ "value": "Onamu" }],
+  "lineageName": [{ "value": "Oarima" }],
+  "description": [
+    {
+      "value": "<p>Speaks for her mother&#39;s half at the terraces and belongs to one of the households in which the two codes disagree, her ferment share coming from one half and her mother from the other. She has been asked about this by four separate researchers and has given four consistent and mutually unhelpful answers, all of which amount to the shares being the thing that matters. She is aware that the register cannot hold both facts and has offered to have the register corrected.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "species": { "id": ["xeno.peerdb.org", "SPECIES", "G3_NAWAIMU"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G3_FERMENT_HOUSEHOLDS"] }],
+  "role": [
+    { "value": "moiety speaker", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "pit keeper", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }
+  ],
+  "formOfAddress": "by name and then the culture's name",
+  "born": { "time": "2283-01-01T00:00:00Z", "precision": "y" },
+  "birthplace": { "id": ["xeno.peerdb.org", "SITE", "G3_DRAIN_TERRACES"] }
+}

@@ -1,0 +1,54 @@
+{
+  "id": ["xeno.peerdb.org", "NARRATIVE", "G3_LID_RIDDLES"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "NARRATIVE"] }],
+  "title": [{ "value": "What the Lid Asks", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [
+    {
+      "value": "Oarimau-nea",
+      "gloss": "the asking at the lid",
+      "inSystem": [
+        { "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G3_SWEEP_CALL"] },
+        { "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G3_PIT_LEDGER"] }
+      ]
+    }
+  ],
+  "description": [
+    {
+      "value": "<p>An ordered exchange of set problems put to a visiting household before a pit is opened in its presence, with answers that are fixed and known to everybody who has ever been asked. Getting one wrong does not stop the opening; getting one right is how a household establishes that it may be present at all.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "genre": { "id": ["xeno.peerdb.org", "NARRATIVE_GENRE", "RIDDLE_SEQUENCE"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G3_FERMENT_HOUSEHOLDS"] }],
+  "recordedBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_REYES"] }, { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_BAUTISTA"] }],
+  "recordedAt": { "id": ["xeno.peerdb.org", "SITE", "G3_TIDE_MEET"] },
+  "recordedOn": { "time": "2284-01-01T00:00:00Z", "precision": "y" },
+  "inSystem": [
+    { "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G3_SWEEP_CALL"] },
+    { "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G3_PIT_LEDGER"] }
+  ],
+  "content": [
+    {
+      "value": "<blockquote><p>What sits in the dark four years and comes out with a name it did not go in with? The third stage.</p><p>What is mine, and is not mine, and will be my daughter&#39;s? The culture.</p><p>What is thrown away by the one who wanted it most? The top layer.</p><p>What is opened once and never opened again? A pit opened early.</p><p>Who may stand at the rim? Whoever has answered four.</p></blockquote>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "recording": [
+    {
+      "value": "/f/Cjdr7ZvxD7pdK7YsvyfTE9",
+      "name": "narrative-G3_LID_RIDDLES.mp3",
+      "caption": "Performance, recorded on site",
+      "duration": { "value": { "amount": 12, "precision": 1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "MINUTE"] }] },
+      "inSystem": [
+        { "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G3_SWEEP_CALL"] },
+        { "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G3_PIT_LEDGER"] }
+      ]
+    }
+  ],
+  "notes": [
+    {
+      "value": "<p>The survey has answered four on three occasions and has been permitted to stand at the rim each time. It has never been asked a fifth, and the fifth is not, on the evidence, a question.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

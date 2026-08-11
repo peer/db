@@ -1,0 +1,39 @@
+{
+  "id": ["xeno.peerdb.org", "NARRATIVE", "G4_NA_SCRAPED_MARK"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "NARRATIVE"] }],
+  "title": [{ "value": "The House That Scraped Its Mark", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [
+    {
+      "value": "aunelira nemi",
+      "gloss": "the scraping, told as a warning",
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G4_COM_SPAN_LIGHT"] }]
+    }
+  ],
+  "description": [
+    {
+      "value": "<p>A cautionary account told at the terraces about a canopy house that scraped a span mark rather than let it be answered, and so made a claim that had never been true. It is performed in flare by one speaker while another holds up a fresh mark unlit, and takes about ninety seconds end to end.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "genre": { "id": ["xeno.peerdb.org", "NARRATIVE_GENRE", "CAUTIONARY_ACCOUNT"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G4_CU_LADDER_GORGE"] }],
+  "recordedBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_TRAN"] }],
+  "recordedAt": { "id": ["xeno.peerdb.org", "SITE", "G4_LADDER_TERRACES"] },
+  "recordedOn": { "time": "2264-01-01T00:00:00Z", "precision": "y" },
+  "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G4_COM_SPAN_LIGHT"] }],
+  "content": [
+    {
+      "value": "<p>A house held four spans. The fourth was held from the break at the edge and no further. The house wanted the far side of the break and answered nobody about it.</p><p>The house scraped the bar. Now the mark says three spans and there is no break on it. The house has three spans. The house has always had three spans.</p><p>The far side of the break is held by nobody. It is grazed by nobody. It is the only length in the gorge with nothing on it, and it is there this morning, and you may go and look at it.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "recording": [
+    {
+      "value": "/f/DkkeGAD981EgWTxR42Xg2U",
+      "name": "narrative-G4_NA_SCRAPED_MARK.mp3",
+      "caption": "Performance, recorded on site",
+      "duration": { "value": { "amount": 19, "precision": 1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "MINUTE"] }] },
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G4_COM_SPAN_LIGHT"] }]
+    }
+  ]
+}

@@ -3,6 +3,7 @@ globals:
     - domain: localhost
       indexPrefix: peerdb
       schema: peerdb
+      title: Consortium for Comparative Xenoanthropology
       languagePriority:
         en: [und]
         sl: [en, und]
@@ -12,29 +13,171 @@ globals:
         searchResultsTable: true
         downloadButtons: true
         indexAncestorProperties: true
+        # The list replaces the default rather than extending it, so the permission properties,
+        # hidden by default, are repeated here.
+        hiddenFacetProperties:
+          - SBCZpqwjH3DvAyqJnWpT1Z # HAS_PERMISSION
+          - 3Gj34jZfgiR9gJ1m1b7mJX # HAS_REQUESTED_PERMISSION
+          - D3CeMvwWZrrNr49MWTAqys # IN_LANGUAGE
+          - AhZqQb5fpmXT9Xgnbt1z3t # IN_UNIT
+      # Reading is granted per class instead of on everything, so that the test data set has
+      # something to demonstrate document-level permissions with: interviews are missing from the
+      # list below, which leaves an interview reachable only through the permission claims it
+      # carries itself, or through the two roles which are granted the class outright (ethics and
+      # admin). Every other class is public, the core schema documents included, because without
+      # those nothing resolves a label.
+      #
+      # Creating is granted per class as well, and it is what the working roles differ on: each one
+      # opens the kinds of entry the work it is named after produces, so what the create page offers
+      # depends on who is signed in. What is not scoped is who may improve an entry which is already
+      # there: every working role is granted updating on everything, which the read scopes narrow on
+      # their own, because an action is held only together with what it requires and updating
+      # requires reading. So it comes to "may change whatever they can see", which for an interview
+      # means the ones its own claims hand them. What stays narrow is who may start a new entry, and
+      # who may decide access to a record which is closed.
       roles:
         "":
-          ACTION_READ:
-            - all
-        historic:
-          ACTION_READ_HISTORIC:
-            - all
+          ACTION_READ: &publicClasses
+            # Files are scoped separately from documents: a claim scope covers documents only, so
+            # without this the attachments of a public document would be unreadable.
+            - files
+            - core.peerdb.org,INSTANCE_OF=core.peerdb.org,CLASS
+            - core.peerdb.org,INSTANCE_OF=core.peerdb.org,PROPERTY
+            - core.peerdb.org,INSTANCE_OF=core.peerdb.org,PAGE
+            - core.peerdb.org,INSTANCE_OF=core.peerdb.org,VOCABULARY
+            - core.peerdb.org,INSTANCE_OF=core.peerdb.org,LANGUAGE
+            - core.peerdb.org,INSTANCE_OF=core.peerdb.org,UNIT
+            - core.peerdb.org,INSTANCE_OF=core.peerdb.org,VALUE_TYPE
+            - core.peerdb.org,INSTANCE_OF=core.peerdb.org,PERMISSION_ACTIONS
+            - core.peerdb.org,INSTANCE_OF=xeno.peerdb.org,GALAXY
+            - core.peerdb.org,INSTANCE_OF=xeno.peerdb.org,SECTOR
+            - core.peerdb.org,INSTANCE_OF=xeno.peerdb.org,STAR_SYSTEM
+            - core.peerdb.org,INSTANCE_OF=xeno.peerdb.org,PLANET
+            - core.peerdb.org,INSTANCE_OF=xeno.peerdb.org,MOON
+            - core.peerdb.org,INSTANCE_OF=xeno.peerdb.org,REGION
+            - core.peerdb.org,INSTANCE_OF=xeno.peerdb.org,SITE
+            - core.peerdb.org,INSTANCE_OF=xeno.peerdb.org,SPECIES
+            - core.peerdb.org,INSTANCE_OF=xeno.peerdb.org,INDIVIDUAL
+            - core.peerdb.org,INSTANCE_OF=xeno.peerdb.org,COLLECTIVE
+            - core.peerdb.org,INSTANCE_OF=xeno.peerdb.org,CULTURE
+            - core.peerdb.org,INSTANCE_OF=xeno.peerdb.org,PRACTICE
+            - core.peerdb.org,INSTANCE_OF=xeno.peerdb.org,COMMUNICATION_SYSTEM
+            - core.peerdb.org,INSTANCE_OF=xeno.peerdb.org,ARTIFACT
+            - core.peerdb.org,INSTANCE_OF=xeno.peerdb.org,NARRATIVE
+            - core.peerdb.org,INSTANCE_OF=xeno.peerdb.org,ORGANISM
+            - core.peerdb.org,INSTANCE_OF=xeno.peerdb.org,INSTITUTE
+            - core.peerdb.org,INSTANCE_OF=xeno.peerdb.org,RESEARCHER
+            - core.peerdb.org,INSTANCE_OF=xeno.peerdb.org,EXPEDITION
+            - core.peerdb.org,INSTANCE_OF=xeno.peerdb.org,OBSERVATION
+            - core.peerdb.org,INSTANCE_OF=xeno.peerdb.org,PUBLICATION
+            - core.peerdb.org,INSTANCE_OF=xeno.peerdb.org,PLANET_TYPE
+            - core.peerdb.org,INSTANCE_OF=xeno.peerdb.org,BIOME
+            - core.peerdb.org,INSTANCE_OF=xeno.peerdb.org,SITE_TYPE
+            - core.peerdb.org,INSTANCE_OF=xeno.peerdb.org,CONTACT_STATUS
+            - core.peerdb.org,INSTANCE_OF=xeno.peerdb.org,SENSORY_MODALITY
+            - core.peerdb.org,INSTANCE_OF=xeno.peerdb.org,SUBSISTENCE_MODE
+            - core.peerdb.org,INSTANCE_OF=xeno.peerdb.org,SOCIAL_ORGANISATION
+            - core.peerdb.org,INSTANCE_OF=xeno.peerdb.org,KINSHIP_SYSTEM
+            - core.peerdb.org,INSTANCE_OF=xeno.peerdb.org,INDIVIDUALITY_MODE
+            - core.peerdb.org,INSTANCE_OF=xeno.peerdb.org,ORGANISM_CATEGORY
+            - core.peerdb.org,INSTANCE_OF=xeno.peerdb.org,ARTIFACT_CATEGORY
+            - core.peerdb.org,INSTANCE_OF=xeno.peerdb.org,PRACTICE_CATEGORY
+            - core.peerdb.org,INSTANCE_OF=xeno.peerdb.org,NARRATIVE_GENRE
+            - core.peerdb.org,INSTANCE_OF=xeno.peerdb.org,RESEARCH_METHOD
+            - core.peerdb.org,INSTANCE_OF=xeno.peerdb.org,ETHICS_PROTOCOL
+            - core.peerdb.org,INSTANCE_OF=xeno.peerdb.org,COMMUNICATION_MODALITY
+          ACTION_READ_HISTORIC: *publicClasses
+        # Bulk reading is a role of its own so that enumeration is something asked for,
+        # and it takes literal scopes only: a bulk read is not about a particular document.
         bulk:
           ACTION_READ_BULK:
             - all
-        create:
+        # Surveyors map space. They open the containment chain, from a galaxy down to a single site,
+        # and nothing which lives on one.
+        surveyor:
           ACTION_CREATE:
-            - all
-        update:
+            - files
+            - core.peerdb.org,INSTANCE_OF=xeno.peerdb.org,GALAXY
+            - core.peerdb.org,INSTANCE_OF=xeno.peerdb.org,SECTOR
+            - core.peerdb.org,INSTANCE_OF=xeno.peerdb.org,STAR_SYSTEM
+            - core.peerdb.org,INSTANCE_OF=xeno.peerdb.org,PLANET
+            - core.peerdb.org,INSTANCE_OF=xeno.peerdb.org,MOON
+            - core.peerdb.org,INSTANCE_OF=xeno.peerdb.org,REGION
+            - core.peerdb.org,INSTANCE_OF=xeno.peerdb.org,SITE
           ACTION_UPDATE:
             - all
-        permissions:
+        # Researchers do the fieldwork: who and what they met, and what they wrote down while
+        # meeting it. They are granted nothing on interviews beyond what an interview grants them by
+        # name, which is the point of the class being missing from the public list, but they are the
+        # role which opens a new one.
+        researcher:
+          ACTION_CREATE:
+            - files
+            - core.peerdb.org,INSTANCE_OF=xeno.peerdb.org,OBSERVATION
+            - core.peerdb.org,INSTANCE_OF=xeno.peerdb.org,INTERVIEW
+            - core.peerdb.org,INSTANCE_OF=xeno.peerdb.org,SPECIES
+            - core.peerdb.org,INSTANCE_OF=xeno.peerdb.org,INDIVIDUAL
+            - core.peerdb.org,INSTANCE_OF=xeno.peerdb.org,COLLECTIVE
+            - core.peerdb.org,INSTANCE_OF=xeno.peerdb.org,CULTURE
+            - core.peerdb.org,INSTANCE_OF=xeno.peerdb.org,PRACTICE
+            - core.peerdb.org,INSTANCE_OF=xeno.peerdb.org,COMMUNICATION_SYSTEM
+            - core.peerdb.org,INSTANCE_OF=xeno.peerdb.org,NARRATIVE
+            - core.peerdb.org,INSTANCE_OF=xeno.peerdb.org,ORGANISM
+          ACTION_UPDATE:
+            - all
+        # Authors write the results up, which is the only thing they open.
+        author:
+          ACTION_CREATE:
+            - files
+            - core.peerdb.org,INSTANCE_OF=xeno.peerdb.org,PUBLICATION
+          ACTION_UPDATE:
+            - all
+        # Curators keep the register: the objects held in a collection, the bodies and the people the
+        # work is done by, and the controlled vocabularies everything else is classified with.
+        curator:
+          ACTION_CREATE:
+            - files
+            - core.peerdb.org,INSTANCE_OF=xeno.peerdb.org,ARTIFACT
+            - core.peerdb.org,INSTANCE_OF=xeno.peerdb.org,INSTITUTE
+            - core.peerdb.org,INSTANCE_OF=xeno.peerdb.org,RESEARCHER
+            - core.peerdb.org,INSTANCE_OF=xeno.peerdb.org,EXPEDITION
+            - core.peerdb.org,INSTANCE_OF=core.peerdb.org,UNIT
+            - core.peerdb.org,INSTANCE_OF=xeno.peerdb.org,PLANET_TYPE
+            - core.peerdb.org,INSTANCE_OF=xeno.peerdb.org,BIOME
+            - core.peerdb.org,INSTANCE_OF=xeno.peerdb.org,SITE_TYPE
+            - core.peerdb.org,INSTANCE_OF=xeno.peerdb.org,CONTACT_STATUS
+            - core.peerdb.org,INSTANCE_OF=xeno.peerdb.org,SENSORY_MODALITY
+            - core.peerdb.org,INSTANCE_OF=xeno.peerdb.org,SUBSISTENCE_MODE
+            - core.peerdb.org,INSTANCE_OF=xeno.peerdb.org,SOCIAL_ORGANISATION
+            - core.peerdb.org,INSTANCE_OF=xeno.peerdb.org,KINSHIP_SYSTEM
+            - core.peerdb.org,INSTANCE_OF=xeno.peerdb.org,INDIVIDUALITY_MODE
+            - core.peerdb.org,INSTANCE_OF=xeno.peerdb.org,ORGANISM_CATEGORY
+            - core.peerdb.org,INSTANCE_OF=xeno.peerdb.org,ARTIFACT_CATEGORY
+            - core.peerdb.org,INSTANCE_OF=xeno.peerdb.org,PRACTICE_CATEGORY
+            - core.peerdb.org,INSTANCE_OF=xeno.peerdb.org,NARRATIVE_GENRE
+            - core.peerdb.org,INSTANCE_OF=xeno.peerdb.org,RESEARCH_METHOD
+            - core.peerdb.org,INSTANCE_OF=xeno.peerdb.org,COMMUNICATION_MODALITY
+          ACTION_UPDATE:
+            - all
+        # The ethics committee decides who reads a record which is closed, and writes the protocols
+        # it decides by. Reading and updating interviews come with the permissions action rather than
+        # being a job of their own: managing permissions goes through the ordinary edit path, so it
+        # is held only together with what it builds on.
+        ethics:
+          ACTION_READ:
+            - core.peerdb.org,INSTANCE_OF=xeno.peerdb.org,INTERVIEW
+          ACTION_READ_HISTORIC:
+            - core.peerdb.org,INSTANCE_OF=xeno.peerdb.org,INTERVIEW
+          ACTION_UPDATE:
+            - core.peerdb.org,INSTANCE_OF=xeno.peerdb.org,INTERVIEW
+            - core.peerdb.org,INSTANCE_OF=xeno.peerdb.org,ETHICS_PROTOCOL
           ACTION_UPDATE_PERMISSIONS:
-            - all
-        delete:
-          ACTION_DELETE:
-            - all
+            - core.peerdb.org,INSTANCE_OF=xeno.peerdb.org,INTERVIEW
+          ACTION_CREATE:
+            - core.peerdb.org,INSTANCE_OF=xeno.peerdb.org,ETHICS_PROTOCOL
         admin:
+          ACTION_READ:
+            - all
           ACTION_READ_HISTORIC:
             - all
           ACTION_READ_BULK:

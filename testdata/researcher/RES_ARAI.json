@@ -1,0 +1,27 @@
+{
+  "id": ["xeno.peerdb.org", "RESEARCHER", "RES_ARAI"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "RESEARCHER"] }],
+  "name": [{ "value": "Kenji" }],
+  "familyName": [{ "value": "Arai" }],
+  "researcherCode": "CCX-P-02701",
+  "description": [
+    {
+      "value": "<p>Made the metric record of nine hundred canopy platforms and then established that its ground control had been surveyed from above and was eleven metres out. He spent the following four years correcting it and will discuss almost anything else. He is a patient teacher and an impatient reviewer.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "affiliatedWith": [{ "id": ["xeno.peerdb.org", "INSTITUTE", "INST_CANOPY"] }],
+  "specialisesIn": [
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "PHOTOGRAMMETRY"] },
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "MATERIAL_SAMPLING"] }
+  ],
+  "activePeriod": { "from": { "time": "2273-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true },
+  "born": { "time": "2249-01-01T00:00:00Z", "precision": "y" },
+  "image": [{ "value": "/f/RMNcv7PuL6LrYx7hmiCBgW", "name": "RES_ARAI.jpg", "caption": "Staff photograph", "source": "Consortium personnel record" }],
+  "notes": [
+    {
+      "value": "<p>The recomputed control network is deposited under his name and the original under nobody&#39;s, an arrangement he proposed himself and has since been asked to justify twice.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

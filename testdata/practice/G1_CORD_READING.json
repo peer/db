@@ -1,0 +1,32 @@
+{
+  "id": ["xeno.peerdb.org", "PRACTICE", "G1_CORD_READING"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PRACTICE"] }],
+  "name": [{ "value": "Reading the Rota Cord", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Ulunesh", "gloss": "the walls said out" }],
+  "description": [
+    {
+      "value": "<p>When two hearths claim the same stretch, the cord reader carries the rota cord out onto the drained ground at low water and reads it aloud from the landward end. Each knot is named, and the free hand points at the wall it belongs to while the mouth says wall, so the reading cannot be understood by anybody who is not standing in the right place. The claimants and anyone else who has walked out stand within earshot; there is no procedure for hearing a reading later. At the end the reader either re-knots the disputed section in front of everyone or declines to, and a declined reading stands as a refusal rather than as a delay. No copy of a cord is kept and no cord is read twice on the same day.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Spor o zidu razreši glasno branje vozlane vrvi, ki velja le za tiste, ki stojijo zraven.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    }
+  ],
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G1_WEIR_ROTA"] }],
+  "category": { "id": ["xeno.peerdb.org", "PRACTICE_CATEGORY", "DISPUTE_RESOLUTION"] },
+  "periodicity": "whenever two hearths claim one wall",
+  "participants": {
+    "value": { "from": { "amount": 3, "precision": 1 }, "to": { "amount": 60, "precision": 1 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "firstDocumented": { "time": "2244-01-01T00:00:00Z", "precision": "y" },
+  "relatedPractice": [{ "id": ["xeno.peerdb.org", "PRACTICE", "G1_WALL_HANDOVER"] }],
+  "image": [{ "value": "/f/Jh1pww4vHfVuxPtAkWMqmv", "name": "G1_CORD_READING.jpg", "caption": "In progress", "source": "Consortium survey archive" }],
+  "notes": [
+    {
+      "value": "<p>Every request to photograph a cord in use has been refused, on the stated ground that a cord read by somebody who was not present is not a cord but a rumour. The collection therefore holds four cords, all of them thrown away before they were collected.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

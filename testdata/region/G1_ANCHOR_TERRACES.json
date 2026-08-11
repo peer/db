@@ -1,0 +1,22 @@
+{
+  "id": ["xeno.peerdb.org", "REGION", "G1_ANCHOR_TERRACES"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "REGION"] }],
+  "name": [{ "value": "Anchor Terraces", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Ulusheren" }],
+  "description": [
+    {
+      "value": "<p>A long shallow slope above the flats, cut into stepped stone benches that hold standing water at every level and let it down slowly through built sluices. The benches run for six hundred kilometres along the coast and the oldest of them are considerably older than the survey. Above the top step the ground is dry, bare and used for nothing.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "PLANET", "G1_HOLLIS_III"] },
+  "biome": [{ "id": ["xeno.peerdb.org", "BIOME", "DUSK_BELT"] }],
+  "area": { "value": { "amount": 214000, "precision": 100 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "SQUARE_KILOMETRE"] }] },
+  "elevationRange": {
+    "value": { "from": { "amount": 60, "precision": 10 }, "to": { "amount": 1840, "precision": 10 } },
+    "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }]
+  },
+  "image": [
+    { "value": "/f/2fHiba8D6ELU82Rfr5MLLT", "name": "G1_ANCHOR_TERRACES.jpg", "caption": "Regional view", "source": "Consortium survey archive" }
+  ]
+}

@@ -1,0 +1,32 @@
+{
+  "id": ["xeno.peerdb.org", "OBSERVATION", "OBSB_GLASS_FACE_LEARNER"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "OBSERVATION"] }],
+  "title": [{ "value": "A learner given a stretch of face nobody wanted", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "description": [
+    {
+      "value": "<p>Note on instruction at the glass quarry, which consists of not speaking to the learner and of working audibly nearby.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "content": [
+    {
+      "value": "<p>26.vi.2291. Shift began when the face came off the heat, which on this world is the only clock there is; the light has not changed since anyone started counting.</p><p>The learner had been given a hammerstone and a stretch at the northern end that nobody else works, and had been on it for eleven days. Nobody spoke to her during our four shifts on the face. Shithovan, working two stations along, slowed and became audible whenever she looked up, and returned to his own pace when she did not. He did this perhaps forty times in a shift and did not appear to be counting.</p><p>One of Shithovan&#39;s own blanks failed in shaping, a cooling crack running from the platform, and went down onto the spoil in front of everybody without comment from anyone including him. The spoil below the face is accordingly the best record of the craft there is, since everything that fails, fails publicly.</p><p>We cannot decide whether the audible slowing is instruction or courtesy, and Thavesso, asked to interpret, said the question did not arrange itself in March Speech and offered to ask it a different way. We have not yet found the different way.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "expedition": { "id": ["xeno.peerdb.org", "EXPEDITION", "EXP_FETCH_BAND"] },
+  "observedBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_DOYLE"] }, { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_HADDAD"] }],
+  "observedAt": { "id": ["xeno.peerdb.org", "SITE", "G4_GLASS_QUARRY"] },
+  "observedOn": { "time": "2291-06-26T00:00:00Z", "precision": "d" },
+  "about": [
+    { "id": ["xeno.peerdb.org", "PRACTICE", "G4_PR_GLASS_FACE"] },
+    { "id": ["xeno.peerdb.org", "SPECIES", "G4_HEARTH_WALKERS"] },
+    { "id": ["xeno.peerdb.org", "CULTURE", "G4_CU_HEARTH_CIRCUIT"] }
+  ],
+  "method": [
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "PARTICIPANT_OBSERVATION"] },
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "ACOUSTIC_RECORDING"] }
+  ],
+  "fieldConditions": "Dayward edge of the march, wind stripping grit off the face, heat the limiting factor on every shift. Nine knappers working, one learner.",
+  "image": [{ "value": "/f/SsozZNLSXYdH4bBWnGZATo", "name": "OBSB_GLASS_FACE_LEARNER.jpg", "caption": "Taken at the time", "source": "Field record" }]
+}

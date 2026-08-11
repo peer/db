@@ -1,0 +1,62 @@
+{
+  "id": ["xeno.peerdb.org", "SPECIES", "G4_WELL_KEEPERS"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SPECIES"] }],
+  "name": [{ "value": "Assize Well Keepers", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Timutimu", "gloss": "the ones who go down and come back" }],
+  "taxonCode": "TX-4701-a",
+  "description": [
+    {
+      "value": "<p>A small dispersed people of the Twice-Dried Basin, organised entirely around the aquifers that are the only fresh water on Assize and around the sealed growing chambers those aquifers supply. Each well is held by a descent line reckoned through one parent only, and the settlements around it owe the line a standing share of what they grow, which the line does not administer and merely collects. Salt is the export and water is never traded, only lent, a distinction visitors get wrong for about a year and then never again. They are the only people in the Seventh Shell still open to contact, a fact they regard as a matter of geography rather than of policy, since the other world stopped answering and they did not. What the discipline cannot agree on is why the salt workings are so far in excess of any use anyone has been able to identify.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Vsa naselja so vezana na vodonosnike. Vodo si le posojajo, prodajajo pa sol.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Um povo pequeno e disperso da Twice-Dried Basin, organizado inteiramente em torno dos aquíferos que são a única água doce de Assize e das câmaras de cultivo seladas que esses aquíferos abastecem. Cada poço pertence a uma linha de descendência contada por um só progenitor, e os povoados em redor devem à linha uma quota permanente do que produzem, que a linha não administra e apenas recolhe. O sal é a exportação e a água nunca se vende, apenas se empresta, uma distinção que os visitantes erram durante cerca de um ano e depois nunca mais. São o único povo do Seventh Shell ainda aberto ao contacto, facto que consideram uma questão de geografia e não de política, uma vez que foi o outro mundo que deixou de responder e não eles. Aquilo em que a disciplina não consegue chegar a acordo é por que razão as explorações de sal excedem de tal maneira qualquer uso que alguém tenha conseguido identificar.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "homeworld": { "id": ["xeno.peerdb.org", "PLANET", "G4_ASSIZE"] },
+  "bodyPlan": [
+    {
+      "value": "<p>A slight upright biped with disproportionately long forelimbs and a flexible neck, built for working in shafts too narrow to turn round in. The integument is a fine crazed hide, chalk-white with salt that is scraped off rather than washed, over a layer of subcutaneous fat that serves as a water store. The nostrils close completely and the eyes carry a third lid drawn across against haze.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "typicalHeight": { "value": { "amount": 1.35, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+  "typicalMass": { "value": { "amount": 40.0, "precision": 0.1 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "kg"] }] },
+  "lifespan": {
+    "value": { "from": { "amount": 42, "precision": 1 }, "to": { "amount": 88, "precision": 1 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_YEAR"] }]
+  },
+  "sensoryModality": [
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "HYGRORECEPTION"] },
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "CONTACT_CHEMO"] },
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "MAGNETORECEPTION"] }
+  ],
+  "subsistence": [
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "SEALED_CULTIVATION"] },
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "TRADE_DEPENDENCY"] },
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "MANAGED_DECAY"] }
+  ],
+  "individuality": { "id": ["xeno.peerdb.org", "INDIVIDUALITY_MODE", "BOUNDED"] },
+  "contestedIndividuality": { "id": ["xeno.peerdb.org", "INDIVIDUALITY_MODE", "PERMANENT_COLLECTIVE"] },
+  "socialOrganisation": { "id": ["xeno.peerdb.org", "SOCIAL_ORGANISATION", "TRIBUTARY_CENTRE"] },
+  "kinshipSystem": { "id": ["xeno.peerdb.org", "KINSHIP_SYSTEM", "UNILINEAL_DESCENT"] },
+  "population": {
+    "value": { "from": { "amount": 22000, "precision": 1000 }, "to": { "amount": 51000, "precision": 1000 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "contactStatus": { "id": ["xeno.peerdb.org", "CONTACT_STATUS", "LIMITED"] },
+  "firstContact": { "time": "2268-01-01T00:00:00Z", "precision": "y" },
+  "image": [
+    {
+      "value": "/f/SKku4RFbP5BVQbxxiFtp92",
+      "name": "G4_WELL_KEEPERS.jpg",
+      "caption": "Field plate",
+      "source": "Drawn in the field; Consortium collection"
+    }
+  ]
+}

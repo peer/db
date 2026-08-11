@@ -1,0 +1,21 @@
+{
+  "id": ["xeno.peerdb.org", "REGION", "G2_DRY_MERIDIAN"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "REGION"] }],
+  "name": [{ "value": "Dry Meridian", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "description": [
+    {
+      "value": "<p>A north-south transect four thousand kilometres long, chosen in 2233 because it crossed every terrain unit on the planet and because a straight line was easy to defend in a funding application. Forty core sites were drilled along it at hundred-kilometre spacing. The line is still visible from orbit as a row of pale spoil heaps.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "PLANET", "G2_OLD_SALT"] },
+  "biome": [{ "id": ["xeno.peerdb.org", "BIOME", "EVAPORITE_PAN"] }],
+  "area": { "value": { "amount": 402000, "precision": 100 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "SQUARE_KILOMETRE"] }] },
+  "elevationRange": {
+    "value": { "from": { "amount": -1480, "precision": 10 }, "to": { "amount": 1220, "precision": 10 } },
+    "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }]
+  },
+  "image": [
+    { "value": "/f/DrxiwbefByKLqY1aRiSsUk", "name": "G2_DRY_MERIDIAN.jpg", "caption": "Regional view", "source": "Consortium survey archive" }
+  ]
+}

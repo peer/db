@@ -1,0 +1,18 @@
+{
+  "id": ["xeno.peerdb.org", "INDIVIDUAL", "G4_IN_ONGAMU"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "INDIVIDUAL"] }],
+  "name": [{ "value": "Ongamu" }],
+  "lineageName": [{ "value": "of the ice half" }],
+  "description": [
+    {
+      "value": "<p>Has heard station-keeping disputes on the relay deck since 2274, which requires him to hold the platform edge for hours at a time in a body built for open water. Twenty-two of his judgements were filed by the survey under the wrong moiety in the same year, and the correction has been queued behind a general revision since 2281. He mentions this at the opening of every session, briefly, and then proceeds.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "species": { "id": ["xeno.peerdb.org", "SPECIES", "G4_RING_SWIMMERS"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G4_CU_RING_MOIETIES"] }],
+  "role": [{ "value": "dispute hearer", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "formOfAddress": "by half, then by name",
+  "born": { "time": "2231-01-01T00:00:00Z", "precision": "y" },
+  "birthplace": { "id": ["xeno.peerdb.org", "SITE", "G4_SUNK_RELAY"] }
+}

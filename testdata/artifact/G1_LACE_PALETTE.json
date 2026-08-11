@@ -1,0 +1,28 @@
+{
+  "id": ["xeno.peerdb.org", "ARTIFACT", "G1_LACE_PALETTE"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "ARTIFACT"] }],
+  "name": [{ "value": "Grinding slab with lace pigment", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "accessionCode": "CCX-A-13258",
+  "description": [
+    {
+      "value": "<p>A shallow grinding slab of hard ochre sandstone with its hand muller, and forty grams of ground basin lace sealed in a horn tube. Lace turns red on the fourth day after a flood and is worthless on the fifth, so the slab is worked hard for one day at a time and stands unused for the rest of the year, and the whole dye industry of the planet keeps that timetable. The finished pigment goes on cloth, on the dead and on the boundary stones of a water claim. The sample has faded to a pale brown in storage, exactly as the maker said it would.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "category": { "id": ["xeno.peerdb.org", "ARTIFACT_CATEGORY", "PIGMENT"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G1_BASIN_WATER_ORDER"] }],
+  "foundAt": { "id": ["xeno.peerdb.org", "SITE", "G1_EVAPORITE_WORKINGS"] },
+  "material": [
+    { "value": "ochre sandstone", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "ground basin lace", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "horn tube", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }
+  ],
+  "dimension": [
+    { "value": { "amount": 0.38, "precision": 0.001 }, "axis": "length", "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+    { "value": { "amount": 0.26, "precision": 0.001 }, "axis": "width", "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+    { "value": { "amount": 0.07, "precision": 0.001 }, "axis": "thickness", "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] }
+  ],
+  "dateMade": { "time": "2260-01-01T00:00:00Z", "precision": "10y" },
+  "collectedBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_REYES"] }, { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_SEO"] }],
+  "image": [{ "value": "/f/JWLKFSDDJtSBtfxxxUATmw", "name": "G1_LACE_PALETTE.jpg", "caption": "Object drawing", "source": "Consortium collection" }]
+}

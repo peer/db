@@ -1,0 +1,63 @@
+{
+  "id": ["xeno.peerdb.org", "SPECIES", "G4_RIDGE_DWELLERS"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SPECIES"] }],
+  "name": [{ "value": "Storm Belt Ridge Dwellers", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [
+    {
+      "value": "Onarumei",
+      "gloss": "the ones who become two",
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G4_COM_RIDGE_KNOCK"] }]
+    }
+  ],
+  "taxonCode": "TX-4115-b",
+  "description": [
+    {
+      "value": "<p>The people of the equatorial ridges under Long Water&#39;s permanent convection, who live in small groups on the windward crests and shelter in the lee only to divide. Division is routine: a body that has grown past a threshold splits over some nine days into two continuing people, each of whom holds the whole shared past as their own and neither of whom is the elder. Bands have no standing office whatever, and a disagreement that will not resolve ends with somebody walking to the next ridge, which is one reason the settlement pattern is so thin. The first survey team spent a season trying to identify a leader and was eventually told, with patience, that they were describing a shape of conversation rather than a person. Property is the difficulty the discipline keeps returning to, since a possession divides badly and a debt divides not at all.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>O povo das cristas equatoriais sob a convecção permanente de Long Water, que vive em pequenos grupos nos cumes de barlavento e só se abriga a sotavento para se dividir. A divisão é rotina: um corpo que ultrapassou um certo limiar reparte-se ao longo de uns nove dias em duas pessoas que continuam, cada uma delas detentora de todo o passado comum como próprio e nenhuma delas mais velha do que a outra. Os bandos não têm cargo permanente nenhum, e um desacordo que não se resolve acaba com alguém a caminhar até à crista seguinte, o que é uma das razões para o povoamento ser tão rarefeito. A primeira equipa do levantamento passou uma estação a tentar identificar um chefe e acabou por ouvir, com paciência, que estava a descrever uma forma de conversa e não uma pessoa. A propriedade é a dificuldade a que a disciplina volta sempre, já que um bem se divide mal e uma dívida não se divide de todo.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "homeworld": { "id": ["xeno.peerdb.org", "PLANET", "G4_LONG_WATER"] },
+  "bodyPlan": [
+    {
+      "value": "<p>A low four-limbed body with a broad keeled back that sheds rain forward and a fused skull carried close to the ground. The integument is overlapping waxed plate, matt and dark, with a soft midline seam that opens only at division. Feeding is by a protrusible tongue worked into wet crevices, and the animal walks with a wide stance that does not change in wind of any strength.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "typicalHeight": { "value": { "amount": 1.1, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+  "typicalMass": { "value": { "amount": 26.0, "precision": 0.1 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "kg"] }] },
+  "lifespan": {
+    "value": { "from": { "amount": 20, "precision": 1 }, "to": { "amount": 44, "precision": 1 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_YEAR"] }]
+  },
+  "sensoryModality": [
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "POLARISED_VISION"] },
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "PRESSURE_GRADIENT"] },
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "MAGNETORECEPTION"] }
+  ],
+  "subsistence": [
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "OPPORTUNISTIC_FORAGING"] },
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "DRIFT_HARVESTING"] }
+  ],
+  "individuality": { "id": ["xeno.peerdb.org", "INDIVIDUALITY_MODE", "FISSIONING"] },
+  "socialOrganisation": { "id": ["xeno.peerdb.org", "SOCIAL_ORGANISATION", "ACEPHALOUS_BANDS"] },
+  "kinshipSystem": { "id": ["xeno.peerdb.org", "KINSHIP_SYSTEM", "BILATERAL_KINDRED"] },
+  "communication": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G4_COM_RIDGE_KNOCK"] }],
+  "population": {
+    "value": { "from": { "amount": 90000, "precision": 1000 }, "to": { "amount": 160000, "precision": 1000 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "contactStatus": { "id": ["xeno.peerdb.org", "CONTACT_STATUS", "LIMITED"] },
+  "firstContact": { "time": "2247-01-01T00:00:00Z", "precision": "y" },
+  "image": [
+    {
+      "value": "/f/SUG7aG6F3m3X38CJPouZGQ",
+      "name": "G4_RIDGE_DWELLERS.jpg",
+      "caption": "Field plate",
+      "source": "Drawn in the field; Consortium collection"
+    }
+  ]
+}

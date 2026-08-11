@@ -1,0 +1,55 @@
+{
+  "id": ["xeno.peerdb.org", "SPECIES", "G2_UPPER_SEA_MATS"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SPECIES"] }],
+  "name": [{ "value": "Upper Sea Vent Collective", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "taxonCode": "TX-4182-a",
+  "description": [
+    {
+      "value": "<p>Three vents remain active in the upper sea and each carries a mat that answers, on a delay of some days, whatever the borehole instrument puts into the water. A mat divides when its vent begins to fail, half of it travelling as a rolled sheet to a neighbouring vent, and both halves afterwards behave as continuations of the same party rather than as parent and offspring, including in their handling of an exchange begun before the split. Order of access to the failing vents passes between the three in a sequence that has held through two observed divisions, which is the only reason anybody is willing to describe them as having an arrangement at all. Kin, insofar as the term applies, is a shared living culture carried in the rolled sheet, and two mats that have never divided from one another do not interact. Nobody has been down; the whole record comes from an unattended borehole instrument that was left running in 2281 because retrieving it would have cost a season.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Três fontes permanecem ativas no mar superior e cada uma sustenta um tapete que responde, com alguns dias de atraso, a tudo o que o instrumento do furo lança na água. Um tapete divide-se quando a sua fonte começa a falhar, e metade dele viaja enrolada em folha até uma fonte vizinha; depois disso, ambas as metades se comportam como continuações da mesma parte e não como progenitor e descendente, inclusive na forma como conduzem uma troca iniciada antes da divisão. A ordem de acesso às fontes em declínio passa entre os três numa sequência que se manteve ao longo de duas divisões observadas, e é essa a única razão pela qual alguém aceita dizer que têm sequer um arranjo. O parentesco, na medida em que o termo se aplique, é uma cultura viva partilhada e transportada na folha enrolada, e dois tapetes que nunca se dividiram um do outro não interagem. Ninguém desceu até lá; todo o registo provém de um instrumento de furo sem vigilância, deixado a funcionar em 2281 porque recuperá-lo teria custado uma estação.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "homeworld": { "id": ["xeno.peerdb.org", "PLANET", "G2_GREY_RIND"] },
+  "bodyPlan": [
+    {
+      "value": "<p>A mat is a metre-thick quilted sheet, tens of metres across, of mineral-crusted lobes joined by soft channels through which fluid is pumped from lobe to lobe. Movement is by rolling: one edge lifts, the sheet curls and the whole body advances at a few metres a day. There is no head, no gut and no fixed orientation, and a piece cut from the edge repairs itself and rejoins.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "typicalHeight": { "value": { "amount": 1.0, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+  "typicalMass": { "value": { "amount": 900.0, "precision": 0.1 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "kg"] }] },
+  "lifespan": {
+    "value": { "from": { "amount": 400, "precision": 1 }, "to": { "amount": 6000, "precision": 1 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_YEAR"] }]
+  },
+  "sensoryModality": [
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "ELECTRORECEPTION"] },
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "CONTACT_CHEMO"] },
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "GRAVICEPTION"] }
+  ],
+  "subsistence": [
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "CHEMO_TENDING"] },
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "DRIFT_HARVESTING"] }
+  ],
+  "individuality": { "id": ["xeno.peerdb.org", "INDIVIDUALITY_MODE", "FISSIONING"] },
+  "socialOrganisation": { "id": ["xeno.peerdb.org", "SOCIAL_ORGANISATION", "ROTATING_STEWARDSHIP"] },
+  "kinshipSystem": { "id": ["xeno.peerdb.org", "KINSHIP_SYSTEM", "FERMENT_LINEAGE"] },
+  "population": {
+    "value": { "from": { "amount": 3, "precision": 1000 }, "to": { "amount": 9, "precision": 1000 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "contactStatus": { "id": ["xeno.peerdb.org", "CONTACT_STATUS", "INDIRECT"] },
+  "firstContact": { "time": "2281-01-01T00:00:00Z", "precision": "y" },
+  "image": [
+    {
+      "value": "/f/LFAvQwhJ5eRyNrqUw2iP5t",
+      "name": "G2_UPPER_SEA_MATS.jpg",
+      "caption": "Field plate",
+      "source": "Drawn in the field; Consortium collection"
+    }
+  ]
+}

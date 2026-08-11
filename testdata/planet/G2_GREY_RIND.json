@@ -1,0 +1,43 @@
+{
+  "id": ["xeno.peerdb.org", "PLANET", "G2_GREY_RIND"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PLANET"] }],
+  "name": [{ "value": "Grey Rind", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "catalogueCode": "EW-0240-d",
+  "description": [
+    {
+      "value": "<p>Two oceans stacked under one crust: a brine sea beneath forty kilometres of surface ice, then a shell of high-pressure ice, then a second and far larger body of water lying on rock. The upper sea is thinly occupied by chemolithotroph mats around three dying vent fields. The lower sea has been sampled once, through a borehole that took nine years to complete, and returned water that has exchanged with nothing since the world assembled.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Dois oceanos empilhados sob uma só crosta: um mar de salmoura sob quarenta quilómetros de gelo superficial, depois uma camada de gelo de alta pressão e depois uma segunda massa de água, muito maior, assente sobre rocha. O mar superior é escassamente ocupado por tapetes quimiolitotróficos em torno de três campos de fontes hidrotermais moribundos. O mar inferior foi amostrado uma vez, através de uma sondagem que levou nove anos a concluir, e devolveu água que não teve troca com nada desde que o mundo se formou.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "STAR_SYSTEM", "G2_ELEVEN_WINTERS"] },
+  "planetType": { "id": ["xeno.peerdb.org", "PLANET_TYPE", "ICE_SHELL"] },
+  "biome": [{ "id": ["xeno.peerdb.org", "BIOME", "BRINE_SEA"] }, { "id": ["xeno.peerdb.org", "BIOME", "VENT_FIELD"] }],
+  "radius": { "value": { "amount": 0.79, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_RADIUS"] }] },
+  "mass": { "value": { "amount": 0.19, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_MASS"] }] },
+  "surfaceGravity": { "value": { "amount": 0.3, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "STANDARD_GRAVITY"] }] },
+  "dayLength": { "value": { "amount": 68.5, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "HOUR"] }] },
+  "orbitalPeriod": { "value": { "amount": 938.8, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_DAY"] }] },
+  "meanTemperature": { "value": { "amount": -163.0, "precision": 0.1 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "°C"] }] },
+  "hydrosphere": { "value": { "amount": 100, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "PERCENT"] }] },
+  "atmosphere": [
+    {
+      "value": "<p>A trace nitrogen exosphere below a microbar. The surface is bare water ice, grey with infallen dust and hard enough at 110 kelvin to blunt a coring bit in an afternoon.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "biosphereUnknown": true,
+  "contactStatus": { "id": ["xeno.peerdb.org", "CONTACT_STATUS", "NO_CONTACT"] },
+  "firstSurveyed": { "time": "2243-01-01T00:00:00Z", "precision": "y" },
+  "surveyPeriod": { "from": { "time": "2243-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true },
+  "image": [{ "value": "/f/HFeCvqf5bpNDHf4RsVqurZ", "name": "G2_GREY_RIND.jpg", "caption": "Surface view", "source": "Consortium survey archive" }],
+  "notes": [
+    {
+      "value": "<p>The lower-sea borehole was funded on a nine-year schedule and finished on it, a fact the sector office produces whenever a proposal claims that nothing in the Undercount can be done to time.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

@@ -1,0 +1,36 @@
+{
+  "id": ["xeno.peerdb.org", "EXPEDITION", "EXP_NINE_MARKS_DESCENT"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "EXPEDITION"] }],
+  "name": [{ "value": "Nine Marks Descent Programme", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "catalogueCode": "EXP-2289-08",
+  "description": [
+    {
+      "value": "<p>The most expensive programme in this register and, by any measure the register keeps, the least productive per credit spent. Six years and three descent probes into an acid haze produced one working instrument package, a confirmed sample of the floating mats, and a great deal of understanding of how the other two failed. There are no inhabitants, so nothing in it needed clearance beyond the non-interference protocol, which the programme satisfied by having nowhere to land. The surviving probe was still transmitting at the time of writing, seventeen years after it was dropped.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "destination": [{ "id": ["xeno.peerdb.org", "PLANET", "G1_NINE_MARKS_III"] }],
+  "period": { "from": { "time": "2289-01-01T00:00:00Z", "precision": "y" }, "to": { "time": "2295-01-01T00:00:00Z", "precision": "y" } },
+  "ledBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_TRAN"] }],
+  "teamMember": [
+    { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_BRANDT"] },
+    { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_BEKELE"] },
+    { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_BAUTISTA"] },
+    { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_HALVORSEN"] },
+    { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_REYES"] }
+  ],
+  "organisedBy": [{ "id": ["xeno.peerdb.org", "INSTITUTE", "INST_FARSIGHT"] }, { "id": ["xeno.peerdb.org", "INSTITUTE", "INST_BEACON"] }],
+  "method": [
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "REMOTE_SENSING"] },
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "MATERIAL_SAMPLING"] }
+  ],
+  "ethics": { "id": ["xeno.peerdb.org", "ETHICS_PROTOCOL", "PROTOCOL_5"] },
+  "budget": { "value": { "amount": 26500000, "precision": 1000 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "$"] }] },
+  "report": [{ "value": "/f/4deBPpt1rdon9MmNnKvBbM", "name": "EXP_NINE_MARKS_DESCENT.pdf", "caption": "Final report" }],
+  "notes": [
+    {
+      "value": "<p>Its cost per confirmed sample remains the highest in the register and is quoted in full at every funding round, largely by people who were not born when it was approved.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

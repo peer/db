@@ -1,0 +1,37 @@
+{
+  "id": ["xeno.peerdb.org", "PLANET", "G4_WICK"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PLANET"] }],
+  "name": [{ "value": "Wick", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "catalogueCode": "SPW-B/052-c",
+  "description": [
+    {
+      "value": "<p>A cool rock world lit by the yellow dwarf and, faintly, by the white dwarf that was once the larger of the pair. Its lowlands hold a standing acid haze two kilometres deep, dim and warm at the floor, while the ridges above it are clear and cold. Endolithic communities run from the haze floor up into the ridge rock. Nobody has landed in the haze, and the two remote entries into it were both cut short.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Um mundo rochoso e fresco iluminado pela anã amarela e, debilmente, pela anã branca que já foi a maior do par. As suas terras baixas contêm uma bruma ácida parada com dois quilómetros de espessura, escura e quente no fundo, enquanto as cristas acima dela são límpidas e frias. As comunidades endolíticas estendem-se do fundo da bruma até à rocha das cristas. Ninguém aterrou na bruma, e as duas entradas remotas nela foram ambas interrompidas.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "STAR_SYSTEM", "G4_GUDGEON"] },
+  "planetType": { "id": ["xeno.peerdb.org", "PLANET_TYPE", "DENSE_SILICATE"] },
+  "biome": [{ "id": ["xeno.peerdb.org", "BIOME", "HAZE_LOWLAND"] }, { "id": ["xeno.peerdb.org", "BIOME", "ENDOLITH_ZONE"] }],
+  "radius": { "value": { "amount": 0.86, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_RADIUS"] }] },
+  "mass": { "value": { "amount": 0.68, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_MASS"] }] },
+  "surfaceGravity": { "value": { "amount": 0.92, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "STANDARD_GRAVITY"] }] },
+  "dayLength": { "value": { "amount": 17.9, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "HOUR"] }] },
+  "orbitalPeriod": { "value": { "amount": 244.0, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_DAY"] }] },
+  "meanTemperature": { "value": { "amount": 16.5, "precision": 0.1 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "°C"] }] },
+  "hydrosphere": { "value": { "amount": 12.0, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "PERCENT"] }] },
+  "atmosphere": [
+    {
+      "value": "<p>Carbon dioxide and nitrogen at 2.1 bar, with sulphuric aerosol pooling in the basins. Above the haze the air is merely thin and cold; inside it, nothing made of fabric lasts a week.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "biosphereUnknown": true,
+  "contactStatus": { "id": ["xeno.peerdb.org", "CONTACT_STATUS", "NO_CONTACT"] },
+  "firstSurveyed": { "time": "2266-01-01T00:00:00Z", "precision": "y" },
+  "surveyPeriod": { "from": { "time": "2266-01-01T00:00:00Z", "precision": "y" }, "to": { "time": "2281-01-01T00:00:00Z", "precision": "y" } },
+  "image": [{ "value": "/f/Ww1SG6ePix5sTQT179XpZr", "name": "G4_WICK.jpg", "caption": "Surface view", "source": "Consortium survey archive" }]
+}

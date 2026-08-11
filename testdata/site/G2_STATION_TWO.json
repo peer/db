@@ -1,0 +1,22 @@
+{
+  "id": ["xeno.peerdb.org", "SITE", "G2_STATION_TWO"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SITE"] }],
+  "name": [{ "value": "Station Two", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "localName": [{}],
+  "description": [
+    {
+      "value": "<p>A pressure habitat frozen into the underside of the ice shell, nine hundred metres from the nearest dwellings, holding four people. It has been staffed without a break since 2231 and resupplied nineteen times. The station works without external lights on ethics grounds, which has shaped its research programme more than any hypothesis has.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "REGION", "G2_UPPER_CEILING"] },
+  "siteType": { "id": ["xeno.peerdb.org", "SITE_TYPE", "FIELD_CAMP"] },
+  "gridReference": "LL-04.4/-11.5",
+  "population": {
+    "value": { "from": { "amount": 4, "precision": 10 }, "to": { "amount": 9, "precision": 10 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "founded": { "time": "2231-01-01T00:00:00Z", "precision": "y" },
+  "occupation": { "from": { "time": "2231-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true },
+  "image": [{ "value": "/f/DCbK7geSudKiwZj9t6WvyG", "name": "G2_STATION_TWO.jpg", "caption": "General view", "source": "Consortium survey archive" }]
+}

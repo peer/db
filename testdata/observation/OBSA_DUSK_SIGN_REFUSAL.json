@@ -1,0 +1,29 @@
+{
+  "id": ["xeno.peerdb.org", "OBSERVATION", "OBSA_DUSK_SIGN_REFUSAL"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "OBSERVATION"] }],
+  "title": [
+    { "value": "Signing stops when the survey party stands on the gravel", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>Four visits to the middle terraces over eleven days, on each of which work and signing stopped while we were on the flat ground. We cannot tell a refusal from interference.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "content": [
+    {
+      "value": "<p>Four visits over eleven days. On each of them signing and work stopped within about a minute of our party stepping onto the flat gravel, and resumed within about a minute of our withdrawal to the channel bank forty metres off.</p><p>The pattern is clean enough that we timed it deliberately on the third and fourth visits. We are aware that this is close to a line, it is in the expedition ethics log, and the officer has seen the traces.</p><p>Two readings are open. Either this is a refusal, which the language can make simply by nobody signing, or our boots make the ground unreadable and everybody is waiting for the noise to stop. From where we are standing, and that is the trouble with where we are standing, the two are the same recording.</p><p>Nothing was said to us on any of the four visits, because nothing can be said to us. We do not sign and we are not on the ground in the sense that matters.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "expedition": { "id": ["xeno.peerdb.org", "EXPEDITION", "EXP_GRID_44_THIRD"] },
+  "observedBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_LINDQVIST"] }, { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_NOWAK"] }],
+  "observedAt": { "id": ["xeno.peerdb.org", "SITE", "G1_DUSK_TERRACES"] },
+  "observedOn": { "time": "2272-09-14T00:00:00Z", "precision": "d" },
+  "about": [{ "id": ["xeno.peerdb.org", "SPECIES", "G1_GRID44_HOLDERS"] }, { "id": ["xeno.peerdb.org", "CULTURE", "G1_REACH_FOSTERAGE"] }],
+  "method": [
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "PARTICIPANT_OBSERVATION"] },
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "ACOUSTIC_RECORDING"] }
+  ],
+  "fieldConditions": "Permanent low sun off the day side, no weather to speak of, meltwater running in the feed channel. Between nine and fourteen holders working the beds on each of the four visits."
+}

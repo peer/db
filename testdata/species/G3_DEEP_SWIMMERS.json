@@ -1,0 +1,64 @@
+{
+  "id": ["xeno.peerdb.org", "SPECIES", "G3_DEEP_SWIMMERS"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SPECIES"] }],
+  "name": [{ "value": "Underbell Deep Swimmers", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [
+    { "value": "[the slow return]", "gloss": "a gloss of a repeated sounding return, and not a name in any sense the register is comfortable with" }
+  ],
+  "exonym": [
+    {
+      "value": "Ottekonnar, in the Tekkonno mouth: the ones the water is borrowed from",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "taxonCode": "TX-4467-b",
+  "description": [
+    {
+      "value": "<p>Very large swimmers in the sealed ocean of the moon, known from two sources and no others. The first is radar and acoustic sounding, in which the bodies move as fixed sets rather than as animals, several kilometres apart and turning together with a lag that matches the speed of sound in that water. The second is what the Tekkonno on the world below say about the moon, which is a great deal, and which the ethics apparatus has ruled may be recorded but not acted on. A self appears to occupy several bodies at once, so individuals do not apply; no body has ever been observed to do anything on its own, and the register will not open a record for one. Whether this is a distributed self or unusually tight coordination between separate wills is the open question, and no landing has been attempted.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Velika bitja v oceanu pod ledom, znana le iz odbojev sonde in iz pripovedi sosedov s spodnjega sveta.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    }
+  ],
+  "homeworld": { "id": ["xeno.peerdb.org", "MOON", "G3_UNDERBELL"] },
+  "bodyPlan": [
+    {
+      "value": "<p>Six metres and more of deep-bodied swimmer, laterally flattened, driven by a single heavy fluke and steered by paired forward vanes. The sounding shows a dense fore-body and a long hollow after-section that is probably a resonating chamber, since the calls are loud enough to be read from orbit through fourteen kilometres of ice. No specimen and no image exists.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "typicalHeight": { "value": { "amount": 6.4, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+  "typicalMass": { "value": { "amount": 5200.0, "precision": 0.1 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "kg"] }] },
+  "lifespan": {
+    "value": { "from": { "amount": 120, "precision": 1 }, "to": { "amount": 400, "precision": 1 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_YEAR"] }]
+  },
+  "sensoryModality": [
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "ACOUSTIC_RANGING"] },
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "PRESSURE_GRADIENT"] },
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "MAGNETORECEPTION"] }
+  ],
+  "subsistence": [
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "CHEMO_TENDING"] },
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "DRIFT_HARVESTING"] }
+  ],
+  "individuality": { "id": ["xeno.peerdb.org", "INDIVIDUALITY_MODE", "DISTRIBUTED_SELF"] },
+  "socialOrganisation": { "id": ["xeno.peerdb.org", "SOCIAL_ORGANISATION", "OBLIGATION_NETWORK"] },
+  "kinshipSystem": { "id": ["xeno.peerdb.org", "KINSHIP_SYSTEM", "DEBT_KINSHIP"] },
+  "population": {
+    "value": { "from": { "amount": 300, "precision": 1000 }, "to": { "amount": 9000, "precision": 1000 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "contactStatus": { "id": ["xeno.peerdb.org", "CONTACT_STATUS", "INDIRECT"] },
+  "firstContact": { "time": "2294-01-01T00:00:00Z", "precision": "y" },
+  "image": [
+    {
+      "value": "/f/WXPvyyaxYYE5tDwrvR9nkt",
+      "name": "G3_DEEP_SWIMMERS.jpg",
+      "caption": "Field plate",
+      "source": "Drawn in the field; Consortium collection"
+    }
+  ]
+}

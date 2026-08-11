@@ -1,0 +1,72 @@
+{
+  "id": ["xeno.peerdb.org", "SPECIES", "G1_KHEVNITH"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SPECIES"] }],
+  "name": [{ "value": "Soot Shelf Colonies", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [
+    {
+      "value": "Khevnith",
+      "gloss": "the standing count",
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G1_COLUMN_PERCUSSION"] }]
+    }
+  ],
+  "exonym": [
+    { "value": "Nithravekh, in the canopy speech, a word that is also a number", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }
+  ],
+  "taxonCode": "TX-1518-m",
+  "description": [
+    {
+      "value": "<p>Colonial people of the soot shelf below the canopy, where a person is a colony of some forty thousand small bodies spread across two or three hectares of ground. A body carries no memory of its own, lasts a few years, and is replaced without anybody marking the event, including the colony; removing one changes nothing that the colony can detect and it says so when asked. Enquiry into relatedness has been made properly and answered plainly: they keep no category for it, and organise every duty by standing obligation instead. The population figures count colonies, because counting bodies produces a number in the billions that means nothing to anyone. They speak by drumming the shelf floor, at a rate that a single body could not sustain and a hectare of them can keep up for days.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Povo colonial da plataforma de fuligem por baixo do dossel, onde uma pessoa é uma colónia de umas quarenta mil pequenas unidades corporais espalhadas por dois ou três hectares de terreno. Um corpo não guarda memória própria, dura poucos anos e é substituído sem que ninguém assinale o facto, nem sequer a colónia; retirar um não altera nada que a colónia consiga detetar, e ela di-lo quando lhe perguntam. A pergunta sobre o parentesco foi feita como deve ser e respondida com clareza: não têm categoria nenhuma para isso e organizam todos os deveres por obrigação permanente. Os números de população contam colónias, porque contar corpos dá um número na ordem dos milhares de milhões que não significa nada para ninguém. Falam tamborilando o chão da plataforma, a um ritmo que um único corpo não conseguiria manter e que um hectare deles aguenta durante dias.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "homeworld": { "id": ["xeno.peerdb.org", "PLANET", "G1_SIXTEEN_HUNDRED_V"] },
+  "bodyPlan": [
+    {
+      "value": "<p>Each body is a palm-sized six-legged crawler with a soot-black carapace, a pale soft underside and a blunt head with no eyes. A single trailing filament, twice the body length, carries chemical and vibrational traffic to whatever the body is touching. Bodies feed on canopy fall and on the decay networks under it, and are found in a working colony at densities of several hundred to the square metre in the middle and almost none at the edge.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "typicalHeight": { "value": { "amount": 0.11, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+  "typicalMass": { "value": { "amount": 0.34, "precision": 0.1 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "kg"] }] },
+  "lifespan": {
+    "value": { "from": { "amount": 80, "precision": 1 }, "to": { "amount": 410, "precision": 1 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_YEAR"] }]
+  },
+  "sensoryModality": [
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "SUBSTRATE_VIBRATION"] },
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "CONTACT_CHEMO"] },
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "HYGRORECEPTION"] }
+  ],
+  "subsistence": [
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "DRIFT_HARVESTING"] },
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "MANAGED_DECAY"] }
+  ],
+  "individuality": { "id": ["xeno.peerdb.org", "INDIVIDUALITY_MODE", "PERMANENT_COLLECTIVE"] },
+  "socialOrganisation": { "id": ["xeno.peerdb.org", "SOCIAL_ORGANISATION", "OBLIGATION_NETWORK"] },
+  "kinshipSystem": { "id": ["xeno.peerdb.org", "KINSHIP_SYSTEM", "NOT_RECKONED"] },
+  "communication": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G1_COLUMN_PERCUSSION"] }],
+  "population": {
+    "value": { "from": { "amount": 9000, "precision": 1000 }, "to": { "amount": 24000, "precision": 1000 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "contactStatus": { "id": ["xeno.peerdb.org", "CONTACT_STATUS", "LIMITED"] },
+  "firstContact": { "time": "2268-01-01T00:00:00Z", "precision": "y" },
+  "image": [
+    {
+      "value": "/f/6JjmJUMAAJ7p9V7ix9KSXs",
+      "name": "G1_KHEVNITH.jpg",
+      "caption": "Field plate",
+      "source": "Drawn in the field; Consortium collection"
+    }
+  ],
+  "notes": [
+    {
+      "value": "<p>Transcripts are attributed to the colony. The ethics panel spent four years on the question of whose consent that is, and the colony&#39;s answer, given once and not repeated, was that the question does not divide.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

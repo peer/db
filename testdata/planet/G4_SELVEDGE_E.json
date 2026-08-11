@@ -1,0 +1,34 @@
+{
+  "id": ["xeno.peerdb.org", "PLANET", "G4_SELVEDGE_E"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PLANET"] }],
+  "name": [{ "value": "Selvedge e", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "catalogueCode": "SPW-A/104-e",
+  "description": [
+    {
+      "value": "<p>The system&#39;s only giant, banded in rust and cream, with a ring of ice and silicate dust bright enough to serve as a navigation feature from the inner worlds. Three distinct decks of aerial mat live in its upper atmosphere, at 0.6, 1.1 and 4 bar, and they do not appear to exchange material at all. Fieldwork here means a balloon platform, a long tether and an even longer argument about sample contamination.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "STAR_SYSTEM", "G4_SELVEDGE"] },
+  "planetType": { "id": ["xeno.peerdb.org", "PLANET_TYPE", "VOLATILE_GIANT"] },
+  "biome": [{ "id": ["xeno.peerdb.org", "BIOME", "AERIAL_MAT"] }],
+  "radius": { "value": { "amount": 9.6, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_RADIUS"] }] },
+  "mass": { "value": { "amount": 214.0, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_MASS"] }] },
+  "surfaceGravity": { "value": { "amount": 2.32, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "STANDARD_GRAVITY"] }] },
+  "dayLength": { "value": { "amount": 11.4, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "HOUR"] }] },
+  "orbitalPeriod": { "value": { "amount": 4820.0, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_DAY"] }] },
+  "ringSystem": true,
+  "meanTemperature": { "value": { "amount": -148.0, "precision": 0.1 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "°C"] }] },
+  "hydrosphere": { "value": { "amount": 0, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "PERCENT"] }] },
+  "atmosphere": [
+    {
+      "value": "<p>Hydrogen and helium with ammonia and hydrosulphide cloud decks and a haze of long-chain organics. There is no surface to stand on and no depth at which the pressure and the temperature are survivable at the same time.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "biosphereUnknown": true,
+  "contactStatus": { "id": ["xeno.peerdb.org", "CONTACT_STATUS", "REMOTE_OBSERVATION"] },
+  "firstSurveyed": { "time": "2218-01-01T00:00:00Z", "precision": "y" },
+  "surveyPeriod": { "from": { "time": "2218-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true },
+  "image": [{ "value": "/f/LrWA1aykkQUSxdKq5Bm8xW", "name": "G4_SELVEDGE_E.jpg", "caption": "Approach view", "source": "Consortium survey archive" }]
+}

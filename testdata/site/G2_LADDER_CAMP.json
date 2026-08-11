@@ -1,0 +1,21 @@
+{
+  "id": ["xeno.peerdb.org", "SITE", "G2_LADDER_CAMP"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SITE"] }],
+  "name": [{ "value": "Ladder Camp", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "localName": [{}],
+  "description": [
+    {
+      "value": "<p>A tent-and-freezer camp on the third salt bench, occupied for one season a year between 2231 and 2271 and closed when the sampling programme finished. The salt preserved everything: the frames, the cable runs and the boot tracks are all still in place. It is now used as a control for taphonomy work.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "REGION", "G2_SALT_LADDER"] },
+  "siteType": { "id": ["xeno.peerdb.org", "SITE_TYPE", "FIELD_CAMP"] },
+  "gridReference": "OS-22.1/+03.8",
+  "population": {
+    "value": { "from": { "amount": 0, "precision": 10 }, "to": { "amount": 6, "precision": 10 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "founded": { "time": "2231-01-01T00:00:00Z", "precision": "y" },
+  "occupation": { "from": { "time": "2231-01-01T00:00:00Z", "precision": "y" }, "to": { "time": "2271-01-01T00:00:00Z", "precision": "y" } }
+}

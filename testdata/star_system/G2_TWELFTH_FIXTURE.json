@@ -1,0 +1,18 @@
+{
+  "id": ["xeno.peerdb.org", "STAR_SYSTEM", "G2_TWELFTH_FIXTURE"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "STAR_SYSTEM"] }],
+  "name": [{ "value": "Twelfth Fixture", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "catalogueCode": "TF-0273",
+  "description": [
+    {
+      "value": "<p>An M1 dwarf with a single greenhouse world, catalogued twelfth in a numbering scheme that was abandoned at thirteen. Visited once.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "SECTOR", "G2_COLD_MARGIN"] },
+  "spectralClass": "M1V",
+  "starCount": { "amount": 1, "precision": 1 },
+  "planetCount": { "amount": 1, "precision": 1 },
+  "distanceFromSol": { "value": { "amount": 23301.5, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "PARSEC"] }] },
+  "firstSurveyed": { "time": "2273-01-01T00:00:00Z", "precision": "y" }
+}

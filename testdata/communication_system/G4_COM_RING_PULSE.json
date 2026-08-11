@@ -1,0 +1,41 @@
+{
+  "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G4_COM_RING_PULSE"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM"] }],
+  "name": [{ "value": "Ring Pulse", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Ngamunuma", "gloss": "what goes round" }],
+  "description": [
+    {
+      "value": "<p>Continuous low calling under water, carried for hundreds of kilometres along the ring, with electrical pulses laid over it that state moiety, identity and direction of travel. The system is silent above the surface, and a swimmer at the tide line is not being reticent but is simply out of the medium. It carries schedule, position and standing obligation, and cannot carry anything privately, because the pulse names the speaker before the call arrives. The first analysts looked for turns, found none, and segmented the corpus into utterances that no swimmer has ever recognised; the exchange is built of overlaps, and a silence in it is a refusal.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "modality": [
+    { "id": ["xeno.peerdb.org", "COMMUNICATION_MODALITY", "ELECTRICAL_DISCHARGE"] },
+    { "id": ["xeno.peerdb.org", "COMMUNICATION_MODALITY", "VOCALISATION"] }
+  ],
+  "users": {
+    "value": { "from": { "amount": 65000, "precision": 100 }, "to": { "amount": 140000, "precision": 100 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "sampleGloss": [
+    {
+      "value": "<p><i>(held low call, three pulses on the falling edge)</i> - going-round, my-half, third - I am of this half and I will be at the third vent.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "recording": [
+    {
+      "value": "/f/TGbfTC7pfq5XLH4wXYNhKP",
+      "name": "system-G4_COM_RING_PULSE.mp3",
+      "caption": "Elicitation sample",
+      "duration": { "value": { "amount": 2, "precision": 1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "MINUTE"] }] },
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G4_COM_RING_PULSE"] }],
+      "note": [
+        {
+          "value": "<p>Recorded during elicitation and kept as the reference sample for this system.</p>",
+          "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+        }
+      ]
+    }
+  ]
+}

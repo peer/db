@@ -1,0 +1,41 @@
+{
+  "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G2_SEAM_PULSE"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM"] }],
+  "name": [{ "value": "Seam Pulse", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Nurremenne", "gloss": "the heat-saying" }],
+  "description": [
+    {
+      "value": "<p>Patterned electrical pulses released into the water, punctuated by knocks on the speaker&#39;s own mineral crust, and read against the constant background of the vents themselves. It carries temperature, flow, ownership and the whole vocabulary of debt, and it distinguishes obligingly between an obligation incurred before a division and one incurred after, which is grammar most languages do not need. Near a running fissure the noise floor is severe and speakers move upstream to be understood, so a conversation drifts. The usual error is to record from the warm side, where the recording is of the vent.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "modality": [
+    { "id": ["xeno.peerdb.org", "COMMUNICATION_MODALITY", "ELECTRICAL_DISCHARGE"] },
+    { "id": ["xeno.peerdb.org", "COMMUNICATION_MODALITY", "SUBSTRATE_PERCUSSION"] }
+  ],
+  "users": {
+    "value": { "from": { "amount": 2000, "precision": 100 }, "to": { "amount": 6000, "precision": 100 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "sampleGloss": [
+    {
+      "value": "<p><i>[four fast pulses, one long, a single knock on the crust]</i> - <b>hot-hot-hot-hot-cooling-MINE</b> - &#39;the fissure is falling off, and it is mine to say so.&#39;</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "recording": [
+    {
+      "value": "/f/AV2yUmKpf16yKR5NPeUoqF",
+      "name": "system-G2_SEAM_PULSE.mp3",
+      "caption": "Elicitation sample",
+      "duration": { "value": { "amount": 3, "precision": 1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "MINUTE"] }] },
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G2_SEAM_PULSE"] }],
+      "note": [
+        {
+          "value": "<p>Recorded during elicitation and kept as the reference sample for this system.</p>",
+          "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+        }
+      ]
+    }
+  ]
+}

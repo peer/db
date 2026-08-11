@@ -1,0 +1,22 @@
+{
+  "id": ["xeno.peerdb.org", "COLLECTIVE", "G4_CO_WEST_LEDGER_CHORUS"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "COLLECTIVE"] }],
+  "name": [{ "value": "West Ledger Chorus", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "description": [
+    {
+      "value": "<p>A smaller self in the western fracture system, which holds the Consortium&#39;s oldest open obligation on this world: an instrument lowered down a working shaft in 2281 and never recovered. It has declined three offers of settlement, on the ground that the relation is worth more than the instrument and that the Consortium plainly agrees, since it keeps coming back. It is recorded as one body for the usual reason and is, by some distance, the most exacting party the sector office deals with.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "species": { "id": ["xeno.peerdb.org", "SPECIES", "G4_DEEP_CHORUS"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G4_CU_GALLERY_LEDGERS"] }],
+  "role": [
+    { "value": "ledger party", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "creditor of the Consortium", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }
+  ],
+  "memberCount": {
+    "value": { "from": { "amount": 400, "precision": 10 }, "to": { "amount": 1100, "precision": 10 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "activePeriod": { "from": { "time": "2281-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true }
+}

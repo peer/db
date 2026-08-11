@@ -1,0 +1,26 @@
+{
+  "id": ["xeno.peerdb.org", "COLLECTIVE", "G2_RISER_ASSEMBLY"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "COLLECTIVE"] }],
+  "name": [{ "value": "The Riser That Answers", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "description": [
+    {
+      "value": "<p>A single self spread through the pore space of one terrace riser, which replies to a struck wall on a delay of about forty seconds and in an order that is not the order of the strikes. It is not a colony, a population or a committee: strike it anywhere along its length and the answer comes from the whole of it, and there is no part that can be dealt with separately. The discipline records it as one body because every attempt to treat it as many has produced a party that will not hold to what the other parts agreed.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "species": { "id": ["xeno.peerdb.org", "SPECIES", "G2_RISER_KIN"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G2_EVENING_ROWS"] }],
+  "role": [{ "value": "party to terrace cutting consent", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "memberCount": {
+    "value": { "from": { "amount": 3000000, "precision": 10 }, "to": { "amount": 9000000, "precision": 10 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "activePeriod": { "from": { "time": "2271-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true },
+  "seat": { "id": ["xeno.peerdb.org", "SITE", "G2_LONG_EVENING_ROWS"] },
+  "notes": [
+    {
+      "value": "<p>The member figures count bodies, because counting selves would require agreeing where one riser ends. The survey has held that agreement four times and never for more than a season.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

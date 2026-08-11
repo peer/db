@@ -1,0 +1,40 @@
+{
+  "id": ["xeno.peerdb.org", "PLANET", "G2_SLATE_TABLE"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PLANET"] }],
+  "name": [{ "value": "Slate Table", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "catalogueCode": "GA-0221-b",
+  "description": [
+    {
+      "value": "<p>A flat grey world of welded impact breccia, unmoved since the last resurfacing closed about 3.8 billion years ago. There is no tectonics, no volcanism and no weather beyond a thin argon wind that shifts dust a few centimetres a century. Crater rims stand as sharp as the day they formed, and the survey used them for two decades as a calibration standard for the whole sector. Nothing lives here and, on every line of evidence available, nothing ever has.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Površje, ki se ni spremenilo skoraj štiri milijarde let. Kraterji so ostri, kot bi nastali včeraj.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Um mundo cinzento e plano de brecha de impacto soldada, imóvel desde que o último episódio de repavimentação terminou há cerca de 3,8 mil milhões de anos. Não há tectónica, nem vulcanismo, nem meteorologia para além de um vento ténue de árgon que desloca a poeira alguns centímetros por século. As bordas das crateras estão tão nítidas como no dia em que se formaram, e o levantamento usou-as durante duas décadas como padrão de calibração de todo o setor. Nada vive aqui e, por todas as linhas de prova disponíveis, nada aqui viveu alguma vez.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "STAR_SYSTEM", "G2_GREY_ANCHOR"] },
+  "planetType": { "id": ["xeno.peerdb.org", "PLANET_TYPE", "DESICCATED"] },
+  "radius": { "value": { "amount": 0.62, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_RADIUS"] }] },
+  "mass": { "value": { "amount": 0.21, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_MASS"] }] },
+  "surfaceGravity": { "value": { "amount": 0.55, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "STANDARD_GRAVITY"] }] },
+  "dayLength": { "value": { "amount": 402.1, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "HOUR"] }] },
+  "orbitalPeriod": { "value": { "amount": 202.9, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_DAY"] }] },
+  "meanTemperature": { "value": { "amount": -65.0, "precision": 0.1 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "°C"] }] },
+  "hydrosphere": { "value": { "amount": 0, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "PERCENT"] }] },
+  "atmosphere": [
+    {
+      "value": "<p>About 0.004 bar of argon and carbon dioxide with a trace of neon. Standing on it, the sky is black at noon and the horizon is unnaturally close; a dropped tool raises dust that hangs for an hour and then settles in a clean ring.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "biosphereNone": true,
+  "contactStatus": { "id": ["xeno.peerdb.org", "CONTACT_STATUS", "NO_CONTACT"] },
+  "firstSurveyed": { "time": "2221-01-01T00:00:00Z", "precision": "y" },
+  "surveyPeriod": { "from": { "time": "2221-01-01T00:00:00Z", "precision": "y" }, "to": { "time": "2261-01-01T00:00:00Z", "precision": "y" } },
+  "image": [{ "value": "/f/KS4TwVJKSzK4jvcpXPeEtQ", "name": "G2_SLATE_TABLE.jpg", "caption": "Approach view", "source": "Consortium survey archive" }]
+}

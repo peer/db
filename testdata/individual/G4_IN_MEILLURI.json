@@ -1,0 +1,18 @@
+{
+  "id": ["xeno.peerdb.org", "INDIVIDUAL", "G4_IN_MEILLURI"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "INDIVIDUAL"] }],
+  "name": [{ "value": "Meilluri" }],
+  "lineageName": [{ "value": "Neluia Span" }],
+  "description": [
+    {
+      "value": "<p>A young holder of rank in span disputes, which in this house passes to whoever is least useful for grazing, a criterion he reports without visible resentment. He has heard four cases and has been overruled in two by the houses that appointed him. He is eighteen, which is old enough here to be tired of it.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "species": { "id": ["xeno.peerdb.org", "SPECIES", "G4_SMALLFOLK"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G4_CU_LADDER_GORGE"] }],
+  "role": [{ "value": "dispute holder", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "formOfAddress": "as the house, in the house's name",
+  "born": { "time": "2294-01-01T00:00:00Z", "precision": "y" },
+  "birthplace": { "id": ["xeno.peerdb.org", "SITE", "G4_LADDER_TERRACES"] }
+}

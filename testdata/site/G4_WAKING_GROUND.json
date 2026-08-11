@@ -1,0 +1,29 @@
+{
+  "id": ["xeno.peerdb.org", "SITE", "G4_WAKING_GROUND"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SITE"] }],
+  "name": [{ "value": "Waking Ground", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "localName": [{ "value": "Ekkuttan", "gloss": "the meeting at the water" }],
+  "description": [
+    {
+      "value": "<p>A gravel terrace above the highest channel of the meadow, used once per orbit, at the thaw, by everyone on the world who is awake. The gathering of 2241 is the only one on record, and it lasted eleven years. Between gatherings the ground carries stone alignments, a great many worked surfaces and nothing else.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "REGION", "G4_THAW_MEADOW"] },
+  "siteType": { "id": ["xeno.peerdb.org", "SITE_TYPE", "AGGREGATION_GROUND"] },
+  "gridReference": "TM-058.4/-14.8",
+  "population": {
+    "value": { "from": { "amount": 0, "precision": 10 }, "to": { "amount": 26000, "precision": 10 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "occupation": { "from": { "time": "2241-01-01T00:00:00Z", "precision": "y" }, "to": { "time": "2252-01-01T00:00:00Z", "precision": "y" } },
+  "image": [
+    { "value": "/f/JyeWyJFtLfpJWgNm4FmuHB", "name": "G4_WAKING_GROUND.jpg", "caption": "General view", "source": "Consortium survey archive" }
+  ],
+  "notes": [
+    {
+      "value": "<p>Eleven years is a short gathering measured against a four-hundred-year year, and the record notes that people were still arriving when others had already begun to leave.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

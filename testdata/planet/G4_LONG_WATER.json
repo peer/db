@@ -1,0 +1,55 @@
+{
+  "id": ["xeno.peerdb.org", "PLANET", "G4_LONG_WATER"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PLANET"] }],
+  "name": [{ "value": "Long Water", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Naolire", "gloss": "roughly, the water that stays, as against the water that leaves twice a day" }],
+  "catalogueCode": "SPW-A/104-c",
+  "description": [
+    {
+      "value": "<p>A wet, warm-tempered world on an orbit eccentric enough that the year divides into a long mild stretch and a short violent one. Its outsized moon drags a tidal range of twenty-six metres across the shallow northern shelf, so a fifth of the inhabited surface is sea for six hours and mud for six. Inland, the continents carry closed high-canopy forest with almost no understory, and the equatorial belt is under permanent convection. It is the best-surveyed world in the galaxy and the one the ethics committee writes to most often.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Vlažen svet z raztegnjeno orbito in plimskim razponom čez dvajset metrov. Kratko poletje je nasilno.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Um mundo húmido e temperado, numa órbita bastante excêntrica para que o ano se divida num longo período ameno e num curto período violento. A sua lua desmesurada arrasta uma amplitude de maré de vinte e seis metros pela plataforma norte, pouco profunda, de modo que um quinto da superfície habitada é mar durante seis horas e lodo durante outras seis. No interior, os continentes têm floresta fechada de dossel alto e quase sem sub-bosque, e a faixa equatorial está em convecção permanente. É o mundo mais bem estudado da galáxia e aquele para o qual a comissão de ética escreve com mais frequência.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "STAR_SYSTEM", "G4_SELVEDGE"] },
+  "planetType": { "id": ["xeno.peerdb.org", "PLANET_TYPE", "DENSE_SILICATE"] },
+  "biome": [
+    { "id": ["xeno.peerdb.org", "BIOME", "SWEEP_FLAT"] },
+    { "id": ["xeno.peerdb.org", "BIOME", "HIGH_CANOPY"] },
+    { "id": ["xeno.peerdb.org", "BIOME", "STORM_BELT"] }
+  ],
+  "radius": { "value": { "amount": 0.97, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_RADIUS"] }] },
+  "mass": { "value": { "amount": 1.14, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_MASS"] }] },
+  "surfaceGravity": { "value": { "amount": 1.21, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "STANDARD_GRAVITY"] }] },
+  "dayLength": { "value": { "amount": 26.8, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "HOUR"] }] },
+  "orbitalPeriod": { "value": { "amount": 588.0, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_DAY"] }] },
+  "meanTemperature": { "value": { "amount": 9.4, "precision": 0.1 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "°C"] }] },
+  "hydrosphere": { "value": { "amount": 61.0, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "PERCENT"] }] },
+  "atmosphere": [
+    {
+      "value": "<p>Nitrogen with nineteen per cent oxygen and a heavy water load, 1.14 bar at sea level. Standing on the flats at low water is warm, extremely loud with wind, and smells strongly of iodine.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "biosphere": [
+    {
+      "value": "<p>Life is present: 3 catalogued species (Standing Wood Canopy Smallfolk, Storm Belt Ridge Dwellers, Tall Shoals Weir Builders) and 3 recorded non-sapient organisms. The survey is not claimed to be complete.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "contactStatus": { "id": ["xeno.peerdb.org", "CONTACT_STATUS", "SUSTAINED"] },
+  "firstSurveyed": { "time": "2216-01-01T00:00:00Z", "precision": "y" },
+  "surveyPeriod": { "from": { "time": "2216-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true },
+  "populationEstimate": {
+    "value": { "from": { "amount": 900000, "precision": 100 }, "to": { "amount": 1600000, "precision": 100 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "image": [{ "value": "/f/HFMrhL52dg9mCsdeMgLKSe", "name": "G4_LONG_WATER.jpg", "caption": "Approach view", "source": "Consortium survey archive" }]
+}

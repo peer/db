@@ -1,0 +1,30 @@
+{
+  "id": ["xeno.peerdb.org", "PRACTICE", "G1_PLATFORM_LEAVING"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PRACTICE"] }],
+  "name": [{ "value": "Leaving on the Ice", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Nnaumel", "gloss": "laid on the cold lobe" }],
+  "description": [
+    {
+      "value": "<p>The dead are carried out to the stacked ice platforms on a lobe that has stopped venting, by whoever is nearest rather than by anybody related to them. The body is laid with the gut opened, so that the inherited culture goes into the ice and not into another person, and the opening is done at the platform and not before. Nothing is said. The tapping stops for the length of the walk out and back, which is the only silence a settlement ever holds on purpose, and on a world where speech travels in the plumbing that silence reaches everybody at once. Platforms are maintained by whoever passes them, and a platform that nobody passes any more falls down, which is not regarded as neglect.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Mrtve odnesejo na ledene odre in odprejo drob, da simbiont ne preide na živega.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    }
+  ],
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G1_VENT_STEWARDSHIP"] }],
+  "category": { "id": ["xeno.peerdb.org", "PRACTICE_CATEGORY", "MORTUARY"] },
+  "periodicity": "at every death",
+  "participants": {
+    "value": { "from": { "amount": 2, "precision": 1 }, "to": { "amount": 12, "precision": 1 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "firstDocumented": { "time": "2259-01-01T00:00:00Z", "precision": "y" },
+  "notes": [
+    {
+      "value": "<p>The ground was photographed once, in 2259, with permission given by a household that no longer exists in that place. Everything gathered since has been gathered from a distance, and since 2298 from orbit.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

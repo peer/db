@@ -1,0 +1,20 @@
+{
+  "id": ["xeno.peerdb.org", "SITE", "G3_RIM_DRUM_GROUND"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SITE"] }],
+  "name": [{ "value": "Rim Signal Ground", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "localName": [{ "value": "[where the floor is struck]", "gloss": "the same sign as the world's own name, with one added beat" }],
+  "description": [
+    {
+      "value": "<p>Forty flat slabs set into the crest of the rim in a broad ring, each polished on its upper face by long striking, with the ground beneath them cut back to leave them ringing. Groups converge on the ring at intervals the survey has not yet worked out and disperse within a day. It is the only place on the world where more than a dozen individuals have been seen at once.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "REGION", "G3_BASIN_RIM"] },
+  "siteType": { "id": ["xeno.peerdb.org", "SITE_TYPE", "AGGREGATION_GROUND"] },
+  "gridReference": "SU-055.8/+18.3",
+  "population": {
+    "value": { "from": { "amount": 0, "precision": 10 }, "to": { "amount": 200, "precision": 10 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "occupation": { "from": { "time": "2265-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true }
+}

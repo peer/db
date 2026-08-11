@@ -1,0 +1,32 @@
+{
+  "id": ["xeno.peerdb.org", "PRACTICE", "G1_CLOSING_ACCOUNT"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PRACTICE"] }],
+  "name": [{ "value": "Closing the Account", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Oaeni Sen", "gloss": "the work counted out" }],
+  "description": [
+    {
+      "value": "<p>At the end of a cutting season each worker&#39;s account with the company was read out across the open channel, the two parties standing on opposite sides of the cut, and settled in draw rights rather than in goods. The reading was done by the company clerk and the figures were repeated back by the worker, line by line, in the order the obligations had been incurred. The last act was to break the salt tally in half and drop both halves into the brine, since a settled account is not a record of anything. Because two parties are kin exactly as long as an obligation between them stands, people who wished to remain kin left a small amount outstanding on purpose, which the companies permitted and never entered. When the crust failed in 2295 there were about four hundred accounts open and none of them were closed, which the surviving foremen describe as the only good thing to come out of it.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Ob koncu sezone so poravnali račun in s tem tudi končali sorodstvo med delavcem in družbo.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>No fim de uma época de corte, a conta de cada trabalhador com a companhia era lida em voz alta de um lado ao outro do canal aberto, com as duas partes de pé em margens opostas do corte, e saldada em direitos de tiragem de água e não em bens. A leitura era feita pelo escriturário da companhia e os valores eram repetidos pelo trabalhador, linha a linha, pela ordem em que as obrigações tinham sido contraídas. O último ato era partir a talha de sal ao meio e deixar cair ambas as metades na salmoura, pois uma conta saldada não é registo de coisa nenhuma. Como duas partes são parentes exatamente enquanto uma obrigação entre elas se mantiver, quem queria continuar parente deixava de propósito uma pequena quantia por pagar, o que as companhias permitiam e nunca lançavam nos livros. Quando a crosta cedeu em 2295 havia cerca de quatrocentas contas abertas e nenhuma delas ficou fechada, o que os capatazes sobreviventes descrevem como a única coisa boa que daí saiu.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G1_CUT_WATER_COMPANIES"] }],
+  "category": { "id": ["xeno.peerdb.org", "PRACTICE_CATEGORY", "EXCHANGE_CYCLE"] },
+  "periodicity": "at the end of each cutting season, 2258 to 2295",
+  "participants": {
+    "value": { "from": { "amount": 2, "precision": 1 }, "to": { "amount": 400, "precision": 1 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "firstDocumented": { "time": "2266-01-01T00:00:00Z", "precision": "y" },
+  "relatedPractice": [{ "id": ["xeno.peerdb.org", "PRACTICE", "G1_DAWN_DRAW"] }],
+  "image": [
+    { "value": "/f/TQLUwDyNvAefmWDBX8mn7K", "name": "G1_CLOSING_ACCOUNT.jpg", "caption": "In progress", "source": "Consortium survey archive" }
+  ]
+}

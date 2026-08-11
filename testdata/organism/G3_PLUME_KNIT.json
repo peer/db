@@ -1,0 +1,25 @@
+{
+  "id": ["xeno.peerdb.org", "ORGANISM", "G3_PLUME_KNIT"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "ORGANISM"] }],
+  "name": [{ "value": "Plume Knit", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "taxonCode": "TX-1114-a",
+  "description": [
+    {
+      "value": "<p>A layered mineral-feeding mat that grows on the underside of the ice where the fracture chemistry is richest, in sheets that curl away from the surface and knit back onto it. Fragments freeze into the plume deposit and can be picked up on the surface, which is how it was found and how it is still sampled. The colonies below crop it, and the cropping shows plainly in the growth pattern.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "category": { "id": ["xeno.peerdb.org", "ORGANISM_CATEGORY", "CHEMOLITHO_MAT"] },
+  "foundOn": [{ "id": ["xeno.peerdb.org", "MOON", "G3_KEEL"] }],
+  "biome": [{ "id": ["xeno.peerdb.org", "BIOME", "BRINE_SEA"] }],
+  "typicalSize": { "value": { "amount": 0.7, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+  "typicalMass": { "value": { "amount": 4.0, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "kg"] }] },
+  "image": [
+    {
+      "value": "/f/8umWw7B67hqUP6TrSdKjef",
+      "name": "G3_PLUME_KNIT.jpg",
+      "caption": "Field plate",
+      "source": "Drawn in the field; Consortium collection"
+    }
+  ]
+}

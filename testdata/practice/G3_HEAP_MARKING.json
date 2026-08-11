@@ -1,0 +1,34 @@
+{
+  "id": ["xeno.peerdb.org", "PRACTICE", "G3_HEAP_MARKING"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PRACTICE"] }],
+  "name": [{ "value": "Laying a Debt on the Rubble", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [
+    {
+      "value": "[laying it on the rubble]",
+      "gloss": "a compound mark; the heaps use one figure for saying and for owing, and decline the distinction when it is offered"
+    }
+  ],
+  "description": [
+    {
+      "value": "<p>A colony that has taken delivery of anything, wind-borne or tipped, works a compound chemical mark into the rubble at the boundary of its own ground and taps the same figure through the stone until a neighbour taps it back. The mark states what came in, from which direction, and against whom the standing is now adjusted; it does not state that anything is settled, because the system has no such mark and the heaps report no need of one. Marks last about four years in the frost and are renewed by whoever benefits from their being there, so a debt is remembered exactly as long as somebody is willing to walk out and refresh it. The ground around a long-standing heap is therefore a legible surface for several hundred metres in every direction, which the first survey walked across for a fortnight before anybody sampled it. The Consortium camp has been marked since 2283 and stands, as far as can be read, in credit.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Dolg zapišejo s kemično sledjo na gruščnati kup in ga potrjujejo z udarci skozi kamen.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Uma colónia que tenha recebido seja o que for, trazido pelo vento ou descarregado, trabalha uma marca química composta no cascalho junto ao limite do seu próprio terreno e martela a mesma figura através da pedra até um vizinho a martelar de volta. A marca declara o que entrou, de que direção e contra quem fica agora ajustada a posição; não declara que alguma coisa está saldada, porque o sistema não tem uma marca dessas e os montes não dão sinal de precisar de uma. As marcas duram cerca de quatro anos no gelo e são renovadas por quem beneficia da sua existência, pelo que uma dívida é lembrada exatamente enquanto alguém estiver disposto a ir lá fora refrescá-la. O chão em redor de um monte antigo é por isso uma superfície legível por várias centenas de metros em todas as direções, sobre a qual o primeiro levantamento andou duas semanas antes de alguém a amostrar. O acampamento do Consórcio está marcado desde 2283 e encontra-se, tanto quanto se consegue ler, em crédito.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G3_RUBBLE_LEDGER"] }],
+  "category": { "id": ["xeno.peerdb.org", "PRACTICE_CATEGORY", "EXCHANGE_CYCLE"] },
+  "periodicity": "whenever anything arrives, and every four years thereafter",
+  "participants": {
+    "value": { "from": { "amount": 2, "precision": 1 }, "to": { "amount": 6, "precision": 1 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "firstDocumented": { "time": "2284-01-01T00:00:00Z", "precision": "y" },
+  "image": [{ "value": "/f/XGpx3QxHRgwFKKc7cjfYAC", "name": "G3_HEAP_MARKING.jpg", "caption": "In progress", "source": "Consortium survey archive" }]
+}

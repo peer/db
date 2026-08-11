@@ -1,0 +1,22 @@
+{
+  "id": ["xeno.peerdb.org", "PRACTICE", "G2_PLUME_READING"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PRACTICE"] }],
+  "name": [{ "value": "Tasting the Plume", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Murrollume", "gloss": "the tasting-ahead" }],
+  "description": [
+    {
+      "value": "<p>Before a household re-hangs its nets, one member goes to the outer edge of the rib, holds against the current with the mouth open into the rising plume off the vent chain, and stays there for a count of two hundred. What is being read is what has died upstream and how far up, which decides where the nets go and how deep. The report is given in the whistle only and never in the released plume, so it carries no household signature and cannot be attributed to anybody, and this is the point: a reading that turns out wrong is nobody&#39;s. Households describe the practice as tasting and not as knowing, and are patient with the difference. The Consortium files it under divination because the reader is treated as reporting something from outside themselves, which the Ollumaru accept as a fair description of the filing system.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G2_RIB_HOLDINGS"] }],
+  "category": { "id": ["xeno.peerdb.org", "PRACTICE_CATEGORY", "DIVINATION"] },
+  "periodicity": "before every re-hanging of the nets",
+  "participants": {
+    "value": { "from": { "amount": 1, "precision": 1 }, "to": { "amount": 3, "precision": 1 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "firstDocumented": { "time": "2266-01-01T00:00:00Z", "precision": "y" },
+  "relatedPractice": [{ "id": ["xeno.peerdb.org", "PRACTICE", "G2_BLADDER_DIVISION"] }],
+  "image": [{ "value": "/f/AuJ3GjsAD3yDrPeSnFHEPH", "name": "G2_PLUME_READING.jpg", "caption": "In progress", "source": "Consortium survey archive" }]
+}

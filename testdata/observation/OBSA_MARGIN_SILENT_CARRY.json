@@ -1,0 +1,39 @@
+{
+  "id": ["xeno.peerdb.org", "OBSERVATION", "OBSA_MARGIN_SILENT_CARRY"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "OBSERVATION"] }],
+  "title": [
+    { "value": "Fifty-one minutes of stopped tapping at the second lobe", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>A death at a settlement two kilometres from camp, recorded at the distance the ruling requires. The plumbing went quiet for the length of the walk out and back.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "content": [
+    {
+      "value": "<p>A death at the settlement on the second lobe, two kilometres from camp. Recorded at that distance under the ruling, and only because the geophone line was already in place.</p><p>The tapping stopped at 04:11 and resumed at 05:02. Fifty-one minutes, which is the walk out to the platforms and back. On a world where speech travels in the plumbing, that silence arrives everywhere at once, and it is the only thing anybody does on purpose that the whole settlement hears.</p><p>Two people made the carry. Neither was related to the dead as far as our census goes; they were the nearest. The gut is opened at the platform and not before, so that the inherited culture goes into the ice rather than into another person. We did not see that and would not have recorded it if we had.</p><p>We do not know whose death it was. We have not asked and do not intend to. One platform has been added to the count from the ridge photographs and nothing else about it is in the file.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "expedition": { "id": ["xeno.peerdb.org", "EXPEDITION", "EXP_MARGIN_VENTS"] },
+  "observedBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_PETROVA"] }, { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_VIRTANEN"] }],
+  "observedAt": { "id": ["xeno.peerdb.org", "SITE", "G1_MARGIN_MORTUARY"] },
+  "observedOn": { "time": "2293-12-02T00:00:00Z", "precision": "d" },
+  "about": [
+    { "id": ["xeno.peerdb.org", "PRACTICE", "G1_PLATFORM_LEAVING"] },
+    { "id": ["xeno.peerdb.org", "CULTURE", "G1_VENT_STEWARDSHIP"] },
+    { "id": ["xeno.peerdb.org", "SPECIES", "G1_MERENAU"] }
+  ],
+  "method": [
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "REMOTE_SENSING"] },
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "ACOUSTIC_RECORDING"] }
+  ],
+  "fieldConditions": "Night, clear, minus one hundred and forty at the ridge station, no wind. Two of us at the instruments and nobody else on the lobe.",
+  "notes": [
+    {
+      "value": "<p>Contact was suspended in 2295 at the stewardship&#39;s request. This note and the traces that go with it are the last material collected from the lobe, and the file is closed to new collection.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

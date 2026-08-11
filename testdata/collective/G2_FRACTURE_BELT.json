@@ -1,0 +1,24 @@
+{
+  "id": ["xeno.peerdb.org", "COLLECTIVE", "G2_FRACTURE_BELT"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "COLLECTIVE"] }],
+  "name": [{ "value": "The Fracture Belt", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "description": [
+    {
+      "value": "<p>If the reading holds, the person is the entire fracture belt of a small ice moon and the mat sheets in it are components with no standing of their own. Nothing has been met, nothing has been signalled to, and the case rests on eleven grams of recovered material and on a layering pattern that no proposed abiotic mechanism reproduces. It is carried as one body because the alternative reading, that this is ordinary chemistry in an unusual solvent, would remove it from this register entirely, and two of the four people who have examined the material hold exactly that.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "species": { "id": ["xeno.peerdb.org", "SPECIES", "G2_GRATE_COLLECTIVE"] },
+  "role": [{ "value": "subject of an open determination", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "memberCount": {
+    "value": { "from": { "amount": 200, "precision": 10 }, "to": { "amount": 400000, "precision": 10 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "activePeriod": { "from": { "time": "2279-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true },
+  "notes": [
+    {
+      "value": "<p>No culture is recorded, and none can be until somebody goes back. The moon is closed to landing and no observing time has been requested since 2281.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

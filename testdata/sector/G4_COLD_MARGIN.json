@@ -1,0 +1,20 @@
+{
+  "id": ["xeno.peerdb.org", "SECTOR", "G4_COLD_MARGIN"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SECTOR"] }],
+  "name": [{ "value": "Cold Margin Sector", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "catalogueCode": "CCX-2258-CMG",
+  "description": [
+    {
+      "value": "<p>A volume of roughly nine hundred parsecs on the outward side of the far stream, containing one catalogued star, one unbound world and, as far as five passes could establish, nothing else. It was surveyed between 2258 and 2263 and the file was closed. It remains the emptiest volume in the register at this scale.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "GALAXY", "G4_SPILLWORK"] },
+  "surveyPeriod": { "from": { "time": "2258-01-01T00:00:00Z", "precision": "y" }, "to": { "time": "2263-01-01T00:00:00Z", "precision": "y" } },
+  "notes": [
+    {
+      "value": "<p>The sector was retained after closure on the argument that a volume known to be empty is a finding, and that deleting it would leave the emptiness undescribed. The argument was accepted. The sector now has an entry, a code and no content.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "id": ["xeno.peerdb.org", "SECTOR", "G2_UNVISITED_QUARTER"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SECTOR"] }],
+  "name": [{ "value": "Unvisited Quarter", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "catalogueCode": "SEC-UQ/4",
+  "description": [
+    {
+      "value": "<p>The far side, obscured by the galaxy&#39;s own thin sheet of ancient stars and approached exactly once. A ship passing through on the way elsewhere logged one system and one planet in eleven days of spare instrument time. The sector is nearly empty of data and is described that way in every summary that mentions it.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "GALAXY", "G2_UNDERCOUNT"] },
+  "surveyPeriod": { "from": { "time": "2294-01-01T00:00:00Z", "precision": "y" }, "to": { "time": "2294-01-01T00:00:00Z", "precision": "y" } },
+  "notes": [
+    {
+      "value": "<p>The sector was formally constituted in 2296 so that the eleven days of data would have somewhere to live. No observing time has been allocated to it since, and none is scheduled.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

@@ -1,0 +1,31 @@
+{
+  "id": ["xeno.peerdb.org", "ORGANISM", "G4_CHIMNEY_FUR"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "ORGANISM"] }],
+  "name": [{ "value": "Chimney Fur", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "taxonCode": "TX-1904-b",
+  "description": [
+    {
+      "value": "<p>A chemolithotroph mat that grows as a dense pile on the flanks of subglacial vent chimneys, thickest where the discharge is coolest. It occurs on two moons of Selvedge e, and the two populations are close enough that transfer by impact ejecta is the least strained explanation anybody has offered. On Cotter it is the material the vent colonies channel their flow across; on Scald it grows in the pockets and nowhere else.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "category": { "id": ["xeno.peerdb.org", "ORGANISM_CATEGORY", "CHEMOLITHO_MAT"] },
+  "foundOn": [{ "id": ["xeno.peerdb.org", "MOON", "G4_COTTER"] }, { "id": ["xeno.peerdb.org", "MOON", "G4_SCALD"] }],
+  "biome": [{ "id": ["xeno.peerdb.org", "BIOME", "VENT_FIELD"] }, { "id": ["xeno.peerdb.org", "BIOME", "BRINE_SEA"] }],
+  "typicalSize": { "value": { "amount": 0.3, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+  "typicalMass": { "value": { "amount": 0.5, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "kg"] }] },
+  "image": [
+    {
+      "value": "/f/JKRAaj6rLYsBRmVoCQKdTE",
+      "name": "G4_CHIMNEY_FUR.jpg",
+      "caption": "Field plate",
+      "source": "Drawn in the field; Consortium collection"
+    }
+  ],
+  "notes": [
+    {
+      "value": "<p>The two populations differ by less than the sampling error, which is either a strong result about transfer between the moons or a weak result about the sampling. The 2288 paper argues both, in order.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

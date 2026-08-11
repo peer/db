@@ -1,0 +1,22 @@
+{
+  "id": ["xeno.peerdb.org", "REGION", "G2_UPPER_CEILING"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "REGION"] }],
+  "name": [{ "value": "Upper Ceiling", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Ollumane" }],
+  "description": [
+    {
+      "value": "<p>The underside of the ice shell above the seam, fluted into long ribs by slow melt, where the water is a degree warmer than anywhere else in the ocean. Settlement here is inverted: dwellings hang from the ice rather than stand on the floor four kilometres below. The whole region is dark, and has been for its entire history.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "PLANET", "G2_LONG_LID"] },
+  "biome": [{ "id": ["xeno.peerdb.org", "BIOME", "BRINE_SEA"] }],
+  "area": { "value": { "amount": 410000, "precision": 100 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "SQUARE_KILOMETRE"] }] },
+  "elevationRange": {
+    "value": { "from": { "amount": -4100, "precision": 10 }, "to": { "amount": -30, "precision": 10 } },
+    "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }]
+  },
+  "image": [
+    { "value": "/f/7rpBNHJjmh28RsYTa4qcVu", "name": "G2_UPPER_CEILING.jpg", "caption": "Regional view", "source": "Consortium survey archive" }
+  ]
+}

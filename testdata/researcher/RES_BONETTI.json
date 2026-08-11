@@ -1,0 +1,24 @@
+{
+  "id": ["xeno.peerdb.org", "RESEARCHER", "RES_BONETTI"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "RESEARCHER"] }],
+  "name": [{ "value": "Giulia" }],
+  "familyName": [{ "value": "Bonetti" }],
+  "researcherCode": "CCX-P-04901",
+  "description": [
+    {
+      "value": "<p>Checks old register entries against present observation, line by line, and has found two worlds catalogued twice and one catalogued in the wrong sector. She describes the work as unglamorous and does not appear to mean it as a complaint. She has read more of the register than anybody who is paid to.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "affiliatedWith": [{ "id": ["xeno.peerdb.org", "INSTITUTE", "INST_BEACON"] }, { "id": ["xeno.peerdb.org", "INSTITUTE", "INST_LEDGER"] }],
+  "specialisesIn": [
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "ARCHIVAL_COMPARISON"] },
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "STRUCTURED_INTERVIEW"] }
+  ],
+  "activePeriod": { "from": { "time": "2301-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true },
+  "born": { "time": "2276-01-01T00:00:00Z", "precision": "y" },
+  "website": ["https://deposit.ccx.example/people/bonetti"],
+  "image": [
+    { "value": "/f/N7kR3ev48j5MY3y39ZfQR1", "name": "RES_BONETTI.jpg", "caption": "Staff photograph", "source": "Consortium personnel record" }
+  ]
+}

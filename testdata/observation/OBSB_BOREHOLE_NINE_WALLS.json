@@ -1,0 +1,34 @@
+{
+  "id": ["xeno.peerdb.org", "OBSERVATION", "OBSB_BOREHOLE_NINE_WALLS"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "OBSERVATION"] }],
+  "title": [
+    { "value": "Instrument pass along a plumbed vent wall below Borehole Nine", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>A camera and sampler run through fourteen kilometres of ice, on which a low wall was watched being built and its purpose was not established.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "content": [
+    {
+      "value": "<p>25.ii.2279. Winch run of nine hours, the ninth bore, the only one that has ever worked. The package was held at the seam for four hours forty at a standoff of about twelve metres.</p><p>The wall under observation is perhaps thirty centimetres high and eleven metres long, laid in cut blocks of the local crust, and it steers hot flow across a mat bed rather than damming anything. Two bodies worked on it for the whole hold. A third passed the camera twice, at an interval of about two hours, and on the second pass had turned to face it.</p><p>We can add nothing to the plumbing account beyond confirming it: the flow at this seam is directed, and directed away from the obvious line, which is how the two vents three kilometres apart came to be plumbed in opposition to one another.</p><p>What we do not know is whether the wall we watched was maintenance of an existing arrangement or the beginning of a new one, and we have no way to ask. Every instrument that has ever met these people has come down this one hole, and the hole is 14.2 kilometres long.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "observedBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_DEMIR"] }, { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_FERREIRA"] }],
+  "observedAt": { "id": ["xeno.peerdb.org", "SITE", "G3_BOREHOLE_NINE"] },
+  "observedOn": { "time": "2279-02-25T00:00:00Z", "precision": "d" },
+  "about": [{ "id": ["xeno.peerdb.org", "SPECIES", "G3_SEAM_TENDERS"] }, { "id": ["xeno.peerdb.org", "ORGANISM", "G3_SEAM_TOWER"] }],
+  "method": [
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "REMOTE_SENSING"] },
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "MATERIAL_SAMPLING"] }
+  ],
+  "fieldConditions": "Surface camp, continuous cloud, winch house at minus forty inside. Four staff on station, none of them ours.",
+  "notes": [
+    {
+      "value": "<p>The bore refroze beyond the reach of the heaters two years after this run and the camp was closed. The mast and the winch house are still standing and are visited by nobody.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

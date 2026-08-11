@@ -1,0 +1,32 @@
+{
+  "id": ["xeno.peerdb.org", "ORGANISM", "G2_FROST_SPORE"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "ORGANISM"] }],
+  "name": [{ "value": "Cold Quarter Frost Spore", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Munnawe" }],
+  "taxonCode": "TX-1113-c",
+  "description": [
+    {
+      "value": "<p>Hard dormant bodies produced in enormous numbers on the dusk side and carried over the ice line by the standing wind, where they settle into the volatile drifts and stop. Warmed in a flask they resume growth within hours, so the drifts are best understood as a very large store of paused life. No germination has ever been observed on the night side itself, which is consistent with the temperature and disappointing anyway.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "category": { "id": ["xeno.peerdb.org", "ORGANISM_CATEGORY", "UNCLASSIFIED"] },
+  "foundOn": [{ "id": ["xeno.peerdb.org", "PLANET", "G2_HALF_LIGHT"] }],
+  "biome": [{ "id": ["xeno.peerdb.org", "BIOME", "NIGHTSIDE_TRAP"] }],
+  "typicalSize": { "value": { "amount": 0.004, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+  "typicalMass": { "value": { "amount": 2e-05, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "kg"] }] },
+  "image": [
+    {
+      "value": "/f/R5M1UzJcsWnRwcPvTWhJT6",
+      "name": "G2_FROST_SPORE.jpg",
+      "caption": "Field plate",
+      "source": "Drawn in the field; Consortium collection"
+    }
+  ],
+  "notes": [
+    {
+      "value": "<p>The Frost Warren cold stores are sited in the richest drifts. Nobody has established whether this is deliberate, and the question has been on the station work plan since 2261.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

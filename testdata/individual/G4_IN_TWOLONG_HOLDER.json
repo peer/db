@@ -1,0 +1,20 @@
+{
+  "id": ["xeno.peerdb.org", "INDIVIDUAL", "G4_IN_TWOLONG_HOLDER"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "INDIVIDUAL"] }],
+  "name": [{ "value": "[two long, one short, one long]", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "description": [
+    {
+      "value": "<p>Struck into the name in 2288 at eighteen, and thereby into a quarrel with a salt-cutting grade that he had no part in beginning and cannot decline. He has since settled it, which took nineteen years and required him to accept a position his predecessor had refused twice. He describes this as the ordinary working of the system and is, by every account collected, telling the truth.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "species": { "id": ["xeno.peerdb.org", "SPECIES", "G4_FLOOR_KEEPERS"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G4_CU_FLOOR_GRADES"] }],
+  "role": [
+    { "value": "name holder", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "floor dresser", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }
+  ],
+  "formOfAddress": "by striking the name figure",
+  "born": { "time": "2270-01-01T00:00:00Z", "precision": "y" },
+  "birthplace": { "id": ["xeno.peerdb.org", "SITE", "G4_QUIET_FLOOR"] }
+}

@@ -1,0 +1,19 @@
+{
+  "id": ["xeno.peerdb.org", "REGION", "G4_FRESH_SHEET"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "REGION"] }],
+  "name": [{ "value": "Fresh Sheet", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "description": [
+    {
+      "value": "<p>The youngest terrain on the moon, and therefore the youngest surface in the galaxy: a plain of ammonia-water flows about eighteen hundred years old, carrying no impact crater larger than thirty metres. Slush pockets under the flows remain liquid and are the target of every proposal ever written about this body. Nobody has drilled one.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "MOON", "G4_SCALD"] },
+  "biome": [{ "id": ["xeno.peerdb.org", "BIOME", "CRYO_PLAIN"] }],
+  "area": { "value": { "amount": 118000, "precision": 100 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "SQUARE_KILOMETRE"] }] },
+  "elevationRange": {
+    "value": { "from": { "amount": -40, "precision": 10 }, "to": { "amount": 210, "precision": 10 } },
+    "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }]
+  },
+  "image": [{ "value": "/f/VLcQEDSAn567tgijU7Sktc", "name": "G4_FRESH_SHEET.jpg", "caption": "Regional view", "source": "Consortium survey archive" }]
+}

@@ -1,0 +1,21 @@
+{
+  "id": ["xeno.peerdb.org", "PRACTICE", "G3_NINE_YEARS_QUIET"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PRACTICE"] }],
+  "name": [{ "value": "The Quiet of a Grade", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Ounare-mai", "gloss": "the grade goes quiet" }],
+  "description": [
+    {
+      "value": "<p>When a wall fails, everybody born in the same nine years stops speaking at the gatherings for a term set by the length of the breach in paces. They continue to walk, restack and eat as usual, and they answer direct questions in as few held vowels as the language allows, which in Sweep Call is audibly fewer than usual. Other grades do not console them and do not take over the section, on the understanding that a section handed on early is a section handed on broken. The term ends at the first low water after it expires, when the grade calls its own section from the seaward end, and the call is answered by every grade in earshot. The survey has recorded four quiets, the longest of which ran to two and a half years and was for a breach of eleven hundred paces.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G3_WEIR_GRADES"] }],
+  "category": { "id": ["xeno.peerdb.org", "PRACTICE_CATEGORY", "MOURNING"] },
+  "periodicity": "whenever a wall fails, for a term set by the length of the breach",
+  "participants": {
+    "value": { "from": { "amount": 40, "precision": 1 }, "to": { "amount": 900, "precision": 1 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "firstDocumented": { "time": "2272-01-01T00:00:00Z", "precision": "y" },
+  "relatedPractice": [{ "id": ["xeno.peerdb.org", "PRACTICE", "G3_WALL_WALKING"] }]
+}

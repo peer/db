@@ -1,0 +1,34 @@
+{
+  "id": ["xeno.peerdb.org", "ARTIFACT", "G4_AR_TERM_TALLY"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "ARTIFACT"] }],
+  "name": [{ "value": "Length Tally of the Handing Order", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "accessionCode": "CCX-A-20418",
+  "description": [
+    {
+      "value": "<p>A flat shell plate carrying the numbers of forty-two weir lengths in their handing order, cut as notches along both edges and read from the seaward end inward. It was made in 2244 at the survey&#39;s request by a household which then declined to keep it, on the ground that a record of the order outlasting a term is a claim about a term that has not happened. The plate is complete and uncracked and the twine loop is a modern replacement. It remains the only representation of the order in existence, and the households consider it inaccurate in principle rather than in detail.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "category": { "id": ["xeno.peerdb.org", "ARTIFACT_CATEGORY", "NOTATION_OBJECT"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G4_CU_WEIR_ORDER"] }],
+  "foundAt": { "id": ["xeno.peerdb.org", "SITE", "G4_UPPER_MIDDEN"] },
+  "material": [
+    { "value": "shell plate", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "weir-rope twine", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }
+  ],
+  "dimension": [
+    { "value": { "amount": 0.31, "precision": 0.001 }, "axis": "length", "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+    { "value": { "amount": 0.09, "precision": 0.001 }, "axis": "width", "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+    { "value": { "amount": 0.011, "precision": 0.001 }, "axis": "thickness", "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] }
+  ],
+  "dateMade": { "time": "2244-01-01T00:00:00Z", "precision": "d" },
+  "collectedBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_PETROVA"] }, { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_REYES"] }],
+  "image": [{ "value": "/f/A6N6jtgTmkwEKGth6jzYxp", "name": "G4_AR_TERM_TALLY.jpg", "caption": "Object drawing", "source": "Consortium collection" }],
+  "document": [{ "value": "/f/9i1SRvChzWRC5fqv1bNd8a", "name": "G4_AR_TERM_TALLY.txt", "caption": "Accession record" }],
+  "notes": [
+    {
+      "value": "<p>Accessioned as a gift and catalogued as a commission, which are different things in the ethics register and were the same afternoon on the flats.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

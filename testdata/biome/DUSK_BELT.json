@@ -1,0 +1,24 @@
+{
+  "id": ["xeno.peerdb.org", "BIOME", "DUSK_BELT"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "BIOME"] }],
+  "name": [
+    { "value": "Terminator dusk belt", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "Somračni pas", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }] },
+    { "value": "Faixa crepuscular do terminador", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>The permanently twilit ring of a tidally locked world, with mild temperatures and a wind that has blown one way since the crust cooled. Applied only where a living community is present; the bare band is a landform.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Trajno somračni obroč plimsko vklenjenega sveta z zmernimi temperaturami in stalnim vetrom.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>O anel permanentemente crepuscular de um mundo aprisionado por maré, de temperaturas amenas e com um vento que sopra no mesmo sentido desde que a crosta arrefeceu. Aplica-se apenas onde existe uma comunidade viva; a faixa nua é uma forma de relevo.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "code": ["dusk-belt"]
+}

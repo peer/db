@@ -1,0 +1,35 @@
+{
+  "id": ["xeno.peerdb.org", "PUBLICATION", "PUB_JOINT_WALK"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PUBLICATION"] }],
+  "title": [
+    {
+      "value": "Walking the Joint: Wall-Length Tenure, Silt Grade and the Handing On of the Length in the Tall Shoals of Long Water",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "doi": "10.5281/xeno.2281.0056",
+  "abstract": [
+    {
+      "value": "<p>Weir tenure in the Tall Shoals attaches not to a wall but to a joint between two walls, so that every holder shares a boundary with two others and no length can be worked alone. We survey ninety-three joints across two tidal seasons and relate silt grade behind each length to the frequency with which its joint is walked. Lengths whose joints are walked most often are not the most productive; they are the most disputed. The convergence with the Lower Shallows rota is real but partial, and the difference lies in what is inherited: here it is the obligation to walk, not the section.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "author": [
+    { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_HALVORSEN"] },
+    { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_REYES"] },
+    { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_ARAI"] }
+  ],
+  "journal": "Studies in Non-Terrestrial Exchange",
+  "publishedOn": { "time": "2281-04-01T00:00:00Z", "precision": "m" },
+  "about": [
+    { "id": ["xeno.peerdb.org", "SPECIES", "G4_WEIRFOLK"] },
+    { "id": ["xeno.peerdb.org", "CULTURE", "G4_CU_WEIR_ORDER"] },
+    { "id": ["xeno.peerdb.org", "PRACTICE", "G4_PR_JOINT_WALK"] }
+  ],
+  "cites": [
+    { "id": ["xeno.peerdb.org", "PUBLICATION", "PUB_WEIR_ALLOCATION"] },
+    { "id": ["xeno.peerdb.org", "PUBLICATION", "PUB_STANDING_CROP"] },
+    { "id": ["xeno.peerdb.org", "PUBLICATION", "PUB_GREETING_ERROR"] }
+  ],
+  "document": [{ "value": "/f/AjrQXYf2VUSYNSoAVNgzET", "name": "PUB_JOINT_WALK.pdf", "caption": "Author's accepted manuscript" }]
+}

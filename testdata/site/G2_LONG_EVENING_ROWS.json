@@ -1,0 +1,22 @@
+{
+  "id": ["xeno.peerdb.org", "SITE", "G2_LONG_EVENING_ROWS"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SITE"] }],
+  "name": [{ "value": "Long Evening Rows", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "localName": [{ "value": "Anuwellem", "gloss": "the evening rows, the same word serving for a day's walk along them" }],
+  "description": [
+    {
+      "value": "<p>Roughly eleven hundred kilometres of contour terracing along the windward side of the band, built in stone, rebuilt continuously, with meltwater led down from the night side through controlled drops between levels. Households hold terraces rather than fields, and a holding is described by its position in the sequence rather than by its area. It is the largest continuously occupied structure catalogued anywhere in the Undercount.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "REGION", "G2_EVENING_BAND"] },
+  "siteType": { "id": ["xeno.peerdb.org", "SITE_TYPE", "TERRACE_COMPLEX"] },
+  "gridReference": "HL-00.4/-88.2",
+  "population": {
+    "value": { "from": { "amount": 26000, "precision": 10 }, "to": { "amount": 61000, "precision": 10 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "image": [
+    { "value": "/f/87PxGo1Vsgus5DwhR1kH5C", "name": "G2_LONG_EVENING_ROWS.jpg", "caption": "General view", "source": "Consortium survey archive" }
+  ]
+}

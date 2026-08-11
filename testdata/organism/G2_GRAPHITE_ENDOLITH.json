@@ -1,0 +1,25 @@
+{
+  "id": ["xeno.peerdb.org", "ORGANISM", "G2_GRAPHITE_ENDOLITH"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "ORGANISM"] }],
+  "name": [{ "value": "Graphite Pore Endolith", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "taxonCode": "TX-1174-d",
+  "description": [
+    {
+      "value": "<p>Life in the pore space of a graphite crust, living off the small chemical gradients that exist where carbide meets carbon and drawing on a substrate that conducts heat away faster than it can be generated. Colonies grow as flat lenses along bedding planes and are found from the surface down to about two kilometres. It is the only life on a world that is otherwise black rock all the way down, and it is entirely uninterested in the diamond.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "category": { "id": ["xeno.peerdb.org", "ORGANISM_CATEGORY", "ENDOLITH"] },
+  "foundOn": [{ "id": ["xeno.peerdb.org", "PLANET", "G2_ANVIL_REST"] }],
+  "biome": [{ "id": ["xeno.peerdb.org", "BIOME", "ENDOLITH_ZONE"] }],
+  "typicalSize": { "value": { "amount": 0.06, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+  "typicalMass": { "value": { "amount": 0.0003, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "kg"] }] },
+  "image": [
+    {
+      "value": "/f/Y1rd5RMPpL5xMaFbLD3MNi",
+      "name": "G2_GRAPHITE_ENDOLITH.jpg",
+      "caption": "Field plate",
+      "source": "Drawn in the field; Consortium collection"
+    }
+  ]
+}

@@ -1,0 +1,43 @@
+{
+  "id": ["xeno.peerdb.org", "CULTURE", "G4_CU_GALLERY_LEDGERS"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "CULTURE"] }],
+  "name": [{ "value": "Gallery Ledger Practice", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [
+    {
+      "value": "[the same figure, in the rooms below]",
+      "gloss": "the phrase the choruses use of themselves, which is also what they call the language",
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G4_COM_STRUCK_FLOOR"] }]
+    }
+  ],
+  "catalogueCode": "CU-2277-09",
+  "description": [
+    {
+      "value": "<p>The practice of the choruses of the fracture galleries, in which every dealing between selves and with the surface opens by stating a ledger position and closes by restating it. Obligations are tracked in cut tallies at the gallery mouths and are never discharged in full, since a settled ledger would end the relation and there is no other kind. Chemosynthetic mats in the warm lower galleries are tended on a rotation that does not depend on weather, which makes this the only agriculture on the world that has never failed. Relatedness is not reckoned at all: a chorus is one self, its bodies are grown and retired as the galleries shift, and the question of which room it is in is treated as badly formed. The Consortium holds four open obligations under this system and has not found an acceptable way to close any of them.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>A prática dos coros das galerias de fratura, em que todo o negócio entre eus e com a superfície abre com a declaração de uma posição no livro de contas e fecha com a sua redeclaração. As obrigações são seguidas em talhas cortadas às bocas das galerias e nunca são saldadas por inteiro, já que um livro saldado poria fim à relação e não há outra espécie. Os tapetes quimiossintéticos das galerias inferiores quentes são tratados numa rotação que não depende do tempo, o que faz desta a única agricultura do mundo que nunca falhou. O aparentamento não é contabilizado de todo: um coro é um só eu, os seus corpos são criados e retirados à medida que as galerias se deslocam, e a pergunta sobre em que sala ele está é tratada como mal formulada. O Consórcio mantém quatro obrigações abertas neste sistema e não encontrou uma forma aceitável de fechar nenhuma delas.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "practisedBy": [{ "id": ["xeno.peerdb.org", "SPECIES", "G4_DEEP_CHORUS"] }],
+  "presentAt": [{ "id": ["xeno.peerdb.org", "SITE", "G4_QUIET_FLOOR"] }],
+  "kinshipSystem": { "id": ["xeno.peerdb.org", "KINSHIP_SYSTEM", "NOT_RECKONED"] },
+  "socialOrganisation": { "id": ["xeno.peerdb.org", "SOCIAL_ORGANISATION", "OBLIGATION_NETWORK"] },
+  "subsistence": [
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "CHEMO_TENDING"] },
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "MANAGED_DECAY"] }
+  ],
+  "communication": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G4_COM_STRUCK_FLOOR"] }],
+  "population": {
+    "value": { "from": { "amount": 70000, "precision": 100 }, "to": { "amount": 150000, "precision": 100 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "period": { "from": { "time": "2277-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true },
+  "notes": [
+    {
+      "value": "<p>The site given is a surface mortuary floor, which is the only catalogued point above the galleries. The choruses are two hundred metres beneath it and do not go there, and the register has no way of saying so in the field provided.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

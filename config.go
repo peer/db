@@ -201,10 +201,13 @@ func (c *ServeCommand) Validate() error {
 }
 
 // PopulateCommand contains configuration for the populate command.
+//
+//nolint:lll
 type PopulateCommand struct {
-	SaveDir   string `help:"Save intermediate structs as files into a directory."            name:"save"   placeholder:"DIR"           type:"path" yaml:"saveDir"`
-	OutputDir string `help:"Save documents as files into a directory."                       name:"output" placeholder:"DIR" short:"O" type:"path" yaml:"outputDir"`
-	DryRun    bool   `help:"Dry run. Do everything, but insert documents into the database."                                                       yaml:"dryRun"`
+	SaveDir     string `help:"Save intermediate structs as files into a directory."                                                                                    name:"save"      placeholder:"DIR"           type:"path" yaml:"saveDir"`
+	OutputDir   string `help:"Save documents as files into a directory."                                                                                               name:"output"    placeholder:"DIR" short:"O" type:"path" yaml:"outputDir"`
+	TestDataDir string `help:"Populate also with the test data set from a directory, together with the schema it needs. Without it only core documents are populated." name:"test-data" placeholder:"DIR"           type:"path" yaml:"testDataDir"`
+	DryRun      bool   `help:"Dry run. Do everything, but insert documents into the database."                                                                                                                                  yaml:"dryRun"`
 
 	// PopulateSite is set in code by a consumer using PeerDB as a library to replace how a site is
 	// populated. When nil, core documents are generated and inserted. It is called with a per-site

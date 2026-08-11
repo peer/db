@@ -1,0 +1,16 @@
+{
+  "id": ["xeno.peerdb.org", "INDIVIDUAL", "G2_SHUMMESE"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "INDIVIDUAL"] }],
+  "name": [{ "value": "Shummese" }],
+  "description": [
+    {
+      "value": "<p>Came up alongside Station Three in 2289, stayed at the surface for rather over two hours and went back down, which remains the only occasion on which anybody from this population has been seen from above the water. What they did during the two hours is not established; the station log records that the raft was measured. They were not photographed, the three people aboard having spent the time watching instead.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "species": { "id": ["xeno.peerdb.org", "SPECIES", "G2_SHESUMME"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G2_BED_HALVES"] }],
+  "role": [{ "value": "bed tender", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "formOfAddress": "by moiety first",
+  "born": { "time": "2189-01-01T00:00:00Z", "precision": "y" }
+}

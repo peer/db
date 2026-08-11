@@ -1,0 +1,26 @@
+{
+  "id": ["xeno.peerdb.org", "ARTIFACT", "G2_HAUL_CORD"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "ARTIFACT"] }],
+  "name": [{ "value": "Drop Haul Cord", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "accessionCode": "CCX-A-14846",
+  "description": [
+    {
+      "value": "<p>Eighteen metres of four-strand cord twisted from soaked and split grazer plate, used to lift drop shutters out of their grooves and pass them along the line. It is made at the assembly, used through the eleven days and cut up afterwards into working lengths, so an intact one is unusual and this one is intact because the survey asked for it before it was cut. The lay is tight and even, and the cord has taken a permanent set at two points where it ran over a groove edge. It smells strongly of the soaking pit and has done since 2288.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "category": { "id": ["xeno.peerdb.org", "ARTIFACT_CATEGORY", "CORDAGE"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G2_SWITCHING_ASSEMBLY"] }],
+  "foundAt": { "id": ["xeno.peerdb.org", "SITE", "G2_TURNING_GROUND"] },
+  "material": [
+    { "value": "band grazer plate", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "led mat starch", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }
+  ],
+  "dimension": [
+    { "value": { "amount": 18.4, "precision": 0.001 }, "axis": "length", "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+    { "value": { "amount": 0.028, "precision": 0.001 }, "axis": "diameter", "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] }
+  ],
+  "dateMade": { "time": "2288-01-01T00:00:00Z", "precision": "d" },
+  "collectedBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_ZUPAN"] }, { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_DOYLE"] }],
+  "image": [{ "value": "/f/Knqj1d8n1aJCUioNWFC1NY", "name": "G2_HAUL_CORD.jpg", "caption": "Object drawing", "source": "Consortium collection" }]
+}

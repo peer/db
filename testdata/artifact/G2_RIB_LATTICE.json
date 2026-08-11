@@ -1,0 +1,36 @@
+{
+  "id": ["xeno.peerdb.org", "ARTIFACT", "G2_RIB_LATTICE"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "ARTIFACT"] }],
+  "name": [{ "value": "Rib House Reckoning Frame", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Ollumene marru", "gloss": "the frame that is read by hand" }],
+  "accessionCode": "CCX-A-14890",
+  "description": [
+    {
+      "value": "<p>A hanging frame of ninety-odd mineral tubes of graded length, lashed in four ranks, in which the household&#39;s side of the fall account is held by the position and spacing of the tubes rather than by anything cut into them. It is read by running a limb across the ranks, which is also how it is corrected, and in a current it makes a low rattle that a household can hear from its own doorway. This one hung at the ninth rib from about 2260 and was replaced in 2302 after a rank came adrift. Eleven tubes are cracked and two ranks have been relashed with newer cord.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "category": { "id": ["xeno.peerdb.org", "ARTIFACT_CATEGORY", "RECORDING_LATTICE"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G2_RIB_HOLDINGS"] }],
+  "foundAt": { "id": ["xeno.peerdb.org", "SITE", "G2_LOWER_MIDDEN"] },
+  "material": [
+    { "value": "mineral tube", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "cord", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "gut skin", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }
+  ],
+  "dimension": [
+    { "value": { "amount": 0.9, "precision": 0.001 }, "axis": "height", "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+    { "value": { "amount": 0.55, "precision": 0.001 }, "axis": "width", "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+    { "value": { "amount": 0.14, "precision": 0.001 }, "axis": "thickness", "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] }
+  ],
+  "dateMade": { "time": "2260-01-01T00:00:00Z", "precision": "10y" },
+  "collectedBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_OKONKWO"] }],
+  "image": [{ "value": "/f/U1f7xTJv1TrSbtD4mwx1ib", "name": "G2_RIB_LATTICE.jpg", "caption": "Object drawing", "source": "Consortium collection" }],
+  "document": [{ "value": "/f/F7AKqK7sP6q4adMHhGMKpu", "name": "G2_RIB_LATTICE.txt", "caption": "Accession record" }],
+  "notes": [
+    {
+      "value": "<p>The accompanying record is a tube-by-tube reading given by the house account holder in 2303, and it includes the entry for a Consortium sample line lost from Station Two, which the house entered as a fall. The station has not worked out whether the entry can be closed and has not asked.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

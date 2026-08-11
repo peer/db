@@ -1,0 +1,35 @@
+{
+  "id": ["xeno.peerdb.org", "PRACTICE", "G4_PR_HANDING_ON"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PRACTICE"] }],
+  "name": [{ "value": "Handing On of the Length", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "meiraunoti", "gloss": "the wall goes out, in the way the water goes out" }],
+  "description": [
+    {
+      "value": "<p>At the end of a term of nine years the outgoing household takes the seaward end of its length and the incoming household takes the landward end, and the two work towards each other, repairing whatever they find as they come. Where they meet, the outgoing household says the number of the length twice and says nothing further. No inventory is made and no condition is recorded, on the stated principle that the wall is the record and a second record could only disagree with it. The incoming household eats at the outgoing household&#39;s hearth that night and is served first, and refusing the meal is the only recognised way to refuse the length. That has happened once inside the period of record, in 2259, and is still raised in conversation by people who were not born then. Terms cannot be extended, and a household short of adults is expected to borrow them rather than ask for time.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Ob koncu devetletnega mandata gospodinjstvi delata drugo proti drugi vzdolž zidu; ko se srečata, se številka dolžine pove dvakrat in nič drugega.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>No fim de um mandato de nove anos, a casa que sai toma a ponta do lado do mar do seu troço e a casa que entra toma a ponta do lado de terra, e as duas trabalham uma na direção da outra, reparando o que vão encontrando pelo caminho. Onde se cruzam, a casa que sai diz duas vezes o número do troço e não diz mais nada. Não se faz inventário nem se regista o estado, com o princípio declarado de que o muro é o registo e um segundo registo só poderia contradizê-lo. Nessa noite a casa que entra come à lareira da que sai e é servida primeiro, e recusar a refeição é a única maneira reconhecida de recusar o troço. Isso aconteceu uma vez dentro do período documentado, em 2259, e ainda hoje é trazido à conversa por gente que nem sequer era nascida. Os mandatos não podem ser prolongados, e espera-se que uma casa com falta de adultos os peça emprestados em vez de pedir mais tempo.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G4_CU_WEIR_ORDER"] }],
+  "category": { "id": ["xeno.peerdb.org", "PRACTICE_CATEGORY", "RITE_OF_PASSAGE"] },
+  "periodicity": "at the end of each nine-year term",
+  "participants": {
+    "value": { "from": { "amount": 6, "precision": 1 }, "to": { "amount": 30, "precision": 1 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "firstDocumented": { "time": "2233-01-01T00:00:00Z", "precision": "y" },
+  "relatedPractice": [{ "id": ["xeno.peerdb.org", "PRACTICE", "G4_PR_JOINT_WALK"] }],
+  "notes": [
+    {
+      "value": "<p>The 2244 request for a drawing of the handing order was understood as a proposal to replace the wall with the drawing, and was answered in that spirit for fifty years.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

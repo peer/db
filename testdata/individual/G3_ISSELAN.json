@@ -1,0 +1,21 @@
+{
+  "id": ["xeno.peerdb.org", "INDIVIDUAL", "G3_ISSELAN"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "INDIVIDUAL"] }],
+  "name": [{ "value": "Isselan" }],
+  "lineageName": [{ "value": "Hesseth Face" }],
+  "description": [
+    {
+      "value": "<p>The current holder of a name-slot first recorded in 2259, which carries obligations on two faces and a claim on a third that has been dormant for longer than the record runs. The slot answers for work done by bodies that no longer exist and does so without any apparent sense that this requires explanation. A photograph has been proposed to the assembly and the assembly has been considering it since 2301, which is not obstruction but the ordinary speed of a decision that nobody has objected to yet.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "species": { "id": ["xeno.peerdb.org", "SPECIES", "G3_TESSILEN"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G3_FACE_TENDING"] }],
+  "role": [
+    { "value": "face tender", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "slot holder", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }
+  ],
+  "formOfAddress": "by the name-slot and by nothing else",
+  "born": { "time": "2255-01-01T00:00:00Z", "precision": "y" },
+  "birthplace": { "id": ["xeno.peerdb.org", "SITE", "G3_SHELF_WARREN"] }
+}

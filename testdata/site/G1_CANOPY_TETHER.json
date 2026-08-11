@@ -1,0 +1,24 @@
+{
+  "id": ["xeno.peerdb.org", "SITE", "G1_CANOPY_TETHER"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SITE"] }],
+  "name": [{ "value": "Canopy Tether Foot", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "localName": [{ "value": "Vasthenef", "gloss": "the standing rope" }],
+  "description": [
+    {
+      "value": "<p>The ground anchor of the working orbital tether at the forest edge, a concrete and carbide block the size of a small hill with a service settlement of some five thousand people around it. Everything that leaves the planet leaves from here. The forest has been cleared for eleven kilometres in every direction and is growing back at the edges faster than anybody planned for.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "REGION", "G1_GRAPHITE_CANOPY"] },
+  "siteType": { "id": ["xeno.peerdb.org", "SITE_TYPE", "TETHER_FOOT"] },
+  "gridReference": "LT-716.2/+07.8",
+  "population": {
+    "value": { "from": { "amount": 3000, "precision": 10 }, "to": { "amount": 7000, "precision": 10 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "founded": { "time": "2271-01-01T00:00:00Z", "precision": "y" },
+  "occupation": { "from": { "time": "2271-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true },
+  "image": [
+    { "value": "/f/4ioxHbFmkwLYq54dvMmZqR", "name": "G1_CANOPY_TETHER.jpg", "caption": "General view", "source": "Consortium survey archive" }
+  ]
+}

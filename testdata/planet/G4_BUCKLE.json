@@ -1,0 +1,37 @@
+{
+  "id": ["xeno.peerdb.org", "PLANET", "G4_BUCKLE"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PLANET"] }],
+  "name": [{ "value": "Buckle", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "catalogueCode": "SPW-C/017-b",
+  "description": [
+    {
+      "value": "<p>The single planet of a small red dwarf on the outward edge of the Backswing, locked, hot on the day side and wrapped in a thin carbon dioxide atmosphere. Its evaporite basins are old and its dunes are not moving; the wind has almost nothing left to carry. A brine film community persists in the pan crusts and appears to be the only life on the world. One survey visited in 2279 and the file was closed in 2284.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>O único planeta de uma pequena anã vermelha na orla exterior do Backswing, em rotação síncrona, quente do lado diurno e envolto numa atmosfera ténue de dióxido de carbono. As suas bacias de evaporitos são antigas e as suas dunas não se movem; ao vento já quase nada resta para transportar. Uma comunidade de películas de salmoura persiste nas crostas das salinas e parece ser a única vida do mundo. Um levantamento visitou-o em 2279 e o processo foi encerrado em 2284.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "STAR_SYSTEM", "G4_SWIFT"] },
+  "planetType": { "id": ["xeno.peerdb.org", "PLANET_TYPE", "DESICCATED"] },
+  "biome": [{ "id": ["xeno.peerdb.org", "BIOME", "EVAPORITE_PAN"] }, { "id": ["xeno.peerdb.org", "BIOME", "ENDOLITH_ZONE"] }],
+  "radius": { "value": { "amount": 0.91, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_RADIUS"] }] },
+  "mass": { "value": { "amount": 0.75, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_MASS"] }] },
+  "surfaceGravity": { "value": { "amount": 0.91, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "STANDARD_GRAVITY"] }] },
+  "dayLength": { "value": { "amount": 153.6, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "HOUR"] }] },
+  "orbitalPeriod": { "value": { "amount": 6.4, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_DAY"] }] },
+  "meanTemperature": { "value": { "amount": 46.0, "precision": 0.1 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "°C"] }] },
+  "hydrosphere": { "value": { "amount": 0.2, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "PERCENT"] }] },
+  "atmosphere": [
+    {
+      "value": "<p>Carbon dioxide at 0.19 bar with a nitrogen trace, which is not enough to breathe and not enough to work in without a pressure suit, but is quite enough to raise dust.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "biosphereUnknown": true,
+  "contactStatus": { "id": ["xeno.peerdb.org", "CONTACT_STATUS", "NO_CONTACT"] },
+  "firstSurveyed": { "time": "2279-01-01T00:00:00Z", "precision": "y" },
+  "surveyPeriod": { "from": { "time": "2279-01-01T00:00:00Z", "precision": "y" }, "to": { "time": "2284-01-01T00:00:00Z", "precision": "y" } },
+  "image": [{ "value": "/f/3LmY5aqxxdfKS7ueDFVvCD", "name": "G4_BUCKLE.jpg", "caption": "Approach view", "source": "Consortium survey archive" }]
+}

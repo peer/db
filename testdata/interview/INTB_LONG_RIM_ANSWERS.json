@@ -1,0 +1,54 @@
+{
+  "id": ["xeno.peerdb.org", "INTERVIEW", "INTB_LONG_RIM_ANSWERS"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "INTERVIEW"] }],
+  "title": [
+    {
+      "value": "The Self Along the Long Rim on answering an instrument, and on taking up the quarry's bodies",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "description": [
+    {
+      "value": "<p>Interview with the eastern rim self during the geophone programme. The self states that it has been answering the array falsely and describes what happened when the self at the quarry stopped.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "interviewee": [{ "id": ["xeno.peerdb.org", "COLLECTIVE", "G3_LONG_SELF"] }],
+  "interviewer": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_MOKOENA"] }, { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_MOLNAR"] }],
+  "recordedAt": { "id": ["xeno.peerdb.org", "SITE", "G3_RIM_DRUM_GROUND"] },
+  "recordedOn": { "time": "2302-07-18T00:00:00Z", "precision": "d" },
+  "expedition": { "id": ["xeno.peerdb.org", "EXPEDITION", "EXP_SUMP_GEOPHONE"] },
+  "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G3_FLOOR_ANSWER"] }],
+  "duration": { "value": { "amount": 415, "precision": 1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "MINUTE"] }] },
+  "content": [
+    {
+      "value": "<p><i>The channel is continuous and has no turns. The division into questions and answers below is the transcriber&#39;s and should not be read as anything the self did.</i></p><p><b>Q.</b> How many of you are there?</p><p><b>A.</b> You have counted bodies. There is one of us. If you want the body figure it is on the rock and you have already taken it.</p><p><b>Q.</b> When you were younger, was the rim quieter?</p><p><b>A.</b> There is no younger. There is drumming and there is the end of drumming. Ask the question you are trying to ask.</p><p><b>Q.</b> Was the array louder than us?</p><p><b>A.</b> Your array asks the same thing every eleven minutes and does not listen between. We took it for a poor interlocutor in the first season and we have been giving it a standing figure that is not ours since.</p><p><b>Q.</b> For two years?</p><p><b>A.</b> For two years. It has never noticed, which we take as confirmation. You have noticed, which is why you are being told.</p><p><b>Q.</b> What figure have you been giving it?</p><p><b>A.</b> The figure of the self at the quarry.</p><p><b>Q.</b> That self ended.</p><p><b>A.</b> It stopped. Its bodies came along the rim within a season and we took them up, because rubble does not keep and because there was nothing else to do with them. We did not want them. Something in the western forty kilometres still drums the quarry&#39;s figure and we have not been able to stop it, and when your instrument asks, that is what answers it.</p><p><b>Q.</b> Is that part of you?</p><p><b>A.</b> Ask us again in ten years and we will give you an answer we are prepared to stand behind.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "recording": [
+    {
+      "value": "/f/Mko4b28Sis6YGaVbfTmg8U",
+      "name": "interview-INTB_LONG_RIM_ANSWERS.mp3",
+      "caption": "Session recording",
+      "duration": { "value": { "amount": 415, "precision": 1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "MINUTE"] }] },
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G3_FLOOR_ANSWER"] }]
+    }
+  ],
+  "ethics": { "id": ["xeno.peerdb.org", "ETHICS_PROTOCOL", "PROTOCOL_3"] },
+  "consentNote": [
+    {
+      "value": "<p>The self consented to the record and asked that the array not be adjusted, on the ground that it has become part of how the western bodies are held and that removing it now would be a thing done to the self rather than to the equipment. The programme has left the array in place.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "clearedReader": ["mock-user-researcher@localhost"],
+  "permission": [
+    { "action": { "id": ["core.peerdb.org", "PERMISSION_ACTIONS", "ACTION_READ"] }, "user": ["mock-user-researcher@localhost"], "scope": ["self"] },
+    {
+      "action": { "id": ["core.peerdb.org", "PERMISSION_ACTIONS", "ACTION_READ_HISTORIC"] },
+      "user": ["mock-user-researcher@localhost"],
+      "scope": ["self"]
+    }
+  ]
+}

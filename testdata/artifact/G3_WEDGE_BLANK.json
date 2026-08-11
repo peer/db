@@ -1,0 +1,27 @@
+{
+  "id": ["xeno.peerdb.org", "ARTIFACT", "G3_WEDGE_BLANK"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "ARTIFACT"] }],
+  "name": [{ "value": "Splitting Wedge, Unfinished", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "accessionCode": "CCX-A-31023",
+  "description": [
+    {
+      "value": "<p>A wedge roughed out of dense bone, ground to shape along one edge and abandoned before the bearing face was finished, with the working scratches still running the wrong way for use. Blanks are made in batches during the wait for assent on a face, which can take a season, and a wait that ends early leaves a scatter of them. This one was one of nine found together under a bench in a cut passage, of which two were finished and seven were not. It is undamaged, unused, and in the condition it was in on the day the face was opened.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "category": { "id": ["xeno.peerdb.org", "ARTIFACT_CATEGORY", "TOOL_BLANK"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G3_FACE_TENDING"] }],
+  "foundAt": { "id": ["xeno.peerdb.org", "SITE", "G3_SHELF_WARREN"] },
+  "material": [
+    { "value": "dense bone", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "abrasive grit", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }
+  ],
+  "dimension": [
+    { "value": { "amount": 0.24, "precision": 0.001 }, "axis": "length", "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+    { "value": { "amount": 0.06, "precision": 0.001 }, "axis": "width", "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+    { "value": { "amount": 0.038, "precision": 0.001 }, "axis": "thickness", "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] }
+  ],
+  "dateMade": { "time": "2277-01-01T00:00:00Z", "precision": "y" },
+  "collectedBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_VASILAKIS"] }],
+  "image": [{ "value": "/f/H82MmuWJFT9VdZyi7ayM4X", "name": "G3_WEDGE_BLANK.jpg", "caption": "Object drawing", "source": "Consortium collection" }]
+}

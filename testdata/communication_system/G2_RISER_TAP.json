@@ -1,0 +1,44 @@
+{
+  "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G2_RISER_TAP"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM"] }],
+  "name": [{ "value": "Riser Tapping", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "[three taps, a pause, three taps]", "gloss": "roughly, we are in the wall, which is also what the species calls itself" }],
+  "description": [
+    {
+      "value": "<p>Struck against a terrace riser and answered from inside it, on a delay of about forty seconds and in an order that is not the order the strikes were made. The channel carries position, wetness and consent to cut, and carries nothing whatever about time, which is the single hardest thing about working with it. A fieldworker&#39;s first mistake is to treat the delay as a processing lag and to strike again; the second strike is received as a separate party, and two seasons in the 2270s were spent politely answering ourselves. Terrace households have used it for as long as they have had terraces and regard the whole difficulty as a Consortium problem.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "modality": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_MODALITY", "SUBSTRATE_PERCUSSION"] }],
+  "users": {
+    "value": { "from": { "amount": 900, "precision": 100 }, "to": { "amount": 3400, "precision": 100 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "sampleGloss": [
+    {
+      "value": "<p><i>[tap tap tap, pause, tap tap tap]</i> - <b>here-here-here (pause) here-here-here</b> - &#39;the wall is answering, and nothing further is meant by it.&#39;</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "recording": [
+    {
+      "value": "/f/G5k2H6GRf4hoV1yoC7u3aq",
+      "name": "system-G2_RISER_TAP.mp3",
+      "caption": "Elicitation sample",
+      "duration": { "value": { "amount": 4, "precision": 1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "MINUTE"] }] },
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G2_RISER_TAP"] }],
+      "note": [
+        {
+          "value": "<p>Recorded during elicitation and kept as the reference sample for this system.</p>",
+          "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+        }
+      ]
+    }
+  ],
+  "notes": [
+    {
+      "value": "<p>The user figures count only the terrace side. Counting the other party would require agreeing where one riser ends, and the survey has never held that agreement for longer than a season.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

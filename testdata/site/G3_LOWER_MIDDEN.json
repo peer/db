@@ -1,0 +1,21 @@
+{
+  "id": ["xeno.peerdb.org", "SITE", "G3_LOWER_MIDDEN"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SITE"] }],
+  "name": [{ "value": "Lower Midden", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "localName": [{ "value": "Naoreu", "gloss": "the ring that is added to" }],
+  "description": [
+    {
+      "value": "<p>A shell and bone bank two hundred metres across and up to three metres high, ringing a camp platform on the upper flat, built up over a great many returns to the same spot. The camp inside it is in use at every low water. The bank is still growing, at a rate the survey has measured twice and would rather not extrapolate from.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "REGION", "G3_LONG_DRAIN"] },
+  "siteType": { "id": ["xeno.peerdb.org", "SITE_TYPE", "MIDDEN_RING"] },
+  "gridReference": "SW-112.7/-04.1",
+  "population": {
+    "value": { "from": { "amount": 60, "precision": 10 }, "to": { "amount": 400, "precision": 10 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "occupation": { "from": { "time": "2264-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true },
+  "image": [{ "value": "/f/7vRFLcsz2AXyTTFoNFLRqq", "name": "G3_LOWER_MIDDEN.jpg", "caption": "General view", "source": "Consortium survey archive" }]
+}

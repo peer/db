@@ -1,0 +1,29 @@
+{
+  "id": ["xeno.peerdb.org", "COLLECTIVE", "G2_FLOOR_SELF"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "COLLECTIVE"] }],
+  "name": [{ "value": "The Floor Party", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "description": [
+    {
+      "value": "<p>One self, or a small number of them, spread across the bodies on the ocean floor four kilometres below the inhabited ceiling and held together by continuous low-frequency signalling through water that has not moved in eleven thousand years. A body that goes out of range stops behaving and is left, and the self reports no loss, never having counted. It is recorded as one body because it takes delivery, sorts and returns, and does all three as a single party to an account that neither side intends to settle.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "species": { "id": ["xeno.peerdb.org", "SPECIES", "G2_ULLOMARRE"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G2_RIB_HOLDINGS"] }],
+  "role": [
+    { "value": "party to the fall account", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "sorter", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }
+  ],
+  "memberCount": {
+    "value": { "from": { "amount": 300, "precision": 10 }, "to": { "amount": 4000, "precision": 10 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "activePeriod": { "from": { "time": "2268-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true },
+  "seat": { "id": ["xeno.peerdb.org", "SITE", "G2_LOWER_MIDDEN"] },
+  "notes": [
+    {
+      "value": "<p>Two review articles have argued that a consensus assembly of one self is not an assembly and that the whole entry should be struck. Neither has proposed where the sorted material comes from instead.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

@@ -1,0 +1,27 @@
+{
+  "id": ["xeno.peerdb.org", "ARTIFACT", "G1_STORM_HOOD"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "ARTIFACT"] }],
+  "name": [{ "value": "Storm hood and cape", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "accessionCode": "CCX-A-13224",
+  "description": [
+    {
+      "value": "<p>A hood and shoulder cape felted in one piece from skimmer down, sewn with gut thread and weighted at the hem with four flat stones so that it cannot lift in a gust. It covers the head and leaves the flank pits bare, since the pits are the working sense and exposing them is the whole point of the garment. This one was made and given in a single afternoon in 2304, to a visiting team that had been warned about the wind twice and had gone out anyway. It is unworn, slightly too large for anybody on the staff, and in excellent condition.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "category": { "id": ["xeno.peerdb.org", "ARTIFACT_CATEGORY", "TEXTILE"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G1_LEE_CORPORATIONS"] }],
+  "foundAt": { "id": ["xeno.peerdb.org", "SITE", "G1_WINDWARD_RING"] },
+  "material": [
+    { "value": "felted skimmer down", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "gut thread", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "flat stone weights", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }
+  ],
+  "dimension": [
+    { "value": { "amount": 0.96, "precision": 0.001 }, "axis": "length", "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+    { "value": { "amount": 0.74, "precision": 0.001 }, "axis": "width", "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] }
+  ],
+  "dateMade": { "time": "2304-01-01T00:00:00Z", "precision": "d" },
+  "collectedBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_DEMIR"] }, { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_WEN"] }],
+  "image": [{ "value": "/f/3w7Sz6wAhbY1Af1t3PEQLr", "name": "G1_STORM_HOOD.jpg", "caption": "Object drawing", "source": "Consortium collection" }]
+}

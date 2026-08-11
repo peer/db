@@ -1,0 +1,51 @@
+{
+  "id": ["xeno.peerdb.org", "PLANET", "G3_HANDMILL_D"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PLANET"] }],
+  "name": [{ "value": "Handmill d", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "catalogueCode": "HB-1/002-d",
+  "description": [
+    {
+      "value": "<p>A dry world with a thin working atmosphere and no standing liquid anywhere on it. Dune fields run for thousands of kilometres between crusted basins that were seas within the last billion years and have been salt ever since. Life is present but lives inside rock, at depths of two to forty metres, and is slow enough that one generation outlasts the survey that found it. Nobody lives here and nobody ever has.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Suh svet sipin in solnih kotanj; življenje je le v kamnini.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Um mundo seco, com uma atmosfera ténue mas funcional e sem qualquer líquido à superfície. Campos de dunas estendem-se por milhares de quilómetros entre bacias encrostadas que foram mares nos últimos mil milhões de anos e desde então são sal. Há vida, mas vive dentro da rocha, a profundidades de dois a quarenta metros, e é tão lenta que uma geração dura mais do que o levantamento que a encontrou. Ninguém vive aqui e nunca ninguém viveu.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "STAR_SYSTEM", "G3_HANDMILL"] },
+  "planetType": { "id": ["xeno.peerdb.org", "PLANET_TYPE", "DESICCATED"] },
+  "biome": [
+    { "id": ["xeno.peerdb.org", "BIOME", "REGOLITH_DUNE"] },
+    { "id": ["xeno.peerdb.org", "BIOME", "EVAPORITE_PAN"] },
+    { "id": ["xeno.peerdb.org", "BIOME", "ENDOLITH_ZONE"] }
+  ],
+  "radius": { "value": { "amount": 1.04, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_RADIUS"] }] },
+  "mass": { "value": { "amount": 1.02, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_MASS"] }] },
+  "surfaceGravity": { "value": { "amount": 0.94, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "STANDARD_GRAVITY"] }] },
+  "dayLength": { "value": { "amount": 26.9, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "HOUR"] }] },
+  "orbitalPeriod": { "value": { "amount": 318.4, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_DAY"] }] },
+  "meanTemperature": { "value": { "amount": 9.8, "precision": 0.1 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "°C"] }] },
+  "hydrosphere": { "value": { "amount": 1.2, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "PERCENT"] }] },
+  "atmosphere": [
+    {
+      "value": "<p>Carbon dioxide and nitrogen at 0.35 bar with a permanent load of gypsum dust. Not breathable. Warm enough at noon to work in a light suit, which is the most anybody has ever found to say in its favour.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "biosphereUnknown": true,
+  "contactStatus": { "id": ["xeno.peerdb.org", "CONTACT_STATUS", "NO_CONTACT"] },
+  "firstSurveyed": { "time": "2260-01-01T00:00:00Z", "precision": "y" },
+  "surveyPeriod": { "from": { "time": "2260-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true },
+  "image": [{ "value": "/f/2r2GNbrAvM59AeP877HAr1", "name": "G3_HANDMILL_D.jpg", "caption": "Surface view", "source": "Consortium survey archive" }],
+  "notes": [
+    {
+      "value": "<p>Contact status on an uninhabited world is recorded as no contact, which the ethics office maintains is meaningfully different from not applicable, and has explained twice.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

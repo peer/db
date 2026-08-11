@@ -1,0 +1,37 @@
+{
+  "id": ["xeno.peerdb.org", "PLANET", "G3_GROMMET_B"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PLANET"] }],
+  "name": [{ "value": "Grommet b", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "catalogueCode": "HB-3/005-b",
+  "description": [
+    {
+      "value": "<p>An ice giant characterised entirely from the outbound leg of a survey that was already over. The mass and radius are good; everything else rests on one spectrum and a ring detection that one reviewer still disputes in print. It is recorded as not demonstrated lifeless because nothing whatever has been demonstrated about it.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Um gigante gelado caracterizado inteiramente durante o trajeto de saída de um levantamento que já tinha terminado. A massa e o raio são bons; tudo o resto assenta num espectro e numa deteção de anéis que um revisor continua a contestar por escrito. Está registado como não demonstradamente sem vida, porque não se demonstrou absolutamente nada a seu respeito.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "STAR_SYSTEM", "G3_GROMMET"] },
+  "planetType": { "id": ["xeno.peerdb.org", "PLANET_TYPE", "VOLATILE_GIANT"] },
+  "radius": { "value": { "amount": 4.4, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_RADIUS"] }] },
+  "mass": { "value": { "amount": 24.0, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_MASS"] }] },
+  "surfaceGravity": { "value": { "amount": 1.24, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "STANDARD_GRAVITY"] }] },
+  "dayLength": { "value": { "amount": 16.8, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "HOUR"] }] },
+  "orbitalPeriod": { "value": { "amount": 1902.0, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_DAY"] }] },
+  "ringSystem": true,
+  "meanTemperature": { "value": { "amount": -186.0, "precision": 0.1 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "°C"] }] },
+  "hydrosphere": { "value": { "amount": 0, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "PERCENT"] }] },
+  "atmosphere": [
+    {
+      "value": "<p>Hydrogen, helium and methane, with no cloud structure resolved at the range and speed available. One spectrum, taken while leaving.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "biosphereUnknown": true,
+  "contactStatus": { "id": ["xeno.peerdb.org", "CONTACT_STATUS", "NO_CONTACT"] },
+  "firstSurveyed": { "time": "2301-01-01T00:00:00Z", "precision": "y" },
+  "surveyPeriod": { "from": { "time": "2301-01-01T00:00:00Z", "precision": "y" }, "to": { "time": "2301-01-01T00:00:00Z", "precision": "y" } },
+  "image": [{ "value": "/f/YN1PndxmHSJUWBnLy5MAgA", "name": "G3_GROMMET_B.jpg", "caption": "Approach view", "source": "Consortium survey archive" }]
+}

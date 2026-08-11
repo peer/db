@@ -1,0 +1,45 @@
+{
+  "id": ["xeno.peerdb.org", "CULTURE", "G4_CU_RING_MOIETIES"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "CULTURE"] }],
+  "name": [{ "value": "Ring Sea Moieties", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [
+    {
+      "value": "Ngomunganu",
+      "gloss": "the two halves of the going round",
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G4_COM_RING_PULSE"] }]
+    }
+  ],
+  "catalogueCode": "CU-2257-10",
+  "description": [
+    {
+      "value": "<p>The society of the permanently lit ring sea, divided into two exogamous halves inherited through the mother, with every obligation running across the divide and none within it, so that neither half can feed or bury itself alone. Gatherings are called at named vents along the return current, and the tended clumps there are cropped and left to regrow on a rotation older than any institution studying it. Since 2271 the culture has kept the decommissioned Consortium relay in the substellar pool, whose transponder clock now times the nineteen-metre tide for the whole ring and on whose deck station-keeping disputes between floating settlements are heard. Swimmers describe the moieties as a fact about the sea rather than about themselves, and forty years of oceanography has failed to find anything in the sea it corresponds to. The Consortium&#39;s disposal file still lists the relay as awaiting removal.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Družba je razdeljena na dve polovici, ki se dedujeta po materi; čas plime za ves obroč meri ura opuščene relejne postaje.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>A sociedade do mar em anel permanentemente iluminado, dividida em duas metades exógamas herdadas por via materna, com todas as obrigações a correr através da divisão e nenhuma dentro dela, de modo que nenhuma das metades se pode alimentar nem enterrar os seus sozinha. As reuniões são convocadas em fontes nomeadas ao longo da corrente de retorno, e os tufos ali tratados são colhidos e deixados a recrescer numa rotação mais antiga do que qualquer instituição que a estude. Desde 2271 a cultura mantém na piscina subestelar o repetidor desativado do Consórcio, cujo relógio de transponder marca agora a maré de dezanove metros para todo o anel e em cujo convés se ouvem as disputas de posicionamento entre povoados flutuantes. Os nadadores descrevem as metades como um facto acerca do mar e não acerca de si próprios, e quarenta anos de oceanografia não conseguiram encontrar no mar nada a que correspondam. O processo de abate do Consórcio continua a listar o repetidor como aguardando remoção.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "practisedBy": [{ "id": ["xeno.peerdb.org", "SPECIES", "G4_RING_SWIMMERS"] }],
+  "presentAt": [{ "id": ["xeno.peerdb.org", "SITE", "G4_SUNK_RELAY"] }, { "id": ["xeno.peerdb.org", "SITE", "G4_ICE_FOOT"] }],
+  "kinshipSystem": { "id": ["xeno.peerdb.org", "KINSHIP_SYSTEM", "UNILINEAL_DESCENT"] },
+  "socialOrganisation": { "id": ["xeno.peerdb.org", "SOCIAL_ORGANISATION", "MATRILINEAL_MOIETIES"] },
+  "subsistence": [
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "DRIFT_HARVESTING"] },
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "CHEMO_TENDING"] },
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "TIDAL_TRAPPING"] }
+  ],
+  "communication": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G4_COM_RING_PULSE"] }],
+  "population": {
+    "value": { "from": { "amount": 65000, "precision": 100 }, "to": { "amount": 140000, "precision": 100 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "period": { "from": { "time": "2257-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true },
+  "image": [
+    { "value": "/f/VMDocPmmAJMXvEj2jMMxKL", "name": "G4_CU_RING_MOIETIES.jpg", "caption": "Gathering", "source": "Consortium survey archive" }
+  ]
+}

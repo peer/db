@@ -1,0 +1,37 @@
+{
+  "id": ["xeno.peerdb.org", "PLANET", "G2_ASH_PAN"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PLANET"] }],
+  "name": [{ "value": "Ash Pan", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "catalogueCode": "GA-0221-f",
+  "description": [
+    {
+      "value": "<p>A cold volatile giant with a narrow ring of dark ice particles and four moons, three icy and one clearly captured. Its cloud decks are ammonia and methane, banded in dull browns, with no visible storms; the disc has been photographically indistinguishable from itself for ninety years. There is no reachable surface and no life at any depth the probes have sampled. The moons are the reason anyone comes.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Hlapni velikan z ozkim obročem in štirimi lunami, brez trdnih tal in brez življenja.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "STAR_SYSTEM", "G2_GREY_ANCHOR"] },
+  "planetType": { "id": ["xeno.peerdb.org", "PLANET_TYPE", "VOLATILE_GIANT"] },
+  "radius": { "value": { "amount": 8.4, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_RADIUS"] }] },
+  "mass": { "value": { "amount": 96.0, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_MASS"] }] },
+  "surfaceGravity": { "value": { "amount": 1.36, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "STANDARD_GRAVITY"] }] },
+  "dayLength": { "value": { "amount": 11.4, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "HOUR"] }] },
+  "orbitalPeriod": { "value": { "amount": 6738.0, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_DAY"] }] },
+  "ringSystem": true,
+  "meanTemperature": { "value": { "amount": -178.0, "precision": 0.1 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "°C"] }] },
+  "hydrosphere": { "value": { "amount": 0, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "PERCENT"] }] },
+  "atmosphere": [
+    {
+      "value": "<p>Hydrogen and helium under ammonia and methane cloud decks, with nothing to stand on at any level. Probe descents end at about 340 bar, where the vehicle stops reporting and the pressure curve keeps going.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "biosphereNone": true,
+  "contactStatus": { "id": ["xeno.peerdb.org", "CONTACT_STATUS", "NO_CONTACT"] },
+  "firstSurveyed": { "time": "2221-01-01T00:00:00Z", "precision": "y" },
+  "surveyPeriod": { "from": { "time": "2221-01-01T00:00:00Z", "precision": "y" }, "to": { "time": "2274-01-01T00:00:00Z", "precision": "y" } },
+  "image": [{ "value": "/f/6JHzkic6aWR8tvvW4tyh6H", "name": "G2_ASH_PAN.jpg", "caption": "Approach view", "source": "Consortium survey archive" }]
+}

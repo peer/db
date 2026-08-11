@@ -1,0 +1,34 @@
+{
+  "id": ["xeno.peerdb.org", "EXPEDITION", "EXP_NINE_TERRACE_TIDE"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "EXPEDITION"] }],
+  "name": [{ "value": "Nine Terrace Tidal Programme", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "catalogueCode": "EXP-2297-03",
+  "description": [
+    {
+      "value": "<p>Six years working the flats on the moon&#39;s schedule rather than the star&#39;s, from a moored raft that drifted eleven kilometres over the posting and was left where it stopped. The programme recorded the bench-by-bench division of the shelving ground, the terms for each state of the tide, and a rota that turns out to be older than the settlement using it. Its material return was refused twice by the deposit office before a custodian could be named, which delayed publication by four years.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "destination": [
+    { "id": ["xeno.peerdb.org", "PLANET", "G2_NINE_TERRACE"] },
+    { "id": ["xeno.peerdb.org", "REGION", "G2_SWEEP_MARGIN"] },
+    { "id": ["xeno.peerdb.org", "REGION", "G2_WARM_POOL"] }
+  ],
+  "period": { "from": { "time": "2297-01-01T00:00:00Z", "precision": "y" }, "to": { "time": "2303-01-01T00:00:00Z", "precision": "y" } },
+  "ledBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_FERREIRA"] }],
+  "teamMember": [
+    { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_DEMIR"] },
+    { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_FARAHANI"] },
+    { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_TRAN"] },
+    { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_DE_VRIES"] }
+  ],
+  "organisedBy": [{ "id": ["xeno.peerdb.org", "INSTITUTE", "INST_EVENING"] }, { "id": ["xeno.peerdb.org", "INSTITUTE", "INST_IELUARO"] }],
+  "method": [
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "PARTICIPANT_OBSERVATION"] },
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "MATERIAL_SAMPLING"] },
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "LINGUISTIC_ELICITATION"] }
+  ],
+  "ethics": { "id": ["xeno.peerdb.org", "ETHICS_PROTOCOL", "PROTOCOL_2"] },
+  "budget": { "value": { "amount": 3900000, "precision": 1000 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "$"] }] },
+  "report": [{ "value": "/f/K2F1XNww1cuHiWEgE1w4cX", "name": "EXP_NINE_TERRACE_TIDE.pdf", "caption": "Final report" }]
+}

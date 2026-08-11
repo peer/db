@@ -1,0 +1,24 @@
+{
+  "id": ["xeno.peerdb.org", "INDIVIDUAL", "G4_IN_TWOLONG_ELDER"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "INDIVIDUAL"] }],
+  "name": [{ "value": "[two long, one short, one long]", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "description": [
+    {
+      "value": "<p>Held the name from 2261 until her death in 2288, and for most of that span was the only person on the world who would answer a question about the mortuary floor. She was laid out on it in the year she died, and the name was struck onto its next holder within the season, together with her debts and an unfinished quarrel with a salt-cutting grade. Her recorded work is filed under the name and not under her, which is correct here and is why the archive is the shape it is.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "species": { "id": ["xeno.peerdb.org", "SPECIES", "G4_FLOOR_KEEPERS"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G4_CU_FLOOR_GRADES"] }],
+  "role": [{ "value": "former name holder", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "formOfAddress": "by striking the name figure",
+  "born": { "time": "2233-01-01T00:00:00Z", "precision": "y" },
+  "died": { "time": "2288-01-01T00:00:00Z", "precision": "y" },
+  "birthplace": { "id": ["xeno.peerdb.org", "SITE", "G4_PAN_WORKINGS"] },
+  "notes": [
+    {
+      "value": "<p>This entry and the next carry the same name because the name is the same. The catalogue distinguishes them by key alone, and the cross-reference has been reversed by editors on at least four occasions, twice in print.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

@@ -1,0 +1,28 @@
+{
+  "id": ["xeno.peerdb.org", "ARTIFACT", "G2_GLASS_BLANKS"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "ARTIFACT"] }],
+  "name": [{ "value": "Set of Nine Quarry Blanks", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Ammelu shanne", "gloss": "one shift's worth" }],
+  "accessionCode": "CCX-A-14852",
+  "description": [
+    {
+      "value": "<p>Nine struck blanks of volcanic glass, roughed out at the quarry face and never finished, representing rather less than one relay shift&#39;s work by one pair of hands. They were struck in a single session on the fourth of the local cycle in 2277, watched throughout, which is why the date is to the day and why the set was kept together. Edges are fresh and unretouched, and two of the nine carry step fractures that would have taken them out of use. They travelled the ordinary carrier route as far as the rows in a plaited plate wrap, which came with them and is accessioned as part of the set.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "category": { "id": ["xeno.peerdb.org", "ARTIFACT_CATEGORY", "TOOL_BLANK"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G2_GLASS_RELAY"] }],
+  "foundAt": { "id": ["xeno.peerdb.org", "SITE", "G2_GLASS_QUARRY"] },
+  "material": [
+    { "value": "volcanic glass", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "plaited plate strip", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }
+  ],
+  "dimension": [
+    { "value": { "amount": 0.19, "precision": 0.001 }, "axis": "length", "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+    { "value": { "amount": 0.07, "precision": 0.001 }, "axis": "width", "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+    { "value": { "amount": 0.022, "precision": 0.001 }, "axis": "thickness", "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] }
+  ],
+  "dateMade": { "time": "2277-01-01T00:00:00Z", "precision": "d" },
+  "collectedBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_FERREIRA"] }],
+  "image": [{ "value": "/f/65Bid5BZqHeZeFGkk4ncpW", "name": "G2_GLASS_BLANKS.jpg", "caption": "Object drawing", "source": "Consortium collection" }]
+}

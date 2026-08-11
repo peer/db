@@ -1,0 +1,54 @@
+{
+  "id": ["xeno.peerdb.org", "INTERVIEW", "INTA_WELLUMME_FULL_SHADOW"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "INTERVIEW"] }],
+  "title": [
+    { "value": "Wellumme on what the terraces will do at the next full shadow", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>A terrace holder and switching negotiator, interviewed in the year contact with the eclipse assembly was suspended, on being left with a counterparty the Consortium will no longer let anybody meet.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "interviewee": [{ "id": ["xeno.peerdb.org", "INDIVIDUAL", "G2_WELLUMME"] }],
+  "interviewer": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_MOKOENA"] }, { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_WEN"] }],
+  "recordedAt": { "id": ["xeno.peerdb.org", "SITE", "G2_TURNING_GROUND"] },
+  "recordedOn": { "time": "2287-07-03T00:00:00Z", "precision": "d" },
+  "expedition": { "id": ["xeno.peerdb.org", "EXPEDITION", "EXP_EVENING_TERRACES"] },
+  "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G2_PLATE_LIGHT"] }],
+  "duration": { "value": { "amount": 88, "precision": 1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "MINUTE"] }] },
+  "content": [
+    {
+      "value": "<p><b>Q.</b> Before we go on: is the switching assembly a government or a market?</p><p><b>A.</b> You asked me that in 2281 and I declined then. I decline now. It is a question about your two words and it is not a question about water.</p><p><b>Q.</b> Let us come to the suspension, then. Your assembly deals with the joined phase at full shadow.</p><p><b>A.</b> We deal with them. They hold the leeward gullies, we hold the drops above, and once in twenty-one days there is somebody there to settle with. Your panel has now decided that nobody there can agree to anything.</p><p><b>Q.</b> The panel&#39;s difficulty is that consent given by the separate phase cannot bind the joined phase.</p><p><b>A.</b> Yes. We have known that for longer than you have had a word for it. It is why we settle at full shadow and not on any other day. Your panel has taken a fact we work around and turned it into a reason not to be there.</p><p><b>Q.</b> Does the suspension change what you will do?</p><p><b>A.</b> It changes who is standing on the gully edge in eleven days. You will not be. We will.</p><p><b>Q.</b> And what will be settled?</p><p><b>A.</b> Two seasons of gully water, and a grade duty that the separate phase repudiated after the last joining, and one matter that has been open since 2279 and will be closed. Write it down and keep it off the station board. If your panel reads that we intend to settle a thing it has declared unsettleable, it will decide next that we may not either.</p><p><b>Q.</b> We do not think it has that power.</p><p><b>A.</b> It has the power to write it down and be believed by people who have never stood on the gully edge. That is the same power. You are using it right now.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "recording": [
+    {
+      "value": "/f/2Go86PZwbLeY3Ui5xMghyj",
+      "name": "interview-INTA_WELLUMME_FULL_SHADOW.mp3",
+      "caption": "Session recording",
+      "duration": { "value": { "amount": 88, "precision": 1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "MINUTE"] }] },
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G2_PLATE_LIGHT"] }]
+    }
+  ],
+  "ethics": { "id": ["xeno.peerdb.org", "ETHICS_PROTOCOL", "PROTOCOL_3"] },
+  "consentNote": [
+    {
+      "value": "<p>Wellumme consented on condition that the record be filed under the holding name and not under theirs in anything the station can read, and that the account of the coming settlement not be summarised for the panel. Both conditions are honoured in the deposit and neither is honoured in this description.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "clearedReader": ["mock-user-researcher@localhost"],
+  "permission": [
+    { "action": { "id": ["core.peerdb.org", "PERMISSION_ACTIONS", "ACTION_READ"] }, "user": ["mock-user-researcher@localhost"], "scope": ["self"] },
+    {
+      "action": { "id": ["core.peerdb.org", "PERMISSION_ACTIONS", "ACTION_READ_HISTORIC"] },
+      "user": ["mock-user-researcher@localhost"],
+      "scope": ["self"]
+    }
+  ],
+  "requestedPermission": [
+    { "action": { "id": ["core.peerdb.org", "PERMISSION_ACTIONS", "ACTION_READ"] }, "user": ["mock-user@localhost"], "scope": ["self"] }
+  ]
+}

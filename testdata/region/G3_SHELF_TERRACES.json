@@ -1,0 +1,22 @@
+{
+  "id": ["xeno.peerdb.org", "REGION", "G3_SHELF_TERRACES"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "REGION"] }],
+  "name": [{ "value": "The Shelf", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Sethis" }],
+  "description": [
+    {
+      "value": "<p>A block of high ground standing above the dusk band, dry, pale and shot through with fracture porosity that holds endolithic communities for forty metres down. Its ledges are the only ground in the band that does not move under the ice front, and they have been cut into and lived in more than once. The lower terraces are dust to the ankle.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "PLANET", "G3_SISHELETH"] },
+  "biome": [{ "id": ["xeno.peerdb.org", "BIOME", "DUSK_BELT"] }, { "id": ["xeno.peerdb.org", "BIOME", "ENDOLITH_ZONE"] }],
+  "area": { "value": { "amount": 620000, "precision": 100 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "SQUARE_KILOMETRE"] }] },
+  "elevationRange": {
+    "value": { "from": { "amount": 900, "precision": 10 }, "to": { "amount": 3400, "precision": 10 } },
+    "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }]
+  },
+  "image": [
+    { "value": "/f/CsewfyGonMZBNSMQ2ayziN", "name": "G3_SHELF_TERRACES.jpg", "caption": "Regional view", "source": "Consortium survey archive" }
+  ]
+}

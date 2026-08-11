@@ -1,0 +1,29 @@
+{
+  "id": ["xeno.peerdb.org", "PRACTICE", "G4_PR_JOINT_WALK"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PRACTICE"] }],
+  "name": [{ "value": "Walking the Joint", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "naumeirauo", "gloss": "the meeting of two walls, walked" }],
+  "description": [
+    {
+      "value": "<p>The two households whose lengths meet walk the joint together at the bottom of the lowest tide of every eighth day, starting at the seaward end and working landward. They carry a sounding pole and a coil of new cord and nothing else, since anything that needs more than that is entered as work and not as a walk. Each states the condition of the other&#39;s stonework aloud and doubled, which makes it a fact rather than a proposal, and neither may say anything at all about their own length. Grievances that are not about the wall may be raised only while both parties are standing in water, which limits them to about forty minutes. If the joint is sound the two part without any closing form, and visitors reliably record this as a snub. Where it is not sound, both households work it that hour, and the household that reported the fault works the other&#39;s side of it.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Sosednji gospodinjstvi ob najnižji oseki skupaj prehodita stik svojih zidov in vsako glasno pove, v kakšnem stanju je sosedovo delo.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Os dois agregados cujos troços se encontram percorrem a junta em conjunto no fundo da maré mais baixa de cada oitavo dia, começando na extremidade do lado do mar e avançando para terra. Levam uma vara de sondagem e um rolo de corda nova e mais nada, uma vez que tudo o que exija mais do que isso é lançado como trabalho e não como caminhada. Cada um declara em voz alta e por duas vezes o estado da pedra do outro, o que faz disso um facto e não uma proposta, e nenhum pode dizer o que quer que seja sobre o seu próprio troço. As queixas que não sejam sobre o muro só podem ser levantadas enquanto ambas as partes estiverem dentro de água, o que as limita a uns quarenta minutos. Se a junta estiver sã, os dois separam-se sem qualquer fórmula de despedida, e os visitantes registam isto invariavelmente como uma desfeita. Onde não estiver sã, ambos os agregados a trabalham nessa hora, e o agregado que comunicou o defeito trabalha o lado do outro.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G4_CU_WEIR_ORDER"] }],
+  "category": { "id": ["xeno.peerdb.org", "PRACTICE_CATEGORY", "DISPUTE_RESOLUTION"] },
+  "periodicity": "at the bottom of the lowest tide of every eighth day",
+  "participants": {
+    "value": { "from": { "amount": 2, "precision": 1 }, "to": { "amount": 9, "precision": 1 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "firstDocumented": { "time": "2231-01-01T00:00:00Z", "precision": "y" },
+  "relatedPractice": [{ "id": ["xeno.peerdb.org", "PRACTICE", "G4_PR_HANDING_ON"] }]
+}

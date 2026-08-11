@@ -1,0 +1,25 @@
+{
+  "id": ["xeno.peerdb.org", "ORGANISM", "G1_MELT_CORD"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "ORGANISM"] }],
+  "name": [{ "value": "Melt cord", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "taxonCode": "TX-2801-a",
+  "description": [
+    {
+      "value": "<p>A ropy photosynthetic sessile that roots in the gravel of braided meltwater channels and grows only while the channel is running, which on that world is a matter of a few years before the water moves. Dried and plaited it makes the only cordage the dusk-band people have, and a reach that loses its channel loses its rope supply in the same season. Its growth rings record the life of a channel exactly, and the Consortium has used them to date settlement remains to within a year.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "category": { "id": ["xeno.peerdb.org", "ORGANISM_CATEGORY", "PHOTO_SESSILE"] },
+  "foundOn": [{ "id": ["xeno.peerdb.org", "PLANET", "G1_SURVEY_GRID_44_B"] }],
+  "biome": [{ "id": ["xeno.peerdb.org", "BIOME", "BRAIDED_MELT"] }],
+  "typicalSize": { "value": { "amount": 0.62, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+  "typicalMass": { "value": { "amount": 0.31, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "kg"] }] },
+  "image": [
+    {
+      "value": "/f/8mzyuuvF9PVbbc1qhqSQZg",
+      "name": "G1_MELT_CORD.jpg",
+      "caption": "Field plate",
+      "source": "Drawn in the field; Consortium collection"
+    }
+  ]
+}

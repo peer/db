@@ -1,0 +1,28 @@
+{
+  "id": ["xeno.peerdb.org", "PRACTICE", "G4_PR_NAME_STRIKING"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PRACTICE"] }],
+  "name": [{ "value": "Striking Into a Name", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "[struck into]", "gloss": "a gloss of a three-beat figure meaning that the name has been given and taken" }],
+  "description": [
+    {
+      "value": "<p>A name is a figure, and the set of figures is fixed; when a holder dies, the figure is struck into the next person of the receiving grade on a worked floor, with everybody inside sixty kilometres able to hear it. The receiver strikes it back once at half strength, which is the whole of the acceptance and is also how an ordinary greeting is done. From that hour the receiver holds the previous holder&#39;s debts, in-laws and unfinished quarrels, and is addressed by creditors as though nothing had happened. A figure may be left unstruck for a season where the grade cannot agree, and a name left unstruck for a whole span is retired; this has happened four times in the period of record and is the nearest thing the culture has to a scandal. The survey&#39;s own designations are struck as borrowed figures and are understood by everyone to be on loan.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Ime je udarjen ritem; ob smrti nosilca ga vtolčejo v naslednjega, ki z njim prevzame tudi dolgove.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    }
+  ],
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G4_CU_FLOOR_GRADES"] }],
+  "category": { "id": ["xeno.peerdb.org", "PRACTICE_CATEGORY", "NAMING"] },
+  "periodicity": "within a season of a holder's death",
+  "participants": {
+    "value": { "from": { "amount": 20, "precision": 1 }, "to": { "amount": 400, "precision": 1 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "firstDocumented": { "time": "2257-01-01T00:00:00Z", "precision": "y" },
+  "relatedPractice": [{ "id": ["xeno.peerdb.org", "PRACTICE", "G4_PR_LAYING_OUT"] }],
+  "image": [
+    { "value": "/f/RvMrxiXRsUaq6V9RWeBN8k", "name": "G4_PR_NAME_STRIKING.jpg", "caption": "In progress", "source": "Consortium survey archive" }
+  ]
+}

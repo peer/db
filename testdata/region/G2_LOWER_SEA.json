@@ -1,0 +1,19 @@
+{
+  "id": ["xeno.peerdb.org", "REGION", "G2_LOWER_SEA"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "REGION"] }],
+  "name": [{ "value": "Lower Sea", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "description": [
+    {
+      "value": "<p>The second ocean, beneath a shell of high-pressure ice about ninety kilometres thick, in contact with rock and out of contact with everything else. One borehole reaches it. The water it returned carries an isotopic signature unchanged since the world assembled, which makes it the oldest sample of anything in the register.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "PLANET", "G2_GREY_RIND"] },
+  "biome": [{ "id": ["xeno.peerdb.org", "BIOME", "BRINE_SEA"] }],
+  "area": { "value": { "amount": 6700000, "precision": 100 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "SQUARE_KILOMETRE"] }] },
+  "elevationRange": {
+    "value": { "from": { "amount": -142000, "precision": 10 }, "to": { "amount": -128000, "precision": 10 } },
+    "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }]
+  },
+  "image": [{ "value": "/f/DC4a1G4Lhec151sSQJtFze", "name": "G2_LOWER_SEA.jpg", "caption": "Regional view", "source": "Consortium survey archive" }]
+}

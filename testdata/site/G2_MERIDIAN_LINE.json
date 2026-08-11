@@ -1,0 +1,20 @@
+{
+  "id": ["xeno.peerdb.org", "SITE", "G2_MERIDIAN_LINE"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SITE"] }],
+  "name": [{ "value": "Meridian Line", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "description": [
+    {
+      "value": "<p>Forty core sites at hundred-kilometre spacing along the transect, drilled between 2233 and 2273 at roughly one a year. Each has a spoil heap, a capped hole and a numbered post. Together they are the only continuous stratigraphic section for any world in this galaxy.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "REGION", "G2_DRY_MERIDIAN"] },
+  "siteType": { "id": ["xeno.peerdb.org", "SITE_TYPE", "EXTRACTION_SITE"] },
+  "gridReference": "OS-31.0/+00.0",
+  "population": {
+    "value": { "from": { "amount": 0, "precision": 10 }, "to": { "amount": 4, "precision": 10 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "founded": { "time": "2233-01-01T00:00:00Z", "precision": "y" },
+  "occupation": { "from": { "time": "2233-01-01T00:00:00Z", "precision": "y" }, "to": { "time": "2273-01-01T00:00:00Z", "precision": "y" } }
+}

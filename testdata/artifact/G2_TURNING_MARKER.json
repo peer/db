@@ -1,0 +1,35 @@
+{
+  "id": ["xeno.peerdb.org", "ARTIFACT", "G2_TURNING_MARKER"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "ARTIFACT"] }],
+  "name": [{ "value": "Sequence Marker, Turning Ground", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Menulanne wemme", "gloss": "the standing thing of the turning" }],
+  "accessionCode": "CCX-A-14841",
+  "description": [
+    {
+      "value": "<p>A dressed basalt post set upright in bedrock, one of some three hundred laid out across the assembly ground in an order that is the order of the drops and not the order of the ground. The post is plain: there is nothing cut into it, and which position it stands for is held in the recited sequence and nowhere else. This one was lifted, recorded and reset in 2290 with the assembly&#39;s agreement, and was reset four centimetres out of true, which was pointed out immediately. Weathering on the windward face has taken about a centimetre off the dressing.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "category": { "id": ["xeno.peerdb.org", "ARTIFACT_CATEGORY", "MARKER_STONE"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G2_SWITCHING_ASSEMBLY"] }],
+  "foundAt": { "id": ["xeno.peerdb.org", "SITE", "G2_TURNING_GROUND"] },
+  "material": [
+    { "value": "dressed basalt", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "packed gravel", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }
+  ],
+  "dimension": [
+    { "value": { "amount": 0.71, "precision": 0.001 }, "axis": "height", "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+    { "value": { "amount": 0.24, "precision": 0.001 }, "axis": "width", "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+    { "value": { "amount": 0.19, "precision": 0.001 }, "axis": "thickness", "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] }
+  ],
+  "dateMade": { "time": "2100-01-01T00:00:00Z", "precision": "100y" },
+  "collectedBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_WEN"] }],
+  "image": [{ "value": "/f/VcCDMfnhyD2brtvcX2hoXe", "name": "G2_TURNING_MARKER.jpg", "caption": "Object drawing", "source": "Consortium collection" }],
+  "document": [{ "value": "/f/Rh6SfL8SDzEtAxQEeFFoDo", "name": "G2_TURNING_MARKER.txt", "caption": "Accession record" }],
+  "notes": [
+    {
+      "value": "<p>The document is the survey&#39;s own resetting record, deposited because the assembly asked for a copy. It is the only item in this collection whose accompanying paperwork was requested by the people it is about.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

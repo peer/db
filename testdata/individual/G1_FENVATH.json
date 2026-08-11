@@ -1,0 +1,18 @@
+{
+  "id": ["xeno.peerdb.org", "INDIVIDUAL", "G1_FENVATH"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "INDIVIDUAL"] }],
+  "name": [{ "value": "Fenvath" }],
+  "lineageName": [{ "value": "Vasthen" }],
+  "description": [
+    {
+      "value": "<p>A cutter of the middle canopy who has never in his life been below sixty metres and does not regard this as worth remarking on, having been asked about it by every visiting team since 2298. He works the columns his house holds and can name each of them, which took the survey four days to verify and one afternoon to stop doubting. He asked once what the ground smelled like and has not raised the subject again.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "species": { "id": ["xeno.peerdb.org", "SPECIES", "G1_VETHRANI"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G1_CANOPY_HOUSES"] }],
+  "role": [{ "value": "cutter", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "formOfAddress": "house first, then name",
+  "born": { "time": "2276-01-01T00:00:00Z", "precision": "y" },
+  "birthplace": { "id": ["xeno.peerdb.org", "SITE", "G1_CANOPY_TETHER"] }
+}

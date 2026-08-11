@@ -1,0 +1,20 @@
+{
+  "id": ["xeno.peerdb.org", "REGION", "G1_KUTAK_BASIN"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "REGION"] }],
+  "name": [{ "value": "Kutak Basin", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Kutak" }],
+  "description": [
+    {
+      "value": "<p>A closed white basin at the southern end of the dune field, floored with brine crust and rimmed with ochre bluffs. It is the largest reliable source of standing water within a thousand kilometres and consequently the place everyone converges on. For most of the year it is empty.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "PLANET", "G1_TWELVE_BELLS_II"] },
+  "biome": [{ "id": ["xeno.peerdb.org", "BIOME", "EVAPORITE_PAN"] }],
+  "area": { "value": { "amount": 640000, "precision": 100 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "SQUARE_KILOMETRE"] }] },
+  "elevationRange": {
+    "value": { "from": { "amount": -180, "precision": 10 }, "to": { "amount": 320, "precision": 10 } },
+    "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }]
+  },
+  "image": [{ "value": "/f/725MfTGiFTcwUBW7AQZEzE", "name": "G1_KUTAK_BASIN.jpg", "caption": "Regional view", "source": "Consortium survey archive" }]
+}

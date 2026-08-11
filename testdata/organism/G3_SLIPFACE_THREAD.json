@@ -1,0 +1,29 @@
+{
+  "id": ["xeno.peerdb.org", "ORGANISM", "G3_SLIPFACE_THREAD"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "ORGANISM"] }],
+  "name": [{ "value": "Slipface Thread", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "taxonCode": "TX-1145-b",
+  "description": [
+    {
+      "value": "<p>A thread network living in the damp layer under a dune slip face, which on both worlds it is known from is the last moisture on the surface. It moves with the dune, growing forward at the crest and dying behind, so a colony is a slow front rather than a place. On Capstan e it is the only organism recorded on the surface at all.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Uma rede de filamentos que vive na camada húmida sob a vertente de deslizamento de uma duna, que nos dois mundos onde é conhecida constitui a última humidade da superfície. Desloca-se com a duna, crescendo para a frente na crista e morrendo atrás, pelo que uma colónia é uma frente lenta e não um lugar. Em Capstan e é o único organismo alguma vez registado à superfície.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "category": { "id": ["xeno.peerdb.org", "ORGANISM_CATEGORY", "DECOMPOSER_NETWORK"] },
+  "foundOn": [{ "id": ["xeno.peerdb.org", "PLANET", "G3_CAPSTAN_E"] }, { "id": ["xeno.peerdb.org", "PLANET", "G3_RIMMENA"] }],
+  "biome": [{ "id": ["xeno.peerdb.org", "BIOME", "REGOLITH_DUNE"] }],
+  "typicalSize": { "value": { "amount": 1.8, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+  "typicalMass": { "value": { "amount": 0.03, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "kg"] }] },
+  "image": [
+    {
+      "value": "/f/PCFBLxyQ75Z945HiNyByzr",
+      "name": "G3_SLIPFACE_THREAD.jpg",
+      "caption": "Field plate",
+      "source": "Drawn in the field; Consortium collection"
+    }
+  ]
+}

@@ -1,0 +1,35 @@
+{
+  "id": ["xeno.peerdb.org", "OBSERVATION", "OBSB_SPAN_LATTICE_REPLACED"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "OBSERVATION"] }],
+  "title": [
+    {
+      "value": "A house lattice replaced in the course of a dispute between spans",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "description": [
+    {
+      "value": "<p>Note on a canopy house recording a change in its holdings, watched from forty metres below by people who could not read the answer.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "content": [
+    {
+      "value": "<p>6.ii.2279. The dispute ran for most of a day between two houses holding adjoining spans, conducted in the branches at about forty metres. We were on the terrace below with Meilluri, who translated at intervals and stopped when it became rude to continue.</p><p>The outcome was a new lattice, hung the same evening beside the one it replaced. A lattice is not amended; the superseded frame stays hanging next to its successor, so that a house of any age carries its whole holding history in a row.</p><p>Nemi read the new frame for us by running the graspers from the outside inward and named four spans and their order. The answering house replied in flare, which our instruments recorded and which none of us can read; the timing suggests two exchanges, and Meilluri would say only that the second was shorter.</p><p>We can therefore report the dispute, the object and the sequence, and not the reply. This is the third time this season that the decisive part of an exchange has been in a channel we cannot follow, and it is beginning to look less like bad luck and more like the shape of the record we are building.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "expedition": { "id": ["xeno.peerdb.org", "EXPEDITION", "EXP_LONG_WATER_SHELF"] },
+  "observedBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_ARAI"] }, { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_BRANDT"] }],
+  "observedAt": { "id": ["xeno.peerdb.org", "SITE", "G4_LADDER_TERRACES"] },
+  "observedOn": { "time": "2279-02-06T00:00:00Z", "precision": "d" },
+  "about": [{ "id": ["xeno.peerdb.org", "SPECIES", "G4_SMALLFOLK"] }, { "id": ["xeno.peerdb.org", "CULTURE", "G4_CU_LADDER_GORGE"] }],
+  "method": [
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "PARTICIPANT_OBSERVATION"] },
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "NETWORK_MAPPING"] }
+  ],
+  "fieldConditions": "Dry under the canopy, poor light all day, two houses in the branches directly overhead and the gorge households working below.",
+  "image": [
+    { "value": "/f/3Fiw5E8k6Uf5JuJk53Tonk", "name": "OBSB_SPAN_LATTICE_REPLACED.jpg", "caption": "Taken at the time", "source": "Field record" }
+  ]
+}

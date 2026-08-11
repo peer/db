@@ -1,0 +1,20 @@
+{
+  "id": ["xeno.peerdb.org", "RESEARCHER", "RES_VIRTANEN"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "RESEARCHER"] }],
+  "name": [{ "value": "Aino" }],
+  "familyName": [{ "value": "Virtanen" }],
+  "researcherCode": "CCX-P-04288",
+  "description": [
+    {
+      "value": "<p>Records sound on worlds where sound behaves badly and has an unusual tolerance for cold, wet and very small rooms. She resents having been posted to an ice shell for five years on the strength of that tolerance and has said so in three exit interviews. She keeps going back.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "affiliatedWith": [{ "id": ["xeno.peerdb.org", "INSTITUTE", "INST_ANCHOR"] }],
+  "specialisesIn": [
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "ACOUSTIC_RECORDING"] },
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "PARTICIPANT_OBSERVATION"] }
+  ],
+  "activePeriod": { "from": { "time": "2291-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true },
+  "born": { "time": "2266-01-01T00:00:00Z", "precision": "y" }
+}

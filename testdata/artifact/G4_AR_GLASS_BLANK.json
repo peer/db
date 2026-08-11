@@ -1,0 +1,27 @@
+{
+  "id": ["xeno.peerdb.org", "ARTIFACT", "G4_AR_GLASS_BLANK"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "ARTIFACT"] }],
+  "name": [{ "value": "Abandoned Blank, Glass Quarry Face", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "accessionCode": "CCX-A-20481",
+  "description": [
+    {
+      "value": "<p>A rough-out struck from the working face and abandoned on the spoil after a cooling crack ran through it during shaping. Blanks are struck at the face and finished at the hearths, so a piece that fails here fails in front of everybody, and the spoil below the face is accordingly the best record of the craft there is. The crack shows under raking light and runs from the platform edge to a third of the length. It was picked up in 2289 on the day it was struck, by a fieldworker who had spent two seasons asking to be allowed to pick something up.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "category": { "id": ["xeno.peerdb.org", "ARTIFACT_CATEGORY", "TOOL_BLANK"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G4_CU_HEARTH_CIRCUIT"] }],
+  "foundAt": { "id": ["xeno.peerdb.org", "SITE", "G4_GLASS_QUARRY"] },
+  "material": [
+    { "value": "volcanic glass", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "herd-hide wrap", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }
+  ],
+  "dimension": [
+    { "value": { "amount": 0.21, "precision": 0.001 }, "axis": "length", "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+    { "value": { "amount": 0.08, "precision": 0.001 }, "axis": "width", "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+    { "value": { "amount": 0.03, "precision": 0.001 }, "axis": "thickness", "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] }
+  ],
+  "dateMade": { "time": "2289-01-01T00:00:00Z", "precision": "d" },
+  "collectedBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_SUBRAMANIAN"] }],
+  "image": [{ "value": "/f/9yadb1GyQZ3qPwmVxtuE1K", "name": "G4_AR_GLASS_BLANK.jpg", "caption": "Object drawing", "source": "Consortium collection" }]
+}

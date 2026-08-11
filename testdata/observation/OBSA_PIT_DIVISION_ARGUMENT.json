@@ -1,0 +1,39 @@
+{
+  "id": ["xeno.peerdb.org", "OBSERVATION", "OBSA_PIT_DIVISION_ARGUMENT"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "OBSERVATION"] }],
+  "title": [
+    { "value": "An argument on the slope during a division of the culture", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>Notes on a house division, and on the dispute that followed a bystander steadying the vessel on a wet step. We were told afterwards that nothing had gone wrong.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "content": [
+    {
+      "value": "<p>The oldest pit of the house at the twenty-third basin was opened at the top of the tide and a measured half of the living mass lifted out by hand, by the departing head, into a vessel fired that morning. The vessel went up the slope without being set down.</p><p>About two thirds of the way up the carrier caught a wet step and a bystander put out a hand and steadied the vessel. There was then an argument, conducted mostly by the two house heads and mostly in numbers, which we could not follow at speed.</p><p>What we did follow:</p><blockquote><p>He has touched it, so he is of the new house. There is nothing here to discuss and we are all standing in the sun.</p></blockquote><p>The party went on up and the half was set in the new pit. We were told afterwards that nothing had gone wrong, and we have recorded that as said. Whether the argument was about the rule or about the man is not something we can settle from what we heard.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "expedition": { "id": ["xeno.peerdb.org", "EXPEDITION", "EXP_THREADBARE_FOURTH"] },
+  "observedBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_LINDQVIST"] }, { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_HALVORSEN"] }],
+  "observedAt": { "id": ["xeno.peerdb.org", "SITE", "G1_ANCHOR_STEPS"] },
+  "observedOn": { "time": "2265-11-04T00:00:00Z", "precision": "d" },
+  "about": [{ "id": ["xeno.peerdb.org", "PRACTICE", "G1_PIT_DIVISION"] }, { "id": ["xeno.peerdb.org", "CULTURE", "G1_ANCHOR_HOUSES"] }],
+  "method": [
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "PARTICIPANT_OBSERVATION"] },
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "LINGUISTIC_ELICITATION"] }
+  ],
+  "fieldConditions": "Top of the tide, no cloud, and hot on the open steps. Perhaps sixty people on the slope, most of them not attending.",
+  "permission": [
+    { "action": { "id": ["core.peerdb.org", "PERMISSION_ACTIONS", "ACTION_UPDATE"] }, "user": ["mock-user-researcher@localhost"], "scope": ["self"] },
+    { "action": { "id": ["core.peerdb.org", "PERMISSION_ACTIONS", "ACTION_DELETE"] }, "user": ["mock-user-curator@localhost"], "scope": ["self"] }
+  ],
+  "notes": [
+    {
+      "value": "<p>The bystander was feeding the new pit at our next visit nine days later and gave the new house as his own when asked. We did not ask what he had intended on the step.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

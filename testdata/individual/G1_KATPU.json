@@ -1,0 +1,17 @@
+{
+  "id": ["xeno.peerdb.org", "INDIVIDUAL", "G1_KATPU"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "INDIVIDUAL"] }],
+  "name": [{ "value": "Katpu" }],
+  "description": [
+    {
+      "value": "<p>Runs the vent plumbing for two settlements and is the only member of his people to have lived inside a Consortium habitat, having spent two seasons at the belt-edge camp before it was abandoned. He came back with a working knowledge of the survey&#39;s filing system and has twice used it to find records the survey could not. His account of the camp is the only one anybody holds that is not written in the passive voice.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "species": { "id": ["xeno.peerdb.org", "SPECIES", "G1_PETQAMU"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G1_LEE_CORPORATIONS"] }],
+  "role": [{ "value": "plumbing rota", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "formOfAddress": "corporation first, then name",
+  "born": { "time": "2270-01-01T00:00:00Z", "precision": "y" },
+  "birthplace": { "id": ["xeno.peerdb.org", "SITE", "G1_WINDWARD_RING"] }
+}

@@ -1,0 +1,43 @@
+{
+  "id": ["xeno.peerdb.org", "PLANET", "G3_BOBBIN_D"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PLANET"] }],
+  "name": [{ "value": "Bobbin d", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "catalogueCode": "HB-2/009-d",
+  "description": [
+    {
+      "value": "<p>Cold, dark and entirely dry of water, with a thick nitrogen atmosphere and lakes of methane in the northern lowlands fed by a haze that rains about once a decade. The water ice here is bedrock and behaves like granite. Organic solids drift down constantly and gather at the lake margins in banks a metre deep. Whether anything is eating them is precisely the question the next survey was going to ask.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Mrzel svet z metanskimi jezeri in debelim dušikovim ozračjem.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "STAR_SYSTEM", "G3_BOBBIN"] },
+  "planetType": { "id": ["xeno.peerdb.org", "PLANET_TYPE", "DESICCATED"] },
+  "biome": [{ "id": ["xeno.peerdb.org", "BIOME", "HYDRO_LAKE"] }, { "id": ["xeno.peerdb.org", "BIOME", "REGOLITH_DUNE"] }],
+  "radius": { "value": { "amount": 0.88, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_RADIUS"] }] },
+  "mass": { "value": { "amount": 0.45, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_MASS"] }] },
+  "surfaceGravity": { "value": { "amount": 0.58, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "STANDARD_GRAVITY"] }] },
+  "dayLength": { "value": { "amount": 92.4, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "HOUR"] }] },
+  "orbitalPeriod": { "value": { "amount": 1204.6, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_DAY"] }] },
+  "meanTemperature": { "value": { "amount": -178.0, "precision": 0.1 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "°C"] }] },
+  "hydrosphere": { "value": { "amount": 0, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "PERCENT"] }] },
+  "atmosphere": [
+    {
+      "value": "<p>Nitrogen with a few per cent methane at 1.4 bar, orange the whole way down, and cold enough that the suit heater is the entire design problem. In still weather the haze comes down as a slow greasy snow.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "biosphereUnknown": true,
+  "contactStatus": { "id": ["xeno.peerdb.org", "CONTACT_STATUS", "NO_CONTACT"] },
+  "firstSurveyed": { "time": "2285-01-01T00:00:00Z", "precision": "y" },
+  "surveyPeriod": { "from": { "time": "2285-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true },
+  "image": [{ "value": "/f/4pvBrFcXaRuFZZ9ChUc2iD", "name": "G3_BOBBIN_D.jpg", "caption": "Approach view", "source": "Consortium survey archive" }],
+  "notes": [
+    {
+      "value": "<p>The lake margins were sampled with a corer borrowed from a geology team, who have asked several times, in writing, for it back.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

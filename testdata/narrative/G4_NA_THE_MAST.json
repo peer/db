@@ -1,0 +1,39 @@
+{
+  "id": ["xeno.peerdb.org", "NARRATIVE", "G4_NA_THE_MAST"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "NARRATIVE"] }],
+  "title": [{ "value": "The Thing on the Crest That Does Not Leave", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [
+    {
+      "value": "[here, staying, not-going]",
+      "gloss": "the three-figure name the bands strike for the station mast",
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G4_COM_RIDGE_KNOCK"] }]
+    }
+  ],
+  "description": [
+    {
+      "value": "<p>A contact account struck on the crest below the weather station, covering the arrival, the building, the second building after the first was struck by lightning, and the departure of the meteorologists. It has no first person anywhere in it, a knocked statement belonging to the crest and not to a speaker, so the account contains no witnesses at all.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "genre": { "id": ["xeno.peerdb.org", "NARRATIVE_GENRE", "CONTACT_ACCOUNT"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G4_CU_RACK_BANDS"] }],
+  "recordedBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_DEMIR"] }],
+  "recordedAt": { "id": ["xeno.peerdb.org", "SITE", "G4_RACK_CAMP"] },
+  "recordedOn": { "time": "2259-01-01T00:00:00Z", "precision": "y" },
+  "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G4_COM_RIDGE_KNOCK"] }],
+  "content": [
+    {
+      "value": "<p>Something came onto this crest and did not leave. It was built, and then it was struck, and then it was built again in a different place on the same crest, which is what anybody would have done.</p><p>It is warm on the west side. It is not a shelter. Nothing divides near it, and nobody has said not to.</p><p>Bodies went in and out of it for a long time and then the bodies stopped and the thing stayed. It is better now. It does not ask which crest anybody came from.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "recording": [
+    {
+      "value": "/f/Agf3y1sg7CA3rK8z6py6A6",
+      "name": "narrative-G4_NA_THE_MAST.mp3",
+      "caption": "Performance, recorded on site",
+      "duration": { "value": { "amount": 9, "precision": 1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "MINUTE"] }] },
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G4_COM_RIDGE_KNOCK"] }]
+    }
+  ]
+}

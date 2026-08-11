@@ -1,0 +1,20 @@
+{
+  "id": ["xeno.peerdb.org", "INDIVIDUAL", "G1_THRAVENU"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "INDIVIDUAL"] }],
+  "name": [{ "value": "Thravenu" }],
+  "lineageName": [{ "value": "Vasthen" }],
+  "description": [
+    {
+      "value": "<p>Speaks for four canopy houses at the tether foot, which makes her the most interviewed person in the sector: the foot is where outsiders are expected, and she is what they are expected by. She has sat for photographs since 2288 and treats the whole apparatus with the patience of somebody who has watched three generations of it arrive. Her house holds cutting rights over eleven hundred columns and has not exercised them since 2299.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "species": { "id": ["xeno.peerdb.org", "SPECIES", "G1_VETHRANI"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G1_CANOPY_HOUSES"] }],
+  "role": [{ "value": "house speaker", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "formOfAddress": "house first, then name, and never the other way",
+  "born": { "time": "2247-01-01T00:00:00Z", "precision": "y" },
+  "image": [
+    { "value": "/f/5VquPHYkvpYY1g4aVWVcGv", "name": "G1_THRAVENU.jpg", "caption": "Portrait", "source": "Made with consent; Consortium collection" }
+  ]
+}

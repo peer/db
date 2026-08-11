@@ -1,0 +1,27 @@
+{
+  "id": ["xeno.peerdb.org", "ARTIFACT", "G1_STARTER_VESSEL"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "ARTIFACT"] }],
+  "name": [{ "value": "Starter vessel", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Elmash Kesh", "gloss": "the half carried up" }],
+  "accessionCode": "CCX-A-13161",
+  "description": [
+    {
+      "value": "<p>A shallow lidless vessel of fired silt clay with two rope lugs, burnished inside and left rough outside, made to carry a divided pit culture up a terrace slope in one journey. It was thrown and fired on the morning of a division in the autumn of 2295 and used within the hour, which is the ordinary practice and the reason the collection can date it to the day. The interior carries a dark organic film that is the remains of what it held. It has never been cleaned and the accession record forbids cleaning it, in a line added by hand.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "category": { "id": ["xeno.peerdb.org", "ARTIFACT_CATEGORY", "VESSEL_CEREMONIAL"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G1_ANCHOR_HOUSES"] }],
+  "foundAt": { "id": ["xeno.peerdb.org", "SITE", "G1_ANCHOR_STEPS"] },
+  "material": [
+    { "value": "silt clay", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "ribbon cord", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }
+  ],
+  "dimension": [
+    { "value": { "amount": 0.41, "precision": 0.001 }, "axis": "diameter", "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+    { "value": { "amount": 0.19, "precision": 0.001 }, "axis": "height", "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] }
+  ],
+  "dateMade": { "time": "2295-01-01T00:00:00Z", "precision": "d" },
+  "collectedBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_BAUTISTA"] }, { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_LINDQVIST"] }],
+  "image": [{ "value": "/f/6ay2NQuaQxMbFjvhZtgQdx", "name": "G1_STARTER_VESSEL.jpg", "caption": "Object drawing", "source": "Consortium collection" }]
+}

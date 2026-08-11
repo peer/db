@@ -1,0 +1,29 @@
+{
+  "id": ["xeno.peerdb.org", "EXPEDITION", "EXP_KERF_EXCHANGE"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "EXPEDITION"] }],
+  "name": [{ "value": "Kerf Exchange Study", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "catalogueCode": "EXP-2307-02",
+  "description": [
+    {
+      "value": "<p>Still in the field, and for the most part not on the world it is about: everything known of the lake settlements arrives through traders in the next system, so the study follows the material rather than the people. It has so far established a chain of four intermediaries, a consistent set of makers&#39; marks and a seasonal rhythm to what is offered. What it has not established is whether anybody on the world knows the study exists, a question its ethics submission treats at length and does not resolve.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "destination": [{ "id": ["xeno.peerdb.org", "PLANET", "G4_KERF"] }, { "id": ["xeno.peerdb.org", "REGION", "G4_LAMP_LAKES"] }],
+  "period": { "from": { "time": "2307-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true },
+  "ledBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_MOKOENA"] }],
+  "teamMember": [
+    { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_HADDAD"] },
+    { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_VASILAKIS"] },
+    { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_DOYLE"] },
+    { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_PRASETYO"] }
+  ],
+  "organisedBy": [{ "id": ["xeno.peerdb.org", "INSTITUTE", "INST_SUBSTRATE"] }],
+  "method": [
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "MATERIAL_SAMPLING"] },
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "ARCHIVAL_COMPARISON"] },
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "NETWORK_MAPPING"] }
+  ],
+  "ethics": { "id": ["xeno.peerdb.org", "ETHICS_PROTOCOL", "PROTOCOL_2"] },
+  "budget": { "value": { "amount": 260000, "precision": 1000 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "$"] }] }
+}

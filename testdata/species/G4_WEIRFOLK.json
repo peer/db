@@ -1,0 +1,68 @@
+{
+  "id": ["xeno.peerdb.org", "SPECIES", "G4_WEIRFOLK"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SPECIES"] }],
+  "name": [{ "value": "Tall Shoals Weir Builders", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [
+    {
+      "value": "Naumeirei",
+      "gloss": "those who wait for the water to go out",
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G4_COM_FLAT_CALL"] }]
+    }
+  ],
+  "exonym": [{ "value": "Waimolei", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "taxonCode": "TX-4102-a",
+  "description": [
+    {
+      "value": "<p>The largest settled population on the northern shelf of Long Water, living entirely by the twenty-six metre tide and by the stone weirs they maintain across it. Every household holds a length of wall and is answerable for it, and the holding passes to the next household in a fixed order at the end of a term nobody may extend. A visitor notices the noise first: the flats at low water are loud with wind, and speech here is pitched to carry over it, so that quiet conversation sounds to an outsider like a series of short arguments. They keep no interest in the forest inland and describe it, without hostility, as the place where the water does not go. The discipline argues about whether the weir order is a form of office at all, since nobody is chosen, nobody may decline and nobody outranks anyone; the standing objection is that the term is doing all the work and the household none of it.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Gradijo kamnite pregrade na blatiščih in lovijo, kar ostane ob oseki. Skrb za zid kroži med gospodinjstvi po ustaljenem vrstnem redu.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>A maior população sedentária da plataforma norte de Long Water, que vive inteiramente da maré de vinte e seis metros e dos açudes de pedra que mantêm ao longo dela. Cada agregado detém um troço de muro e responde por ele, e a detenção passa ao agregado seguinte numa ordem fixa no fim de um mandato que ninguém pode prolongar. Um visitante repara primeiro no ruído: as planícies em baixa-mar são ruidosas de vento, e a fala aqui é entoada para se ouvir por cima dele, de modo que uma conversa tranquila soa a um estranho como uma série de discussões curtas. Não têm qualquer interesse na floresta do interior e descrevem-na, sem hostilidade, como o sítio aonde a água não vai. A disciplina discute se a ordem dos açudes é sequer uma forma de cargo, já que ninguém é escolhido, ninguém pode recusar e ninguém está acima de ninguém; a objeção corrente é que é o mandato que faz todo o trabalho e o agregado nenhum.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "homeworld": { "id": ["xeno.peerdb.org", "PLANET", "G4_LONG_WATER"] },
+  "bodyPlan": [
+    {
+      "value": "<p>Bilaterally symmetrical, upright, with four limbs and a heavy tapering tail used as a third support when standing still in current. The integument is a smooth grey-brown hide that darkens and stiffens on exposure to air, so that a body worked through a full tidal cycle is visibly two colours by the end of it. Feeding is by a wide flat mouth with a strainer of horn plates, closed by muscle rather than by hinge.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "typicalHeight": { "value": { "amount": 1.55, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+  "typicalMass": { "value": { "amount": 54.0, "precision": 0.1 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "kg"] }] },
+  "lifespan": {
+    "value": { "from": { "amount": 34, "precision": 1 }, "to": { "amount": 71, "precision": 1 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_YEAR"] }]
+  },
+  "sensoryModality": [
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "PRESSURE_GRADIENT"] },
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "HYGRORECEPTION"] },
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "SUBSTRATE_VIBRATION"] }
+  ],
+  "subsistence": [
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "TIDAL_TRAPPING"] },
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "DRIFT_HARVESTING"] }
+  ],
+  "individuality": { "id": ["xeno.peerdb.org", "INDIVIDUALITY_MODE", "BOUNDED"] },
+  "socialOrganisation": { "id": ["xeno.peerdb.org", "SOCIAL_ORGANISATION", "ROTATING_STEWARDSHIP"] },
+  "kinshipSystem": { "id": ["xeno.peerdb.org", "KINSHIP_SYSTEM", "HEARTH_AFFILIATION"] },
+  "communication": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G4_COM_FLAT_CALL"] }],
+  "population": {
+    "value": { "from": { "amount": 240000, "precision": 1000 }, "to": { "amount": 390000, "precision": 1000 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "contactStatus": { "id": ["xeno.peerdb.org", "CONTACT_STATUS", "SUSTAINED"] },
+  "firstContact": { "time": "2221-01-01T00:00:00Z", "precision": "y" },
+  "image": [
+    {
+      "value": "/f/ANH9x6Mf9NxuuyPVkgueWh",
+      "name": "G4_WEIRFOLK.jpg",
+      "caption": "Field plate",
+      "source": "Drawn in the field; Consortium collection"
+    }
+  ]
+}

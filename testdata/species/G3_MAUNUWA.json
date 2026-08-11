@@ -1,0 +1,74 @@
+{
+  "id": ["xeno.peerdb.org", "SPECIES", "G3_MAUNUWA"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SPECIES"] }],
+  "name": [{ "value": "Sweepwater Weir Keepers", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [
+    {
+      "value": "Maunuwa",
+      "gloss": "the ones who wait out the water",
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G3_SWEEP_CALL"] }]
+    }
+  ],
+  "exonym": [
+    {
+      "value": "Muniwe, in the Nawaimu mouth: those who eat what the water leaves",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "taxonCode": "TX-4411-b",
+  "description": [
+    {
+      "value": "<p>The Maunuwa hold the stone weirs on the sweep flats, walking out behind the falling tide and back ahead of it twice a cycle, with about four hours in hand each way. Work is organised by age grade: a cohort takes a named section of wall, holds it for its span, and hands it on entire, and a wall that fails is the failure of everybody born in the same nine years. Between tides they garden the silt behind the walls, which the flood renews without being asked. A visitor notices that nobody hurries and that everybody is watching the same horizon, and learns within a day to do the same. The Maunuwa describe the grades as a rota for keeping walls up, the register codes them as a polity, and neither side has moved in forty years of polite correspondence.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Skrbniki kamnitih plimskih pregrad; delo je razdeljeno med starostne razrede. Ves koledar določa plima.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Os Maunuwa mantêm os açudes de pedra das planícies de maré, saindo atrás da vazante e regressando à frente da enchente duas vezes por ciclo, com cerca de quatro horas de folga em cada sentido. O trabalho organiza-se por classes etárias: uma coorte assume um troço nomeado de muro, detém-no durante o seu período e entrega-o inteiro, e um muro que cede é o falhanço de toda a gente nascida nos mesmos nove anos. Entre marés cultivam o lodo retido atrás dos muros, que a cheia renova sem que ninguém peça. Um visitante repara que ninguém se apressa e que toda a gente olha para o mesmo horizonte, e num dia aprende a fazer o mesmo. Os Maunuwa descrevem as classes como uma escala de turnos para manter os muros de pé, o registo codifica-as como uma entidade política, e nenhum dos lados se moveu em quarenta anos de correspondência cortês.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "homeworld": { "id": ["xeno.peerdb.org", "PLANET", "G3_OUMARA"] },
+  "bodyPlan": [
+    {
+      "value": "<p>Bilateral, long-limbed and built for wading, with a smooth wet integument and closable nostrils and ear pits. The feet are broad and webbed and spread further on soft ground, which is most ground they use. They carry a low dorsal ridge that stiffens when they stand against a current, and is the only part of them a visitor is asked not to touch.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "typicalHeight": { "value": { "amount": 1.65, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+  "typicalMass": { "value": { "amount": 71.0, "precision": 0.1 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "kg"] }] },
+  "lifespan": {
+    "value": { "from": { "amount": 45, "precision": 1 }, "to": { "amount": 95, "precision": 1 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_YEAR"] }]
+  },
+  "sensoryModality": [
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "PRESSURE_GRADIENT"] },
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "CHEMICAL_PLUME"] },
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "POLARISED_VISION"] }
+  ],
+  "subsistence": [
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "TIDAL_TRAPPING"] },
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "SILT_GARDENING"] }
+  ],
+  "individuality": { "id": ["xeno.peerdb.org", "INDIVIDUALITY_MODE", "BOUNDED"] },
+  "contestedIndividuality": { "id": ["xeno.peerdb.org", "INDIVIDUALITY_MODE", "SEASONAL_COLLECTIVE"] },
+  "socialOrganisation": { "id": ["xeno.peerdb.org", "SOCIAL_ORGANISATION", "AGE_GRADE_POLITY"] },
+  "kinshipSystem": { "id": ["xeno.peerdb.org", "KINSHIP_SYSTEM", "BILATERAL_KINDRED"] },
+  "communication": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G3_SWEEP_CALL"] }],
+  "population": {
+    "value": { "from": { "amount": 180000, "precision": 1000 }, "to": { "amount": 420000, "precision": 1000 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "contactStatus": { "id": ["xeno.peerdb.org", "CONTACT_STATUS", "LIMITED"] },
+  "firstContact": { "time": "2266-01-01T00:00:00Z", "precision": "y" },
+  "image": [
+    {
+      "value": "/f/N7QzbPTkQUBfD8uKkzTzTz",
+      "name": "G3_MAUNUWA.jpg",
+      "caption": "Field plate",
+      "source": "Drawn in the field; Consortium collection"
+    }
+  ]
+}

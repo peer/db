@@ -1,0 +1,39 @@
+{
+  "id": ["xeno.peerdb.org", "NARRATIVE", "G3_THE_ONE_THAT_WOULD_NOT_STOP"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "NARRATIVE"] }],
+  "title": [{ "value": "The One That Would Not Stop", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [
+    {
+      "value": "[the figure that keeps going]",
+      "gloss": "a drummed cycle named by its own rhythm, which does not survive being written down",
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G3_FLOOR_ANSWER"] }]
+    }
+  ],
+  "description": [
+    {
+      "value": "<p>Linked drummed episodes about a self that carried on past the point at which a self ends, struck along the rim between convergences and picked up by whoever is in contact with the rock. The translation below is of the third episode, which is the one recorded most often.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "genre": { "id": ["xeno.peerdb.org", "NARRATIVE_GENRE", "TRICKSTER_CYCLE"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G3_RIM_CONVERGENCE"] }],
+  "recordedBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_PRASETYO"] }, { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_LINDQVIST"] }],
+  "recordedAt": { "id": ["xeno.peerdb.org", "SITE", "G3_RIM_DRUM_GROUND"] },
+  "recordedOn": { "time": "2291-01-01T00:00:00Z", "precision": "y" },
+  "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G3_FLOOR_ANSWER"] }],
+  "content": [
+    {
+      "value": "<p>There was one that would not stop. When its bodies were spent it took up bodies that were still answering somebody else, and it kept the figure running through them, and nobody could find the edge of it.</p><p>The neighbours struck at it and asked whose bodies those were. It answered with their own figure, which is not an answer, and it did that for a long time, and they went on striking anyway because the alternative is worse.</p><p>It is still on the rim. When the drumming is thin, that is the season it has been taking again. This is why you do not stop striking in order to listen.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "recording": [
+    {
+      "value": "/f/5z28oqwRvjGhRrucdVKwko",
+      "name": "narrative-G3_THE_ONE_THAT_WOULD_NOT_STOP.mp3",
+      "caption": "Performance, recorded on site",
+      "duration": { "value": { "amount": 7, "precision": 1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "MINUTE"] }] },
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G3_FLOOR_ANSWER"] }]
+    }
+  ]
+}

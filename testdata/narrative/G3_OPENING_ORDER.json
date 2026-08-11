@@ -1,0 +1,39 @@
+{
+  "id": ["xeno.peerdb.org", "NARRATIVE", "G3_OPENING_ORDER"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "NARRATIVE"] }],
+  "title": [{ "value": "The Order of Opening", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [
+    {
+      "value": "[four strikes and the waits between them]",
+      "gloss": "a struck figure; the pauses are the greater part of it and are given here as instructions",
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G3_FACE_TAP"] }]
+    }
+  ],
+  "description": [
+    {
+      "value": "<p>A metered procedure struck along a bedding plane, learned by working alongside somebody striking it, and performed at the face rather than away from it. The translation below expands the pauses, which carry most of the content, into the words the tenders give when asked what a pause means.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "genre": { "id": ["xeno.peerdb.org", "NARRATIVE_GENRE", "INSTRUCTION_CHANT"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G3_FACE_TENDING"] }],
+  "recordedBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_VASILAKIS"] }],
+  "recordedAt": { "id": ["xeno.peerdb.org", "SITE", "G3_SHELF_WARREN"] },
+  "recordedOn": { "time": "2280-01-01T00:00:00Z", "precision": "y" },
+  "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G3_FACE_TAP"] }],
+  "content": [
+    {
+      "value": "<ol><li><p>One strike. The long wait. Put the wedge where the stone is already parting and not where you want it to part.</p></li><li><p>Two strikes. The long wait. Open it the width of a hand and no wider, and open it cold.</p></li><li><p>Three strikes. The short wait. Lay the paste along the whole seam and not in the middle of it.</p></li><li><p>One strike. The longest wait. Close it, mark it, and go away for ten years.</p></li></ol><p>The longest wait is given by the tenders as the length of time it takes to stop wanting to open it again.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "recording": [
+    {
+      "value": "/f/D5Hm5R3nFf8JbsymrouP1V",
+      "name": "narrative-G3_OPENING_ORDER.mp3",
+      "caption": "Performance, recorded on site",
+      "duration": { "value": { "amount": 2, "precision": 1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "MINUTE"] }] },
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G3_FACE_TAP"] }]
+    }
+  ]
+}

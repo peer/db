@@ -1,0 +1,24 @@
+{
+  "id": ["xeno.peerdb.org", "INDIVIDUAL", "G1_ASELUNE"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "INDIVIDUAL"] }],
+  "name": [{ "value": "Aselune" }],
+  "lineageName": [{ "value": "Nerasha" }],
+  "description": [
+    {
+      "value": "<p>Holds the ninth turn on the outer wall at the lower ring and has held it in five separate years, which is as close to a career as the rota permits. She was the survey&#39;s first informant on the tides and for eleven years its only one, and she is the reason there are four tide tables rather than one: she declined to correct hers against the table made forty kilometres up the coast, on the ground that it was right there and hers was right here. She sat for a photograph in 2299 and asked for a copy, which took four years to reach her.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "species": { "id": ["xeno.peerdb.org", "SPECIES", "G1_SUNARELI"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G1_WEIR_ROTA"] }],
+  "role": [
+    { "value": "weir warden", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "tide informant", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }
+  ],
+  "formOfAddress": "by name on the flats, by turn number on the wall",
+  "born": { "time": "2258-01-01T00:00:00Z", "precision": "y" },
+  "birthplace": { "id": ["xeno.peerdb.org", "SITE", "G1_LOWER_MIDDEN"] },
+  "image": [
+    { "value": "/f/2RPwQGGQKhYkEvtNNx1V4z", "name": "G1_ASELUNE.jpg", "caption": "Portrait", "source": "Made with consent; Consortium collection" }
+  ]
+}

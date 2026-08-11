@@ -1,0 +1,22 @@
+{
+  "id": ["xeno.peerdb.org", "REGION", "G1_LONG_EVAPORITE"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "REGION"] }],
+  "name": [{ "value": "The Long Evaporite", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Oaenui" }],
+  "description": [
+    {
+      "value": "<p>A salt basin five million square kilometres across, blinding under the star, with ochre dune fields drifting into its eastern margin. Brine sits below the crust in a layer thick enough to work and is drawn up through cut channels wherever the crust is stable. The heat makes the whole region a dawn-and-dusk proposition.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "PLANET", "G1_LEDGER_IV"] },
+  "biome": [{ "id": ["xeno.peerdb.org", "BIOME", "EVAPORITE_PAN"] }, { "id": ["xeno.peerdb.org", "BIOME", "REGOLITH_DUNE"] }],
+  "area": { "value": { "amount": 5200000, "precision": 100 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "SQUARE_KILOMETRE"] }] },
+  "elevationRange": {
+    "value": { "from": { "amount": -1100, "precision": 10 }, "to": { "amount": 420, "precision": 10 } },
+    "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }]
+  },
+  "image": [
+    { "value": "/f/UEtEhre4EW8cmL5PCvr2fr", "name": "G1_LONG_EVAPORITE.jpg", "caption": "Regional view", "source": "Consortium survey archive" }
+  ]
+}

@@ -1,0 +1,51 @@
+{
+  "id": ["xeno.peerdb.org", "PLANET", "G1_KEPHRA_TWO"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PLANET"] }],
+  "name": [{ "value": "Kephra II", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Kehrunaht", "gloss": "the second waking" }],
+  "catalogueCode": "CCX-2257-KEP2",
+  "description": [
+    {
+      "value": "<p>A locked ocean world under a red dwarf, warm at the substellar point and iced over on the far hemisphere, with a broad shallow sea in permanent copper twilight between them. Vent chimneys break the surface across most of the warm pool and the water around them is opaque with mineral suspension. The settled population lives on the shallows and has been studied twice, thirty-five years apart, by teams who agree on very little. The second team is still there.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Plimsko vklenjen oceanski svet, ponovno odprt za raziskave leta 2306.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "STAR_SYSTEM", "G1_KEPHRA"] },
+  "planetType": { "id": ["xeno.peerdb.org", "PLANET_TYPE", "TIDAL_OCEAN"] },
+  "biome": [
+    { "id": ["xeno.peerdb.org", "BIOME", "DUSK_BELT"] },
+    { "id": ["xeno.peerdb.org", "BIOME", "SWEEP_FLAT"] },
+    { "id": ["xeno.peerdb.org", "BIOME", "VENT_FIELD"] }
+  ],
+  "radius": { "value": { "amount": 1.03, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_RADIUS"] }] },
+  "mass": { "value": { "amount": 1.09, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_MASS"] }] },
+  "surfaceGravity": { "value": { "amount": 1.03, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "STANDARD_GRAVITY"] }] },
+  "dayLength": { "value": { "amount": 705.6, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "HOUR"] }] },
+  "orbitalPeriod": { "value": { "amount": 29.4, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_DAY"] }] },
+  "meanTemperature": { "value": { "amount": -2.6, "precision": 0.1 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "°C"] }] },
+  "hydrosphere": { "value": { "amount": 74.9, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "PERCENT"] }] },
+  "atmosphere": [
+    {
+      "value": "<p>Nitrogen and carbon dioxide at 1.2 bar with fifteen per cent oxygen and a strong sulphide note near the vents. Breathable, warm and humid on the pool, and the smell is the first thing every field note mentions.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "biosphere": [
+    {
+      "value": "<p>Life is present: 1 catalogued species (Warm Pool People). The survey is not claimed to be complete.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "contactStatus": { "id": ["xeno.peerdb.org", "CONTACT_STATUS", "LIMITED"] },
+  "firstSurveyed": { "time": "2257-01-01T00:00:00Z", "precision": "y" },
+  "surveyPeriod": { "from": { "time": "2257-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true },
+  "populationEstimate": {
+    "value": { "from": { "amount": 140000, "precision": 100 }, "to": { "amount": 260000, "precision": 100 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "image": [{ "value": "/f/GmzSnftdk9XtmMdVGvXne1", "name": "G1_KEPHRA_TWO.jpg", "caption": "Surface view", "source": "Consortium survey archive" }]
+}

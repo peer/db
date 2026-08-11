@@ -1,0 +1,24 @@
+{
+  "id": ["xeno.peerdb.org", "REGION", "G3_COLDWARD_FLATS"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "REGION"] }],
+  "name": [{ "value": "Coldward Flats", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "description": [
+    {
+      "value": "<p>The near night side, past the point where the wind gives up its last moisture. It is a plain of nitrogen and carbon dioxide frost over water ice, dark, still, and colder at the surface than the deep sky above it. Nothing is done here except crossing it, and that only by people who have miscalculated.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "PLANET", "G3_SISHELETH"] },
+  "biome": [{ "id": ["xeno.peerdb.org", "BIOME", "NIGHTSIDE_TRAP"] }],
+  "area": { "value": { "amount": 3400000, "precision": 100 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "SQUARE_KILOMETRE"] }] },
+  "elevationRange": {
+    "value": { "from": { "amount": -640, "precision": 10 }, "to": { "amount": 980, "precision": 10 } },
+    "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }]
+  },
+  "notes": [
+    {
+      "value": "<p>Mapped from orbit and by three ground traverses, all three of which were shorter than planned and one of which was much shorter.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

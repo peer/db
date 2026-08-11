@@ -1,0 +1,18 @@
+{
+  "id": ["xeno.peerdb.org", "STAR_SYSTEM", "G2_LAST_BEAD"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "STAR_SYSTEM"] }],
+  "name": [{ "value": "Last Bead", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "catalogueCode": "LSB-0281",
+  "description": [
+    {
+      "value": "<p>The outermost system anyone has reached, a K5 subdwarf at the far end of the stream with a single dense rocky world. Named for its position in the tail rather than for any expectation that it is the last.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "SECTOR", "G2_TAIL_STREAM"] },
+  "spectralClass": "K5VI",
+  "starCount": { "amount": 1, "precision": 1 },
+  "planetCount": { "amount": 1, "precision": 1 },
+  "distanceFromSol": { "value": { "amount": 23520.7, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "PARSEC"] }] },
+  "firstSurveyed": { "time": "2281-01-01T00:00:00Z", "precision": "y" }
+}

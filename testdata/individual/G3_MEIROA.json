@@ -1,0 +1,20 @@
+{
+  "id": ["xeno.peerdb.org", "INDIVIDUAL", "G3_MEIROA"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "INDIVIDUAL"] }],
+  "name": [{ "value": "Meiroa" }],
+  "lineageName": [{ "value": "Waunea" }],
+  "description": [
+    {
+      "value": "<p>Head of a house holding two named channels and the ground between them, and the coast&#39;s most quoted authority on why a channel can be owned. She declines to discuss the weir keepers&#39; objection on the grounds that it was answered before she was born and that repeating an answer weakens it. She has stood still for six hours at a stretch in the survey&#39;s presence and would not stand still for a photograph, which she considers a different kind of standing.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "species": { "id": ["xeno.peerdb.org", "SPECIES", "G3_RAUWENA"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G3_CHANNEL_HOUSES"] }],
+  "role": [
+    { "value": "house head", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "channel holder", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }
+  ],
+  "formOfAddress": "by house name; personal names are used only within the house",
+  "born": { "time": "2251-01-01T00:00:00Z", "precision": "y" }
+}

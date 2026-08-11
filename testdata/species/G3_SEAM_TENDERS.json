@@ -1,0 +1,58 @@
+{
+  "id": ["xeno.peerdb.org", "SPECIES", "G3_SEAM_TENDERS"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SPECIES"] }],
+  "name": [{ "value": "Coldsheet Warm Seam Tenders", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [
+    { "value": "[the ones along the warm seam]", "gloss": "a reading of a repeated pressure figure rather than a spoken word, and provisional" }
+  ],
+  "taxonCode": "TX-4431-c",
+  "description": [
+    {
+      "value": "<p>They live along a spreading ridge under ten to twenty kilometres of ice, in water that has never seen light and never will. They tend the vent fields rather than merely using them, building and breaking low walls that steer hot flow onto the mats they crop, so that a seam is plumbed instead of visited. This was established the hard way, by finding two vents three kilometres apart plumbed in opposite directions and no natural process that would do it. Relatedness is traced through an inherited internal symbiont, which the small quantity of returned material lets us assay directly, and the assay does not agree with what the recordings appear to say about who is related to whom. All contact has been through instruments lowered down boreholes, and whether that constitutes contact at all is an argument the ethics apparatus has been conducting, without interruption, since 2277.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Živijo ob toplih razpokah pod ledom in usmerjajo vroč tok na svoje nasade. Z njimi smo govorili le prek naprav v vrtinah.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    }
+  ],
+  "homeworld": { "id": ["xeno.peerdb.org", "PLANET", "G3_THESSILA"] },
+  "bodyPlan": [
+    {
+      "value": "<p>An elongated swimmer, roughly two metres, with a rigid forward section and a flexible tail worked in slow lateral beats. Six short limbs fold flat against the body and open into broad paddles used for building, which is most of what limbs are for here. The whole surface is covered in pressure pits, and the animal both listens and speaks with its skin.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "typicalHeight": { "value": { "amount": 2.1, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+  "typicalMass": { "value": { "amount": 140.0, "precision": 0.1 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "kg"] }] },
+  "lifespan": {
+    "value": { "from": { "amount": 60, "precision": 1 }, "to": { "amount": 130, "precision": 1 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_YEAR"] }]
+  },
+  "sensoryModality": [
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "PRESSURE_GRADIENT"] },
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "CHEMICAL_PLUME"] },
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "ELECTRORECEPTION"] }
+  ],
+  "subsistence": [
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "CHEMO_TENDING"] },
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "COLONY_GRAZING"] }
+  ],
+  "individuality": { "id": ["xeno.peerdb.org", "INDIVIDUALITY_MODE", "BOUNDED"] },
+  "socialOrganisation": { "id": ["xeno.peerdb.org", "SOCIAL_ORGANISATION", "GUILD_FEDERATION"] },
+  "kinshipSystem": { "id": ["xeno.peerdb.org", "KINSHIP_SYSTEM", "SYMBIONT_SHARING"] },
+  "population": {
+    "value": { "from": { "amount": 2000, "precision": 1000 }, "to": { "amount": 40000, "precision": 1000 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "contactStatus": { "id": ["xeno.peerdb.org", "CONTACT_STATUS", "INDIRECT"] },
+  "firstContact": { "time": "2277-01-01T00:00:00Z", "precision": "y" },
+  "image": [
+    {
+      "value": "/f/MMUkaDuTniSbventnW26AQ",
+      "name": "G3_SEAM_TENDERS.jpg",
+      "caption": "Field plate",
+      "source": "Drawn in the field; Consortium collection"
+    }
+  ]
+}

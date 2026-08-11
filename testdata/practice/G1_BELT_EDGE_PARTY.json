@@ -1,0 +1,25 @@
+{
+  "id": ["xeno.peerdb.org", "PRACTICE", "G1_BELT_EDGE_PARTY"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PRACTICE"] }],
+  "name": [{ "value": "The Belt Edge Party", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Tepmuq", "gloss": "the work done in the loud place" }],
+  "description": [
+    {
+      "value": "<p>Once in a working life a trainee is taken to the inner edge of the storm belt by four members of the corporation that trained them, to set one line and lift it in weather that makes the mouth useless. Everything is done by wind pipe and by hand on the shoulder, and the trainee is given the middle position, where the work is easiest and the footing is worst. They come back with the line, or with the reason it was left, and the reason is accepted or is not. On return the trainee&#39;s name goes on the corporation roll and they may afterwards be sent anywhere on the coast without being asked. Whether this is an examination or an initiation has been argued in print for thirty years, and the corporations have declined, politely and repeatedly, to break the tie.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Uma vez na vida de trabalho, um aprendiz é levado à orla interior do cinturão de tempestades por quatro membros da corporação que o formou, para largar uma linha e recolhê-la com um tempo que torna a boca inútil. Tudo se faz por apito de vento e pela mão no ombro, e ao aprendiz cabe a posição do meio, onde o trabalho é mais fácil e o apoio dos pés é pior. Voltam com a linha, ou com a razão por que ficou lá, e a razão é aceite ou não é. No regresso, o nome do aprendiz entra no rol da corporação e a partir daí pode ser mandado para qualquer ponto da costa sem lhe perguntarem. Se isto é um exame ou uma iniciação discute-se por escrito há trinta anos, e as corporações recusaram-se, com cortesia e repetidamente, a desempatar.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G1_LEE_CORPORATIONS"] }],
+  "category": { "id": ["xeno.peerdb.org", "PRACTICE_CATEGORY", "RITE_OF_PASSAGE"] },
+  "periodicity": "once in a working life",
+  "participants": {
+    "value": { "from": { "amount": 5, "precision": 1 }, "to": { "amount": 5, "precision": 1 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "firstDocumented": { "time": "2258-01-01T00:00:00Z", "precision": "y" },
+  "relatedPractice": [{ "id": ["xeno.peerdb.org", "PRACTICE", "G1_CALLED_STOP"] }]
+}

@@ -1,0 +1,30 @@
+{
+  "id": ["xeno.peerdb.org", "PUBLICATION", "PUB_DRUM_ACCOUNT"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PUBLICATION"] }],
+  "title": [
+    {
+      "value": "Drumming the Account: Debt Recitation, Colony Fission and the Problem of Who Owes After a Count Divides on the Soot Shelf",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "doi": "10.5281/xeno.2289.0092",
+  "abstract": [
+    {
+      "value": "<p>Soot Shelf colonies keep their obligations as percussive recitations drummed against the shelf, and a recitation is valid only while a count can perform it entire. We recorded nineteen full accounts and two fissions, and show that when a count divides, the debt does not divide with it: both successor counts recite the whole account, and both are held to it. Creditor counts accept this arrangement and describe a fission as an improvement in their position. We could not establish what happens when a count goes quiet without dividing, and the counts we asked declined to speculate.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "author": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_ARAI"] }, { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_BRANDT"] }],
+  "journal": "Records of Substrate Communication",
+  "publishedOn": { "time": "2289-05-01T00:00:00Z", "precision": "m" },
+  "about": [
+    { "id": ["xeno.peerdb.org", "SPECIES", "G1_KHEVNITH"] },
+    { "id": ["xeno.peerdb.org", "CULTURE", "G1_SHELF_LEDGER"] },
+    { "id": ["xeno.peerdb.org", "PRACTICE", "G1_DRUM_ACCOUNT"] }
+  ],
+  "cites": [
+    { "id": ["xeno.peerdb.org", "PUBLICATION", "PUB_FERMENT_LINEAGE"] },
+    { "id": ["xeno.peerdb.org", "PUBLICATION", "PUB_HAZE_COLLECTIVE_LABOUR"] }
+  ],
+  "document": [{ "value": "/f/6SX5Srzq7c115Yn8fK1pLh", "name": "PUB_DRUM_ACCOUNT.pdf", "caption": "Author's accepted manuscript" }]
+}

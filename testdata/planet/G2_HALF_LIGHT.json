@@ -1,0 +1,61 @@
+{
+  "id": ["xeno.peerdb.org", "PLANET", "G2_HALF_LIGHT"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PLANET"] }],
+  "name": [{ "value": "Half Light", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Anumme", "gloss": "the long evening, from the word for the hour before full dark" }],
+  "catalogueCode": "EW-0240-a",
+  "description": [
+    {
+      "value": "<p>A tidally locked world whose liveable ground is a ring some four hundred kilometres wide along the terminator, between a substellar salt pan too hot to cross on foot and a night hemisphere where the atmosphere is slowly freezing out. The wind in the ring blows from night to day and has done so since the crust cooled. Nearly all of this galaxy&#39;s catalogued inhabitants live in that band, on terraces built along the wind rather than across it. It is the only world in the Undercount where the Consortium has kept anybody without a break.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Plimsko vklenjen svet, kjer se živi le v somračnem obroču med žgočo in ledeno stranjo.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Um mundo em rotação síncrona cujo terreno habitável é um anel com cerca de quatrocentos quilómetros de largura ao longo do terminador, entre uma salina subestelar demasiado quente para se atravessar a pé e um hemisfério noturno onde a atmosfera vai lentamente congelando. O vento do anel sopra da noite para o dia e assim é desde que a crosta arrefeceu. Quase todos os habitantes catalogados desta galáxia vivem nessa faixa, em terraços construídos ao longo do vento e não de través. É o único mundo do Undercount onde o Consórcio manteve gente sem interrupção.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "STAR_SYSTEM", "G2_ELEVEN_WINTERS"] },
+  "planetType": { "id": ["xeno.peerdb.org", "PLANET_TYPE", "EYEBALL"] },
+  "biome": [
+    { "id": ["xeno.peerdb.org", "BIOME", "DUSK_BELT"] },
+    { "id": ["xeno.peerdb.org", "BIOME", "NIGHTSIDE_TRAP"] },
+    { "id": ["xeno.peerdb.org", "BIOME", "ENDOLITH_ZONE"] }
+  ],
+  "radius": { "value": { "amount": 0.97, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_RADIUS"] }] },
+  "mass": { "value": { "amount": 0.89, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_MASS"] }] },
+  "surfaceGravity": { "value": { "amount": 0.95, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "STANDARD_GRAVITY"] }] },
+  "dayLength": { "value": { "amount": 1308.0, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "HOUR"] }] },
+  "orbitalPeriod": { "value": { "amount": 54.5, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_DAY"] }] },
+  "meanTemperature": { "value": { "amount": -18.0, "precision": 0.1 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "°C"] }] },
+  "hydrosphere": { "value": { "amount": 22.0, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "PERCENT"] }] },
+  "atmosphere": [
+    {
+      "value": "<p>0.74 bar of nitrogen with carbon dioxide and a little argon, thinning year by year as it condenses on the night side. In the dusk belt it is breathable with supplement. The air is always moving and always the same temperature, which visitors find harder to adjust to than the cold.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "biosphere": [
+    {
+      "value": "<p>Life is present: 5 catalogued species (Eclipse-Time Assembly, Evening Band Terrace Householders, Frost Warren Dwellers) and 3 recorded non-sapient organisms. The survey is not claimed to be complete.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "contactStatus": { "id": ["xeno.peerdb.org", "CONTACT_STATUS", "SUSTAINED"] },
+  "firstSurveyed": { "time": "2240-01-01T00:00:00Z", "precision": "y" },
+  "surveyPeriod": { "from": { "time": "2240-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true },
+  "populationEstimate": {
+    "value": { "from": { "amount": 140000, "precision": 100 }, "to": { "amount": 310000, "precision": 100 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "image": [{ "value": "/f/HwRLgimnfbcNxSa6MSyXnN", "name": "G2_HALF_LIGHT.jpg", "caption": "Approach view", "source": "Consortium survey archive" }],
+  "notes": [
+    {
+      "value": "<p>Relief runs on an eleven-year cycle, which is not a scientific interval but the interval at which a ship can be spared. Staff whose tours overlap by a fortnight at handover refer to it ever afterwards as the busy year.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "id": ["xeno.peerdb.org", "BIOME", "HAZE_LOWLAND"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "BIOME"] }],
+  "name": [
+    { "value": "Acid haze lowland", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "Nižavje s kislo meglo", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }] },
+    { "value": "Terras baixas de névoa ácida", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>Sunken terrain filled with a standing aerosol of sulphuric or halide droplets, dim, warm and chemically aggressive. Excludes transient volcanic plumes, which are recorded as events.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Ugreznjeno površje, zapolnjeno s stoječo meglo žveplovih ali halogenih kapljic, temačno in kemično agresivno.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Terreno afundado preenchido por um aerossol estagnado de gotículas sulfúricas ou de halogenetos, sombrio, quente e quimicamente agressivo. Exclui plumas vulcânicas passageiras, registadas como acontecimentos.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "code": ["haze-low"]
+}

@@ -1,0 +1,21 @@
+{
+  "id": ["xeno.peerdb.org", "ORGANISM_CATEGORY", "PHOTO_SESSILE"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "ORGANISM_CATEGORY"] }],
+  "name": [
+    { "value": "Photosynthetic sessile", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "Pritrjeni fotosintetik", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }] },
+    { "value": "Séssil fotossintético", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>Fixed organisms deriving energy from light, whether rooted, cemented or anchored in the water column. Excludes drifting photosynthesisers.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    { "value": "<p>Pritrjeni organizmi, ki črpajo energijo iz svetlobe.</p>", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }] },
+    {
+      "value": "<p>Organismos fixos que obtêm energia da luz, quer enraizados, cimentados ou ancorados na coluna de água. Exclui fotossintetizadores à deriva.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "code": ["photo-sess"]
+}

@@ -1,0 +1,66 @@
+{
+  "id": ["xeno.peerdb.org", "SPECIES", "G2_NURRUMALI"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SPECIES"] }],
+  "name": [{ "value": "Warm Seam Hearth Folk", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [
+    { "value": "Nurrumali", "gloss": "those at the heat", "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G2_SEAM_PULSE"] }] }
+  ],
+  "exonym": [{ "value": "Ollumarre", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "taxonCode": "TX-4158-d",
+  "description": [
+    {
+      "value": "<p>Eleven households along two kilometres of vent chain, each tapping a single fissure and each near enough to the next to be seen by the light the vents themselves put out. A person divides once or twice in a lifetime, at their own choosing and usually late, and both continuations carry the whole shared past forward and are held to every obligation in it, which makes the local law of debt considerably more interesting than the local law of property. Kin are whoever takes heat at your fissure this season and no one else, so a household that moves when its vent cools arrives somewhere new with its relationships already dissolved. Craft is organised into three trained corporations, cutters, benders and tiers, which jointly hold everything that a government would otherwise hold, and admission is by finishing a piece rather than by birth. Six vents were running when the survey began and three are running now, and the Nurrumali have moved five times in that period without anybody suggesting that the pattern is going anywhere good.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Gospodinjstva se selijo za toploto ognjišč ob podmorskih izvirih.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    }
+  ],
+  "homeworld": { "id": ["xeno.peerdb.org", "PLANET", "G2_LONG_LID"] },
+  "bodyPlan": [
+    {
+      "value": "<p>A short-bodied swimmer with six limbs, the middle pair reduced to sensory paddles and the rest heavy and short with opposed gripping claws. The trunk is armoured in a dull mineral crust the animal secretes and repairs, which is also what it cuts from the chimneys, so that the toolmaking and the body are the same technology. Division begins along a faint mid-body seam and takes about two hundred days, during which the animal is fed by its neighbours.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "typicalHeight": { "value": { "amount": 0.9, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+  "typicalMass": { "value": { "amount": 26.0, "precision": 0.1 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "kg"] }] },
+  "lifespan": {
+    "value": { "from": { "amount": 30, "precision": 1 }, "to": { "amount": 65, "precision": 1 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_YEAR"] }]
+  },
+  "sensoryModality": [
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "THERMAL_RADIANCE"] },
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "ELECTRORECEPTION"] },
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "CHEMICAL_PLUME"] }
+  ],
+  "subsistence": [
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "CHEMO_TENDING"] },
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "COLONY_GRAZING"] }
+  ],
+  "individuality": { "id": ["xeno.peerdb.org", "INDIVIDUALITY_MODE", "FISSIONING"] },
+  "socialOrganisation": { "id": ["xeno.peerdb.org", "SOCIAL_ORGANISATION", "GUILD_FEDERATION"] },
+  "kinshipSystem": { "id": ["xeno.peerdb.org", "KINSHIP_SYSTEM", "HEARTH_AFFILIATION"] },
+  "communication": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G2_SEAM_PULSE"] }],
+  "population": {
+    "value": { "from": { "amount": 2000, "precision": 1000 }, "to": { "amount": 6000, "precision": 1000 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "contactStatus": { "id": ["xeno.peerdb.org", "CONTACT_STATUS", "LIMITED"] },
+  "firstContact": { "time": "2229-01-01T00:00:00Z", "precision": "y" },
+  "image": [
+    {
+      "value": "/f/3X2dSSrdtBjQdodBF479Xh",
+      "name": "G2_NURRUMALI.jpg",
+      "caption": "Field plate",
+      "source": "Drawn in the field; Consortium collection"
+    }
+  ],
+  "notes": [
+    {
+      "value": "<p>The abandoned hearths are left standing and are never reoccupied, including by the household that built them. The reason given is that the site is still somebody&#39;s, and the household that left is not sure which of them.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

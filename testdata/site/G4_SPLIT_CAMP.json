@@ -1,0 +1,22 @@
+{
+  "id": ["xeno.peerdb.org", "SITE", "G4_SPLIT_CAMP"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SITE"] }],
+  "name": [{ "value": "Split Camp", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "localName": [{}],
+  "description": [
+    {
+      "value": "<p>The forward station for the Slub system: four linked pressurised modules on the stable block between the two largest fractures, with a drill shaft to three hundred and eighty metres. It carries six to twenty-two staff and holds the sector&#39;s instrument archive. Everyone posted here is also, formally, the standby team for the world below, which will next need one in 2419.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "REGION", "G4_SPLIT_SHELL"] },
+  "siteType": { "id": ["xeno.peerdb.org", "SITE_TYPE", "FIELD_CAMP"] },
+  "gridReference": "SS-011.3/57.6",
+  "population": {
+    "value": { "from": { "amount": 6, "precision": 10 }, "to": { "amount": 22, "precision": 10 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "founded": { "time": "2243-01-01T00:00:00Z", "precision": "y" },
+  "occupation": { "from": { "time": "2243-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true },
+  "image": [{ "value": "/f/K2wfECyM13acNDAM53pg6y", "name": "G4_SPLIT_CAMP.jpg", "caption": "General view", "source": "Consortium survey archive" }]
+}

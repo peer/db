@@ -1,0 +1,18 @@
+{
+  "id": ["xeno.peerdb.org", "STAR_SYSTEM", "G4_TENTER"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "STAR_SYSTEM"] }],
+  "name": [{ "value": "Tenter", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "catalogueCode": "SPW-A/152",
+  "description": [
+    {
+      "value": "<p>A red dwarf at the tail of the stream with three planets, all close in and two of them locked. The system is old, metal-poor and considerably less eventful than its neighbours.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "SECTOR", "G4_LONG_STREAM"] },
+  "spectralClass": "M1V",
+  "starCount": { "amount": 1, "precision": 1 },
+  "planetCount": { "amount": 3, "precision": 1 },
+  "distanceFromSol": { "value": { "amount": 869.1, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "PARSEC"] }] },
+  "firstSurveyed": { "time": "2252-01-01T00:00:00Z", "precision": "y" }
+}

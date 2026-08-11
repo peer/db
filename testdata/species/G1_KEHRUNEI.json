@@ -1,0 +1,64 @@
+{
+  "id": ["xeno.peerdb.org", "SPECIES", "G1_KEHRUNEI"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SPECIES"] }],
+  "name": [{ "value": "Warm Pool People", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Kehrunei", "gloss": "those of the warm water" }],
+  "taxonCode": "TX-1911-b",
+  "description": [
+    {
+      "value": "<p>The people of a shallow sea in permanent copper twilight, living on the vent chimneys that break the surface across the warm pool and tending the mineral growth around them like a crop. Stone traps on the shallows take the rest of the diet, and the whole economy runs on obligations that are recorded, carried and inherited but never settled in kind. The individuality entry reads contested, and honestly: the 2262 team recorded bounded persons, the 2306 team recorded routine division and merger of selves at the chimneys, and the register carries both findings rather than choosing. A visitor notices the smell first, the quiet second, and the fact that nobody will answer a question put to them alone third. Some six hundred of them work the fissures of the fourth planet in the dry season and come back, which is the only movement off-world anybody has documented.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>O povo de um mar pouco profundo em permanente crepúsculo cor de cobre, que vive nas chaminés das fontes que rompem a superfície ao longo da piscina quente e trata o crescimento mineral à sua volta como uma cultura agrícola. As armadilhas de pedra nos baixios fornecem o resto da dieta, e toda a economia assenta em obrigações que são registadas, transportadas e herdadas mas nunca saldadas em espécie. O campo da individualidade diz contestado, e com razão: a equipa de 2262 registou pessoas delimitadas, a equipa de 2306 registou divisão e fusão rotineiras de eus junto das chaminés, e o registo guarda ambos os achados em vez de escolher. Um visitante repara primeiro no cheiro, depois no silêncio e, em terceiro lugar, no facto de ninguém responder a uma pergunta que lhe seja feita a sós. Uns seiscentos deles trabalham as fissuras do quarto planeta na estação seca e voltam, o que é o único movimento para fora do mundo que alguém documentou.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "homeworld": { "id": ["xeno.peerdb.org", "PLANET", "G1_KEPHRA_TWO"] },
+  "alsoFoundOn": [{ "id": ["xeno.peerdb.org", "PLANET", "G1_KEPHRA_FOUR"] }, { "id": ["xeno.peerdb.org", "PLANET", "G1_ADJUNCT_ONE"] }],
+  "bodyPlan": [
+    {
+      "value": "<p>Broad, flattened and radially built about a central column, with eight short limbs of which any three or four are load-bearing at a time and the rest are working hands. The integument is a pale mineral-crusted skin that thickens where it rests on hot stone, and the crust is chipped off and kept. They feed through a ventral aperture pressed directly to the growth they are cropping, and they are as comfortable in a metre of water as out of it.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "typicalHeight": { "value": { "amount": 1.46, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+  "typicalMass": { "value": { "amount": 57.0, "precision": 0.1 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "kg"] }] },
+  "lifespan": {
+    "value": { "from": { "amount": 48, "precision": 1 }, "to": { "amount": 96, "precision": 1 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_YEAR"] }]
+  },
+  "sensoryModality": [
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "THERMAL_RADIANCE"] },
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "CONTACT_CHEMO"] },
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "PRESSURE_GRADIENT"] }
+  ],
+  "subsistence": [
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "CHEMO_TENDING"] },
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "TIDAL_TRAPPING"] }
+  ],
+  "individuality": { "id": ["xeno.peerdb.org", "INDIVIDUALITY_MODE", "CONTESTED"] },
+  "contestedIndividuality": { "id": ["xeno.peerdb.org", "INDIVIDUALITY_MODE", "SEASONAL_COLLECTIVE"] },
+  "socialOrganisation": { "id": ["xeno.peerdb.org", "SOCIAL_ORGANISATION", "OBLIGATION_NETWORK"] },
+  "kinshipSystem": { "id": ["xeno.peerdb.org", "KINSHIP_SYSTEM", "DEBT_KINSHIP"] },
+  "population": {
+    "value": { "from": { "amount": 140000, "precision": 1000 }, "to": { "amount": 260000, "precision": 1000 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "contactStatus": { "id": ["xeno.peerdb.org", "CONTACT_STATUS", "LIMITED"] },
+  "firstContact": { "time": "2258-01-01T00:00:00Z", "precision": "y" },
+  "image": [
+    {
+      "value": "/f/29mjUvNYpozB5GhXw2oZpx",
+      "name": "G1_KEHRUNEI.jpg",
+      "caption": "Field plate",
+      "source": "Drawn in the field; Consortium collection"
+    }
+  ],
+  "notes": [
+    {
+      "value": "<p>The dry-season camps appear twice in the also-found list because the fourth planet appears twice in the register. Both entries describe the same six hundred people.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

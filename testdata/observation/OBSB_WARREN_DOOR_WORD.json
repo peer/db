@@ -1,0 +1,42 @@
+{
+  "id": ["xeno.peerdb.org", "OBSERVATION", "OBSB_WARREN_DOOR_WORD"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "OBSERVATION"] }],
+  "title": [
+    {
+      "value": "Arrival at the third entrance of Shelf Warren, and a greeting given wrongly",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "description": [
+    {
+      "value": "<p>Our first approach to an occupied entrance of the terrace warren, in which the survey greeted half a warren and did not realise it for most of a season.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "content": [
+    {
+      "value": "<p>8.xi.2273. We came down to the third entrance in the afternoon watch with Nathess, who had agreed to walk in front of us and to say nothing.</p><p>The proper form at a passage mouth is two taps on the frame and then speech, in that order and not in the other, because the tenders below feel the frame and the herders above hear the voice. We spoke first and tapped afterwards. The party inside answered by naming two chambers standing open, which is an acceptance, and we entered and were fed.</p><p>It took until the following season, and a remark of Sunnith&#39;s that was not intended as a correction, for us to understand that we had greeted only the half of the warren that hears. The tenders below had received a greeting that arrived after the words it belonged to and treated it, reasonably enough, as somebody knocking about at a doorway. Nobody mentioned it at the time. Nobody mentions anything at the time.</p><p>We remain unable to explain the eleven minutes between our arrival and the answer. The count of open chambers is not a thing that requires calculation, and the party inside was four people who were already awake.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "expedition": { "id": ["xeno.peerdb.org", "EXPEDITION", "EXP_HOLLOW_BAR_FIRST"] },
+  "observedBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_WEN"] }, { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_DEMIR"] }],
+  "observedAt": { "id": ["xeno.peerdb.org", "SITE", "G3_SHELF_WARREN"] },
+  "observedOn": { "time": "2273-11-08T00:00:00Z", "precision": "d" },
+  "about": [
+    { "id": ["xeno.peerdb.org", "PRACTICE", "G3_DOOR_GREETING"] },
+    { "id": ["xeno.peerdb.org", "CULTURE", "G3_WARREN_SEASON"] },
+    { "id": ["xeno.peerdb.org", "SPECIES", "G3_TESSILEN"] }
+  ],
+  "method": [
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "PARTICIPANT_OBSERVATION"] },
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "LINGUISTIC_ELICITATION"] }
+  ],
+  "fieldConditions": "Still air at the terraces, surface temperature well below the band average, herds grazing above the entrances. Nathess present throughout.",
+  "notes": [
+    {
+      "value": "<p>The error is recorded here in full because the corrected form was afterwards printed in the expedition handbook without any indication that it had been arrived at by getting it wrong for eight months.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

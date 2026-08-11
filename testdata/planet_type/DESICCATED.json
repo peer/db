@@ -1,0 +1,24 @@
+{
+  "id": ["xeno.peerdb.org", "PLANET_TYPE", "DESICCATED"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PLANET_TYPE"] }],
+  "name": [
+    { "value": "Desiccated terrestrial", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "Izsušeni kopenski svet", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }] },
+    { "value": "Telúrico dessecado", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>A rocky world that still holds an atmosphere but has lost nearly all surface volatiles, leaving evaporite basins and wind-worked regolith. Distinguished from airless rock, which is classed as a minor body.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Kamnit svet, ki ima še ozračje, a je izgubil skoraj vse hlapne snovi na površju.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Mundo rochoso que ainda mantém atmosfera mas perdeu quase todos os voláteis de superfície, deixando bacias evaporíticas e regolito trabalhado pelo vento. Distingue-se da rocha sem atmosfera, classificada como corpo menor.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "code": ["desiccated"]
+}

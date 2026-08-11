@@ -1,0 +1,44 @@
+{
+  "id": ["xeno.peerdb.org", "OBSERVATION", "OBSA_CORD_READING_RECORDER"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "OBSERVATION"] }],
+  "title": [{ "value": "Array failure four knots into a rota cord reading", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "description": [
+    {
+      "value": "<p>A disputed stretch read out on the drained ground at low water, with our recorder stopping at the fourth knot. There is no procedure for hearing a reading later and we did not ask for one.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "content": [
+    {
+      "value": "<p>Two hearths claimed the same stretch below the outer ring, and the cord reader carried the rota cord out at low water. The reading began at the landward end, each knot named, the free hand pointing at the wall while the mouth said wall.</p><p>Our array stopped at the fourth knot. The fault was condensation in the cable head. That is our own fault and it is the third time this season.</p><p>What we have is ninety seconds of tape and written notes taken at speed by two people standing in different places, which for this practice means two people who heard different things. No copy of a cord is kept, no cord is read twice in a day, and there is no form of words for asking to hear it again.</p><p>The reader declined to re-knot the disputed section, which stands as a refusal rather than a delay, so the claim is settled. Nobody would tell us in whose favour. We are not able to say whether the decline had anything to do with the two of us standing where we were standing, and we would like it on the record that we thought about it for some time.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "expedition": { "id": ["xeno.peerdb.org", "EXPEDITION", "EXP_THREADBARE_FOURTH"] },
+  "observedBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_WEN"] }, { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_HALVORSEN"] }],
+  "observedAt": { "id": ["xeno.peerdb.org", "SITE", "G1_LOWER_MIDDEN"] },
+  "observedOn": { "time": "2269-05-08T00:00:00Z", "precision": "d" },
+  "about": [
+    { "id": ["xeno.peerdb.org", "PRACTICE", "G1_CORD_READING"] },
+    { "id": ["xeno.peerdb.org", "SPECIES", "G1_SUNARELI"] },
+    { "id": ["xeno.peerdb.org", "CULTURE", "G1_WEIR_ROTA"] }
+  ],
+  "method": [
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "ACOUSTIC_RECORDING"] },
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "PARTICIPANT_OBSERVATION"] }
+  ],
+  "fieldConditions": "Low water in fog, visibility about forty metres, cold. Perhaps thirty people had walked out, most of them from neither claiming hearth.",
+  "image": [
+    { "value": "/f/C9nkYNeM81cpvqimATCQJN", "name": "OBSA_CORD_READING_RECORDER.jpg", "caption": "Taken at the time", "source": "Field record" }
+  ],
+  "permission": [
+    { "action": { "id": ["core.peerdb.org", "PERMISSION_ACTIONS", "ACTION_UPDATE"] }, "user": ["mock-user-researcher@localhost"], "scope": ["self"] },
+    { "action": { "id": ["core.peerdb.org", "PERMISSION_ACTIONS", "ACTION_DELETE"] }, "user": ["mock-user-curator@localhost"], "scope": ["self"] }
+  ],
+  "notes": [
+    {
+      "value": "<p>Cable heads for the flats array are now made up on the ground and stored warm. The ninety seconds are catalogued with the reading, though without the pointing they are not much use to anybody.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

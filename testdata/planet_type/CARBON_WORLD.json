@@ -1,0 +1,24 @@
+{
+  "id": ["xeno.peerdb.org", "PLANET_TYPE", "CARBON_WORLD"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PLANET_TYPE"] }],
+  "name": [
+    { "value": "Carbon-rich world", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "Ogljikov svet", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }] },
+    { "value": "Mundo rico em carbono", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>A rocky world formed where carbon exceeded oxygen, producing carbide mantles, graphite crusts and diamond at depth. Four are confirmed in the catalogue, against a standing queue of nineteen hopeful claims.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Kamnit svet, nastal tam, kjer je ogljika več kot kisika: karbidni plašč, grafitna skorja in diamant v globini.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Mundo rochoso formado onde o carbono excedia o oxigénio, com mantos de carboneto, crostas de grafite e diamante em profundidade. Estão quatro confirmados no catálogo, contra uma fila permanente de dezanove candidaturas esperançosas.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "code": ["carbon"]
+}

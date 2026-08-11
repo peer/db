@@ -1,0 +1,29 @@
+{
+  "id": ["xeno.peerdb.org", "RESEARCHER", "RES_PETROVA"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "RESEARCHER"] }],
+  "name": [{ "value": "Elena" }],
+  "familyName": [{ "value": "Petrova" }],
+  "researcherCode": "CCX-P-03471",
+  "description": [
+    {
+      "value": "<p>Followed vent settlements as they moved for five years and came back with material that the ethics apparatus took two years to place and then closed entirely. She does not dispute the ruling and will not discuss the material, which has cost her two appointments and one friendship.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "affiliatedWith": [{ "id": ["xeno.peerdb.org", "INSTITUTE", "INST_ANCHOR"] }, { "id": ["xeno.peerdb.org", "INSTITUTE", "INST_BEACON"] }],
+  "specialisesIn": [
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "PARTICIPANT_OBSERVATION"] },
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "COLLABORATIVE_ANNOTATION"] }
+  ],
+  "activePeriod": { "from": { "time": "2281-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true },
+  "born": { "time": "2256-01-01T00:00:00Z", "precision": "y" },
+  "image": [
+    { "value": "/f/NEctNQGx9QdLmWDYkwLgw4", "name": "RES_PETROVA.jpg", "caption": "Staff photograph", "source": "Consortium personnel record" }
+  ],
+  "notes": [
+    {
+      "value": "<p>She is the named custodian of the sealed deposit and remains so until a successor is appointed, which requires a review that cannot at present be scheduled.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

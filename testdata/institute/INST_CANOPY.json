@@ -1,0 +1,24 @@
+{
+  "id": ["xeno.peerdb.org", "INSTITUTE", "INST_CANOPY"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "INSTITUTE"] }],
+  "name": [
+    { "value": "Institute for Vertical Settlement", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "Institut za navpicno naselitev", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }] }
+  ],
+  "shortName": [{ "value": "Canopy", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "description": [
+    {
+      "value": "<p>Built at the foot of the tether because that is where the freight is, and concerned with settlement that never touches the ground: canopy platforms, shell terraces, tether towns and the long arguments about who holds the space between them. It keeps the register&#39;s best metric survey of built structure. It has no capacity at all for interview work and has twice hired that in at short notice and at considerable length.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    { "value": "<p>Institut za preucevanje naselij, ki se ne dotikajo tal.</p>", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }] },
+    {
+      "value": "<p>Construído ao pé do cabo orbital porque é ali que está a carga, e dedicado ao povoamento que nunca toca o chão: plataformas de dossel, terraços de concha, cidades de cabo e as longas discussões sobre quem detém o espaço entre elas. Mantém o melhor levantamento métrico de estrutura construída do registo. Não tem qualquer capacidade para trabalho de entrevista e contratou-a de fora duas vezes, com pouca antecedência e por bastante tempo.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "founded": { "time": "2274-01-01T00:00:00Z", "precision": "y" },
+  "locatedAt": { "id": ["xeno.peerdb.org", "SITE", "G1_CANOPY_TETHER"] },
+  "staffCount": { "amount": 216, "precision": 1 },
+  "website": ["https://vertical.ccx.example/"]
+}

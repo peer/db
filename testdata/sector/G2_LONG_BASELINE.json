@@ -1,0 +1,14 @@
+{
+  "id": ["xeno.peerdb.org", "SECTOR", "G2_LONG_BASELINE"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SECTOR"] }],
+  "name": [{ "value": "Long Baseline Sector", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "catalogueCode": "SEC-LB/1",
+  "description": [
+    {
+      "value": "<p>The near face of the galaxy, and the only part of it anyone has looked at twice. Five systems, eleven catalogued worlds and all three Consortium stations sit inside a volume about ninety parsecs across, which is less a research strategy than an admission of how far away everything else is. Something over nine tenths of the register&#39;s observing hours for this galaxy were spent here.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "GALAXY", "G2_UNDERCOUNT"] },
+  "surveyPeriod": { "from": { "time": "2221-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true }
+}

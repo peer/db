@@ -1,0 +1,48 @@
+{
+  "id": ["xeno.peerdb.org", "INTERVIEW", "INTA_SESSHUNA_REARING_CHAIN"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "INTERVIEW"] }],
+  "title": [{ "value": "Sesshuna on being counted by two lodges in succession", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "description": [
+    {
+      "value": "<p>One session out of twenty years of material that the speaker has asked be kept closed, on how a rearing chain is counted and what it obliges. The best account of this culture is one that cannot be quoted.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "interviewee": [{ "id": ["xeno.peerdb.org", "INDIVIDUAL", "G2_SESSHUNA"] }],
+  "interviewer": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_FERREIRA"] }, { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_DE_VRIES"] }],
+  "recordedAt": { "id": ["xeno.peerdb.org", "SITE", "G2_HIGH_WEIR"] },
+  "recordedOn": { "time": "2301-09-14T00:00:00Z", "precision": "d" },
+  "expedition": { "id": ["xeno.peerdb.org", "EXPEDITION", "EXP_NINE_TERRACE_TIDE"] },
+  "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G2_FLAT_CORD"] }],
+  "duration": { "value": { "amount": 152, "precision": 1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "MINUTE"] }] },
+  "content": [
+    {
+      "value": "<p><b>Q.</b> Which of the two lodges is the real one?</p><p><b>A.</b> Neither, in your sense, and I would ask you not to put it that way to anybody else here. Both counted me. The second counted me from the season I came, not from my birth, and that is the whole of the difference and it decides everything.</p><p><b>Q.</b> Decides what, for instance?</p><p><b>A.</b> Which arc I may hold and when. A chain is a queue. You are counted into it at a season and you move up it, and a lodge that took you late has taken a place off somebody.</p><p><b>Q.</b> Off whom, in your case?</p><p><b>A.</b> That is the thing I want closed. Off the lodge that is waiting for the middle arc. They have been waiting since before the current holder was born and they will get it in 2319, and they would have had it a cycle earlier if I had not been counted in.</p><p><b>Q.</b> Do they know?</p><p><b>A.</b> Everybody on the benches knows. It is not a secret here. It becomes a different thing when it is written in a language none of them read and kept in a place none of them can reach, and that is why my material is closed and will stay closed.</p><p><b>Q.</b> You are aware that this makes the best account of your people unquotable.</p><p><b>A.</b> Yes. You have said so to me four times over twenty years, always in that tone. I would rather your discipline had a gap in it than that the benches had one.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "recording": [
+    {
+      "value": "/f/WAyf8oQNjGLmnfAxwzUzrm",
+      "name": "interview-INTA_SESSHUNA_REARING_CHAIN.mp3",
+      "caption": "Session recording",
+      "duration": { "value": { "amount": 152, "precision": 1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "MINUTE"] }] },
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G2_FLAT_CORD"] }]
+    }
+  ],
+  "ethics": { "id": ["xeno.peerdb.org", "ETHICS_PROTOCOL", "PROTOCOL_3"] },
+  "consentNote": [
+    {
+      "value": "<p>Sesshuna consents, as they have for twenty years, to the material being held, catalogued and consulted, and not quoted, summarised or published in any form that reaches the benches. The restriction is theirs, was not proposed by us, and has been restated at every session.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "clearedReader": ["mock-user@localhost"],
+  "permission": [
+    { "action": { "id": ["core.peerdb.org", "PERMISSION_ACTIONS", "ACTION_READ"] }, "user": ["mock-user@localhost"], "scope": ["self"] },
+    { "action": { "id": ["core.peerdb.org", "PERMISSION_ACTIONS", "ACTION_READ_HISTORIC"] }, "user": ["mock-user@localhost"], "scope": ["self"] }
+  ],
+  "requestedPermission": [
+    { "action": { "id": ["core.peerdb.org", "PERMISSION_ACTIONS", "ACTION_READ"] }, "user": ["mock-user@localhost"], "scope": ["self"] }
+  ]
+}

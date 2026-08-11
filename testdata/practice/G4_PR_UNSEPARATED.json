@@ -1,0 +1,31 @@
+{
+  "id": ["xeno.peerdb.org", "PRACTICE", "G4_PR_UNSEPARATED"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PRACTICE"] }],
+  "name": [{ "value": "Those Who Did Not Come Apart", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "ekkuttanpa", "gloss": "the one who is still against the wall" }],
+  "description": [
+    {
+      "value": "<p>On waking, a body that separates from a flank which does not separate stays against it until the meltwater reaches the mouth of the warren, which is a matter of some weeks. For that time they neither speak nor are spoken to, and the cohort brings rot culture and sets it down within reach without approaching. When the water comes up, the living leave together and the warren is not resealed behind them. The loss is stated once, at the Waking Ground, as a correction to the cohort list and in no other form, and anybody who states it twice is understood to be asking for something. Mourning ends when the thaw ends, because everything ends when the thaw ends.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Ao acordar, um corpo que se separa de um flanco que não se separa fica encostado a ele até a água de degelo chegar à boca da toca, o que é uma questão de algumas semanas. Durante esse tempo não falam nem lhes falam, e a coorte traz cultura de podridão e pousa-a ao alcance sem se aproximar. Quando a água sobe, os vivos saem juntos e a toca não é novamente selada atrás deles. A perda é declarada uma vez, no Waking Ground, como uma correção à lista da coorte e de mais nenhuma forma, e quem a declarar duas vezes entende-se estar a pedir alguma coisa. O luto acaba quando o degelo acaba, porque tudo acaba quando o degelo acaba.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G4_CU_DEEP_COURSE_WARRENS"] }, { "id": ["xeno.peerdb.org", "CULTURE", "G4_CU_THAW_ASSEMBLY"] }],
+  "category": { "id": ["xeno.peerdb.org", "PRACTICE_CATEGORY", "MOURNING"] },
+  "periodicity": "at each waking, for as long as the meltwater takes to reach the warren mouth",
+  "participants": {
+    "value": { "from": { "amount": 2, "precision": 1 }, "to": { "amount": 60, "precision": 1 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "firstDocumented": { "time": "2242-01-01T00:00:00Z", "precision": "y" },
+  "relatedPractice": [{ "id": ["xeno.peerdb.org", "PRACTICE", "G4_PR_COHORT_PLACING"] }],
+  "notes": [
+    {
+      "value": "<p>The 2241 waking produced eleven such corrections against a placed cohort of about two thousand. Whether that is a normal figure is unknown; it is the only figure there is, and the next one falls due in 2419.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

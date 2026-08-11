@@ -1,0 +1,21 @@
+{
+  "id": ["xeno.peerdb.org", "INDIVIDUAL", "G2_SESSHUNA"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "INDIVIDUAL"] }],
+  "name": [{ "value": "Sesshuna" }],
+  "lineageName": [{ "value": "Outer Arc Lodge" }],
+  "description": [
+    {
+      "value": "<p>Reared by two lodges in succession and the source of most of what the Consortium understands about how a rearing chain is counted. Twenty years of their interview material is restricted at their own request and will remain so, which means the best account of this culture is one that cannot be quoted. They have not been photographed; the same request covers it.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "species": { "id": ["xeno.peerdb.org", "SPECIES", "G2_SESSHUNE"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G2_ARC_LODGES"] }],
+  "role": [
+    { "value": "weir worker", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "principal interlocutor", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }
+  ],
+  "formOfAddress": "by lodge",
+  "born": { "time": "2264-01-01T00:00:00Z", "precision": "y" },
+  "birthplace": { "id": ["xeno.peerdb.org", "SITE", "G2_HIGH_WEIR"] }
+}

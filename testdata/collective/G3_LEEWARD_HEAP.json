@@ -1,0 +1,26 @@
+{
+  "id": ["xeno.peerdb.org", "COLLECTIVE", "G3_LEEWARD_HEAP"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "COLLECTIVE"] }],
+  "name": [{ "value": "The Leeward Heap", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "description": [
+    {
+      "value": "<p>A second colony lying about four kilometres downwind of the first, in coarser rubble and on a thinner dust supply, and the one that has carried the larger share of the exchange since 2299. It gives its own age as considerably greater than the register&#39;s figure, which is simply the year it was first met. Whether it and its neighbour are two persons or one is a question both of them decline as badly formed, having exchanged bodies during every flood on record.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "species": { "id": ["xeno.peerdb.org", "SPECIES", "G3_NITHESH"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G3_RUBBLE_LEDGER"] }],
+  "role": [{ "value": "party to the rubble exchange", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "memberCount": {
+    "value": { "from": { "amount": 20000, "precision": 10 }, "to": { "amount": 70000, "precision": 10 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "activePeriod": { "from": { "time": "2286-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true },
+  "seat": { "id": ["xeno.peerdb.org", "SITE", "G3_ICEFRONT_CAMP"] },
+  "notes": [
+    {
+      "value": "<p>The two heaps are entered separately because the survey met them separately, which is the only defence the entry has and is stated here in full.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

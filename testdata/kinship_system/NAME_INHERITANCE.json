@@ -1,0 +1,24 @@
+{
+  "id": ["xeno.peerdb.org", "KINSHIP_SYSTEM", "NAME_INHERITANCE"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "KINSHIP_SYSTEM"] }],
+  "name": [
+    { "value": "Name-slot inheritance", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "Dedovanje imenskih mest", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }] },
+    { "value": "Herança de postos de nome", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>A fixed set of names exists and kinship is reckoned between name-slots, so a new holder inherits the previous holder&#39;s relations. Excludes ordinary naming after a relative.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Obstaja stalen nabor imen, sorodstvo pa se šteje med imeni, zato novi nosilec podeduje prejšnja razmerja.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Existe um conjunto fixo de nomes e o parentesco conta-se entre postos de nome, pelo que um novo detentor herda as relações do anterior. Exclui a simples atribuição do nome de um familiar.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "code": ["name-slot"]
+}

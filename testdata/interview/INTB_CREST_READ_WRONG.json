@@ -1,0 +1,63 @@
+{
+  "id": ["xeno.peerdb.org", "INTERVIEW", "INTB_CREST_READ_WRONG"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "INTERVIEW"] }],
+  "title": [
+    {
+      "value": "Rumeia on the division of the band and on a crest that was read wrong",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "description": [
+    {
+      "value": "<p>Interview with a band member of the rack ridge bands on the reading of struck crests and the division that followed. Rumeia describes a fatal misreading that has never been attributed.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "interviewee": [{ "id": ["xeno.peerdb.org", "INDIVIDUAL", "G4_IN_RUMEIA"] }],
+  "interviewer": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_BRANDT"] }],
+  "recordedAt": { "id": ["xeno.peerdb.org", "SITE", "G4_RACK_CAMP"] },
+  "recordedOn": { "time": "2304-04-27T00:00:00Z", "precision": "d" },
+  "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G4_COM_RIDGE_KNOCK"] }],
+  "duration": { "value": { "amount": 47, "precision": 1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "MINUTE"] }] },
+  "content": [
+    {
+      "value": "<p><b>Q.</b> In your own words, what did you decide that day?</p><p><b>A.</b> There is no knock for that. I cannot say a thing as mine. The crest said go east. I went east. Those are the same sentence here and your form wants them to be two.</p><p><b>Q.</b> Who read the crest?</p><p><b>A.</b> A knock has no owner. You are asking me to invent a grammar so that you can put a person in it.</p><p><b>Q.</b> Then what was read, and what happened?</p><p><b>A.</b> The crest was read as air coming down in a day. It came down in four hours. Four did not get off the ridge. The rest of us split and the split has held for twenty-seven years and is now two entries in your register, which is its own kind of injury.</p><p><b>Q.</b> Was the reading wrong or was the weather?</p><p><b>A.</b> The weather was ordinary. The reading was wrong, and the one whose plate was on the rock is still reading, every season, and nobody has knocked about it because a knock would come from the crest and the crest is all of us and includes them.</p><p><b>Q.</b> That is convenient for them.</p><p><b>A.</b> Yes. I have thought so for twenty-seven years and this is the first time it has been in a language that can hold it. Keep it.</p><p><b>Q.</b> Anything else for the record?</p><p><b>A.</b> Enter me and Rumeio as one record. The past your entries describe is one past. Neither of us is the elder and your register keeps making one of us older by being a list.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "recording": [
+    {
+      "value": "/f/HGAbntF8SMDYugeMPPCYpo",
+      "name": "interview-INTB_CREST_READ_WRONG.mp3",
+      "caption": "Session recording",
+      "duration": { "value": { "amount": 47, "precision": 1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "MINUTE"] }] },
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G4_COM_RIDGE_KNOCK"] }]
+    }
+  ],
+  "ethics": { "id": ["xeno.peerdb.org", "ETHICS_PROTOCOL", "PROTOCOL_3"] },
+  "consentNote": [
+    {
+      "value": "<p>Rumeia consented to the record, including the account of the reading, and made the entry request part of the consent rather than a separate matter. She did not ask for the reader to be protected and did not ask for them to be named, which she said was the same request twice.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "clearedReader": ["mock-user@localhost", "mock-user-curator@localhost"],
+  "permission": [
+    {
+      "action": { "id": ["core.peerdb.org", "PERMISSION_ACTIONS", "ACTION_READ"] },
+      "user": ["mock-user@localhost", "mock-user-curator@localhost"],
+      "scope": ["self"]
+    },
+    {
+      "action": { "id": ["core.peerdb.org", "PERMISSION_ACTIONS", "ACTION_READ_HISTORIC"] },
+      "user": ["mock-user@localhost", "mock-user-curator@localhost"],
+      "scope": ["self"]
+    }
+  ],
+  "notes": [
+    {
+      "value": "<p>The register cannot enter two individuals as one record. The request is filed with both entries, and the ethics committee has ruled that the objection must be reproduced wherever either entry is published, which is what this paragraph is.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

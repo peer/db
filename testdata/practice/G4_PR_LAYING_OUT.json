@@ -1,0 +1,31 @@
+{
+  "id": ["xeno.peerdb.org", "PRACTICE", "G4_PR_LAYING_OUT"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PRACTICE"] }],
+  "name": [{ "value": "Laying Out on the Quiet Floor", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [
+    { "value": "[laid on the floor that is not struck]", "gloss": "a gloss of a two-beat figure; the practice is named for the ground it is done on" }
+  ],
+  "description": [
+    {
+      "value": "<p>The dead are carried onto the polished floor on foot and from downwind by four bearers of the grade below the one the dead person held. Nothing is struck at any point: the bearers set the body down, dress its striking knob a last time and walk off the rock backwards, and the silence is the practice rather than a mark of respect within it. Deposition runs at about forty a year across six hundred metres of floor and nothing is ever removed, so the ground reads as a record of the grades in the order they went. The name does not go with the body: it is struck into its next holder inside the season, along with the debts. Survey instruction is to keep instruments off the rock, which the 2263 team observed with a tripod and were asked to leave for.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Mrtve položijo na zglajeno skalo in tam nikoli ničesar ne udarijo; tišina je celoten obred.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Os mortos são levados a pé, e vindos de sotavento, até à laje polida por quatro portadores do grau imediatamente abaixo daquele que o morto ocupava. Nada é percutido em momento algum: os portadores pousam o corpo, arranjam uma última vez a sua saliência de percussão e saem da rocha a andar para trás, e o silêncio é a própria prática e não uma marca de respeito dentro dela. As deposições fazem-se ao ritmo de umas quarenta por ano ao longo de seiscentos metros de laje e nunca nada é retirado, pelo que o terreno se lê como um registo dos graus pela ordem em que partiram. O nome não acompanha o corpo: é percutido no seu portador seguinte ainda nessa estação, juntamente com as dívidas. A instrução do levantamento é manter os instrumentos fora da rocha, que a equipa de 2263 cumpriu com um tripé e por isso foi convidada a sair.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G4_CU_FLOOR_GRADES"] }],
+  "category": { "id": ["xeno.peerdb.org", "PRACTICE_CATEGORY", "MORTUARY"] },
+  "periodicity": "whenever somebody dies",
+  "participants": {
+    "value": { "from": { "amount": 4, "precision": 1 }, "to": { "amount": 12, "precision": 1 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "firstDocumented": { "time": "2255-01-01T00:00:00Z", "precision": "y" },
+  "relatedPractice": [{ "id": ["xeno.peerdb.org", "PRACTICE", "G4_PR_NAME_STRIKING"] }]
+}

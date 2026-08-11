@@ -1,0 +1,24 @@
+{
+  "id": ["xeno.peerdb.org", "CONTACT_STATUS", "RECIPROCAL"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "CONTACT_STATUS"] }],
+  "name": [
+    { "value": "Reciprocal exchange", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "Vzajemna izmenjava", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }] },
+    { "value": "Troca recíproca", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>Both parties initiate, both refuse, and research questions are set jointly. The highest rung, and rarer in the register than the Consortium&#39;s own summaries suggest.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Obe strani sprožata in zavračata stike, raziskovalna vprašanja pa se postavljajo skupaj.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Ambas as partes tomam a iniciativa, ambas recusam, e as perguntas de investigação são definidas em conjunto. O degrau mais alto e, no registo, mais raro do que os resumos do próprio Consórcio dão a entender.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "code": ["reciprocal"]
+}

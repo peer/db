@@ -1,0 +1,32 @@
+{
+  "id": ["xeno.peerdb.org", "OBSERVATION", "OBSA_MEET_POST_NOTHING"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "OBSERVATION"] }],
+  "title": [{ "value": "Two hours on the Shallows Meet ground out of season", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "description": [
+    {
+      "value": "<p>A visit to the aggregation ground when it was empty, to photograph the post and the radiating paths. Nothing happened, and this note is as long as that deserves.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "content": [
+    {
+      "value": "<p>Two hours and ten minutes on the ground, dry and empty, at the bottom of an ordinary low water. The nearest people were four kilometres landward.</p><p>The eleven paths were walked to a hundred metres out from the centre and photographed at the ends. Wear on all eleven is heavy and continuous and the surface is compacted to a depth our probe would not enter.</p><p>The post stands upright and shows no recent work. Nothing has been added to it since the 2264 photographs and nothing has been taken off it.</p><p>One of the eleven paths runs out to the edge of deep water and stops there, and it is as worn as the rest. The grazers do not come out of the water and the flats people do not go into it. We cannot say who has been wearing that path, and we have not asked, because the question as we would have to put it contains its own answer.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "expedition": { "id": ["xeno.peerdb.org", "EXPEDITION", "EXP_THREADBARE_FOURTH"] },
+  "observedBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_HALVORSEN"] }, { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_WEN"] }],
+  "observedAt": { "id": ["xeno.peerdb.org", "SITE", "G1_SHALLOWS_MEET"] },
+  "observedOn": { "time": "2267-07-22T00:00:00Z", "precision": "d" },
+  "about": [
+    { "id": ["xeno.peerdb.org", "CULTURE", "G1_TOP_TIDE_MEET"] },
+    { "id": ["xeno.peerdb.org", "PRACTICE", "G1_TOP_TIDE_GREETING"] },
+    { "id": ["xeno.peerdb.org", "SPECIES", "G1_WANASELU"] }
+  ],
+  "method": [
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "PHOTOGRAMMETRY"] },
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "PARTICIPANT_OBSERVATION"] }
+  ],
+  "fieldConditions": "Bright, still, and hot enough on the open flat that both of us worked hooded. Nobody else was on the ground at any point.",
+  "image": [{ "value": "/f/LLMrFZTGhUZdB4aygHNoCB", "name": "OBSA_MEET_POST_NOTHING.jpg", "caption": "Taken at the time", "source": "Field record" }]
+}

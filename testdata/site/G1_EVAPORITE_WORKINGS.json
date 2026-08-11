@@ -1,0 +1,21 @@
+{
+  "id": ["xeno.peerdb.org", "SITE", "G1_EVAPORITE_WORKINGS"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SITE"] }],
+  "name": [{ "value": "Long Evaporite Workings", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "localName": [{ "value": "Oaenui Rau", "gloss": "the cut water" }],
+  "description": [
+    {
+      "value": "<p>Twelve kilometres of brine channel cut into the salt crust with working floors alongside, operated from 2258 until the crust failed in a series of collapses in 2295. Around a thousand people worked it at its height. The cuts are still open, drifting slowly full of ochre dust, and the toppled boundary markers along the eastern side are the best-dated objects on the planet.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "REGION", "G1_LONG_EVAPORITE"] },
+  "siteType": { "id": ["xeno.peerdb.org", "SITE_TYPE", "EXTRACTION_SITE"] },
+  "gridReference": "TB-126.5/+19.1",
+  "population": {
+    "value": { "from": { "amount": 400, "precision": 10 }, "to": { "amount": 1100, "precision": 10 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "founded": { "time": "2258-01-01T00:00:00Z", "precision": "y" },
+  "occupation": { "from": { "time": "2258-01-01T00:00:00Z", "precision": "y" }, "to": { "time": "2295-01-01T00:00:00Z", "precision": "y" } }
+}

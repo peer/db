@@ -1,0 +1,25 @@
+{
+  "id": ["xeno.peerdb.org", "ORGANISM", "G3_SEAM_TOWER"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "ORGANISM"] }],
+  "name": [{ "value": "Warm Seam Tower", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "taxonCode": "TX-1117-b",
+  "description": [
+    {
+      "value": "<p>An obligate association of a tube-forming precipitator and at least two filament lineages that cannot be reared apart, catalogued as one organism since 2281. Towers stand two to four metres over a vent seam and fall when the flow moves, which happens on a scale of decades. Every tower recovered from a plumbed seam leans at an angle no unattended tower has been observed to take.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "category": { "id": ["xeno.peerdb.org", "ORGANISM_CATEGORY", "SYMBIOTIC_COMPLEX"] },
+  "foundOn": [{ "id": ["xeno.peerdb.org", "PLANET", "G3_THESSILA"] }],
+  "biome": [{ "id": ["xeno.peerdb.org", "BIOME", "VENT_FIELD"] }, { "id": ["xeno.peerdb.org", "BIOME", "BRINE_SEA"] }],
+  "typicalSize": { "value": { "amount": 2.6, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+  "typicalMass": { "value": { "amount": 340.0, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "kg"] }] },
+  "image": [
+    {
+      "value": "/f/8K1fR3paBuq4dmyJUwJzGV",
+      "name": "G3_SEAM_TOWER.jpg",
+      "caption": "Field plate",
+      "source": "Drawn in the field; Consortium collection"
+    }
+  ]
+}

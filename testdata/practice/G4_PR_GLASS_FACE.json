@@ -1,0 +1,25 @@
+{
+  "id": ["xeno.peerdb.org", "PRACTICE", "G4_PR_GLASS_FACE"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PRACTICE"] }],
+  "name": [{ "value": "Working the Face", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "vesshothi", "gloss": "at the cut place, in the heat" }],
+  "description": [
+    {
+      "value": "<p>Knappers work the seven-hundred-metre glass face in shifts timed against the heat rather than the light, the light on this world never having changed. A learner is given a hammerstone and a stretch of face nobody else wants, and is not spoken to for the first season; instruction consists of the knapper next along working slowly and audibly whenever the learner is watching. Nothing is corrected aloud until the learner asks a question, and the question is expected to be about the heat rather than about the stone. Blanks are struck at the face and carried unfinished to the hearths, because a finished blade cannot be inspected for the cooling cracks this glass is prone to. Learners who cannot bear the silence go to the herd households instead, and nobody appears to hold it against them.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Os talhadores trabalham a frente de vidro de setecentos metros em turnos marcados pelo calor e não pela luz, já que a luz deste mundo nunca mudou. A um aprendiz dão-se um percutor e um troço de frente que mais ninguém quer, e não se fala com ele durante a primeira estação; o ensino consiste em o talhador do lado trabalhar devagar e com ruído sempre que o aprendiz está a olhar. Nada é corrigido em voz alta enquanto o aprendiz não fizer uma pergunta, e espera-se que a pergunta seja sobre o calor e não sobre a pedra. Os esboços são lascados na frente e levados por acabar até às lareiras, porque uma lâmina acabada não pode ser inspecionada quanto às fissuras de arrefecimento a que este vidro é propenso. Os aprendizes que não suportam o silêncio vão antes para as casas de manada, e ninguém parece levar-lhes isso a mal.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G4_CU_HEARTH_CIRCUIT"] }],
+  "category": { "id": ["xeno.peerdb.org", "PRACTICE_CATEGORY", "CRAFT_TRANSMISSION"] },
+  "periodicity": "every working shift, which is set by the heat and not by the clock",
+  "participants": {
+    "value": { "from": { "amount": 2, "precision": 1 }, "to": { "amount": 14, "precision": 1 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "firstDocumented": { "time": "2252-01-01T00:00:00Z", "precision": "y" },
+  "relatedPractice": [{ "id": ["xeno.peerdb.org", "PRACTICE", "G4_PR_MARGIN_EXCHANGE"] }]
+}

@@ -1,0 +1,25 @@
+{
+  "id": ["xeno.peerdb.org", "REGION", "G3_FOUR_CHANNELS"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "REGION"] }],
+  "name": [{ "value": "The Four Channels", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Anmelor" }],
+  "description": [
+    {
+      "value": "<p>The braided ground above the pan, where four seasonal channels come down off the highlands and rearrange themselves every flood. Between floods it is gravel, dune corridor and dry bank, and the routes across it have to be relearned each year. Nothing is built here that cannot be carried.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "PLANET", "G3_RIMMENA"] },
+  "biome": [{ "id": ["xeno.peerdb.org", "BIOME", "BRAIDED_MELT"] }, { "id": ["xeno.peerdb.org", "BIOME", "REGOLITH_DUNE"] }],
+  "area": { "value": { "amount": 1120000, "precision": 100 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "SQUARE_KILOMETRE"] }] },
+  "elevationRange": {
+    "value": { "from": { "amount": -40, "precision": 10 }, "to": { "amount": 1450, "precision": 10 } },
+    "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }]
+  },
+  "notes": [
+    {
+      "value": "<p>The 2288 map of this region was accurate for eleven months and is still, for want of anything else, the map in use.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

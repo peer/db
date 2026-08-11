@@ -1,0 +1,17 @@
+{
+  "id": ["xeno.peerdb.org", "INDIVIDUAL", "G4_IN_THISSUVO"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "INDIVIDUAL"] }],
+  "name": [{ "value": "Thissuvo" }],
+  "description": [
+    {
+      "value": "<p>A culture keeper working three chambers of inherited strain nightward of the frost house, and one of the few trap keepers who will hold a long exchange with a visitor rather than a short one. He refused a symbiont assay in 2291, and again in 2305, on the ground that the review it would feed has been running for twenty-eight years without producing anything he can eat. He declined a photograph on the same occasion and with the same phrasing.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "species": { "id": ["xeno.peerdb.org", "SPECIES", "G4_TRAP_KEEPERS"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G4_CU_COLD_STORE"] }],
+  "role": [{ "value": "culture keeper", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "formOfAddress": "by strain, then by name",
+  "born": { "time": "2280-01-01T00:00:00Z", "precision": "y" },
+  "birthplace": { "id": ["xeno.peerdb.org", "SITE", "G4_FROST_HOUSE"] }
+}

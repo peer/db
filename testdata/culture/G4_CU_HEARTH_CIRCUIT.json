@@ -1,0 +1,42 @@
+{
+  "id": ["xeno.peerdb.org", "CULTURE", "G4_CU_HEARTH_CIRCUIT"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "CULTURE"] }],
+  "name": [{ "value": "Dusk March Hearth Circuit", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [
+    {
+      "value": "Sesshavassa",
+      "gloss": "the going round of the fires",
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G4_COM_MARCH_SPEECH"] }]
+    }
+  ],
+  "catalogueCode": "CU-2234-04",
+  "description": [
+    {
+      "value": "<p>The households of the habitable band, whose settlements are hearths rather than buildings and who move nightward with the band at a few kilometres a generation. Kin are those who take heat and food at the same hearth this season, so the kin map is redrawn every year and is never in doubt about the present. Authority sits with one household for a set term and passes on in a fixed order, and the household that has just handed it over is expected to complain about its successor, which is part of the handover and not a failure of it. Everything is built to be carried by four adults, and the glass quarry at the dayward edge supplies the blades that go nightward in trade for chemosynthetic starter. Since 2288 the culture has also carried a grievance: a resurvey of hearth positions implied a migration that several households consider a slander on their grandmothers.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Ognjišča se vsako generacijo pomaknejo nekaj sto metrov proti nočni strani, skupaj s somračnim pasom.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>As casas da faixa habitável, cujos povoados são lareiras e não edifícios e que se deslocam para o lado da noite juntamente com a faixa, a alguns quilómetros por geração. Parentes são os que recebem calor e comida na mesma lareira nesta estação, pelo que o mapa do parentesco é redesenhado todos os anos e nunca é duvidoso quanto ao presente. A autoridade cabe a uma casa por um período determinado e passa adiante numa ordem fixa, e espera-se que a casa que acabou de a entregar se queixe da sucessora, o que faz parte da entrega e não é uma falha dela. Tudo é construído para poder ser transportado por quatro adultos, e a pedreira de vidro na orla do lado do dia fornece as lâminas que seguem para a noite em troca de cultura de arranque quimiossintética. Desde 2288 a cultura carrega também um agravo: um novo levantamento das posições das lareiras deu a entender uma migração que várias casas consideram uma calúnia às suas avós.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "practisedBy": [{ "id": ["xeno.peerdb.org", "SPECIES", "G4_HEARTH_WALKERS"] }],
+  "presentAt": [{ "id": ["xeno.peerdb.org", "SITE", "G4_WALKING_HEARTHS"] }, { "id": ["xeno.peerdb.org", "SITE", "G4_GLASS_QUARRY"] }],
+  "kinshipSystem": { "id": ["xeno.peerdb.org", "KINSHIP_SYSTEM", "HEARTH_AFFILIATION"] },
+  "socialOrganisation": { "id": ["xeno.peerdb.org", "SOCIAL_ORGANISATION", "ROTATING_STEWARDSHIP"] },
+  "subsistence": [
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "HERD_FOLLOWING"] },
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "DRIFT_HARVESTING"] },
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "MANAGED_DECAY"] }
+  ],
+  "communication": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G4_COM_MARCH_SPEECH"] }],
+  "population": {
+    "value": { "from": { "amount": 30000, "precision": 100 }, "to": { "amount": 70000, "precision": 100 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "period": { "from": { "time": "2234-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true }
+}

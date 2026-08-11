@@ -1,0 +1,39 @@
+{
+  "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G3_STAKE_NOTATION"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM"] }],
+  "name": [{ "value": "Stake Lines", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Onnekki", "gloss": "the standing count" }],
+  "description": [
+    {
+      "value": "<p>Lines of driven stakes whose spacing, height and lean record which household holds a stretch of flat, for how much of the tide-year, and against what open debt. The lines are replaced continuously, so the record is never older than one tide-year and there is no way to state anything about a debt that has been settled, which is held to be the point. The flood-phase collectives read the same lines from the water side and add to them, which the register treats as one system on the grounds that nobody has managed to show it is two. A visitor&#39;s first error is to walk the line as a path, since a stake stepped past in the wrong order changes what it says.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "modality": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_MODALITY", "WRITTEN_NOTATION"] }],
+  "users": {
+    "value": { "from": { "amount": 90000, "precision": 100 }, "to": { "amount": 1200000, "precision": 100 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "notation": true,
+  "sampleGloss": [
+    {
+      "value": "<p><i>four stakes at a pace, a gap, one stake leaning seaward</i>. Element by element: held four tides, ended, one owing outward. Freely: this stretch was held for four tides, the holding is over, and one debt goes out with it.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "recording": [
+    {
+      "value": "/f/VGyA2TQTuSXAoNzqBYeoEh",
+      "name": "system-G3_STAKE_NOTATION.mp3",
+      "caption": "Elicitation sample",
+      "duration": { "value": { "amount": 3, "precision": 1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "MINUTE"] }] },
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G3_STAKE_NOTATION"] }],
+      "note": [
+        {
+          "value": "<p>Recorded during elicitation and kept as the reference sample for this system.</p>",
+          "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,41 @@
+{
+  "id": ["xeno.peerdb.org", "PLANET", "G4_QUARTERN"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PLANET"] }],
+  "name": [{ "value": "Quartern", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "catalogueCode": "SPW-A/104-b",
+  "description": [
+    {
+      "value": "<p>The inner of Selvedge&#39;s two rock worlds, a wind-scoured plain of salt and sorted grit with basins that were shallow seas for perhaps forty million years and have been dry ever since. The rotation is a little over two Earth days, so shadows move slowly and the temperature swing between them is severe. Nothing stands above knee height anywhere on the surveyed hemisphere. Life is present, but entirely inside the rock, in a fracture zone between eight and two hundred metres down, and it took three expeditions to find it.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Izsušen svet s solnimi kotanjami; edino življenje je globoko v razpokah kamnine.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>O mais interior dos dois mundos rochosos de Selvedge, uma planície de sal e gravilha crivada, varrida pelo vento, com bacias que foram mares pouco profundos durante talvez quarenta milhões de anos e que estão secas desde então. A rotação demora pouco mais de dois dias terrestres, pelo que as sombras se deslocam devagar e a oscilação de temperatura entre elas é severa. Nada se ergue acima da altura do joelho em todo o hemisfério estudado. Há vida, mas inteiramente dentro da rocha, numa zona de fraturas entre os oito e os duzentos metros de profundidade, e foram precisas três expedições para a encontrar.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "STAR_SYSTEM", "G4_SELVEDGE"] },
+  "planetType": { "id": ["xeno.peerdb.org", "PLANET_TYPE", "DESICCATED"] },
+  "biome": [{ "id": ["xeno.peerdb.org", "BIOME", "ENDOLITH_ZONE"] }, { "id": ["xeno.peerdb.org", "BIOME", "EVAPORITE_PAN"] }],
+  "radius": { "value": { "amount": 0.88, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_RADIUS"] }] },
+  "mass": { "value": { "amount": 0.71, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_MASS"] }] },
+  "surfaceGravity": { "value": { "amount": 0.92, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "STANDARD_GRAVITY"] }] },
+  "dayLength": { "value": { "amount": 55.2, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "HOUR"] }] },
+  "orbitalPeriod": { "value": { "amount": 214.0, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_DAY"] }] },
+  "meanTemperature": { "value": { "amount": 41.0, "precision": 0.1 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "°C"] }] },
+  "hydrosphere": { "value": { "amount": 0.4, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "PERCENT"] }] },
+  "atmosphere": [
+    {
+      "value": "<p>Thin carbon dioxide with argon and a standing salt aerosol, about 0.31 bar at the datum. Workable in a mask and a light suit; the dust gets into everything, including the masks.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "biosphereUnknown": true,
+  "contactStatus": { "id": ["xeno.peerdb.org", "CONTACT_STATUS", "NO_CONTACT"] },
+  "firstSurveyed": { "time": "2217-01-01T00:00:00Z", "precision": "y" },
+  "surveyPeriod": { "from": { "time": "2217-01-01T00:00:00Z", "precision": "y" }, "to": { "time": "2224-01-01T00:00:00Z", "precision": "y" } },
+  "image": [{ "value": "/f/QycNb2vYUEmLnXgDmJyhmM", "name": "G4_QUARTERN.jpg", "caption": "Surface view", "source": "Consortium survey archive" }]
+}

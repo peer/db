@@ -1,0 +1,18 @@
+{
+  "id": ["xeno.peerdb.org", "REGION", "G4_THE_RACK"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "REGION"] }],
+  "name": [{ "value": "The Rack", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "description": [
+    {
+      "value": "<p>The equatorial storm belt, a band sixteen hundred kilometres wide in which convection has not once stopped over the whole period of record. Rain falls at every hour of every day, lightning strikes the same high ground repeatedly, and the shear makes flight difficult and landing worse. It is uninhabited and heavily instrumented.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "PLANET", "G4_LONG_WATER"] },
+  "biome": [{ "id": ["xeno.peerdb.org", "BIOME", "STORM_BELT"] }],
+  "area": { "value": { "amount": 3860000, "precision": 100 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "SQUARE_KILOMETRE"] }] },
+  "elevationRange": {
+    "value": { "from": { "amount": 0, "precision": 10 }, "to": { "amount": 2740, "precision": 10 } },
+    "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }]
+  }
+}

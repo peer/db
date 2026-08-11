@@ -1,0 +1,18 @@
+{
+  "id": ["xeno.peerdb.org", "STAR_SYSTEM", "G3_CAPSTAN"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "STAR_SYSTEM"] }],
+  "name": [{ "value": "Capstan", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "catalogueCode": "HB-1/014",
+  "description": [
+    {
+      "value": "<p>The nearest catalogued system to the forward station and the one most often used for instrument checks. Five planets crowd the inner orbits, and the innermost two are unreachable in practice because of the flare schedule.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "SECTOR", "G3_BELLWETHER"] },
+  "spectralClass": "M1V",
+  "starCount": { "amount": 1, "precision": 1 },
+  "planetCount": { "amount": 5, "precision": 1 },
+  "distanceFromSol": { "value": { "amount": 191.7, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "PARSEC"] }] },
+  "firstSurveyed": { "time": "2257-01-01T00:00:00Z", "precision": "y" }
+}

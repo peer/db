@@ -1,0 +1,24 @@
+{
+  "id": ["xeno.peerdb.org", "PRACTICE", "G4_PR_NOT_LIVING_IN"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PRACTICE"] }],
+  "name": [{ "value": "Staying, Not Living", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "shethivassa", "gloss": "staying in the cut ice, which is not living in it" }],
+  "description": [
+    {
+      "value": "<p>Nobody may sleep more than two rest periods in the Frost House, and nobody may bring in a culture chamber that is producing. A person found on a third rest is walked out through the nearest of the twelve entrances by whoever finds them, without discussion, and there is no further consequence of any kind: the walk out is the whole of the penalty. Visitors are told the rule on arrival in the form of a statement about what the warren is, rather than as an instruction, and the survey took eleven years to hear it as a prohibition at all. The reason offered is that a place where cultures are held is not a place where cultures are kept, and that this difference is the entire practice. Two fieldworkers have been walked out, both in 2279 and both for the same reason, and both wrote it up as an eviction, which the local account rejects and has explained twice.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>V ledeni rov se sme ostati največ dva počitka; kdor ostane dlje, ga brez besed pospremijo ven.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    }
+  ],
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G4_CU_COLD_STORE"] }],
+  "category": { "id": ["xeno.peerdb.org", "PRACTICE_CATEGORY", "PROHIBITION"] },
+  "periodicity": "standing, and enforced whenever somebody stays a third rest",
+  "participants": {
+    "value": { "from": { "amount": 2, "precision": 1 }, "to": { "amount": 6, "precision": 1 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "firstDocumented": { "time": "2268-01-01T00:00:00Z", "precision": "y" }
+}

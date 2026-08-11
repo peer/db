@@ -1,0 +1,41 @@
+{
+  "id": ["xeno.peerdb.org", "CULTURE", "G4_CU_THAW_ASSEMBLY"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "CULTURE"] }],
+  "name": [{ "value": "Waking Ground Assembly", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [
+    {
+      "value": "Ekkuttanpa",
+      "gloss": "the meeting that was held at the water",
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G4_COM_THAW_TONGUE"] }]
+    }
+  ],
+  "catalogueCode": "CU-2241-06",
+  "description": [
+    {
+      "value": "<p>The only polity this world has had within the period of record: a festival state that constituted itself on the gravel terrace above the meltwater channels in 2241 and dissolved as the channels froze in 2252. It settled warren boundaries, culture stocks, the terms of the coming dormancy and every dispute that had been carried over from the previous thaw two hundred years earlier, and it did so in eleven years of continuous session. Membership was every person awake on the world, and people were still arriving when others had begun to leave. Authority existed only while it sat, and there was no provision at all for continuing anything, so the closing weeks consisted almost entirely of deciding what would be true when nobody was there to maintain it. The Consortium was present for nine of the eleven years, understood a fraction, and has been editing the transcript ever since.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Zbor je zasedal le enajst let med otoplitvijo in ob zmrzali povsem razpadel. Naslednji je predviden za leto 2419.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>A única entidade política que este mundo teve dentro do período de registo: um estado-festival que se constituiu no terraço de cascalho acima dos canais de degelo em 2241 e se dissolveu quando os canais congelaram em 2252. Fixou os limites das tocas, os depósitos de culturas, os termos da dormência que vinha a caminho e todas as disputas transitadas do degelo anterior, duzentos anos antes, e fê-lo em onze anos de sessão contínua. Eram membros todas as pessoas acordadas no mundo, e ainda havia quem estivesse a chegar quando outros já tinham começado a partir. A autoridade só existia enquanto a assembleia estava reunida, e não havia disposição nenhuma para dar continuidade a coisa alguma, pelo que as últimas semanas consistiram quase inteiramente em decidir o que seria verdade quando não houvesse ninguém para o manter. O Consórcio esteve presente em nove dos onze anos, percebeu uma fração e desde então tem andado a editar a transcrição.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "practisedBy": [{ "id": ["xeno.peerdb.org", "SPECIES", "G4_WARREN_SLEEPERS"] }],
+  "presentAt": [{ "id": ["xeno.peerdb.org", "SITE", "G4_WAKING_GROUND"] }],
+  "kinshipSystem": { "id": ["xeno.peerdb.org", "KINSHIP_SYSTEM", "COHIBERNATION_COHORT"] },
+  "socialOrganisation": { "id": ["xeno.peerdb.org", "SOCIAL_ORGANISATION", "FESTIVAL_STATE"] },
+  "subsistence": [
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "MANAGED_DECAY"] },
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "OPPORTUNISTIC_FORAGING"] }
+  ],
+  "communication": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G4_COM_THAW_TONGUE"] }],
+  "population": {
+    "value": { "from": { "amount": 12000, "precision": 100 }, "to": { "amount": 26000, "precision": 100 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "period": { "from": { "time": "2241-01-01T00:00:00Z", "precision": "y" }, "to": { "time": "2252-01-01T00:00:00Z", "precision": "y" } }
+}

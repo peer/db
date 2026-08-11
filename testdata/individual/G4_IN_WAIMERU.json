@@ -1,0 +1,21 @@
+{
+  "id": ["xeno.peerdb.org", "INDIVIDUAL", "G4_IN_WAIMERU"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "INDIVIDUAL"] }],
+  "name": [{ "value": "Waimeru" }],
+  "lineageName": [{ "value": "of the Nineteenth Length" }],
+  "description": [
+    {
+      "value": "<p>Holder of the nineteenth length of the outer wall for the term running from 2304, and the person who has done most to keep the weir order off paper. She refused the survey&#39;s mapping proposal in 2306 on the ground that a drawing outlasts a term and would therefore be a lie within four years, and repeated the refusal at the following low water so that it could not be mistaken for a proposal. She declined to be photographed on the same reasoning, twice, for the same reason. She is otherwise cooperative to a degree that several researchers have found more difficult than the refusals.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "species": { "id": ["xeno.peerdb.org", "SPECIES", "G4_WEIRFOLK"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G4_CU_WEIR_ORDER"] }],
+  "role": [
+    { "value": "wall-length holder", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "term steward", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }
+  ],
+  "formOfAddress": "by length and term, never by personal name",
+  "born": { "time": "2261-01-01T00:00:00Z", "precision": "y" },
+  "birthplace": { "id": ["xeno.peerdb.org", "SITE", "G4_UPPER_MIDDEN"] }
+}

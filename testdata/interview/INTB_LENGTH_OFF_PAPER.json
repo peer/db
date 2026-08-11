@@ -1,0 +1,39 @@
+{
+  "id": ["xeno.peerdb.org", "INTERVIEW", "INTB_LENGTH_OFF_PAPER"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "INTERVIEW"] }],
+  "title": [{ "value": "Waimeru on keeping the weir order off paper", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "description": [
+    {
+      "value": "<p>Interview with a term steward of the nineteenth length on her refusal of the survey&#39;s mapping proposal. Waimeru gives a reason for the refusal that is not the one on file.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "interviewee": [{ "id": ["xeno.peerdb.org", "INDIVIDUAL", "G4_IN_WAIMERU"] }],
+  "interviewer": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_ARAI"] }, { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_VIRTANEN"] }],
+  "recordedAt": { "id": ["xeno.peerdb.org", "SITE", "G4_DRAINING_GROUND"] },
+  "recordedOn": { "time": "2307-06-02T00:00:00Z", "precision": "d" },
+  "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G4_COM_FLAT_CALL"] }],
+  "duration": { "value": { "amount": 96, "precision": 1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "MINUTE"] }] },
+  "content": [
+    {
+      "value": "<p><b>Q.</b> We would like to draw the lengths. It would only be a drawing.</p><p><b>A.</b> A drawing outlasts a term. Mine runs three more years. Your drawing would be a lie in four and a weapon in ten. I said this at the low water and I am saying it again so that it cannot be filed as a proposal I might soften on.</p><p><b>Q.</b> Is the objection to permanence itself?</p><p><b>A.</b> That is what your colleague wrote down and it is a nicer reason than mine.</p><p><b>Q.</b> What is yours?</p><p><b>A.</b> Two corporations at the draining ground held lengths eleven years past their terms by producing a chart a survey left in the sixties and reading it out at every handing on. It took a generation to get the ground back. I am not making a second chart.</p><p><b>Q.</b> Would you name them?</p><p><b>A.</b> I have named them. Write them down. They are not ashamed and neither am I.</p><p><b>Q.</b> You are otherwise very willing.</p><p><b>A.</b> Because the order is in the mouth and the mouth is mine to spend. Ask me anything that dies when I do.</p><p><b>Q.</b> Then: is there anything on the wall you would not want the order to know?</p><p><b>A.</b> The joint cord for forty-one and forty-two was re-knotted after the walk. I did it. The joint failed the walk and I put it right in the record instead of in the wall, and the wall is still wrong, and the next steward will find it in about a year.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "ethics": { "id": ["xeno.peerdb.org", "ETHICS_PROTOCOL", "PROTOCOL_2"] },
+  "consentNote": [
+    {
+      "value": "<p>Waimeru consented to the whole record in speech, twice, on separate days, and refused to sign anything, on the ground that a signature is a drawing of a consent and would outlast the consent. She asked that the last answer be held until her term ends, which it has been.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "clearedReader": ["mock-user-researcher@localhost"],
+  "permission": [
+    { "action": { "id": ["core.peerdb.org", "PERMISSION_ACTIONS", "ACTION_READ"] }, "user": ["mock-user-researcher@localhost"], "scope": ["self"] },
+    {
+      "action": { "id": ["core.peerdb.org", "PERMISSION_ACTIONS", "ACTION_READ_HISTORIC"] },
+      "user": ["mock-user-researcher@localhost"],
+      "scope": ["self"]
+    }
+  ]
+}

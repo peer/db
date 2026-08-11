@@ -1,0 +1,36 @@
+{
+  "id": ["xeno.peerdb.org", "OBSERVATION", "OBSB_WEAVE_SITTING_DAY_NINE"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "OBSERVATION"] }],
+  "title": [
+    { "value": "Ninth day of a weave sitting, with one objection outstanding", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>A sitting of the terrace forest weaves that could not close, and the absent party whose objection can neither stand nor be withdrawn.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "content": [
+    {
+      "value": "<p>22.viii.2297. Ninth day. Objections are stated as slow pulses through the branch structure at roughly one exchange an hour, so the whole sitting to this point holds about two hundred exchanges, which our instruments have and which we can follow at the level of who pulsed and not at the level of what was said.</p><p>Each weave attends as one party however many bodies it has present. Three weaves had withdrawn by the fourth day. The Long Terrace Weave withdrew on the eighth. The remaining objection belongs to the Burnt Half, which has sent nothing at all since 2281.</p><p>The sitting continued. Nobody proposed proceeding without it and nobody proposed waiting for it either; the sitting simply went on at one exchange an hour, and was still going on when we came off the terrace.</p><p>Whether an absence counts as an objection outstanding or as no party at all is the question the fire of 2274 left behind, and it is not ours to settle. We note only that after sixteen years the weaves have not settled it either, and that they do not appear to experience this as a problem requiring a solution.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "expedition": { "id": ["xeno.peerdb.org", "EXPEDITION", "EXP_OVERFALL_TETHER"] },
+  "observedBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_DOYLE"] }, { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_NOWAK"] }],
+  "observedAt": { "id": ["xeno.peerdb.org", "SITE", "G4_TETHER_STUMP"] },
+  "observedOn": { "time": "2297-08-22T00:00:00Z", "precision": "d" },
+  "about": [
+    { "id": ["xeno.peerdb.org", "SPECIES", "G4_CANOPY_WEAVE"] },
+    { "id": ["xeno.peerdb.org", "PRACTICE", "G4_PR_WITHDRAWN_OBJECTION"] },
+    { "id": ["xeno.peerdb.org", "COLLECTIVE", "G4_CO_BURNT_HALF_WEAVE"] }
+  ],
+  "method": [
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "ACOUSTIC_RECORDING"] },
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "REMOTE_SENSING"] }
+  ],
+  "fieldConditions": "Warm and still in the canopy, sensors on four branch runs, the burn scar visible from the upper terrace in clear weather.",
+  "image": [
+    { "value": "/f/7Pg8kEuxSLSGPk4PuvY6Dp", "name": "OBSB_WEAVE_SITTING_DAY_NINE.jpg", "caption": "Taken at the time", "source": "Field record" }
+  ]
+}

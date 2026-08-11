@@ -1,0 +1,25 @@
+{
+  "id": ["xeno.peerdb.org", "COLLECTIVE", "G1_FIRST_HAZE_VALLEY"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "COLLECTIVE"] }],
+  "name": [{ "value": "First Haze Valley", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "description": [
+    {
+      "value": "<p>The lowland on whose rim the first probe stopped in 2244, and the participant from which every general statement about this population is ultimately drawn. It responds as one thing to anything done to any of its bodies, which is the whole of the evidence for treating it as one thing. The ethics file lists it as a participant who has not been asked, and has listed it that way for sixty-eight years.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "species": { "id": ["xeno.peerdb.org", "SPECIES", "G1_UERANAIL"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G1_HAZE_VALLEY_ORDER"] }],
+  "role": [{ "value": "chemical participant", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "memberCount": {
+    "value": { "from": { "amount": 8000, "precision": 10 }, "to": { "amount": 400000, "precision": 10 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "activePeriod": { "from": { "time": "2244-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true },
+  "notes": [
+    {
+      "value": "<p>The member figures are the span of published estimates rather than a count. The honest position, which the summary tables do not print, is that nobody knows the number within a factor of ten.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

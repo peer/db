@@ -1,0 +1,46 @@
+{
+  "id": ["xeno.peerdb.org", "INTERVIEW", "INTA_LONG_DEBT_FORTY_DAY_ACCOUNT"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "INTERVIEW"] }],
+  "title": [
+    { "value": "The Long Debt on drumming an account nobody can receive", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>A session with the upper shelf colony that holds the oldest open obligation on the plateau, on why it restates the account every forty days to a creditor that stopped answering in 2294.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "interviewee": [{ "id": ["xeno.peerdb.org", "COLLECTIVE", "G1_LONG_DEBT"] }],
+  "interviewer": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_ARAI"] }, { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_DOYLE"] }],
+  "recordedAt": { "id": ["xeno.peerdb.org", "SITE", "G1_CANOPY_TETHER"] },
+  "recordedOn": { "time": "2308-04-22T00:00:00Z", "precision": "d" },
+  "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G1_COLUMN_PERCUSSION"] }],
+  "duration": { "value": { "amount": 168, "precision": 1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "MINUTE"] }] },
+  "content": [
+    {
+      "value": "<p><b>Q.</b> You have drummed this account every forty days for fourteen years. What do you expect to happen?</p><p><b>A.</b> Nothing is expected. The account is open, so it is stated. Expectation is a thing you have brought with you.</p><p><b>Q.</b> Do you not find it tiring?</p><p><b>A.</b> You have asked a body. There is no body here that has done it more than four times before being replaced. We are not tired; we are consistent, which is a different arrangement and cheaper.</p><p><b>Q.</b> What is owed?</p><p><b>A.</b> Fall from a cleared stretch, taken in the years before your first party came up, against a return of dressed material that was never made. The figure is in the drumming. You have it on your instrument and you cannot read it.</p><p><b>Q.</b> We have it. Our transcriptions of 2294 and of last year do not agree.</p><p><b>A.</b> No. They would not.</p><p><b>Q.</b> Was the account altered?</p><p><b>A.</b> It was restated once, in the second year of the silence, with a figure we consider correct and did not mark as changed. There was no counterparty to notify. On this shelf a restatement that is not marked is a thing a count may be broken for.</p><p><b>Q.</b> Then why say it to us?</p><p><b>A.</b> Because the silence is fourteen years old and you keep coming back, which between you gives us the only two things a confession requires.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "recording": [
+    {
+      "value": "/f/LDbzmTgQDykN2thJMYeYv2",
+      "name": "interview-INTA_LONG_DEBT_FORTY_DAY_ACCOUNT.mp3",
+      "caption": "Session recording",
+      "duration": { "value": { "amount": 168, "precision": 1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "MINUTE"] }] },
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G1_COLUMN_PERCUSSION"] }]
+    }
+  ],
+  "ethics": { "id": ["xeno.peerdb.org", "ETHICS_PROTOCOL", "PROTOCOL_4"] },
+  "consentNote": [
+    {
+      "value": "<p>The count consented to the record being held under the closest restriction the Consortium operates and named, as the persons who may read it, the two who were present and their successors in the same work. It asked expressly that the restatement not be drummed anywhere on the plateau.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "clearedReader": ["mock-user@localhost"],
+  "permission": [
+    { "action": { "id": ["core.peerdb.org", "PERMISSION_ACTIONS", "ACTION_READ"] }, "user": ["mock-user@localhost"], "scope": ["self"] },
+    { "action": { "id": ["core.peerdb.org", "PERMISSION_ACTIONS", "ACTION_READ_HISTORIC"] }, "user": ["mock-user@localhost"], "scope": ["self"] }
+  ]
+}

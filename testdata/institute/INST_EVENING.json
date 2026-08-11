@@ -1,0 +1,29 @@
+{
+  "id": ["xeno.peerdb.org", "INSTITUTE", "INST_EVENING"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "INSTITUTE"] }],
+  "name": [
+    { "value": "Evening Band Institute", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "Institut Vecernega pasu", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }] }
+  ],
+  "shortName": [{ "value": "Evening Band", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "description": [
+    {
+      "value": "<p>The Consortium&#39;s presence in the dwarf galaxy, run from two pressure modules and a walled yard sited eleven kilometres downwind of the nearest terraces, at a distance that was agreed rather than chosen. It is the acknowledged authority on terminator settlement and on working relationships that have to survive an eleven-year relief cycle. Forty-six people are on its books and six are on the station at any one time.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Edina stalna postojanka konzorcija v pritlikavi galaksiji.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    }
+  ],
+  "founded": { "time": "2249-01-01T00:00:00Z", "precision": "y" },
+  "locatedAt": { "id": ["xeno.peerdb.org", "SITE", "G2_STATION_ONE"] },
+  "staffCount": { "amount": 46, "precision": 1 },
+  "website": ["https://evening-band.ccx.example/"],
+  "notes": [
+    {
+      "value": "<p>Staff whose tours overlap by a fortnight at handover refer to one another, permanently and without irony, as the fortnight.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

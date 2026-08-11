@@ -1,0 +1,30 @@
+{
+  "id": ["xeno.peerdb.org", "ORGANISM", "G2_POOL_MAT"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "ORGANISM"] }],
+  "name": [{ "value": "Warm Pool Vent Mat", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Sunnume" }],
+  "taxonCode": "TX-1131-d",
+  "description": [
+    {
+      "value": "<p>A layered chemosynthetic mat forming wherever hot vent water crosses gravel in the substellar sea, banded orange, black and white in the order the chemistry demands. Beds tended for a long time grow into regular rectangles visible from a raft on a calm day. Untended mats occur throughout the vent field and are thin, patchy and much less productive.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Um tapete quimiossintético estratificado que se forma sempre que a água quente das fontes atravessa cascalho no mar subestelar, com faixas laranja, pretas e brancas pela ordem que a química impõe. Os canteiros cuidados durante muito tempo crescem em retângulos regulares, visíveis de uma jangada num dia calmo. Há tapetes não cuidados por todo o campo de fontes, finos, irregulares e muito menos produtivos.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "category": { "id": ["xeno.peerdb.org", "ORGANISM_CATEGORY", "CHEMOLITHO_MAT"] },
+  "foundOn": [{ "id": ["xeno.peerdb.org", "PLANET", "G2_NINE_TERRACE"] }],
+  "biome": [{ "id": ["xeno.peerdb.org", "BIOME", "VENT_FIELD"] }],
+  "typicalSize": { "value": { "amount": 2.4, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+  "typicalMass": { "value": { "amount": 40.0, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "kg"] }] },
+  "image": [
+    {
+      "value": "/f/1ieag9o7ne3qw75CzsFsar",
+      "name": "G2_POOL_MAT.jpg",
+      "caption": "Field plate",
+      "source": "Drawn in the field; Consortium collection"
+    }
+  ]
+}

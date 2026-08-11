@@ -1,0 +1,23 @@
+{
+  "id": ["xeno.peerdb.org", "SITE", "G3_DRAIN_TERRACES"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SITE"] }],
+  "name": [{ "value": "Drain Terraces", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "localName": [{ "value": "Oueranu" }],
+  "description": [
+    {
+      "value": "<p>Sixty stepped basins cut into the upper flat behind a retaining wall, each holding water at a different level and colour, with controlled spill from one to the next. They fill on the flood and are worked as the tide falls. What is being grown, settled or fermented in them has been described in four reports and named in none.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "REGION", "G3_LONG_DRAIN"] },
+  "siteType": { "id": ["xeno.peerdb.org", "SITE_TYPE", "TERRACE_COMPLEX"] },
+  "gridReference": "SW-113.4/-03.6",
+  "population": {
+    "value": { "from": { "amount": 150, "precision": 10 }, "to": { "amount": 700, "precision": 10 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "occupation": { "from": { "time": "2265-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true },
+  "image": [
+    { "value": "/f/PvEaYpMVs5iTXybqrTzArh", "name": "G3_DRAIN_TERRACES.jpg", "caption": "General view", "source": "Consortium survey archive" }
+  ]
+}

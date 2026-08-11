@@ -1,0 +1,33 @@
+{
+  "id": ["xeno.peerdb.org", "OBSERVATION", "OBSA_DAWN_DRAW_TIMINGS"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "OBSERVATION"] }],
+  "title": [
+    { "value": "Eleven mornings of timings at the head of the second deep basin", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>The dawn draw recorded on eleven consecutive mornings, with the reading timed, the vessels counted and the intervals logged. Nobody objected at the basin on any of the eleven.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "content": [
+    {
+      "value": "<p>Eleven consecutive mornings at the head of the second deep basin, from the clerk&#39;s arrival to the covering and weighting.</p><p>The reading runs between six and nine minutes including the expiry scratch, and begins whether or not anybody has come. On two mornings nobody had, and on both the clerk read the whole tablet to the basin.</p><p>Mean interval between households at the draw was fifty-one seconds. Everything was finished about eighty minutes before the star stood a hand above the horizon, after which the ground was empty and stayed empty.</p><p>On the fourth morning the last household in the order took nothing, there being nothing left, and went away without any exchange at all. Its members were at the clerk&#39;s door that afternoon, as the arrangement provides, and we are told the objection was not accepted onto the next tablet. Nobody involved treated the morning as unjust. We are recording that we do not understand this rather than that it did not happen.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "expedition": { "id": ["xeno.peerdb.org", "EXPEDITION", "EXP_LEDGER_ALLOCATION"] },
+  "observedBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_NOWAK"] }, { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_HADDAD"] }],
+  "observedAt": { "id": ["xeno.peerdb.org", "SITE", "G1_EVAPORITE_WORKINGS"] },
+  "observedOn": { "time": "2279-04-17T00:00:00Z", "precision": "d" },
+  "about": [
+    { "id": ["xeno.peerdb.org", "PRACTICE", "G1_DAWN_DRAW"] },
+    { "id": ["xeno.peerdb.org", "CULTURE", "G1_BASIN_WATER_ORDER"] },
+    { "id": ["xeno.peerdb.org", "SPECIES", "G1_AOLEIARU"] }
+  ],
+  "method": [
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "PARTICIPANT_OBSERVATION"] },
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "ARCHIVAL_COMPARISON"] }
+  ],
+  "fieldConditions": "The hour before dawn, cold, ochre dust in the air from the cuts on eight of the eleven mornings. Between forty and ninety households at the basin head each day."
+}

@@ -1,0 +1,29 @@
+{
+  "id": ["xeno.peerdb.org", "ARTIFACT", "G3_FIRST_STAGE_BOWL"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "ARTIFACT"] }],
+  "name": [{ "value": "Stage Bowl", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Oarima-nue", "gloss": "the bowl the share is opened into" }],
+  "accessionCode": "CCX-A-31059",
+  "description": [
+    {
+      "value": "<p>A wide shallow bowl of fired silt with a rolled rim, made too thin to carry anything heavy and used only to hold the first portion out of an opened pit. The inside is glazed by repeated contact with the culture and has taken on a dull sheen that cannot be reproduced with any material the laboratory has tried. Bowls of this form are not used for anything else, are not stored with ordinary vessels, and are broken when a household divides, half going with each ferment. This one is intact, which means it came from a household that has not divided since it was made.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "category": { "id": ["xeno.peerdb.org", "ARTIFACT_CATEGORY", "VESSEL_CEREMONIAL"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G3_FERMENT_HOUSEHOLDS"] }],
+  "foundAt": { "id": ["xeno.peerdb.org", "SITE", "G3_DRAIN_TERRACES"] },
+  "material": [
+    { "value": "fired silt", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "culture glaze", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }
+  ],
+  "dimension": [
+    { "value": { "amount": 0.27, "precision": 0.001 }, "axis": "diameter", "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+    { "value": { "amount": 0.11, "precision": 0.001 }, "axis": "height", "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] }
+  ],
+  "dateMade": { "time": "2276-01-01T00:00:00Z", "precision": "y" },
+  "collectedBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_TRAN"] }],
+  "image": [
+    { "value": "/f/BveteK6Q4jWTcSA9cZeoGs", "name": "G3_FIRST_STAGE_BOWL.jpg", "caption": "Object drawing", "source": "Consortium collection" }
+  ]
+}

@@ -1,0 +1,47 @@
+{
+  "id": ["xeno.peerdb.org", "CULTURE", "G2_BED_HALVES"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "CULTURE"] }],
+  "name": [{ "value": "Bed Halves", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [
+    {
+      "value": "Sessumene",
+      "gloss": "the crossing over, naming the rule rather than the people",
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G2_BED_FIELD"] }]
+    }
+  ],
+  "catalogueCode": "CU-2266-12",
+  "description": [
+    {
+      "value": "<p>The ring of vent-fed shallows around the substellar sea is divided into tended mat beds, and the population into two halves inherited through the mother. No bed may be tended by anyone of the half that grew it, so every meal in the population crosses the divide before it is eaten, and a bed that has been worked for two centuries is visible from the surface as a bright regular patch. Tending is plumbing rather than fishing: gravel channels are cut and packed to steer hot flow across a bed, and the skill is in the flow. The gut symbionts that make vent chemistry edible are inherited with the milk and can be assayed, and the assay agrees with the stated genealogy about four times in five. The discipline has argued about that fifth case since 2277 and the Shesumme continue to regard it as a question about the assay.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Nihče ne sme oskrbovati grede, ki jo je vzgojila njegova polovica, zato vsak obrok prečka delitev.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>O anel de baixios alimentados por fontes em torno do mar subestelar está dividido em canteiros de tapetes tratados, e a população em duas metades herdadas por via materna. Nenhum canteiro pode ser tratado por alguém da metade que o criou, pelo que todas as refeições desta população atravessam a divisão antes de serem comidas, e um canteiro trabalhado durante dois séculos vê-se da superfície como uma mancha clara e regular. Tratar é canalizar e não pescar: abrem-se e calcam-se canais de cascalho para dirigir o fluxo quente através de um canteiro, e a perícia está no fluxo. Os simbiontes intestinais que tornam comestível a química das fontes herdam-se com o leite e podem ser analisados, e a análise concorda com a genealogia declarada cerca de quatro vezes em cinco. A disciplina discute o quinto caso desde 2277 e os Shesumme continuam a considerá-lo uma questão sobre a análise.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "practisedBy": [{ "id": ["xeno.peerdb.org", "SPECIES", "G2_SHESUMME"] }],
+  "presentAt": [{ "id": ["xeno.peerdb.org", "SITE", "G2_STATION_THREE"] }],
+  "kinshipSystem": { "id": ["xeno.peerdb.org", "KINSHIP_SYSTEM", "SYMBIONT_SHARING"] },
+  "socialOrganisation": { "id": ["xeno.peerdb.org", "SOCIAL_ORGANISATION", "MATRILINEAL_MOIETIES"] },
+  "subsistence": [
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "CHEMO_TENDING"] },
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "COLONY_GRAZING"] }
+  ],
+  "communication": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G2_BED_FIELD"] }],
+  "population": {
+    "value": { "from": { "amount": 900, "precision": 100 }, "to": { "amount": 2400, "precision": 100 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "period": { "from": { "time": "2266-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true },
+  "notes": [
+    {
+      "value": "<p>The culture is catalogued from the raft, because the raft is as close as anyone has been. Every figure in this entry was obtained by lowering something.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "id": ["xeno.peerdb.org", "BIOME", "ENDOLITH_ZONE"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "BIOME"] }],
+  "name": [
+    { "value": "Endolithic crust zone", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "Endolitska cona", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }] },
+    { "value": "Zona de crosta endolítica", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>Life inhabiting pore space and fracture surfaces inside rock, from a few metres down to the temperature limit. Excludes surface crusts and biofilms, which belong to the biome above them.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Življenje v porah in razpokah kamnine, od nekaj metrov globine do temperaturne meje.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Vida que habita os poros e as superfícies de fratura no interior da rocha, desde alguns metros de profundidade até ao limite de temperatura. Exclui crostas e biofilmes de superfície, que pertencem ao bioma acima deles.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "code": ["endolith"]
+}

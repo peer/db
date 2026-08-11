@@ -1,0 +1,33 @@
+{
+  "id": ["xeno.peerdb.org", "PUBLICATION", "PUB_GREETING_ERROR"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PUBLICATION"] }],
+  "title": [
+    {
+      "value": "Standing to Meet: The Top-Tide Greeting, the Twelve Months That Followed From Mistaking It, and a Revised Protocol for First Exchanges",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "doi": "10.5281/xeno.2259.0007",
+  "abstract": [
+    {
+      "value": "<p>The greeting exchanged when grazing circuits meet the weir households at top tide is not a salutation but a declaration of how long the visiting party intends to stand still. Reading it as a salutation, the survey undertook to remain in position for a full circuit year and was held to that undertaking, politely, by everybody present. We set out the structure of the greeting, the three positions it distinguishes, and the point at which our own error became visible to us. A revised protocol for first exchanges follows, whose central rule is that the first utterance of any encounter should be treated as a commitment until shown otherwise.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "author": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_REYES"] }, { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_HALVORSEN"] }],
+  "journal": "Journal of Xenoanthropological Method",
+  "publishedOn": { "time": "2259-09-01T00:00:00Z", "precision": "m" },
+  "about": [
+    { "id": ["xeno.peerdb.org", "CULTURE", "G1_TOP_TIDE_MEET"] },
+    { "id": ["xeno.peerdb.org", "PRACTICE", "G1_TOP_TIDE_GREETING"] },
+    { "id": ["xeno.peerdb.org", "SPECIES", "G1_WANASELU"] }
+  ],
+  "cites": [{ "id": ["xeno.peerdb.org", "PUBLICATION", "PUB_WEIR_ALLOCATION"] }, { "id": ["xeno.peerdb.org", "PUBLICATION", "PUB_FERMENT_LINEAGE"] }],
+  "document": [{ "value": "/f/BWHmfTHXbNLtcreMFvArde", "name": "PUB_GREETING_ERROR.pdf", "caption": "Author's accepted manuscript" }],
+  "notes": [
+    {
+      "value": "<p>The lost year is now the standard teaching case in first-contact training, which the authors have described in correspondence as a punishment out of all proportion to a grammatical error.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

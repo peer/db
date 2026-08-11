@@ -1,0 +1,35 @@
+{
+  "id": ["xeno.peerdb.org", "OBSERVATION", "OBSA_SOURING_PIT_SECOND_TURN"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "OBSERVATION"] }],
+  "title": [{ "value": "Turning a souring pit with the children who turn it", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "description": [
+    {
+      "value": "<p>The second turn of a burrower pit behind the middle arc, including the tasting the children are made to do. We were told plainly when we were wrong.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "content": [
+    {
+      "value": "<p>Second turn of a pit behind the middle arc, between the second and third tides. The pit is lined with split lashing weed blade, layered with crushed salt crust and weighted with a flat stone.</p><p>Turning is children&#39;s work and it is where children are taught. Four were at this pit, by our estimate between six and eleven local years. Each tasted from the top layer and said whether it was ready. Three said not ready and were told they were right. One said ready and was told plainly and at length that she was wrong, and did not appear to mind.</p><p>One of us tasted and said ready. The correction came from the eleven-year-old, at the same length, and the eleven-year-old was right.</p><p>The sign everybody learns first is the pit that smells of nothing at all, which has gone too far and is emptied onto the flats without comment. We could not detect it. Our sampling shows a real fall in volatiles in the one over-run pit we were shown, so the sign is there and it is our noses that are the difficulty.</p><p>The net houses run the same pits on a shorter term and hold that the lodges leave theirs too long. The lodges hold the reverse. Neither has ever proposed doing anything about it, and both raised it with us inside an hour.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "expedition": { "id": ["xeno.peerdb.org", "EXPEDITION", "EXP_NINE_TERRACE_TIDE"] },
+  "observedBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_FARAHANI"] }, { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_TRAN"] }],
+  "observedAt": { "id": ["xeno.peerdb.org", "SITE", "G2_HIGH_WEIR"] },
+  "observedOn": { "time": "2301-07-19T00:00:00Z", "precision": "d" },
+  "about": [
+    { "id": ["xeno.peerdb.org", "PRACTICE", "G2_BURROWER_SOUR"] },
+    { "id": ["xeno.peerdb.org", "ORGANISM", "G2_WEIR_BURROWER"] },
+    { "id": ["xeno.peerdb.org", "CULTURE", "G2_NET_HOUSES"] }
+  ],
+  "method": [
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "PARTICIPANT_OBSERVATION"] },
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "AUTOETHNOGRAPHY"] },
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "MATERIAL_SAMPLING"] }
+  ],
+  "fieldConditions": "Bright and cold on the second bench, wind onshore, the flats out to the horizon. Nine adults working the pits and four children turning them.",
+  "image": [
+    { "value": "/f/Uvg6hojwFv19U8QXwUSKmx", "name": "OBSA_SOURING_PIT_SECOND_TURN.jpg", "caption": "Taken at the time", "source": "Field record" }
+  ]
+}

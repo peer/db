@@ -1,0 +1,65 @@
+{
+  "id": ["xeno.peerdb.org", "SPECIES", "G1_ELMASHELU"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SPECIES"] }],
+  "name": [{ "value": "Anchor Terrace Households", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [
+    {
+      "value": "Elmashelu",
+      "gloss": "the households on the high edge",
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G1_FLATS_SPEECH"] }]
+    }
+  ],
+  "exonym": [{ "value": "Halumeshi, a weirfolk word meaning the ones who watch", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "taxonCode": "TX-1207-b",
+  "description": [
+    {
+      "value": "<p>The people of the built edge above the flats, who grow and ferment rather than trap, and who have never in the record gone down to the weirs to work. Their terraces take silt from the top of each tide, hold it behind stone, and pass water down through a sequence of beds that ends in the fermentation pits. A house is a corporate thing here: it holds the terrace, the name and the pit culture as one estate, and outlives every member by centuries. Visitors notice the smell before the architecture, and are told, correctly, that it is the sound of the economy working. Where the discipline divides is on whether the terraces are owned by the houses at all or held by them in trust for the flats below, which is not a distinction the Elmashelu themselves find useful.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Gospodinjstva na zgornjem robu blatišč, ki hrano pridelujejo na terasah in v gnilnih jamah.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    }
+  ],
+  "homeworld": { "id": ["xeno.peerdb.org", "PLANET", "G1_HOLLIS_III"] },
+  "bodyPlan": [
+    {
+      "value": "<p>Upright and long-backed, with the same six-limbed plan as the flats people but the lower working pair reduced to a stiff pair of props used for kneeling at a bed. The hide is dry, matt and slate-coloured, and the young are lighter than the old by a shade that is read as an age grade whether or not it is meant as one. They eat only what has been through a pit, and a household that loses its culture is understood to have lost its ability to eat rather than merely its recipes.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "typicalHeight": { "value": { "amount": 1.72, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+  "typicalMass": { "value": { "amount": 66.0, "precision": 0.1 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "kg"] }] },
+  "lifespan": {
+    "value": { "from": { "amount": 50, "precision": 1 }, "to": { "amount": 102, "precision": 1 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_YEAR"] }]
+  },
+  "sensoryModality": [
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "HYGRORECEPTION"] },
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "CONTACT_CHEMO"] },
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "POLARISED_VISION"] }
+  ],
+  "subsistence": [
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "SILT_GARDENING"] },
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "MANAGED_DECAY"] }
+  ],
+  "individuality": { "id": ["xeno.peerdb.org", "INDIVIDUALITY_MODE", "BOUNDED"] },
+  "contestedIndividuality": { "id": ["xeno.peerdb.org", "INDIVIDUALITY_MODE", "SEASONAL_COLLECTIVE"] },
+  "socialOrganisation": { "id": ["xeno.peerdb.org", "SOCIAL_ORGANISATION", "LINEAGE_HOUSES"] },
+  "kinshipSystem": { "id": ["xeno.peerdb.org", "KINSHIP_SYSTEM", "UNILINEAL_DESCENT"] },
+  "communication": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G1_FLATS_SPEECH"] }],
+  "population": {
+    "value": { "from": { "amount": 700000, "precision": 1000 }, "to": { "amount": 1100000, "precision": 1000 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "contactStatus": { "id": ["xeno.peerdb.org", "CONTACT_STATUS", "SUSTAINED"] },
+  "firstContact": { "time": "2221-01-01T00:00:00Z", "precision": "y" },
+  "image": [
+    {
+      "value": "/f/KtwoFxhRnTVnEDgqamXowg",
+      "name": "G1_ELMASHELU.jpg",
+      "caption": "Field plate",
+      "source": "Drawn in the field; Consortium collection"
+    }
+  ]
+}

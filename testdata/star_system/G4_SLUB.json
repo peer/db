@@ -1,0 +1,18 @@
+{
+  "id": ["xeno.peerdb.org", "STAR_SYSTEM", "G4_SLUB"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "STAR_SYSTEM"] }],
+  "name": [{ "value": "Slub", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "catalogueCode": "SPW-A/123",
+  "description": [
+    {
+      "value": "<p>A wide binary whose components are separated by three hundred and eighty astronomical units, with five planets on orbits the stream encounter appears to have stirred badly. One of them takes four hundred years to go round and spends most of that time out beyond the ice.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "SECTOR", "G4_LONG_STREAM"] },
+  "spectralClass": "F9V+M3V",
+  "starCount": { "amount": 2, "precision": 1 },
+  "planetCount": { "amount": 5, "precision": 1 },
+  "distanceFromSol": { "value": { "amount": 742.0, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "PARSEC"] }] },
+  "firstSurveyed": { "time": "2237-01-01T00:00:00Z", "precision": "y" }
+}

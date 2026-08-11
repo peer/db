@@ -1,0 +1,35 @@
+{
+  "id": ["xeno.peerdb.org", "PUBLICATION", "PUB_WEIR_GRADES_QUIET"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PUBLICATION"] }],
+  "title": [
+    {
+      "value": "The Quiet of a Grade: Nine-Year Silences, Wall Walking and the Deliberate Non-Use of Productive Weirs on Sweepwater",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "doi": "10.5281/xeno.2292.0011",
+  "abstract": [
+    {
+      "value": "<p>Weir grades on the Long Drain are periodically declared quiet and left unworked for nine tidal years, during which the wall is still walked, sounded and repaired but nothing is taken from it. We compare silt accumulation and crawler density across eleven quiet and fourteen worked grades and find no productive advantage to the practice on any measure available to us. The grade holders, asked directly, said that a grade which has never been quiet cannot be spoken for. We record the practice as a tenure institution rather than a management one and note that our instruments were answering a question nobody had asked.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "author": [
+    { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_OKONKWO"] },
+    { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_NOWAK"] },
+    { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_PETROVA"] }
+  ],
+  "journal": "Long-Duration Field Reports",
+  "publishedOn": { "time": "2292-02-01T00:00:00Z", "precision": "m" },
+  "about": [
+    { "id": ["xeno.peerdb.org", "SPECIES", "G3_MAUNUWA"] },
+    { "id": ["xeno.peerdb.org", "CULTURE", "G3_WEIR_GRADES"] },
+    { "id": ["xeno.peerdb.org", "PRACTICE", "G3_NINE_YEARS_QUIET"] }
+  ],
+  "cites": [
+    { "id": ["xeno.peerdb.org", "PUBLICATION", "PUB_WEIR_ALLOCATION"] },
+    { "id": ["xeno.peerdb.org", "PUBLICATION", "PUB_STANDING_CROP"] },
+    { "id": ["xeno.peerdb.org", "PUBLICATION", "PUB_STRIP_STEWARDSHIP"] }
+  ],
+  "document": [{ "value": "/f/4g2ocGseJidF2eghUUTeNJ", "name": "PUB_WEIR_GRADES_QUIET.pdf", "caption": "Author's accepted manuscript" }]
+}

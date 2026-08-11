@@ -1,0 +1,21 @@
+{
+  "id": ["xeno.peerdb.org", "INDIVIDUAL", "G3_AUWENU"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "INDIVIDUAL"] }],
+  "name": [{ "value": "Auwenu" }],
+  "lineageName": [{ "value": "Ounarei" }],
+  "description": [
+    {
+      "value": "<p>Speaks for her cohort on wall matters, which means she is the person who says out loud what the grade has already settled and takes the blame if the wall goes. Her section held through the 2301 surge, which she attributes to the section and not to the grade, and which the grade attributes to her. Asked for a photograph, she declined and said that the wall could be photographed instead, which the expedition did.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "species": { "id": ["xeno.peerdb.org", "SPECIES", "G3_MAUNUWA"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G3_WEIR_GRADES"] }],
+  "role": [
+    { "value": "wall holder", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "grade speaker", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }
+  ],
+  "formOfAddress": "by grade and then name, the grade first",
+  "born": { "time": "2270-01-01T00:00:00Z", "precision": "y" },
+  "birthplace": { "id": ["xeno.peerdb.org", "SITE", "G3_LOWER_MIDDEN"] }
+}

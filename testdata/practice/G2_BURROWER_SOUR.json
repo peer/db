@@ -1,0 +1,29 @@
+{
+  "id": ["xeno.peerdb.org", "PRACTICE", "G2_BURROWER_SOUR"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PRACTICE"] }],
+  "name": [{ "value": "Souring the Burrowers", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Nesshumme", "gloss": "the sour work" }],
+  "description": [
+    {
+      "value": "<p>Burrowers taken behind the arcs are not eaten as they come up; raw, they will empty a person for three days. They go into pits lined with split lashing weed blade, layered with crushed salt crust, weighted with a flat stone and left for three tides, and the pit is turned once between the second and the third. Turning is children&#39;s work, and it is where children are taught: they are made to taste from the top layer at each turn and to say whether it is ready, and are told plainly when they are wrong, which for the first two years is most of the time. A pit that has gone too far smells of nothing at all, which is the sign everyone learns first, and it is emptied onto the flats without comment. Net houses run the same pits with a shorter term and hold that the weir builders leave theirs too long, and the weir builders hold the reverse, and neither has ever proposed doing anything about it.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Črve kisajo v jamah iz razcepljenih listov in soli; obračanje in pokušanje je delo otrok.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Os escavadores apanhados atrás dos arcos não se comem tal como saem; crus, esvaziam uma pessoa durante três dias. Vão para covas forradas com lâminas fendidas de alga de amarração, dispostos em camadas com crosta de sal esmagada, prensados com uma pedra chata e deixados por três marés, e a cova é revolvida uma vez entre a segunda e a terceira. Revolver é trabalho de crianças, e é aí que as crianças aprendem: obrigam-nas a provar da camada de cima em cada revolvimento e a dizer se está pronto, e dizem-lhes claramente quando se enganam, o que nos primeiros dois anos é quase sempre. Uma cova que passou do ponto não cheira absolutamente a nada, sinal que toda a gente aprende primeiro, e é despejada nas planícies sem comentários. As casas de redes fazem as mesmas covas com um prazo mais curto e sustentam que os construtores de açudes deixam as suas demasiado tempo, e os construtores de açudes sustentam o contrário, e nenhum dos dois alguma vez propôs fazer alguma coisa quanto a isso.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G2_ARC_LODGES"] }, { "id": ["xeno.peerdb.org", "CULTURE", "G2_NET_HOUSES"] }],
+  "category": { "id": ["xeno.peerdb.org", "PRACTICE_CATEGORY", "FOOD_PREPARATION"] },
+  "periodicity": "after every working of the arcs, so twice a cycle",
+  "participants": {
+    "value": { "from": { "amount": 3, "precision": 1 }, "to": { "amount": 14, "precision": 1 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "firstDocumented": { "time": "2257-01-01T00:00:00Z", "precision": "y" },
+  "image": [{ "value": "/f/GyiLKCPvwuMCJ4iGuzbKnV", "name": "G2_BURROWER_SOUR.jpg", "caption": "In progress", "source": "Consortium survey archive" }]
+}

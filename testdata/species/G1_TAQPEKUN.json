@@ -1,0 +1,66 @@
+{
+  "id": ["xeno.peerdb.org", "SPECIES", "G1_TAQPEKUN"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SPECIES"] }],
+  "name": [{ "value": "Kutak Basin People", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [
+    { "value": "Taqpekun", "gloss": "the basin-holders", "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G1_BELLS_SPEECH"] }] }
+  ],
+  "exonym": [
+    { "value": "Petqamun, in the ocean-world speech, meaning the dry cousins", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }
+  ],
+  "taxonCode": "TX-1709-c",
+  "description": [
+    {
+      "value": "<p>Basin dwellers of a dune world lit by two suns, who keep to the white brine pans where the wind drops and the dunes take a decade to arrive. Once or twice in a life an adult divides, over about a month, into two continuing selves, each of whom remembers everything up to the split as their own doing and neither of whom is the elder. Names are a fixed and finite set, held in trust between the households, so the interesting part of a division is not the biology but the meeting at which the two selves settle which of them keeps the name and which takes an empty one. There is no standing authority between meetings: the assembly at the aggregation ground is the whole of the polity and it dissolves when the ground empties. Field staff report that the division is treated with about the ceremony of a house move, and that the Consortium&#39;s interest in it is regarded as slightly prurient.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "homeworld": { "id": ["xeno.peerdb.org", "PLANET", "G1_TWELVE_BELLS_II"] },
+  "bodyPlan": [
+    {
+      "value": "<p>Upright, narrow and doubled through the trunk, with two pairs of limbs mounted on two nearly independent body halves that share a single head until they do not. The integument is a fine cream plate that darkens along the seam in the months before a division. They eat almost nothing raw, working brine-pan growth through a sequence of buried jars, and a household is measured by the number of jars it can keep alive through a bad year.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "typicalHeight": { "value": { "amount": 1.68, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+  "typicalMass": { "value": { "amount": 63.0, "precision": 0.1 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "kg"] }] },
+  "lifespan": {
+    "value": { "from": { "amount": 60, "precision": 1 }, "to": { "amount": 130, "precision": 1 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_YEAR"] }]
+  },
+  "sensoryModality": [
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "POLARISED_VISION"] },
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "HYGRORECEPTION"] },
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "CONTACT_CHEMO"] }
+  ],
+  "subsistence": [
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "MANAGED_DECAY"] },
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "OPPORTUNISTIC_FORAGING"] },
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "TRADE_DEPENDENCY"] }
+  ],
+  "individuality": { "id": ["xeno.peerdb.org", "INDIVIDUALITY_MODE", "FISSIONING"] },
+  "contestedIndividuality": { "id": ["xeno.peerdb.org", "INDIVIDUALITY_MODE", "PERMANENT_COLLECTIVE"] },
+  "socialOrganisation": { "id": ["xeno.peerdb.org", "SOCIAL_ORGANISATION", "FESTIVAL_STATE"] },
+  "kinshipSystem": { "id": ["xeno.peerdb.org", "KINSHIP_SYSTEM", "NAME_INHERITANCE"] },
+  "communication": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G1_BELLS_SPEECH"] }],
+  "population": {
+    "value": { "from": { "amount": 40000, "precision": 1000 }, "to": { "amount": 90000, "precision": 1000 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "contactStatus": { "id": ["xeno.peerdb.org", "CONTACT_STATUS", "LIMITED"] },
+  "firstContact": { "time": "2233-01-01T00:00:00Z", "precision": "y" },
+  "image": [
+    {
+      "value": "/f/TsqjkFfXrMJ6Cznh4WbW1j",
+      "name": "G1_TAQPEKUN.jpg",
+      "caption": "Field plate",
+      "source": "Drawn in the field; Consortium collection"
+    }
+  ],
+  "notes": [
+    {
+      "value": "<p>The record holds one division in which neither self would take the name. It has stood empty since 2244 and is still read out in its place at every gathering.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

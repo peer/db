@@ -1,0 +1,30 @@
+{
+  "id": ["xeno.peerdb.org", "PRACTICE", "G1_WALL_HANDOVER"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PRACTICE"] }],
+  "name": [{ "value": "Handing On a Wall", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Ulun Nera", "gloss": "the wall turns, said of the duty and never of the water" }],
+  "description": [
+    {
+      "value": "<p>At the last low water of a turn the outgoing hearth walks its whole stretch with the incoming one, from the landward marker to the far end and back. They stop at every breach and at every place where the stacking has slumped, and the outgoing hearth rebuilds it there and then while the incoming hearth stands and watches without helping. At the far end the coil of lashing cord is passed across, with the used lengths on the outside so that their condition is visible. Nothing whatever is said about the catch, which belongs to whoever is standing over it when the water goes, and a hearth that mentions the catch during a handover has said something rude. That evening the incoming hearth eats at the outgoing hearth&#39;s fire, and this is the only part of it anybody looks forward to.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Ob zadnji oseki svojega obdobja odhajajoče ognjišče prehodi ves zid z novim in mu preda vrvi.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Na última baixa-mar de um turno, a lareira que sai percorre todo o seu troço com a que entra, do marco de terra até ao extremo mais distante e de volta. Param em cada brecha e em cada ponto onde o empilhamento cedeu, e a lareira que sai reconstrói ali mesmo enquanto a que entra fica a ver sem ajudar. No extremo mais distante passa-se o rolo de corda de amarração, com os troços já usados por fora, para que o seu estado esteja à vista. Sobre a pesca não se diz absolutamente nada, pois ela pertence a quem estiver por cima dela quando a água se retira, e uma lareira que mencione a pesca durante uma passagem de testemunho disse uma grosseria. Nessa noite a lareira que entra come ao lume da que sai, e esta é a única parte de tudo isto por que alguém anseia.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G1_WEIR_ROTA"] }],
+  "category": { "id": ["xeno.peerdb.org", "PRACTICE_CATEGORY", "CALENDRICAL"] },
+  "periodicity": "at the last low water of a turn, roughly every forty days",
+  "participants": {
+    "value": { "from": { "amount": 4, "precision": 1 }, "to": { "amount": 30, "precision": 1 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "firstDocumented": { "time": "2231-01-01T00:00:00Z", "precision": "y" },
+  "relatedPractice": [{ "id": ["xeno.peerdb.org", "PRACTICE", "G1_CORD_READING"] }],
+  "image": [{ "value": "/f/8diicteSQeeZx1mmhq26UL", "name": "G1_WALL_HANDOVER.jpg", "caption": "In progress", "source": "Consortium survey archive" }]
+}

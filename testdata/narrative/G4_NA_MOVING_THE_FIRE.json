@@ -1,0 +1,39 @@
+{
+  "id": ["xeno.peerdb.org", "NARRATIVE", "G4_NA_MOVING_THE_FIRE"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "NARRATIVE"] }],
+  "title": [{ "value": "How the Fire Is Moved", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [
+    {
+      "value": "sesshavathoni",
+      "gloss": "the going over of the fires, said in order",
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G4_COM_MARCH_SPEECH"] }]
+    }
+  ],
+  "description": [
+    {
+      "value": "<p>An instruction chant setting out the order of a refounding, from the taking down of the mats to the lighting of the first fire, in the sequence in which authority is held. It is chanted while walking and is timed to the pace of a loaded adult, so a household that has to hurry loses the metre and the order with it.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "genre": { "id": ["xeno.peerdb.org", "NARRATIVE_GENRE", "INSTRUCTION_CHANT"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G4_CU_HEARTH_CIRCUIT"] }],
+  "recordedBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_VASILAKIS"] }, { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_HALVORSEN"] }],
+  "recordedAt": { "id": ["xeno.peerdb.org", "SITE", "G4_WALKING_HEARTHS"] },
+  "recordedOn": { "time": "2277-01-01T00:00:00Z", "precision": "y" },
+  "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G4_COM_MARCH_SPEECH"] }],
+  "content": [
+    {
+      "value": "<p>Take the mat down before the pot. Take the pot down before the screen. The screen stays. You do not take the screen. You have never taken the screen.</p><p>The one holding the term lifts last and lays last and sleeps cold, and complains about it, and the complaint is part of the lifting.</p><p>The coals go in the bowl and the bowl goes in the hands of the one who can carry nothing else. Do not put the bowl down. Do not put the bowl down. Do not put the bowl down between the old fire and the new one.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "recording": [
+    {
+      "value": "/f/NM9VWpDZLpe8u6sYm962VW",
+      "name": "narrative-G4_NA_MOVING_THE_FIRE.mp3",
+      "caption": "Performance, recorded on site",
+      "duration": { "value": { "amount": 10, "precision": 1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "MINUTE"] }] },
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G4_COM_MARCH_SPEECH"] }]
+    }
+  ]
+}

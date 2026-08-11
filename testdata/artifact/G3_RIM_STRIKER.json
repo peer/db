@@ -1,0 +1,32 @@
+{
+  "id": ["xeno.peerdb.org", "ARTIFACT", "G3_RIM_STRIKER"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "ARTIFACT"] }],
+  "name": [{ "value": "Slab Striker", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "accessionCode": "CCX-A-31071",
+  "description": [
+    {
+      "value": "<p>A dense graphite head on a short bound haft, found lying on a slab at the signal ring and left there for two visits before it was collected. The head is worn flat on one face and chipped on the opposite one, which suggests it is struck in only one orientation, and the haft is bound in a way that puts the mass well forward. Nobody has ever seen one in use, since the survey has not been present at a convergence. It is catalogued as an instrument on the reasoning that it makes a sound at a ring of slabs that is made to ring, which the review panel accepted without much enthusiasm.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "category": { "id": ["xeno.peerdb.org", "ARTIFACT_CATEGORY", "INSTRUMENT"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G3_RIM_CONVERGENCE"] }],
+  "foundAt": { "id": ["xeno.peerdb.org", "SITE", "G3_RIM_DRUM_GROUND"] },
+  "material": [
+    { "value": "dense graphite", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "bound fibre haft", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }
+  ],
+  "dimension": [
+    { "value": { "amount": 0.52, "precision": 0.001 }, "axis": "length", "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+    { "value": { "amount": 0.09, "precision": 0.001 }, "axis": "thickness", "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] }
+  ],
+  "dateMade": { "time": "2280-01-01T00:00:00Z", "precision": "10y" },
+  "collectedBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_TRAN"] }, { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_DE_VRIES"] }],
+  "image": [{ "value": "/f/G83pS1APMr7ExSzto5UrCs", "name": "G3_RIM_STRIKER.jpg", "caption": "Object drawing", "source": "Consortium collection" }],
+  "notes": [
+    {
+      "value": "<p>It was left in place on the first two visits under the standing rule against lifting anything from an occupied ground, and collected on the third, by which time it had not moved in eleven years.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

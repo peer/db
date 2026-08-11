@@ -1,0 +1,35 @@
+{
+  "id": ["xeno.peerdb.org", "ORGANISM", "G3_FLOW_POCKET"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "ORGANISM"] }],
+  "name": [{ "value": "Whetstone Flow Pocket Culture", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "taxonCode": "TX-1161-b",
+  "description": [
+    {
+      "value": "<p>Layered material recovered from warm pockets at the margins of fresh cryovolcanic flows, where liquid persists for decades before the pocket freezes shut. It grows, in the sense that its layers accumulate; it does not reproduce, in any sense that has yet been agreed on. Three sampling runs in forty-five years have each concluded that a fourth would settle the matter.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Material estratificado recolhido em bolsas mornas nas margens de fluxos criovulcânicos recentes, onde o líquido persiste durante décadas antes de a bolsa congelar por completo. Cresce, no sentido em que as suas camadas se acumulam; não se reproduz, em nenhum sentido que até agora tenha reunido acordo. Três campanhas de amostragem em quarenta e cinco anos concluíram, cada uma delas, que uma quarta resolveria a questão.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "category": { "id": ["xeno.peerdb.org", "ORGANISM_CATEGORY", "UNCLASSIFIED"] },
+  "foundOn": [{ "id": ["xeno.peerdb.org", "MOON", "G3_WHETSTONE"] }],
+  "biome": [{ "id": ["xeno.peerdb.org", "BIOME", "CRYO_PLAIN"] }],
+  "typicalSize": { "value": { "amount": 0.3, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+  "typicalMass": { "value": { "amount": 1.1, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "kg"] }] },
+  "image": [
+    {
+      "value": "/f/Gr3Re2BpucRrjjzG4A4tQA",
+      "name": "G3_FLOW_POCKET.jpg",
+      "caption": "Field plate",
+      "source": "Drawn in the field; Consortium collection"
+    }
+  ],
+  "notes": [
+    {
+      "value": "<p>The Consortium&#39;s station on this moon was sited four hundred metres away, for its flat approach. That it overlooks the sector&#39;s least resolved organism is recorded in the annual report as foresight.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

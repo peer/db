@@ -1,0 +1,29 @@
+{
+  "id": ["xeno.peerdb.org", "PRACTICE", "G2_SILENT_LINE"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PRACTICE"] }],
+  "name": [{ "value": "Leaving at the Ice Line", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Sesshamme", "gloss": "the leaving, with no word in it for whoever receives it" }],
+  "description": [
+    {
+      "value": "<p>Twice in every cycle, at the lowest water, a lodge carries sorted goods down to the edge of the cap and lays them out in a line four paces back from the ice: cut weed blade, dried burrower, and stone already dressed to size. Nobody waits. On the next low water the line is gone and there is a different line in its place, of sorted organic fall and of a pale grease the lodges use on cord, and that is the whole of the transaction. There is no signal, no count agreed in advance and nothing that either side could be said to have promised, and in eighty years of records nothing has been short and nothing has been argued about. Lodges find the arrangement no more interesting than the tide and answer questions about it in the same tone. The colonies under the cap have never been seen doing their half of it, which is not for want of anybody sitting out there in the cold to watch.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Loža pusti blago ob ledu in odide; ob naslednji oseki je na tem mestu drugo blago.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Duas vezes por ciclo, na maré mais baixa, uma confraria leva bens separados até à orla da calote e dispõe-nos numa linha a quatro passos do gelo: lâmina de alga cortada, escavador seco e pedra já talhada à medida. Ninguém espera. Na baixa-mar seguinte a linha desapareceu e no seu lugar está outra, de matéria orgânica caída e separada e de uma gordura pálida que as confrarias usam nas cordas, e é essa toda a transação. Não há sinal, não há contagem acordada de antemão nem coisa alguma que se possa dizer que qualquer dos lados prometeu, e em oitenta anos de registos nunca nada faltou nem nada foi contestado. As confrarias acham o arranjo tão interessante como a maré e respondem às perguntas sobre ele no mesmo tom. Nunca ninguém viu as colónias sob a calote a fazer a sua parte, e não por falta de gente sentada lá fora ao frio a vigiar.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G2_ARC_LODGES"] }],
+  "category": { "id": ["xeno.peerdb.org", "PRACTICE_CATEGORY", "EXCHANGE_CYCLE"] },
+  "periodicity": "twice in every cycle, at the lowest water",
+  "participants": {
+    "value": { "from": { "amount": 4, "precision": 1 }, "to": { "amount": 20, "precision": 1 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "firstDocumented": { "time": "2274-01-01T00:00:00Z", "precision": "y" },
+  "relatedPractice": [{ "id": ["xeno.peerdb.org", "PRACTICE", "G2_GAP_CORD"] }]
+}

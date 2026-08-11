@@ -1,0 +1,41 @@
+{
+  "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G4_COM_RIDGE_KNOCK"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM"] }],
+  "name": [{ "value": "Ridge Knocking", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Onarukei", "gloss": "what is knocked" }],
+  "description": [
+    {
+      "value": "<p>Speech struck with the plate edge of the fused skull against wet rock, because nothing vocal survives the rain on a windward crest. Range is a few hundred metres and the syntax is dense, with tense, presence and intention folded into single figures. It has no first person that can be held by one body: a knocked statement is attributable to the crest and not to a speaker, which is why property claims in this culture will not resolve and why the survey&#39;s consent forms had to be redesigned twice. The usual first error is to take the whole thing for a set of fixed calls, since the commonest twenty figures cover most of an ordinary day and can be listed in an afternoon.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "modality": [
+    { "id": ["xeno.peerdb.org", "COMMUNICATION_MODALITY", "SUBSTRATE_PERCUSSION"] },
+    { "id": ["xeno.peerdb.org", "COMMUNICATION_MODALITY", "GESTURE"] }
+  ],
+  "users": {
+    "value": { "from": { "amount": 90000, "precision": 100 }, "to": { "amount": 160000, "precision": 100 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "sampleGloss": [
+    {
+      "value": "<p><i>(two knocks, a pause of one beat, four fast knocks)</i> - here, not-yet, going - somebody is on this crest and is leaving it, and the two facts are one word.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "recording": [
+    {
+      "value": "/f/FgrUvnvEdku97agbQVmtWb",
+      "name": "system-G4_COM_RIDGE_KNOCK.mp3",
+      "caption": "Elicitation sample",
+      "duration": { "value": { "amount": 1, "precision": 1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "MINUTE"] }] },
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G4_COM_RIDGE_KNOCK"] }],
+      "note": [
+        {
+          "value": "<p>Recorded during elicitation and kept as the reference sample for this system.</p>",
+          "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+        }
+      ]
+    }
+  ]
+}

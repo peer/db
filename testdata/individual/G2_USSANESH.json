@@ -1,0 +1,30 @@
+{
+  "id": ["xeno.peerdb.org", "INDIVIDUAL", "G2_USSANESH"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "INDIVIDUAL"] }],
+  "name": [{ "value": "Ussanesh" }],
+  "lineageName": [{ "value": "House of the Fourth Anchorage" }],
+  "description": [
+    {
+      "value": "<p>Head of a house holding nine net anchorages and a stock of dyed cord older than any of its current members. They stood for three field tests of heading over featureless flats, gave a bearing correct to about a degree each time, and refused a fourth in 2293 on the ground that the Consortium was measuring them rather than the ground. They agreed to be photographed on the same day, remarking that a picture at least does not ask questions.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "species": { "id": ["xeno.peerdb.org", "SPECIES", "G2_USSENESH"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G2_NET_HOUSES"] }],
+  "role": [
+    { "value": "house head", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "anchorage holder", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }
+  ],
+  "formOfAddress": "by house, then by anchorage",
+  "born": { "time": "2198-01-01T00:00:00Z", "precision": "y" },
+  "birthplace": { "id": ["xeno.peerdb.org", "SITE", "G2_HIGH_WEIR"] },
+  "image": [
+    { "value": "/f/6pubsgGFwBSJ2w8CLNDq17", "name": "G2_USSANESH.jpg", "caption": "Portrait", "source": "Made with consent; Consortium collection" }
+  ],
+  "notes": [
+    {
+      "value": "<p>The three successful tests have not been replicated by any of the teams that tried afterwards. None of those teams has been willing to write that the result does not happen, and none has been willing to write that it does.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

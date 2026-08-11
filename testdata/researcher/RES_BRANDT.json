@@ -1,0 +1,23 @@
+{
+  "id": ["xeno.peerdb.org", "RESEARCHER", "RES_BRANDT"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "RESEARCHER"] }],
+  "name": [{ "value": "Daniel" }],
+  "familyName": [{ "value": "Brandt" }],
+  "researcherCode": "CCX-P-02566",
+  "description": [
+    {
+      "value": "<p>The only researcher funded twice to reach the same empty sector, which he managed on the second attempt. He is a remote-sensing specialist who has never met an informant and says he would not know what to do with one. He is unbearable about drive maintenance and has been proved right once.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "affiliatedWith": [{ "id": ["xeno.peerdb.org", "INSTITUTE", "INST_FARSIGHT"] }, { "id": ["xeno.peerdb.org", "INSTITUTE", "INST_BEACON"] }],
+  "specialisesIn": [
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "REMOTE_SENSING"] },
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "PHOTOGRAMMETRY"] }
+  ],
+  "activePeriod": { "from": { "time": "2272-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true },
+  "born": { "time": "2247-01-01T00:00:00Z", "precision": "y" },
+  "image": [
+    { "value": "/f/A1zdwTbUYUYwoPBtKx9ZuC", "name": "RES_BRANDT.jpg", "caption": "Staff photograph", "source": "Consortium personnel record" }
+  ]
+}

@@ -1,0 +1,45 @@
+{
+  "id": ["xeno.peerdb.org", "NARRATIVE", "G2_NINE_DIVISIONS"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "NARRATIVE"] }],
+  "title": [{ "value": "Nine Divisions of the Sixth Rib", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [
+    {
+      "value": "Ollumene marrolle",
+      "gloss": "the calling of the halvings",
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G2_CEILING_CALL"] }]
+    }
+  ],
+  "description": [
+    {
+      "value": "<p>A recitation of a household ferment culture back through every division it has undergone, given by the keeper as the legal basis of the house&#39;s hold on its rib. It is whistled, with a plume released at each named division, and cannot be given by anybody whose plume is not the culture&#39;s own.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "genre": { "id": ["xeno.peerdb.org", "NARRATIVE_GENRE", "GENEALOGICAL_RECITATION"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G2_RIB_HOLDINGS"] }],
+  "recordedBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_HADDAD"] }, { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_BAUTISTA"] }],
+  "recordedAt": { "id": ["xeno.peerdb.org", "SITE", "G2_LOWER_MIDDEN"] },
+  "recordedOn": { "time": "2295-01-01T00:00:00Z", "precision": "y" },
+  "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G2_CEILING_CALL"] }],
+  "content": [
+    {
+      "value": "<p>This was halved at the sixth rib, and I poured it, and here is the taste of that.</p><p>Before that at the sixth rib, and the one who poured it is dead, and here is the taste of that. Before that at the fourth rib, when the fourth rib was a rib and not a fall. Before that at the fourth. Before that at the ninth, and the ninth was two houses then and is one now, and here is the taste of that also.</p><p>Four more, and I can give them and will not, because the ones who could answer them are not over our rib tonight.</p><p>The rib is held. Whoever wants it can come and taste the water.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "recording": [
+    {
+      "value": "/f/Fh8ke2zGDabTTWySxHwzjf",
+      "name": "narrative-G2_NINE_DIVISIONS.mp3",
+      "caption": "Performance, recorded on site",
+      "duration": { "value": { "amount": 24, "precision": 1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "MINUTE"] }] },
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G2_CEILING_CALL"] }]
+    }
+  ],
+  "notes": [
+    {
+      "value": "<p>Recordings from Station Two carry the whistle and not the plume, so the deposited file is the half of this that proves nothing. The keeper was told and said that it was the correct half to give away.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

@@ -1,0 +1,28 @@
+{
+  "id": ["xeno.peerdb.org", "ARTIFACT", "G1_TURN_MARKER"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "ARTIFACT"] }],
+  "name": [{ "value": "Turn marker, ninth wall", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Ulun Esh", "gloss": "wall, yours" }],
+  "accessionCode": "CCX-A-13136",
+  "description": [
+    {
+      "value": "<p>A water-worn basalt cobble dressed flat on one face, pecked with four shallow grooves and a fifth cut across them, set upright at the landward end of a wall stretch. The marker records which turn the stretch belongs to and never who is holding it, so it is not moved or altered at a handover and outlives every hearth that works past it. The grooves are packed with shell paste, which is renewed by whoever notices it has gone. This one was found leaning, on a stretch abandoned when the channel shifted about a century ago, and the shell paste in it was fresh.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "category": { "id": ["xeno.peerdb.org", "ARTIFACT_CATEGORY", "MARKER_STONE"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G1_WEIR_ROTA"] }],
+  "foundAt": { "id": ["xeno.peerdb.org", "SITE", "G1_LOWER_MIDDEN"] },
+  "material": [
+    { "value": "basalt", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "shell paste", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }
+  ],
+  "dimension": [
+    { "value": { "amount": 0.62, "precision": 0.001 }, "axis": "height", "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+    { "value": { "amount": 0.28, "precision": 0.001 }, "axis": "width", "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+    { "value": { "amount": 0.17, "precision": 0.001 }, "axis": "thickness", "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] }
+  ],
+  "dateMade": { "time": "2200-01-01T00:00:00Z", "precision": "100y" },
+  "collectedBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_REYES"] }],
+  "image": [{ "value": "/f/RSdKjDwPHvZvBaf6qy2pa3", "name": "G1_TURN_MARKER.jpg", "caption": "Object drawing", "source": "Consortium collection" }]
+}

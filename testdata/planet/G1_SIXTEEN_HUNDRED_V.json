@@ -1,0 +1,55 @@
+{
+  "id": ["xeno.peerdb.org", "PLANET", "G1_SIXTEEN_HUNDRED_V"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PLANET"] }],
+  "name": [{ "value": "Sixteen Hundred V", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Thevrinath", "gloss": "the far shore, although there is no near one" }],
+  "catalogueCode": "CCX-2246-SXH5",
+  "description": [
+    {
+      "value": "<p>One of four confirmed carbon worlds in the whole catalogue, with a graphite crust, a carbide mantle and forests of black columnar growth up to ninety metres tall. Almost nothing here descends to the ground, and the settled population lives in the canopy on platforms built from the trunks around them. The soil, such as it is, is charcoal and stays damp. A working orbital tether has stood at the edge of the forest since 2271 and is the most valuable object on the planet.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Ogljikov svet z grafitno skorjo in visokimi črnimi gozdovi, kjer skoraj nihče ne pride na tla.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "STAR_SYSTEM", "G1_SIXTEEN_HUNDRED"] },
+  "planetType": { "id": ["xeno.peerdb.org", "PLANET_TYPE", "CARBON_WORLD"] },
+  "biome": [{ "id": ["xeno.peerdb.org", "BIOME", "HIGH_CANOPY"] }, { "id": ["xeno.peerdb.org", "BIOME", "ENDOLITH_ZONE"] }],
+  "radius": { "value": { "amount": 1.16, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_RADIUS"] }] },
+  "mass": { "value": { "amount": 1.48, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_MASS"] }] },
+  "surfaceGravity": { "value": { "amount": 1.1, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "STANDARD_GRAVITY"] }] },
+  "dayLength": { "value": { "amount": 26.4, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "HOUR"] }] },
+  "orbitalPeriod": { "value": { "amount": 388.1, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_DAY"] }] },
+  "meanTemperature": { "value": { "amount": 6.2, "precision": 0.1 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "°C"] }] },
+  "hydrosphere": { "value": { "amount": 41.7, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "PERCENT"] }] },
+  "atmosphere": [
+    {
+      "value": "<p>Nitrogen, carbon monoxide and about sixteen per cent oxygen at 1.1 bar, with a soot haze that never quite clears. Breathable through a particulate filter; without one, a week outdoors turns the sputum black.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "biosphere": [
+    {
+      "value": "<p>Life is present: 2 catalogued species (Graphite Canopy Households, Soot Shelf Colonies) and 2 recorded non-sapient organisms. The survey is not claimed to be complete.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "contactStatus": { "id": ["xeno.peerdb.org", "CONTACT_STATUS", "SUSTAINED"] },
+  "firstSurveyed": { "time": "2246-01-01T00:00:00Z", "precision": "y" },
+  "surveyPeriod": { "from": { "time": "2246-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true },
+  "populationEstimate": {
+    "value": { "from": { "amount": 900000, "precision": 100 }, "to": { "amount": 1400000, "precision": 100 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "image": [
+    { "value": "/f/PX9zBpNwKwv7nXH8umF7cM", "name": "G1_SIXTEEN_HUNDRED_V.jpg", "caption": "Surface view", "source": "Consortium survey archive" }
+  ],
+  "notes": [
+    {
+      "value": "<p>Nineteen further carbon-world claims stand in the queue behind this one. Four have been in the queue longer than the tether has been standing.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

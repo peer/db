@@ -1,0 +1,21 @@
+{
+  "id": ["xeno.peerdb.org", "PRACTICE_CATEGORY", "MORTUARY"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PRACTICE_CATEGORY"] }],
+  "name": [
+    { "value": "Mortuary practice", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "Pogrebna praksa", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }] },
+    { "value": "Prática funerária", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>Treatment and disposition of the body and of the property that follows it. Excludes grief expression itself, which is recorded as mourning.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    { "value": "<p>Ravnanje s truplom in z imetjem, ki mu sledi.</p>", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }] },
+    {
+      "value": "<p>Tratamento e destino do corpo e dos bens que o acompanham. Exclui a expressão da dor em si, registada como luto.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "code": ["mortuary"]
+}

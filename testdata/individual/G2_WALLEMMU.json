@@ -1,0 +1,19 @@
+{
+  "id": ["xeno.peerdb.org", "INDIVIDUAL", "G2_WALLEMMU"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "INDIVIDUAL"] }],
+  "name": [{ "value": "Wallemmu" }],
+  "description": [
+    {
+      "value": "<p>Carried on the lee side of an adult until 2289 and now walks at the front of a band of nineteen, which means nothing in particular and is how the survey identifies them anyway. They keep the only running account anyone has of where the herd was in which year, and give it freely, on the understanding that giving it is not agreeing to anything. There is one image of them as an infant, taken before consent procedures covered infants, and it was destroyed on the panel&#39;s instruction in 2294.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "species": { "id": ["xeno.peerdb.org", "SPECIES", "G2_WEMMALU"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G2_LEEWARD_BANDS"] }],
+  "role": [
+    { "value": "band walker", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "herd reckoner", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }
+  ],
+  "formOfAddress": "by personal name",
+  "born": { "time": "2281-01-01T00:00:00Z", "precision": "y" }
+}

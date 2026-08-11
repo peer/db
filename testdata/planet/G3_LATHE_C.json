@@ -1,0 +1,37 @@
+{
+  "id": ["xeno.peerdb.org", "PLANET", "G3_LATHE_C"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PLANET"] }],
+  "name": [{ "value": "Lathe c", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "catalogueCode": "HB-3/002-c",
+  "description": [
+    {
+      "value": "<p>A locked world with a dusk band that is dry, stony and, on the evidence of one nine-day visit, empty of anything larger than a rock-boring filament. The substellar desert is glazed to a hard shine. The night side holds a cold trap of carbon dioxide ice that the survey did not have time to sound. This entry is one visit long and should be read as one visit long.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Um mundo em rotação síncrona com uma faixa crepuscular seca, pedregosa e, a avaliar por uma única visita de nove dias, vazia de tudo o que seja maior do que um filamento perfurador de rocha. O deserto subestelar está vitrificado até um brilho duro. O lado noturno guarda uma armadilha fria de gelo de dióxido de carbono que o levantamento não teve tempo de sondar. Esta entrada tem a extensão de uma visita e deve ser lida como tal.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "STAR_SYSTEM", "G3_LATHE"] },
+  "planetType": { "id": ["xeno.peerdb.org", "PLANET_TYPE", "EYEBALL"] },
+  "biome": [{ "id": ["xeno.peerdb.org", "BIOME", "ENDOLITH_ZONE"] }],
+  "radius": { "value": { "amount": 1.02, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_RADIUS"] }] },
+  "mass": { "value": { "amount": 0.99, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_MASS"] }] },
+  "surfaceGravity": { "value": { "amount": 0.95, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "STANDARD_GRAVITY"] }] },
+  "dayLength": { "value": { "amount": 760.8, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "HOUR"] }] },
+  "orbitalPeriod": { "value": { "amount": 31.7, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_DAY"] }] },
+  "meanTemperature": { "value": { "amount": -8.0, "precision": 0.1 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "°C"] }] },
+  "hydrosphere": { "value": { "amount": 0.9, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "PERCENT"] }] },
+  "atmosphere": [
+    {
+      "value": "<p>Carbon dioxide and nitrogen at 0.2 bar. Not breathable. The terminator wind is steady at about eleven metres per second and carries nothing at all, which is itself unusual.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "biosphereUnknown": true,
+  "contactStatus": { "id": ["xeno.peerdb.org", "CONTACT_STATUS", "NO_CONTACT"] },
+  "firstSurveyed": { "time": "2295-01-01T00:00:00Z", "precision": "y" },
+  "surveyPeriod": { "from": { "time": "2295-01-01T00:00:00Z", "precision": "y" }, "to": { "time": "2295-01-01T00:00:00Z", "precision": "y" } },
+  "image": [{ "value": "/f/7PJzFBxg7BuVixvjCPdj4a", "name": "G3_LATHE_C.jpg", "caption": "Approach view", "source": "Consortium survey archive" }]
+}

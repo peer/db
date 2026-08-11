@@ -1,0 +1,26 @@
+{
+  "id": ["xeno.peerdb.org", "ORGANISM", "G2_LED_MAT"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "ORGANISM"] }],
+  "name": [{ "value": "Terrace Led Mat", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Welume" }],
+  "taxonCode": "TX-1109-b",
+  "description": [
+    {
+      "value": "<p>A low photosynthetic mat that grows only where silty meltwater is led across it at intervals, and which dies within two cycles if the water is switched away. It is the staple crop of the terraces and the reason the whole irrigation sequence exists. Left to itself in a wet channel it will build a crust half a metre thick in nine years and then collapse under its own weight.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "category": { "id": ["xeno.peerdb.org", "ORGANISM_CATEGORY", "PHOTO_SESSILE"] },
+  "foundOn": [{ "id": ["xeno.peerdb.org", "PLANET", "G2_HALF_LIGHT"] }],
+  "biome": [{ "id": ["xeno.peerdb.org", "BIOME", "DUSK_BELT"] }],
+  "typicalSize": { "value": { "amount": 0.35, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+  "typicalMass": { "value": { "amount": 0.9, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "kg"] }] },
+  "image": [
+    {
+      "value": "/f/QDTURnLd46VDPKwZorvcgP",
+      "name": "G2_LED_MAT.jpg",
+      "caption": "Field plate",
+      "source": "Drawn in the field; Consortium collection"
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "id": ["xeno.peerdb.org", "RESEARCHER", "RES_QUISPE"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "RESEARCHER"] }],
+  "name": [{ "value": "Marisol" }],
+  "familyName": [{ "value": "Quispe" }],
+  "researcherCode": "CCX-P-04512",
+  "description": [
+    {
+      "value": "<p>Went out with an approach that did not arrive and came home with six years of instrument data nobody had asked for, which settled a question about the outward margin by accident. She now works mostly on other people&#39;s deposited notes and is unsentimental about it. Her first paper is still her most cited, which annoys her.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "affiliatedWith": [{ "id": ["xeno.peerdb.org", "INSTITUTE", "INST_BEACON"] }, { "id": ["xeno.peerdb.org", "INSTITUTE", "INST_FARSIGHT"] }],
+  "specialisesIn": [
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "ARCHIVAL_COMPARISON"] },
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "REMOTE_SENSING"] }
+  ],
+  "activePeriod": { "from": { "time": "2295-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true },
+  "born": { "time": "2270-01-01T00:00:00Z", "precision": "y" },
+  "image": [
+    { "value": "/f/Q7qRiSKKzUd3gL5TLWKpSJ", "name": "RES_QUISPE.jpg", "caption": "Staff photograph", "source": "Consortium personnel record" }
+  ]
+}

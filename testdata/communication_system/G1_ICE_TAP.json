@@ -1,0 +1,38 @@
+{
+  "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G1_ICE_TAP"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM"] }],
+  "name": [{ "value": "Vent Line Tapping", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Nnaumeren Tel", "gloss": "the hum one answers" }],
+  "description": [
+    {
+      "value": "<p>A tapped language carried through the vent plumbing, which on this world runs from every dwelling to every other and is therefore both the water supply and the telephone exchange. At five hundredths of a bar the air carries nothing worth hearing, so speech at distance is entirely in the pipes and in the ice beneath them, and a person out of contact with either is out of earshot in the strict sense. Silence is a grammatical slot rather than an absence: a pause of the wrong length reads as a refusal, and the survey filed two of its own. When a settlement moves to a new flow it re-lays its language along with its plumbing, and the first days on new ground are described by everybody as quiet.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "modality": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_MODALITY", "SUBSTRATE_PERCUSSION"] }],
+  "users": {
+    "value": { "from": { "amount": 60000, "precision": 100 }, "to": { "amount": 110000, "precision": 100 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "sampleGloss": [
+    {
+      "value": "<p><i>[four taps on the main line, two on the branch, silence]</i> all-of-us / your-side / (silence: answer now). Free translation: the whole settlement is asking, and the question is for your vent.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "recording": [
+    {
+      "value": "/f/4JjPxFFvTs6NFReePDNm1B",
+      "name": "system-G1_ICE_TAP.mp3",
+      "caption": "Elicitation sample",
+      "duration": { "value": { "amount": 3, "precision": 1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "MINUTE"] }] },
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G1_ICE_TAP"] }],
+      "note": [
+        {
+          "value": "<p>Recorded during elicitation and kept as the reference sample for this system.</p>",
+          "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+        }
+      ]
+    }
+  ]
+}

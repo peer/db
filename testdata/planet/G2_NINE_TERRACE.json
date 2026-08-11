@@ -1,0 +1,57 @@
+{
+  "id": ["xeno.peerdb.org", "PLANET", "G2_NINE_TERRACE"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PLANET"] }],
+  "name": [{ "value": "Nine Terrace", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Sesshune", "gloss": "the standing water, as against the ice that surrounds it" }],
+  "catalogueCode": "QI-0251-b",
+  "description": [
+    {
+      "value": "<p>A locked ocean world with a warm pool under its star, an ice cap over the night hemisphere and a large moon that drags an eighteen-metre tide across the shelving ground between them. The flats are worked twice a cycle by the inhabitants, who live on the nine natural rock benches the name refers to and go down to the water on a schedule set by the moon rather than the star. Water covers most of the world and almost none of it is deep. Contact is episodic and takes place entirely on the flats.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Oceanski svet z ogromnimi plimami, ki jih poganja velika luna, in z devetimi skalnimi terasami nad blatišči.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Um mundo oceânico preso por maré, com uma piscina quente sob a sua estrela, uma calote de gelo sobre o hemisfério noturno e uma lua grande que arrasta uma maré de dezoito metros pelo terreno em declive suave entre ambas. As planícies de maré são trabalhadas duas vezes por ciclo pelos habitantes, que vivem nos nove socalcos rochosos naturais a que o nome alude e descem à água num horário fixado pela lua e não pela estrela. A água cobre a maior parte do mundo e quase nada dela é funda. O contacto é episódico e decorre inteiramente nas planícies.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "STAR_SYSTEM", "G2_QUIET_IRON"] },
+  "planetType": { "id": ["xeno.peerdb.org", "PLANET_TYPE", "TIDAL_OCEAN"] },
+  "biome": [
+    { "id": ["xeno.peerdb.org", "BIOME", "SWEEP_FLAT"] },
+    { "id": ["xeno.peerdb.org", "BIOME", "VENT_FIELD"] },
+    { "id": ["xeno.peerdb.org", "BIOME", "NIGHTSIDE_TRAP"] }
+  ],
+  "radius": { "value": { "amount": 1.03, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_RADIUS"] }] },
+  "mass": { "value": { "amount": 0.96, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_MASS"] }] },
+  "surfaceGravity": { "value": { "amount": 0.91, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "STANDARD_GRAVITY"] }] },
+  "dayLength": { "value": { "amount": 4704.0, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "HOUR"] }] },
+  "orbitalPeriod": { "value": { "amount": 196.0, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_DAY"] }] },
+  "meanTemperature": { "value": { "amount": -29.0, "precision": 0.1 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "°C"] }] },
+  "hydrosphere": { "value": { "amount": 84.0, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "PERCENT"] }] },
+  "atmosphere": [
+    {
+      "value": "<p>1.4 bar of nitrogen, carbon dioxide and water vapour, warm and wet at the substellar point and freezing within a thousand kilometres of it. On the flats at low water the air smells of iron and the wind comes off the ice in a steady cold line.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "biosphere": [
+    {
+      "value": "<p>Life is present: 4 catalogued species (Nine Terrace Ice Cap Colonies, Sweep Flat Striders, Sweep Margin Weir Builders) and 3 recorded non-sapient organisms. The survey is not claimed to be complete.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "contactStatus": { "id": ["xeno.peerdb.org", "CONTACT_STATUS", "LIMITED"] },
+  "firstSurveyed": { "time": "2251-01-01T00:00:00Z", "precision": "y" },
+  "surveyPeriod": { "from": { "time": "2251-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true },
+  "populationEstimate": {
+    "value": { "from": { "amount": 22000, "precision": 100 }, "to": { "amount": 48000, "precision": 100 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "image": [
+    { "value": "/f/MZHZwe116VuuWaMq9zdZPS", "name": "G2_NINE_TERRACE.jpg", "caption": "Approach view", "source": "Consortium survey archive" }
+  ]
+}

@@ -1,0 +1,33 @@
+{
+  "id": ["xeno.peerdb.org", "CULTURE", "G2_NET_HOUSES"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "CULTURE"] }],
+  "name": [{ "value": "Net Houses", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [
+    { "value": "Usshamesh", "gloss": "those whose nets hang", "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G2_FLAT_CORD"] }] }
+  ],
+  "catalogueCode": "CU-2259-10",
+  "description": [
+    {
+      "value": "<p>Corporate houses on the open flats, each holding a named stretch of ground, a set of net anchorages and a stock of dyed cord, and each outlasting every member by centuries. The work is standing still: a house wades out with the falling tide and holds position for an entire ebb if the drift is good, taking what the water brings and pursuing nothing. Descent runs through one line only and the other is socially invisible, so a house is a shorter list of people than an outsider expects and a much longer list of anchorages. Navigation over ground with no landmarks is by the planet&#39;s weak magnetic field, which three separate teams have failed to replicate and none has been willing to declare impossible. Business with the weir builders is done entirely in knotted cord left at the gaps, and in eighty years the two have never held a conversation anywhere but on the flats.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Casas corporativas das planícies abertas, cada uma detendo um troço nomeado de terreno, um conjunto de ancoradouros de redes e uma reserva de corda tingida, e cada uma sobrevivendo a todos os seus membros por séculos. O trabalho é ficar parado: uma casa avança com a maré vazante e mantém a posição uma vazante inteira se a deriva for boa, levando o que a água traz e não perseguindo nada. A descendência corre por uma só linha e a outra é socialmente invisível, pelo que uma casa é uma lista de pessoas mais curta do que um estranho espera e uma lista de ancoradouros muito mais longa. A orientação sobre terreno sem pontos de referência faz-se pelo campo magnético fraco do planeta, que três equipas diferentes não conseguiram replicar e que nenhuma se dispôs a declarar impossível. Os negócios com os construtores de açudes fazem-se inteiramente em corda com nós deixada nas aberturas, e em oitenta anos os dois povos nunca tiveram uma conversa em sítio nenhum que não fossem as planícies.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "practisedBy": [{ "id": ["xeno.peerdb.org", "SPECIES", "G2_USSENESH"] }],
+  "presentAt": [{ "id": ["xeno.peerdb.org", "SITE", "G2_HIGH_WEIR"] }],
+  "kinshipSystem": { "id": ["xeno.peerdb.org", "KINSHIP_SYSTEM", "UNILINEAL_DESCENT"] },
+  "socialOrganisation": { "id": ["xeno.peerdb.org", "SOCIAL_ORGANISATION", "LINEAGE_HOUSES"] },
+  "subsistence": [
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "DRIFT_HARVESTING"] },
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "TIDAL_TRAPPING"] }
+  ],
+  "communication": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G2_FLAT_CORD"] }],
+  "population": {
+    "value": { "from": { "amount": 3000, "precision": 100 }, "to": { "amount": 7000, "precision": 100 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "period": { "from": { "time": "2259-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true }
+}

@@ -1,0 +1,63 @@
+{
+  "id": ["xeno.peerdb.org", "SPECIES", "G1_VETHRANI"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SPECIES"] }],
+  "name": [{ "value": "Graphite Canopy Households", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [
+    {
+      "value": "Vethrani",
+      "gloss": "those who do not come down",
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G1_COLUMN_PERCUSSION"] }]
+    }
+  ],
+  "taxonCode": "TX-1512-a",
+  "description": [
+    {
+      "value": "<p>Nearly a million people living ninety metres up in a black forest, on platforms cut from the living columns around them, in a world where the ground is charcoal and nobody has any reason to stand on it. Houses are corporate and hold a named block of canopy, its columns and the standing right to cut them; a person belongs to the house of one parent and to the platform of both. The soot gets into everything, including the lungs, and a visitor is issued a filter at the tether foot and told, accurately, that it is for the first fortnight and after that it is a habit. Contact has been continuous since 2249 and is conducted almost entirely at the tether foot, which is the only place on the planet where outsiders are expected. The discipline cannot agree whether a canopy house is a kin group with a forest or a forest maintenance rota with a family attached, and the Vethrani find the question funny in a way that has never been fully explained to the asker.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Prebivalci visokih krošenj ogljikovega sveta, ki skoraj nikoli ne stopijo na tla.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    }
+  ],
+  "homeworld": { "id": ["xeno.peerdb.org", "PLANET", "G1_SIXTEEN_HUNDRED_V"] },
+  "bodyPlan": [
+    {
+      "value": "<p>Tall, very light for the height, with four long limbs ending in hooked gripping claws and a fifth muscular anchor at the base of the spine that takes the whole body weight for hours at a time. The integument is a black flexible plate over most of the body, dusted permanently with soot, and pale only on the inner surfaces where two people grip one another. They feed by cropping the soft growth off column surfaces and by netting whatever the canopy drops, and they can travel the length of a house without any part of them passing below sixty metres.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "typicalHeight": { "value": { "amount": 4.6, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+  "typicalMass": { "value": { "amount": 128.0, "precision": 0.1 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "kg"] }] },
+  "lifespan": {
+    "value": { "from": { "amount": 60, "precision": 1 }, "to": { "amount": 140, "precision": 1 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_YEAR"] }]
+  },
+  "sensoryModality": [
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "GRAVICEPTION"] },
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "POLARISED_VISION"] },
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "SUBSTRATE_VIBRATION"] }
+  ],
+  "subsistence": [
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "COLONY_GRAZING"] },
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "DRIFT_HARVESTING"] }
+  ],
+  "individuality": { "id": ["xeno.peerdb.org", "INDIVIDUALITY_MODE", "BOUNDED"] },
+  "socialOrganisation": { "id": ["xeno.peerdb.org", "SOCIAL_ORGANISATION", "LINEAGE_HOUSES"] },
+  "kinshipSystem": { "id": ["xeno.peerdb.org", "KINSHIP_SYSTEM", "UNILINEAL_DESCENT"] },
+  "communication": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G1_COLUMN_PERCUSSION"] }],
+  "population": {
+    "value": { "from": { "amount": 800000, "precision": 1000 }, "to": { "amount": 1200000, "precision": 1000 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "contactStatus": { "id": ["xeno.peerdb.org", "CONTACT_STATUS", "SUSTAINED"] },
+  "firstContact": { "time": "2249-01-01T00:00:00Z", "precision": "y" },
+  "image": [
+    {
+      "value": "/f/1L77WFG4JW3NwJs28f7s72",
+      "name": "G1_VETHRANI.jpg",
+      "caption": "Field plate",
+      "source": "Drawn in the field; Consortium collection"
+    }
+  ]
+}

@@ -1,0 +1,53 @@
+{
+  "id": ["xeno.peerdb.org", "PLANET", "G1_WHITTAKER_B_II"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PLANET"] }],
+  "name": [{ "value": "Whittaker B II", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Skrethvan", "gloss": "those who wait out the cold, extended to the world itself" }],
+  "catalogueCode": "CCX-2259-WHT2",
+  "description": [
+    {
+      "value": "<p>A small locked world orbiting the fainter component of the pair, with a dusk band narrow enough to cross on foot in a long day. Meltwater comes off the dayside ice wall in braided channels and freezes again within thirty kilometres, so the habitable strip is really a river system with weather. The population is small, scattered and dependent on exchange with traders who visit the system for other reasons entirely. Nobody from the Consortium has overwintered here.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Um pequeno mundo em rotação síncrona em torno da componente mais fraca do par, com uma faixa crepuscular estreita o bastante para se atravessar a pé num dia longo. A água de degelo desce da muralha de gelo do lado diurno em canais entrançados e volta a congelar antes de trinta quilómetros, pelo que a faixa habitável é na verdade um sistema fluvial com meteorologia própria. A população é pequena, dispersa e dependente das trocas com mercadores que visitam o sistema por razões completamente distintas. Ninguém do Consórcio passou aqui um inverno.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "STAR_SYSTEM", "G1_WHITTAKER_PAIR"] },
+  "planetType": { "id": ["xeno.peerdb.org", "PLANET_TYPE", "EYEBALL"] },
+  "biome": [
+    { "id": ["xeno.peerdb.org", "BIOME", "DUSK_BELT"] },
+    { "id": ["xeno.peerdb.org", "BIOME", "BRAIDED_MELT"] },
+    { "id": ["xeno.peerdb.org", "BIOME", "NIGHTSIDE_TRAP"] }
+  ],
+  "radius": { "value": { "amount": 0.88, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_RADIUS"] }] },
+  "mass": { "value": { "amount": 0.69, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_MASS"] }] },
+  "surfaceGravity": { "value": { "amount": 0.89, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "STANDARD_GRAVITY"] }] },
+  "dayLength": { "value": { "amount": 1003.2, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "HOUR"] }] },
+  "orbitalPeriod": { "value": { "amount": 41.8, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_DAY"] }] },
+  "meanTemperature": { "value": { "amount": -34.2, "precision": 0.1 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "°C"] }] },
+  "hydrosphere": { "value": { "amount": 22.4, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "PERCENT"] }] },
+  "atmosphere": [
+    {
+      "value": "<p>Nitrogen with argon and water vapour at 0.7 bar, oxygen at eleven per cent in the dusk band. Breathable slowly and badly; most visitors run a supplement and all of them notice the cold in the throat.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "biosphere": [
+    {
+      "value": "<p>Life is present: 1 catalogued species (Whittaker Braid People). The survey is not claimed to be complete.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "contactStatus": { "id": ["xeno.peerdb.org", "CONTACT_STATUS", "INDIRECT"] },
+  "firstSurveyed": { "time": "2259-01-01T00:00:00Z", "precision": "y" },
+  "surveyPeriod": { "from": { "time": "2259-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true },
+  "populationEstimate": {
+    "value": { "from": { "amount": 24000, "precision": 100 }, "to": { "amount": 38000, "precision": 100 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "image": [
+    { "value": "/f/UuiqYh6BykAWEGGzWuhCL9", "name": "G1_WHITTAKER_B_II.jpg", "caption": "Approach view", "source": "Consortium survey archive" }
+  ]
+}

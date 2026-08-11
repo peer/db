@@ -1,0 +1,21 @@
+{
+  "id": ["xeno.peerdb.org", "SITE", "G1_SQUALL_CAMP"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SITE"] }],
+  "name": [{ "value": "Squall Margin Camp", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "description": [
+    {
+      "value": "<p>A hardened habitat shell anchored at the inner edge of the storm belt, occupied for two seasons between 2276 and 2301 and abandoned after the second. It was designed for a wind that turned out to be the median rather than the maximum. The wreck is still there, half sunk in mud, and is monitored from orbit as a corrosion reference.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "REGION", "G1_STANDING_SQUALL"] },
+  "siteType": { "id": ["xeno.peerdb.org", "SITE_TYPE", "FIELD_CAMP"] },
+  "gridReference": "TB-119.0/+31.8",
+  "population": {
+    "value": { "from": { "amount": 8, "precision": 10 }, "to": { "amount": 22, "precision": 10 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "founded": { "time": "2276-01-01T00:00:00Z", "precision": "y" },
+  "occupation": { "from": { "time": "2276-01-01T00:00:00Z", "precision": "y" }, "to": { "time": "2301-01-01T00:00:00Z", "precision": "y" } },
+  "image": [{ "value": "/f/9LEpUr5CtZdNKGQkNhP5Re", "name": "G1_SQUALL_CAMP.jpg", "caption": "General view", "source": "Consortium survey archive" }]
+}

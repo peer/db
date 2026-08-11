@@ -1,0 +1,29 @@
+{
+  "id": ["xeno.peerdb.org", "ORGANISM", "G4_UPPER_DECK_MAT"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "ORGANISM"] }],
+  "name": [{ "value": "Upper Deck Mat", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "taxonCode": "TX-1802-a",
+  "description": [
+    {
+      "value": "<p>A free-floating photosynthetic mat of Selvedge e, holding station at the 0.6 bar level by regulating a hydrogen bladder and completing an entire life without touching anything solid. Sheets reach forty metres across and drift for decades before breaking up. Two further decks exist at 1.1 and 4 bar and appear to exchange no material with this one at all, which is the standing puzzle of the system.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Um tapete fotossintético flutuante de Selvedge e, que se mantém no nível dos 0,6 bar regulando uma bexiga de hidrogénio e cumpre uma vida inteira sem tocar em nada sólido. As folhas chegam aos quarenta metros de diâmetro e vagueiam durante décadas antes de se desfazerem. Existem mais duas camadas a 1,1 e 4 bar que parecem não trocar matéria alguma com esta, o que constitui o enigma permanente do sistema.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "category": { "id": ["xeno.peerdb.org", "ORGANISM_CATEGORY", "AERIAL_DRIFTER"] },
+  "foundOn": [{ "id": ["xeno.peerdb.org", "PLANET", "G4_SELVEDGE_E"] }],
+  "biome": [{ "id": ["xeno.peerdb.org", "BIOME", "AERIAL_MAT"] }],
+  "typicalSize": { "value": { "amount": 38.0, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+  "typicalMass": { "value": { "amount": 620.0, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "kg"] }] },
+  "image": [
+    {
+      "value": "/f/NYRoo1KJ9Ujw9WP6SSvZU6",
+      "name": "G4_UPPER_DECK_MAT.jpg",
+      "caption": "Field plate",
+      "source": "Drawn in the field; Consortium collection"
+    }
+  ]
+}

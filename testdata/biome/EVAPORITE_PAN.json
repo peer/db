@@ -1,0 +1,24 @@
+{
+  "id": ["xeno.peerdb.org", "BIOME", "EVAPORITE_PAN"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "BIOME"] }],
+  "name": [
+    { "value": "Evaporite pan", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "Evaporitna kotanja", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }] },
+    { "value": "Bacia evaporítica", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>Flat closed basin floored by salt crust left by a sea that dried, with life confined to brine films and to the rare flood. Excludes seasonally flooded lakes that still hold standing water most of the year.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Ravna zaprta kotanja s solno skorjo, kjer je življenje omejeno na slanične filme in redke poplave.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Bacia fechada e plana, com fundo de crosta salina deixada por um mar que secou, e vida confinada a películas de salmoura e à cheia rara. Exclui lagos de inundação sazonal que mantêm água parada a maior parte do ano.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "code": ["evap-pan"]
+}

@@ -1,0 +1,35 @@
+{
+  "id": ["xeno.peerdb.org", "ARTIFACT", "G3_LODGE_COIL"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "ARTIFACT"] }],
+  "name": [{ "value": "Working Cord, Coiled", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Ulleth-sen", "gloss": "what the harness says" }],
+  "accessionCode": "CCX-A-31004",
+  "description": [
+    {
+      "value": "<p>A single working cord of plaited gut fibre, eleven metres long, carrying sixty-one turns and four reversed knots, cut from a harness at the end of a route and given to the survey rather than unpicked. The fibre is doubled and rolled against the thigh, then dressed with rendered fat, which is why it has taken a permanent black polish along the reading surface. The cut end is finished, meaning the route it records was transferred rather than given up. It reached the Consortium in the condition it is in now, coiled, and has not been straightened, because straightening it would put the turns in a different order.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "category": { "id": ["xeno.peerdb.org", "ARTIFACT_CATEGORY", "CORDAGE"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G3_ICE_LODGES"] }],
+  "foundAt": { "id": ["xeno.peerdb.org", "SITE", "G3_UPPER_HEARTHS"] },
+  "material": [
+    { "value": "plaited gut fibre", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "rendered fat", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "bone toggle", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }
+  ],
+  "dimension": [
+    { "value": { "amount": 11.4, "precision": 0.001 }, "axis": "length", "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+    { "value": { "amount": 0.019, "precision": 0.001 }, "axis": "thickness", "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] }
+  ],
+  "dateMade": { "time": "2274-01-01T00:00:00Z", "precision": "y" },
+  "collectedBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_DOYLE"] }, { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_NOWAK"] }],
+  "image": [{ "value": "/f/1TQ3yULcNZKwZ6F7KrRvWF", "name": "G3_LODGE_COIL.jpg", "caption": "Object drawing", "source": "Consortium collection" }],
+  "document": [{ "value": "/f/G9dx46FhTX9zYUp6k6gTBt", "name": "G3_LODGE_COIL.txt", "caption": "Accession record" }],
+  "notes": [
+    {
+      "value": "<p>The accompanying document is a single sheet of numbers taken down by the fieldworker as the cord was read to her, and is not a translation, the hauler having declined to provide one on the grounds that the cord was already in front of her.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

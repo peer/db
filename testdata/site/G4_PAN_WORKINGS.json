@@ -1,0 +1,20 @@
+{
+  "id": ["xeno.peerdb.org", "SITE", "G4_PAN_WORKINGS"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SITE"] }],
+  "name": [{ "value": "Pan Workings", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "localName": [{ "value": "[white cutting]" }],
+  "description": [
+    {
+      "value": "<p>A block-cutting operation in the salt floor of the western basin, worked as a grid of trenches that now covers forty square kilometres and reaches nine metres deep. Blocks are cut, dried on the crust and hauled out. Visitors consistently report the silence of the workings as the most disconcerting thing on the world.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "REGION", "G4_WHITE_PAN"] },
+  "siteType": { "id": ["xeno.peerdb.org", "SITE_TYPE", "EXTRACTION_SITE"] },
+  "gridReference": "WP-096.7/-44.1",
+  "population": {
+    "value": { "from": { "amount": 120, "precision": 10 }, "to": { "amount": 700, "precision": 10 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "occupation": { "from": { "time": "2250-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true }
+}

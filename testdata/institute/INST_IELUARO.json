@@ -1,0 +1,27 @@
+{
+  "id": ["xeno.peerdb.org", "INSTITUTE", "INST_IELUARO"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "INSTITUTE"] }],
+  "name": [
+    { "value": "Institute of Long-Duration Field Method", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "Institut za dolgotrajne terenske metode", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }] }
+  ],
+  "shortName": [{ "value": "Ieluaro", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "description": [
+    {
+      "value": "<p>A small institute on a small moon, set up to work out how to run a study longer than a career and to train people who can be relied upon to hand over cleanly. Every method it publishes assumes that whoever began the work will not be there to finish it. Its own archive is in excellent order and its correspondence is eleven years behind, which the institute regards as two facts rather than one.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Majhen institut za metode raziskav, ki trajajo dlje od ene kariere.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Um pequeno instituto numa pequena lua, criado para descobrir como conduzir um estudo mais longo do que uma carreira e para formar pessoas com quem se possa contar para entregar o trabalho de forma limpa. Todos os métodos que publica pressupõem que quem começou o trabalho não estará lá para o acabar. O seu próprio arquivo está em excelente ordem e a sua correspondência tem onze anos de atraso, o que o instituto considera serem dois factos e não um.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "founded": { "time": "2255-01-01T00:00:00Z", "precision": "y" },
+  "locatedAt": { "id": ["xeno.peerdb.org", "MOON", "G1_UNDERCOUNT"] },
+  "staffCount": { "amount": 128, "precision": 1 },
+  "website": ["https://ieluaro.ccx.example/"]
+}

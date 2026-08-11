@@ -1,0 +1,27 @@
+{
+  "id": ["xeno.peerdb.org", "SITE", "G2_STATION_ONE"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SITE"] }],
+  "name": [{ "value": "Station One", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "description": [
+    {
+      "value": "<p>The Consortium&#39;s principal base in this galaxy: two pressure modules, a mast and a walled yard, sited eleven kilometres downwind of the nearest terraces at a distance that was agreed rather than chosen. Staffing is six. It has been occupied without a break since 2246.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "REGION", "G2_EVENING_BAND"] },
+  "siteType": { "id": ["xeno.peerdb.org", "SITE_TYPE", "FIELD_CAMP"] },
+  "gridReference": "HL-00.9/-87.6",
+  "population": {
+    "value": { "from": { "amount": 6, "precision": 10 }, "to": { "amount": 14, "precision": 10 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "founded": { "time": "2246-01-01T00:00:00Z", "precision": "y" },
+  "occupation": { "from": { "time": "2246-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true },
+  "image": [{ "value": "/f/49HcXwcuEgqkbnsYQGxN7T", "name": "G2_STATION_ONE.jpg", "caption": "General view", "source": "Consortium survey archive" }],
+  "notes": [
+    {
+      "value": "<p>The site record gives the eleven-year rotation as a scientific interval. It is the interval at which a ship is available, and the sector office has stopped correcting people who assume otherwise.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "id": ["xeno.peerdb.org", "INDIVIDUAL", "G3_ELLITH"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "INDIVIDUAL"] }],
+  "name": [{ "value": "Ellith" }],
+  "lineageName": [{ "value": "Thennas" }],
+  "description": [
+    {
+      "value": "<p>Brokers exchange between the hearths and the hauling lodges, which is a standing position in practice and no position at all in anybody&#39;s account of how the band works. He lent a shear plate to the 2293 expedition and has asked for its return at every expedition since, and has been told each time that it is in a collection on Ceres and that a request has been filed. He now asks as a formality, at the start of each meeting, before anything else is discussed.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "species": { "id": ["xeno.peerdb.org", "SPECIES", "G3_ILSETH"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G3_STRIP_STEWARDSHIP"] }, { "id": ["xeno.peerdb.org", "CULTURE", "G3_ICE_LODGES"] }],
+  "role": [{ "value": "exchange broker", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "formOfAddress": "by name with the hearth name after it",
+  "born": { "time": "2262-01-01T00:00:00Z", "precision": "y" },
+  "birthplace": { "id": ["xeno.peerdb.org", "SITE", "G3_UPPER_HEARTHS"] },
+  "notes": [
+    {
+      "value": "<p>The plate is catalogued on Ceres as an unprovenanced shearing tool. The 2293 expedition&#39;s field notes record it as borrowed, on a page nobody consulted until 2308.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

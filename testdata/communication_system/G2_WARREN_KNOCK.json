@@ -1,0 +1,41 @@
+{
+  "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G2_WARREN_KNOCK"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM"] }],
+  "name": [{ "value": "Warren Knock", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Kallukenne", "gloss": "the knocking, and also the answer to it" }],
+  "description": [
+    {
+      "value": "<p>Struck with the knuckles against tunnel ice, so that the signal travels through the wall rather than the air, and read by the pit organ as much as felt. The grammar is short and imperative and works well for depth, direction, quantity and who is coming; it has no way at all of expressing a hypothetical, which has caused the ethics panel more trouble than any other single fact in this galaxy. Distance is generous, about four hundred metres through good ice, and the whole warren hears everything. Newcomers over-strike, having been trained on air, and are audible from the far end of the system for their first month.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "modality": [
+    { "id": ["xeno.peerdb.org", "COMMUNICATION_MODALITY", "SUBSTRATE_PERCUSSION"] },
+    { "id": ["xeno.peerdb.org", "COMMUNICATION_MODALITY", "GESTURE"] }
+  ],
+  "users": {
+    "value": { "from": { "amount": 2000, "precision": 100 }, "to": { "amount": 5000, "precision": 100 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "sampleGloss": [
+    {
+      "value": "<p><i>[two knuckle strikes, a pause of four beats, one strike]</i> - <b>open-(wait)-one</b> - &#39;unplug the mouth, one is coming in.&#39;</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "recording": [
+    {
+      "value": "/f/RTGWkudmJhVJqp44BmmymN",
+      "name": "system-G2_WARREN_KNOCK.mp3",
+      "caption": "Elicitation sample",
+      "duration": { "value": { "amount": 3, "precision": 1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "MINUTE"] }] },
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G2_WARREN_KNOCK"] }],
+      "note": [
+        {
+          "value": "<p>Recorded during elicitation and kept as the reference sample for this system.</p>",
+          "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+        }
+      ]
+    }
+  ]
+}

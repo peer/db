@@ -1,0 +1,42 @@
+{
+  "id": ["xeno.peerdb.org", "CULTURE", "G3_STRIP_STEWARDSHIP"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "CULTURE"] }],
+  "name": [{ "value": "Strip Stewardship", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [
+    {
+      "value": "Sethen-ilse",
+      "gloss": "the turn, meaning the order in which ground is held",
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G3_STRIP_SPEECH"] }]
+    }
+  ],
+  "catalogueCode": "CU-2263-01",
+  "description": [
+    {
+      "value": "<p>Households work the leading half of the dusk band and move along it with the ice front, carrying everything they own and rebuilding the same shelter perhaps nine times in a life. A stretch of ground is held by one hearth for a fixed term and then passed on in an order that everybody knows and nobody writes down, and the holder is neither chosen nor thanked. Kin are those who take heat from the same hearth this season, which means the household is reassembled roughly as often as the shelter is. Since contact the main change has been in tools: struck metal arrived through the hauling lodges in the 2270s and the strip has been measurably louder ever since. The Consortium&#39;s presence has changed the schedule of nothing at all, which the sector office records as a success and the expedition members describe less warmly.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Skrbništvo nad odsekom pasu za določen čas prevzame eno ognjišče in ga nato preda naprej. Zanj nihče ne prosi in nikomur se zanj ne zahvali.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>As casas trabalham a metade dianteira da faixa crepuscular e deslocam-se ao longo dela com a frente de gelo, levando consigo tudo o que possuem e reconstruindo o mesmo abrigo talvez nove vezes ao longo de uma vida. Um troço de terreno é detido por uma lareira durante um período fixo e depois passado adiante numa ordem que toda a gente conhece e ninguém escreve, e quem o detém não é escolhido nem agradecido. Parentes são os que recebem calor da mesma lareira nesta estação, o que significa que a casa é recomposta aproximadamente com a mesma frequência que o abrigo. Desde o contacto, a principal mudança foi nas ferramentas: o metal batido chegou pelas confrarias de arrasto na década de 2270 e a faixa está desde então mensuravelmente mais barulhenta. A presença do Consórcio não alterou o calendário de coisa nenhuma, o que o gabinete do setor regista como um êxito e os membros da expedição descrevem com menos entusiasmo.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "practisedBy": [{ "id": ["xeno.peerdb.org", "SPECIES", "G3_ILSETH"] }],
+  "presentAt": [{ "id": ["xeno.peerdb.org", "SITE", "G3_UPPER_HEARTHS"] }],
+  "kinshipSystem": { "id": ["xeno.peerdb.org", "KINSHIP_SYSTEM", "HEARTH_AFFILIATION"] },
+  "socialOrganisation": { "id": ["xeno.peerdb.org", "SOCIAL_ORGANISATION", "ROTATING_STEWARDSHIP"] },
+  "subsistence": [
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "HERD_FOLLOWING"] },
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "COLONY_GRAZING"] },
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "TRADE_DEPENDENCY"] }
+  ],
+  "communication": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G3_STRIP_SPEECH"] }],
+  "population": {
+    "value": { "from": { "amount": 12000, "precision": 100 }, "to": { "amount": 40000, "precision": 100 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "period": { "from": { "time": "2261-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true }
+}

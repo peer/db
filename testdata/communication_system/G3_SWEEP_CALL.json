@@ -1,0 +1,38 @@
+{
+  "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G3_SWEEP_CALL"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM"] }],
+  "name": [{ "value": "Sweep Call", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Naumauwe", "gloss": "the call that goes out with the water" }],
+  "description": [
+    {
+      "value": "<p>A vocal language built for a drained tidal flat, in which held vowels carry two kilometres across wet ground and consonants exist mainly to end them. Tense is vowel length and person is pitch, so the same syllable held longer is the same event further in the past, and a whisper of it is unintelligible rather than quiet. It is precise about water and about who is standing where, and it has no vocabulary for anything more than a day inland. Recording it at conversational range is the standard first error: at two metres the language sounds like a small number of very loud mistakes.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "modality": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_MODALITY", "VOCALISATION"] }],
+  "users": {
+    "value": { "from": { "amount": 190000, "precision": 100 }, "to": { "amount": 450000, "precision": 100 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "sampleGloss": [
+    {
+      "value": "<p><i>ouwaaa nemi, rauwe ne</i>. Word by word: water-long-ago, coming, wall not. Freely: the water came in here once already, and the wall did not hold.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "recording": [
+    {
+      "value": "/f/9mYeHwBjnwgQTvkirJJcRc",
+      "name": "system-G3_SWEEP_CALL.mp3",
+      "caption": "Elicitation sample",
+      "duration": { "value": { "amount": 2, "precision": 1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "MINUTE"] }] },
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G3_SWEEP_CALL"] }],
+      "note": [
+        {
+          "value": "<p>Recorded during elicitation and kept as the reference sample for this system.</p>",
+          "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+        }
+      ]
+    }
+  ]
+}

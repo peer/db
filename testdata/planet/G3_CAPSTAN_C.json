@@ -1,0 +1,33 @@
+{
+  "id": ["xeno.peerdb.org", "PLANET", "G3_CAPSTAN_C"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PLANET"] }],
+  "name": [{ "value": "Capstan c", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "catalogueCode": "HB-1/014-c",
+  "description": [
+    {
+      "value": "<p>Ninety-one bar of carbon dioxide over a plain of hot basalt, at a temperature that destroys a lander in about forty minutes and has now destroyed two. The surface is young, resurfaced within the last hundred million years, and uniform to radar apart from three shield structures in the southern hemisphere. No life of any kind was found at any depth sampled, and the sampling went as deep as the drills lasted. It is lifeless, and that is one of the few things in this galaxy anybody will state without a qualifier.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    { "value": "<p>Vroč svet z gostim ozračjem in brez sledu življenja.</p>", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }] }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "STAR_SYSTEM", "G3_CAPSTAN"] },
+  "planetType": { "id": ["xeno.peerdb.org", "PLANET_TYPE", "GREENHOUSE"] },
+  "radius": { "value": { "amount": 0.99, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_RADIUS"] }] },
+  "mass": { "value": { "amount": 0.95, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_MASS"] }] },
+  "surfaceGravity": { "value": { "amount": 0.97, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "STANDARD_GRAVITY"] }] },
+  "dayLength": { "value": { "amount": 402.1, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "HOUR"] }] },
+  "orbitalPeriod": { "value": { "amount": 39.6, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_DAY"] }] },
+  "meanTemperature": { "value": { "amount": 268.0, "precision": 0.1 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "°C"] }] },
+  "hydrosphere": { "value": { "amount": 0, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "PERCENT"] }] },
+  "atmosphere": [
+    {
+      "value": "<p>Carbon dioxide at ninety-one bar with sulphur dioxide and a high haze of sulphuric droplets. Standing in it is not a meaningful phrase; it is a pressure vessel with weather.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "biosphereNone": true,
+  "contactStatus": { "id": ["xeno.peerdb.org", "CONTACT_STATUS", "NO_CONTACT"] },
+  "firstSurveyed": { "time": "2259-01-01T00:00:00Z", "precision": "y" },
+  "surveyPeriod": { "from": { "time": "2259-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true },
+  "image": [{ "value": "/f/K5SmnqtQdCbM4hRHduTMVE", "name": "G3_CAPSTAN_C.jpg", "caption": "Approach view", "source": "Consortium survey archive" }]
+}

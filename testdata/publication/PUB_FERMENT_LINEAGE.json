@@ -1,0 +1,26 @@
+{
+  "id": ["xeno.peerdb.org", "PUBLICATION", "PUB_FERMENT_LINEAGE"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PUBLICATION"] }],
+  "title": [
+    {
+      "value": "Descent Reckoned Through Starter: Ferment Lineage and the Division of the Culture Among the Anchor Terrace Households",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "doi": "10.5281/xeno.2257.0088",
+  "abstract": [
+    {
+      "value": "<p>Among the Anchor Terrace Households, kinship is reckoned through the inheritance of living pit cultures rather than through bodies. We record forty-one divisions of the culture over two seasons and show that a household states its position in the terrace as the number of divisions separating its starter from a named ancestral pit. A household whose culture dies is not orphaned but dissolved, and the term used for the event is the same term used for a spoiled draw. We argue that where the transmitted substance is alive, descent is best treated as a property of the substance and not of the people carrying it.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "author": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_HALVORSEN"] }],
+  "journal": "Comparative Kinship and Descent",
+  "publishedOn": { "time": "2257-11-01T00:00:00Z", "precision": "m" },
+  "about": [
+    { "id": ["xeno.peerdb.org", "SPECIES", "G1_ELMASHELU"] },
+    { "id": ["xeno.peerdb.org", "CULTURE", "G1_ANCHOR_HOUSES"] },
+    { "id": ["xeno.peerdb.org", "PRACTICE", "G1_PIT_DIVISION"] }
+  ],
+  "cites": [{ "id": ["xeno.peerdb.org", "PUBLICATION", "PUB_WEIR_ALLOCATION"] }]
+}

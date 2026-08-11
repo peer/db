@@ -1,0 +1,34 @@
+{
+  "id": ["xeno.peerdb.org", "OBSERVATION", "OBSA_STORM_GAP_TWO_CORDS"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "OBSERVATION"] }],
+  "title": [{ "value": "Two cords in one storm gap on the outer arc", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "description": [
+    {
+      "value": "<p>Sixty metres of weir taken by a storm, claimed with a knotted and dyed cord and answered with a second. Neither party would read the other half in front of us.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "content": [
+    {
+      "value": "<p>A storm on the ninth tide took about sixty metres of the outer arc. Two days later there was a dyed cord in the gap; two tides after that there was a second, and there has been no third.</p><p>Both were photographed in place and neither was lifted. The knots say how many tides the gap has been open and which arc it belongs to. The dye says who is saying so. The weir builders read the knots and cannot read the dye; the net house members read the dye by its polarisation and do not trouble with the knots.</p><p>Neither party would read the other&#39;s half in front of us, and we do not think that was for our benefit. Two cords and no third means the claim is settled, and there is no form in which anybody could argue about it further.</p><p>Between them the two readings hold the whole claim and neither party holds it. We have both halves on record, in a filing system that will keep them side by side for as long as the catalogue lasts, and we are aware that this is precisely the thing the practice is arranged to prevent.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "expedition": { "id": ["xeno.peerdb.org", "EXPEDITION", "EXP_NINE_TERRACE_TIDE"] },
+  "observedBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_FERREIRA"] }, { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_DEMIR"] }],
+  "observedAt": { "id": ["xeno.peerdb.org", "SITE", "G2_HIGH_WEIR"] },
+  "observedOn": { "time": "2299-03-21T00:00:00Z", "precision": "d" },
+  "about": [
+    { "id": ["xeno.peerdb.org", "PRACTICE", "G2_GAP_CORD"] },
+    { "id": ["xeno.peerdb.org", "CULTURE", "G2_ARC_LODGES"] },
+    { "id": ["xeno.peerdb.org", "SPECIES", "G2_SESSHUNE"] }
+  ],
+  "method": [
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "PHOTOGRAMMETRY"] },
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "PARTICIPANT_OBSERVATION"] }
+  ],
+  "fieldConditions": "Exposed flats at low water, wind still up after the storm, poor light and standing water in the gap on both visits. Lodge members working the middle arc four hundred metres off and not coming nearer.",
+  "image": [
+    { "value": "/f/MKkBccB9jME6hi5dnbns8B", "name": "OBSA_STORM_GAP_TWO_CORDS.jpg", "caption": "Taken at the time", "source": "Field record" }
+  ]
+}

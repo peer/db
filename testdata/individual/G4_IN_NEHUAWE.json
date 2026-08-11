@@ -1,0 +1,21 @@
+{
+  "id": ["xeno.peerdb.org", "INDIVIDUAL", "G4_IN_NEHUAWE"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "INDIVIDUAL"] }],
+  "name": [{ "value": "Nehuawe" }],
+  "lineageName": [{ "value": "Cable Corporation" }],
+  "description": [
+    {
+      "value": "<p>Foreman of the cable works from 2288, and the last person on this world whom the Consortium spoke to before contact was suspended. He consented to a photograph in 2295 and asked for the ribbon to be in it, which it is, coiled and cut. He was recorded clearing the site in 2297 and has not been recorded since, because there is no longer any way to ask; the entry is left open rather than closed, which is a decision and not an oversight.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "species": { "id": ["xeno.peerdb.org", "SPECIES", "G4_TERRACE_BUILDERS"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G4_CU_TETHER_GUILDS"] }],
+  "role": [{ "value": "cable works foreman", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "formOfAddress": "by corporation, then by name",
+  "born": { "time": "2258-01-01T00:00:00Z", "precision": "y" },
+  "birthplace": { "id": ["xeno.peerdb.org", "SITE", "G4_TETHER_STUMP"] },
+  "image": [
+    { "value": "/f/MHjWaz24G4xDgEmDwpWCYB", "name": "G4_IN_NEHUAWE.jpg", "caption": "Portrait", "source": "Made with consent; Consortium collection" }
+  ]
+}

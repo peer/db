@@ -1,0 +1,20 @@
+{
+  "id": ["xeno.peerdb.org", "SITE", "G3_CHANNEL_CAMP"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SITE"] }],
+  "name": [{ "value": "Channel Camp", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "description": [
+    {
+      "value": "<p>A Consortium camp of nine prefabricated shelters on the second channel&#39;s east bank, above the flood line by two metres, which proved sufficient on all but one occasion. It was closed in 2298 on the day the suspension took effect and was left standing under seal. Sand is now piled against the doors to about a third of their height.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "REGION", "G3_FOUR_CHANNELS"] },
+  "siteType": { "id": ["xeno.peerdb.org", "SITE_TYPE", "FIELD_CAMP"] },
+  "gridReference": "SM-206.9/+02.2",
+  "population": {
+    "value": { "from": { "amount": 0, "precision": 10 }, "to": { "amount": 18, "precision": 10 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "founded": { "time": "2283-01-01T00:00:00Z", "precision": "y" },
+  "occupation": { "from": { "time": "2283-01-01T00:00:00Z", "precision": "y" }, "to": { "time": "2298-01-01T00:00:00Z", "precision": "y" } }
+}

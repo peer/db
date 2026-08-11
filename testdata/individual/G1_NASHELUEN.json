@@ -1,0 +1,18 @@
+{
+  "id": ["xeno.peerdb.org", "INDIVIDUAL", "G1_NASHELUEN"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "INDIVIDUAL"] }],
+  "name": [{ "value": "Nasheluen" }],
+  "lineageName": [{ "value": "Kesheren" }],
+  "description": [
+    {
+      "value": "<p>Argued for thirty years that the terraces are held in trust for the flats below rather than owned by the houses, lost the argument inside his own house in 2295, and has gone on making it to visitors ever since. He is the source of most of what the survey knows about sluice order, and no house has disputed a word of that material. His brother keeps a terrace on the far side of the same slope and they have not spoken since the vote, which he mentions in roughly every third interview.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "species": { "id": ["xeno.peerdb.org", "SPECIES", "G1_ELMASHELU"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G1_ANCHOR_HOUSES"] }],
+  "role": [{ "value": "sluice keeper", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "formOfAddress": "house first, then name",
+  "born": { "time": "2251-01-01T00:00:00Z", "precision": "y" },
+  "birthplace": { "id": ["xeno.peerdb.org", "SITE", "G1_ANCHOR_STEPS"] }
+}

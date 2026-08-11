@@ -1,0 +1,26 @@
+{
+  "id": ["xeno.peerdb.org", "ORGANISM", "G1_SHEAR_SKIMMER"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "ORGANISM"] }],
+  "name": [{ "value": "Shear skimmer", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "qatubek" }],
+  "taxonCode": "TX-2702-m",
+  "description": [
+    {
+      "value": "<p>A long-winged flyer of the permanent storm belt that cannot get airborne in calm air and does not try, riding the shear at the belt margin for weeks at a stretch. It comes down on the flats only to lay, and then only on the two or three nights a year when the belt slackens, which is when almost all of them are taken. The local calendar names those nights after the bird rather than the other way round.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "category": { "id": ["xeno.peerdb.org", "ORGANISM_CATEGORY", "MOTILE_HETEROTROPH"] },
+  "foundOn": [{ "id": ["xeno.peerdb.org", "PLANET", "G1_BELLWETHER"] }],
+  "biome": [{ "id": ["xeno.peerdb.org", "BIOME", "STORM_BELT"] }, { "id": ["xeno.peerdb.org", "BIOME", "SWEEP_FLAT"] }],
+  "typicalSize": { "value": { "amount": 1.8, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+  "typicalMass": { "value": { "amount": 3.2, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "kg"] }] },
+  "image": [
+    {
+      "value": "/f/LBAYrjGxj997kV3MtTGe3S",
+      "name": "G1_SHEAR_SKIMMER.jpg",
+      "caption": "Field plate",
+      "source": "Drawn in the field; Consortium collection"
+    }
+  ]
+}

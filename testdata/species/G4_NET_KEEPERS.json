@@ -1,0 +1,61 @@
+{
+  "id": ["xeno.peerdb.org", "SPECIES", "G4_NET_KEEPERS"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SPECIES"] }],
+  "name": [{ "value": "Weather Coast Net Keepers", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [
+    {
+      "value": "Houweani",
+      "gloss": "those who hold on",
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G4_COM_TERRACE_REGISTER"] }]
+    }
+  ],
+  "exonym": [{ "value": "Hiuweune", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "taxonCode": "TX-4207-d",
+  "description": [
+    {
+      "value": "<p>Coastal people of the migrating storm belt, living off fixed nets and stone traps set to take what the season drives ashore and moving their gear, not themselves, as the belt travels nine hundred kilometres over the year. The polity is a ledger: membership consists of standing obligations, and two parties count as kin exactly as long as something between them is unsettled. Debts are therefore not paid off lightly, and a debt discharged in full is spoken of in the same register a human might use for a funeral. They cannot feed themselves from the coast alone and cover the shortfall by exchange upslope, which the terrace guilds price in labour. Contact ceased with the 2298 suspension, and the file notes, without comment, that eleven CCX obligations to individual net keepers were left open at that date.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "homeworld": { "id": ["xeno.peerdb.org", "PLANET", "G4_OVERFALL"] },
+  "bodyPlan": [
+    {
+      "value": "<p>A heavy-bodied quadruped that rears to work with the forelimbs, with webbed rear feet and a short muscular neck. The integument is oiled bristle over grey hide, standing up in a crest along the spine when the animal is braced against water. The head carries a bony forward-facing dish that focuses returning sound, which is the reason the face looks, in every field sketch, faintly surprised.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "typicalHeight": { "value": { "amount": 1.7, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+  "typicalMass": { "value": { "amount": 71.0, "precision": 0.1 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "kg"] }] },
+  "lifespan": {
+    "value": { "from": { "amount": 38, "precision": 1 }, "to": { "amount": 77, "precision": 1 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_YEAR"] }]
+  },
+  "sensoryModality": [
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "PRESSURE_GRADIENT"] },
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "ACOUSTIC_RANGING"] },
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "HYGRORECEPTION"] }
+  ],
+  "subsistence": [
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "DRIFT_HARVESTING"] },
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "TIDAL_TRAPPING"] },
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "TRADE_DEPENDENCY"] }
+  ],
+  "individuality": { "id": ["xeno.peerdb.org", "INDIVIDUALITY_MODE", "BOUNDED"] },
+  "socialOrganisation": { "id": ["xeno.peerdb.org", "SOCIAL_ORGANISATION", "OBLIGATION_NETWORK"] },
+  "kinshipSystem": { "id": ["xeno.peerdb.org", "KINSHIP_SYSTEM", "DEBT_KINSHIP"] },
+  "communication": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G4_COM_TERRACE_REGISTER"] }],
+  "population": {
+    "value": { "from": { "amount": 100000, "precision": 1000 }, "to": { "amount": 180000, "precision": 1000 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "contactStatus": { "id": ["xeno.peerdb.org", "CONTACT_STATUS", "SUSPENDED"] },
+  "firstContact": { "time": "2241-01-01T00:00:00Z", "precision": "y" },
+  "image": [
+    {
+      "value": "/f/N4jZrsgj9e5H5PK5bi6i8F",
+      "name": "G4_NET_KEEPERS.jpg",
+      "caption": "Field plate",
+      "source": "Drawn in the field; Consortium collection"
+    }
+  ]
+}

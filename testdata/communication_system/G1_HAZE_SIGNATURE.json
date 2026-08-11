@@ -1,0 +1,37 @@
+{
+  "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G1_HAZE_SIGNATURE"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM"] }],
+  "name": [{ "value": "Haze Signature", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "description": [
+    {
+      "value": "<p>A continuous chemical output maintained across the whole width of a lowland valley, in which state, condition and instruction are encoded as ratios that hold steady for hours and shift over days. It carries a great deal about what is being done and where, and it has no second person and no way of addressing one body rather than the valley. Because a signature persists for days, a sample is not an utterance but an average, and the shortest meaningful unit anybody has isolated is about four hours long. The first error every team makes is to treat probe exhaust as neutral, which it is not: three separate descents have been answered.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "modality": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_MODALITY", "CHEMICAL_SIGNATURE"] }],
+  "users": {
+    "value": { "from": { "amount": 20000, "precision": 100 }, "to": { "amount": 2000000, "precision": 100 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "sampleGloss": [
+    {
+      "value": "<p><i>[sulphide falling nine hours, thiol steady, trace amine rising at the eastern head]</i> going-down / holding / coming-up-at-the-east. Free translation: the eastern head is being worked and the rest of the valley is not. There is no first person in it and no way to put one in.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "recording": [
+    {
+      "value": "/f/PRCbB5TGWTRwrQk9uA2MbP",
+      "name": "system-G1_HAZE_SIGNATURE.mp3",
+      "caption": "Elicitation sample",
+      "duration": { "value": { "amount": 3, "precision": 1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "MINUTE"] }] },
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G1_HAZE_SIGNATURE"] }],
+      "note": [
+        {
+          "value": "<p>Recorded during elicitation and kept as the reference sample for this system.</p>",
+          "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+        }
+      ]
+    }
+  ]
+}

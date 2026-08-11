@@ -1,0 +1,41 @@
+{
+  "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G4_COM_FLAT_CALL"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM"] }],
+  "name": [{ "value": "Shoals Flat Call", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Aumeiroa", "gloss": "talk for the open flat" }],
+  "description": [
+    {
+      "value": "<p>A high, short-burst speech pitched to cut the shelf wind, delivered in the gaps between gusts so that a sentence takes as long as the weather allows. Repetition is the grammar rather than a stylistic habit: said once a thing is a proposal, said twice it is an assertion of fact, and said three times it is a call for a wall to be worked at once. It carries positions, instructions and holdings very well and cannot carry a conditional at all, so anything hypothetical is put in tail movement instead and is lost from an audio recording entirely. Fieldworkers hear the doubled forms as anger for about a season, and the early transcripts accordingly record a placid exchange about mud depth as a sustained quarrel.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "modality": [
+    { "id": ["xeno.peerdb.org", "COMMUNICATION_MODALITY", "VOCALISATION"] },
+    { "id": ["xeno.peerdb.org", "COMMUNICATION_MODALITY", "GESTURE"] }
+  ],
+  "users": {
+    "value": { "from": { "amount": 210000, "precision": 100 }, "to": { "amount": 360000, "precision": 100 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "sampleGloss": [
+    {
+      "value": "<p><i>meirau meirau, leiwa nauoti</i> - wall wall, water go-out-now - the wall is holding; I am telling you this, not asking you.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "recording": [
+    {
+      "value": "/f/6X2wxVYT3kWgrJLn4ZUM63",
+      "name": "system-G4_COM_FLAT_CALL.mp3",
+      "caption": "Elicitation sample",
+      "duration": { "value": { "amount": 1, "precision": 1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "MINUTE"] }] },
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G4_COM_FLAT_CALL"] }],
+      "note": [
+        {
+          "value": "<p>Recorded during elicitation and kept as the reference sample for this system.</p>",
+          "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+        }
+      ]
+    }
+  ]
+}

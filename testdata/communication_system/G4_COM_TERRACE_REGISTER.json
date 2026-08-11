@@ -1,0 +1,50 @@
+{
+  "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G4_COM_TERRACE_REGISTER"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM"] }],
+  "name": [{ "value": "Terrace Register", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Weuhenewa", "gloss": "the way one speaks on the steps" }],
+  "description": [
+    {
+      "value": "<p>The working speech of the terraces and the coast below them, spoken face to face, blown between levels on reed surrogates that reproduce its prosody exactly, and recorded, where an obligation is involved, in knotted cord held by both parties. The weaves of the same forest take part in assembly through slow pulses in the branch structure, at roughly one exchange an hour, so a joint sitting runs at two speeds and the transcript of one is unusable as a transcript of the other. It carries obligation, craft procedure and judgement well, and carries almost nothing about interior states, which are considered a matter for the fosterer and not for the room. Visitors transcribe the surrogate as music for as long as it takes somebody to answer one.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "modality": [
+    { "id": ["xeno.peerdb.org", "COMMUNICATION_MODALITY", "VOCALISATION"] },
+    { "id": ["xeno.peerdb.org", "COMMUNICATION_MODALITY", "WIND_SURROGATE"] },
+    { "id": ["xeno.peerdb.org", "COMMUNICATION_MODALITY", "WOVEN_TOKEN"] },
+    { "id": ["xeno.peerdb.org", "COMMUNICATION_MODALITY", "SUBSTRATE_PERCUSSION"] }
+  ],
+  "users": {
+    "value": { "from": { "amount": 300000, "precision": 100 }, "to": { "amount": 480000, "precision": 100 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "notation": true,
+  "sampleGloss": [
+    {
+      "value": "<p><i>wehiuna wenehe</i>, blown rather than spoken from the terrace below - rope-of-it stands - the works are sound this morning and nobody need come down.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "recording": [
+    {
+      "value": "/f/6HZuTnCPShqvg4PTKzHV3B",
+      "name": "system-G4_COM_TERRACE_REGISTER.mp3",
+      "caption": "Elicitation sample",
+      "duration": { "value": { "amount": 4, "precision": 1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "MINUTE"] }] },
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G4_COM_TERRACE_REGISTER"] }],
+      "note": [
+        {
+          "value": "<p>Recorded during elicitation and kept as the reference sample for this system.</p>",
+          "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+        }
+      ]
+    }
+  ],
+  "notes": [
+    {
+      "value": "<p>The verb disputed across the nine recordings of the tether request is a surrogate-borne form, which the standard transcription scheme handles by writing the nearest spoken word and adding a footnote. Eleven hundred pages of the suspension file rest on that footnote.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

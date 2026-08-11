@@ -1,0 +1,16 @@
+{
+  "id": ["xeno.peerdb.org", "INDIVIDUAL", "G2_SHESAMME"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "INDIVIDUAL"] }],
+  "name": [{ "value": "Shesamme" }],
+  "description": [
+    {
+      "value": "<p>Tends four beds on the inner ring and has been the Consortium&#39;s principal contact in the warm pool since 2281, which means a hydrophone lowered from the raft and a reply some hours later. They are one of the cases where the symbiont assay disagrees with the stated genealogy, know this, and have twice stated that the assay is the thing that needs explaining. No photograph exists; nobody has been down, and they have not been up.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "species": { "id": ["xeno.peerdb.org", "SPECIES", "G2_SHESUMME"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G2_BED_HALVES"] }],
+  "role": [{ "value": "bed tender", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "formOfAddress": "by moiety first, which cannot be avoided in the language",
+  "born": { "time": "2151-01-01T00:00:00Z", "precision": "y" }
+}

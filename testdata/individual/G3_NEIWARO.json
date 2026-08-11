@@ -1,0 +1,20 @@
+{
+  "id": ["xeno.peerdb.org", "INDIVIDUAL", "G3_NEIWARO"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "INDIVIDUAL"] }],
+  "name": [{ "value": "Neiwaro" }],
+  "lineageName": [{ "value": "Ommei" }],
+  "description": [
+    {
+      "value": "<p>The oldest individual on the register from this coast, whose house held four channels when the survey first landed and holds two now, the other two having been rearranged into one another by a single flood in 2274. He gives the same account of that flood at every visit and it has not varied in a detail that anyone has been able to catch. He consented to a photograph in 2270, which is the earliest portrait in the galaxy&#39;s records and which he has never asked to see.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "species": { "id": ["xeno.peerdb.org", "SPECIES", "G3_RAUWENA"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G3_CHANNEL_HOUSES"] }],
+  "role": [{ "value": "house head", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "formOfAddress": "by house name",
+  "born": { "time": "2190-01-01T00:00:00Z", "precision": "y" },
+  "image": [
+    { "value": "/f/CWWp9PutcMhBWaX38j4Krn", "name": "G3_NEIWARO.jpg", "caption": "Portrait", "source": "Made with consent; Consortium collection" }
+  ]
+}

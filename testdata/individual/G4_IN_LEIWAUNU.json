@@ -1,0 +1,18 @@
+{
+  "id": ["xeno.peerdb.org", "INDIVIDUAL", "G4_IN_LEIWAUNU"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "INDIVIDUAL"] }],
+  "name": [{ "value": "Leiwaunu" }],
+  "lineageName": [{ "value": "House Meiaura" }],
+  "description": [
+    {
+      "value": "<p>A ferment keeper on the lower terraces of the gorge, and the brother who left. He argued in 2303 that the fermenting pits should be moved above the top pool, where the water is cleaner, lost the argument to the house that holds the cascade, and has since produced a decade of measurements showing he was right about the water and wrong about everything downstream of it. He speaks the shelf language quietly, which he is aware is held against him.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "species": { "id": ["xeno.peerdb.org", "SPECIES", "G4_WEIRFOLK"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G4_CU_LADDER_GORGE"] }],
+  "role": [{ "value": "ferment keeper", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "formOfAddress": "by house, then by name",
+  "born": { "time": "2276-01-01T00:00:00Z", "precision": "y" },
+  "birthplace": { "id": ["xeno.peerdb.org", "SITE", "G4_UPPER_MIDDEN"] }
+}

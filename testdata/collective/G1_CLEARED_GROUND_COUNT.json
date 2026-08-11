@@ -1,0 +1,20 @@
+{
+  "id": ["xeno.peerdb.org", "COLLECTIVE", "G1_CLEARED_GROUND_COUNT"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "COLLECTIVE"] }],
+  "name": [{ "value": "The Cleared-Ground Count", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "description": [
+    {
+      "value": "<p>The colony that moved onto the ground cleared for the tether in 2273 and spread across it faster than anything else on the plateau, on the strength of eleven kilometres of fall with nothing standing on it. It has been contracting since 2299 as the forest comes back at the edges, and it reports the contraction as a debt owed to it rather than as a misfortune. Whether it is the same colony that arrived in 2273 is a question it treats as badly formed.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "species": { "id": ["xeno.peerdb.org", "SPECIES", "G1_KHEVNITH"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G1_SHELF_LEDGER"] }],
+  "role": [{ "value": "claimant", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "memberCount": {
+    "value": { "from": { "amount": 40000, "precision": 10 }, "to": { "amount": 90000, "precision": 10 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "activePeriod": { "from": { "time": "2273-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true },
+  "seat": { "id": ["xeno.peerdb.org", "SITE", "G1_CANOPY_TETHER"] }
+}

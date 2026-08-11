@@ -1,0 +1,64 @@
+{
+  "id": ["xeno.peerdb.org", "SPECIES", "G3_TEKKONNO"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SPECIES"] }],
+  "name": [{ "value": "Kiln b Stake Setters", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [
+    {
+      "value": "Tekkonno",
+      "gloss": "the ones of the second shore",
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G3_STAKE_NOTATION"] }]
+    }
+  ],
+  "exonym": [{ "value": "Okko, in the Orrenko rendering: those who stay dry", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "taxonCode": "TX-4421-b",
+  "description": [
+    {
+      "value": "<p>The Tekkonno set and replace the stake lines that run for kilometres across the tidal flats, cropping the crust that grows on them and taking what the falling water strands behind them. A line is held by one household for a tide-year and then passes on in a fixed order, so that a household works a different stretch of coast every year of its existence. Obligation is tracked in detail: two parties are kin for as long as a debt between them is open, and the settling of a debt ends a relationship rather than repairing one. All four meetings with the survey have taken place on the flats at the turn of the tide and all four ended when the water came back. The population estimate spans a factor of ten, and the Tekkonno, when asked to narrow it, asked what it was for.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Postavljalci kolov na plimskih blatiščih; vrste kolov vsako plimsko leto krožijo med gospodinjstvi.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    }
+  ],
+  "homeworld": { "id": ["xeno.peerdb.org", "PLANET", "G3_ONNORO"] },
+  "bodyPlan": [
+    {
+      "value": "<p>Bilateral and heavy-shouldered, on four limbs, with the forelimbs longer than the hind and used for driving stakes and for walking on soft ground alike. The skin is loose, folded and grey-green, and holds a film of water that is renewed at every immersion. They breathe through paired dorsal openings that close hard, which is why a Tekkonno caught by the flood is inconvenienced rather than drowned.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "typicalHeight": { "value": { "amount": 1.5, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+  "typicalMass": { "value": { "amount": 63.0, "precision": 0.1 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "kg"] }] },
+  "lifespan": {
+    "value": { "from": { "amount": 38, "precision": 1 }, "to": { "amount": 84, "precision": 1 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_YEAR"] }]
+  },
+  "sensoryModality": [
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "PRESSURE_GRADIENT"] },
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "CHEMICAL_PLUME"] },
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "HYGRORECEPTION"] }
+  ],
+  "subsistence": [
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "TIDAL_TRAPPING"] },
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "COLONY_GRAZING"] }
+  ],
+  "individuality": { "id": ["xeno.peerdb.org", "INDIVIDUALITY_MODE", "BOUNDED"] },
+  "socialOrganisation": { "id": ["xeno.peerdb.org", "SOCIAL_ORGANISATION", "ROTATING_STEWARDSHIP"] },
+  "kinshipSystem": { "id": ["xeno.peerdb.org", "KINSHIP_SYSTEM", "DEBT_KINSHIP"] },
+  "communication": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G3_STAKE_NOTATION"] }],
+  "population": {
+    "value": { "from": { "amount": 90000, "precision": 1000 }, "to": { "amount": 800000, "precision": 1000 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "contactStatus": { "id": ["xeno.peerdb.org", "CONTACT_STATUS", "LIMITED"] },
+  "firstContact": { "time": "2291-01-01T00:00:00Z", "precision": "y" },
+  "image": [
+    {
+      "value": "/f/EJgmuZkZBr4CsNWmcsSgNf",
+      "name": "G3_TEKKONNO.jpg",
+      "caption": "Field plate",
+      "source": "Drawn in the field; Consortium collection"
+    }
+  ]
+}

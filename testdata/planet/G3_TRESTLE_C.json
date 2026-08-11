@@ -1,0 +1,37 @@
+{
+  "id": ["xeno.peerdb.org", "PLANET", "G3_TRESTLE_C"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PLANET"] }],
+  "name": [{ "value": "Trestle c", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "catalogueCode": "HB-2/003-c",
+  "description": [
+    {
+      "value": "<p>An ice world with a sealed ocean, mapped in one pass by radar sounding and never revisited. The shell thins to under four kilometres in a band across the leading hemisphere, and there are refrozen fractures there that argue for something moving underneath. Whether anything lives in the water is unknown; the sounding was designed to measure ice and it measured ice.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Um mundo gelado de oceano selado, cartografado numa única passagem por sondagem de radar e nunca mais revisitado. O invólucro adelgaça até menos de quatro quilómetros numa faixa que atravessa o hemisfério dianteiro, e há ali fraturas recongeladas que sugerem algo em movimento por baixo. Se algo vive na água, não se sabe; a sondagem foi concebida para medir gelo e mediu gelo.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "STAR_SYSTEM", "G3_TRESTLE"] },
+  "planetType": { "id": ["xeno.peerdb.org", "PLANET_TYPE", "ICE_SHELL"] },
+  "biome": [{ "id": ["xeno.peerdb.org", "BIOME", "BRINE_SEA"] }],
+  "radius": { "value": { "amount": 0.74, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_RADIUS"] }] },
+  "mass": { "value": { "amount": 0.3, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_MASS"] }] },
+  "surfaceGravity": { "value": { "amount": 0.55, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "STANDARD_GRAVITY"] }] },
+  "dayLength": { "value": { "amount": 41.2, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "HOUR"] }] },
+  "orbitalPeriod": { "value": { "amount": 512.7, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_DAY"] }] },
+  "meanTemperature": { "value": { "amount": -96.0, "precision": 0.1 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "°C"] }] },
+  "hydrosphere": { "value": { "amount": 100.0, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "PERCENT"] }] },
+  "atmosphere": [
+    {
+      "value": "<p>Water vapour and carbon dioxide at a few tenths of a millibar, thickening slightly over the fracture band. Vacuum for all practical purposes.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "biosphereUnknown": true,
+  "contactStatus": { "id": ["xeno.peerdb.org", "CONTACT_STATUS", "NO_CONTACT"] },
+  "firstSurveyed": { "time": "2282-01-01T00:00:00Z", "precision": "y" },
+  "surveyPeriod": { "from": { "time": "2282-01-01T00:00:00Z", "precision": "y" }, "to": { "time": "2282-01-01T00:00:00Z", "precision": "y" } },
+  "image": [{ "value": "/f/AUpzQFJKtkgZQLPz9puqVb", "name": "G3_TRESTLE_C.jpg", "caption": "Surface view", "source": "Consortium survey archive" }]
+}

@@ -1,0 +1,22 @@
+{
+  "id": ["xeno.peerdb.org", "SITE", "G2_TURNING_GROUND"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SITE"] }],
+  "name": [{ "value": "Turning Ground", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "localName": [{ "value": "Menula", "gloss": "the turning, from the reversal of the water flow rather than of any season" }],
+  "description": [
+    {
+      "value": "<p>Two hundred flat hectares at the widest point of the band, empty for most of the cycle and holding a large part of the region&#39;s population for eleven days while the meltwater flow is switched between catchments. Standing structures are limited to stone markers and a set of anchor sockets cut into bedrock. Everything else arrives and leaves.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "REGION", "G2_EVENING_BAND"] },
+  "siteType": { "id": ["xeno.peerdb.org", "SITE_TYPE", "AGGREGATION_GROUND"] },
+  "gridReference": "HL-00.1/-91.4",
+  "population": {
+    "value": { "from": { "amount": 0, "precision": 10 }, "to": { "amount": 19000, "precision": 10 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "image": [
+    { "value": "/f/RLA59CxqGPPoweLQHmDqW5", "name": "G2_TURNING_GROUND.jpg", "caption": "General view", "source": "Consortium survey archive" }
+  ]
+}

@@ -1,0 +1,32 @@
+{
+  "id": ["xeno.peerdb.org", "NARRATIVE", "G2_LONG_SLEEP_REPORT"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "NARRATIVE"] }],
+  "title": [{ "value": "What Was in the Gallery", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "description": [
+    {
+      "value": "<p>A first-person account of a long dormancy, told at the mouth chamber in the days after a waking, when such accounts are heard and at no other time. The form is recognised: it must be told standing, and it must include what the teller was wrong about.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "genre": { "id": ["xeno.peerdb.org", "NARRATIVE_GENRE", "DREAM_REPORT"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G2_WARREN_TALLY"] }],
+  "recordedBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_HADDAD"] }, { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_FARAHANI"] }],
+  "recordedAt": { "id": ["xeno.peerdb.org", "SITE", "G2_FROST_WARREN"] },
+  "recordedOn": { "time": "2296-01-01T00:00:00Z", "precision": "y" },
+  "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G2_WARREN_KNOCK"] }],
+  "content": [
+    {
+      "value": "<p>I was at the mouth and the plug was out and the wind was in the gallery, and I was not cold. That is the part I was wrong about.</p><p>Somebody knocked from outside, two and a pause and one, and I went and cut the plug, and it was me coming in. I let myself past and went back to the chamber, and the one who had come in stayed at the mouth and kept the count, and did it better than I have.</p><p>When I woke I knocked third. I had expected to knock first. The one who knocked first was in the store all four years and had nothing to do with any of it.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "recording": [
+    {
+      "value": "/f/YLEtbVzaYX6S8qw5Nt1wki",
+      "name": "narrative-G2_LONG_SLEEP_REPORT.mp3",
+      "caption": "Performance, recorded on site",
+      "duration": { "value": { "amount": 19, "precision": 1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "MINUTE"] }] },
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G2_WARREN_KNOCK"] }]
+    }
+  ]
+}

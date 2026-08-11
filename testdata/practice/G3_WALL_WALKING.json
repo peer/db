@@ -1,0 +1,26 @@
+{
+  "id": ["xeno.peerdb.org", "PRACTICE", "G3_WALL_WALKING"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PRACTICE"] }],
+  "name": [{ "value": "Walking the Section", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Naumure", "gloss": "going out with the water" }],
+  "description": [
+    {
+      "value": "<p>As the tide falls the grade holding a named section walks it end to end, three or four abreast, arriving at the far end about when the water reaches its lowest and turning straight round. Stones that have shifted are restacked on the outward leg and only on the outward leg; anything found loose on the way back is left, marked by leaning a stone against it, and dealt with by whoever walks next. Nobody carries food and nobody stops, because the walk is timed against four hours of falling water and there is no version of it that runs late. Children walk from about their sixth year, at the landward end, where the wall is low and the ground stays wet rather than deep. A section that has been walked is described as counted, and one that has not is described as owed, which is the same word the grades use for a debt.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Ob vsaki oseki starostna skupina prehodi svoj odsek zidu in ga popravlja le na poti navzven.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    }
+  ],
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G3_WEIR_GRADES"] }],
+  "category": { "id": ["xeno.peerdb.org", "PRACTICE_CATEGORY", "CALENDRICAL"] },
+  "periodicity": "every low water, twice a tidal cycle",
+  "participants": {
+    "value": { "from": { "amount": 8, "precision": 1 }, "to": { "amount": 60, "precision": 1 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "firstDocumented": { "time": "2267-01-01T00:00:00Z", "precision": "y" },
+  "relatedPractice": [{ "id": ["xeno.peerdb.org", "PRACTICE", "G3_NINE_YEARS_QUIET"] }],
+  "image": [{ "value": "/f/WHk6FfutCYxVZ4DLp7cmLn", "name": "G3_WALL_WALKING.jpg", "caption": "In progress", "source": "Consortium survey archive" }]
+}

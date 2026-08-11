@@ -1,0 +1,28 @@
+{
+  "id": ["xeno.peerdb.org", "SITE", "G4_SUNK_RELAY"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SITE"] }],
+  "name": [{ "value": "Sunk Relay", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "localName": [{ "value": "Ongamai", "gloss": "the thing that was left" }],
+  "description": [
+    {
+      "value": "<p>A Consortium navigation relay moored in the substellar pool in 2256, decommissioned in 2271 when the orbital network made it redundant, and never removed. It is now held and maintained locally, and its transponder clock times the nineteen-metre tide for the whole ring. Disputes over station-keeping between floating settlements are heard on its deck.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "REGION", "G4_WARM_POOL"] },
+  "siteType": { "id": ["xeno.peerdb.org", "SITE_TYPE", "RELAY_STATION"] },
+  "gridReference": "WM-000.2/1.1",
+  "population": {
+    "value": { "from": { "amount": 40, "precision": 10 }, "to": { "amount": 220, "precision": 10 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "founded": { "time": "2256-01-01T00:00:00Z", "precision": "y" },
+  "occupation": { "from": { "time": "2256-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true },
+  "image": [{ "value": "/f/TZqDm74f7wxg5Zp63cXcpa", "name": "G4_SUNK_RELAY.jpg", "caption": "General view", "source": "Consortium survey archive" }],
+  "notes": [
+    {
+      "value": "<p>The disposal file still lists the relay as awaiting removal. Removing it would now require the agreement of everyone who tells the time by it.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

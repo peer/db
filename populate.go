@@ -19,16 +19,124 @@ import (
 	"gitlab.com/peerdb/peerdb/base"
 	"gitlab.com/peerdb/peerdb/document"
 	"gitlab.com/peerdb/peerdb/indexer"
+	"gitlab.com/peerdb/peerdb/internal/xeno"
 	"gitlab.com/peerdb/peerdb/transform"
 )
+
+// generateTestDataDocuments generates the core documents together with the test data schema (its
+// properties and classes), adds the loaded test data documents to them, and transforms all of them
+// into documents to index. Properties are generated before classes because the class field schemas
+// are built from property mnemonics.
+func generateTestDataDocuments(ctx context.Context, logger zerolog.Logger, testData []any) ([]any, []*document.D, errors.E) {
+	return base.GenerateCoreDocuments(ctx, func(ctx context.Context, coreDocuments []any) ([]any, errors.E) {
+		documents := coreDocuments
+
+		docs, errE := xeno.Properties()
+		if errE != nil {
+			return nil, errE
+		}
+		documents = append(documents, docs...)
+
+		logger.Info().Msg("test data properties generated successfully")
+
+		if ctx.Err() != nil {
+			return nil, errors.WithStack(ctx.Err())
+		}
+
+		mnemonics, errE := transform.Mnemonics(ctx, documents)
+		if errE != nil {
+			return nil, errE
+		}
+
+		docs, errE = xeno.Classes(mnemonics)
+		if errE != nil {
+			return nil, errE
+		}
+		documents = append(documents, docs...)
+
+		logger.Info().Msg("test data classes generated successfully")
+
+		if ctx.Err() != nil {
+			return nil, errors.WithStack(ctx.Err())
+		}
+
+		return append(documents, testData...), nil
+	})
+}
+
+// insertTestDataFiles inserts the test data attachments into the storage, under IDs derived from the
+// test data namespace, its storage segment, and each file's path inside the test data files
+// directory, which is what the documents linking to them expect.
+func insertTestDataFiles(ctx context.Context, site internalSite.Site, files []fileToInsert, count *x.Counter) errors.E {
+	for _, f := range files {
+		if ctx.Err() != nil {
+			return errors.WithStack(ctx.Err())
+		}
+
+		count.Increment()
+
+		p := filepath.Join(f.Dir, f.Path)
+		file, err := os.Open(p) //nolint:gosec
+		if err != nil {
+			errE := errors.WithStack(err)
+			errors.Details(errE)["path"] = f.Path
+			return errE
+		}
+
+		_, errE := site.Base.InsertOrReplaceFile(ctx, []string{xeno.Namespace, xeno.FilesStorage, f.Path}, file, f.Filename)
+		if errE != nil {
+			_ = file.Close()
+			errors.Details(errE)["path"] = f.Path
+			return errE
+		}
+
+		errE = errors.WithStack(file.Close())
+		if errE != nil {
+			errors.Details(errE)["path"] = f.Path
+			return errE
+		}
+	}
+
+	return nil
+}
 
 func (c *PopulateCommand) populateSite(ctx context.Context, site internalSite.Site) (func(), errors.E) {
 	logger := *zerolog.Ctx(ctx)
 	logger.Info().Msg("populating")
 
-	documents, transformed, errE := base.GenerateCoreDocuments(ctx, nil)
-	if errE != nil {
-		return nil, errE
+	var documents []any
+	var transformed []*document.D
+	files := []fileToInsert{}
+
+	// The test data set and the schema it needs are opt-in: without a test data directory only the
+	// core documents are populated.
+	if c.TestDataDir == "" {
+		var errE errors.E
+		documents, transformed, errE = base.GenerateCoreDocuments(ctx, nil)
+		if errE != nil {
+			return nil, errE
+		}
+	} else {
+		testData, errE := loadTestData(ctx, logger, c.TestDataDir)
+		if errE != nil {
+			return nil, errE
+		}
+
+		files, errE = testDataFiles(c.TestDataDir)
+		if errE != nil {
+			return nil, errE
+		}
+
+		logger.Info().Int("count", len(testData)).Int("files", len(files)).Msg("loaded all test data")
+
+		if ctx.Err() != nil {
+			return nil, errors.WithStack(ctx.Err())
+		}
+
+		documents, transformed, errE = generateTestDataDocuments(ctx, logger, testData)
+		if errE != nil {
+			return nil, errE
+		}
 	}
 
 	logger.Info().Int("count", len(documents)).Msg("generated all documents")
@@ -89,7 +197,7 @@ func (c *PopulateCommand) populateSite(ctx context.Context, site internalSite.Si
 	}
 
 	count := x.NewCounter(0)
-	size := x.NewCounter(int64(len(transformed)))
+	size := x.NewCounter(int64(len(transformed) + len(files)))
 	progress := indexer.Progress(logger, "indexing", nil)
 	ticker := x.NewTicker(ctx, count, size, indexer.ProgressPrintRate)
 	defer ticker.Stop()
@@ -99,10 +207,14 @@ func (c *PopulateCommand) populateSite(ctx context.Context, site internalSite.Si
 		}
 	}()
 
+	// The files are inserted through the callback, so that all documents are inserted first and the
+	// files go in while those are still being indexed.
 	populateShutdown, errE := site.PopulateAndStart(ctx, transformed, func(doc *document.D) {
 		count.Increment()
 		logger.Debug().Str("doc", doc.ID.String()).Msg("saving document")
-	}, nil, count, size)
+	}, func(ctx context.Context) errors.E {
+		return insertTestDataFiles(ctx, site, files, count)
+	}, count, size)
 	if errE != nil {
 		return populateShutdown, errE
 	}

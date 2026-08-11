@@ -1,0 +1,21 @@
+{
+  "id": ["xeno.peerdb.org", "RESEARCHER", "RES_SEO"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "RESEARCHER"] }],
+  "name": [{ "value": "Minjun" }],
+  "familyName": [{ "value": "Seo" }],
+  "researcherCode": "CCX-P-03840",
+  "description": [
+    {
+      "value": "<p>Led the last programme on the salt world before the suspension closed it and has spent the years since writing up material he is not permitted to quote. He is unfailingly polite about this in public and, by all accounts, in private as well. He is training two people to take over a file neither of them can read.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "affiliatedWith": [{ "id": ["xeno.peerdb.org", "INSTITUTE", "INST_FARSIGHT"] }, { "id": ["xeno.peerdb.org", "INSTITUTE", "INST_LEDGER"] }],
+  "specialisesIn": [
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "PARTICIPANT_OBSERVATION"] },
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "NETWORK_MAPPING"] }
+  ],
+  "activePeriod": { "from": { "time": "2286-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true },
+  "born": { "time": "2261-01-01T00:00:00Z", "precision": "y" },
+  "image": [{ "value": "/f/MZV6USV56hSx9G5TtLCvuc", "name": "RES_SEO.jpg", "caption": "Staff photograph", "source": "Consortium personnel record" }]
+}

@@ -1,0 +1,64 @@
+{
+  "id": ["xeno.peerdb.org", "SPECIES", "G1_MERENAU"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SPECIES"] }],
+  "name": [{ "value": "Margin Vent Followers", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [
+    { "value": "Merenau", "gloss": "those who follow the warmth", "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G1_ICE_TAP"] }] }
+  ],
+  "taxonCode": "TX-1806-e",
+  "description": [
+    {
+      "value": "<p>People of an ice world with no permanent geography, living on fresh cryovolcanic flows and moving every few decades as the warmth moves under them. A settlement is a set of tents over a working vent and a great deal of plumbing, and the oldest continuously occupied ground on the planet is younger than the Consortium. Every person carries an inherited gut culture that digests vent chemistry for them, and relatedness is traced by its strain, which can be assayed, and occasionally has been, with results that did not match anybody&#39;s account of who was related to whom. The stewardship of a vent passes from household to household in a fixed order and cannot be refused, which is a rule that becomes interesting when the vent is dying. Contact was suspended by ethics ruling in 2298 over the strain assays, and the surviving instruments continue to report to a file nobody is allowed to act on.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Ljudstvo, ki sledi toploti po kriovulkanskih tokovih; stik je od leta 2298 prekinjen.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Povo de um mundo de gelo sem geografia permanente, que vive sobre escoadas criovulcânicas recentes e muda de sítio de poucas em poucas décadas, à medida que o calor se desloca por baixo dele. Um povoado é um conjunto de tendas sobre uma fonte ativa e muita canalização, e o terreno ocupado sem interrupção há mais tempo no planeta é mais novo do que o Consórcio. Cada pessoa transporta uma cultura intestinal herdada que lhe digere a química da fonte, e o aparentamento é traçado pela estirpe dessa cultura, que pode ser analisada, e ocasionalmente foi, com resultados que não coincidiram com o relato de ninguém sobre quem era parente de quem. A tutela de uma fonte passa de agregado para agregado numa ordem fixa e não pode ser recusada, regra que se torna interessante quando a fonte está a morrer. O contacto foi suspenso por decisão ética em 2298 por causa das análises de estirpes, e os instrumentos que sobreviveram continuam a reportar para um processo sobre o qual ninguém está autorizado a agir.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "homeworld": { "id": ["xeno.peerdb.org", "PLANET", "G1_MARGIN_NOTE_III"] },
+  "bodyPlan": [
+    {
+      "value": "<p>Small, dense and dark, with four limbs, a heavy insulating pelt of matted filament and broad splayed feet for slush. The head carries no external ears and a pair of deep thermal pits above the mouth that read a warm patch of ground at fifty metres. They are built low and wide because everything they do is done on hands and feet on a surface that will not always take weight.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "typicalHeight": { "value": { "amount": 1.12, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+  "typicalMass": { "value": { "amount": 44.0, "precision": 0.1 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "kg"] }] },
+  "lifespan": {
+    "value": { "from": { "amount": 40, "precision": 1 }, "to": { "amount": 85, "precision": 1 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_YEAR"] }]
+  },
+  "sensoryModality": [
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "SUBSTRATE_VIBRATION"] },
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "THERMAL_RADIANCE"] },
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "CHEMICAL_PLUME"] }
+  ],
+  "subsistence": [
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "CHEMO_TENDING"] },
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "DRIFT_HARVESTING"] }
+  ],
+  "individuality": { "id": ["xeno.peerdb.org", "INDIVIDUALITY_MODE", "BOUNDED"] },
+  "contestedIndividuality": { "id": ["xeno.peerdb.org", "INDIVIDUALITY_MODE", "PERMANENT_COLLECTIVE"] },
+  "socialOrganisation": { "id": ["xeno.peerdb.org", "SOCIAL_ORGANISATION", "ROTATING_STEWARDSHIP"] },
+  "kinshipSystem": { "id": ["xeno.peerdb.org", "KINSHIP_SYSTEM", "SYMBIONT_SHARING"] },
+  "communication": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G1_ICE_TAP"] }],
+  "population": {
+    "value": { "from": { "amount": 60000, "precision": 1000 }, "to": { "amount": 110000, "precision": 1000 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "contactStatus": { "id": ["xeno.peerdb.org", "CONTACT_STATUS", "SUSPENDED"] },
+  "firstContact": { "time": "2253-01-01T00:00:00Z", "precision": "y" },
+  "image": [
+    {
+      "value": "/f/Ju5fi5A26Cdr7XTxQw14Da",
+      "name": "G1_MERENAU.jpg",
+      "caption": "Field plate",
+      "source": "Drawn in the field; Consortium collection"
+    }
+  ]
+}

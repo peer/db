@@ -1,0 +1,21 @@
+{
+  "id": ["xeno.peerdb.org", "PRACTICE", "G3_DOOR_GREETING"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PRACTICE"] }],
+  "name": [{ "value": "The Word at the Passage Mouth", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Hesse-nath", "gloss": "the word at the mouth" }],
+  "description": [
+    {
+      "value": "<p>At a passage mouth the arriving party taps twice on the frame and then speaks, in that order, because the tenders below feel the frame and the herders above hear the voice, and either alone is a greeting to only half the warren. The party inside answers by naming the number of chambers standing open, and an arrival is refused by naming none, which is done without apology and requires none. A refused party may sit at the mouth for as long as it likes and is fed there, but does not enter, and the refusal is not carried forward to the next visit. Surveyors were refused at Shelf Warren in 2266 and again in 2271, both times for stated reasons of storage rather than of persons, and were fed on both occasions in the doorway, in a wind, for four days. The practice ended with the occupation in 2288, though the frames are still there and still make the right sound.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G3_WARREN_SEASON"] }],
+  "category": { "id": ["xeno.peerdb.org", "PRACTICE_CATEGORY", "GREETING"] },
+  "periodicity": "at every arrival, while the warren was occupied",
+  "participants": {
+    "value": { "from": { "amount": 2, "precision": 1 }, "to": { "amount": 12, "precision": 1 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "firstDocumented": { "time": "2264-01-01T00:00:00Z", "precision": "y" },
+  "relatedPractice": [{ "id": ["xeno.peerdb.org", "PRACTICE", "G3_FACE_ASSENT"] }]
+}

@@ -1,0 +1,61 @@
+{
+  "id": ["xeno.peerdb.org", "SPECIES", "G2_OLLUMARU"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SPECIES"] }],
+  "name": [{ "value": "Ice Ceiling Dwellers", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [
+    { "value": "Ollumaru", "gloss": "the ones who hang", "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G2_CEILING_CALL"] }] }
+  ],
+  "exonym": [{ "value": "Nurrolle", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "taxonCode": "TX-4155-b",
+  "description": [
+    {
+      "value": "<p>They live upside down, in dwellings lashed to the fluted underside of a thirty-kilometre ice shell, above four kilometres of black water and a floor they have no reason to visit. There has never been light here, so there is nothing that could be called an appearance; a household is known by the shape of its hull, the pitch of its wake and the taste of the water leaving it. Households are corporate and hold their stretch of rib for generations, and kinship runs through the fermentation cultures kept in slung bladders, which are divided when a household divides and which can be traced back further than anyone&#39;s account of their own ancestors. Their nets hang below them and take what rises on the slow warm plume off the vent chain, which is the only reason the ceiling is habitable and the only thing anybody argues about, since a good rib is a matter of somebody else&#39;s plume. Station Two, nine hundred metres away, works without external lights on ethics grounds, and has therefore spent eighty years describing a settlement it has never seen.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Bivališča visijo z ledenega stropa v popolni temi. Sorodstvo se meri po deljenih kulturah za vrenje.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    }
+  ],
+  "homeworld": { "id": ["xeno.peerdb.org", "PLANET", "G2_LONG_LID"] },
+  "bodyPlan": [
+    {
+      "value": "<p>Bilateral, streamlined and eyeless, with a stiff dorsal ridge and paired hooking limbs that take the animal along the ice hand over hand with the body trailing. The skin is loose, pale and finely wrinkled, and carries electroreceptive lines from the snout to the hip on both flanks. Feeding is filtration through a folded palate, and the mouth is also the sole organ of manipulation, which shapes the local craft in ways the literature is still working out.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "typicalHeight": { "value": { "amount": 1.1, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+  "typicalMass": { "value": { "amount": 34.0, "precision": 0.1 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "kg"] }] },
+  "lifespan": {
+    "value": { "from": { "amount": 45, "precision": 1 }, "to": { "amount": 110, "precision": 1 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_YEAR"] }]
+  },
+  "sensoryModality": [
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "ELECTRORECEPTION"] },
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "ACOUSTIC_RANGING"] },
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "CONTACT_CHEMO"] }
+  ],
+  "subsistence": [
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "COLONY_GRAZING"] },
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "DRIFT_HARVESTING"] },
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "MANAGED_DECAY"] }
+  ],
+  "individuality": { "id": ["xeno.peerdb.org", "INDIVIDUALITY_MODE", "BOUNDED"] },
+  "socialOrganisation": { "id": ["xeno.peerdb.org", "SOCIAL_ORGANISATION", "LINEAGE_HOUSES"] },
+  "kinshipSystem": { "id": ["xeno.peerdb.org", "KINSHIP_SYSTEM", "FERMENT_LINEAGE"] },
+  "communication": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G2_CEILING_CALL"] }],
+  "population": {
+    "value": { "from": { "amount": 5000, "precision": 1000 }, "to": { "amount": 13000, "precision": 1000 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "contactStatus": { "id": ["xeno.peerdb.org", "CONTACT_STATUS", "LIMITED"] },
+  "firstContact": { "time": "2231-01-01T00:00:00Z", "precision": "y" },
+  "image": [
+    {
+      "value": "/f/7GWzQeU3QFz6jALJmLDvot",
+      "name": "G2_OLLUMARU.jpg",
+      "caption": "Field plate",
+      "source": "Drawn in the field; Consortium collection"
+    }
+  ]
+}

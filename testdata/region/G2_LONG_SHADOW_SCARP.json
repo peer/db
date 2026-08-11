@@ -1,0 +1,20 @@
+{
+  "id": ["xeno.peerdb.org", "REGION", "G2_LONG_SHADOW_SCARP"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "REGION"] }],
+  "name": [{ "value": "Long Shadow Scarp", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "description": [
+    {
+      "value": "<p>A thrust scarp fourteen hundred kilometres long and up to two kilometres high, thrown up when the crust contracted for the last time. Its face has not been modified since except by impacts. The survey timed its work by the shadow the scarp throws at local dawn, and the name records that rather than the geology.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "PLANET", "G2_SLATE_TABLE"] },
+  "area": { "value": { "amount": 96000, "precision": 100 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "SQUARE_KILOMETRE"] }] },
+  "elevationRange": {
+    "value": { "from": { "amount": 120, "precision": 10 }, "to": { "amount": 2340, "precision": 10 } },
+    "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }]
+  },
+  "image": [
+    { "value": "/f/1Ga89HEhPhc7riGo1yHrYx", "name": "G2_LONG_SHADOW_SCARP.jpg", "caption": "Regional view", "source": "Consortium survey archive" }
+  ]
+}

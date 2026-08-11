@@ -1,0 +1,22 @@
+{
+  "id": ["xeno.peerdb.org", "SITE", "G1_KUTAK_MEET"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SITE"] }],
+  "name": [{ "value": "Kutak Meet", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "localName": [{ "value": "Kutak Qatpe", "gloss": "the standing-together place" }],
+  "description": [
+    {
+      "value": "<p>The floor of the basin at its lowest point, marked by concentric worn tracks visible from a hundred kilometres up and a cluster of set stones at the centre. Dispersed groups converge here when the brine pool refills, which happens on a schedule everyone but the survey seems able to predict. For the rest of the year it is empty and very quiet.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "REGION", "G1_KUTAK_BASIN"] },
+  "siteType": { "id": ["xeno.peerdb.org", "SITE_TYPE", "AGGREGATION_GROUND"] },
+  "gridReference": "TB-118.7/-02.9",
+  "population": {
+    "value": { "from": { "amount": 0, "precision": 10 }, "to": { "amount": 4000, "precision": 10 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "founded": { "time": "2229-01-01T00:00:00Z", "precision": "y" },
+  "occupation": { "from": { "time": "2229-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true },
+  "image": [{ "value": "/f/BvKnRsJGHgQMSZ5KjL11tw", "name": "G1_KUTAK_MEET.jpg", "caption": "General view", "source": "Consortium survey archive" }]
+}

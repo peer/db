@@ -1,0 +1,28 @@
+{
+  "id": ["xeno.peerdb.org", "PRACTICE", "G3_FACE_ASSENT"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PRACTICE"] }],
+  "name": [{ "value": "Assent on a Face", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [
+    { "value": "[all hands on the seam]", "gloss": "a tapped figure; the sign is every claimant striking the seam once, in no particular order" }
+  ],
+  "description": [
+    {
+      "value": "<p>Before a bedding plane is opened, everyone holding a claim on it must strike it once, and the striking may be spread over an entire season because a claimant who is not touching the rock cannot answer at all. Objection is made by not striking, which is indistinguishable from being elsewhere, so the tenders wait, and waiting is the whole procedure. When the last claimant has struck, the face is opened within the day and the matter is never reopened, even where a later claim would have been good. Since 2276 the Consortium has been on the list of those whose assent is sought, which means that a face can now be held up by a ship being late. The tenders have not remarked on this in any recorded exchange.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Kamnito plast smejo odpreti šele, ko vsak s pravico do nje enkrat udari po njej.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    }
+  ],
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G3_FACE_TENDING"] }],
+  "category": { "id": ["xeno.peerdb.org", "PRACTICE_CATEGORY", "DISPUTE_RESOLUTION"] },
+  "periodicity": "before every opening, and it takes as long as it takes",
+  "participants": {
+    "value": { "from": { "amount": 3, "precision": 1 }, "to": { "amount": 19, "precision": 1 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "firstDocumented": { "time": "2276-01-01T00:00:00Z", "precision": "y" },
+  "relatedPractice": [{ "id": ["xeno.peerdb.org", "PRACTICE", "G3_SLOT_PASSING"] }],
+  "image": [{ "value": "/f/Dzcara73NbKjFpgBSavrGt", "name": "G3_FACE_ASSENT.jpg", "caption": "In progress", "source": "Consortium survey archive" }]
+}

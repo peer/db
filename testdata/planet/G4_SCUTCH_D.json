@@ -1,0 +1,34 @@
+{
+  "id": ["xeno.peerdb.org", "PLANET", "G4_SCUTCH_D"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PLANET"] }],
+  "name": [{ "value": "Scutch d", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "catalogueCode": "SPW-B/031-d",
+  "description": [
+    {
+      "value": "<p>A cold volatile giant with a broad dusty ring and eleven catalogued moons, four of them retrograde or steeply inclined. A single thin deck of aerial mat sits at the 2 bar level, detected only in 2299 and still described in the literature as probable rather than confirmed; eleven other pressure levels were sampled and were empty. Most of the planet&#39;s interest to the register is in what is going round it rather than in the planet itself.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "STAR_SYSTEM", "G4_SCUTCH"] },
+  "planetType": { "id": ["xeno.peerdb.org", "PLANET_TYPE", "VOLATILE_GIANT"] },
+  "biome": [{ "id": ["xeno.peerdb.org", "BIOME", "AERIAL_MAT"] }],
+  "radius": { "value": { "amount": 11.4, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_RADIUS"] }] },
+  "mass": { "value": { "amount": 396.0, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_MASS"] }] },
+  "surfaceGravity": { "value": { "amount": 3.05, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "STANDARD_GRAVITY"] }] },
+  "dayLength": { "value": { "amount": 9.8, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "HOUR"] }] },
+  "orbitalPeriod": { "value": { "amount": 9140.0, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_DAY"] }] },
+  "ringSystem": true,
+  "meanTemperature": { "value": { "amount": -148.0, "precision": 0.1 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "°C"] }] },
+  "hydrosphere": { "value": { "amount": 0, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "PERCENT"] }] },
+  "atmosphere": [
+    {
+      "value": "<p>Hydrogen, helium, methane and ammonia, banded pale blue-grey, under a haze layer that flattens all detail when viewed from outside. No surface at any depth.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "biosphereUnknown": true,
+  "contactStatus": { "id": ["xeno.peerdb.org", "CONTACT_STATUS", "REMOTE_OBSERVATION"] },
+  "firstSurveyed": { "time": "2233-01-01T00:00:00Z", "precision": "y" },
+  "surveyPeriod": { "from": { "time": "2235-01-01T00:00:00Z", "precision": "y" }, "to": { "time": "2294-01-01T00:00:00Z", "precision": "y" } },
+  "image": [{ "value": "/f/BuFpnpFbSe7k6jawDZC3MZ", "name": "G4_SCUTCH_D.jpg", "caption": "Surface view", "source": "Consortium survey archive" }]
+}

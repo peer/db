@@ -1,0 +1,41 @@
+{
+  "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G2_PLATE_LIGHT"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM"] }],
+  "name": [{ "value": "Plate Speech", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Anumenne", "gloss": "the evening saying, built on the same root as the world's name" }],
+  "description": [
+    {
+      "value": "<p>Meaning is carried in the polarisation angle of light reflected off the waxy dorsal plates, which are tilted in running waves along the body. It handles person, obligation and the state of water with great precision, and has almost nothing for colour, distance or anything happening out of sight. Because the light on this world never changes, the channel is completely stable, and a speaker facing away is simply not speaking. The first thing a fieldworker gets wrong is the equipment: film the band without a polarising filter and you will conclude that these are the quietest people in the register, which is what the 2244 report concluded.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "modality": [
+    { "id": ["xeno.peerdb.org", "COMMUNICATION_MODALITY", "COLOUR_CHANGE"] },
+    { "id": ["xeno.peerdb.org", "COMMUNICATION_MODALITY", "GESTURE"] }
+  ],
+  "users": {
+    "value": { "from": { "amount": 96000, "precision": 100 }, "to": { "amount": 172000, "precision": 100 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "sampleGloss": [
+    {
+      "value": "<p><i>[plate ripple fore to aft, twice, then held flat]</i> - <b>lean-lean-STOP</b> - &#39;go on ahead, I am staying with the water.&#39;</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "recording": [
+    {
+      "value": "/f/KJg53zxqoEC4ReYfWzZVoD",
+      "name": "system-G2_PLATE_LIGHT.mp3",
+      "caption": "Elicitation sample",
+      "duration": { "value": { "amount": 3, "precision": 1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "MINUTE"] }] },
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G2_PLATE_LIGHT"] }],
+      "note": [
+        {
+          "value": "<p>Recorded during elicitation and kept as the reference sample for this system.</p>",
+          "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+        }
+      ]
+    }
+  ]
+}

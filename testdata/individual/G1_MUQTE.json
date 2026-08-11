@@ -1,0 +1,23 @@
+{
+  "id": ["xeno.peerdb.org", "INDIVIDUAL", "G1_MUQTE"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "INDIVIDUAL"] }],
+  "name": [{ "value": "Muqte" }],
+  "description": [
+    {
+      "value": "<p>The other self of the same division, who took an empty name and, by the ordinary working of the system, a set of relations that had been standing vacant for some years. He therefore holds obligations to households he had never met and regards this as the ordinary cost of doing business. He and Qatpe share every memory up to a month in 2289 and disagree about most of them.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "species": { "id": ["xeno.peerdb.org", "SPECIES", "G1_TAQPEKUN"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G1_NAME_ASSEMBLY"] }],
+  "role": [{ "value": "jar keeper", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "formOfAddress": "the name alone, never with an ordinal",
+  "born": { "time": "2247-01-01T00:00:00Z", "precision": "y" },
+  "birthplace": { "id": ["xeno.peerdb.org", "SITE", "G1_KUTAK_MEET"] },
+  "notes": [
+    {
+      "value": "<p>The register lists both selves against one birth year and one birthplace, which is correct and looks like a duplicate. Two separate merge requests have been raised against this pair by staff who did not read the entry.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

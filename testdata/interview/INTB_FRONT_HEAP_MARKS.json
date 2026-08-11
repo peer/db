@@ -1,0 +1,56 @@
+{
+  "id": ["xeno.peerdb.org", "INTERVIEW", "INTB_FRONT_HEAP_MARKS"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "INTERVIEW"] }],
+  "title": [
+    { "value": "The Heap at the Front on rubble that had already been marked", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>Interview with the colony at the ice front on how debts are laid on rubble in the exchange. The colony describes re-marking fragments already entered by the Leeward Heap.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "interviewee": [{ "id": ["xeno.peerdb.org", "COLLECTIVE", "G3_FRONT_HEAP"] }],
+  "interviewer": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_DEMIR"] }, { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_FERREIRA"] }],
+  "recordedAt": { "id": ["xeno.peerdb.org", "SITE", "G3_ICEFRONT_CAMP"] },
+  "recordedOn": { "time": "2294-08-03T00:00:00Z", "precision": "d" },
+  "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G3_FACE_TAP"] }],
+  "duration": { "value": { "amount": 168, "precision": 1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "MINUTE"] }] },
+  "content": [
+    {
+      "value": "<p><b>Q.</b> How old were you when you first took part in the exchange?</p><p><b>A.</b> We were not any age. You are asking a hand how old it is. The exchange is older than any body in us and none of them was present for the start of it, including the ones tapping at you now.</p><p><b>Q.</b> What is happening in the rubble four kilometres downwind?</p><p><b>A.</b> Nothing is happening. We are not touching it. There is no way to say anything about it in this and there is no way to want to.</p><p><b>Q.</b> Apologies. What have you done to rubble you were touching?</p><p><b>A.</b> Better. In the flood before last we went over a spread of fragments at the eastern spill and laid our marks into them.</p><p><b>Q.</b> Were the fragments clear?</p><p><b>A.</b> They were not. They carried the other heap&#39;s marks under the frost skin. We read them, we cut across them, and the debt now stands the way we cut it.</p><p><b>Q.</b> Did you mean to?</p><p><b>A.</b> You are asking whether one of us decided and the rest went along. There was no one of us. We read the marks, we cut, and there was nothing in between the two that you would recognise as a moment.</p><p><b>Q.</b> Does the Leeward Heap know?</p><p><b>A.</b> It will when it touches them. It touches that spread about every fourth flood. We have four years, unless you go down there and tell it, which is a thing we have thought about since you arrived.</p><p><b>Q.</b> We will not.</p><p><b>A.</b> We know. That is why we said it.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "recording": [
+    {
+      "value": "/f/RwFLew8A9sSUHrZoCM1WtY",
+      "name": "interview-INTB_FRONT_HEAP_MARKS.mp3",
+      "caption": "Session recording",
+      "duration": { "value": { "amount": 168, "precision": 1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "MINUTE"] }] },
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G3_FACE_TAP"] }]
+    }
+  ],
+  "ethics": { "id": ["xeno.peerdb.org", "ETHICS_PROTOCOL", "PROTOCOL_4"] },
+  "consentNote": [
+    {
+      "value": "<p>The colony agreed to the record on the understanding that it is not carried downwind, in any form, by anybody, and treated the survey&#39;s undertaking as a term of the exchange rather than as a courtesy. It declined to be told what the Consortium means by an archive.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "clearedReader": ["mock-user-curator@localhost"],
+  "permission": [
+    { "action": { "id": ["core.peerdb.org", "PERMISSION_ACTIONS", "ACTION_READ"] }, "user": ["mock-user-curator@localhost"], "scope": ["self"] },
+    {
+      "action": { "id": ["core.peerdb.org", "PERMISSION_ACTIONS", "ACTION_READ_HISTORIC"] },
+      "user": ["mock-user-curator@localhost"],
+      "scope": ["self"]
+    },
+    { "action": { "id": ["core.peerdb.org", "PERMISSION_ACTIONS", "ACTION_UPDATE"] }, "user": ["mock-user-curator@localhost"], "scope": ["self"] },
+    {
+      "action": { "id": ["core.peerdb.org", "PERMISSION_ACTIONS", "ACTION_UPDATE_PERMISSIONS"] },
+      "user": ["mock-user-curator@localhost"],
+      "scope": ["self"]
+    }
+  ]
+}

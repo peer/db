@@ -1,0 +1,30 @@
+{
+  "id": ["xeno.peerdb.org", "ORGANISM", "G3_WEIR_CRAWLER"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "ORGANISM"] }],
+  "name": [{ "value": "Weir Crawler", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "muwa" }],
+  "taxonCode": "TX-1124-c",
+  "description": [
+    {
+      "value": "<p>A flat many-legged scavenger that follows the draining water down the flats and is stranded in thousands behind the stone weirs, which is the point of the weirs. It is the staple of every coastal diet on the world and is eaten whole after a day in a rot pit. During the covered phase it climbs the weir walls and grazes whatever has grown on them since the last drain.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Um necrófago achatado e de muitas patas que segue a água em drenagem pelas planícies abaixo e fica encalhado aos milhares atrás dos açudes de pedra, que é para isso mesmo que os açudes servem. É a base de todas as dietas costeiras do mundo e come-se inteiro depois de um dia numa cova de podridão. Durante a fase submersa trepa aos muros dos açudes e pasta o que neles cresceu desde a última vazante.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "category": { "id": ["xeno.peerdb.org", "ORGANISM_CATEGORY", "MOTILE_HETEROTROPH"] },
+  "foundOn": [{ "id": ["xeno.peerdb.org", "PLANET", "G3_OUMARA"] }],
+  "biome": [{ "id": ["xeno.peerdb.org", "BIOME", "SWEEP_FLAT"] }],
+  "typicalSize": { "value": { "amount": 0.4, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+  "typicalMass": { "value": { "amount": 2.6, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "kg"] }] },
+  "image": [
+    {
+      "value": "/f/88yjYRgSs9i1WcLbmLGLQS",
+      "name": "G3_WEIR_CRAWLER.jpg",
+      "caption": "Field plate",
+      "source": "Drawn in the field; Consortium collection"
+    }
+  ]
+}

@@ -1,0 +1,26 @@
+{
+  "id": ["xeno.peerdb.org", "ORGANISM", "G1_BLACK_COLUMN"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "ORGANISM"] }],
+  "name": [{ "value": "Black column", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "thravnek" }],
+  "taxonCode": "TX-2402-a",
+  "description": [
+    {
+      "value": "<p>The columnar growth that makes the canopy forest of the carbon world, rising to ninety metres without a branch and carrying its entire photosynthetic surface in the top fifteen. Everything the canopy people build is cut from it, and a house holds a named block of columns as an estate rather than as timber. A felled column takes about two hundred years to replace and the cutting rota is accordingly the most closely watched schedule on the planet.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "category": { "id": ["xeno.peerdb.org", "ORGANISM_CATEGORY", "PHOTO_SESSILE"] },
+  "foundOn": [{ "id": ["xeno.peerdb.org", "PLANET", "G1_SIXTEEN_HUNDRED_V"] }],
+  "biome": [{ "id": ["xeno.peerdb.org", "BIOME", "HIGH_CANOPY"] }],
+  "typicalSize": { "value": { "amount": 88.0, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+  "typicalMass": { "value": { "amount": 210000.0, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "kg"] }] },
+  "image": [
+    {
+      "value": "/f/2wsTEKhzwAWfcAXbMUh3Gu",
+      "name": "G1_BLACK_COLUMN.jpg",
+      "caption": "Field plate",
+      "source": "Drawn in the field; Consortium collection"
+    }
+  ]
+}

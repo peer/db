@@ -1,0 +1,21 @@
+{
+  "id": ["xeno.peerdb.org", "INDIVIDUAL", "G1_NAUELI"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "INDIVIDUAL"] }],
+  "name": [{ "value": "Naueli" }],
+  "lineageName": [{ "value": "Uenoa" }],
+  "description": [
+    {
+      "value": "<p>Keeps the drawing order for the second deep basin, which means deciding in what sequence four thousand households take water and in what quantity, and she does it with a salt tablet and a memory the survey has twice tested without telling her. She is candid that the order is not fair and firm that it is correct, and considers the distinction obvious. She sat for a photograph in 2307 holding the tablet, which is the only reason a tablet has ever been photographed in use.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "species": { "id": ["xeno.peerdb.org", "SPECIES", "G1_AOLEIARU"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G1_BASIN_WATER_ORDER"] }],
+  "role": [{ "value": "water clerk", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "formOfAddress": "ferment first, then name",
+  "born": { "time": "2263-01-01T00:00:00Z", "precision": "y" },
+  "birthplace": { "id": ["xeno.peerdb.org", "SITE", "G1_EVAPORITE_WORKINGS"] },
+  "image": [
+    { "value": "/f/BfrRNSz5h9FUrCJi3Y2LBD", "name": "G1_NAUELI.jpg", "caption": "Portrait", "source": "Made with consent; Consortium collection" }
+  ]
+}

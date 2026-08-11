@@ -1,0 +1,26 @@
+{
+  "id": ["xeno.peerdb.org", "ORGANISM", "G3_ROW_SCRUB"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "ORGANISM"] }],
+  "name": [{ "value": "Row Scrub", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "shelu" }],
+  "taxonCode": "TX-1104-a",
+  "description": [
+    {
+      "value": "<p>A low woody sessile that grows only in the lee of the wind rows, in bands a few metres wide and hundreds of kilometres long. It works the permanent low light of the dusk band and puts most of its mass into a shallow anchoring plate rather than into height, because the wind has blown one way here since the crust cooled. Its inner bark separates into long fibres, and the Ilseth take it for cordage and for the harness webbing a hauler wears for a working life.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "category": { "id": ["xeno.peerdb.org", "ORGANISM_CATEGORY", "PHOTO_SESSILE"] },
+  "foundOn": [{ "id": ["xeno.peerdb.org", "PLANET", "G3_SISHELETH"] }],
+  "biome": [{ "id": ["xeno.peerdb.org", "BIOME", "DUSK_BELT"] }],
+  "typicalSize": { "value": { "amount": 0.55, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+  "typicalMass": { "value": { "amount": 2.8, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "kg"] }] },
+  "image": [
+    {
+      "value": "/f/FocY9QAcKMXj24FSqcsoER",
+      "name": "G3_ROW_SCRUB.jpg",
+      "caption": "Field plate",
+      "source": "Drawn in the field; Consortium collection"
+    }
+  ]
+}

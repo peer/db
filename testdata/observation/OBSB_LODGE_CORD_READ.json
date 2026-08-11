@@ -1,0 +1,38 @@
+{
+  "id": ["xeno.peerdb.org", "OBSERVATION", "OBSB_LODGE_CORD_READ"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "OBSERVATION"] }],
+  "title": [
+    { "value": "Two hauling lodges reading across on the coldward route", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>A chance meeting of two ice lodges four hundred metres from the camp mast, and the cord reading that followed it.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "content": [
+    {
+      "value": "<p>3.ix.2274. Two loaded lodges met on the coldward route within sight of the station and halted without any signal we could identify. Both unclipped their working cords from the harness and laid them out on the ice side by side, load ends together.</p><p>Each side then read the other with the flat of the hand, working outward from the load end. Neither party spoke while a hand was moving, and the whole reading took fifty-one minutes for cords of about eleven metres. Uthemme, who was hauling for the coldward lodge, later described this to us as ordinary and slightly slow.</p><p>At the end of it one hauler added a turn to his own cord in the other party&#39;s sight. Nothing was cut. Both lodges then went on in the directions they had been going.</p><p>We photographed both cords in place and can state the number of turns on each. We cannot state what happened. Adding a turn is described to us as claiming a route, and cutting and knotting a length across as transferring one, but the two lodges had come from opposite ends of the same route and neither seemed to have gained anything by the exchange. Sennuth, asked later, said that the reading was the point and the turn was only the record of it, which is either an explanation or a courteous refusal to give one.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "expedition": { "id": ["xeno.peerdb.org", "EXPEDITION", "EXP_HOLLOW_BAR_FIRST"] },
+  "observedBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_SUBRAMANIAN"] }, { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_FERREIRA"] }],
+  "observedAt": { "id": ["xeno.peerdb.org", "SITE", "G3_ICEFRONT_CAMP"] },
+  "observedOn": { "time": "2274-09-03T00:00:00Z", "precision": "d" },
+  "about": [
+    { "id": ["xeno.peerdb.org", "SPECIES", "G3_SHELLUTHE"] },
+    { "id": ["xeno.peerdb.org", "PRACTICE", "G3_CORD_MEETING"] },
+    { "id": ["xeno.peerdb.org", "CULTURE", "G3_ICE_LODGES"] }
+  ],
+  "method": [
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "PARTICIPANT_OBSERVATION"] },
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "PHOTOGRAMMETRY"] }
+  ],
+  "fieldConditions": "Clear and very cold, no drift, the mast lights visible from the meeting point. Two lodges of five and six haulers respectively.",
+  "image": [{ "value": "/f/Ee4dWzqqxGkCBzvPwAYbwe", "name": "OBSB_LODGE_CORD_READ.jpg", "caption": "Taken at the time", "source": "Field record" }],
+  "permission": [
+    { "action": { "id": ["core.peerdb.org", "PERMISSION_ACTIONS", "ACTION_UPDATE"] }, "user": ["mock-user-researcher@localhost"], "scope": ["self"] },
+    { "action": { "id": ["core.peerdb.org", "PERMISSION_ACTIONS", "ACTION_DELETE"] }, "user": ["mock-user-curator@localhost"], "scope": ["self"] }
+  ]
+}

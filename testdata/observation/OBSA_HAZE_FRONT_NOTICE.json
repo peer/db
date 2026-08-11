@@ -1,0 +1,32 @@
+{
+  "id": ["xeno.peerdb.org", "OBSERVATION", "OBSA_HAZE_FRONT_NOTICE"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "OBSERVATION"] }],
+  "title": [{ "value": "Composition shift four hours ahead of a working front", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "description": [
+    {
+      "value": "<p>Nine days of instrument watch from the rim while a valley finished one head and moved to the next. The shift arrived before the bodies again.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "content": [
+    {
+      "value": "<p>Instrument watch from the rim over nine days, mast sampling only. Nothing was put into the haze on this occasion.</p><p>The composition shift ran four hours and ten minutes ahead of the bodies, which is inside the range of every previous record. The band worked was two hundred and six metres deep, no head was taken out of order, and no ground was worked twice.</p><p>We want to be careful with our own language here. Our reports call the shift notice, and notice implies somebody notified. Nothing in the file supports that. It is equally consistent with the plume being simply what a front does to the air in front of it, and we have no method at present that separates a signal from a wake.</p><p>The probe of 2280 came back two hundred metres upslope of where it was set down. We have read that file again this season and are no further on. Nothing is retrieved from the front, including a body separated from it, so it is not obvious what returning a probe would have meant.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "expedition": { "id": ["xeno.peerdb.org", "EXPEDITION", "EXP_LEDGER_ALLOCATION"] },
+  "observedBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_OKONKWO"] }, { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_DEMIR"] }],
+  "observedAt": { "id": ["xeno.peerdb.org", "SITE", "G1_EVAPORITE_WORKINGS"] },
+  "observedOn": { "time": "2281-08-09T00:00:00Z", "precision": "d" },
+  "about": [
+    { "id": ["xeno.peerdb.org", "PRACTICE", "G1_WORKING_FRONT"] },
+    { "id": ["xeno.peerdb.org", "SPECIES", "G1_UERANAIL"] },
+    { "id": ["xeno.peerdb.org", "CULTURE", "G1_HAZE_VALLEY_ORDER"] }
+  ],
+  "method": [
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "REMOTE_SENSING"] },
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "MATERIAL_SAMPLING"] }
+  ],
+  "fieldConditions": "Clear above the haze and unbroken cloud below it for the whole nine days. Three of us on the rim in shifts, and a cutting gang three hundred metres along who were entirely uninterested.",
+  "image": [{ "value": "/f/2UWxSQB5BEdD168XnS4kuX", "name": "OBSA_HAZE_FRONT_NOTICE.jpg", "caption": "Taken at the time", "source": "Field record" }]
+}

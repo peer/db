@@ -1,0 +1,21 @@
+{
+  "id": ["xeno.peerdb.org", "SITE", "G1_QUARTER_HEARTHS"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SITE"] }],
+  "name": [{ "value": "Quarter Hearths", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "localName": [{ "value": "Pukkat Tep", "gloss": "the hollow with fires in it" }],
+  "description": [
+    {
+      "value": "<p>Nineteen stone-ringed hearths scattered across a single interdune hollow, each within sight of at least two others and none of them walled. The hollow holds moisture under its slip face and the hearths sit along that line. Households move between hearths within the hollow but rarely leave it.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "REGION", "G1_QUARTER_DUNES"] },
+  "siteType": { "id": ["xeno.peerdb.org", "SITE_TYPE", "HEARTH_CLUSTER"] },
+  "gridReference": "TB-118.1/-03.5",
+  "population": {
+    "value": { "from": { "amount": 120, "precision": 10 }, "to": { "amount": 340, "precision": 10 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "founded": { "time": "2233-01-01T00:00:00Z", "precision": "y" },
+  "occupation": { "from": { "time": "2233-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true }
+}

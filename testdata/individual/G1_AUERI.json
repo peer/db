@@ -1,0 +1,21 @@
+{
+  "id": ["xeno.peerdb.org", "INDIVIDUAL", "G1_AUERI"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "INDIVIDUAL"] }],
+  "name": [{ "value": "Aueri" }],
+  "description": [
+    {
+      "value": "<p>The only member of a dune band the Consortium has met face to face: she came into the workings with a herd party in 2281, answered questions for two hours through a basin household, and declined to meet the survey again on any terms. Everything else the register holds about the bands comes through the households, who have opinions of their own. The interpreter described her as amused, which the transcript does not support and the interpreter has never withdrawn.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "species": { "id": ["xeno.peerdb.org", "SPECIES", "G1_AULEIRA"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G1_CUT_WATER_COMPANIES"] }],
+  "role": [{ "value": "band member", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "born": { "time": "2249-01-01T00:00:00Z", "precision": "y" },
+  "notes": [
+    {
+      "value": "<p>Those two hours are the whole of the direct record for the dune bands. They are quoted in fourteen publications, none of which mentions that they are two hours.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

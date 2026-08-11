@@ -1,0 +1,25 @@
+{
+  "id": ["xeno.peerdb.org", "PRACTICE", "G3_STAKE_TURN"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PRACTICE"] }],
+  "name": [{ "value": "The Turn of the Lines", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Onnekki-koro", "gloss": "the count moves on" }],
+  "description": [
+    {
+      "value": "<p>At the end of a tide-year every household pulls the stakes it has been keeping, carries them to the stretch of flat that comes next in the order, and drives them again in the same spacing on new ground. The pulled line is never left standing for the incoming household, because a line records a holding and a holding has ended, so for about two days the whole coast is unmarked and nobody goes out on it. Everything a household owns is moved in the same two days, which is why the dwellings are light and why nobody builds on the flats. Debts standing at the turn are carried by leaning the last stake of the old line seaward and repeating the lean in the new line, so an obligation travels with the household rather than with the ground. The survey has watched two turns from a distance of about a kilometre and has not been invited closer, which the register records without comment.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Vsako plimsko leto gospodinjstvo izpuli kole in jih zabije na naslednjem odseku blatišča.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    }
+  ],
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G3_TIDE_LINES"] }],
+  "category": { "id": ["xeno.peerdb.org", "PRACTICE_CATEGORY", "SEASONAL_MIGRATION"] },
+  "periodicity": "once every tide-year",
+  "participants": {
+    "value": { "from": { "amount": 20, "precision": 1 }, "to": { "amount": 300, "precision": 1 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "firstDocumented": { "time": "2292-01-01T00:00:00Z", "precision": "y" },
+  "relatedPractice": [{ "id": ["xeno.peerdb.org", "PRACTICE", "G3_FRAME_RAISING"] }]
+}

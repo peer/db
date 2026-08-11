@@ -1,0 +1,21 @@
+{
+  "id": ["xeno.peerdb.org", "REGION", "G1_PROVISION_PANS"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "REGION"] }],
+  "name": [{ "value": "The Provision Pans", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "description": [
+    {
+      "value": "<p>A chain of closed basins floored with salt crust, left by a sea that finished drying long before anybody was around to record it. The crust is thick enough to drive on and thin enough to fall through, in a distribution nobody has mapped. The rock at the basin margins holds the densest endolithic community on the planet.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "PLANET", "G1_COLD_PROVISION"] },
+  "biome": [{ "id": ["xeno.peerdb.org", "BIOME", "EVAPORITE_PAN"] }, { "id": ["xeno.peerdb.org", "BIOME", "ENDOLITH_ZONE"] }],
+  "area": { "value": { "amount": 1240000, "precision": 100 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "SQUARE_KILOMETRE"] }] },
+  "elevationRange": {
+    "value": { "from": { "amount": -410, "precision": 10 }, "to": { "amount": 210, "precision": 10 } },
+    "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }]
+  },
+  "image": [
+    { "value": "/f/Ar6TFv7AawGu6jBHiALP4P", "name": "G1_PROVISION_PANS.jpg", "caption": "Regional view", "source": "Consortium survey archive" }
+  ]
+}

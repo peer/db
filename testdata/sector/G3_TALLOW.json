@@ -1,0 +1,20 @@
+{
+  "id": ["xeno.peerdb.org", "SECTOR", "G3_TALLOW"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SECTOR"] }],
+  "name": [{ "value": "Tallow Sector", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "catalogueCode": "HB-3",
+  "description": [
+    {
+      "value": "<p>Two systems visited, both briefly, in a survey suspended in 2301 when its ship was reassigned. The returned data disagree with themselves: two of the four spectral classifications have been revised twice and one has been revised back. Nothing in this sector should be relied on for anything.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "GALAXY", "G3_HOLLOW_BAR"] },
+  "surveyPeriod": { "from": { "time": "2293-01-01T00:00:00Z", "precision": "y" }, "to": { "time": "2301-01-01T00:00:00Z", "precision": "y" } },
+  "notes": [
+    {
+      "value": "<p>The sector takes its name from the smeared, greasy look of the early plates. The smear was a fault in the plates.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

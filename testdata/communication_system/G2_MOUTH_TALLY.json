@@ -1,0 +1,48 @@
+{
+  "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G2_MOUTH_TALLY"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM"] }],
+  "name": [{ "value": "Mouth-Chamber Tally", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Kalanukke", "gloss": "the count at the opening" }],
+  "description": [
+    {
+      "value": "<p>A knotted cord system kept permanently at the entrance chamber, in which every transfer of food, glass or passage in or out of the warren is recorded as a knot, a spacing and an inserted token. It is genuine notation: a cord can be read by somebody who was not present and did not hear about it, which is the test the discipline applies and which this passes. It cannot express anything that is not a transfer, so there are no names on it, only positions, and a household is its position. Fieldworkers read the knots first and the gaps second, and the gaps are where the meaning is.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "modality": [
+    { "id": ["xeno.peerdb.org", "COMMUNICATION_MODALITY", "WOVEN_TOKEN"] },
+    { "id": ["xeno.peerdb.org", "COMMUNICATION_MODALITY", "WRITTEN_NOTATION"] }
+  ],
+  "users": {
+    "value": { "from": { "amount": 2600, "precision": 100 }, "to": { "amount": 9000, "precision": 100 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "notation": true,
+  "sampleGloss": [
+    {
+      "value": "<p><i>[three overhand knots, one reversed, a bead of dark glass]</i> - <b>three-against-glass</b> - &#39;three owed, and the debt is payable in glass.&#39;</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "recording": [
+    {
+      "value": "/f/U9CAqAupLa36Uxs68ugPod",
+      "name": "system-G2_MOUTH_TALLY.mp3",
+      "caption": "Elicitation sample",
+      "duration": { "value": { "amount": 4, "precision": 1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "MINUTE"] }] },
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G2_MOUTH_TALLY"] }],
+      "note": [
+        {
+          "value": "<p>Recorded during elicitation and kept as the reference sample for this system.</p>",
+          "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+        }
+      ]
+    }
+  ],
+  "notes": [
+    {
+      "value": "<p>Station One&#39;s reserve rations appear on the cord as an open position with no closing knot, entered in 2259 and extended every year since. No station log records anybody agreeing to this.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

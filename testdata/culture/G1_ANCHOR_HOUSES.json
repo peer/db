@@ -1,0 +1,41 @@
+{
+  "id": ["xeno.peerdb.org", "CULTURE", "G1_ANCHOR_HOUSES"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "CULTURE"] }],
+  "name": [{ "value": "Anchor Terrace Houses", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [
+    {
+      "value": "Elmashen",
+      "gloss": "the house-holding, the same word as for the estate itself",
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G1_FLATS_SPEECH"] }]
+    }
+  ],
+  "catalogueCode": "CU-2224-07",
+  "description": [
+    {
+      "value": "<p>Corporate descent houses on the built slope above the flats, each holding a run of stepped basins, a name and a living fermentation culture as one indivisible estate. Silt is taken off the top of each tide, held behind stone, and passed down through settling and growing beds into the pits, so that the terrace is a single machine operated by a single family over centuries. A person belongs to the house of one parent, and the house outlives every member by a wide margin, which shapes how quarrels are conducted: the losing side waits. Nothing is eaten that has not been through a pit, and a house that loses its culture is understood to have lost the ability to eat rather than a set of recipes. The sluice order has not changed in the ninety years of record, and the houses regard the fact that this is remarkable as a comment on the Consortium rather than on themselves.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Rodovne hiše nad blatišči, ki gojijo v terasah in jedo le tisto, kar je šlo skozi kvasno jamo. Hiša preživi vsakega člana.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Casas corporativas de descendência na encosta construída acima das planícies, cada uma detendo uma série de bacias em degraus, um nome e uma cultura de fermentação viva como um único património indivisível. O lodo é retirado do topo de cada maré, retido atrás de pedra e passado por tanques de decantação e canteiros de cultivo até às covas, de modo que a terraça é uma única máquina operada por uma única família ao longo de séculos. Uma pessoa pertence à casa de um dos progenitores, e a casa sobrevive a todos os membros com larga margem, o que molda a maneira como as zangas se conduzem: o lado que perde espera. Nada se come que não tenha passado por uma cova, e uma casa que perde a sua cultura entende-se ter perdido a capacidade de comer e não um conjunto de receitas. A ordem das comportas não mudou nos noventa anos de registo, e as casas consideram que o facto de isso ser notável é um comentário sobre o Consórcio e não sobre elas.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "practisedBy": [{ "id": ["xeno.peerdb.org", "SPECIES", "G1_ELMASHELU"] }],
+  "presentAt": [{ "id": ["xeno.peerdb.org", "SITE", "G1_ANCHOR_STEPS"] }],
+  "kinshipSystem": { "id": ["xeno.peerdb.org", "KINSHIP_SYSTEM", "UNILINEAL_DESCENT"] },
+  "socialOrganisation": { "id": ["xeno.peerdb.org", "SOCIAL_ORGANISATION", "LINEAGE_HOUSES"] },
+  "subsistence": [
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "SILT_GARDENING"] },
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "MANAGED_DECAY"] }
+  ],
+  "communication": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G1_FLATS_SPEECH"] }],
+  "population": {
+    "value": { "from": { "amount": 700000, "precision": 100 }, "to": { "amount": 1100000, "precision": 100 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "period": { "from": { "time": "2221-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true }
+}

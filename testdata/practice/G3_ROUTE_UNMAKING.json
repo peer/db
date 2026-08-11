@@ -1,0 +1,28 @@
+{
+  "id": ["xeno.peerdb.org", "PRACTICE", "G3_ROUTE_UNMAKING"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PRACTICE"] }],
+  "name": [{ "value": "Setting Down a Far Road", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Thannuless", "gloss": "the far road set down" }],
+  "description": [
+    {
+      "value": "<p>A lodge that will not run its route again takes the route cord off the harness, unpicks it back to plain fibre in front of whoever is present, and hands the fibre to a lodge that has no use for it. From that hour the route may not be named on a cord, offered in a reading, or spoken of as a road, and the ground it crossed is referred to only by how many sleeps it takes to reach, which is how uncrossed ground is described. Haulers who ran it keep the harness and may still speak of the ice, since the ban is on the route and not on the memory. The last far route was set down in 2299 and the fibre went to a near lodge that used it, eventually, for tent line. Asked what had been lost, the lodge master gave the survey a number of loads and a number of years and considered the question answered.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Vrv opuščene poti razpletejo pred pričami; poti odtlej ni več dovoljeno imenovati.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    }
+  ],
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G3_DEEP_HAUL"] }],
+  "category": { "id": ["xeno.peerdb.org", "PRACTICE_CATEGORY", "PROHIBITION"] },
+  "periodicity": "once, when a route is given up",
+  "participants": {
+    "value": { "from": { "amount": 6, "precision": 1 }, "to": { "amount": 25, "precision": 1 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "firstDocumented": { "time": "2286-01-01T00:00:00Z", "precision": "y" },
+  "relatedPractice": [{ "id": ["xeno.peerdb.org", "PRACTICE", "G3_CORD_MEETING"] }],
+  "image": [
+    { "value": "/f/8dGADNSEXengSkpyUhrwqf", "name": "G3_ROUTE_UNMAKING.jpg", "caption": "In progress", "source": "Consortium survey archive" }
+  ]
+}

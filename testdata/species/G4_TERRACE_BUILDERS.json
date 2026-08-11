@@ -1,0 +1,71 @@
+{
+  "id": ["xeno.peerdb.org", "SPECIES", "G4_TERRACE_BUILDERS"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SPECIES"] }],
+  "name": [{ "value": "Hundred Stairs Terrace Builders", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [
+    {
+      "value": "Weuhenehi",
+      "gloss": "the people of the steps",
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G4_COM_TERRACE_REGISTER"] }]
+    }
+  ],
+  "exonym": [{ "value": "Wenehua", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "taxonCode": "TX-4203-a",
+  "description": [
+    {
+      "value": "<p>Builders of the stepped terrace systems that climb the uplifted southern benches of Overfall, growing and settling their food in controlled flow between levels rather than in fields. Public functions are held by craft corporations entered by training, so that the body which maintains the water is the body which judges disputes about it, and membership is a matter of what one can do. Children are reared by households other than the one they were born to, and the chain of fosterage is the primary map of who owes what to whom. Contact was suspended in 2298 after the ethics ruling on the tether works, and the record since is orbital, which means the terraces can be watched and nobody on them can be asked anything. The unresolved question is whether the guild system predates the terraces or was produced by them, and the stratigraphy has so far declined to settle it.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Gradili so terase in podnožje orbitalne vrvi. Stik je od leta 2298 prekinjen, opazovanje poteka le iz orbite.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    }
+  ],
+  "homeworld": { "id": ["xeno.peerdb.org", "PLANET", "G4_OVERFALL"] },
+  "bodyPlan": [
+    {
+      "value": "<p>Tall, bilaterally symmetrical and long-limbed, with two walking limbs and two arms ending in four opposable digits apiece. The integument is a thick pale skin carrying a permanent dark mask across the eyes, which is pigment rather than marking and thickens over a working life under the primary. Feeding is unremarkable: a small mouth, a long gut and a strong preference for material that has been left to stand.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "typicalHeight": { "value": { "amount": 1.9, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+  "typicalMass": { "value": { "amount": 84.0, "precision": 0.1 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "kg"] }] },
+  "lifespan": {
+    "value": { "from": { "amount": 45, "precision": 1 }, "to": { "amount": 90, "precision": 1 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_YEAR"] }]
+  },
+  "sensoryModality": [
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "ULTRAVIOLET_VISION"] },
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "GRAVICEPTION"] },
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "CONTACT_CHEMO"] }
+  ],
+  "subsistence": [
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "SILT_GARDENING"] },
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "COLONY_GRAZING"] }
+  ],
+  "individuality": { "id": ["xeno.peerdb.org", "INDIVIDUALITY_MODE", "BOUNDED"] },
+  "contestedIndividuality": { "id": ["xeno.peerdb.org", "INDIVIDUALITY_MODE", "SEASONAL_COLLECTIVE"] },
+  "socialOrganisation": { "id": ["xeno.peerdb.org", "SOCIAL_ORGANISATION", "GUILD_FEDERATION"] },
+  "kinshipSystem": { "id": ["xeno.peerdb.org", "KINSHIP_SYSTEM", "FOSTERAGE_CHAIN"] },
+  "communication": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G4_COM_TERRACE_REGISTER"] }],
+  "population": {
+    "value": { "from": { "amount": 180000, "precision": 1000 }, "to": { "amount": 260000, "precision": 1000 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "contactStatus": { "id": ["xeno.peerdb.org", "CONTACT_STATUS", "SUSPENDED"] },
+  "firstContact": { "time": "2236-01-01T00:00:00Z", "precision": "y" },
+  "image": [
+    {
+      "value": "/f/TcyCE7raqvyFJfzewKfCEG",
+      "name": "G4_TERRACE_BUILDERS.jpg",
+      "caption": "Field plate",
+      "source": "Drawn in the field; Consortium collection"
+    }
+  ],
+  "notes": [
+    {
+      "value": "<p>Eleven hundred pages of the suspension file concern who asked for the tether and in what words. The nine surviving recordings of the request were made by four different teams, and no two transcriptions of them agree on the verb.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

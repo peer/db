@@ -1,0 +1,34 @@
+{
+  "id": ["xeno.peerdb.org", "EXPEDITION", "EXP_KILN_FLATS"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "EXPEDITION"] }],
+  "name": [{ "value": "Kiln Flats Contact Programme", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "catalogueCode": "EXP-2306-03",
+  "description": [
+    {
+      "value": "<p>Six years on the tidal flats, of which the part that matters amounts to four meetings, each at the turn of the tide and each ending when the water came back. The programme has the stake lines surveyed, the weirs dated by their replacement intervals, and a population estimate whose upper bound is ten times its lower one, a range the report defends at some length. Everything else was recorded from the margins, under permission granted one meeting at a time.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "destination": [
+    { "id": ["xeno.peerdb.org", "PLANET", "G3_ONNORO"] },
+    { "id": ["xeno.peerdb.org", "REGION", "G3_MEETING_FLATS"] },
+    { "id": ["xeno.peerdb.org", "REGION", "G3_STAKE_ISLANDS"] }
+  ],
+  "period": { "from": { "time": "2306-01-01T00:00:00Z", "precision": "y" }, "to": { "time": "2312-01-01T00:00:00Z", "precision": "y" } },
+  "ledBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_PETROVA"] }],
+  "teamMember": [
+    { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_NOWAK"] },
+    { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_VIRTANEN"] },
+    { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_SEO"] },
+    { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_ZUPAN"] }
+  ],
+  "organisedBy": [{ "id": ["xeno.peerdb.org", "INSTITUTE", "INST_FARSIGHT"] }, { "id": ["xeno.peerdb.org", "INSTITUTE", "INST_ANCHOR"] }],
+  "method": [
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "PARTICIPANT_OBSERVATION"] },
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "COLLABORATIVE_ANNOTATION"] },
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "PHOTOGRAMMETRY"] }
+  ],
+  "ethics": { "id": ["xeno.peerdb.org", "ETHICS_PROTOCOL", "PROTOCOL_2"] },
+  "budget": { "value": { "amount": 3300000, "precision": 1000 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "$"] }] },
+  "report": [{ "value": "/f/NzzcMyJuMP2f5w9kedoUeg", "name": "EXP_KILN_FLATS.pdf", "caption": "Final report" }]
+}

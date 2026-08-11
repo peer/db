@@ -1,0 +1,25 @@
+{
+  "id": ["xeno.peerdb.org", "ORGANISM", "G1_DECK_MAT"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "ORGANISM"] }],
+  "name": [{ "value": "Cloud deck mat", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "taxonCode": "TX-2307-b",
+  "description": [
+    {
+      "value": "<p>Free-floating photosynthetic sheets that complete an entire life cycle in the cloud decks of a giant, rising by day, sinking to the ammonia layer to shed spore at night, and never encountering a surface. Individual sheets have been tracked for eleven years and one has been tracked for twenty-six. Descent to the mat layer has been authorised four times and flown twice, which is the ratio the sampling programme has learned to plan around.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "category": { "id": ["xeno.peerdb.org", "ORGANISM_CATEGORY", "AERIAL_DRIFTER"] },
+  "foundOn": [{ "id": ["xeno.peerdb.org", "PLANET", "G1_TWELVE_BELLS_VII"] }],
+  "biome": [{ "id": ["xeno.peerdb.org", "BIOME", "AERIAL_MAT"] }],
+  "typicalSize": { "value": { "amount": 62.0, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+  "typicalMass": { "value": { "amount": 880.0, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "kg"] }] },
+  "image": [
+    {
+      "value": "/f/Xyi3qZHLg2iXxhsiEHrfFK",
+      "name": "G1_DECK_MAT.jpg",
+      "caption": "Field plate",
+      "source": "Drawn in the field; Consortium collection"
+    }
+  ]
+}

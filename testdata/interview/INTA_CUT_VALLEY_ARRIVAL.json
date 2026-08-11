@@ -1,0 +1,48 @@
+{
+  "id": ["xeno.peerdb.org", "INTERVIEW", "INTA_CUT_VALLEY_ARRIVAL"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "INTERVIEW"] }],
+  "title": [{ "value": "The Cut Valley on occupying the southern brine cuts", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "description": [
+    {
+      "value": "<p>A signature exchange with the only haze body anybody has watched arrive somewhere, held eight years after it entered the collapsed cuts. Its output describes managed working of ground the companies still claim.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "interviewee": [{ "id": ["xeno.peerdb.org", "COLLECTIVE", "G1_CUT_VALLEY"] }],
+  "interviewer": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_HADDAD"] }, { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_PRASETYO"] }],
+  "recordedAt": { "id": ["xeno.peerdb.org", "SITE", "G1_EVAPORITE_WORKINGS"] },
+  "recordedOn": { "time": "2303-11-08T00:00:00Z", "precision": "d" },
+  "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G1_HAZE_SIGNATURE"] }],
+  "duration": { "value": { "amount": 1080, "precision": 1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "MINUTE"] }] },
+  "content": [
+    {
+      "value": "<p>Releases from a hand mast at the cut mouth; answers are eighteen hours of ambient averages, glossed in four-hour blocks.</p><p><b>Q.</b> (block one) Amine step, held two minutes. Intended sense: presence, no work.</p><p><b>A.</b> No change. The southern cuts held the working ratio through the whole block, as they have held it in every ambient sample since 2296.</p><p><b>Q.</b> (block two) Are you the same body that was in the lowland?</p><p><b>A.</b> The medium cannot carry the question. What it carries is that the composition in the cuts is within two per cent of the lowland composition of 2294, which is the whole of the evidence for saying yes, and it is not the valley saying it.</p><p><b>Q.</b> (block three) Shaped release: the ratio for a face going out of use.</p><p><b>A.</b> Within nine hours the second and fourth cuts came off the working ratio and the third did not, which is the first time this body has been observed to answer differently in different cuts at the same hour.</p><p><b>Q.</b> (block four) The same, repeated at the third cut alone.</p><p><b>A.</b> The third cut held. It has held through eleven attempts across two seasons, and it is the cut the companies opened in 2288 and have never formally abandoned.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "recording": [
+    {
+      "value": "/f/6iA6YSJB2eCtKxyUbwYYvY",
+      "name": "interview-INTA_CUT_VALLEY_ARRIVAL.mp3",
+      "caption": "Session recording",
+      "duration": { "value": { "amount": 1080, "precision": 1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "MINUTE"] }] },
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G1_HAZE_SIGNATURE"] }]
+    }
+  ],
+  "ethics": { "id": ["xeno.peerdb.org", "ETHICS_PROTOCOL", "PROTOCOL_5"] },
+  "consentNote": [
+    {
+      "value": "<p>Nothing was agreed, because nothing here can agree. The basin households were told what would be released and where, and asked only that the mast not stand on the cut floor, which it did not.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "clearedReader": ["mock-user-researcher@localhost"],
+  "permission": [
+    { "action": { "id": ["core.peerdb.org", "PERMISSION_ACTIONS", "ACTION_READ"] }, "user": ["mock-user-researcher@localhost"], "scope": ["self"] },
+    {
+      "action": { "id": ["core.peerdb.org", "PERMISSION_ACTIONS", "ACTION_READ_HISTORIC"] },
+      "user": ["mock-user-researcher@localhost"],
+      "scope": ["self"]
+    }
+  ]
+}

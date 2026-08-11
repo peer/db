@@ -1,0 +1,20 @@
+{
+  "id": ["xeno.peerdb.org", "REGION", "G2_WARM_POOL"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "REGION"] }],
+  "name": [{ "value": "Warm Pool", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Sunnesh" }],
+  "description": [
+    {
+      "value": "<p>The substellar sea, about nine hundred kilometres across and never colder than eleven degrees, ringed by vent-fed shallows where the crust is thinnest. It is the warmest water in the Undercount by a wide margin. Consortium work here is done from a raft, there being nowhere to stand.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "PLANET", "G2_NINE_TERRACE"] },
+  "biome": [{ "id": ["xeno.peerdb.org", "BIOME", "VENT_FIELD"] }],
+  "area": { "value": { "amount": 630000, "precision": 100 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "SQUARE_KILOMETRE"] }] },
+  "elevationRange": {
+    "value": { "from": { "amount": -1900, "precision": 10 }, "to": { "amount": 0, "precision": 10 } },
+    "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }]
+  },
+  "image": [{ "value": "/f/7tf8GBztGX7GxA3Bx9gnMa", "name": "G2_WARM_POOL.jpg", "caption": "Regional view", "source": "Consortium survey archive" }]
+}

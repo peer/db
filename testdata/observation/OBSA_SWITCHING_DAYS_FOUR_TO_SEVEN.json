@@ -1,0 +1,41 @@
+{
+  "id": ["xeno.peerdb.org", "OBSERVATION", "OBSA_SWITCHING_DAYS_FOUR_TO_SEVEN"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "OBSERVATION"] }],
+  "title": [
+    { "value": "Days four to seven of the switching, with holdings passed over", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>Four days of the sequence at the Turning Ground, with drops counted and the answers from the holdings below each drop logged. Three holdings did not answer.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "content": [
+    {
+      "value": "<p>Days four to seven. The sequence keeper recited from memory, the holding below each drop answered before the water was let down, and the drops were opened in the recited order.</p><p>Counts for the four days:</p><ul><li><p>Drops opened: 61, 58, 63, 44.</p></li><li><p>Holdings passed over for not answering: 0, 2, 0, 1.</p></li><li><p>Carriers eating last and by right, counted at the fourth day&#39;s shelters: about 340, which is our count and not theirs.</p></li></ul><p>Everything agreed goes against a position and not against a person, on knotted cord held by the warren households, and that cord is the only record that outlasts the eleven days. On the twelfth morning the shelters come out of the sockets and the authority stops existing, which we have now seen twice and still write down carefully each time.</p><p>Of the three holdings passed over we established that one was short-handed and had nobody on the ground to answer. The other two we could not establish at all. A passed-over holding gets nothing that cycle, so we would have liked to.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "expedition": { "id": ["xeno.peerdb.org", "EXPEDITION", "EXP_EVENING_TERRACES"] },
+  "observedBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_WEN"] }, { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_MOLNAR"] }],
+  "observedAt": { "id": ["xeno.peerdb.org", "SITE", "G2_TURNING_GROUND"] },
+  "observedOn": { "time": "2288-04-02T00:00:00Z", "precision": "d" },
+  "about": [
+    { "id": ["xeno.peerdb.org", "PRACTICE", "G2_ELEVEN_DAYS"] },
+    { "id": ["xeno.peerdb.org", "CULTURE", "G2_SWITCHING_ASSEMBLY"] },
+    { "id": ["xeno.peerdb.org", "SPECIES", "G2_ANUWELME"] }
+  ],
+  "method": [
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "PARTICIPANT_OBSERVATION"] },
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "NETWORK_MAPPING"] }
+  ],
+  "fieldConditions": "Cold, hard flat stone, shelters pegged into the bedrock sockets and the wind off the night side all four days. Something over ten thousand people on two hundred hectares, including warren traders and a band of herd followers.",
+  "image": [
+    {
+      "value": "/f/1vEmDLRwqCsXeZVfaiQ4ba",
+      "name": "OBSA_SWITCHING_DAYS_FOUR_TO_SEVEN.jpg",
+      "caption": "Taken at the time",
+      "source": "Field record"
+    }
+  ]
+}

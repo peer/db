@@ -1,0 +1,60 @@
+{
+  "id": ["xeno.peerdb.org", "INTERVIEW", "INTA_FOURTH_COUNT_RUNNING_ACCOUNT"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "INTERVIEW"] }],
+  "title": [
+    { "value": "The Fourth Standing Count on what a running account contains", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>A drummed exchange with the shelf colony that first answered an enquiry rather than falling silent, covering how an account is kept across replaced bodies. It ends with an obligation named against a canopy house.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "interviewee": [{ "id": ["xeno.peerdb.org", "COLLECTIVE", "G1_FOURTH_COUNT"] }],
+  "interviewer": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_REYES"] }, { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_ARAI"] }],
+  "recordedAt": { "id": ["xeno.peerdb.org", "SITE", "G1_CANOPY_TETHER"] },
+  "recordedOn": { "time": "2285-07-11T00:00:00Z", "precision": "d" },
+  "expedition": { "id": ["xeno.peerdb.org", "EXPEDITION", "EXP_CANOPY_FIRST"] },
+  "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G1_COLUMN_PERCUSSION"] }],
+  "duration": { "value": { "amount": 96, "precision": 1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "MINUTE"] }] },
+  "content": [
+    {
+      "value": "<p><b>Q.</b> We would like to begin with your own history. When did you start?</p><p><b>A.</b> We did not start. The ground was held, and then it was held by us, and the account carries no such entry. You are asking for a first line and there is not one.</p><p><b>Q.</b> How old are you, then, as the register would put it?</p><p><b>A.</b> You have asked in the singular three times now and we will answer it once. Everything drumming here has been replaced since your tether went up, and we owe what we owed. Nothing was handed over, because there was nobody to hand it to.</p><p><b>Q.</b> What do you hold at present?</p><p><b>A.</b> Four standing obligations on this shelf, and one against the house at the foot of your tether, unacknowledged for eleven years.</p><p><b>Q.</b> Which house?</p><p><b>A.</b> The one that took the fall from the eleven columns at the cleared edge. We drummed the account at the foot through two seasons. They gripped the platform and did not answer, which is an answer, and it is entered as one.</p><p><b>Q.</b> Would you object if we put that to the house ourselves?</p><p><b>A.</b> We would not object. We would enter that you had done it, and after that the question of who is a party would include you.</p><p><b>Q.</b> That is not a position we are able to occupy.</p><p><b>A.</b> You occupy it. You have occupied it since the ground was cleared. We are telling you what is written; we are not asking you to discharge it.</p><p><b>Q.</b> Is there a name we should use for you in the record?</p><p><b>A.</b> Use the count. You have been calling it the fourth, which is your ordering and not ours, and we stopped correcting that some years ago.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "recording": [
+    {
+      "value": "/f/5Hzsc6EW6nH7GDwyFhFzNB",
+      "name": "interview-INTA_FOURTH_COUNT_RUNNING_ACCOUNT.mp3",
+      "caption": "Session recording",
+      "duration": { "value": { "amount": 96, "precision": 1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "MINUTE"] }] },
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G1_COLUMN_PERCUSSION"] }]
+    }
+  ],
+  "ethics": { "id": ["xeno.peerdb.org", "ETHICS_PROTOCOL", "PROTOCOL_2"] },
+  "consentNote": [
+    {
+      "value": "<p>The count agreed to the whole exchange being kept and read by anybody the Consortium would answer to, on the single condition that we do not drum the section naming the house back at the tether foot. It treats that as a question of who is a party rather than of privacy, and said so twice.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "clearedReader": ["mock-user-curator@localhost"],
+  "permission": [
+    { "action": { "id": ["core.peerdb.org", "PERMISSION_ACTIONS", "ACTION_READ"] }, "user": ["mock-user-curator@localhost"], "scope": ["self"] },
+    {
+      "action": { "id": ["core.peerdb.org", "PERMISSION_ACTIONS", "ACTION_READ_HISTORIC"] },
+      "user": ["mock-user-curator@localhost"],
+      "scope": ["self"]
+    },
+    { "action": { "id": ["core.peerdb.org", "PERMISSION_ACTIONS", "ACTION_UPDATE"] }, "user": ["mock-user-curator@localhost"], "scope": ["self"] },
+    {
+      "action": { "id": ["core.peerdb.org", "PERMISSION_ACTIONS", "ACTION_UPDATE_PERMISSIONS"] },
+      "user": ["mock-user-curator@localhost"],
+      "scope": ["self"]
+    }
+  ],
+  "requestedPermission": [
+    { "action": { "id": ["core.peerdb.org", "PERMISSION_ACTIONS", "ACTION_READ"] }, "user": ["mock-user@localhost"], "scope": ["self"] }
+  ]
+}

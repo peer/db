@@ -1,0 +1,68 @@
+{
+  "id": ["xeno.peerdb.org", "SPECIES", "G2_USSENESH"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SPECIES"] }],
+  "name": [{ "value": "Sweep Flat Striders", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [
+    {
+      "value": "Ussenesh",
+      "gloss": "the ones who stand out in the water",
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G2_FLAT_CORD"] }]
+    }
+  ],
+  "exonym": [{ "value": "Shennuse", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "taxonCode": "TX-4137-b",
+  "description": [
+    {
+      "value": "<p>The tallest catalogued sapients in the Undercount, standing four and a half metres over the flats and wading out with the falling tide to depths the weir builders will not enter. They take what the water brings, working fixed hanging nets rather than pursuing anything, and they will stand in one place for an entire ebb if the drift is good. Houses are corporate and long-lived, each holding a named stretch of open flat, a set of net anchorages and a stock of dyed cord, and a house outlasts every member by centuries. Over ground with no landmarks at all they navigate by the planet&#39;s weak field, which is measurable but barely, and which they can apparently resolve to about a degree; three separate teams have failed to replicate this and none has been willing to say it does not happen. What a visitor remembers is the walking, which from a distance looks slow and is not.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Zelo visoka trinožna vrsta, ki se hrani s tem, kar prinese plima.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Os sapientes mais altos catalogados no Undercount, erguendo-se quatro metros e meio acima das planícies e avançando com a maré vazante até profundidades em que os construtores de açudes não entram. Levam o que a água traz, trabalhando redes fixas suspensas em vez de perseguir seja o que for, e são capazes de ficar parados no mesmo sítio uma vazante inteira se a deriva for boa. As casas são corporativas e longevas, cada uma detendo um troço nomeado de planície aberta, um conjunto de ancoradouros de redes e uma reserva de corda tingida, e uma casa sobrevive a todos os seus membros por séculos. Sobre um terreno sem qualquer ponto de referência, orientam-se pelo campo fraco do planeta, que é mensurável mas por pouco, e que aparentemente conseguem resolver ao grau; três equipas diferentes falharam em replicar isto e nenhuma se dispôs a dizer que não acontece. O que um visitante recorda é o andar, que à distância parece lento e não é.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "homeworld": { "id": ["xeno.peerdb.org", "PLANET", "G2_NINE_TERRACE"] },
+  "bodyPlan": [
+    {
+      "value": "<p>Radially tripodal, with three identical legs set at even spacing under a compact drum-shaped body, so that there is no front and turning is unnecessary. Three arms alternate with the legs and terminate in fine hooked fingers built for knotting rather than gripping. The integument is a thin translucent horn, greenish over the body and clear over the joints, and the sensory ring runs unbroken around the drum at its widest point.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "typicalHeight": { "value": { "amount": 4.6, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+  "typicalMass": { "value": { "amount": 610.0, "precision": 0.1 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "kg"] }] },
+  "lifespan": {
+    "value": { "from": { "amount": 90, "precision": 1 }, "to": { "amount": 160, "precision": 1 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_YEAR"] }]
+  },
+  "sensoryModality": [
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "POLARISED_VISION"] },
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "PRESSURE_GRADIENT"] },
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "MAGNETORECEPTION"] }
+  ],
+  "subsistence": [
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "DRIFT_HARVESTING"] },
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "TIDAL_TRAPPING"] }
+  ],
+  "individuality": { "id": ["xeno.peerdb.org", "INDIVIDUALITY_MODE", "BOUNDED"] },
+  "socialOrganisation": { "id": ["xeno.peerdb.org", "SOCIAL_ORGANISATION", "LINEAGE_HOUSES"] },
+  "kinshipSystem": { "id": ["xeno.peerdb.org", "KINSHIP_SYSTEM", "UNILINEAL_DESCENT"] },
+  "communication": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G2_FLAT_CORD"] }],
+  "population": {
+    "value": { "from": { "amount": 3000, "precision": 1000 }, "to": { "amount": 7000, "precision": 1000 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "contactStatus": { "id": ["xeno.peerdb.org", "CONTACT_STATUS", "LIMITED"] },
+  "firstContact": { "time": "2259-01-01T00:00:00Z", "precision": "y" },
+  "image": [
+    {
+      "value": "/f/WVHibpQSWnUubFw8A2nrx8",
+      "name": "G2_USSENESH.jpg",
+      "caption": "Field plate",
+      "source": "Drawn in the field; Consortium collection"
+    }
+  ]
+}

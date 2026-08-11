@@ -1,0 +1,44 @@
+{
+  "id": ["xeno.peerdb.org", "CULTURE", "G1_VENT_STEWARDSHIP"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "CULTURE"] }],
+  "name": [{ "value": "The Vent Stewardship", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [
+    {
+      "value": "Nnaumen Rel",
+      "gloss": "the passing-on of the warm ground",
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G1_ICE_TAP"] }]
+    }
+  ],
+  "catalogueCode": "CU-2256-12",
+  "description": [
+    {
+      "value": "<p>The whole political order of an ice world with no permanent geography: the right to plumb and work a cryovolcanic vent passes from household to household in a fixed order, for a fixed term, and cannot be refused. A settlement is tents, plumbing and a working vent, and when the warmth moves the settlement moves with it, so the oldest continuously occupied ground on the planet is younger than the Consortium. Relatedness is traced through strains of an inherited gut symbiont, which can be assayed, and the assays of 2294 did not agree with several households&#39; accounts of themselves. The dead are carried to raised platforms of stacked ice on a cooling lobe and left, maintained by whoever is nearest rather than by anybody in particular. Contact was suspended by ethics ruling in 2298 over the handling of those assays, and the file is read-only: instruments left on the surface continue to report, and nobody is permitted to act on what they say.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Skrbništvo nad toplotnimi izviri kroži med gospodinjstvi in ga ni mogoče odkloniti.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Toda a ordem política de um mundo de gelo sem geografia permanente: o direito de canalizar e explorar uma fonte criovulcânica passa de agregado para agregado numa ordem fixa, por um mandato fixo, e não pode ser recusado. Um povoado são tendas, canalização e uma fonte ativa, e quando o calor se desloca o povoado desloca-se com ele, pelo que o terreno ocupado sem interrupção há mais tempo no planeta é mais novo do que o Consórcio. O aparentamento é traçado através das estirpes de um simbionte intestinal herdado, que podem ser analisadas, e as análises de 2294 não coincidiram com o relato que vários agregados faziam de si próprios. Os mortos são levados para plataformas elevadas de gelo empilhado sobre um lobo em arrefecimento e ali deixados, mantidas por quem estiver mais perto e não por alguém em particular. O contacto foi suspenso por decisão ética em 2298 por causa do tratamento dessas análises, e o processo está em leitura apenas: os instrumentos deixados à superfície continuam a reportar e ninguém está autorizado a agir sobre o que dizem.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "practisedBy": [{ "id": ["xeno.peerdb.org", "SPECIES", "G1_MERENAU"] }],
+  "presentAt": [{ "id": ["xeno.peerdb.org", "SITE", "G1_MARGIN_MORTUARY"] }],
+  "kinshipSystem": { "id": ["xeno.peerdb.org", "KINSHIP_SYSTEM", "SYMBIONT_SHARING"] },
+  "socialOrganisation": { "id": ["xeno.peerdb.org", "SOCIAL_ORGANISATION", "ROTATING_STEWARDSHIP"] },
+  "subsistence": [
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "CHEMO_TENDING"] },
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "DRIFT_HARVESTING"] }
+  ],
+  "communication": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G1_ICE_TAP"] }],
+  "population": {
+    "value": { "from": { "amount": 60000, "precision": 100 }, "to": { "amount": 110000, "precision": 100 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "period": { "from": { "time": "2253-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true },
+  "image": [
+    { "value": "/f/ECqgEBoTiqfn2yE3CWZNbb", "name": "G1_VENT_STEWARDSHIP.jpg", "caption": "Gathering", "source": "Consortium survey archive" }
+  ]
+}

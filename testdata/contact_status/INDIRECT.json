@@ -1,0 +1,24 @@
+{
+  "id": ["xeno.peerdb.org", "CONTACT_STATUS", "INDIRECT"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "CONTACT_STATUS"] }],
+  "name": [
+    { "value": "Indirect contact", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "Posredni stik", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }] },
+    { "value": "Contacto indireto", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>Knowledge obtained through third parties, traded material or unattended installations, without meeting. Excludes any face-to-face encounter, however brief.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Znanje prek tretjih strani, trgovskega blaga ali nenadzorovanih naprav, brez srečanja.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Conhecimento obtido através de terceiros, de material trocado ou de instalações sem vigilância, sem que haja encontro. Exclui qualquer encontro presencial, por breve que seja.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "code": ["indirect"]
+}

@@ -1,0 +1,19 @@
+{
+  "id": ["xeno.peerdb.org", "INDIVIDUAL", "G4_IN_NAULEI"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "INDIVIDUAL"] }],
+  "name": [{ "value": "Naulei" }],
+  "lineageName": [{ "value": "of the Fourth Length" }],
+  "description": [
+    {
+      "value": "<p>Tide crier at the Draining Ground for four of the lowest tides of the year, a duty which consisted of standing at the outer edge and calling the ninety minutes down while several thousand people worked behind him. He was interviewed eleven times between 2271 and 2303 and each transcript records him correcting the previous one. He died in 2308 at the working tide, on the sand, which the shoals account regards as unremarkable and the ethics file did not.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "species": { "id": ["xeno.peerdb.org", "SPECIES", "G4_WEIRFOLK"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G4_CU_WEIR_ORDER"] }],
+  "role": [{ "value": "tide crier", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "formOfAddress": "by length and term",
+  "born": { "time": "2244-01-01T00:00:00Z", "precision": "y" },
+  "died": { "time": "2308-01-01T00:00:00Z", "precision": "y" },
+  "birthplace": { "id": ["xeno.peerdb.org", "SITE", "G4_DRAINING_GROUND"] }
+}

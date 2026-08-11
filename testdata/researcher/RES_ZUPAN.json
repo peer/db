@@ -1,0 +1,20 @@
+{
+  "id": ["xeno.peerdb.org", "RESEARCHER", "RES_ZUPAN"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "RESEARCHER"] }],
+  "name": [{ "value": "Matej" }],
+  "familyName": [{ "value": "Zupan" }],
+  "researcherCode": "CCX-P-05130",
+  "description": [
+    {
+      "value": "<p>The most junior researcher in this register with a posting of his own, on a flats programme where the working day is set by the tide and the working year by the ship. He annotates jointly with the people he is studying and has already had one chapter refused. He took the refusal well and the loss of the photographs badly.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "affiliatedWith": [{ "id": ["xeno.peerdb.org", "INSTITUTE", "INST_FARSIGHT"] }],
+  "specialisesIn": [
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "PHOTOGRAMMETRY"] },
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "COLLABORATIVE_ANNOTATION"] }
+  ],
+  "activePeriod": { "from": { "time": "2306-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true },
+  "born": { "time": "2281-01-01T00:00:00Z", "precision": "y" }
+}

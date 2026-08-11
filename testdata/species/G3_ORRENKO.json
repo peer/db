@@ -1,0 +1,68 @@
+{
+  "id": ["xeno.peerdb.org", "SPECIES", "G3_ORRENKO"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SPECIES"] }],
+  "name": [{ "value": "Flood-Phase Collectives of Kiln b", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [
+    {
+      "value": "Orrenko",
+      "gloss": "the one that comes back together",
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G3_STAKE_NOTATION"] }]
+    }
+  ],
+  "exonym": [{ "value": "Kennorro, in the Tekkonno mouth: the tide's household", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "taxonCode": "TX-4423-a",
+  "description": [
+    {
+      "value": "<p>At low water the Orrenko are separate bodies scattered over the flats, each grazing quietly and each, to a visitor, entirely unremarkable. When the flood arrives they gather in the shallows and join edge to edge into a single sheet, which holds for the whole covered phase, decides everything that needs deciding, and remembers what the separate bodies did while apart. Individuals do not apply: a body alone has no name and will not answer, and the Orrenko treat the question of what a body wants as a question about a hand. Authority exists only while joined and dissolves completely at the drain, so the register codes them as a festival-state on a tidal rather than an annual schedule. The discipline has not settled whether the joined sheet is one person or a very fast committee, and the sheet, asked directly, said it was one.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Ob oseki ločena telesa, ob plimi eno samo bitje. Odločitve nastanejo le v združeni fazi.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Na baixa-mar os Orrenko são corpos separados espalhados pelas planícies, cada um a pastar sossegadamente e cada um, para um visitante, perfeitamente banal. Quando a enchente chega, juntam-se nos baixios e unem-se bordo a bordo numa única folha, que se mantém durante toda a fase submersa, decide tudo o que houver para decidir e recorda o que os corpos separados fizeram enquanto estiveram à parte. Os indivíduos não se aplicam: um corpo sozinho não tem nome e não responde, e os Orrenko tratam a questão do que um corpo quer como uma questão sobre uma mão. A autoridade só existe enquanto estão unidos e dissolve-se por completo na vazante, pelo que o registo os codifica como um estado-festival com calendário de marés e não anual. A disciplina não decidiu se a folha unida é uma pessoa ou um comité muito rápido, e a folha, interrogada diretamente, disse que era uma.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "homeworld": { "id": ["xeno.peerdb.org", "PLANET", "G3_ONNORO"] },
+  "bodyPlan": [
+    {
+      "value": "<p>A body is a low oval mass under a flexible margin, moving on a muscular foot and grazing the flat surface directly beneath it. The margin carries interlocking papillae along its whole edge, which are the joining surfaces and are useless for anything else. A joined sheet can run to several hundred bodies and covers a shallow pool almost exactly, with the largest bodies at the outside.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "typicalHeight": { "value": { "amount": 0.8, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+  "typicalMass": { "value": { "amount": 30.0, "precision": 0.1 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "kg"] }] },
+  "lifespan": {
+    "value": { "from": { "amount": 60, "precision": 1 }, "to": { "amount": 140, "precision": 1 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_YEAR"] }]
+  },
+  "sensoryModality": [
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "PRESSURE_GRADIENT"] },
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "CONTACT_CHEMO"] },
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "ELECTRORECEPTION"] }
+  ],
+  "subsistence": [
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "COLONY_GRAZING"] },
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "DRIFT_HARVESTING"] }
+  ],
+  "individuality": { "id": ["xeno.peerdb.org", "INDIVIDUALITY_MODE", "SEASONAL_COLLECTIVE"] },
+  "socialOrganisation": { "id": ["xeno.peerdb.org", "SOCIAL_ORGANISATION", "FESTIVAL_STATE"] },
+  "kinshipSystem": { "id": ["xeno.peerdb.org", "KINSHIP_SYSTEM", "NOT_RECKONED"] },
+  "communication": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G3_STAKE_NOTATION"] }],
+  "population": {
+    "value": { "from": { "amount": 40000, "precision": 1000 }, "to": { "amount": 900000, "precision": 1000 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "contactStatus": { "id": ["xeno.peerdb.org", "CONTACT_STATUS", "LIMITED"] },
+  "firstContact": { "time": "2296-01-01T00:00:00Z", "precision": "y" },
+  "image": [
+    {
+      "value": "/f/Lxp2UDUpCpnzNnxGb7vFxB",
+      "name": "G3_ORRENKO.jpg",
+      "caption": "Field plate",
+      "source": "Drawn in the field; Consortium collection"
+    }
+  ]
+}

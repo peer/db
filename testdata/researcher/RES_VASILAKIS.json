@@ -1,0 +1,20 @@
+{
+  "id": ["xeno.peerdb.org", "RESEARCHER", "RES_VASILAKIS"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "RESEARCHER"] }],
+  "name": [{ "value": "Eleni" }],
+  "familyName": [{ "value": "Vasilakis" }],
+  "researcherCode": "CCX-P-03588",
+  "description": [
+    {
+      "value": "<p>Counts structures from orbit for a living and has counted the same terraced band four times at four resolutions, obtaining four answers. She regards this as the finding and has written it up as one. She is the group&#39;s calmest person in a crisis and its worst in a meeting.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "affiliatedWith": [{ "id": ["xeno.peerdb.org", "INSTITUTE", "INST_FARSIGHT"] }],
+  "specialisesIn": [
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "REMOTE_SENSING"] },
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "PHOTOGRAMMETRY"] }
+  ],
+  "activePeriod": { "from": { "time": "2282-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true },
+  "born": { "time": "2257-01-01T00:00:00Z", "precision": "y" }
+}

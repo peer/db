@@ -1,0 +1,34 @@
+{
+  "id": ["xeno.peerdb.org", "ARTIFACT", "G1_MEETING_KNOT"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "ARTIFACT"] }],
+  "name": [{ "value": "Meeting lattice", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Neshwana Sha", "gloss": "the cord of the standing and the swimming" }],
+  "accessionCode": "CCX-A-13188",
+  "description": [
+    {
+      "value": "<p>An open framework of nine ribbon-fibre hoops lashed at the crossings, built to be read by touch under water at chest height by parties who cannot see it and would not be looking at it if they could. Each hoop carries the names present at one top-tide meeting, in the order they were called, with the grazer names on the inner face where a forward hand can reach them. This one records the meetings of 2271 and was held under the surface for the length of the naming, which took an hour and eleven minutes. It is the only object in the register made to be read by two species at the same moment.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "category": { "id": ["xeno.peerdb.org", "ARTIFACT_CATEGORY", "RECORDING_LATTICE"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G1_TOP_TIDE_MEET"] }],
+  "foundAt": { "id": ["xeno.peerdb.org", "SITE", "G1_LOWER_MIDDEN"] },
+  "material": [
+    { "value": "ribbon fibre", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "shell", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "cropping plate", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }
+  ],
+  "dimension": [
+    { "value": { "amount": 0.86, "precision": 0.001 }, "axis": "diameter", "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+    { "value": { "amount": 0.31, "precision": 0.001 }, "axis": "thickness", "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] }
+  ],
+  "dateMade": { "time": "2271-01-01T00:00:00Z", "precision": "y" },
+  "collectedBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_BEKELE"] }, { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_VASILAKIS"] }],
+  "image": [{ "value": "/f/DnTcxXmGMW7Beyre3gwdtK", "name": "G1_MEETING_KNOT.jpg", "caption": "Object drawing", "source": "Consortium collection" }],
+  "notes": [
+    {
+      "value": "<p>Four lattices survive and none of them post-dates 2294. The flats households keep the ground clear at Shallows Meet regardless, and one lattice a year continues to be made and is not given to anybody.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

@@ -1,0 +1,39 @@
+{
+  "id": ["xeno.peerdb.org", "NARRATIVE", "G2_EBB_HOLDING"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "NARRATIVE"] }],
+  "title": [{ "value": "Holding Through the Ebb", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [
+    {
+      "value": "Usshamesh wenne",
+      "gloss": "the standing of the nets, said as one thing",
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G2_FLAT_CORD"] }]
+    }
+  ],
+  "description": [
+    {
+      "value": "<p>A sequence of held arm positions worked through the length of a falling tide, one position per quarter, which paces the whole ebb and tells the rest of the house what the water is bringing. It is silent, it is performed standing still, and it is filed as a work song because that is what it is.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "genre": { "id": ["xeno.peerdb.org", "NARRATIVE_GENRE", "WORK_SONG"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G2_NET_HOUSES"] }],
+  "recordedBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_WEN"] }],
+  "recordedAt": { "id": ["xeno.peerdb.org", "SITE", "G2_HIGH_WEIR"] },
+  "recordedOn": { "time": "2265-01-01T00:00:00Z", "precision": "y" },
+  "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G2_FLAT_CORD"] }],
+  "content": [
+    {
+      "value": "<p>High water. Both arms down. Nothing yet, and nothing is not a complaint.</p><p>First quarter. Right arm out. Something is coming and it is small and there is a great deal of it.</p><p>Second quarter. Right arm out, left arm across. Still coming. Do not move the nets. Whoever is thinking about moving the nets, do not.</p><p>Third quarter. Both arms out. This is the whole of what today is.</p><p>Low water. Both arms down. Lift, and count, and do not say what you expected.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "recording": [
+    {
+      "value": "/f/KYdRZGm1bHGR2BApAdMsmt",
+      "name": "narrative-G2_EBB_HOLDING.mp3",
+      "caption": "Performance, recorded on site",
+      "duration": { "value": { "amount": 18, "precision": 1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "MINUTE"] }] },
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G2_FLAT_CORD"] }]
+    }
+  ]
+}

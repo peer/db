@@ -1,0 +1,20 @@
+{
+  "id": ["xeno.peerdb.org", "RESEARCHER", "RES_DE_VRIES"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "RESEARCHER"] }],
+  "name": [{ "value": "Willem" }],
+  "familyName": [{ "value": "de Vries" }],
+  "researcherCode": "CCX-P-04690",
+  "description": [
+    {
+      "value": "<p>One of the very few people who keeps an autoethnographic record because he wants to rather than because a protocol requires it. He has been told the file will be embargoed until he is dead or retired and says he is counting on it. On station he cooks, which has done more for his standing than his publications.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "affiliatedWith": [{ "id": ["xeno.peerdb.org", "INSTITUTE", "INST_EVENING"] }],
+  "specialisesIn": [
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "PARTICIPANT_OBSERVATION"] },
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "AUTOETHNOGRAPHY"] }
+  ],
+  "activePeriod": { "from": { "time": "2297-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true },
+  "born": { "time": "2272-01-01T00:00:00Z", "precision": "y" }
+}

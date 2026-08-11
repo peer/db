@@ -1,0 +1,21 @@
+{
+  "id": ["xeno.peerdb.org", "INDIVIDUAL", "G3_UTHEMME"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "INDIVIDUAL"] }],
+  "name": [{ "value": "Uthemme" }],
+  "lineageName": [{ "value": "Musseth" }],
+  "description": [
+    {
+      "value": "<p>A hauler and cord reader who refused in 2307 to read a cord aloud for recording, saying that a cord read to someone who owes nothing is a lie, and who then spent an afternoon explaining what would have to be true for the recording to be honest. The explanation is the clearest statement of the system the register holds and is filed, awkwardly, as a refusal. She declined a photograph in the same session and has not been asked again.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "species": { "id": ["xeno.peerdb.org", "SPECIES", "G3_SHELLUTHE"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G3_ICE_LODGES"] }],
+  "role": [
+    { "value": "hauler", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "cord reader", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }
+  ],
+  "formOfAddress": "by lodge first and then name while on a haul",
+  "born": { "time": "2281-01-01T00:00:00Z", "precision": "y" },
+  "birthplace": { "id": ["xeno.peerdb.org", "SITE", "G3_SHELF_WARREN"] }
+}

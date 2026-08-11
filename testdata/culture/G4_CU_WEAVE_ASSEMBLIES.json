@@ -1,0 +1,37 @@
+{
+  "id": ["xeno.peerdb.org", "CULTURE", "G4_CU_WEAVE_ASSEMBLIES"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "CULTURE"] }],
+  "name": [{ "value": "Terrace Forest Weave Assemblies", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [
+    {
+      "value": "Hiuwenehua",
+      "gloss": "when the spread-out ones are together",
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G4_COM_TERRACE_REGISTER"] }]
+    }
+  ],
+  "catalogueCode": "CU-2262-12",
+  "description": [
+    {
+      "value": "<p>The assembly practice of the weaves of the terrace forest, in which each weave attends as one party however many bodies it has present, and nothing is decided until every weave has withdrawn its objection. Two assemblies have been recorded, running nine days and fourteen days, both concerning the boundaries of grazed branch structure after a fire. Weaves do not treat the loss of a body as an event and will suspend a sitting for the loss of a length of branch, which is the clearest statement of their priorities anybody has collected. The guilds of the terraces below attended both sittings and contributed at roughly sixty times the speed, and the joint transcript reads, in the archive, as two unrelated documents interleaved. Nothing has been recorded since the 2298 suspension, and the assemblies are presumed to be continuing without an audience.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>A prática assembleária das tramas da floresta de terraços, em que cada trama comparece como uma só parte, por muitos corpos que tenha presentes, e nada é decidido enquanto todas as tramas não tiverem retirado a sua objeção. Estão registadas duas assembleias, de nove e de catorze dias, ambas sobre os limites da estrutura de ramos pastados depois de um incêndio. As tramas não tratam a perda de um corpo como um acontecimento e suspendem uma sessão pela perda de um troço de ramo, o que é a declaração mais clara das suas prioridades que alguém recolheu. Os grémios dos terraços de baixo assistiram a ambas as sessões e intervieram a cerca de sessenta vezes a velocidade, e a transcrição conjunta lê-se, no arquivo, como dois documentos sem relação intercalados. Nada foi registado desde a suspensão de 2298, e presume-se que as assembleias continuem sem público.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "practisedBy": [{ "id": ["xeno.peerdb.org", "SPECIES", "G4_CANOPY_WEAVE"] }],
+  "presentAt": [{ "id": ["xeno.peerdb.org", "SITE", "G4_TETHER_STUMP"] }],
+  "kinshipSystem": { "id": ["xeno.peerdb.org", "KINSHIP_SYSTEM", "NOT_RECKONED"] },
+  "socialOrganisation": { "id": ["xeno.peerdb.org", "SOCIAL_ORGANISATION", "CONSENSUS_ASSEMBLY"] },
+  "subsistence": [
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "COLONY_GRAZING"] },
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "MANAGED_DECAY"] }
+  ],
+  "communication": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G4_COM_TERRACE_REGISTER"] }],
+  "population": {
+    "value": { "from": { "amount": 30000, "precision": 100 }, "to": { "amount": 40000, "precision": 100 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "period": { "from": { "time": "2262-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true }
+}

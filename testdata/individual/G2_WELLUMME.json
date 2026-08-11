@@ -1,0 +1,24 @@
+{
+  "id": ["xeno.peerdb.org", "INDIVIDUAL", "G2_WELLUMME"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "INDIVIDUAL"] }],
+  "name": [{ "value": "Wellumme" }],
+  "lineageName": [{ "value": "Third Drop Above the Gap" }],
+  "description": [
+    {
+      "value": "<p>Holds the third drop above the gap and has held it since 2278, which in local reckoning means they are that holding rather than its occupant. Twice asked to state whether the switching assembly is a government or a market, and twice declined, on the ground that the question is about Consortium categories and not about water. They sat for a photograph in 2291 after establishing that it would be filed under the holding name and not their own.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "species": { "id": ["xeno.peerdb.org", "SPECIES", "G2_ANUWELME"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G2_EVENING_ROWS"] }, { "id": ["xeno.peerdb.org", "CULTURE", "G2_SWITCHING_ASSEMBLY"] }],
+  "role": [
+    { "value": "terrace holder", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "switching negotiator", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }
+  ],
+  "formOfAddress": "by the holding name, never the personal one",
+  "born": { "time": "2241-01-01T00:00:00Z", "precision": "y" },
+  "birthplace": { "id": ["xeno.peerdb.org", "SITE", "G2_LONG_EVENING_ROWS"] },
+  "image": [
+    { "value": "/f/Tdccki7kBGaNtvneh2U21F", "name": "G2_WELLUMME.jpg", "caption": "Portrait", "source": "Made with consent; Consortium collection" }
+  ]
+}

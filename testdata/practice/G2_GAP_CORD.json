@@ -1,0 +1,35 @@
+{
+  "id": ["xeno.peerdb.org", "PRACTICE", "G2_GAP_CORD"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PRACTICE"] }],
+  "name": [{ "value": "Reading the Gap Cord", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Shamnesh", "gloss": "the tied answer" }],
+  "description": [
+    {
+      "value": "<p>When a storm takes a stretch of weir and it is not obvious whose stretch it was, the parties do not meet. A dyed cord is knotted and left in the gap itself: the knots say how many tides the gap has been open and which arc it belongs to, and the dye says who is saying so. Weir builders read the knots and cannot read the dye; net house members read the dye by its polarisation and do not bother with the knots; between the two readings the whole claim is present and neither party has the whole of it. The answering cord is left in the same gap within three tides, and a gap that carries two cords and no third is settled, because the second cord is either the same claim or a different one and there is no form for arguing about it further. In eighty years there has been one gap that took four cords, and it is still spoken of.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Spor o pregradi rešijo z barvano vozlano vrvjo, puščeno v sami vrzeli.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Quando uma tempestade leva um troço de açude e não é evidente de quem era esse troço, as partes não se encontram. Ata-se uma corda tingida e deixa-se na própria brecha: os nós dizem há quantas marés a brecha está aberta e a que arco pertence, e a tinta diz quem o está a afirmar. Os construtores de açudes leem os nós e não conseguem ler a tinta; os membros das casas de rede leem a tinta pela sua polarização e não se ocupam dos nós; entre as duas leituras está a reclamação inteira, e nenhuma das partes a tem por completo. A corda de resposta é deixada na mesma brecha dentro de três marés, e uma brecha com duas cordas e nenhuma terceira está resolvida, porque a segunda corda ou é a mesma reclamação ou é outra, e não há forma de discutir mais o assunto. Em oitenta anos houve uma brecha que recebeu quatro cordas, e ainda hoje se fala dela.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G2_NET_HOUSES"] }, { "id": ["xeno.peerdb.org", "CULTURE", "G2_ARC_LODGES"] }],
+  "category": { "id": ["xeno.peerdb.org", "PRACTICE_CATEGORY", "DISPUTE_RESOLUTION"] },
+  "periodicity": "whenever a storm gap is claimed by nobody or by two",
+  "participants": {
+    "value": { "from": { "amount": 2, "precision": 1 }, "to": { "amount": 8, "precision": 1 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "firstDocumented": { "time": "2261-01-01T00:00:00Z", "precision": "y" },
+  "relatedPractice": [{ "id": ["xeno.peerdb.org", "PRACTICE", "G2_SILENT_LINE"] }, { "id": ["xeno.peerdb.org", "PRACTICE", "G2_ANCHORAGE_WALK"] }],
+  "notes": [
+    {
+      "value": "<p>The survey collected two cords in 2261 before being told what they were. Both were returned, retied by the house that had made them, and the incident is the reason field kits on this world carry a camera and no sample bags.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

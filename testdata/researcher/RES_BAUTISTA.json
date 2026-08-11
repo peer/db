@@ -1,0 +1,23 @@
+{
+  "id": ["xeno.peerdb.org", "RESEARCHER", "RES_BAUTISTA"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "RESEARCHER"] }],
+  "name": [{ "value": "Imelda" }],
+  "familyName": [{ "value": "Bautista" }],
+  "researcherCode": "CCX-P-04155",
+  "description": [
+    {
+      "value": "<p>Recovered chemosynthetic material from a vent plume without landing, which took nine passes and an equipment modification the manufacturer has never approved. She is bored of being asked about it and would rather talk about the eight failed passes. She has flown more instrument approaches than anyone else in the register.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "affiliatedWith": [{ "id": ["xeno.peerdb.org", "INSTITUTE", "INST_FARSIGHT"] }],
+  "specialisesIn": [
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "REMOTE_SENSING"] },
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "MATERIAL_SAMPLING"] }
+  ],
+  "activePeriod": { "from": { "time": "2289-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true },
+  "born": { "time": "2264-01-01T00:00:00Z", "precision": "y" },
+  "image": [
+    { "value": "/f/UtadZVm4DKqyJkksfC899s", "name": "RES_BAUTISTA.jpg", "caption": "Staff photograph", "source": "Consortium personnel record" }
+  ]
+}

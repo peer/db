@@ -1,0 +1,39 @@
+{
+  "id": ["xeno.peerdb.org", "NARRATIVE", "G3_ANNEU_RECORD"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "NARRATIVE"] }],
+  "title": [{ "value": "The Record of Anneu", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [
+    {
+      "value": "Anneu-waunei",
+      "gloss": "the named water called Anneu",
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G3_SWEEP_CALL"] }]
+    }
+  ],
+  "description": [
+    {
+      "value": "<p>A formal recitation of a contested channel, made at the gathering ground by the head of the house that holds it and admissible at later meets. It states the limits, the history of movement and the judgements already passed, in that order, and is closed with a line stating why it is being said at all.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "genre": { "id": ["xeno.peerdb.org", "NARRATIVE_GENRE", "BOUNDARY_RECORD"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G3_CHANNEL_HOUSES"] }],
+  "recordedBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_DE_VRIES"] }],
+  "recordedAt": { "id": ["xeno.peerdb.org", "SITE", "G3_TIDE_MEET"] },
+  "recordedOn": { "time": "2279-01-01T00:00:00Z", "precision": "y" },
+  "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G3_SWEEP_CALL"] }],
+  "content": [
+    {
+      "value": "<p>The channel is called Anneu and has been called Anneu since before the house that holds it. Its head is at the fourth weir and its mouth is where the flat stops. It has moved four times in my life and it has not become another channel by moving.</p><p>The keepers say a water that rearranges its place cannot be held. The house says the name has not been rearranged. This was said at the meet in the year the outer wall was rebuilt and was said again at the meet after it, and the judgement both times was that the name stands and the ground either side of it stands with the name.</p><p>I say it again here so that it is on the record and can be said again.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "recording": [
+    {
+      "value": "/f/Dm4og6uydDv72tQe58NDwi",
+      "name": "narrative-G3_ANNEU_RECORD.mp3",
+      "caption": "Performance, recorded on site",
+      "duration": { "value": { "amount": 4, "precision": 1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "MINUTE"] }] },
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G3_SWEEP_CALL"] }]
+    }
+  ]
+}

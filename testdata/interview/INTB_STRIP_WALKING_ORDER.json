@@ -1,0 +1,54 @@
+{
+  "id": ["xeno.peerdb.org", "INTERVIEW", "INTB_STRIP_WALKING_ORDER"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "INTERVIEW"] }],
+  "title": [
+    {
+      "value": "Nathess on the walking order, and on a year in which it was said wrong",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "description": [
+    {
+      "value": "<p>Interview with the keeper of the walking order at the Upper Hearths on how a stretch of the leading band is held and handed on. Nathess describes an alteration he made to the order and has never stated at a hearth.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "interviewee": [{ "id": ["xeno.peerdb.org", "INDIVIDUAL", "G3_NATHESS"] }],
+  "interviewer": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_WEN"] }],
+  "recordedAt": { "id": ["xeno.peerdb.org", "SITE", "G3_UPPER_HEARTHS"] },
+  "recordedOn": { "time": "2274-06-11T00:00:00Z", "precision": "d" },
+  "expedition": { "id": ["xeno.peerdb.org", "EXPEDITION", "EXP_HOLLOW_BAR_FIRST"] },
+  "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G3_STRIP_SPEECH"] }],
+  "duration": { "value": { "amount": 112, "precision": 1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "MINUTE"] }] },
+  "content": [
+    {
+      "value": "<p><b>Q.</b> Which stretch is the best ground?</p><p><b>A.</b> You have asked me a thing my speech cannot say. There is ground that holds and ground that does not. I have now said your sentence in your language, badly, and you should not write it down as mine.</p><p><b>Q.</b> Then who decides which stretch is held?</p><p><b>A.</b> The order decides. I keep it. Those are two different jobs and people confuse them because I am old.</p><p><b>Q.</b> Where is the order kept?</p><p><b>A.</b> In the mouth. It is said at the last hearth before the walk and again at the first hearth after. Between those two sayings it does not exist anywhere, which is the part your people never accept.</p><p><b>Q.</b> And if it is said wrong?</p><p><b>A.</b> Then it is wrong until somebody says it right. Nobody has ever said it right afterwards. It is not a thing that gets corrected. It is a thing that gets carried.</p><p><b>Q.</b> Has it been said wrong?</p><p><b>A.</b> Once by me. The year the front came early I put a household behind another that should have gone before it, and I did it with my mouth open and my eyes open.</p><p><b>Q.</b> Why?</p><p><b>A.</b> Because the household I put behind had a person in it who was not going to survive the cold wall, and behind is where the banked ground is. Two children came off that stretch alive. The household that went first lost a wall and has not held ground since.</p><p><b>Q.</b> Have you said this at a hearth?</p><p><b>A.</b> No. I have said it to you, because you are leaving and because your recorder is not a hearth. Do not make it one.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "recording": [
+    {
+      "value": "/f/Rj1WC6XHCwzr3W7pRz5crn",
+      "name": "interview-INTB_STRIP_WALKING_ORDER.mp3",
+      "caption": "Session recording",
+      "duration": { "value": { "amount": 112, "precision": 1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "MINUTE"] }] },
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G3_STRIP_SPEECH"] }]
+    }
+  ],
+  "ethics": { "id": ["xeno.peerdb.org", "ETHICS_PROTOCOL", "PROTOCOL_3"] },
+  "consentNote": [
+    {
+      "value": "<p>Nathess agreed to be recorded on the keeping of the order, and to the last exchange being kept, on the condition that it is not read back to anyone at the hearths in his lifetime. He did not ask for it to be removed, which he was careful to distinguish from wanting it read.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "clearedReader": ["mock-user-researcher@localhost"],
+  "permission": [
+    { "action": { "id": ["core.peerdb.org", "PERMISSION_ACTIONS", "ACTION_READ"] }, "user": ["mock-user-researcher@localhost"], "scope": ["self"] },
+    {
+      "action": { "id": ["core.peerdb.org", "PERMISSION_ACTIONS", "ACTION_READ_HISTORIC"] },
+      "user": ["mock-user-researcher@localhost"],
+      "scope": ["self"]
+    }
+  ]
+}

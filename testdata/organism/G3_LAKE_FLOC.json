@@ -1,0 +1,31 @@
+{
+  "id": ["xeno.peerdb.org", "ORGANISM", "G3_LAKE_FLOC"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "ORGANISM"] }],
+  "name": [{ "value": "Lake Floc", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "taxonCode": "TX-1151-a",
+  "description": [
+    {
+      "value": "<p>Soft pale aggregates a few centimetres across, found in banks along the margins of the methane lakes where the organic snow gathers. They are structured, they concentrate certain compounds against the gradient, and they have never been observed to change in any way. Whether they are alive is precisely the question the next survey was going to ask, and the sector survey was suspended in 2301.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "category": { "id": ["xeno.peerdb.org", "ORGANISM_CATEGORY", "UNCLASSIFIED"] },
+  "foundOn": [{ "id": ["xeno.peerdb.org", "PLANET", "G3_BOBBIN_D"] }],
+  "biome": [{ "id": ["xeno.peerdb.org", "BIOME", "HYDRO_LAKE"] }],
+  "typicalSize": { "value": { "amount": 0.06, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+  "typicalMass": { "value": { "amount": 0.01, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "kg"] }] },
+  "image": [
+    {
+      "value": "/f/3MX9Q6LSNFayRP2vinoWQA",
+      "name": "G3_LAKE_FLOC.jpg",
+      "caption": "Field plate",
+      "source": "Drawn in the field; Consortium collection"
+    }
+  ],
+  "notes": [
+    {
+      "value": "<p>Catalogued as unclassified, which the register insists is a pending state, and which has now been pending for eleven years.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

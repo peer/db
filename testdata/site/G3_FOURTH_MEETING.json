@@ -1,0 +1,20 @@
+{
+  "id": ["xeno.peerdb.org", "SITE", "G3_FOURTH_MEETING"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SITE"] }],
+  "name": [{ "value": "Fourth Meeting Ground", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "localName": [{ "value": "Ollomunno", "gloss": "where the water waits" }],
+  "description": [
+    {
+      "value": "<p>A stretch of open flat two kilometres from the low-water line, marked by a line of stakes that is renewed between visits and by a great deal of trodden ground. All four recorded meetings took place inside a hundred metres of this spot. Nothing is built here and nothing stays here; the tide sees to that twice a cycle.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "REGION", "G3_MEETING_FLATS"] },
+  "siteType": { "id": ["xeno.peerdb.org", "SITE_TYPE", "AGGREGATION_GROUND"] },
+  "gridReference": "KB-077.3/-02.6",
+  "population": {
+    "value": { "from": { "amount": 0, "precision": 10 }, "to": { "amount": 600, "precision": 10 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "occupation": { "from": { "time": "2290-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true }
+}

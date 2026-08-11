@@ -1,0 +1,20 @@
+{
+  "id": ["xeno.peerdb.org", "SECTOR", "G1_QUIET_ANNEX"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SECTOR"] }],
+  "name": [{ "value": "Quiet Annex", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "catalogueCode": "MW-S19-QAN",
+  "description": [
+    {
+      "value": "<p>A very nearly empty sector, opened in 2286 to hold the outward margin and never filled. One catalogued system, one catalogued world, and that world orbits nothing at all. Two expeditions have been funded for it and one arrived.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "GALAXY", "G1_MILKY_WAY"] },
+  "surveyPeriod": { "from": { "time": "2286-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true },
+  "notes": [
+    {
+      "value": "<p>The Annex exists so that the outward margin has an owner. Its entire staff establishment is one part-time records officer on Ceres, who has never asked to be relieved.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

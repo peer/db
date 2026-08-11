@@ -1,0 +1,26 @@
+{
+  "id": ["xeno.peerdb.org", "PRACTICE", "G3_WATER_AT_DOOR"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PRACTICE"] }],
+  "name": [{ "value": "The Pouring In", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Simmeth", "gloss": "the pouring in" }],
+  "description": [
+    {
+      "value": "<p>When a hauling lodge reaches a hearth it stops outside and waits, and the household comes out and takes the load before anyone is invited anywhere. Water is received first, in the household&#39;s own vessels, and only when it is inside and stoppered is food offered to the haulers, who eat sitting on the cold side of the fire with their harness still on. A guest who is fed may not be asked for anything for as long as the meal lasts, and a guest who refuses food has refused the hearth rather than the meal and leaves without the exchange being made. The obligation ends when the haulers stand up, which they do without warning and usually mid-sentence. The Consortium has been fed under this rule eleven times and has never once managed to leave first.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Gostu najprej vzamejo vodo in šele nato ponudijo hrano; dokler obrok traja, ga ni dovoljeno ničesar prositi.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    }
+  ],
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G3_ICE_LODGES"] }, { "id": ["xeno.peerdb.org", "CULTURE", "G3_STRIP_STEWARDSHIP"] }],
+  "category": { "id": ["xeno.peerdb.org", "PRACTICE_CATEGORY", "HOSPITALITY"] },
+  "periodicity": "at every arrival of a lodge, roughly every forty days",
+  "participants": {
+    "value": { "from": { "amount": 5, "precision": 1 }, "to": { "amount": 30, "precision": 1 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "firstDocumented": { "time": "2272-01-01T00:00:00Z", "precision": "y" },
+  "relatedPractice": [{ "id": ["xeno.peerdb.org", "PRACTICE", "G3_CORD_MEETING"] }],
+  "image": [{ "value": "/f/QsgZagQfRAdV7AbJRSQVqU", "name": "G3_WATER_AT_DOOR.jpg", "caption": "In progress", "source": "Consortium survey archive" }]
+}

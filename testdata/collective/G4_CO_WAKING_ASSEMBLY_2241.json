@@ -1,0 +1,20 @@
+{
+  "id": ["xeno.peerdb.org", "COLLECTIVE", "G4_CO_WAKING_ASSEMBLY_2241"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "COLLECTIVE"] }],
+  "name": [{ "value": "Waking Ground Assembly of 2241", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "description": [
+    {
+      "value": "<p>The whole awake population of the world, in session on one gravel terrace for eleven years, acting as a single deciding body and holding no continuing existence between thaws. It was not a government, since nothing survived it to be governed, and not a festival, since its decisions bound everyone for four hundred years. It is recorded as one body because it acted as one, and because there is no other unit in the catalogue that fits it.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "species": { "id": ["xeno.peerdb.org", "SPECIES", "G4_WARREN_SLEEPERS"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G4_CU_THAW_ASSEMBLY"] }],
+  "role": [{ "value": "deciding body", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "memberCount": {
+    "value": { "from": { "amount": 12000, "precision": 10 }, "to": { "amount": 26000, "precision": 10 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "activePeriod": { "from": { "time": "2241-01-01T00:00:00Z", "precision": "y" }, "to": { "time": "2252-01-01T00:00:00Z", "precision": "y" } },
+  "seat": { "id": ["xeno.peerdb.org", "SITE", "G4_WAKING_GROUND"] }
+}

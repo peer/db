@@ -1,0 +1,22 @@
+{
+  "id": ["xeno.peerdb.org", "REGION", "G2_SWEEP_MARGIN"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "REGION"] }],
+  "name": [{ "value": "Sweep Margin", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Sesshame" }],
+  "description": [
+    {
+      "value": "<p>The tidal flats between the nine benches and the open water, with eighteen metres of vertical range and up to sixty kilometres of ground exposed at low water. Stone weirs run in long arcs across it, maintained collectively and rebuilt after every big storm. All contact with the inhabitants has taken place here.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "PLANET", "G2_NINE_TERRACE"] },
+  "biome": [{ "id": ["xeno.peerdb.org", "BIOME", "SWEEP_FLAT"] }],
+  "area": { "value": { "amount": 740000, "precision": 100 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "SQUARE_KILOMETRE"] }] },
+  "elevationRange": {
+    "value": { "from": { "amount": -22, "precision": 10 }, "to": { "amount": 14, "precision": 10 } },
+    "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }]
+  },
+  "image": [
+    { "value": "/f/9tBAhwnBq96CCGf8GQv6VD", "name": "G2_SWEEP_MARGIN.jpg", "caption": "Regional view", "source": "Consortium survey archive" }
+  ]
+}

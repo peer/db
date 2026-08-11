@@ -1,0 +1,19 @@
+{
+  "id": ["xeno.peerdb.org", "REGION", "G3_FARSIDE_ICE"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "REGION"] }],
+  "name": [{ "value": "Farside Ice", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "description": [
+    {
+      "value": "<p>The antistellar cap, a floating ice sheet some two thousand kilometres across that thickens towards the centre and calves continuously at its edge. It is unvisited on foot and unclaimed by anyone below. Sounding shows the ocean beneath it is warmer than the ice above, which is the only reason the sheet has an edge at all.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "PLANET", "G3_OUMARA"] },
+  "biome": [{ "id": ["xeno.peerdb.org", "BIOME", "NIGHTSIDE_TRAP"] }],
+  "area": { "value": { "amount": 2200000, "precision": 100 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "SQUARE_KILOMETRE"] }] },
+  "elevationRange": {
+    "value": { "from": { "amount": 0, "precision": 10 }, "to": { "amount": 1600, "precision": 10 } },
+    "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }]
+  },
+  "image": [{ "value": "/f/V2zTk4GLAEaCRyd3U5THFv", "name": "G3_FARSIDE_ICE.jpg", "caption": "Regional view", "source": "Consortium survey archive" }]
+}

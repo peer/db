@@ -1,0 +1,53 @@
+{
+  "id": ["xeno.peerdb.org", "INTERVIEW", "INTA_OLLURRU_FALL_ACCOUNT"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "INTERVIEW"] }],
+  "title": [
+    {
+      "value": "Ollurru on the fall account and what the station has not declared",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "description": [
+    {
+      "value": "<p>The account holder for a rib household, on waste dropped to the floor and sorted material returned, and on the dispute of 2302 over a lost sample line. He lists other station property that has entered the account.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "interviewee": [{ "id": ["xeno.peerdb.org", "INDIVIDUAL", "G2_OLLURRU"] }],
+  "interviewer": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_MOLNAR"] }, { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_DEMIR"] }],
+  "recordedAt": { "id": ["xeno.peerdb.org", "SITE", "G2_STATION_TWO"] },
+  "recordedOn": { "time": "2303-05-20T00:00:00Z", "precision": "d" },
+  "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G2_CEILING_CALL"] }],
+  "duration": { "value": { "amount": 71, "precision": 1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "MINUTE"] }] },
+  "content": [
+    {
+      "value": "<p><b>Q.</b> Taking the account as a trade, when do you expect it to be settled?</p><p><b>A.</b> Never, and it is not a trade in the sense you mean. A settled account is a closed relation. Neither side wants that and neither side has ever proposed a way to it.</p><p><b>Q.</b> Then what is the account for?</p><p><b>A.</b> For being open. The floor takes what falls and returns it sorted, on a delay of some weeks, and while there is a running figure between us there is somebody down there and somebody up here. Close it and there is a floor and a ceiling and nothing across the middle.</p><p><b>Q.</b> Your station dispute of last year turned on whether a lost sample line counted as a fall.</p><p><b>A.</b> It fell. It was sorted. It came back with the tin off it. Your people called it equipment, and the station agreed with them, and so the position now stands against the station rather than against my house, which suits me and does not seem to have been noticed by anybody there.</p><p><b>Q.</b> Has anything else of ours gone into the account?</p><p><b>A.</b> Yes, and this is what I want held. A ballast weight in 2288. Two hundred and some metres of the old hydrophone cable in 2294, which was cut and not lost. A sealed instrument in 2299 which came back sorted into three parts and is still in my house. None of the three appear in any declaration your station has made, because in each case somebody preferred to write it off.</p><p><b>Q.</b> Why not raise it with the station?</p><p><b>A.</b> Because the station would take the instrument back, and then it would not be a fall, and then I would have to explain to the floor why a thing that entered the account has left it. That has never happened and I do not want to be the first to find out what it means.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "recording": [
+    {
+      "value": "/f/7XoHNxf8Ug3MswQuqFzsgH",
+      "name": "interview-INTA_OLLURRU_FALL_ACCOUNT.mp3",
+      "caption": "Session recording",
+      "duration": { "value": { "amount": 71, "precision": 1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "MINUTE"] }] },
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G2_CEILING_CALL"] }]
+    }
+  ],
+  "ethics": { "id": ["xeno.peerdb.org", "ETHICS_PROTOCOL", "PROTOCOL_2"] },
+  "consentNote": [
+    {
+      "value": "<p>Ollurru agreed to the record being kept and used, and asked that the list of station property be given to the Consortium and not to Station Two, which he regards as two different parties. He remarked that nobody in the settlement has ever been photographed and that this is not a restriction, only a fact about the light.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "clearedReader": ["mock-user-researcher@localhost"],
+  "permission": [
+    { "action": { "id": ["core.peerdb.org", "PERMISSION_ACTIONS", "ACTION_READ"] }, "user": ["mock-user-researcher@localhost"], "scope": ["self"] },
+    {
+      "action": { "id": ["core.peerdb.org", "PERMISSION_ACTIONS", "ACTION_READ_HISTORIC"] },
+      "user": ["mock-user-researcher@localhost"],
+      "scope": ["self"]
+    }
+  ]
+}

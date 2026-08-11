@@ -1,0 +1,23 @@
+{
+  "id": ["xeno.peerdb.org", "SITE", "G4_WALKING_HEARTHS"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SITE"] }],
+  "name": [{ "value": "Walking Hearths", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "localName": [{ "value": "Sesshavith", "gloss": "the fires that move" }],
+  "description": [
+    {
+      "value": "<p>Eleven household hearths spread over four kilometres of wind shadow behind a basalt ridge, each with its own stone screen and none of them walled. The whole cluster is dismantled and refounded a few hundred metres nightward roughly once a generation, following the habitable band. Abandoned hearth positions run back from the current cluster in a line, and can be counted.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "REGION", "G4_DUSK_MARCH"] },
+  "siteType": { "id": ["xeno.peerdb.org", "SITE_TYPE", "HEARTH_CLUSTER"] },
+  "gridReference": "DM-207.3/8.9",
+  "population": {
+    "value": { "from": { "amount": 90, "precision": 10 }, "to": { "amount": 160, "precision": 10 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "occupation": { "from": { "time": "2233-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true },
+  "image": [
+    { "value": "/f/JPFLyXvYKhfT8u8N8FYq4w", "name": "G4_WALKING_HEARTHS.jpg", "caption": "General view", "source": "Consortium survey archive" }
+  ]
+}

@@ -1,0 +1,19 @@
+{
+  "id": ["xeno.peerdb.org", "REGION", "G1_GRID_44_DUSK"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "REGION"] }],
+  "name": [{ "value": "Dusk Band 44", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "[the warm side of the line]" }],
+  "description": [
+    {
+      "value": "<p>The habitable ring itself: four hundred kilometres of violet twilight between the scorched inner rock and the ice wall, threaded end to end with meltwater channels that shift every few years. All settlement on the planet is in this band, and all of it is designed to be moved. The light never changes and the wind never turns.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "PLANET", "G1_SURVEY_GRID_44_B"] },
+  "biome": [{ "id": ["xeno.peerdb.org", "BIOME", "DUSK_BELT"] }, { "id": ["xeno.peerdb.org", "BIOME", "BRAIDED_MELT"] }],
+  "area": { "value": { "amount": 960000, "precision": 100 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "SQUARE_KILOMETRE"] }] },
+  "elevationRange": {
+    "value": { "from": { "amount": 40, "precision": 10 }, "to": { "amount": 2600, "precision": 10 } },
+    "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }]
+  }
+}

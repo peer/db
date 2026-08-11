@@ -1,0 +1,25 @@
+{
+  "id": ["xeno.peerdb.org", "ORGANISM", "G3_FLOOR_FILM"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "ORGANISM"] }],
+  "name": [{ "value": "Floor Film", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "taxonCode": "TX-1135-a",
+  "description": [
+    {
+      "value": "<p>A spreading black film that works the organic material settling out of the basin haze, running as threads through the graphite crust and pooling into sheets wherever the rock stays warm from below. It carries nutrients across tens of metres, which on a world with no soil worth the name is the entire transport system. The rim drummers stage rot on it deliberately, and the boundary between their pits and the film is not a clean one.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "category": { "id": ["xeno.peerdb.org", "ORGANISM_CATEGORY", "DECOMPOSER_NETWORK"] },
+  "foundOn": [{ "id": ["xeno.peerdb.org", "PLANET", "G3_SUMP"] }],
+  "biome": [{ "id": ["xeno.peerdb.org", "BIOME", "HAZE_LOWLAND"] }, { "id": ["xeno.peerdb.org", "BIOME", "ENDOLITH_ZONE"] }],
+  "typicalSize": { "value": { "amount": 8.0, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+  "typicalMass": { "value": { "amount": 0.6, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "kg"] }] },
+  "image": [
+    {
+      "value": "/f/KXayM4ody6hJzESmgg8iu1",
+      "name": "G3_FLOOR_FILM.jpg",
+      "caption": "Field plate",
+      "source": "Drawn in the field; Consortium collection"
+    }
+  ]
+}

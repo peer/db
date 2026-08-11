@@ -1,0 +1,55 @@
+{
+  "id": ["xeno.peerdb.org", "CULTURE", "G4_CU_LADDER_GORGE"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "CULTURE"] }],
+  "name": [{ "value": "Ladder Gorge Households", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [
+    {
+      "value": "Meiaurau",
+      "gloss": "the people of the climbing steps",
+      "inSystem": [
+        { "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G4_COM_FLAT_CALL"] },
+        { "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G4_COM_SPAN_LIGHT"] }
+      ]
+    }
+  ],
+  "catalogueCode": "CU-2226-02",
+  "description": [
+    {
+      "value": "<p>Two peoples on one site: terrace households in the gorge, descended from shelf families who left the tide some centuries ago, and canopy houses in the branches directly above them. The gorge grows and ferments in sixty-one retained terraces fed by a controlled cascade, and the canopy houses graze the colonial mats overhead and supply the bract dye by which every holding at both levels is marked. Each side holds a rank in the other&#39;s disputes, which is the substantive reason the discipline records them as one culture; both sides object to the finding, in different words and with different grammar. The lower households speak the shelf language at conversational volume, a habit the shoals regard as a defect of character rather than of hearing. Since contact the terraces have taken in three failed harvests&#39; worth of surveyors and have never once accepted payment for it, on the ground that a debt is more useful.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Na terasah v soteski gojijo in vrejo hrano, v krošnjah nad njimi pa živijo drobni sosedje. Stroka ju obravnava kot eno samo kulturo, s čimer se ne strinja nobena od obeh strani.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Dois povos num só sítio: agregados de terraça na garganta, descendentes de famílias da plataforma que deixaram a maré há alguns séculos, e casas do dossel nos ramos mesmo por cima deles. A garganta cultiva e fermenta em sessenta e uma terraças retidas alimentadas por uma cascata controlada, e as casas do dossel pastam os tapetes coloniais lá em cima e fornecem o corante de brácteas com que se marca cada exploração nos dois níveis. Cada lado tem uma posição nas disputas do outro, que é a razão substantiva por que a disciplina os regista como uma só cultura; ambos os lados contestam a conclusão, com palavras diferentes e com gramática diferente. Os agregados de baixo falam a língua da plataforma em volume de conversa, hábito que os baixios consideram um defeito de caráter e não de audição. Desde o contacto, as terraças acolheram o equivalente a três colheitas perdidas de investigadores e nunca aceitaram pagamento por isso, com o fundamento de que uma dívida é mais útil.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "practisedBy": [{ "id": ["xeno.peerdb.org", "SPECIES", "G4_WEIRFOLK"] }, { "id": ["xeno.peerdb.org", "SPECIES", "G4_SMALLFOLK"] }],
+  "presentAt": [{ "id": ["xeno.peerdb.org", "SITE", "G4_LADDER_TERRACES"] }],
+  "kinshipSystem": { "id": ["xeno.peerdb.org", "KINSHIP_SYSTEM", "UNILINEAL_DESCENT"] },
+  "socialOrganisation": { "id": ["xeno.peerdb.org", "SOCIAL_ORGANISATION", "LINEAGE_HOUSES"] },
+  "subsistence": [
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "SILT_GARDENING"] },
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "MANAGED_DECAY"] },
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "COLONY_GRAZING"] }
+  ],
+  "communication": [
+    { "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G4_COM_FLAT_CALL"] },
+    { "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G4_COM_SPAN_LIGHT"] }
+  ],
+  "population": {
+    "value": { "from": { "amount": 180000, "precision": 100 }, "to": { "amount": 400000, "precision": 100 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "period": { "from": { "time": "2226-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true },
+  "image": [{ "value": "/f/Ebin2wh4gQieXR5zjmaDrF", "name": "G4_CU_LADDER_GORGE.jpg", "caption": "Gathering", "source": "Consortium survey archive" }],
+  "notes": [
+    {
+      "value": "<p>The site polygon is drawn on the ground, as all site polygons are. Rather more than half of this culture lives forty metres above it and has never been inside it.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

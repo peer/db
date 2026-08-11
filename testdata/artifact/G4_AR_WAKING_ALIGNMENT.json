@@ -1,0 +1,27 @@
+{
+  "id": ["xeno.peerdb.org", "ARTIFACT", "G4_AR_WAKING_ALIGNMENT"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "ARTIFACT"] }],
+  "name": [{ "value": "Alignment Stone, Waking Ground", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "ekkuttanpirru", "gloss": "the stone that says where a warren stood" }],
+  "accessionCode": "CCX-A-20517",
+  "description": [
+    {
+      "value": "<p>One of some nine hundred set stones on the gravel terrace, each marking where one warren&#39;s party stood during the eleven years of the assembly, and each set on the day that party arrived. The stones are unworked river cobbles chosen for size and pressed edge-down into the gravel: position carries the whole of the information and the stone itself carries none. This one marks a warren that came in the fourth year and left in the ninth, which is recorded nowhere else at all. The alignment was mapped in 2249 and has not been disturbed since, the world having been asleep.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "category": { "id": ["xeno.peerdb.org", "ARTIFACT_CATEGORY", "MARKER_STONE"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G4_CU_THAW_ASSEMBLY"] }],
+  "foundAt": { "id": ["xeno.peerdb.org", "SITE", "G4_WAKING_GROUND"] },
+  "material": [
+    { "value": "river cobble", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "gravel packing", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }
+  ],
+  "dimension": [
+    { "value": { "amount": 0.41, "precision": 0.001 }, "axis": "height", "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+    { "value": { "amount": 0.22, "precision": 0.001 }, "axis": "width", "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] }
+  ],
+  "dateMade": { "time": "2245-01-01T00:00:00Z", "precision": "y" },
+  "collectedBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_PRASETYO"] }],
+  "document": [{ "value": "/f/6Z8BcqEGxn5cg91YPtqkfZ", "name": "G4_AR_WAKING_ALIGNMENT.txt", "caption": "Accession record" }]
+}

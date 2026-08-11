@@ -1,0 +1,35 @@
+{
+  "id": ["xeno.peerdb.org", "PRACTICE", "G2_UNCLOSED_POSITION"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PRACTICE"] }],
+  "name": [{ "value": "Leaving the Position Open", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Nukkelanne", "gloss": "the open count" }],
+  "description": [
+    {
+      "value": "<p>When somebody dies, their positions on the cord are not closed. The knots stay as they were, the debts stay owed in both directions, and for one whole dormancy the chamber goes on entering transfers against a person who is not there, which the warren regards as the difference between a death and an absence. Nobody speaks the dead person&#39;s position during that time; a household needing to refer to it strikes the wall once and lets the silence do it, and the knock language, having no hypothetical, cannot render the sentence any other way. The cord is closed at the first waking after the term, in a session that settles the order of closure and can take two days. Only then is the position free to be opened by somebody else. The survey attended one such session in 2288 and understood none of it at the time.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Po smrti mesta na vrvi eno zimo ne zaprejo; dolgovi tečejo naprej.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Quando alguém morre, as suas posições na corda não são encerradas. Os nós ficam como estavam, as dívidas continuam a dever-se nos dois sentidos e, durante uma dormência inteira, a câmara continua a lançar transferências contra uma pessoa que não está lá, o que a toca considera ser a diferença entre uma morte e uma ausência. Ninguém pronuncia a posição do morto durante esse tempo; um agregado que precise de se referir a ela bate uma vez na parede e deixa o silêncio fazer o resto, e a língua das pancadas, não tendo hipotético, não consegue exprimir a frase de outra maneira. A corda é encerrada no primeiro despertar depois do prazo, numa sessão que fixa a ordem dos encerramentos e pode levar dois dias. Só então a posição fica livre para ser aberta por outra pessoa. O levantamento assistiu a uma dessas sessões em 2288 e na altura não percebeu nada.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G2_WARREN_TALLY"] }],
+  "category": { "id": ["xeno.peerdb.org", "PRACTICE_CATEGORY", "MOURNING"] },
+  "periodicity": "for one full dormancy after a death",
+  "participants": {
+    "value": { "from": { "amount": 3, "precision": 1 }, "to": { "amount": 30, "precision": 1 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "firstDocumented": { "time": "2288-01-01T00:00:00Z", "precision": "y" },
+  "relatedPractice": [{ "id": ["xeno.peerdb.org", "PRACTICE", "G2_WAKING_COUNT"] }],
+  "notes": [
+    {
+      "value": "<p>Asked what the term is for, the tally keeper said that the dead go on owing for a while because everybody else does. The interviewer wrote down four follow-up questions and asked none of them.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

@@ -1,0 +1,70 @@
+{
+  "id": ["xeno.peerdb.org", "SPECIES", "G3_NITHESH"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SPECIES"] }],
+  "name": [{ "value": "Ice Front Rubble Colonies", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [
+    {
+      "value": "Nithesh",
+      "gloss": "the heap, and the word has no plural",
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G3_FACE_TAP"] }]
+    }
+  ],
+  "exonym": [{ "value": "Sesheth, in the Ilseth mouth: the full store", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "taxonCode": "TX-4407-a",
+  "description": [
+    {
+      "value": "<p>A Nithesh person is a colony of some tens of thousands of small bodies packed into the frost-shattered rubble at the ice front, and the colony is the only thing that speaks, decides or remembers. A body removed from the heap stops mattering to the colony within a day and does not appear to mind; bodies are grown, spent and replaced continuously, and the Nithesh have no word that picks one of them out. Food is rot staged in sealed cavities and whatever the terminator wind delivers into the rubble, which is a great deal of dust and a little else. They answer questions readily, at the speed of a heap, and their answers about themselves are consistent across a century of visits. What the discipline cannot settle is whether two colonies that exchange bodies during a flood are two persons or one, and the Nithesh, who exchange freely, consider the question badly formed.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Drobna telesa, ki skupaj tvorijo eno samo kolonijsko osebo. Posamezno telo ni oseba niti zase niti za kolonijo.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    }
+  ],
+  "homeworld": { "id": ["xeno.peerdb.org", "PLANET", "G3_SISHELETH"] },
+  "bodyPlan": [
+    {
+      "value": "<p>A body is a flattened six-limbed unit under overlapping plates, about eleven centimetres long, with no organ of distance sense and no capacity to act alone for more than a few hours. Bodies interlock plate to plate, and a colony at rest is a single armoured sheet folded into the rubble. Feeding is by shared external digestion in cavities the colony packs, seals and reopens.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "typicalHeight": { "value": { "amount": 0.11, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+  "typicalMass": { "value": { "amount": 0.35, "precision": 0.1 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "kg"] }] },
+  "lifespan": {
+    "value": { "from": { "amount": 200, "precision": 1 }, "to": { "amount": 900, "precision": 1 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_YEAR"] }]
+  },
+  "sensoryModality": [
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "SUBSTRATE_VIBRATION"] },
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "CONTACT_CHEMO"] },
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "HYGRORECEPTION"] }
+  ],
+  "subsistence": [
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "MANAGED_DECAY"] },
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "DRIFT_HARVESTING"] }
+  ],
+  "individuality": { "id": ["xeno.peerdb.org", "INDIVIDUALITY_MODE", "PERMANENT_COLLECTIVE"] },
+  "socialOrganisation": { "id": ["xeno.peerdb.org", "SOCIAL_ORGANISATION", "OBLIGATION_NETWORK"] },
+  "kinshipSystem": { "id": ["xeno.peerdb.org", "KINSHIP_SYSTEM", "NOT_RECKONED"] },
+  "communication": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G3_FACE_TAP"] }],
+  "population": {
+    "value": { "from": { "amount": 900, "precision": 1000 }, "to": { "amount": 4000, "precision": 1000 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "contactStatus": { "id": ["xeno.peerdb.org", "CONTACT_STATUS", "LIMITED"] },
+  "firstContact": { "time": "2283-01-01T00:00:00Z", "precision": "y" },
+  "image": [
+    {
+      "value": "/f/NEN6zLwDKqRFyfjGEgms9S",
+      "name": "G3_NITHESH.jpg",
+      "caption": "Field plate",
+      "source": "Drawn in the field; Consortium collection"
+    }
+  ],
+  "notes": [
+    {
+      "value": "<p>The population figures count colonies. An early survey counted bodies instead, returned a figure in the hundreds of millions, and has been quietly left out of the sector totals ever since.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

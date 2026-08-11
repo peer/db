@@ -1,0 +1,18 @@
+{
+  "id": ["xeno.peerdb.org", "STAR_SYSTEM", "G2_DRAWN_OUT"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "STAR_SYSTEM"] }],
+  "name": [{ "value": "Drawn Out", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "catalogueCode": "DO-0258",
+  "description": [
+    {
+      "value": "<p>An M3 dwarf in the tidal tail, receding at nine kilometres a second and taking its one ice world with it. In about four hundred million years it will be a halo star and no longer this catalogue&#39;s concern.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "SECTOR", "G2_TAIL_STREAM"] },
+  "spectralClass": "M3V",
+  "starCount": { "amount": 1, "precision": 1 },
+  "planetCount": { "amount": 1, "precision": 1 },
+  "distanceFromSol": { "value": { "amount": 23472.0, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "PARSEC"] }] },
+  "firstSurveyed": { "time": "2258-01-01T00:00:00Z", "precision": "y" }
+}

@@ -1,0 +1,22 @@
+{
+  "id": ["xeno.peerdb.org", "INDIVIDUAL", "G3_IVARRE"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "INDIVIDUAL"] }],
+  "name": [{ "value": "Ivarre" }],
+  "lineageName": [{ "value": "Varremme" }],
+  "description": [
+    {
+      "value": "<p>Worked the blocks nearest the second channel mouth and was the survey&#39;s first and steadiest informant on the pan, giving eleven years of material by cutting, which was then photographed and is now restricted. He was not persuaded that the work needed explaining and explained it anyway, at the rate of about a block a week. He died in 2299, the year after the suspension; the Consortium learned of it in 2308, from a note carried out by a trade route, and closed his record with the date it was given.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "species": { "id": ["xeno.peerdb.org", "SPECIES", "G3_AMMIRREN"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G3_PAN_WORK"] }],
+  "role": [
+    { "value": "block worker", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "informant on the rotation", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }
+  ],
+  "formOfAddress": "by line name; personal names are not used across the pan",
+  "born": { "time": "2240-01-01T00:00:00Z", "precision": "y" },
+  "died": { "time": "2299-01-01T00:00:00Z", "precision": "y" },
+  "birthplace": { "id": ["xeno.peerdb.org", "SITE", "G3_PAN_WORKINGS"] }
+}

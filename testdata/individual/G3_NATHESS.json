@@ -1,0 +1,27 @@
+{
+  "id": ["xeno.peerdb.org", "INDIVIDUAL", "G3_NATHESS"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "INDIVIDUAL"] }],
+  "name": [{ "value": "Nathess" }],
+  "lineageName": [{ "value": "Ushen" }],
+  "description": [
+    {
+      "value": "<p>A steward of the leading band who held the walking order in his head for most of his life and refused, in 2281 and again in 2286, to let the survey record it, on the grounds that an order once written would be followed. He was patient about the refusal and repeated it in the same words each time, which the linguists found more useful than the order would have been. He declined a photograph in the same conversation and the question was not put to him again. He died at the hearths in 2288, in the season the warren stood empty.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "species": { "id": ["xeno.peerdb.org", "SPECIES", "G3_ILSETH"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G3_STRIP_STEWARDSHIP"] }, { "id": ["xeno.peerdb.org", "CULTURE", "G3_WARREN_SEASON"] }],
+  "role": [
+    { "value": "steward", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "keeper of the walking order", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }
+  ],
+  "formOfAddress": "by name with the hearth name after it",
+  "born": { "time": "2220-01-01T00:00:00Z", "precision": "y" },
+  "died": { "time": "2288-01-01T00:00:00Z", "precision": "y" },
+  "notes": [
+    {
+      "value": "<p>His interview material is restricted by default, as all of it is, and the restriction has outlasted both him and two of his interviewers.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

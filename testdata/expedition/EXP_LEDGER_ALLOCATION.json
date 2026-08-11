@@ -1,0 +1,34 @@
+{
+  "id": ["xeno.peerdb.org", "EXPEDITION", "EXP_LEDGER_ALLOCATION"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "EXPEDITION"] }],
+  "name": [{ "value": "Ledger Basin Allocation Survey", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "catalogueCode": "EXP-2277-06",
+  "description": [
+    {
+      "value": "<p>Five years on the most closely governed resource in the sector, asking the same forty-one questions of everyone who could be got to sit down. It produced the allocation instrument in its present form, a complete map of standing-water rights across the basin, and the first serious account of what becomes of those rights when a working closes. The one thing it never managed was to interview anybody at the evaporite workings, which failed and shut thirteen years later with the question still outstanding.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "destination": [
+    { "id": ["xeno.peerdb.org", "PLANET", "G1_LEDGER_IV"] },
+    { "id": ["xeno.peerdb.org", "REGION", "G1_LONG_EVAPORITE"] },
+    { "id": ["xeno.peerdb.org", "MOON", "G1_UNDERCOUNT"] }
+  ],
+  "period": { "from": { "time": "2277-01-01T00:00:00Z", "precision": "y" }, "to": { "time": "2282-01-01T00:00:00Z", "precision": "y" } },
+  "ledBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_NOWAK"] }],
+  "teamMember": [
+    { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_OKONKWO"] },
+    { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_HADDAD"] },
+    { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_FERREIRA"] },
+    { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_DEMIR"] }
+  ],
+  "organisedBy": [{ "id": ["xeno.peerdb.org", "INSTITUTE", "INST_LEDGER"] }],
+  "method": [
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "STRUCTURED_INTERVIEW"] },
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "NETWORK_MAPPING"] },
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "MATERIAL_SAMPLING"] }
+  ],
+  "ethics": { "id": ["xeno.peerdb.org", "ETHICS_PROTOCOL", "PROTOCOL_2"] },
+  "budget": { "value": { "amount": 780000, "precision": 1000 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "$"] }] },
+  "report": [{ "value": "/f/Qx2tHLuYbRsQRJMFwEDGB3", "name": "EXP_LEDGER_ALLOCATION.pdf", "caption": "Final report" }]
+}

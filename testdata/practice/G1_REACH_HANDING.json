@@ -1,0 +1,30 @@
+{
+  "id": ["xeno.peerdb.org", "PRACTICE", "G1_REACH_HANDING"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PRACTICE"] }],
+  "name": [{ "value": "Handing to the Reach", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [
+    {
+      "value": "[set down on the ground one was born on]",
+      "gloss": "a substrate sign made flat with both forelimbs, and the nearest thing the language has to a birth record"
+    }
+  ],
+  "description": [
+    {
+      "value": "<p>A child born on a reach is carried to the flat gravel at the middle of it and set down on the ground rather than passed between hands. The reach holder presses the child&#39;s forelimbs flat and makes the reach&#39;s own sign underneath them, slowly and repeatedly, until the child answers with anything at all. Everybody standing on that gravel is party to it, because the language has no way of excluding them, and the number present is therefore whoever happened to be working nearby. The bearing parent stands at the edge of the gravel and is not addressed during the sign. From that point the child&#39;s obligations run to the holder, and to the holder&#39;s fosterers, and back along the chain as far as anybody troubles to count.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Novorojenca položijo na prod sredi rečnega odseka, kjer mu njegov skrbnik pod dlanmi izpiše znak odseka.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    }
+  ],
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G1_REACH_FOSTERAGE"] }],
+  "category": { "id": ["xeno.peerdb.org", "PRACTICE_CATEGORY", "RITE_OF_PASSAGE"] },
+  "periodicity": "at every birth",
+  "participants": {
+    "value": { "from": { "amount": 6, "precision": 1 }, "to": { "amount": 40, "precision": 1 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "firstDocumented": { "time": "2243-01-01T00:00:00Z", "precision": "y" },
+  "relatedPractice": [{ "id": ["xeno.peerdb.org", "PRACTICE", "G1_CHANNEL_WALKING"] }]
+}

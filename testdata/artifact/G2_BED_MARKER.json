@@ -1,0 +1,33 @@
+{
+  "id": ["xeno.peerdb.org", "ARTIFACT", "G2_BED_MARKER"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "ARTIFACT"] }],
+  "name": [{ "value": "Bed Head Marker", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Sessumene wesse", "gloss": "the stone at the head of a bed" }],
+  "accessionCode": "CCX-A-14915",
+  "description": [
+    {
+      "value": "<p>A water-worn slab stood on edge and packed into gravel at the head of a mat bed, marking where the cut channel enters and, by which face is presented, which half grew the bed. There is nothing worked into the stone; the whole of the statement is in the orientation, which means a marker knocked over says nothing at all until somebody stands it up again. This one came up on a dredge line from the raft in 2294 and was returned to the pool the following season, right way up but almost certainly in the wrong place. Its recovery is the only occasion on which anything from this population has been in a human hand.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "category": { "id": ["xeno.peerdb.org", "ARTIFACT_CATEGORY", "MARKER_STONE"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G2_BED_HALVES"] }],
+  "foundAt": { "id": ["xeno.peerdb.org", "SITE", "G2_STATION_THREE"] },
+  "material": [
+    { "value": "water-worn stone", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "mineral gravel", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }
+  ],
+  "dimension": [
+    { "value": { "amount": 0.44, "precision": 0.001 }, "axis": "height", "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+    { "value": { "amount": 0.3, "precision": 0.001 }, "axis": "width", "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] }
+  ],
+  "dateMade": { "time": "2200-01-01T00:00:00Z", "precision": "100y" },
+  "collectedBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_FERREIRA"] }],
+  "image": [{ "value": "/f/1UP14RBKG4qFur7SahdhRg", "name": "G2_BED_MARKER.jpg", "caption": "Object drawing", "source": "Consortium collection" }],
+  "notes": [
+    {
+      "value": "<p>The station has never established whether replacing it in the wrong place said something. Nothing about the beds appears to have changed, which is the most that can be claimed.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

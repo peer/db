@@ -1,0 +1,18 @@
+{
+  "id": ["xeno.peerdb.org", "STAR_SYSTEM", "G1_KEPHRA"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "STAR_SYSTEM"] }],
+  "name": [{ "value": "Kephra", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "catalogueCode": "MW-1104-KEP",
+  "description": [
+    {
+      "value": "<p>A red dwarf with six planets and the only inhabited world in the March under sustained study. Its parallax was recomputed in 2281 with awkward consequences for the sector register.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "SECTOR", "G1_KEPHRA_MARCH"] },
+  "spectralClass": "M3V",
+  "starCount": { "amount": 1, "precision": 1 },
+  "planetCount": { "amount": 6, "precision": 1 },
+  "distanceFromSol": { "value": { "amount": 1104.7, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "PARSEC"] }] },
+  "firstSurveyed": { "time": "2255-01-01T00:00:00Z", "precision": "y" }
+}

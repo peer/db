@@ -1,0 +1,35 @@
+{
+  "id": ["xeno.peerdb.org", "PUBLICATION", "PUB_ARC_LODGE_WEIRS"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PUBLICATION"] }],
+  "title": [
+    {
+      "value": "Souring the Burrowers: Weir Maintenance, Interspecies Tenure and the Management of a Nuisance Organism on the Sweep Margin of Nine Terrace",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "doi": "10.5281/xeno.2302.0072",
+  "abstract": [
+    {
+      "value": "<p>The arc lodges maintain their weirs against a burrowing organism that is not killed but soured, by a preparation applied along the middle arc twice each tidal cycle. We measure burrow density before and after souring across nine arcs and show that the treatment displaces rather than reduces the population, moving it reliably onto the arcs held by the net houses downstream. Both parties are aware of this and describe the arrangement as the reason the arcs are held in the order they are held. The souring preparation, whose composition we were not shown, is the subject of a standing exchange we were asked not to detail.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "author": [
+    { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_FERREIRA"] },
+    { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_DEMIR"] },
+    { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_DE_VRIES"] }
+  ],
+  "journal": "Xenoecology and Subsistence",
+  "publishedOn": { "time": "2302-05-01T00:00:00Z", "precision": "m" },
+  "about": [
+    { "id": ["xeno.peerdb.org", "SPECIES", "G2_SESSHUNE"] },
+    { "id": ["xeno.peerdb.org", "CULTURE", "G2_ARC_LODGES"] },
+    { "id": ["xeno.peerdb.org", "PRACTICE", "G2_BURROWER_SOUR"] }
+  ],
+  "cites": [
+    { "id": ["xeno.peerdb.org", "PUBLICATION", "PUB_STANDING_CROP"] },
+    { "id": ["xeno.peerdb.org", "PUBLICATION", "PUB_WEIR_GRADES_QUIET"] },
+    { "id": ["xeno.peerdb.org", "PUBLICATION", "PUB_WARREN_LEDGER_OPEN"] }
+  ],
+  "document": [{ "value": "/f/QAFwiRbtAsctcMDZa9gBzZ", "name": "PUB_ARC_LODGE_WEIRS.pdf", "caption": "Author's accepted manuscript" }]
+}

@@ -1,0 +1,14 @@
+{
+  "id": ["xeno.peerdb.org", "SECTOR", "G4_SHELL_SEVEN"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SECTOR"] }],
+  "name": [{ "value": "Seventh Shell Sector", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "catalogueCode": "CCX-2226-SH7",
+  "description": [
+    {
+      "value": "<p>One of eleven concentric shells of older stars thrown outward by the encounter and numbered inward from the outermost. The seventh is dense enough to survey economically, although its three catalogued systems still lie nearly three hundred parsecs apart. Two inhabited worlds are known in it, one of them closed to contact since 2298.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "GALAXY", "G4_SPILLWORK"] },
+  "surveyPeriod": { "from": { "time": "2226-01-01T00:00:00Z", "precision": "y" }, "to": { "time": "2301-01-01T00:00:00Z", "precision": "y" } }
+}

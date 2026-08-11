@@ -1,0 +1,24 @@
+{
+  "id": ["xeno.peerdb.org", "INDIVIDUAL", "G3_WENAIMU"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "INDIVIDUAL"] }],
+  "name": [{ "value": "Wenaimu" }],
+  "lineageName": [{ "value": "Oarima" }],
+  "description": [
+    {
+      "value": "<p>Keeps four pits of a culture her household has divided eleven times, and in 2291 gave a share of it to the expedition, which made the expedition kin and produced a four-year ethics review that she followed with interest through three separate interpreters. The share is kept alive at the sector station and is fed on a rota by whoever is wintering over. She declined a photograph until the kinship question was settled, and by the time it was settled the ship had gone.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "species": { "id": ["xeno.peerdb.org", "SPECIES", "G3_NAWAIMU"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G3_FERMENT_HOUSEHOLDS"] }],
+  "role": [{ "value": "pit keeper", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "formOfAddress": "by name and then the culture's name",
+  "born": { "time": "2255-01-01T00:00:00Z", "precision": "y" },
+  "birthplace": { "id": ["xeno.peerdb.org", "SITE", "G3_DRAIN_TERRACES"] },
+  "notes": [
+    {
+      "value": "<p>The rota is pinned inside the vent laboratory at the sector station and is the only document in this galaxy that has never been late.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

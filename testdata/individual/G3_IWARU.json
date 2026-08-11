@@ -1,0 +1,27 @@
+{
+  "id": ["xeno.peerdb.org", "INDIVIDUAL", "G3_IWARU"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "INDIVIDUAL"] }],
+  "name": [{ "value": "Iwaru" }],
+  "lineageName": [{ "value": "Marewe" }],
+  "description": [
+    {
+      "value": "<p>Keeps the tide count for her stretch of the flats and has kept it since 2281, in a system of held vowels that the expedition has never fully transcribed and has learned to obey anyway. Every survey party that has walked out behind the water has walked back on her call, and the one party that did not was retrieved by boat. She has declined a photograph three times, most recently in 2309, without giving a reason and without apparent irritation.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "species": { "id": ["xeno.peerdb.org", "SPECIES", "G3_MAUNUWA"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G3_WEIR_GRADES"] }],
+  "role": [
+    { "value": "wall holder", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "keeper of the tide count", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }
+  ],
+  "formOfAddress": "by grade and then name",
+  "born": { "time": "2244-01-01T00:00:00Z", "precision": "y" },
+  "birthplace": { "id": ["xeno.peerdb.org", "SITE", "G3_TIDE_MEET"] },
+  "notes": [
+    {
+      "value": "<p>The retrieval in 2296 cost the expedition a boat, a week and its standing at the meeting ground, in that ascending order of seriousness.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

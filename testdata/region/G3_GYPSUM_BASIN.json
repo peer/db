@@ -1,0 +1,21 @@
+{
+  "id": ["xeno.peerdb.org", "REGION", "G3_GYPSUM_BASIN"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "REGION"] }],
+  "name": [{ "value": "Gypsum Basin", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "description": [
+    {
+      "value": "<p>A closed basin of white gypsum crust with orange dust drifted along its eastern wall, and the type locality for the endolithic communities of the whole world. The crust rings underfoot and breaks into plates the size of a door. It is the most visited ground on an uninhabited planet in this galaxy, which is a low bar cleared by one field camp.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "PLANET", "G3_HANDMILL_D"] },
+  "biome": [{ "id": ["xeno.peerdb.org", "BIOME", "EVAPORITE_PAN"] }, { "id": ["xeno.peerdb.org", "BIOME", "ENDOLITH_ZONE"] }],
+  "area": { "value": { "amount": 480000, "precision": 100 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "SQUARE_KILOMETRE"] }] },
+  "elevationRange": {
+    "value": { "from": { "amount": -320, "precision": 10 }, "to": { "amount": 120, "precision": 10 } },
+    "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }]
+  },
+  "image": [
+    { "value": "/f/XSkRWZ1k9FA83w3sJ7rWaF", "name": "G3_GYPSUM_BASIN.jpg", "caption": "Regional view", "source": "Consortium survey archive" }
+  ]
+}

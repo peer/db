@@ -1,0 +1,28 @@
+{
+  "id": ["xeno.peerdb.org", "PRACTICE", "G2_BLADDER_DIVISION"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PRACTICE"] }],
+  "name": [{ "value": "Dividing the Bladder", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Marrolle", "gloss": "the halving of the culture" }],
+  "description": [
+    {
+      "value": "<p>When a household splits, the last thing divided is the ferment bladder, and until it is divided the split has not happened. The bladder is brought to the rib edge, opened, and poured in two into fresh gut-skin by the member who keeps it, working by the taste of the pour and by nothing else. Both halves are fed the same night from the same stock of tube shell and grazed mat, and are fed alongside each other for nine nights before the new household takes its half away, on the reasoning that a culture that will not hold in the first nine nights was never two cultures. Nobody calls the halves parent and offspring; they are the same culture in two places, and the keeper who divided the sixth rib bladder in 2295 was quite firm that this is not a figure of speech. A household whose bladder dies is not a household and joins another, which has happened three times in the survey and is the only route out of a rib holding anybody has recorded.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Ob delitvi gospodinjstva razdelijo kvasno kulturo na dvoje in obe polovici devet noči hranijo skupaj.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Quando uma casa se separa, a última coisa a dividir é a bexiga do fermento, e enquanto ela não for dividida a separação não aconteceu. A bexiga é levada até à orla da nervura, aberta e vertida em duas para pele de tripa fresca por quem dela cuida, guiando-se pelo sabor do que verte e por mais nada. Ambas as metades são alimentadas na mesma noite a partir da mesma reserva de concha tubular e de tapete pastado, e são alimentadas lado a lado durante nove noites antes de a nova casa levar a sua parte, com o raciocínio de que uma cultura que não aguente as primeiras nove noites nunca foi duas culturas. Ninguém chama às metades progenitora e descendente; são a mesma cultura em dois sítios, e quem dividiu a bexiga da sexta nervura em 2295 foi bem claro em que isto não é uma figura de estilo. Uma casa cuja bexiga morre deixa de ser casa e junta-se a outra, o que aconteceu três vezes durante o levantamento e é a única saída de uma posse de nervura alguma vez registada.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G2_RIB_HOLDINGS"] }],
+  "category": { "id": ["xeno.peerdb.org", "PRACTICE_CATEGORY", "FOOD_PREPARATION"] },
+  "periodicity": "at every household division",
+  "participants": {
+    "value": { "from": { "amount": 2, "precision": 1 }, "to": { "amount": 12, "precision": 1 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "firstDocumented": { "time": "2252-01-01T00:00:00Z", "precision": "y" }
+}

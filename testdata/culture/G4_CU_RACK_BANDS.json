@@ -1,0 +1,43 @@
+{
+  "id": ["xeno.peerdb.org", "CULTURE", "G4_CU_RACK_BANDS"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "CULTURE"] }],
+  "name": [{ "value": "Rack Ridge Bands", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [
+    { "value": "Onaruwei", "gloss": "the crest walking", "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G4_COM_RIDGE_KNOCK"] }] }
+  ],
+  "catalogueCode": "CU-2247-03",
+  "description": [
+    {
+      "value": "<p>Small bands on the windward crests of the equatorial storm belt, in continuous rain, with no standing office of any kind and no settlement that outlasts a season. Division is the ordinary course of a life, and a disagreement that will not resolve ends with somebody walking to the next ridge, so the bands are thin, mobile and constantly reconstituting. Nearly everything the Consortium knows of them was collected accidentally: the weather station on the only crest in two hundred kilometres that is not routinely struck by lightning stood on ground the bands had always used, and between 2231 and 2262 the meteorologists wrote down what came past. Since the station was automated in 2262 the record has consisted of two short visits and a standing proposal. The bands appear to have registered the change and to have found the automated mast better company.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Majhne skupine hodijo po grebenih nevihtnega pasu, brez stalnih funkcij in brez naselij, ki bi preživela sezono.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Bandos pequenos nos cumes de barlavento da faixa equatorial de tempestades, sob chuva contínua, sem cargo permanente de espécie alguma e sem povoados que durem mais de uma estação. A divisão é o curso normal de uma vida, e um desacordo que não se resolve acaba com alguém a caminhar até à crista seguinte, pelo que os bandos são pouco numerosos, móveis e estão sempre a recompor-se. Quase tudo o que o Consórcio sabe deles foi recolhido por acaso: a estação meteorológica instalada no único cume em duzentos quilómetros que não é atingido por raios com regularidade ficava em terreno que os bandos sempre usaram, e entre 2231 e 2262 os meteorologistas foram anotando o que ia passando. Desde que a estação foi automatizada, em 2262, o registo resume-se a duas visitas curtas e a uma proposta pendente. Os bandos parecem ter dado pela mudança e ter achado o mastro automático melhor companhia.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "practisedBy": [{ "id": ["xeno.peerdb.org", "SPECIES", "G4_RIDGE_DWELLERS"] }],
+  "presentAt": [{ "id": ["xeno.peerdb.org", "SITE", "G4_RACK_CAMP"] }],
+  "kinshipSystem": { "id": ["xeno.peerdb.org", "KINSHIP_SYSTEM", "BILATERAL_KINDRED"] },
+  "socialOrganisation": { "id": ["xeno.peerdb.org", "SOCIAL_ORGANISATION", "ACEPHALOUS_BANDS"] },
+  "subsistence": [
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "OPPORTUNISTIC_FORAGING"] },
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "DRIFT_HARVESTING"] }
+  ],
+  "communication": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G4_COM_RIDGE_KNOCK"] }],
+  "population": {
+    "value": { "from": { "amount": 90000, "precision": 100 }, "to": { "amount": 160000, "precision": 100 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "period": { "from": { "time": "2247-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true },
+  "notes": [
+    {
+      "value": "<p>The region file records the storm belt as uninhabited. This is true of the flooded plain, which is most of it, and has been true of the crests only in the sense that nobody stays on one long enough to be counted.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

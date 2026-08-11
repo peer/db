@@ -1,0 +1,68 @@
+{
+  "id": ["xeno.peerdb.org", "SPECIES", "G3_NAWAIMU"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SPECIES"] }],
+  "name": [{ "value": "Warm Pool Ferment Households", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [
+    {
+      "value": "Nawaimu",
+      "gloss": "riverfolk, though there are no rivers and have not been for a long time",
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G3_PIT_LEDGER"] }]
+    }
+  ],
+  "exonym": [{ "value": "Wenna, in the Maunuwa mouth: the sour houses", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "taxonCode": "TX-4415-c",
+  "description": [
+    {
+      "value": "<p>The Nawaimu garden silt on the warm pool islands and keep fermentation pits whose cultures are older than any lineage and are divided, like an estate, when a household divides. Kin are those who carry a share of the same culture, so a marriage joins two ferments and a quarrel is settled by refusing one. Their food is almost entirely staged rot, eaten at fixed stages and named for the stage rather than for the material. A visitor is aware of the pits from a considerable distance and stops being aware of them within a week. The register also records two exogamous halves inherited through the mother, which the Nawaimu say simply follow the cultures; the two codes disagree in about one household in nine, and nobody has decided which of them is wrong.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Gospodinjstva, ki hrano pridobivajo z vodenim vrenjem. Sorodstvo določa živa kvasna kultura, ki se ob delitvi hiše razdeli.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Os Nawaimu cultivam o lodo nas ilhas do lago morno e mantêm covas de fermentação cujas culturas são mais antigas do que qualquer linhagem e se dividem, como um património, quando uma casa se divide. Parentes são os que carregam uma parte da mesma cultura, pelo que um casamento junta dois fermentos e uma zanga se resolve recusando um deles. A sua comida é quase toda podridão em fases, comida em estádios fixos e designada pelo estádio e não pela matéria. Um visitante dá pelas covas a uma distância considerável e deixa de dar por elas ao fim de uma semana. O registo assinala também duas metades exógamas herdadas por via materna, que os Nawaimu dizem limitar-se a seguir as culturas; os dois códigos divergem em cerca de uma casa em cada nove, e ninguém decidiu qual deles está errado.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "homeworld": { "id": ["xeno.peerdb.org", "PLANET", "G3_OUMARA"] },
+  "bodyPlan": [
+    {
+      "value": "<p>Compact and bilateral, with four limbs and a broad flat head carried low, and a soft integument that is kept deliberately damp. The forelimbs end in fine manipulators used almost entirely for tending pits and lids. A pair of ventral pouches carry a working portion of the household culture at all times, which is normal, expected, and the reason a Nawaimu is never quite alone.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "typicalHeight": { "value": { "amount": 1.35, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+  "typicalMass": { "value": { "amount": 47.0, "precision": 0.1 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "kg"] }] },
+  "lifespan": {
+    "value": { "from": { "amount": 40, "precision": 1 }, "to": { "amount": 88, "precision": 1 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_YEAR"] }]
+  },
+  "sensoryModality": [
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "CONTACT_CHEMO"] },
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "HYGRORECEPTION"] },
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "THERMAL_RADIANCE"] }
+  ],
+  "subsistence": [
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "MANAGED_DECAY"] },
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "SILT_GARDENING"] }
+  ],
+  "individuality": { "id": ["xeno.peerdb.org", "INDIVIDUALITY_MODE", "BOUNDED"] },
+  "socialOrganisation": { "id": ["xeno.peerdb.org", "SOCIAL_ORGANISATION", "MATRILINEAL_MOIETIES"] },
+  "kinshipSystem": { "id": ["xeno.peerdb.org", "KINSHIP_SYSTEM", "FERMENT_LINEAGE"] },
+  "communication": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G3_PIT_LEDGER"] }],
+  "population": {
+    "value": { "from": { "amount": 90000, "precision": 1000 }, "to": { "amount": 260000, "precision": 1000 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "contactStatus": { "id": ["xeno.peerdb.org", "CONTACT_STATUS", "LIMITED"] },
+  "firstContact": { "time": "2274-01-01T00:00:00Z", "precision": "y" },
+  "image": [
+    {
+      "value": "/f/C5VYmNsonFfSAkSE2sPgk3",
+      "name": "G3_NAWAIMU.jpg",
+      "caption": "Field plate",
+      "source": "Drawn in the field; Consortium collection"
+    }
+  ]
+}

@@ -1,0 +1,66 @@
+{
+  "id": ["xeno.peerdb.org", "INTERVIEW", "INTA_RISER_SEQUENCE_DISPUTE"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "INTERVIEW"] }],
+  "title": [
+    {
+      "value": "The Riser That Answers and a sequence keeper on the walk of 2288",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "description": [
+    {
+      "value": "<p>A joint session in which a terrace sequence keeper and the riser were present to the same question, on a field party that walked a terrace out of sequence. They disagree about who was asked.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "interviewee": [{ "id": ["xeno.peerdb.org", "COLLECTIVE", "G2_RISER_ASSEMBLY"] }, { "id": ["xeno.peerdb.org", "INDIVIDUAL", "G2_WELUNNA"] }],
+  "interviewer": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_MOKOENA"] }, { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_MOLNAR"] }],
+  "recordedAt": { "id": ["xeno.peerdb.org", "SITE", "G2_QUIET_FURROW"] },
+  "recordedOn": { "time": "2291-02-14T00:00:00Z", "precision": "d" },
+  "expedition": { "id": ["xeno.peerdb.org", "EXPEDITION", "EXP_EVENING_TERRACES"] },
+  "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G2_RISER_TAP"] }],
+  "duration": { "value": { "amount": 194, "precision": 1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "MINUTE"] }] },
+  "content": [
+    {
+      "value": "<p><b>Q.</b> We want to go back to the walk of 2288, and we would like to hear it from you both.</p><p><b>A.</b> (Welunna) Four cycles of assembly time went to straightening it. I have raised it at every meeting since and I will raise it at the next one.</p><p><b>Q.</b> And from the riser: were you consulted before the party went up?</p><p><b>A.</b> (riser) You have asked in the singular again. Nobody was consulted. Somebody struck the second drop at an hour when the row was quiet and did not wait forty seconds for the answer, and we answered into an empty terrace.</p><p><b>Q.</b> Whose responsibility is that, in your reckoning?</p><p><b>A.</b> (Welunna) Not the riser&#39;s. The holders have a sequence for a reason and your party was inside it, which is the part your station has never written down.</p><p><b>A.</b> (riser) It is not a question of responsibility. It is a question of what was said. We said the thing we say when a face is not to be walked, and we said it to nobody.</p><p><b>Q.</b> If we published the sequence, would that not prevent this?</p><p><b>A.</b> (Welunna) You have just proposed to fix a problem of people not asking by making it unnecessary to ask. The sequence is not a table. It is what the assembly agreed at the last switching, and it is mine to hold.</p><p><b>Q.</b> That is fair. Is there anything the assembly has decided about our access?</p><p><b>A.</b> (Welunna) Yes, and I will tell you and you will not read it at the station. Two holdings proposed at the last switching that field parties be walked only by the sequence keeper. It was not carried. It will be carried at the next one, and I intend to move it myself.</p><p><b>A.</b> (riser) We were asked about that and we answered. What came back to the assembly was not our answer, because it arrived on the following morning and was taken for something else.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "recording": [
+    {
+      "value": "/f/RikoVBjP5AERjWegKbZxnS",
+      "name": "interview-INTA_RISER_SEQUENCE_DISPUTE.mp3",
+      "caption": "Session recording",
+      "duration": { "value": { "amount": 194, "precision": 1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "MINUTE"] }] },
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G2_RISER_TAP"] }]
+    }
+  ],
+  "ethics": { "id": ["xeno.peerdb.org", "ETHICS_PROTOCOL", "PROTOCOL_3"] },
+  "consentNote": [
+    {
+      "value": "<p>Welunna consented on condition that nothing said here is read inside Station One before the next switching, and that the record carries their name rather than the holding. The riser consented to being kept and asked, as before, that nothing be tapped back into a riser.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "clearedReader": ["mock-user-curator@localhost"],
+  "permission": [
+    { "action": { "id": ["core.peerdb.org", "PERMISSION_ACTIONS", "ACTION_READ"] }, "user": ["mock-user-curator@localhost"], "scope": ["self"] },
+    {
+      "action": { "id": ["core.peerdb.org", "PERMISSION_ACTIONS", "ACTION_READ_HISTORIC"] },
+      "user": ["mock-user-curator@localhost"],
+      "scope": ["self"]
+    },
+    { "action": { "id": ["core.peerdb.org", "PERMISSION_ACTIONS", "ACTION_UPDATE"] }, "user": ["mock-user-curator@localhost"], "scope": ["self"] },
+    {
+      "action": { "id": ["core.peerdb.org", "PERMISSION_ACTIONS", "ACTION_UPDATE_PERMISSIONS"] },
+      "user": ["mock-user-curator@localhost"],
+      "scope": ["self"]
+    }
+  ],
+  "notes": [
+    {
+      "value": "<p>The delay of about forty seconds, and the fact that answers do not arrive in the order of the strikes, mean the attribution of every riser line here is the team&#39;s reconstruction. Two of the six were reassigned after the session and one is still argued about.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "id": ["xeno.peerdb.org", "ORGANISM", "G1_CHIMNEY_FELT"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "ORGANISM"] }],
+  "name": [{ "value": "Chimney felt", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "taxonCode": "TX-2111-c",
+  "description": [
+    {
+      "value": "<p>A layered chemolithotroph mat that sheets the hot mineral discharge of the deep vent aprons, banded rust and grey in the order the metals come out. The offshore grazers crop it in slow circuits and leave the holdfast, and mats grazed on a four-year rotation are visibly thicker than mats left alone, which is the strongest evidence anybody has that the circuits are managed. It cannot be kept alive in a sample vessel for longer than about eleven days.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "category": { "id": ["xeno.peerdb.org", "ORGANISM_CATEGORY", "CHEMOLITHO_MAT"] },
+  "foundOn": [{ "id": ["xeno.peerdb.org", "PLANET", "G1_HOLLIS_III"] }],
+  "biome": [{ "id": ["xeno.peerdb.org", "BIOME", "VENT_FIELD"] }],
+  "typicalSize": { "value": { "amount": 0.9, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+  "typicalMass": { "value": { "amount": 6.2, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "kg"] }] },
+  "image": [
+    {
+      "value": "/f/7ny8y1L7k7aPk7VVWw7Yxn",
+      "name": "G1_CHIMNEY_FELT.jpg",
+      "caption": "Field plate",
+      "source": "Drawn in the field; Consortium collection"
+    }
+  ]
+}

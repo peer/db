@@ -1,0 +1,39 @@
+{
+  "id": ["xeno.peerdb.org", "NARRATIVE", "G4_NA_BURNT_HALF_BOUNDARY"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "NARRATIVE"] }],
+  "title": [{ "value": "Record of the Boundary After the Fire", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [
+    {
+      "value": "nehuewa wenehe",
+      "gloss": "where the grazing stops, and it stands",
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G4_COM_TERRACE_REGISTER"] }]
+    }
+  ],
+  "description": [
+    {
+      "value": "<p>The boundary record of the 2281 sitting, held in knotted cord by the guilds and in the branch structure by the weaves, reciting the line agreed after the fire of 2279 together with the objections withdrawn to reach it. The two versions run at different speeds and the archive holds them interleaved, which is how a joint transcript comes to be nine days long in one column and fourteen in the other.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "genre": { "id": ["xeno.peerdb.org", "NARRATIVE_GENRE", "BOUNDARY_RECORD"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G4_CU_WEAVE_ASSEMBLIES"] }, { "id": ["xeno.peerdb.org", "CULTURE", "G4_CU_TETHER_GUILDS"] }],
+  "recordedBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_MOLNAR"] }, { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_SEO"] }],
+  "recordedAt": { "id": ["xeno.peerdb.org", "SITE", "G4_TETHER_STUMP"] },
+  "recordedOn": { "time": "2289-01-01T00:00:00Z", "precision": "y" },
+  "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G4_COM_TERRACE_REGISTER"] }],
+  "content": [
+    {
+      "value": "<p>The line runs from the cut stump on the third terrace, along the branch that carries the water, to the fork that burned, and stops at the fork. It does not cross the fork. It has not crossed the fork since the fire.</p><p>The Long Terrace Weave objected at the fork and withdrew at the fork, in the figure it first used. The Burnt Half objected to the whole line, did not withdraw, was not pressed, and holds no branch on either side of it.</p><p>The water corporation heard this and holds the cord. The cord is held in two. Either half may be brought to any later sitting, and both must be brought if it is to be read.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "recording": [
+    {
+      "value": "/f/Nf5oTdfx7AXSh7jXaUKp4B",
+      "name": "narrative-G4_NA_BURNT_HALF_BOUNDARY.mp3",
+      "caption": "Performance, recorded on site",
+      "duration": { "value": { "amount": 17, "precision": 1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "MINUTE"] }] },
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G4_COM_TERRACE_REGISTER"] }]
+    }
+  ]
+}

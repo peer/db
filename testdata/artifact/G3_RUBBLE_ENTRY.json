@@ -1,0 +1,34 @@
+{
+  "id": ["xeno.peerdb.org", "ARTIFACT", "G3_RUBBLE_ENTRY"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "ARTIFACT"] }],
+  "name": [{ "value": "Marked Rubble Fragment", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "accessionCode": "CCX-A-31035",
+  "description": [
+    {
+      "value": "<p>A frost-shattered fragment of pale rock carrying a compound chemical mark across two faces, lifted from the boundary ground of a heap in 2285. The mark is a debt entry, laid in overlapping bands that are still chemically distinct after decades in cold storage and are unreadable to the naked eye. Removing the fragment removed the entry, which the survey did not understand at the time and has been unable to put right since, the mark having been renewed elsewhere by a neighbour within the year. The object is in excellent condition and has been in a sealed case since 2286.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "category": { "id": ["xeno.peerdb.org", "ARTIFACT_CATEGORY", "NOTATION_OBJECT"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G3_RUBBLE_LEDGER"] }],
+  "foundAt": { "id": ["xeno.peerdb.org", "SITE", "G3_ICEFRONT_CAMP"] },
+  "material": [
+    { "value": "frost-shattered rock", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "deposited organic marking compound", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }
+  ],
+  "dimension": [
+    { "value": { "amount": 0.11, "precision": 0.001 }, "axis": "length", "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+    { "value": { "amount": 0.08, "precision": 0.001 }, "axis": "width", "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+    { "value": { "amount": 0.04, "precision": 0.001 }, "axis": "thickness", "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] }
+  ],
+  "dateMade": { "time": "2285-01-01T00:00:00Z", "precision": "y" },
+  "collectedBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_OKONKWO"] }, { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_HADDAD"] }],
+  "image": [{ "value": "/f/RHidv2xanfheSaJDLchQJB", "name": "G3_RUBBLE_ENTRY.jpg", "caption": "Object drawing", "source": "Consortium collection" }],
+  "document": [{ "value": "/f/344Tm4RbjvnTDiPS8PneZS", "name": "G3_RUBBLE_ENTRY.txt", "caption": "Accession record" }],
+  "notes": [
+    {
+      "value": "<p>This is the object the third protocol was rewritten around. The accompanying document is the ethics finding, which runs to nine pages and concludes that the fragment should not be returned, because returning it would enter a second debt.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

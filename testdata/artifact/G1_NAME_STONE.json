@@ -1,0 +1,28 @@
+{
+  "id": ["xeno.peerdb.org", "ARTIFACT", "G1_NAME_STONE"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "ARTIFACT"] }],
+  "name": [{ "value": "Name stone, empty slot", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Qatpe Tuk", "gloss": "the name stands" }],
+  "accessionCode": "CCX-A-13208",
+  "description": [
+    {
+      "value": "<p>One of nineteen set stones at the lowest point of the basin floor, each holding a group of names from the fixed set and each recut whenever a name changes hands. The stone is soft basin gypsum and the recutting has taken about a centimetre off the working face within the years of record alone. This one carries the name that has stood empty since 2244, cut deeper than any other on the stone because it has been recut at every gathering and never for a holder. It has not been moved and is catalogued in place; the measurements are from the 2299 photogrammetric survey.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "category": { "id": ["xeno.peerdb.org", "ARTIFACT_CATEGORY", "MARKER_STONE"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G1_NAME_ASSEMBLY"] }],
+  "foundAt": { "id": ["xeno.peerdb.org", "SITE", "G1_KUTAK_MEET"] },
+  "material": [
+    { "value": "basin gypsum", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "brine crust fill", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }
+  ],
+  "dimension": [
+    { "value": { "amount": 0.94, "precision": 0.001 }, "axis": "height", "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+    { "value": { "amount": 0.36, "precision": 0.001 }, "axis": "width", "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+    { "value": { "amount": 0.3, "precision": 0.001 }, "axis": "thickness", "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] }
+  ],
+  "dateMade": { "time": "2200-01-01T00:00:00Z", "precision": "100y" },
+  "collectedBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_FARAHANI"] }],
+  "image": [{ "value": "/f/DvkwwcagQm4YmB1BdXjSwQ", "name": "G1_NAME_STONE.jpg", "caption": "Object drawing", "source": "Consortium collection" }]
+}

@@ -1,0 +1,57 @@
+{
+  "id": ["xeno.peerdb.org", "PLANET", "G1_ADJUNCT_ONE"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PLANET"] }],
+  "name": [{ "value": "Kephra Adjunct I", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Tahruneh", "gloss": "the dry hearth, the same name recorded by the second team" }],
+  "catalogueCode": "CCX-2262-KPA1",
+  "description": [
+    {
+      "value": "<p>A small cold desert world of red dust and moisture-holding fissures, with a seasonal resident population working the fissures. It is the same world as the primary entry, measured independently in 2262 from a baseline nobody checked, and the two sets of figures differ in the second decimal place throughout. Both entries remain open. The merge request has been with the Nomenclature Panel since 2281 and has been deferred at every meeting since, most recently for want of a quorum.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Isti svet kot Kephra IV, vpisan dvakrat pod dvema oznakama.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Um pequeno mundo desértico e frio, de poeira vermelha e fissuras que retêm humidade, com uma população residente sazonal que trabalha nas fissuras. É o mesmo mundo da entrada principal, medido de forma independente em 2262 a partir de uma linha de base que ninguém verificou, e os dois conjuntos de valores divergem sempre na segunda casa decimal. Ambas as entradas continuam abertas. O pedido de fusão está com o Painel de Nomenclatura desde 2281 e tem sido adiado em todas as reuniões desde então, a última das quais por falta de quórum.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "STAR_SYSTEM", "G1_KEPHRA_ADJUNCT"] },
+  "planetType": { "id": ["xeno.peerdb.org", "PLANET_TYPE", "DESICCATED"] },
+  "biome": [{ "id": ["xeno.peerdb.org", "BIOME", "REGOLITH_DUNE"] }, { "id": ["xeno.peerdb.org", "BIOME", "ENDOLITH_ZONE"] }],
+  "radius": { "value": { "amount": 0.81, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_RADIUS"] }] },
+  "mass": { "value": { "amount": 0.55, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_MASS"] }] },
+  "surfaceGravity": { "value": { "amount": 0.84, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "STANDARD_GRAVITY"] }] },
+  "dayLength": { "value": { "amount": 34.9, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "HOUR"] }] },
+  "orbitalPeriod": { "value": { "amount": 148.6, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_DAY"] }] },
+  "meanTemperature": { "value": { "amount": -45.1, "precision": 0.1 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "°C"] }] },
+  "hydrosphere": { "value": { "amount": 0.6, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "PERCENT"] }] },
+  "atmosphere": [
+    {
+      "value": "<p>Carbon dioxide and nitrogen at 0.2 bar, dusty. The second team measured the pressure four per cent higher than the first and attributed the difference to season, which the first team disputes.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "biosphere": [
+    {
+      "value": "<p>Life is present: 1 catalogued species (Warm Pool People). The survey is not claimed to be complete.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "contactStatus": { "id": ["xeno.peerdb.org", "CONTACT_STATUS", "INDIRECT"] },
+  "firstSurveyed": { "time": "2262-01-01T00:00:00Z", "precision": "y" },
+  "surveyPeriod": { "from": { "time": "2262-01-01T00:00:00Z", "precision": "y" }, "to": { "time": "2271-01-01T00:00:00Z", "precision": "y" } },
+  "populationEstimate": {
+    "value": { "from": { "amount": 2500, "precision": 100 }, "to": { "amount": 6000, "precision": 100 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "image": [{ "value": "/f/KmWKric6yRGtCFicUYEDKb", "name": "G1_ADJUNCT_ONE.jpg", "caption": "Surface view", "source": "Consortium survey archive" }],
+  "notes": [
+    {
+      "value": "<p>Deleting a catalogue entry requires the assent of both originating institutes. One of the two was dissolved in 2289 and its assent is therefore, in the Panel&#39;s phrasing, pending.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

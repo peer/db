@@ -1,0 +1,32 @@
+{
+  "id": ["xeno.peerdb.org", "PLANET", "G4_SHIM"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PLANET"] }],
+  "name": [{ "value": "Shim", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "catalogueCode": "SPW-A/152-b",
+  "description": [
+    {
+      "value": "<p>What is left of a body that lost its mantle, either to a giant impact or to the star, depending on which model is currently in fashion. It is four tenths of an Earth radius of nickel-iron under a skin of silicate breccia, locked to Tenter at eleven and a half days, with a sunward face at 214 degrees and a night face four hundred degrees colder. Surface gravity is twice Earth&#39;s, which makes it the most uncomfortable body in the sector to work on. Nothing lives on it or in it.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "STAR_SYSTEM", "G4_TENTER"] },
+  "planetType": { "id": ["xeno.peerdb.org", "PLANET_TYPE", "STRIPPED_CORE"] },
+  "radius": { "value": { "amount": 0.41, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_RADIUS"] }] },
+  "mass": { "value": { "amount": 0.34, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_MASS"] }] },
+  "surfaceGravity": { "value": { "amount": 2.02, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "STANDARD_GRAVITY"] }] },
+  "dayLength": { "value": { "amount": 273.6, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "HOUR"] }] },
+  "orbitalPeriod": { "value": { "amount": 11.4, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_DAY"] }] },
+  "meanTemperature": { "value": { "amount": 168.0, "precision": 0.1 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "°C"] }] },
+  "hydrosphere": { "value": { "amount": 0, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "PERCENT"] }] },
+  "atmosphere": [
+    {
+      "value": "<p>None worth the name: a sodium and oxygen exosphere kicked off the rock by the star, at a pressure the instruments record as effectively zero.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "biosphereNone": true,
+  "contactStatus": { "id": ["xeno.peerdb.org", "CONTACT_STATUS", "NO_CONTACT"] },
+  "firstSurveyed": { "time": "2255-01-01T00:00:00Z", "precision": "y" },
+  "surveyPeriod": { "from": { "time": "2255-01-01T00:00:00Z", "precision": "y" }, "to": { "time": "2259-01-01T00:00:00Z", "precision": "y" } },
+  "image": [{ "value": "/f/WuwSBx3MGMAxicbkCtjec4", "name": "G4_SHIM.jpg", "caption": "Approach view", "source": "Consortium survey archive" }]
+}

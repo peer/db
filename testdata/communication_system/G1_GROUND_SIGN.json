@@ -1,0 +1,46 @@
+{
+  "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G1_GROUND_SIGN"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM"] }],
+  "name": [{ "value": "Dusk Band Ground Sign", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [
+    {
+      "value": "[the talk one stands in]",
+      "gloss": "a substrate sign; the English gloss is the survey's own and the reaches have never been asked whether they like it"
+    }
+  ],
+  "description": [
+    {
+      "value": "<p>Pressure patterns made with the flat forelimbs and felt through the ground by everyone standing on it, so that an utterance has a radius rather than a set of addressees. Gravel, ice and worked stone carry a sign different distances and blur it differently, which means register changes with the surface underfoot and the reaches disagree about what counts as an accent. Nothing private can be said in it at all, and the language has no apparatus for saying anything to one person. A fieldworker&#39;s first error is signing from a standing position on ice, where the sign arrives late, smeared and, on one recorded occasion, reversed.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "modality": [
+    { "id": ["xeno.peerdb.org", "COMMUNICATION_MODALITY", "SUBSTRATE_PERCUSSION"] },
+    { "id": ["xeno.peerdb.org", "COMMUNICATION_MODALITY", "GESTURE"] }
+  ],
+  "users": {
+    "value": { "from": { "amount": 8000, "precision": 100 }, "to": { "amount": 15000, "precision": 100 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "sampleGloss": [
+    {
+      "value": "<p><i>[left forelimb flat, three slow presses, held]</i> wait / wait / wait / still-waiting. Free translation: not yet. The same figure made with the right forelimb reads begin, and in 2270 it did.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "recording": [
+    {
+      "value": "/f/NSXwQhv3adx7DdhF4Fpzkr",
+      "name": "system-G1_GROUND_SIGN.mp3",
+      "caption": "Elicitation sample",
+      "duration": { "value": { "amount": 3, "precision": 1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "MINUTE"] }] },
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G1_GROUND_SIGN"] }],
+      "note": [
+        {
+          "value": "<p>Recorded during elicitation and kept as the reference sample for this system.</p>",
+          "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+        }
+      ]
+    }
+  ]
+}

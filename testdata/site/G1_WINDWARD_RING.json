@@ -1,0 +1,24 @@
+{
+  "id": ["xeno.peerdb.org", "SITE", "G1_WINDWARD_RING"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SITE"] }],
+  "name": [{ "value": "Windward Ring", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "localName": [{ "value": "Katqep Tuk", "gloss": "the bank on the calm flank" }],
+  "description": [
+    {
+      "value": "<p>A midden bank on the drained flat, lower and much wider than its counterpart in the other sector, built up over an unknown number of returns and still growing. Drying racks of pale poles stand inside the ring and are rebuilt after every serious blow, which is roughly twice a cycle. About two thousand people work from it at peak.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "REGION", "G1_WINDWARD_FLATS"] },
+  "siteType": { "id": ["xeno.peerdb.org", "SITE_TYPE", "MIDDEN_RING"] },
+  "gridReference": "TB-118.3/+27.4",
+  "population": {
+    "value": { "from": { "amount": 900, "precision": 10 }, "to": { "amount": 2300, "precision": 10 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "founded": { "time": "2241-01-01T00:00:00Z", "precision": "y" },
+  "occupation": { "from": { "time": "2241-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true },
+  "image": [
+    { "value": "/f/VPgvARGNz4p2VdZXWKQmAz", "name": "G1_WINDWARD_RING.jpg", "caption": "General view", "source": "Consortium survey archive" }
+  ]
+}

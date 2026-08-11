@@ -1,0 +1,35 @@
+{
+  "id": ["xeno.peerdb.org", "PRACTICE", "G2_BED_CROSSING"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PRACTICE"] }],
+  "name": [{ "value": "Crossing the Bed", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Sessumesse", "gloss": "the not-eating of one's own growing" }],
+  "description": [
+    {
+      "value": "<p>No mat bed may be tended by anybody of the half that grew it, and no one eats from a bed of their own half. A tender coming to a new bed cuts a fresh gravel channel across the head of it before touching the mat at all, which is both the work and the statement that the work is being done by the other side. The rule is not a preference and cannot be waived by agreement, since the language marks the second person for moiety and there is no way to propose the thing without it being obvious what is being proposed. Beds do go untended when a half is short of tenders, and are allowed to fail rather than be crossed the wrong way, which the survey has watched happen twice from the raft. Asked what would follow a breach, one tender took some hours to reply and then said that the food would be the wrong way round, which the transcript records as the complete answer.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Nihče ne oskrbuje ali je z grede, ki jo je vzgojila njegova polovica; gredo raje pustijo propasti.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Nenhum canteiro de tapetes pode ser tratado por alguém da metade que o criou, e ninguém come de um canteiro da sua própria metade. Um tratador que chega a um canteiro novo abre um canal de cascalho fresco à cabeceira dele antes sequer de tocar no tapete, o que é ao mesmo tempo o trabalho e a declaração de que o trabalho está a ser feito pelo outro lado. A regra não é uma preferência e não pode ser dispensada por acordo, uma vez que a língua marca a segunda pessoa quanto à metade e não há maneira de propor a coisa sem que seja evidente o que se está a propor. Há canteiros que ficam por tratar quando uma metade tem falta de tratadores, e deixam-se perder em vez de serem cruzados no sentido errado, o que o levantamento viu acontecer duas vezes a partir da jangada. Perguntado sobre o que se seguiria a uma violação da regra, um tratador levou algumas horas a responder e depois disse que a comida ficaria ao contrário, o que a transcrição regista como a resposta completa.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G2_BED_HALVES"] }],
+  "category": { "id": ["xeno.peerdb.org", "PRACTICE_CATEGORY", "PROHIBITION"] },
+  "periodicity": "standing, at every bed and every meal",
+  "participants": {
+    "value": { "from": { "amount": 2, "precision": 1 }, "to": { "amount": 6, "precision": 1 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "firstDocumented": { "time": "2277-01-01T00:00:00Z", "precision": "y" },
+  "image": [{ "value": "/f/ViVHpsw3vk3RopyWheTcY8", "name": "G2_BED_CROSSING.jpg", "caption": "In progress", "source": "Consortium survey archive" }],
+  "notes": [
+    {
+      "value": "<p>Everything in this entry was obtained by lowering a hydrophone and waiting some hours for each reply. The complete record of the practice runs to nine questions asked over eleven years.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

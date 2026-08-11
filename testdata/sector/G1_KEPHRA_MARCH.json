@@ -1,0 +1,20 @@
+{
+  "id": ["xeno.peerdb.org", "SECTOR", "G1_KEPHRA_MARCH"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SECTOR"] }],
+  "name": [{ "value": "Kephra March", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "catalogueCode": "MW-S11-KPM",
+  "description": [
+    {
+      "value": "<p>Reopened territory beyond Long Tally, worked hard between 2253 and 2271 and then left alone for thirty-five years under a contact suspension. Fieldwork resumed in 2306 and the register is being checked line by line, which is how most of its problems came to light. The boundary with Long Tally has moved twice, on neither occasion taking a star with it.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "GALAXY", "G1_MILKY_WAY"] },
+  "surveyPeriod": { "from": { "time": "2253-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true },
+  "notes": [
+    {
+      "value": "<p>The March holds one star catalogued twice and one world catalogued twice, which the Panel considers one more of each than is defensible.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

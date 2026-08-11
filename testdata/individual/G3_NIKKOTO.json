@@ -1,0 +1,23 @@
+{
+  "id": ["xeno.peerdb.org", "INDIVIDUAL", "G3_NIKKOTO"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "INDIVIDUAL"] }],
+  "name": [{ "value": "Nikkoto" }],
+  "lineageName": [{ "value": "Ottokki" }],
+  "description": [
+    {
+      "value": "<p>Cuts stakes and talks, at length and unprompted, about the moon and what is in the water under it, in a body of material the ethics apparatus has ruled may be recorded but not acted upon. He is aware of the ruling, having been told of it at the third meeting, and has continued regardless on the grounds that the ruling binds the Consortium and not him. The survey&#39;s file on the moon&#39;s swimmers is, by volume, mostly him.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "species": { "id": ["xeno.peerdb.org", "SPECIES", "G3_TEKKONNO"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G3_TIDE_LINES"] }],
+  "role": [{ "value": "stake cutter", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "formOfAddress": "by name, and then by whatever debt stands between you",
+  "born": { "time": "2277-01-01T00:00:00Z", "precision": "y" },
+  "notes": [
+    {
+      "value": "<p>The ruling is reviewed every five years and has been renewed twice without discussion, which two of the reviewers have described in the minutes as the discussion.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

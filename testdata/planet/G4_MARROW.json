@@ -1,0 +1,61 @@
+{
+  "id": ["xeno.peerdb.org", "PLANET", "G4_MARROW"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PLANET"] }],
+  "name": [{ "value": "Marrow", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Ekkutpa", "gloss": "the place under, meaning the warrens rather than the surface" }],
+  "catalogueCode": "SPW-A/123-e",
+  "description": [
+    {
+      "value": "<p>Marrow&#39;s orbit is eccentric to a degree that would have been dismissed as an error had it not been measured four separate times. It runs from 1.1 to 111 astronomical units, takes four hundred years, and spends two hundred and six of them below minus 130 degrees. For most of that span the surface is nitrogen and carbon dioxide frost lying over water ice; for a few decades near periastron it becomes a braided meltwater plain, loud, unstable and briefly green. Its inhabitants are underground and dormant for the long part of the orbit, and the Consortium has observed exactly one thaw.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Zaradi izjemno raztegnjene orbite zima na tem svetu traja več kot dve stoletji.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>A órbita de Marrow é excêntrica a um grau que teria sido descartado como erro se não tivesse sido medido quatro vezes em separado. Vai de 1,1 a 111 unidades astronómicas, demora quatrocentos anos e passa duzentos e seis deles abaixo dos menos 130 graus. Durante quase todo esse período a superfície é geada de azoto e de dióxido de carbono sobre gelo de água; durante algumas décadas perto do periastro torna-se uma planície entrançada de água de degelo, ruidosa, instável e brevemente verde. Os seus habitantes estão no subsolo e dormentes durante a parte longa da órbita, e o Consórcio observou exatamente um degelo.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "STAR_SYSTEM", "G4_SLUB"] },
+  "planetType": { "id": ["xeno.peerdb.org", "PLANET_TYPE", "DENSE_SILICATE"] },
+  "biome": [
+    { "id": ["xeno.peerdb.org", "BIOME", "ENDOLITH_ZONE"] },
+    { "id": ["xeno.peerdb.org", "BIOME", "CRYO_PLAIN"] },
+    { "id": ["xeno.peerdb.org", "BIOME", "BRAIDED_MELT"] }
+  ],
+  "radius": { "value": { "amount": 1.02, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_RADIUS"] }] },
+  "mass": { "value": { "amount": 1.09, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_MASS"] }] },
+  "surfaceGravity": { "value": { "amount": 1.05, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "STANDARD_GRAVITY"] }] },
+  "dayLength": { "value": { "amount": 30.1, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "HOUR"] }] },
+  "orbitalPeriod": { "value": { "amount": 146100.0, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_DAY"] }] },
+  "meanTemperature": { "value": { "amount": -121.0, "precision": 0.1 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "°C"] }] },
+  "hydrosphere": { "value": { "amount": 22.0, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "PERCENT"] }] },
+  "atmosphere": [
+    {
+      "value": "<p>Nitrogen with carbon dioxide and argon, ranging from 1.4 bar at the thaw to under 0.2 bar at aphelion, when most of it is lying on the ground as frost.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "biosphere": [
+    {
+      "value": "<p>Life is present: 1 catalogued species (Marrow Warren Sleepers) and 1 recorded non-sapient organism. The survey is not claimed to be complete.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "contactStatus": { "id": ["xeno.peerdb.org", "CONTACT_STATUS", "LIMITED"] },
+  "firstSurveyed": { "time": "2237-01-01T00:00:00Z", "precision": "y" },
+  "surveyPeriod": { "from": { "time": "2237-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true },
+  "populationEstimate": {
+    "value": { "from": { "amount": 12000, "precision": 100 }, "to": { "amount": 30000, "precision": 100 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "image": [{ "value": "/f/8qC5bDaCyL9aFjgdfTZ3g6", "name": "G4_MARROW.jpg", "caption": "Approach view", "source": "Consortium survey archive" }],
+  "notes": [
+    {
+      "value": "<p>The next periastron falls in 2419. Three institutes hold standing instructions in their archives about what to do in the eight years beforehand, all written by people with no expectation of being consulted.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

@@ -1,0 +1,80 @@
+{
+  "id": ["xeno.peerdb.org", "SPECIES", "G2_MUNNAKULE"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SPECIES"] }],
+  "name": [{ "value": "Frost Warren Dwellers", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [
+    {
+      "value": "Munnakule",
+      "gloss": "those who keep the cold",
+      "inSystem": [
+        { "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G2_WARREN_KNOCK"] },
+        { "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G2_MOUTH_TALLY"] }
+      ]
+    }
+  ],
+  "exonym": [{ "value": "Kulewenne", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "taxonCode": "TX-4104-c",
+  "description": [
+    {
+      "value": "<p>A small people holding the only permanent settlement on the night hemisphere, nine kilometres of tunnel cut above a shallow warm intrusion and closed at every mouth with ice plugs cast in place. Almost nothing they eat is grown in the warren; they hold the band&#39;s cold stores instead, and are paid in food, glass and passage. Every transfer in and out is recorded on a knotted tally kept at the mouth chamber, and membership of the community is simply a position on that tally, so a household that clears its account has to open a new one to remain a household. A chamber wakes together after each long dormancy and reckons kin by who was alongside, which redraws every relationship in the warren about once every four years, and which nobody there finds remarkable. Whether the dormancy is obligate or a habit that could be dropped is the live question, and the two field seasons that tried to answer it were both terminated by the ethics panel.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Živijo v predorih na nočni strani in hranijo zaloge za sosede. Sorodstvo se meri po tem, kdo je nazadnje spal ob tebi.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Um povo pequeno que detém o único povoado permanente do hemisfério noturno, nove quilómetros de túnel escavados por cima de uma intrusão quente pouco profunda e fechados em cada boca com tampões de gelo moldados no lugar. Quase nada do que comem é cultivado na toca; guardam antes as reservas frias de toda a faixa e são pagos em comida, vidro e passagem. Cada transferência que entra e sai fica registada num cordel de nós guardado na câmara da boca, e pertencer à comunidade é apenas ter uma posição nesse cordel, pelo que uma casa que salda a sua conta tem de abrir outra para continuar a ser uma casa. Uma câmara acorda em conjunto depois de cada longa dormência e conta o parentesco por quem estava ao lado, o que redesenha todas as relações da toca cerca de uma vez em cada quatro anos e que ninguém ali acha digno de nota. Se a dormência é obrigatória ou um hábito que se poderia abandonar, é a questão viva, e as duas campanhas de campo que tentaram responder-lhe foram ambas interrompidas pela comissão de ética.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "homeworld": { "id": ["xeno.peerdb.org", "PLANET", "G2_HALF_LIGHT"] },
+  "bodyPlan": [
+    {
+      "value": "<p>Bilateral, four-limbed and squat, with a deep insulating fat mantle across the back and shoulders that thins to nothing at the belly. The skin is bare, dark and slightly tacky, which is how they hold to smooth tunnel ice without claws. Both limb pairs terminate in broad spatulate hands used equally for digging, climbing and carrying, and the forehead carries a shallow pit organ that images warm rock through several centimetres of frost.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "typicalHeight": { "value": { "amount": 1.35, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+  "typicalMass": { "value": { "amount": 55.0, "precision": 0.1 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "kg"] }] },
+  "lifespan": {
+    "value": { "from": { "amount": 25, "precision": 1 }, "to": { "amount": 60, "precision": 1 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_YEAR"] }]
+  },
+  "sensoryModality": [
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "THERMAL_RADIANCE"] },
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "SUBSTRATE_VIBRATION"] },
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "CONTACT_CHEMO"] }
+  ],
+  "subsistence": [
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "SEALED_CULTIVATION"] },
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "TRADE_DEPENDENCY"] }
+  ],
+  "individuality": { "id": ["xeno.peerdb.org", "INDIVIDUALITY_MODE", "BOUNDED"] },
+  "socialOrganisation": { "id": ["xeno.peerdb.org", "SOCIAL_ORGANISATION", "OBLIGATION_NETWORK"] },
+  "kinshipSystem": { "id": ["xeno.peerdb.org", "KINSHIP_SYSTEM", "COHIBERNATION_COHORT"] },
+  "communication": [
+    { "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G2_WARREN_KNOCK"] },
+    { "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G2_MOUTH_TALLY"] }
+  ],
+  "population": {
+    "value": { "from": { "amount": 2000, "precision": 1000 }, "to": { "amount": 5000, "precision": 1000 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "contactStatus": { "id": ["xeno.peerdb.org", "CONTACT_STATUS", "SUSTAINED"] },
+  "firstContact": { "time": "2258-01-01T00:00:00Z", "precision": "y" },
+  "image": [
+    {
+      "value": "/f/LjH4CS6mvcQeLUXPLTJgC9",
+      "name": "G2_MUNNAKULE.jpg",
+      "caption": "Field plate",
+      "source": "Drawn in the field; Consortium collection"
+    }
+  ],
+  "notes": [
+    {
+      "value": "<p>Station One has kept its reserve rations in the warren since 2259 under an arrangement for which no agreement can be found in the station log. The rations come back in the condition they went in, and the debt is noted.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

@@ -1,0 +1,30 @@
+{
+  "id": ["xeno.peerdb.org", "ORGANISM", "G3_FLOOD_BLOOM"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "ORGANISM"] }],
+  "name": [{ "value": "Flood Bloom", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "immirre" }],
+  "taxonCode": "TX-1141-c",
+  "description": [
+    {
+      "value": "<p>A crust dweller that spends the year as a sealed disc in the salt and opens within an hour of the flood reaching it, flowering, setting and closing again inside nine days. Its dried tissue is chewed for the dry-air cough, and is the only Ammirren medicine the survey managed to document before contact was suspended. The pan is white for three hundred and fifty days and green for nine.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Um habitante da crosta que passa o ano como um disco selado no sal e se abre menos de uma hora depois de a cheia lhe chegar, florindo, frutificando e voltando a fechar-se em nove dias. O seu tecido seco mastiga-se para a tosse do ar seco e é o único medicamento Ammirren que o levantamento conseguiu documentar antes de o contacto ser suspenso. A salina fica branca durante trezentos e cinquenta dias e verde durante nove.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "category": { "id": ["xeno.peerdb.org", "ORGANISM_CATEGORY", "PHOTO_SESSILE"] },
+  "foundOn": [{ "id": ["xeno.peerdb.org", "PLANET", "G3_RIMMENA"] }],
+  "biome": [{ "id": ["xeno.peerdb.org", "BIOME", "EVAPORITE_PAN"] }, { "id": ["xeno.peerdb.org", "BIOME", "BRAIDED_MELT"] }],
+  "typicalSize": { "value": { "amount": 0.12, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+  "typicalMass": { "value": { "amount": 0.04, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "kg"] }] },
+  "image": [
+    {
+      "value": "/f/MWLYEBBQqCje8SWMzPHi1P",
+      "name": "G3_FLOOD_BLOOM.jpg",
+      "caption": "Field plate",
+      "source": "Drawn in the field; Consortium collection"
+    }
+  ]
+}

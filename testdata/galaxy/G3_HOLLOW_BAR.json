@@ -1,0 +1,31 @@
+{
+  "id": ["xeno.peerdb.org", "GALAXY", "G3_HOLLOW_BAR"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "GALAXY"] }],
+  "name": [
+    { "value": "Hollow Bar Spiral", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "Votla prečka", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }] }
+  ],
+  "catalogueCode": "CCX-2251-HB",
+  "description": [
+    {
+      "value": "<p>A barred spiral crossed for the first time in 2251 and still catalogued almost entirely from orbit. The bar carries a dust lane thick enough that the earliest plates showed it as a gap, which is where the name comes from and which nobody has troubled to correct. Four sectors have been opened; two of them hold more provisional codes than measurements, and one holds almost nothing at all. Every figure in this pack should be read as a first draft by people who were in a hurry.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Prečkasta spirala, prvič prečkana leta 2251 in večinoma popisana le iz orbite.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Uma espiral barrada atravessada pela primeira vez em 2251 e ainda hoje catalogada quase inteiramente a partir da órbita. A barra tem uma faixa de poeira tão espessa que as primeiras chapas a mostravam como um vazio, donde vem o nome e que ninguém se deu ao trabalho de corrigir. Foram abertos quatro setores; dois deles contêm mais códigos provisórios do que medições, e um não contém praticamente nada. Todos os números deste conjunto devem ser lidos como um primeiro rascunho feito por gente com pressa.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "diameter": { "value": { "amount": 26000, "precision": 100 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "PARSEC"] }] },
+  "surveyPeriod": { "from": { "time": "2251-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true },
+  "notes": [
+    {
+      "value": "<p>Distances here are quoted from the forward station at the near edge of the bar and not from Ceres, because the absolute figures are still argued over by three institutes, two of which have stopped writing to each other.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

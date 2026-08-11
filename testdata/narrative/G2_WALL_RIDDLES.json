@@ -1,0 +1,38 @@
+{
+  "id": ["xeno.peerdb.org", "NARRATIVE", "G2_WALL_RIDDLES"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "NARRATIVE"] }],
+  "title": [{ "value": "The Asking and What Came Back", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "description": [
+    {
+      "value": "<p>A fixed sequence of three questions struck on a terrace riser, and the three answers, which arrive on a delay and not in the order of the asking. It is put to children once and is not repeated to them.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "genre": { "id": ["xeno.peerdb.org", "NARRATIVE_GENRE", "RIDDLE_SEQUENCE"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G2_EVENING_ROWS"] }],
+  "recordedBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_MOLNAR"] }],
+  "recordedAt": { "id": ["xeno.peerdb.org", "SITE", "G2_LONG_EVENING_ROWS"] },
+  "recordedOn": { "time": "2284-01-01T00:00:00Z", "precision": "y" },
+  "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G2_RISER_TAP"] }],
+  "content": [
+    {
+      "value": "<p>Struck: what is wet and is not water?</p><p>Struck: what is in the wall and is not the wall?</p><p>Struck: what comes back and was not sent?</p><blockquote><p>Answered: the wall.</p><p>Answered: here, here, here.</p><p>Answered: wet, and the third gap is wet, and do not cut it.</p></blockquote>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "recording": [
+    {
+      "value": "/f/1QhmnyH4EpNgLfQfgUbg4a",
+      "name": "narrative-G2_WALL_RIDDLES.mp3",
+      "caption": "Performance, recorded on site",
+      "duration": { "value": { "amount": 4, "precision": 1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "MINUTE"] }] },
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G2_RISER_TAP"] }]
+    }
+  ],
+  "notes": [
+    {
+      "value": "<p>The third answer is not an answer to any of the three questions and has been the same on all eleven recorded occasions. The households do not treat this as a difficulty and were surprised to be asked about it.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

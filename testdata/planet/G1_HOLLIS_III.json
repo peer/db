@@ -1,0 +1,61 @@
+{
+  "id": ["xeno.peerdb.org", "PLANET", "G1_HOLLIS_III"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PLANET"] }],
+  "name": [{ "value": "Hollis Anchor III", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Asherelu", "gloss": "roughly the long shallows" }],
+  "catalogueCode": "CCX-2216-HOL3",
+  "description": [
+    {
+      "value": "<p>A locked ocean world with a warm pool under its star, an ice cap on the far side, and between them the largest catalogued tidal flats anywhere in the register. The tide runs nineteen metres and takes half a day to come in, so almost everything people do here is scheduled against water rather than against light. The permanent settlements sit on the high edge of the flats and the work happens below them. It is the most surveyed world the Consortium has, and still nobody has walked the whole shoreline.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Plimsko vklenjen oceanski svet z ogromnimi blatišči. Naselja stojijo na robu, delo pa poteka spodaj, ko se morje umakne.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Um mundo oceânico em rotação síncrona, com um lago morno sob a estrela, uma calote de gelo do lado oposto e, entre ambos, os maiores baixios de maré catalogados em todo o registo. A maré sobe dezanove metros e demora meio dia a entrar, pelo que quase tudo o que aqui se faz se organiza em função da água e não da luz. Os povoados permanentes assentam na orla alta dos baixios e o trabalho decorre por baixo deles. É o mundo mais estudado do Consórcio e, ainda assim, ninguém percorreu a costa inteira a pé.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "STAR_SYSTEM", "G1_HOLLIS_ANCHOR"] },
+  "planetType": { "id": ["xeno.peerdb.org", "PLANET_TYPE", "TIDAL_OCEAN"] },
+  "biome": [
+    { "id": ["xeno.peerdb.org", "BIOME", "SWEEP_FLAT"] },
+    { "id": ["xeno.peerdb.org", "BIOME", "DUSK_BELT"] },
+    { "id": ["xeno.peerdb.org", "BIOME", "VENT_FIELD"] }
+  ],
+  "radius": { "value": { "amount": 1.08, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_RADIUS"] }] },
+  "mass": { "value": { "amount": 1.21, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_MASS"] }] },
+  "surfaceGravity": { "value": { "amount": 1.04, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "STANDARD_GRAVITY"] }] },
+  "dayLength": { "value": { "amount": 2313.6, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "HOUR"] }] },
+  "orbitalPeriod": { "value": { "amount": 96.4, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_DAY"] }] },
+  "meanTemperature": { "value": { "amount": 9.4, "precision": 0.1 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "°C"] }] },
+  "hydrosphere": { "value": { "amount": 79.3, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "PERCENT"] }] },
+  "atmosphere": [
+    {
+      "value": "<p>Nitrogen with about nineteen per cent oxygen and a persistent load of salt aerosol. Breathable without assistance, and it tastes of the flats from horizon to horizon, which visitors stop noticing in about a week.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "biosphere": [
+    {
+      "value": "<p>Life is present: 3 catalogued species (Anchor Terrace Households, Hollis Sweep Grazers, Lower Shallows Weirfolk) and 3 recorded non-sapient organisms. The survey is not claimed to be complete.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "contactStatus": { "id": ["xeno.peerdb.org", "CONTACT_STATUS", "SUSTAINED"] },
+  "firstSurveyed": { "time": "2216-01-01T00:00:00Z", "precision": "y" },
+  "surveyPeriod": { "from": { "time": "2216-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true },
+  "populationEstimate": {
+    "value": { "from": { "amount": 2400000, "precision": 100 }, "to": { "amount": 4100000, "precision": 100 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "image": [{ "value": "/f/UsuChoYChcHYN8zYAK8tSV", "name": "G1_HOLLIS_III.jpg", "caption": "Surface view", "source": "Consortium survey archive" }],
+  "notes": [
+    {
+      "value": "<p>Ninety-one years of continuous survey have produced four incompatible tide tables. All four are in use, and each is correct on the stretch of coast where it was made.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

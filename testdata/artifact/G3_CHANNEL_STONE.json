@@ -1,0 +1,29 @@
+{
+  "id": ["xeno.peerdb.org", "ARTIFACT", "G3_CHANNEL_STONE"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "ARTIFACT"] }],
+  "name": [{ "value": "Channel Name Stone", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Waunei-mor", "gloss": "the stone of a named water" }],
+  "accessionCode": "CCX-A-31051",
+  "description": [
+    {
+      "value": "<p>A tall dressed stone, set upright at the head of a channel and cut with a single deep groove running the length of one face. The groove is the whole of the marking: the name is spoken, not written, and the stone says only that a name exists here and that a house holds it. It has been reset at least four times, on the evidence of four separate packing collars at the base, and each resetting followed the channel to a new position. It stands where it was last set and was recorded in place; what is in the collection is a cast, and the note that this is a cast has been lost from three separate publications.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "category": { "id": ["xeno.peerdb.org", "ARTIFACT_CATEGORY", "MARKER_STONE"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G3_CHANNEL_HOUSES"] }],
+  "foundAt": { "id": ["xeno.peerdb.org", "SITE", "G3_LOWER_MIDDEN"] },
+  "material": [
+    { "value": "dressed shore stone", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "packed shell collar", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }
+  ],
+  "dimension": [
+    { "value": { "amount": 1.35, "precision": 0.001 }, "axis": "height", "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+    { "value": { "amount": 0.44, "precision": 0.001 }, "axis": "width", "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+    { "value": { "amount": 0.28, "precision": 0.001 }, "axis": "thickness", "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] }
+  ],
+  "dateMade": { "time": "2100-01-01T00:00:00Z", "precision": "100y" },
+  "collectedBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_ARAI"] }],
+  "image": [{ "value": "/f/L4tX14wuXXdZF1r1XBZhQs", "name": "G3_CHANNEL_STONE.jpg", "caption": "Object drawing", "source": "Consortium collection" }],
+  "document": [{ "value": "/f/5SfsmmLY2JeCozLp3yFGFr", "name": "G3_CHANNEL_STONE.txt", "caption": "Accession record" }]
+}

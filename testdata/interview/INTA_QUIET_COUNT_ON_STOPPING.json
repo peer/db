@@ -1,0 +1,65 @@
+{
+  "id": ["xeno.peerdb.org", "INTERVIEW", "INTA_QUIET_COUNT_ON_STOPPING"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "INTERVIEW"] }],
+  "title": [
+    {
+      "value": "The Count That Went Quiet on what happens when a colony stops answering",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "description": [
+    {
+      "value": "<p>An exchange on the upper shelf about how a colony ends, held six years before this one ceased drumming. The colony discloses goods it holds against an obligation to a count that has been silent since 2281.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "interviewee": [{ "id": ["xeno.peerdb.org", "COLLECTIVE", "G1_QUIET_COUNT"] }],
+  "interviewer": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_REYES"] }, { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_HALVORSEN"] }],
+  "recordedOn": { "time": "2288-01-19T00:00:00Z", "precision": "d" },
+  "expedition": { "id": ["xeno.peerdb.org", "EXPEDITION", "EXP_CANOPY_FIRST"] },
+  "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G1_COLUMN_PERCUSSION"] }],
+  "duration": { "value": { "amount": 148, "precision": 1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "MINUTE"] }] },
+  "content": [
+    {
+      "value": "<p><b>Q.</b> If you stopped drumming tomorrow, what should we write?</p><p><b>A.</b> You would write a date, because that is what you write. The shelf would be quiet at this place. Neither of those is a death, and we do not have one.</p><p><b>Q.</b> So a count cannot end?</p><p><b>A.</b> The ending is not an event. Bodies go and the account goes with them or it goes to somebody. If it goes to somebody, the count is running under another name. If it goes nowhere it is not finished; it is unread.</p><p><b>Q.</b> Have you decided who yours will go to?</p><p><b>A.</b> No, and you should hear how that question sounds. Ours, yours. There is no owner in it. Be careful, because this is a thing we would not answer to a count on this shelf.</p><p><b>Q.</b> We can stop.</p><p><b>A.</b> Do not stop. We hold nine measures of cut fall at a fracture on the upper shelf, laid in against an obligation to a count that has not drummed since the cold of 2281. We have not entered them as ours. We have not returned them, there being nobody to return them to. We have not said so aloud before this.</p><p><b>Q.</b> Why tell us?</p><p><b>A.</b> Because you are not a party. That is the only use anybody here has found for you.</p><p><b>Q.</b> Is there anything you want recorded as withheld?</p><p><b>A.</b> Which fracture. Not the measures, not the year. Which fracture.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "recording": [
+    {
+      "value": "/f/TpnZGdoLMtmKhioeJTE9hS",
+      "name": "interview-INTA_QUIET_COUNT_ON_STOPPING.mp3",
+      "caption": "Session recording",
+      "duration": { "value": { "amount": 148, "precision": 1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "MINUTE"] }] },
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G1_COLUMN_PERCUSSION"] }]
+    }
+  ],
+  "ethics": { "id": ["xeno.peerdb.org", "ETHICS_PROTOCOL", "PROTOCOL_4"] },
+  "consentNote": [
+    {
+      "value": "<p>The count consented as the party itself, in its own drummed form, to the record being held and read by the Consortium and by nobody on the shelf. It asked that the location of the fracture be struck from every copy, and it was.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "clearedReader": ["mock-user-curator@localhost"],
+  "permission": [
+    { "action": { "id": ["core.peerdb.org", "PERMISSION_ACTIONS", "ACTION_READ"] }, "user": ["mock-user-curator@localhost"], "scope": ["self"] },
+    {
+      "action": { "id": ["core.peerdb.org", "PERMISSION_ACTIONS", "ACTION_READ_HISTORIC"] },
+      "user": ["mock-user-curator@localhost"],
+      "scope": ["self"]
+    },
+    { "action": { "id": ["core.peerdb.org", "PERMISSION_ACTIONS", "ACTION_UPDATE"] }, "user": ["mock-user-curator@localhost"], "scope": ["self"] },
+    {
+      "action": { "id": ["core.peerdb.org", "PERMISSION_ACTIONS", "ACTION_UPDATE_PERMISSIONS"] },
+      "user": ["mock-user-curator@localhost"],
+      "scope": ["self"]
+    }
+  ],
+  "notes": [
+    {
+      "value": "<p>The permission names the colony as the consenting party. Since the colony has not been recorded drumming since 2294, the panel has twice declined to say whether the permission survives the silence, on the ground that it has not been asked to answer that.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

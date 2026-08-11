@@ -1,0 +1,20 @@
+{
+  "id": ["xeno.peerdb.org", "INDIVIDUAL", "G1_QATPE"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "INDIVIDUAL"] }],
+  "name": [{ "value": "Qatpe" }],
+  "description": [
+    {
+      "value": "<p>One of the two selves that came out of the division of 2289 at the basin ground, and the one who kept the name, which she describes as the less interesting half of the arrangement. She has held the brine schedule since 2294 and can say when the pool will refill to within four days, by a method she has explained twice and the survey has written down twice, differently. She agreed to a photograph on the understanding that it was of the name and not of her.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "species": { "id": ["xeno.peerdb.org", "SPECIES", "G1_TAQPEKUN"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G1_NAME_ASSEMBLY"] }],
+  "role": [{ "value": "brine schedule keeper", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "formOfAddress": "the name alone, never with an ordinal",
+  "born": { "time": "2247-01-01T00:00:00Z", "precision": "y" },
+  "birthplace": { "id": ["xeno.peerdb.org", "SITE", "G1_KUTAK_MEET"] },
+  "image": [
+    { "value": "/f/PWfpfsoEJkzdfruShiduoJ", "name": "G1_QATPE.jpg", "caption": "Portrait", "source": "Made with consent; Consortium collection" }
+  ]
+}

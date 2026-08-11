@@ -1,0 +1,14 @@
+{
+  "id": ["xeno.peerdb.org", "SECTOR", "G4_LONG_STREAM"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SECTOR"] }],
+  "name": [{ "value": "Long Stream Sector", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "catalogueCode": "CCX-2214-LST",
+  "description": [
+    {
+      "value": "<p>The longest and densest of the tidal streams, running some two hundred and sixty parsecs from its head to its tail, with five catalogued systems along it and a further nine known but unvisited. All five hold inhabited worlds, which is why this sector carries most of the pack&#39;s fieldwork and nearly all of its ethics correspondence. Survey has been continuous since 2214 and shows no sign of concluding.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "GALAXY", "G4_SPILLWORK"] },
+  "surveyPeriod": { "from": { "time": "2214-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true }
+}

@@ -1,0 +1,20 @@
+{
+  "id": ["xeno.peerdb.org", "SITE", "G2_HIGH_WEIR"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SITE"] }],
+  "name": [{ "value": "High Weir", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "localName": [{ "value": "Sesshamnu", "gloss": "the built arc, from a word meaning a wall the water is allowed through" }],
+  "description": [
+    {
+      "value": "<p>A shore camp on the second bench with a debris ring nine hundred metres across and up to four metres deep, accumulated over repeated returns across an unknown but very long period. Below it three concentric stone weir arcs run out across the flats. The whole complex is rebuilt after storms and has been rebuilt twice during the survey.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "REGION", "G2_SWEEP_MARGIN"] },
+  "siteType": { "id": ["xeno.peerdb.org", "SITE_TYPE", "MIDDEN_RING"] },
+  "gridReference": "NT-08.7/+02.3",
+  "population": {
+    "value": { "from": { "amount": 900, "precision": 10 }, "to": { "amount": 3100, "precision": 10 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "image": [{ "value": "/f/FWeBkrUDebyqUT8rzYXwfp", "name": "G2_HIGH_WEIR.jpg", "caption": "General view", "source": "Consortium survey archive" }]
+}

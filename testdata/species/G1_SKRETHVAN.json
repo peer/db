@@ -1,0 +1,56 @@
+{
+  "id": ["xeno.peerdb.org", "SPECIES", "G1_SKRETHVAN"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SPECIES"] }],
+  "name": [{ "value": "Whittaker Braid People", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Skrethvan", "gloss": "those who wait out the cold, a name they extend to the world itself" }],
+  "taxonCode": "TX-1644-k",
+  "description": [
+    {
+      "value": "<p>A scattered people of a narrow dusk band, who spend the melt season apart along the braided channels and the long cold together, buried, as one thing. Some forty to seventy bodies enter a gravel pit at the end of the melt, fuse at the extremities over about nine days, and wake in the following season as a single entity with every memory of every body in it. They are separate for roughly a third of the cycle and integrated for the rest, and they treat the integrated phase as the real one, which is why the register carries no individuals for them and their own accounts carry no personal names. Kin are simply whoever came out of the last pit together, reassigned at every waking. The Consortium has never overwintered here and knows the cohesion phase entirely from their own description of it, which is patient, detailed, and given in a tone that suggests they have explained this before.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Um povo disperso de uma estreita faixa crepuscular, que passa a estação do degelo separado ao longo dos canais entrançados e o longo frio junto, enterrado, como uma só coisa. Umas quarenta a setenta unidades corporais entram numa fossa de cascalho no final do degelo, fundem-se pelas extremidades ao longo de cerca de nove dias e acordam na estação seguinte como uma única entidade com todas as memórias de todos os corpos que a compõem. Estão separados durante cerca de um terço do ciclo e integrados no resto, e tratam a fase integrada como a verdadeira, razão pela qual o registo não lhes atribui indivíduos e os seus próprios relatos não contêm nomes pessoais. Parentes são simplesmente os que saíram juntos da última fossa, e o parentesco é reatribuído a cada despertar. O Consórcio nunca aqui passou um inverno e conhece a fase de coesão exclusivamente pela descrição que eles próprios dela fazem, paciente, detalhada e dada num tom que sugere que já explicaram isto antes.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "homeworld": { "id": ["xeno.peerdb.org", "PLANET", "G1_WHITTAKER_B_II"] },
+  "bodyPlan": [
+    {
+      "value": "<p>Small, rounded and thickly insulated, with six short limbs, no neck to speak of, and a pale bristled integument that goes translucent at the limb tips as the cold season approaches. The mouth is ventral and the head is barely distinguished from the trunk. In the cold phase the translucent tips knit body to body into a continuous mass, and separating them by force, which has been done exactly once and by accident, kills both ends.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "typicalHeight": { "value": { "amount": 1.05, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+  "typicalMass": { "value": { "amount": 39.0, "precision": 0.1 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "kg"] }] },
+  "lifespan": {
+    "value": { "from": { "amount": 20, "precision": 1 }, "to": { "amount": 60, "precision": 1 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_YEAR"] }]
+  },
+  "sensoryModality": [
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "THERMAL_RADIANCE"] },
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "HYGRORECEPTION"] },
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "SUBSTRATE_VIBRATION"] }
+  ],
+  "subsistence": [
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "TRADE_DEPENDENCY"] },
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "DRIFT_HARVESTING"] }
+  ],
+  "individuality": { "id": ["xeno.peerdb.org", "INDIVIDUALITY_MODE", "SEASONAL_COLLECTIVE"] },
+  "socialOrganisation": { "id": ["xeno.peerdb.org", "SOCIAL_ORGANISATION", "AGE_GRADE_POLITY"] },
+  "kinshipSystem": { "id": ["xeno.peerdb.org", "KINSHIP_SYSTEM", "COHIBERNATION_COHORT"] },
+  "population": {
+    "value": { "from": { "amount": 24000, "precision": 1000 }, "to": { "amount": 38000, "precision": 1000 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "contactStatus": { "id": ["xeno.peerdb.org", "CONTACT_STATUS", "INDIRECT"] },
+  "firstContact": { "time": "2262-01-01T00:00:00Z", "precision": "y" },
+  "image": [
+    {
+      "value": "/f/XEmGAcNwiKh8LprvBqEYwW",
+      "name": "G1_SKRETHVAN.jpg",
+      "caption": "Field plate",
+      "source": "Drawn in the field; Consortium collection"
+    }
+  ]
+}

@@ -1,0 +1,43 @@
+{
+  "id": ["xeno.peerdb.org", "CULTURE", "G2_SHUTTER_MEETINGS"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "CULTURE"] }],
+  "name": [{ "value": "Eclipse Meetings", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [
+    {
+      "value": "Munnawelle",
+      "gloss": "the dark meeting, the word for the moon's shadow serving also for the occasion",
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G2_PLATE_LIGHT"] }]
+    }
+  ],
+  "catalogueCode": "CU-2255-08",
+  "description": [
+    {
+      "value": "<p>Every twenty-one days the moon Shutter covers the sun for about forty minutes, and for that time the leeward foragers are one joined body rather than four hundred separate ones. Terrace parties used to walk out to the edge of the aggregation ground to meet the joined phase, because it was the only party on the world that could agree anything on the spot and be held to it afterwards. Goods went out and undertakings came back, and the undertakings held, until 2281, when a promise made by the separate phase was repudiated by the joined phase on the ground that the separate phase is not competent to promise. The terrace households stopped walking out after that and have not resumed. The Consortium&#39;s own contact with the assembly was suspended six years later on almost exactly the same reasoning, which two review articles have described as an expensive way of learning something the Anuwelme could have said.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>De vinte e um em vinte e um dias a lua Shutter cobre o sol durante cerca de quarenta minutos, e durante esse tempo os forrageadores de sotavento são um só corpo unido em vez de quatrocentos corpos separados. Antigamente as comitivas das terraças saíam até à orla do terreno de agregação para se encontrarem com a fase unida, porque era a única parte no mundo capaz de acordar seja o que for na hora e de ser depois responsabilizada por isso. Iam bens e vinham compromissos, e os compromissos aguentavam, até 2281, quando uma promessa feita pela fase separada foi repudiada pela fase unida com o fundamento de que a fase separada não tem competência para prometer. Os agregados das terraças deixaram de sair depois disso e nunca mais retomaram. O contacto do próprio Consórcio com a assembleia foi suspenso seis anos mais tarde com quase exatamente o mesmo raciocínio, o que dois artigos de revisão descreveram como uma maneira cara de aprender uma coisa que os Anuwelme poderiam ter dito.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "practisedBy": [{ "id": ["xeno.peerdb.org", "SPECIES", "G2_ANUWELME"] }, { "id": ["xeno.peerdb.org", "SPECIES", "G2_NUWALLEM"] }],
+  "presentAt": [{ "id": ["xeno.peerdb.org", "SITE", "G2_TURNING_GROUND"] }],
+  "kinshipSystem": { "id": ["xeno.peerdb.org", "KINSHIP_SYSTEM", "DEBT_KINSHIP"] },
+  "socialOrganisation": { "id": ["xeno.peerdb.org", "SOCIAL_ORGANISATION", "AGE_GRADE_POLITY"] },
+  "subsistence": [
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "TRADE_DEPENDENCY"] },
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "OPPORTUNISTIC_FORAGING"] }
+  ],
+  "communication": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G2_PLATE_LIGHT"] }],
+  "population": {
+    "value": { "from": { "amount": 300, "precision": 100 }, "to": { "amount": 1800, "precision": 100 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "period": { "from": { "time": "2255-01-01T00:00:00Z", "precision": "y" }, "to": { "time": "2281-01-01T00:00:00Z", "precision": "y" } },
+  "notes": [
+    {
+      "value": "<p>The consent procedure drafted in response has been in drafting for twenty-five years. The current draft runs to sixty pages and does not yet address what happens if the sky is overcast, which on this world it has never been.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

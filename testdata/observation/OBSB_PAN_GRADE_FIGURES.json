@@ -1,0 +1,37 @@
+{
+  "id": ["xeno.peerdb.org", "OBSERVATION", "OBSB_PAN_GRADE_FIGURES"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "OBSERVATION"] }],
+  "title": [
+    { "value": "Grade figures counted on blocks drying at the White Pan", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>A count of the four-beat figures incised on cut salt blocks, and three figures that match no grade now holding.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "content": [
+    {
+      "value": "<p>17.ii.2303. Six days on the drying crust at the eastern edge of the workings, counting incised figures on blocks cut this season and left to dry before hauling.</p><p>Totals: one thousand four hundred and twelve blocks examined; one thousand three hundred and ninety-one carrying a legible figure; nine distinct figures in all. Figures are put on at the trench and not afterwards, and identify the cutting grade for as long as the block exists, which is not long, since a block is eventually eaten.</p><p>Of the nine, six correspond to grades currently holding. Three do not. Two of those three appear on blocks in the same trench line, in numbers consistent with a full working party rather than with strays.</p><p>The obvious explanations are a grade dissolved between our visits, a name struck into a receiver who has not yet taken up the duties, or an error in our own grade list, which is four years old. We have not been able to eliminate any of them. The workings are, as every visitor reports, entirely silent, and it is difficult to convey how odd it is to stand in a forty square kilometre industrial site and hear the grit move.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "expedition": { "id": ["xeno.peerdb.org", "EXPEDITION", "EXP_SOUNDING_FLOOR"] },
+  "observedBy": [
+    { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_NOWAK"] },
+    { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_SEO"] },
+    { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_PRASETYO"] }
+  ],
+  "observedAt": { "id": ["xeno.peerdb.org", "SITE", "G4_PAN_WORKINGS"] },
+  "observedOn": { "time": "2303-02-17T00:00:00Z", "precision": "d" },
+  "about": [
+    { "id": ["xeno.peerdb.org", "SPECIES", "G4_FLOOR_KEEPERS"] },
+    { "id": ["xeno.peerdb.org", "CULTURE", "G4_CU_FLOOR_GRADES"] },
+    { "id": ["xeno.peerdb.org", "PRACTICE", "G4_PR_NAME_STRIKING"] }
+  ],
+  "method": [
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "MATERIAL_SAMPLING"] },
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "NETWORK_MAPPING"] }
+  ],
+  "fieldConditions": "Dry and bright, salt glare severe by mid-morning, cutting parties working two trench lines away throughout."
+}

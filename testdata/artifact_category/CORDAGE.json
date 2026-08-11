@@ -1,0 +1,21 @@
+{
+  "id": ["xeno.peerdb.org", "ARTIFACT_CATEGORY", "CORDAGE"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "ARTIFACT_CATEGORY"] }],
+  "name": [
+    { "value": "Cordage and knotwork", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "Vrvi in vozli", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }] },
+    { "value": "Cordoaria e nós", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>Twisted, plaited or knotted fibre made for tension, binding or record. Excludes woven sheet, which is textile, and knot records used as script, which are notation objects.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    { "value": "<p>Sukana, pletena ali vozlana vlakna za vez in napetost.</p>", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }] },
+    {
+      "value": "<p>Fibra torcida, entrançada ou atada, feita para tensão, ligação ou registo. Exclui o pano tecido, que é têxtil, e os registos de nós usados como escrita, que são objetos de notação.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "code": ["cordage"]
+}

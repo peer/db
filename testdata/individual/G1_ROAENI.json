@@ -1,0 +1,16 @@
+{
+  "id": ["xeno.peerdb.org", "INDIVIDUAL", "G1_ROAENI"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "INDIVIDUAL"] }],
+  "name": [{ "value": "Roaeni" }],
+  "description": [
+    {
+      "value": "<p>His household&#39;s ferment died in the hot season of 2288 and could not be restarted from a neighbour&#39;s, which by the reckoning of the basins left him related to nobody at all. He has since been taken into three separate ferments and left all three, and he describes the whole business in the flat tone of a man giving directions to somewhere he does not intend to go. The survey&#39;s interest in him is a matter of some local comment.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "species": { "id": ["xeno.peerdb.org", "SPECIES", "G1_AOLEIARU"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G1_BASIN_WATER_ORDER"] }],
+  "role": [{ "value": "pit tender", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "formOfAddress": "by name alone, there being no ferment to give",
+  "born": { "time": "2246-01-01T00:00:00Z", "precision": "y" }
+}

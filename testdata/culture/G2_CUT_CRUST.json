@@ -1,0 +1,44 @@
+{
+  "id": ["xeno.peerdb.org", "CULTURE", "G2_CUT_CRUST"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "CULTURE"] }],
+  "name": [{ "value": "Crust Cutting", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [
+    {
+      "value": "Marrunulle",
+      "gloss": "the cutting at the heat",
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G2_SEAM_PULSE"] }]
+    }
+  ],
+  "catalogueCode": "CU-2229-02",
+  "description": [
+    {
+      "value": "<p>For as long as the Old Seam chimney ran, a working floor around it supplied sulphide crust to the whole vent chain, and the households that worked it were a distinct thing from the households that lived on the other fissures. Access to the cut faces rotated by piece rather than by season: a cutter took a face, finished a set of blanks, and handed the face to whoever had waited longest. The blanks were the standard against which every other exchange along the chain was measured, so this was the nearest thing the Nurrumali had to a currency and nobody involved would have described it that way. The vent failed in 2276 and the floor was abandoned within a year, with the last stack of unfinished crust left where it stood. Nothing has replaced it, and exchange along the chain has been reckoned in tended mat ever since, which everybody agrees is worse and nobody proposes to change.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Enquanto a chaminé do Old Seam esteve em atividade, um piso de trabalho à sua volta forneceu crosta de sulfuretos a toda a cadeia de fontes, e as casas que ali trabalhavam eram coisa distinta das casas que viviam nas outras fissuras. O acesso às frentes de corte rodava por peça e não por época: um cortador tomava uma frente, acabava um conjunto de esboços e entregava a frente a quem tivesse esperado mais tempo. Os esboços eram o padrão pelo qual se mediam todas as outras trocas ao longo da cadeia, pelo que isto era o mais próximo de uma moeda que os Nurrumali tiveram, e nenhum dos envolvidos o teria descrito assim. A fonte extinguiu-se em 2276 e o piso foi abandonado no espaço de um ano, com a última pilha de crosta por acabar deixada onde estava. Nada o substituiu, e desde então as trocas ao longo da cadeia contam-se em tapete cuidado, o que toda a gente concorda ser pior e ninguém propõe mudar.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "practisedBy": [{ "id": ["xeno.peerdb.org", "SPECIES", "G2_NURRUMALI"] }],
+  "presentAt": [{ "id": ["xeno.peerdb.org", "SITE", "G2_OLD_SEAM"] }],
+  "kinshipSystem": { "id": ["xeno.peerdb.org", "KINSHIP_SYSTEM", "HEARTH_AFFILIATION"] },
+  "socialOrganisation": { "id": ["xeno.peerdb.org", "SOCIAL_ORGANISATION", "GUILD_FEDERATION"] },
+  "subsistence": [
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "CHEMO_TENDING"] },
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "TRADE_DEPENDENCY"] }
+  ],
+  "communication": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G2_SEAM_PULSE"] }],
+  "population": {
+    "value": { "from": { "amount": 40, "precision": 100 }, "to": { "amount": 300, "precision": 100 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "period": { "from": { "time": "2229-01-01T00:00:00Z", "precision": "y" }, "to": { "time": "2277-01-01T00:00:00Z", "precision": "y" } },
+  "image": [{ "value": "/f/FMhrEKavwYRnkdpf3gsJJ4", "name": "G2_CUT_CRUST.jpg", "caption": "Gathering", "source": "Consortium survey archive" }],
+  "notes": [
+    {
+      "value": "<p>The survey watched the vent die across three visits and recorded the abandonment in full, which makes this the best-documented ending of anything in the register. Nobody who worked on it has been willing to call the file a good outcome.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

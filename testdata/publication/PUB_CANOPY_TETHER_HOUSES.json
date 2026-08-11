@@ -1,0 +1,35 @@
+{
+  "id": ["xeno.peerdb.org", "PUBLICATION", "PUB_CANOPY_TETHER_HOUSES"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PUBLICATION"] }],
+  "title": [
+    {
+      "value": "Going Across: Platform Visiting, Cutting Rights and the Maintenance of House Rank in the Graphite Canopy of Sixteen Hundred V",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "doi": "10.5281/xeno.2290.0138",
+  "abstract": [
+    {
+      "value": "<p>Canopy houses hold cutting rights on platforms they cannot reach without crossing the platforms of others, so that every economic act is also a visit and every visit is recorded. We describe the crossing etiquette, the four grades of welcome, and the sanction of being routed the long way. Rank is not asserted but inferred from the routes one is offered, which makes it continuously renegotiable and impossible to state in the abstract. We argue that this material cannot be gathered at distance: the routes are only visible to somebody being routed, and five years of orbital survey had shown us nothing of it at all.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "author": [
+    { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_REYES"] },
+    { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_HALVORSEN"] },
+    { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_TRAN"] }
+  ],
+  "journal": "Papers in Vertical Settlement",
+  "publishedOn": { "time": "2290-09-01T00:00:00Z", "precision": "m" },
+  "about": [
+    { "id": ["xeno.peerdb.org", "SPECIES", "G1_VETHRANI"] },
+    { "id": ["xeno.peerdb.org", "CULTURE", "G1_CANOPY_HOUSES"] },
+    { "id": ["xeno.peerdb.org", "PRACTICE", "G1_PLATFORM_VISIT"] }
+  ],
+  "cites": [
+    { "id": ["xeno.peerdb.org", "PUBLICATION", "PUB_WEIR_ALLOCATION"] },
+    { "id": ["xeno.peerdb.org", "PUBLICATION", "PUB_FERMENT_LINEAGE"] },
+    { "id": ["xeno.peerdb.org", "PUBLICATION", "PUB_DRUM_ACCOUNT"] }
+  ],
+  "document": [{ "value": "/f/9d8Rm1LyZtSaz2jMxsS6tD", "name": "PUB_CANOPY_TETHER_HOUSES.pdf", "caption": "Author's accepted manuscript" }]
+}

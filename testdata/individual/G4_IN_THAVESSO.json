@@ -1,0 +1,21 @@
+{
+  "id": ["xeno.peerdb.org", "INDIVIDUAL", "G4_IN_THAVESSO"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "INDIVIDUAL"] }],
+  "name": [{ "value": "Thavesso" }],
+  "lineageName": [{ "value": "Ninth Hearth" }],
+  "description": [
+    {
+      "value": "<p>A margin trader who has met the trap keepers at the nightward edge twice a year since 2281 and who is one of perhaps forty people alive who can hold both halves of a scent-and-sound exchange without an interpreter. He was present at the 2261 opening of relations as an infant and remembers none of it, which he says whenever anyone asks and which nobody records. He declined a portrait and did not give a reason.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "species": { "id": ["xeno.peerdb.org", "SPECIES", "G4_HEARTH_WALKERS"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G4_CU_HEARTH_CIRCUIT"] }],
+  "role": [
+    { "value": "margin trader", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "interpreter", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }
+  ],
+  "formOfAddress": "by hearth and season",
+  "born": { "time": "2249-01-01T00:00:00Z", "precision": "y" },
+  "birthplace": { "id": ["xeno.peerdb.org", "SITE", "G4_WALKING_HEARTHS"] }
+}

@@ -1,0 +1,52 @@
+{
+  "id": ["xeno.peerdb.org", "PLANET", "G3_RIMMENA"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PLANET"] }],
+  "name": [{ "value": "Saltmarch", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Rimmena", "gloss": "the long shore, although there has been no shore for a very long time" }],
+  "catalogueCode": "HB-1/030-c",
+  "description": [
+    {
+      "value": "<p>A dry world of salt basins and dune corridors, with the population concentrated on the largest pan, which they work in a manner the survey has described at length and does not claim to understand. Water arrives twice a year as a flood down four channels and is gone again within nine days. Contact was established in 2281 and suspended in 2298 under an ethics ruling that has not been revisited since. The camps are still standing; nobody has been back to them.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    { "value": "<p>Suh svet solnih kotanj; stik je od leta 2298 prekinjen.</p>", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }] },
+    {
+      "value": "<p>Um mundo seco de bacias salinas e corredores de dunas, com a população concentrada na maior salina, que trabalham de um modo que o levantamento descreveu longamente e não afirma compreender. A água chega duas vezes por ano como uma cheia por quatro canais e desaparece de novo em nove dias. O contacto foi estabelecido em 2281 e suspenso em 2298 ao abrigo de uma decisão ética que não voltou a ser revista. Os acampamentos continuam de pé; ninguém regressou a eles.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "STAR_SYSTEM", "G3_WINDLASS"] },
+  "planetType": { "id": ["xeno.peerdb.org", "PLANET_TYPE", "DESICCATED"] },
+  "biome": [
+    { "id": ["xeno.peerdb.org", "BIOME", "EVAPORITE_PAN"] },
+    { "id": ["xeno.peerdb.org", "BIOME", "REGOLITH_DUNE"] },
+    { "id": ["xeno.peerdb.org", "BIOME", "BRAIDED_MELT"] }
+  ],
+  "radius": { "value": { "amount": 0.97, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_RADIUS"] }] },
+  "mass": { "value": { "amount": 0.88, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_MASS"] }] },
+  "surfaceGravity": { "value": { "amount": 0.94, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "STANDARD_GRAVITY"] }] },
+  "dayLength": { "value": { "amount": 22.4, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "HOUR"] }] },
+  "orbitalPeriod": { "value": { "amount": 355.9, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_DAY"] }] },
+  "meanTemperature": { "value": { "amount": 14.7, "precision": 0.1 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "°C"] }] },
+  "hydrosphere": { "value": { "amount": 2.4, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "PERCENT"] }] },
+  "atmosphere": [
+    {
+      "value": "<p>Nitrogen and carbon dioxide at 0.9 bar, dry to the point of injury. Breathable through a filter, but a working day outside costs about two litres of water and a nosebleed.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "biosphere": [
+    {
+      "value": "<p>Life is present: 1 catalogued species (Saltmarch Pan Workers) and 2 recorded non-sapient organisms. The survey is not claimed to be complete.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "contactStatus": { "id": ["xeno.peerdb.org", "CONTACT_STATUS", "SUSPENDED"] },
+  "firstSurveyed": { "time": "2268-01-01T00:00:00Z", "precision": "y" },
+  "surveyPeriod": { "from": { "time": "2281-01-01T00:00:00Z", "precision": "y" }, "to": { "time": "2298-01-01T00:00:00Z", "precision": "y" } },
+  "populationEstimate": {
+    "value": { "from": { "amount": 60000, "precision": 100 }, "to": { "amount": 200000, "precision": 100 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "image": [{ "value": "/f/Sm3yDNX5GWSYrufjTvNJKd", "name": "G3_RIMMENA.jpg", "caption": "Surface view", "source": "Consortium survey archive" }]
+}

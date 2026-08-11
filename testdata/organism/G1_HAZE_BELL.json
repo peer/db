@@ -1,0 +1,35 @@
+{
+  "id": ["xeno.peerdb.org", "ORGANISM", "G1_HAZE_BELL"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "ORGANISM"] }],
+  "name": [{ "value": "Haze bell", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "taxonCode": "TX-2301-a",
+  "description": [
+    {
+      "value": "<p>A buoyant drifter of a greenhouse world, holding station in the clearer air above the acid lowlands and never touching anything solid in a life that appears to last decades. It is the only organism from that planet anybody has sampled, and the sample is four grams recovered by a probe that lost its optics eleven minutes later. Its envelope resists halide aerosol better than any material the Consortium has synthesised, which has kept the entry on the funding agenda for forty years.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Um flutuador à deriva de um mundo de efeito de estufa, que se mantém em posição no ar mais limpo por cima das terras baixas ácidas e nunca toca em nada sólido ao longo de uma vida que parece durar décadas. É o único organismo daquele planeta de que alguém colheu amostra, e a amostra são quatro gramas recuperados por uma sonda que perdeu a ótica onze minutos depois. O seu invólucro resiste ao aerossol de halogenetos melhor do que qualquer material sintetizado pelo Consórcio, o que manteve a entrada na agenda de financiamento durante quarenta anos.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "category": { "id": ["xeno.peerdb.org", "ORGANISM_CATEGORY", "AERIAL_DRIFTER"] },
+  "foundOn": [{ "id": ["xeno.peerdb.org", "PLANET", "G1_NINE_MARKS_III"] }],
+  "biome": [{ "id": ["xeno.peerdb.org", "BIOME", "AERIAL_MAT"] }, { "id": ["xeno.peerdb.org", "BIOME", "HAZE_LOWLAND"] }],
+  "typicalSize": { "value": { "amount": 4.2, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+  "typicalMass": { "value": { "amount": 11.0, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "kg"] }] },
+  "image": [
+    {
+      "value": "/f/1jsL8CFrWK2iW32uA126WF",
+      "name": "G1_HAZE_BELL.jpg",
+      "caption": "Field plate",
+      "source": "Drawn in the field; Consortium collection"
+    }
+  ],
+  "notes": [
+    {
+      "value": "<p>Four grams of it have supported nineteen publications, of which two agree.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

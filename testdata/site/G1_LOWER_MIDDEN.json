@@ -1,0 +1,27 @@
+{
+  "id": ["xeno.peerdb.org", "SITE", "G1_LOWER_MIDDEN"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SITE"] }],
+  "name": [{ "value": "Lower Midden", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "localName": [{ "value": "Nerasha", "gloss": "the ring one comes back to" }],
+  "description": [
+    {
+      "value": "<p>An annular bank of shell, bone and processing waste some two kilometres across and four metres high at its thickest, enclosing a bare working ground that floods at every high water. The bank is still being added to. Occupation certainly runs far deeper than the recorded date; the register simply cannot hold a year before 2190.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "REGION", "G1_LOWER_SHALLOWS"] },
+  "siteType": { "id": ["xeno.peerdb.org", "SITE_TYPE", "MIDDEN_RING"] },
+  "gridReference": "TB-114.6/-11.2",
+  "population": {
+    "value": { "from": { "amount": 400, "precision": 10 }, "to": { "amount": 1100, "precision": 10 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "founded": { "time": "2218-01-01T00:00:00Z", "precision": "y" },
+  "occupation": { "from": { "time": "2218-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true },
+  "notes": [
+    {
+      "value": "<p>The founding year here means the year the survey arrived. Four separate attempts have been made to record the real one, and the field will not take the answer.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

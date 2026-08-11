@@ -1,0 +1,51 @@
+{
+  "id": ["xeno.peerdb.org", "PLANET", "G3_SISHELETH"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PLANET"] }],
+  "name": [{ "value": "Long Tally", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Sisheleth", "gloss": "roughly, the shelf that keeps going" }],
+  "catalogueCode": "HB-1/002-c",
+  "description": [
+    {
+      "value": "<p>A locked world whose usable ground is a single band of permanent dusk running pole to pole, some four hundred kilometres wide and continuous the whole way round. The day side is bright rock desert; the night side holds the water as ice and gives it back as a wind that has blown one way for as long as anyone has measured. Settlement follows the band and shifts along it at the pace of the ice front, so that a place named on one visit is a bearing rather than an address on the next. It is the best documented inhabited world in the galaxy, which means eleven visits in fifty-three years.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Plimsko vklenjen svet, kjer je naseljen le pas trajnega somraka.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "STAR_SYSTEM", "G3_HANDMILL"] },
+  "planetType": { "id": ["xeno.peerdb.org", "PLANET_TYPE", "EYEBALL"] },
+  "biome": [
+    { "id": ["xeno.peerdb.org", "BIOME", "DUSK_BELT"] },
+    { "id": ["xeno.peerdb.org", "BIOME", "NIGHTSIDE_TRAP"] },
+    { "id": ["xeno.peerdb.org", "BIOME", "ENDOLITH_ZONE"] }
+  ],
+  "radius": { "value": { "amount": 0.91, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_RADIUS"] }] },
+  "mass": { "value": { "amount": 0.79, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_MASS"] }] },
+  "surfaceGravity": { "value": { "amount": 0.95, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "STANDARD_GRAVITY"] }] },
+  "dayLength": { "value": { "amount": 1070.4, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "HOUR"] }] },
+  "orbitalPeriod": { "value": { "amount": 44.6, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_DAY"] }] },
+  "meanTemperature": { "value": { "amount": -21.4, "precision": 0.1 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "°C"] }] },
+  "hydrosphere": { "value": { "amount": 12.0, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "PERCENT"] }] },
+  "atmosphere": [
+    {
+      "value": "<p>Nitrogen with about nine per cent carbon dioxide and a little oxygen, at 0.7 bar. Breathable through a filter for a working shift. The terminator wind carries a fine bright dust that gets into everything, and the cold side of your body is always the same side.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "biosphere": [
+    {
+      "value": "<p>Life is present: 4 catalogued species (Ice Front Rubble Colonies, Long Tally Band Walkers, Long Tally Ice Carriers) and 2 recorded non-sapient organisms. The survey is not claimed to be complete.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "contactStatus": { "id": ["xeno.peerdb.org", "CONTACT_STATUS", "LIMITED"] },
+  "firstSurveyed": { "time": "2259-01-01T00:00:00Z", "precision": "y" },
+  "surveyPeriod": { "from": { "time": "2259-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true },
+  "populationEstimate": {
+    "value": { "from": { "amount": 30000, "precision": 100 }, "to": { "amount": 120000, "precision": 100 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "image": [{ "value": "/f/7StVhebhpxftSSUkvAKPhQ", "name": "G3_SISHELETH.jpg", "caption": "Surface view", "source": "Consortium survey archive" }]
+}

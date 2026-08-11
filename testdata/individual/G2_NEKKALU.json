@@ -1,0 +1,24 @@
+{
+  "id": ["xeno.peerdb.org", "INDIVIDUAL", "G2_NEKKALU"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "INDIVIDUAL"] }],
+  "name": [{ "value": "Nekkalu" }],
+  "description": [
+    {
+      "value": "<p>Woke in 2284 from a long dormancy in a chamber where everybody else had been moved out during it, and so had no cohort at all, a condition for which the warren had a word but no procedure. They spent the remaining four years attached to no chamber and were fed by all of them, which the tally records as nine open positions and no closing knots. They were not photographed; the request was made in 2287 and answered by somebody else on their behalf.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "species": { "id": ["xeno.peerdb.org", "SPECIES", "G2_MUNNAKULE"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G2_WARREN_TALLY"] }],
+  "role": [{ "value": "cold store worker", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "formOfAddress": "by personal name only, having no position",
+  "born": { "time": "2231-01-01T00:00:00Z", "precision": "y" },
+  "died": { "time": "2288-01-01T00:00:00Z", "precision": "y" },
+  "birthplace": { "id": ["xeno.peerdb.org", "SITE", "G2_FROST_WARREN"] },
+  "notes": [
+    {
+      "value": "<p>The nine open positions were closed by the warren in a single session after the death, in an order that took two days to settle. The survey was present and understood none of it at the time.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

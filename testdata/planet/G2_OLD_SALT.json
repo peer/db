@@ -1,0 +1,37 @@
+{
+  "id": ["xeno.peerdb.org", "PLANET", "G2_OLD_SALT"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PLANET"] }],
+  "name": [{ "value": "Old Salt", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "catalogueCode": "SA-0229-c",
+  "description": [
+    {
+      "value": "<p>A dry world that had a shallow global sea and lost it, leaving stepped evaporite basins two kilometres deep in places under a crust of halite, gypsum and stranger salts. The sea has been gone for about 1.4 billion years, which is recent for this galaxy. Life persists inside the salt itself, in brine films between crystals, dividing perhaps once a century. There are no inhabitants in any sense the register recognises.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Um mundo seco que teve um mar global pouco profundo e o perdeu, deixando bacias de evaporitos em degraus, com dois quilómetros de profundidade nalguns pontos, sob uma crosta de halite, gesso e sais mais estranhos. O mar desapareceu há cerca de 1,4 mil milhões de anos, o que é recente para esta galáxia. A vida persiste dentro do próprio sal, em películas de salmoura entre cristais, dividindo-se talvez uma vez por século. Não há habitantes em nenhum sentido que o registo reconheça.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "STAR_SYSTEM", "G2_STANDING_ASH"] },
+  "planetType": { "id": ["xeno.peerdb.org", "PLANET_TYPE", "DESICCATED"] },
+  "biome": [{ "id": ["xeno.peerdb.org", "BIOME", "EVAPORITE_PAN"] }, { "id": ["xeno.peerdb.org", "BIOME", "ENDOLITH_ZONE"] }],
+  "radius": { "value": { "amount": 0.93, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_RADIUS"] }] },
+  "mass": { "value": { "amount": 0.79, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_MASS"] }] },
+  "surfaceGravity": { "value": { "amount": 0.91, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "STANDARD_GRAVITY"] }] },
+  "dayLength": { "value": { "amount": 31.6, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "HOUR"] }] },
+  "orbitalPeriod": { "value": { "amount": 49.2, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_DAY"] }] },
+  "meanTemperature": { "value": { "amount": -40.0, "precision": 0.1 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "°C"] }] },
+  "hydrosphere": { "value": { "amount": 2.0, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "PERCENT"] }] },
+  "atmosphere": [
+    {
+      "value": "<p>0.12 bar of nitrogen and carbon dioxide, very dry, carrying a persistent salt aerosol that gives the sky a flat white cast. It is breathable through a filter for short periods and can be tasted for days afterwards.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "biosphereUnknown": true,
+  "contactStatus": { "id": ["xeno.peerdb.org", "CONTACT_STATUS", "NO_CONTACT"] },
+  "firstSurveyed": { "time": "2231-01-01T00:00:00Z", "precision": "y" },
+  "surveyPeriod": { "from": { "time": "2231-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true },
+  "image": [{ "value": "/f/2w5tHz8YwAMANVJrFSkqmq", "name": "G2_OLD_SALT.jpg", "caption": "Approach view", "source": "Consortium survey archive" }]
+}

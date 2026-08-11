@@ -1,0 +1,48 @@
+{
+  "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G3_LODGE_CORD"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM"] }],
+  "name": [{ "value": "Lodge Cord", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Ulleth-sen", "gloss": "what the harness says" }],
+  "description": [
+    {
+      "value": "<p>Knotted cord worked into the hauling harness, in which the turn direction, knot type and spacing record a route, a load and an outstanding obligation. A cord is an account and not a message: it has no tense, no way of stating anything that has been settled, and no means of referring to a person who owes nothing. Lodges read each other&#39;s cords on meeting and this is how a route is claimed, transferred or given up, so the object is the transaction rather than a report of it. The first mistake is to treat a cord as writing and ask for a translation, which produces a list of numbers and an increasingly patient hauler.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "modality": [
+    { "id": ["xeno.peerdb.org", "COMMUNICATION_MODALITY", "WOVEN_TOKEN"] },
+    { "id": ["xeno.peerdb.org", "COMMUNICATION_MODALITY", "WRITTEN_NOTATION"] }
+  ],
+  "users": {
+    "value": { "from": { "amount": 3000, "precision": 100 }, "to": { "amount": 12000, "precision": 100 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "notation": true,
+  "sampleGloss": [
+    {
+      "value": "<p><i>two long turns, a reversed knot, then four short turns</i>. Element by element: coldward route, owed back, four loads. Freely: on the coldward route, four loads still owing.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "recording": [
+    {
+      "value": "/f/Kw5PLRkZmN9Dc1kg4dQKPf",
+      "name": "system-G3_LODGE_CORD.mp3",
+      "caption": "Elicitation sample",
+      "duration": { "value": { "amount": 4, "precision": 1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "MINUTE"] }] },
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G3_LODGE_CORD"] }],
+      "note": [
+        {
+          "value": "<p>Recorded during elicitation and kept as the reference sample for this system.</p>",
+          "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+        }
+      ]
+    }
+  ],
+  "notes": [
+    {
+      "value": "<p>A sample recording of this system is eleven minutes of a hut with somebody&#39;s hands in it, and is retained because the register requires a recording of every entry.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

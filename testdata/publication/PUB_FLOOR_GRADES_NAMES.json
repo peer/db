@@ -1,0 +1,36 @@
+{
+  "id": ["xeno.peerdb.org", "PUBLICATION", "PUB_FLOOR_GRADES_NAMES"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PUBLICATION"] }],
+  "title": [
+    {
+      "value": "Striking Into a Name: Percussive Naming, Grade Assignment and the Inheritance of a Rhythm on the Quiet Floor of Sounding",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "doi": "10.5281/xeno.2304.0035",
+  "abstract": [
+    {
+      "value": "<p>Names on the Quiet Floor are rhythms rather than words, and a name is held by one keeper at a time and struck into the dressed floor at assignment. We record twenty-six assignments and show that the grade of the floor a name may be struck into is fixed at the name&#39;s first use and thereafter descends with it, so that names carry economic rank independently of their holders. A former holder is addressed by a modified rhythm that is explicitly described as unfinished. Two names in our sample were struck into the wrong grade, and the resulting proceedings occupied the survey for most of a season.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "author": [
+    { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_OKONKWO"] },
+    { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_PETROVA"] },
+    { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_VIRTANEN"] },
+    { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_PRASETYO"] }
+  ],
+  "journal": "Records of Substrate Communication",
+  "publishedOn": { "time": "2304-03-01T00:00:00Z", "precision": "m" },
+  "about": [
+    { "id": ["xeno.peerdb.org", "SPECIES", "G4_FLOOR_KEEPERS"] },
+    { "id": ["xeno.peerdb.org", "CULTURE", "G4_CU_FLOOR_GRADES"] },
+    { "id": ["xeno.peerdb.org", "PRACTICE", "G4_PR_NAME_STRIKING"] }
+  ],
+  "cites": [
+    { "id": ["xeno.peerdb.org", "PUBLICATION", "PUB_FERMENT_LINEAGE"] },
+    { "id": ["xeno.peerdb.org", "PUBLICATION", "PUB_GREETING_ERROR"] },
+    { "id": ["xeno.peerdb.org", "PUBLICATION", "PUB_RISER_ASKING"] }
+  ],
+  "document": [{ "value": "/f/8zazv681hmkeRM1LFnpuLq", "name": "PUB_FLOOR_GRADES_NAMES.pdf", "caption": "Author's accepted manuscript" }]
+}

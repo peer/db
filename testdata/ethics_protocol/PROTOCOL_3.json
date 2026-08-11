@@ -1,0 +1,24 @@
+{
+  "id": ["xeno.peerdb.org", "ETHICS_PROTOCOL", "PROTOCOL_3"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "ETHICS_PROTOCOL"] }],
+  "name": [
+    { "value": "Protocol 3 (restricted personal testimony)", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "Protokol 3 (omejeno osebno pričevanje)", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }] },
+    { "value": "Protocolo 3 (testemunho pessoal restrito)", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>Applies to first-person accounts of the speaker&#39;s own life; requires pseudonymisation, a named custodian and a review before every access. Forbids quotation in public outputs without fresh consent, which is often impossible to obtain across a decade of travel.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Velja za osebna pričevanja: zahteva psevdonimizacijo, skrbnika in presojo pred vsakim dostopom.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Aplica-se a relatos na primeira pessoa sobre a própria vida de quem fala; exige pseudonimização, um depositário nomeado e uma apreciação antes de cada acesso. Proíbe a citação em publicações públicas sem novo consentimento, muitas vezes impossível de obter ao fim de uma década de viagem.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "code": ["eth-3"]
+}

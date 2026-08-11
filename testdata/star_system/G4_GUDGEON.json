@@ -1,0 +1,18 @@
+{
+  "id": ["xeno.peerdb.org", "STAR_SYSTEM", "G4_GUDGEON"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "STAR_SYSTEM"] }],
+  "name": [{ "value": "Gudgeon", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "catalogueCode": "SPW-B/052",
+  "description": [
+    {
+      "value": "<p>A yellow dwarf with a white dwarf companion at sixty-two astronomical units, whose progenitor&#39;s mass loss reorganised the whole system and dried out at least one world in the process. Five planets survive, on orbits that do not share a plane.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "SECTOR", "G4_SHELL_SEVEN"] },
+  "spectralClass": "G8V+DA4",
+  "starCount": { "amount": 2, "precision": 1 },
+  "planetCount": { "amount": 5, "precision": 1 },
+  "distanceFromSol": { "value": { "amount": 2955.1, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "PARSEC"] }] },
+  "firstSurveyed": { "time": "2262-01-01T00:00:00Z", "precision": "y" }
+}

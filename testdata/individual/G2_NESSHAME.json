@@ -1,0 +1,21 @@
+{
+  "id": ["xeno.peerdb.org", "INDIVIDUAL", "G2_NESSHAME"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "INDIVIDUAL"] }],
+  "name": [{ "value": "Nesshame" }],
+  "lineageName": [{ "value": "Middle Arc Lodge" }],
+  "description": [
+    {
+      "value": "<p>Holds the middle arc for the current long cycle and will hand it on in 2319 to a lodge that has been waiting since before they were born. They have rebuilt two storm gaps and cut a third deliberately, to change where the water leaves, which is the sort of decision an arc holder may make and may not explain. They consented to a photograph on the flats at low water in 2302, which is where all of it happens.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "species": { "id": ["xeno.peerdb.org", "SPECIES", "G2_SESSHUNE"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G2_ARC_LODGES"] }],
+  "role": [{ "value": "arc holder", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "formOfAddress": "by lodge and arc, in that order",
+  "born": { "time": "2252-01-01T00:00:00Z", "precision": "y" },
+  "birthplace": { "id": ["xeno.peerdb.org", "SITE", "G2_HIGH_WEIR"] },
+  "image": [
+    { "value": "/f/PouMDWL7t9kt5HXT7BRc9z", "name": "G2_NESSHAME.jpg", "caption": "Portrait", "source": "Made with consent; Consortium collection" }
+  ]
+}

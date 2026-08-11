@@ -1,0 +1,58 @@
+{
+  "id": ["xeno.peerdb.org", "INTERVIEW", "INTA_WEMMELU_GREETING_GIVEN_TWICE"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "INTERVIEW"] }],
+  "title": [
+    {
+      "value": "Wemmelu on the greeting of 2263 and on giving it again on purpose",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "description": [
+    {
+      "value": "<p>The band walker whose greeting the first season mistranslated, on what it actually commits the hearer to. He discloses that he has since given it deliberately to two further parties to see what they would do.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "interviewee": [{ "id": ["xeno.peerdb.org", "INDIVIDUAL", "G2_WEMMELU"] }],
+  "interviewer": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_MOKOENA"] }, { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_SEO"] }],
+  "recordedAt": { "id": ["xeno.peerdb.org", "SITE", "G2_TURNING_GROUND"] },
+  "recordedOn": { "time": "2290-06-15T00:00:00Z", "precision": "d" },
+  "expedition": { "id": ["xeno.peerdb.org", "EXPEDITION", "EXP_EVENING_TERRACES"] },
+  "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G2_PLATE_LIGHT"] }],
+  "duration": { "value": { "amount": 47, "precision": 1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "MINUTE"] }] },
+  "content": [
+    {
+      "value": "<p><b>Q.</b> We should begin by thanking you for the welcome your people gave that first season.</p><p><b>A.</b> It was not a welcome. That is the whole difficulty and you have walked straight into it again. It says: you are walking with us. It is not an invitation, it is a statement of who is now answerable for the herd.</p><p><b>Q.</b> Answerable how?</p><p><b>A.</b> If the herd goes onto a terrace and eats it, the holding comes to whoever was walking. Your first season walked with us for eleven days and then went to the station and wrote that we were friendly.</p><p><b>Q.</b> Did any holding come to them?</p><p><b>A.</b> No. We settled it. It cost two of us a season of gully water and we did not mention it, which was a decision and not a kindness.</p><p><b>Q.</b> Has the greeting been given to any other party?</p><p><b>A.</b> Twice more, by me, on purpose, because I wanted to see what would be done with it. Once in 2271 and once in 2283. Both parties wrote it down as a welcome. Neither of them asked what they had agreed to and neither has ever been told.</p><p><b>Q.</b> That is a difficult thing to have on a record.</p><p><b>A.</b> It is. Put it on anyway. I have watched three of your parties learn nothing from the second-hand version and I would rather have it from a walker who admits what he was doing.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "recording": [
+    {
+      "value": "/f/BxH5HzHuA5JA9ghs3ai4r5",
+      "name": "interview-INTA_WEMMELU_GREETING_GIVEN_TWICE.mp3",
+      "caption": "Session recording",
+      "duration": { "value": { "amount": 47, "precision": 1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "MINUTE"] }] },
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G2_PLATE_LIGHT"] }]
+    }
+  ],
+  "ethics": { "id": ["xeno.peerdb.org", "ETHICS_PROTOCOL", "PROTOCOL_2"] },
+  "consentNote": [
+    {
+      "value": "<p>Wemmelu agreed that the account be held openly and given to anybody who asks for it, on the single condition that the two parties of 2271 and 2283 be named in the record but not approached about it. He asked why the photograph of 2281 had taken eighteen years.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "clearedReader": ["mock-user@localhost", "mock-user-curator@localhost"],
+  "permission": [
+    {
+      "action": { "id": ["core.peerdb.org", "PERMISSION_ACTIONS", "ACTION_READ"] },
+      "user": ["mock-user@localhost", "mock-user-curator@localhost"],
+      "scope": ["self"]
+    },
+    {
+      "action": { "id": ["core.peerdb.org", "PERMISSION_ACTIONS", "ACTION_READ_HISTORIC"] },
+      "user": ["mock-user@localhost", "mock-user-curator@localhost"],
+      "scope": ["self"]
+    }
+  ]
+}

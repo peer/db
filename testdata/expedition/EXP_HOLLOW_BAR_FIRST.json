@@ -1,0 +1,33 @@
+{
+  "id": ["xeno.peerdb.org", "EXPEDITION", "EXP_HOLLOW_BAR_FIRST"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "EXPEDITION"] }],
+  "name": [{ "value": "First Bellwether Sector Crossing", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "catalogueCode": "EXP-2270-01",
+  "description": [
+    {
+      "value": "<p>The first crewed crossing to the barred spiral, and the expedition that turned a set of plates into a register. Six years produced orbital coverage of the dusk band at metric resolution, the first structure counts for the hearth clusters, and a sound archive assembled entirely from a hundred kilometres up. No landing was attempted and none was authorised. The crossing cost more than the four expeditions that followed it put together, which is the usual arithmetic of going first.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "destination": [
+    { "id": ["xeno.peerdb.org", "PLANET", "G3_SISHELETH"] },
+    { "id": ["xeno.peerdb.org", "REGION", "G3_MORNING_STRIP"] },
+    { "id": ["xeno.peerdb.org", "REGION", "G3_SHELF_TERRACES"] }
+  ],
+  "period": { "from": { "time": "2270-01-01T00:00:00Z", "precision": "y" }, "to": { "time": "2276-01-01T00:00:00Z", "precision": "y" } },
+  "ledBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_WEN"] }],
+  "teamMember": [
+    { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_SUBRAMANIAN"] },
+    { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_FERREIRA"] },
+    { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_DEMIR"] }
+  ],
+  "organisedBy": [{ "id": ["xeno.peerdb.org", "INSTITUTE", "INST_FARSIGHT"] }],
+  "method": [
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "REMOTE_SENSING"] },
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "PHOTOGRAMMETRY"] },
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "ACOUSTIC_RECORDING"] }
+  ],
+  "ethics": { "id": ["xeno.peerdb.org", "ETHICS_PROTOCOL", "PROTOCOL_5"] },
+  "budget": { "value": { "amount": 5600000, "precision": 1000 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "$"] }] },
+  "report": [{ "value": "/f/SDbuY32VwKJXuJbbS3E9Kw", "name": "EXP_HOLLOW_BAR_FIRST.pdf", "caption": "Final report" }]
+}

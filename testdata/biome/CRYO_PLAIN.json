@@ -1,0 +1,24 @@
+{
+  "id": ["xeno.peerdb.org", "BIOME", "CRYO_PLAIN"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "BIOME"] }],
+  "name": [
+    { "value": "Cryovolcanic plain", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "Kriovulkanska ravnina", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }] },
+    { "value": "Planície criovulcânica", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>Surface repaved by eruptions of water, ammonia or methane slush, patchily habitable where fresh flows keep pockets liquid. Excludes silicate lava plains, which are recorded as volcanic terrain.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Površje, tlakovano z izbruhi vodne, amoniakove ali metanske brozge, z redkimi tekočimi žepi.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Superfície repavimentada por erupções de lama gelada de água, amoníaco ou metano, habitável aos bocados onde os fluxos recentes mantêm bolsas líquidas. Exclui planícies de lava silicatada, registadas como terreno vulcânico.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "code": ["cryo-plain"]
+}

@@ -1,0 +1,24 @@
+{
+  "id": ["xeno.peerdb.org", "BIOME", "AMMONIA_MARSH"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "BIOME"] }],
+  "name": [
+    { "value": "Ammonia marsh", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "Amoniakovo močvirje", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }] },
+    { "value": "Pântano de amoníaco", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>Cold wetland where the standing liquid is ammonia or an ammonia-water eutectic, usually between about -80 and -50 degrees Celsius. Not to be applied to water marshes that merely smell of it.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Mrzlo mokrišče, kjer je stoječa tekočina amoniak ali zmes amoniaka in vode.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Zona húmida fria onde o líquido estagnado é amoníaco ou um eutéctico de amoníaco e água, em geral entre cerca de -80 e -50 graus Celsius. Não se aplica a pântanos de água que apenas cheiram a isso.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "code": ["amm-marsh"]
+}

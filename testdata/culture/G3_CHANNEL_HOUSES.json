@@ -1,0 +1,34 @@
+{
+  "id": ["xeno.peerdb.org", "CULTURE", "G3_CHANNEL_HOUSES"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "CULTURE"] }],
+  "name": [{ "value": "The Channel Houses", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [
+    { "value": "Waunei", "gloss": "the named waters", "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G3_SWEEP_CALL"] }] }
+  ],
+  "catalogueCode": "CU-2269-08",
+  "description": [
+    {
+      "value": "<p>A house holds a named channel and the ground on either side of it, passes both through one parental line, and outlives every member by centuries. The people themselves walk the draining flats in single file and take what strands in the last channels as the horizon empties, eating little for their size and standing still for most of a day. The weir keepers hold that a channel cannot be owned because the water rearranges it twice a cycle, and this has been the polite quarrel of the coast for as long as there has been any record of it. House heads are not persuaded, and note that the channels have kept their names through every rearrangement so far. Since contact the houses have taken to asking the survey, at each visit, whether the names have been recorded correctly, and have twice sent corrections after the ship had left.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Hiše držijo poimenovane struge in jih dedujejo po eni starševski liniji. Hiša preživi vse svoje člane.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    }
+  ],
+  "practisedBy": [{ "id": ["xeno.peerdb.org", "SPECIES", "G3_RAUWENA"] }],
+  "presentAt": [{ "id": ["xeno.peerdb.org", "SITE", "G3_LOWER_MIDDEN"] }, { "id": ["xeno.peerdb.org", "SITE", "G3_TIDE_MEET"] }],
+  "kinshipSystem": { "id": ["xeno.peerdb.org", "KINSHIP_SYSTEM", "UNILINEAL_DESCENT"] },
+  "socialOrganisation": { "id": ["xeno.peerdb.org", "SOCIAL_ORGANISATION", "LINEAGE_HOUSES"] },
+  "subsistence": [
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "DRIFT_HARVESTING"] },
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "OPPORTUNISTIC_FORAGING"] }
+  ],
+  "communication": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G3_SWEEP_CALL"] }],
+  "population": {
+    "value": { "from": { "amount": 9000, "precision": 100 }, "to": { "amount": 30000, "precision": 100 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "period": { "from": { "time": "2269-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true },
+  "image": [{ "value": "/f/RSdHmTfXxwyZojgiFfqb6r", "name": "G3_CHANNEL_HOUSES.jpg", "caption": "Gathering", "source": "Consortium survey archive" }]
+}

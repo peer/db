@@ -1,0 +1,36 @@
+{
+  "id": ["xeno.peerdb.org", "OBSERVATION", "OBSA_WALL_HANDOVER_COUNT"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "OBSERVATION"] }],
+  "title": [
+    { "value": "Stops counted on a wall handover, ninth to eleventh turn", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>A handover walked end to end with the outgoing and incoming hearths, with every stop timed and the rebuilding photographed. Nobody mentioned the catch, ourselves included.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "content": [
+    {
+      "value": "<p>We walked the ninth to eleventh turn with the outgoing hearth at low water, from the landward marker to the far end and back, four hours and twenty minutes. The incoming hearth walked with us and did not touch the wall at any point, which we had been briefed to expect and which is still strange to watch.</p><p>Twenty-two stops. At each of them the outgoing hearth rebuilt the slumped stacking there and then while the incoming hearth stood over it. The longest stop ran fifty-one minutes at a breach about a third of the way out; the shortest was under two minutes and produced no work we could see at all.</p><p>The coil was passed at the far end with the used lengths on the outside, as described in the 2259 file. The catch was not referred to by anybody, and those of us briefed to avoid the subject found there was no opening in which to fail.</p><p>Two slumped stretches were walked past without a stop. We asked afterwards, twice, and were told both times that they were not slumped. The photogrammetry gives a drop of about eleven centimetres at both. We record the disagreement rather than settle it.</p><p>We ate at the outgoing hearth&#39;s fire that evening and were served first, which is not the rule and was not explained.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "expedition": { "id": ["xeno.peerdb.org", "EXPEDITION", "EXP_THREADBARE_FOURTH"] },
+  "observedBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_REYES"] }, { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_LINDQVIST"] }],
+  "observedAt": { "id": ["xeno.peerdb.org", "SITE", "G1_LOWER_MIDDEN"] },
+  "observedOn": { "time": "2266-03-11T00:00:00Z", "precision": "d" },
+  "about": [
+    { "id": ["xeno.peerdb.org", "PRACTICE", "G1_WALL_HANDOVER"] },
+    { "id": ["xeno.peerdb.org", "CULTURE", "G1_WEIR_ROTA"] },
+    { "id": ["xeno.peerdb.org", "SPECIES", "G1_SUNARELI"] }
+  ],
+  "method": [
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "PARTICIPANT_OBSERVATION"] },
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "PHOTOGRAMMETRY"] }
+  ],
+  "fieldConditions": "Low water at midday, overcast, onshore wind cold enough that the written-up notes were made indoors from tape. Thirty-one adults present from the two hearths, and four juveniles nobody counted.",
+  "image": [
+    { "value": "/f/H2nmiQ8r6rBxK2T3PiQBUp", "name": "OBSA_WALL_HANDOVER_COUNT.jpg", "caption": "Taken at the time", "source": "Field record" }
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "id": ["xeno.peerdb.org", "RESEARCHER", "RES_DEMIR"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "RESEARCHER"] }],
+  "name": [{ "value": "Yusuf" }],
+  "familyName": [{ "value": "Demir" }],
+  "researcherCode": "CCX-P-02310",
+  "description": [
+    {
+      "value": "<p>Twenty years of sampling on tidal flats followed by twenty of the same work on ice, which he describes as a change of scenery. He is the register&#39;s most reliable estimator of how long a thing will take and is overruled as a matter of routine. His notebooks are legible, which is rarer than it should be.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "affiliatedWith": [{ "id": ["xeno.peerdb.org", "INSTITUTE", "INST_SUBSTRATE"] }],
+  "specialisesIn": [
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "MATERIAL_SAMPLING"] },
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "PHOTOGRAMMETRY"] }
+  ],
+  "activePeriod": { "from": { "time": "2270-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true },
+  "born": { "time": "2246-01-01T00:00:00Z", "precision": "y" },
+  "image": [{ "value": "/f/6yr3PS81gXdEuHsfD4rkem", "name": "RES_DEMIR.jpg", "caption": "Staff photograph", "source": "Consortium personnel record" }]
+}

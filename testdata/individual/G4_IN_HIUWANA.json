@@ -1,0 +1,26 @@
+{
+  "id": ["xeno.peerdb.org", "INDIVIDUAL", "G4_IN_HIUWANA"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "INDIVIDUAL"] }],
+  "name": [{ "value": "Hiuwana" }],
+  "description": [
+    {
+      "value": "<p>A net keeper of the northern shore who supplied labour to the tether works under standing obligation for nineteen years, and who holds eleven of the open obligations the Consortium left behind at the suspension. Under the coastal system she and the CCX remain kin for exactly as long as those debts stand, which means the Consortium has been her relative, at a distance of two thousand parsecs, since 2298. The ethics file records the position as unresolved and notes that discharging it would require a landing, and that a landing is what is forbidden.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "species": { "id": ["xeno.peerdb.org", "SPECIES", "G4_NET_KEEPERS"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G4_CU_TETHER_GUILDS"] }],
+  "role": [
+    { "value": "net keeper", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "labour supplier", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }
+  ],
+  "formOfAddress": "by open obligation, then by name",
+  "born": { "time": "2252-01-01T00:00:00Z", "precision": "y" },
+  "birthplace": { "id": ["xeno.peerdb.org", "SITE", "G4_TETHER_STUMP"] },
+  "notes": [
+    {
+      "value": "<p>The eleven obligations are itemised in the suspension file at annex nine. Four are for labour, six are for material, and one is for an answer to a question the file does not record.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

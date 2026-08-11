@@ -1,0 +1,24 @@
+{
+  "id": ["xeno.peerdb.org", "PRACTICE", "G1_FERMENT_DEATH"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PRACTICE"] }],
+  "name": [{ "value": "When a Ferment Dies", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "description": [
+    {
+      "value": "<p>A household whose culture has died sets its empty jars in the doorway, mouths outward, and leaves them there for a season. For that season nobody may feed them, because feeding is what kin do and there is no longer anybody to whom they are kin. Water continues to be drawn in the ordinary order, water not being a matter of kinship. Neighbours leave a portion on the wall outside and walk away without knocking, which is the one permitted form and is not called charity by anyone. At the end of the season the household either accepts a starter from a house that offers one, becoming that house&#39;s kin in the ordinary way, or does not, and stands alone until it can restart a culture of its own.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Gospodinjstvo, ki mu umre kvasna kultura, sezono ne sme sprejeti hrane od nikogar.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    }
+  ],
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G1_BASIN_WATER_ORDER"] }],
+  "category": { "id": ["xeno.peerdb.org", "PRACTICE_CATEGORY", "MOURNING"] },
+  "periodicity": "whenever a ferment dies, most often at the end of the hot season",
+  "participants": {
+    "value": { "from": { "amount": 1, "precision": 1 }, "to": { "amount": 30, "precision": 1 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "firstDocumented": { "time": "2264-01-01T00:00:00Z", "precision": "y" },
+  "relatedPractice": [{ "id": ["xeno.peerdb.org", "PRACTICE", "G1_DAWN_DRAW"] }]
+}

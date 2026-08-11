@@ -1,0 +1,28 @@
+{
+  "id": ["xeno.peerdb.org", "ARTIFACT", "G2_FINISHED_PIECE"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "ARTIFACT"] }],
+  "name": [{ "value": "Accepted Piece, Benders", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Nurremesse", "gloss": "the finished piece, which is also what the corporations call themselves" }],
+  "accessionCode": "CCX-A-14871",
+  "description": [
+    {
+      "value": "<p>A thin bent strip of sulphide crust worked into a closed double curve of a kind that has no use whatever, which is the point of it: the piece proves the hand and does nothing else. It was worked at a running fissure in one sitting, passed round the benders at the warmest hearth available and kept, which admitted its maker. The maker afterwards wore it lashed at the shoulder, which is customary for a first piece and not for later ones, and the lashing wear is visible along the inner curve. It was handed over in 2287 by a bender who had by then divided, and both continuations were asked and both agreed.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "category": { "id": ["xeno.peerdb.org", "ARTIFACT_CATEGORY", "ORNAMENT"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G2_HEARTH_CORPORATIONS"] }],
+  "foundAt": { "id": ["xeno.peerdb.org", "SITE", "G2_NURRU_HEARTHS"] },
+  "material": [
+    { "value": "sulphide crust", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "cord", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }
+  ],
+  "dimension": [
+    { "value": { "amount": 0.14, "precision": 0.001 }, "axis": "length", "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+    { "value": { "amount": 0.05, "precision": 0.001 }, "axis": "width", "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+    { "value": { "amount": 0.004, "precision": 0.001 }, "axis": "thickness", "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] }
+  ],
+  "dateMade": { "time": "2262-01-01T00:00:00Z", "precision": "y" },
+  "collectedBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_VASILAKIS"] }, { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_BEKELE"] }],
+  "image": [{ "value": "/f/ToYCXarhX6ZedxzbK2uhz9", "name": "G2_FINISHED_PIECE.jpg", "caption": "Object drawing", "source": "Consortium collection" }]
+}

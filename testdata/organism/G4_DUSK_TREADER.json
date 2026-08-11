@@ -1,0 +1,26 @@
+{
+  "id": ["xeno.peerdb.org", "ORGANISM", "G4_DUSK_TREADER"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "ORGANISM"] }],
+  "name": [{ "value": "Dusk Treader", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Sesshova" }],
+  "taxonCode": "TX-1302-c",
+  "description": [
+    {
+      "value": "<p>A large grazing heterotroph of Fetch&#39;s dusk band, moving in loose herds of forty to three hundred along the interdune hollows and cropping the drift that the day-side wind delivers. It is the animal the hearth walkers follow, and provides most of their food, most of their cordage and the whole of their roofing. Herds move nightward at about the rate the habitable band itself does, which took the survey some time to notice and rather longer to believe.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "category": { "id": ["xeno.peerdb.org", "ORGANISM_CATEGORY", "MOTILE_HETEROTROPH"] },
+  "foundOn": [{ "id": ["xeno.peerdb.org", "PLANET", "G4_FETCH"] }],
+  "biome": [{ "id": ["xeno.peerdb.org", "BIOME", "DUSK_BELT"] }],
+  "typicalSize": { "value": { "amount": 2.6, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+  "typicalMass": { "value": { "amount": 380.0, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "kg"] }] },
+  "image": [
+    {
+      "value": "/f/52EXo1SzxyJpTvd2fYMu9D",
+      "name": "G4_DUSK_TREADER.jpg",
+      "caption": "Field plate",
+      "source": "Drawn in the field; Consortium collection"
+    }
+  ]
+}

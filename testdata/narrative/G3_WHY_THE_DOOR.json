@@ -1,0 +1,39 @@
+{
+  "id": ["xeno.peerdb.org", "NARRATIVE", "G3_WHY_THE_DOOR"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "NARRATIVE"] }],
+  "title": [{ "value": "Why the Door Is on the Warm Side", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [
+    {
+      "value": "Usselleth-sethen",
+      "gloss": "the talk about the front wall",
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G3_STRIP_SPEECH"] }]
+    }
+  ],
+  "description": [
+    {
+      "value": "<p>The authoritative account of how the strip came to build one way, told at a hearth by whoever is holding the ground, usually while the wall is being laid. It is short, it is not sung, and it ends on a statement of consequence rather than on a moral.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "genre": { "id": ["xeno.peerdb.org", "NARRATIVE_GENRE", "ORIGIN_ACCOUNT"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G3_STRIP_STEWARDSHIP"] }],
+  "recordedBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_OKONKWO"] }, { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_PETROVA"] }],
+  "recordedAt": { "id": ["xeno.peerdb.org", "SITE", "G3_UPPER_HEARTHS"] },
+  "recordedOn": { "time": "2266-01-01T00:00:00Z", "precision": "y" },
+  "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G3_STRIP_SPEECH"] }],
+  "content": [
+    {
+      "value": "<p>At the start the wind went round the world both ways. The two winds met at every hearth and put it out. People had fires and no walls, and they moved, because a fire that is out is a reason to move.</p><p>One household stopped. They set a wall on the side the cold came from and set nothing on the other side. The fire stayed. The hearth two sleeps along saw the wall and set one the same way, and the hearth two sleeps past that did it also, and after a while there was one wind, because the other had nowhere left to go.</p><p>That is why the door is on the warm side. It is not a choice. A door on the cold side is a fire that is out, and a fire that is out is ground given back.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "recording": [
+    {
+      "value": "/f/BYmmTLbc4Qf4y42pMw8sqF",
+      "name": "narrative-G3_WHY_THE_DOOR.mp3",
+      "caption": "Performance, recorded on site",
+      "duration": { "value": { "amount": 2, "precision": 1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "MINUTE"] }] },
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G3_STRIP_SPEECH"] }]
+    }
+  ]
+}

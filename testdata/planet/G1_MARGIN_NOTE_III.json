@@ -1,0 +1,57 @@
+{
+  "id": ["xeno.peerdb.org", "PLANET", "G1_MARGIN_NOTE_III"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PLANET"] }],
+  "name": [{ "value": "Margin Note III", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Nnaumeren", "gloss": "the hum in the ground, from the way weather is felt underfoot" }],
+  "catalogueCode": "CCX-2251-MGN3",
+  "description": [
+    {
+      "value": "<p>An ice-shell world with a brine ocean perhaps forty kilometres down and a surface repaved every few centuries by slush eruptions. The inhabitants live at the vents and in the fresh flows, following warmth as it moves, and the whole settled geography of the planet is younger than the Consortium. Contact was suspended in 2298 by ethics ruling and the file is presently read-only. Instruments left on the surface continue to report.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Ledeni svet s podledenim slaničnim morjem in kriovulkanskimi ravninami. Stik je od leta 2298 prekinjen.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Um mundo de invólucro gelado, com um oceano de salmoura talvez a quarenta quilómetros de profundidade e uma superfície repavimentada de poucos em poucos séculos por erupções de gelo pastoso. Os habitantes vivem junto às fontes e sobre os fluxos recentes, seguindo o calor à medida que este se desloca, e toda a geografia povoada do planeta é mais recente do que o Consórcio. O contacto foi suspenso em 2298 por decisão da comissão de ética e o processo está, de momento, apenas para leitura. Os instrumentos deixados à superfície continuam a transmitir.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "STAR_SYSTEM", "G1_MARGIN_NOTE"] },
+  "planetType": { "id": ["xeno.peerdb.org", "PLANET_TYPE", "ICE_SHELL"] },
+  "biome": [
+    { "id": ["xeno.peerdb.org", "BIOME", "CRYO_PLAIN"] },
+    { "id": ["xeno.peerdb.org", "BIOME", "BRINE_SEA"] },
+    { "id": ["xeno.peerdb.org", "BIOME", "VENT_FIELD"] }
+  ],
+  "radius": { "value": { "amount": 0.93, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_RADIUS"] }] },
+  "mass": { "value": { "amount": 0.78, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_MASS"] }] },
+  "surfaceGravity": { "value": { "amount": 0.9, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "STANDARD_GRAVITY"] }] },
+  "dayLength": { "value": { "amount": 22.8, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "HOUR"] }] },
+  "orbitalPeriod": { "value": { "amount": 288.4, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_DAY"] }] },
+  "meanTemperature": { "value": { "amount": -94.6, "precision": 0.1 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "°C"] }] },
+  "hydrosphere": { "value": { "amount": 96.0, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "PERCENT"] }] },
+  "atmosphere": [
+    {
+      "value": "<p>Thin nitrogen with methane and ammonia traces, about 0.05 bar, thickening briefly downwind of an active flow. Not breathable, and cold enough that suit joints stiffen within the hour.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "biosphere": [
+    {
+      "value": "<p>Life is present: 1 catalogued species (Margin Vent Followers) and 1 recorded non-sapient organism. The survey is not claimed to be complete.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "contactStatus": { "id": ["xeno.peerdb.org", "CONTACT_STATUS", "SUSPENDED"] },
+  "firstSurveyed": { "time": "2251-01-01T00:00:00Z", "precision": "y" },
+  "surveyPeriod": { "from": { "time": "2251-01-01T00:00:00Z", "precision": "y" }, "to": { "time": "2298-01-01T00:00:00Z", "precision": "y" } },
+  "populationEstimate": {
+    "value": { "from": { "amount": 60000, "precision": 100 }, "to": { "amount": 110000, "precision": 100 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "image": [
+    { "value": "/f/9bEDtchty7FeCAZ9SxRZrV", "name": "G1_MARGIN_NOTE_III.jpg", "caption": "Approach view", "source": "Consortium survey archive" }
+  ]
+}

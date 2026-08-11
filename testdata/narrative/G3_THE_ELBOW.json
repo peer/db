@@ -1,0 +1,33 @@
+{
+  "id": ["xeno.peerdb.org", "NARRATIVE", "G3_THE_ELBOW"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "NARRATIVE"] }],
+  "title": [{ "value": "The Elbow", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Rauwe-ne", "gloss": "the wall, not", "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G3_SWEEP_CALL"] }] }],
+  "description": [
+    {
+      "value": "<p>A cautionary account attached to a named section of weir and told at the gatherings by anybody who has walked that section. It is delivered flat, at conversational length, and the fault is stated once and not returned to.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "genre": { "id": ["xeno.peerdb.org", "NARRATIVE_GENRE", "CAUTIONARY_ACCOUNT"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G3_WEIR_GRADES"] }],
+  "recordedBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_MOLNAR"] }, { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_HALVORSEN"] }],
+  "recordedAt": { "id": ["xeno.peerdb.org", "SITE", "G3_LOWER_MIDDEN"] },
+  "recordedOn": { "time": "2274-01-01T00:00:00Z", "precision": "y" },
+  "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G3_SWEEP_CALL"] }],
+  "content": [
+    {
+      "value": "<p>The grade before the grade before mine held the third section, from the elbow to the stone that leans. In their thirtieth year the wall went at the elbow on a falling tide, and eleven people were on the outside of it when the water came back.</p><p>They had restacked the elbow twice that year, and both times with the stone that was to hand instead of the stone that was cut for it. That is the whole of the fault. Nobody has said it was more than that and nobody has said it was less.</p><p>The grade was quiet for the rest of its span. When it handed the section on it handed on the cut stone too, which had been lying above the tide line for thirty years, doing nothing, where anybody could see it.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "recording": [
+    {
+      "value": "/f/1zPD5NG4gkn9rrV7Mnffs2",
+      "name": "narrative-G3_THE_ELBOW.mp3",
+      "caption": "Performance, recorded on site",
+      "duration": { "value": { "amount": 8, "precision": 1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "MINUTE"] }] },
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G3_SWEEP_CALL"] }]
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "id": ["xeno.peerdb.org", "RESEARCHER", "RES_OKONKWO"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "RESEARCHER"] }],
+  "name": [{ "value": "Amara" }],
+  "familyName": [{ "value": "Okonkwo" }],
+  "researcherCode": "CCX-P-02011",
+  "description": [
+    {
+      "value": "<p>Works on exchange between groups who never meet, a subject she came to after a season spent watching two settlements trade through a third that charged both of them for it. She keeps a running list of every question she has had to withdraw after learning what it meant, and the list is now longer than her bibliography.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "affiliatedWith": [{ "id": ["xeno.peerdb.org", "INSTITUTE", "INST_LEDGER"] }, { "id": ["xeno.peerdb.org", "INSTITUTE", "INST_FARSIGHT"] }],
+  "specialisesIn": [
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "NETWORK_MAPPING"] },
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "STRUCTURED_INTERVIEW"] }
+  ],
+  "activePeriod": { "from": { "time": "2266-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true },
+  "born": { "time": "2242-01-01T00:00:00Z", "precision": "y" },
+  "image": [
+    { "value": "/f/11nnEmKw7LhhxEQH5sCeZJ", "name": "RES_OKONKWO.jpg", "caption": "Staff photograph", "source": "Consortium personnel record" }
+  ]
+}

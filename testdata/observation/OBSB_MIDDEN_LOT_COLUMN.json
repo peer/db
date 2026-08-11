@@ -1,0 +1,29 @@
+{
+  "id": ["xeno.peerdb.org", "OBSERVATION", "OBSB_MIDDEN_LOT_COLUMN"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "OBSERVATION"] }],
+  "title": [
+    { "value": "Cutting of a column through the shell bank at Lower Midden", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>Rescue sampling of a single block through the bank, taken with the agreement of the grade holding the adjoining wall.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "content": [
+    {
+      "value": "<p>2.viii.2289. The block was cut over four days on the landward face, cased before lifting because the upper third is loose and wet and the lower two thirds are cemented by lime leaching down through it. Auwenu gave agreement on behalf of the grade and asked only that the hole be filled, which it was.</p><p>Eleven discard episodes are readable as layers: shell, crawler carapace, broken sounding line, ash. The bank is two hundred metres across and about three metres high and is still growing. We have now measured the rate twice, eleven years apart, and have declined to extrapolate it in the body of the report.</p><p>The lowest episode contains no crawler carapace whatever, in a bank that is otherwise crawler from top to bottom. We have no account of this. It may be a change in what was taken, or in where it was processed, or in what the bank was for; the three are not distinguishable from a single column and we should not have implied otherwise in the preliminary note.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "expedition": { "id": ["xeno.peerdb.org", "EXPEDITION", "EXP_SWEEPWATER_YEAR"] },
+  "observedBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_PETROVA"] }, { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_VASILAKIS"] }],
+  "observedAt": { "id": ["xeno.peerdb.org", "SITE", "G3_LOWER_MIDDEN"] },
+  "observedOn": { "time": "2289-08-02T00:00:00Z", "precision": "d" },
+  "about": [{ "id": ["xeno.peerdb.org", "SPECIES", "G3_MAUNUWA"] }, { "id": ["xeno.peerdb.org", "ORGANISM", "G3_WEIR_CRAWLER"] }],
+  "method": [
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "MATERIAL_SAMPLING"] },
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "PHOTOGRAMMETRY"] }
+  ],
+  "fieldConditions": "Four dry days, unusual for the season. The camp inside the bank in use throughout, at every low water."
+}

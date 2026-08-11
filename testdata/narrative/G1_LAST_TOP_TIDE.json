@@ -1,0 +1,54 @@
+{
+  "id": ["xeno.peerdb.org", "NARRATIVE", "G1_LAST_TOP_TIDE"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "NARRATIVE"] }],
+  "title": [{ "value": "We Kept the Ground Clear", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [
+    {
+      "value": "Wanashe Nera Sen",
+      "gloss": "the water that came all the way up, and nobody in it",
+      "inSystem": [
+        { "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G1_FLATS_SPEECH"] },
+        { "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G1_LONG_CALL"] }
+      ]
+    }
+  ],
+  "description": [
+    {
+      "value": "<p>A lament performed by the flats party at the meeting ground at the top of the tide, in the years after the meetings stopped being called. It is sung by whoever led the last walking party out, standing where the deep water used to reach, and there is no answering part.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "genre": { "id": ["xeno.peerdb.org", "NARRATIVE_GENRE", "LAMENT"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G1_TOP_TIDE_MEET"] }],
+  "recordedBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_ARAI"] }],
+  "recordedAt": { "id": ["xeno.peerdb.org", "SITE", "G1_LOWER_MIDDEN"] },
+  "recordedOn": { "time": "2296-01-01T00:00:00Z", "precision": "y" },
+  "inSystem": [
+    { "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G1_FLATS_SPEECH"] },
+    { "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G1_LONG_CALL"] }
+  ],
+  "content": [
+    {
+      "value": "<p>The water came up to the ninth wall and stood there, and we stood in it, and it went down again.</p><p>We had the ground clear. We have had the ground clear since. There is nothing on it and nothing has been on it and I have walked the paths myself and they are open.</p><p>They say the channel silted. We say the channel silted. We are agreeing and it is not the same agreement.</p><p>I will name them anyway. Wanelaa, who came nine times. Neraluu, who came once and would not come near a boat after. The four whose names are in the water and not in the air.</p><p>The ground is clear. Come up on the ninth wall and say something.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "recording": [
+    {
+      "value": "/f/CPg9QmkKyAvxN7XUTubnJr",
+      "name": "narrative-G1_LAST_TOP_TIDE.mp3",
+      "caption": "Performance, recorded on site",
+      "duration": { "value": { "amount": 13, "precision": 1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "MINUTE"] }] },
+      "inSystem": [
+        { "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G1_FLATS_SPEECH"] },
+        { "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G1_LONG_CALL"] }
+      ]
+    }
+  ],
+  "notes": [
+    {
+      "value": "<p>Recorded with consent under Protocol 2 and restricted at the singer&#39;s request until 2320. The version transcribed here is the one performed for the recording and is one verse shorter than the version performed on the ground, a difference the singer mentioned afterwards and declined to close.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

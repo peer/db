@@ -1,0 +1,57 @@
+{
+  "id": ["xeno.peerdb.org", "SPECIES", "G2_NISSESSU"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SPECIES"] }],
+  "name": [{ "value": "Nine Terrace Ice Cap Colonies", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Nissessu", "gloss": "the cold body" }],
+  "exonym": [{ "value": "Nusshene", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "taxonCode": "TX-4149-a",
+  "description": [
+    {
+      "value": "<p>Beneath the night-side ice cap there are perhaps eighty of these, each a single person made of somewhere between nine hundred and four thousand replaceable bodies, none of which is anybody. The bodies are grown, worn out and reabsorbed on a cycle of a few years, and a colony that loses a third of them in a bad season regards this as an illness rather than a bereavement, which is the clearest statement anyone has of why individuals do not apply here. Each colony sits over a warm patch and draws organic fall from the surrounding ice on a standing claim, sending bodies out to collect and not otherwise administering anything or anybody. Everything the Consortium knows arrives through the weir builders, who trade with them at the ice line in silence and by leaving goods, and who find Consortium questions on the subject uninteresting. The population figures given are colonies, not bodies, and were arrived at by counting warm patches from orbit.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Sob a calote de gelo do lado noturno há talvez oitenta destas, cada uma delas uma única pessoa feita de algures entre novecentos e quatro mil corpos substituíveis, nenhum dos quais é alguém. Os corpos são criados, gastos e reabsorvidos num ciclo de poucos anos, e uma colónia que perca um terço deles numa estação má considera isso uma doença e não um luto, o que é a afirmação mais clara que existe de por que razão os indivíduos não se aplicam aqui. Cada colónia assenta sobre uma mancha quente e retira a queda orgânica do gelo circundante ao abrigo de um direito permanente, enviando corpos a recolher e não administrando mais nada nem ninguém. Tudo o que o Consórcio sabe chega através dos construtores de açudes, que com elas comerciam na linha do gelo em silêncio e deixando bens, e que acham pouco interessantes as perguntas do Consórcio sobre o assunto. Os números de população indicados são de colónias, não de corpos, e foram obtidos contando manchas quentes a partir de órbita.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "homeworld": { "id": ["xeno.peerdb.org", "PLANET", "G2_NINE_TERRACE"] },
+  "bodyPlan": [
+    {
+      "value": "<p>Each body is a half-metre stalked bell, anchored by a foot that can release and re-set, with a fringe of collecting filaments around the bell rim. Bodies remain connected to the colony mass by a fine tough strand that carries both nutrient and signal, and a body cut free stops moving within the hour. The colony mass itself is a low mound of interleaved strand and stored fat lying directly on the ice, several metres across in a long-established site.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "typicalHeight": { "value": { "amount": 0.5, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+  "typicalMass": { "value": { "amount": 6.0, "precision": 0.1 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "kg"] }] },
+  "lifespan": {
+    "value": { "from": { "amount": 900, "precision": 1 }, "to": { "amount": 4000, "precision": 1 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_YEAR"] }]
+  },
+  "sensoryModality": [
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "THERMAL_RADIANCE"] },
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "HYGRORECEPTION"] },
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "GRAVICEPTION"] }
+  ],
+  "subsistence": [
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "MANAGED_DECAY"] },
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "DRIFT_HARVESTING"] }
+  ],
+  "individuality": { "id": ["xeno.peerdb.org", "INDIVIDUALITY_MODE", "PERMANENT_COLLECTIVE"] },
+  "socialOrganisation": { "id": ["xeno.peerdb.org", "SOCIAL_ORGANISATION", "TRIBUTARY_CENTRE"] },
+  "kinshipSystem": { "id": ["xeno.peerdb.org", "KINSHIP_SYSTEM", "NOT_RECKONED"] },
+  "population": {
+    "value": { "from": { "amount": 40, "precision": 1000 }, "to": { "amount": 120, "precision": 1000 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "contactStatus": { "id": ["xeno.peerdb.org", "CONTACT_STATUS", "INDIRECT"] },
+  "firstContact": { "time": "2274-01-01T00:00:00Z", "precision": "y" },
+  "image": [
+    {
+      "value": "/f/5YPJHViVbJvSjSgCMCzfUN",
+      "name": "G2_NISSESSU.jpg",
+      "caption": "Field plate",
+      "source": "Drawn in the field; Consortium collection"
+    }
+  ]
+}

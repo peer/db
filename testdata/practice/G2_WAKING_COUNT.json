@@ -1,0 +1,29 @@
+{
+  "id": ["xeno.peerdb.org", "PRACTICE", "G2_WAKING_COUNT"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PRACTICE"] }],
+  "name": [{ "value": "The Waking Count", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Kullenukka", "gloss": "the counting of who was alongside" }],
+  "description": [
+    {
+      "value": "<p>A chamber comes out of a long dormancy over about two days, and before anybody eats, everyone who wakes in that chamber knocks their position on the wall in the order they woke. That order is the kinship of the chamber until the next dormancy: whoever knocked before you is owed work from you, whoever knocked after is owed food, and everyone in the chamber is kin to everyone else regardless of what they were four years ago. The tally at the mouth is amended the same day, and households that have been split across two chambers by an accident of storage are simply split, with no procedure for putting them back. Nobody there finds this remarkable and several have asked why the survey keeps asking. A person who wakes alone in a chamber has no cohort at all, for which the warren has a word and no procedure, and which has happened twice.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Ob prebujenju se sorodstvo v komori na novo določi po vrstnem redu trkanja.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Uma câmara sai de uma longa dormência ao longo de cerca de dois dias e, antes de alguém comer, todos os que despertam nessa câmara batem a sua posição na parede pela ordem em que acordaram. Essa ordem é o parentesco da câmara até à dormência seguinte: a quem bateu antes de nós devemos trabalho, a quem bateu depois devemos comida, e toda a gente na câmara é parente de toda a gente, independentemente do que era há quatro anos. O cordel da boca é corrigido nesse mesmo dia, e as casas que um acaso de armazenamento separou por duas câmaras ficam simplesmente separadas, sem procedimento algum para as voltar a juntar. Ninguém ali acha isto digno de nota e vários já perguntaram por que insiste o levantamento em perguntar. Uma pessoa que acorde sozinha numa câmara não tem coorte nenhuma, para o que a toca tem uma palavra e não tem procedimento, e o que já aconteceu duas vezes.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G2_WARREN_TALLY"] }],
+  "category": { "id": ["xeno.peerdb.org", "PRACTICE_CATEGORY", "RITE_OF_PASSAGE"] },
+  "periodicity": "at each waking, about once in four years",
+  "participants": {
+    "value": { "from": { "amount": 9, "precision": 1 }, "to": { "amount": 40, "precision": 1 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "firstDocumented": { "time": "2264-01-01T00:00:00Z", "precision": "y" },
+  "relatedPractice": [{ "id": ["xeno.peerdb.org", "PRACTICE", "G2_UNCLOSED_POSITION"] }]
+}

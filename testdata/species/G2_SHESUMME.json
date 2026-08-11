@@ -1,0 +1,66 @@
+{
+  "id": ["xeno.peerdb.org", "SPECIES", "G2_SHESUMME"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SPECIES"] }],
+  "name": [{ "value": "Warm Pool Vent Tenders", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [
+    { "value": "Shesumme", "gloss": "those of the warm water", "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G2_BED_FIELD"] }] }
+  ],
+  "exonym": [{ "value": "Sessumesh", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "taxonCode": "TX-4141-c",
+  "description": [
+    {
+      "value": "<p>Seven metres of dense muscle and gut, living out their whole lives in the ring of vent-fed shallows around the substellar sea and never once coming up. They do not fish; they plumb, cutting and packing channels of mineral gravel to steer hot flow across their mat beds, and a bed that has been tended for two centuries is visible from the surface as a bright regular patch. Society divides into two halves inherited through the mother, and no bed may be tended by anyone of the half that grew it, which means every meal in the population passes across the divide before it is eaten. The gut symbionts that let them use vent chemistry are inherited with the milk and can be assayed, and the assay agrees with the stated genealogy about four times in five, a discrepancy the discipline has argued over since 2277 and which the Shesumme regard as a question about the assay. A visitor from the raft above sees nothing at all until a body turns, at which point it is briefly obvious how small the raft is.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Velika vodna vrsta iz toplega bazena, ki napeljuje vročo vodo na svoje nasade.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    }
+  ],
+  "homeworld": { "id": ["xeno.peerdb.org", "PLANET", "G2_NINE_TERRACE"] },
+  "bodyPlan": [
+    {
+      "value": "<p>A long, laterally flattened swimmer with a low dorsal keel running the whole body length and no tail fluke, propelling itself by whole-body undulation. Four short limbs sit far forward, heavily muscled and ending in blunt spades used for cutting gravel channels. The head is barely distinguished from the trunk, and the leading edge of the body carries a dense band of electroreceptive pits that reads both prey and the metal content of the water.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "typicalHeight": { "value": { "amount": 7.2, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+  "typicalMass": { "value": { "amount": 4200.0, "precision": 0.1 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "kg"] }] },
+  "lifespan": {
+    "value": { "from": { "amount": 120, "precision": 1 }, "to": { "amount": 300, "precision": 1 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_YEAR"] }]
+  },
+  "sensoryModality": [
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "ELECTRORECEPTION"] },
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "THERMAL_RADIANCE"] },
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "PRESSURE_GRADIENT"] }
+  ],
+  "subsistence": [
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "CHEMO_TENDING"] },
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "COLONY_GRAZING"] }
+  ],
+  "individuality": { "id": ["xeno.peerdb.org", "INDIVIDUALITY_MODE", "BOUNDED"] },
+  "socialOrganisation": { "id": ["xeno.peerdb.org", "SOCIAL_ORGANISATION", "MATRILINEAL_MOIETIES"] },
+  "kinshipSystem": { "id": ["xeno.peerdb.org", "KINSHIP_SYSTEM", "SYMBIONT_SHARING"] },
+  "communication": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G2_BED_FIELD"] }],
+  "population": {
+    "value": { "from": { "amount": 900, "precision": 1000 }, "to": { "amount": 2400, "precision": 1000 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "contactStatus": { "id": ["xeno.peerdb.org", "CONTACT_STATUS", "LIMITED"] },
+  "firstContact": { "time": "2266-01-01T00:00:00Z", "precision": "y" },
+  "image": [
+    {
+      "value": "/f/UmofwRW9ns8EEnBa27Ktqz",
+      "name": "G2_SHESUMME.jpg",
+      "caption": "Field plate",
+      "source": "Drawn in the field; Consortium collection"
+    }
+  ],
+  "notes": [
+    {
+      "value": "<p>Station Three has drifted eleven kilometres from its 2253 anchorage, always in the same direction and always between visits. The current has been measured four times and does not go that way.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

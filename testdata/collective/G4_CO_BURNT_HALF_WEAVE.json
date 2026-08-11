@@ -1,0 +1,25 @@
+{
+  "id": ["xeno.peerdb.org", "COLLECTIVE", "G4_CO_BURNT_HALF_WEAVE"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "COLLECTIVE"] }],
+  "name": [{ "value": "The Burnt Half", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "description": [
+    {
+      "value": "<p>What remained on the northern side of the 2274 terrace fire, after a weave was cut in two by a burn a hundred metres wide and the halves stopped being able to signal across it. The southern portion continued to attend assembly and to answer to the whole name; this one grazed, held its boundary and sent nothing after 2281. Whether it was one self, two selves or a bereavement is the standing question of the species entry, and this record is the only case anybody has been able to watch.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "species": { "id": ["xeno.peerdb.org", "SPECIES", "G4_CANOPY_WEAVE"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G4_CU_WEAVE_ASSEMBLIES"] }],
+  "role": [{ "value": "former assembly party", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "memberCount": {
+    "value": { "from": { "amount": 90, "precision": 10 }, "to": { "amount": 240, "precision": 10 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "activePeriod": { "from": { "time": "2274-01-01T00:00:00Z", "precision": "y" }, "to": { "time": "2281-01-01T00:00:00Z", "precision": "y" } },
+  "notes": [
+    {
+      "value": "<p>The end year is the last recorded exchange, not a determination of death. The field has no other value available, and the 2299 revision considered leaving it null and decided that would be a claim as well.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

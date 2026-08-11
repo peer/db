@@ -1,0 +1,41 @@
+{
+  "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G4_COM_MARCH_SPEECH"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM"] }],
+  "name": [{ "value": "March Speech", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Sesshavassi", "gloss": "the talk at the fire" }],
+  "description": [
+    {
+      "value": "<p>A sibilant, low-pitched speech built to carry against a wind that never drops, used by the hearth people and answered, by the trap keepers who have no organ for it, in compounds released from the rind pores. Both halves are one grammar and one language, and a trade exchange at the nightward margin is therefore half sound and half scent. It carries a great deal about heat, herd position and obligation, and it stops working entirely below about four degrees, since a cooling speaker cannot release and a cooling listener cannot smell; conversations end for thermal reasons and nobody treats this as rudeness. Recordings hold one side of every exchange, and the archive&#39;s sample tapes have been catalogued as monologues since 2263.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "modality": [
+    { "id": ["xeno.peerdb.org", "COMMUNICATION_MODALITY", "VOCALISATION"] },
+    { "id": ["xeno.peerdb.org", "COMMUNICATION_MODALITY", "CHEMICAL_SIGNATURE"] }
+  ],
+  "users": {
+    "value": { "from": { "amount": 38000, "precision": 100 }, "to": { "amount": 95000, "precision": 100 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "sampleGloss": [
+    {
+      "value": "<p><i>sesshi vath thovassa</i>, answered by a released compound the recorder logs only as a rise in sulphide - fire-side, warm-enough - come in; there is room, and it is warm enough to talk.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "recording": [
+    {
+      "value": "/f/26KyXLtds7yt2cktnXEfkn",
+      "name": "system-G4_COM_MARCH_SPEECH.mp3",
+      "caption": "Elicitation sample",
+      "duration": { "value": { "amount": 4, "precision": 1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "MINUTE"] }] },
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G4_COM_MARCH_SPEECH"] }],
+      "note": [
+        {
+          "value": "<p>Recorded during elicitation and kept as the reference sample for this system.</p>",
+          "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+        }
+      ]
+    }
+  ]
+}

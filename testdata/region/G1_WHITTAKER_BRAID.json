@@ -1,0 +1,22 @@
+{
+  "id": ["xeno.peerdb.org", "REGION", "G1_WHITTAKER_BRAID"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "REGION"] }],
+  "name": [{ "value": "The Braid", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Skreth" }],
+  "description": [
+    {
+      "value": "<p>The whole habitable strip of the world in one region: a braided meltwater plain thirty kilometres wide running the length of the dusk band, between an ice wall on the day side and frost on the night side. The channels change course every few seasons and the settlements move with them. There is no permanent construction anywhere in it.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "PLANET", "G1_WHITTAKER_B_II"] },
+  "biome": [{ "id": ["xeno.peerdb.org", "BIOME", "BRAIDED_MELT"] }, { "id": ["xeno.peerdb.org", "BIOME", "DUSK_BELT"] }],
+  "area": { "value": { "amount": 380000, "precision": 100 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "SQUARE_KILOMETRE"] }] },
+  "elevationRange": {
+    "value": { "from": { "amount": -30, "precision": 10 }, "to": { "amount": 1200, "precision": 10 } },
+    "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }]
+  },
+  "image": [
+    { "value": "/f/EFY2zatfwwiVeqUPXtnPBe", "name": "G1_WHITTAKER_BRAID.jpg", "caption": "Regional view", "source": "Consortium survey archive" }
+  ]
+}

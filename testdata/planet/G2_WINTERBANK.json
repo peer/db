@@ -1,0 +1,37 @@
+{
+  "id": ["xeno.peerdb.org", "PLANET", "G2_WINTERBANK"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PLANET"] }],
+  "name": [{ "value": "Winterbank", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "catalogueCode": "EW-0240-b",
+  "description": [
+    {
+      "value": "<p>A cold desert of wind-sorted grit over ancient fractured basalt, with no free water and no weather beyond a dry wind that reverses twice a year. The bedrock carries endolithic life to a depth of about nine hundred metres, running on iron and sulphur left over from a crust that stopped being renewed a very long time ago. Surface temperatures vary by under four degrees across the whole year. The survey found the constancy harder to write about than any hazard.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Um deserto frio de gravilha crivada pelo vento sobre basalto antigo e fraturado, sem água livre e sem meteorologia para além de um vento seco que inverte o sentido duas vezes por ano. A rocha de base alberga vida endolítica até cerca de novecentos metros de profundidade, alimentada pelo ferro e pelo enxofre que restaram de uma crosta que deixou de se renovar há muitíssimo tempo. As temperaturas à superfície variam menos de quatro graus ao longo de todo o ano. O levantamento achou essa constância mais difícil de descrever do que qualquer perigo.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "STAR_SYSTEM", "G2_ELEVEN_WINTERS"] },
+  "planetType": { "id": ["xeno.peerdb.org", "PLANET_TYPE", "DESICCATED"] },
+  "biome": [{ "id": ["xeno.peerdb.org", "BIOME", "REGOLITH_DUNE"] }, { "id": ["xeno.peerdb.org", "BIOME", "ENDOLITH_ZONE"] }],
+  "radius": { "value": { "amount": 1.12, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_RADIUS"] }] },
+  "mass": { "value": { "amount": 1.31, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_MASS"] }] },
+  "surfaceGravity": { "value": { "amount": 1.04, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "STANDARD_GRAVITY"] }] },
+  "dayLength": { "value": { "amount": 27.9, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "HOUR"] }] },
+  "orbitalPeriod": { "value": { "amount": 140.0, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_DAY"] }] },
+  "meanTemperature": { "value": { "amount": -65.0, "precision": 0.1 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "°C"] }] },
+  "hydrosphere": { "value": { "amount": 0, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "PERCENT"] }] },
+  "atmosphere": [
+    {
+      "value": "<p>0.18 bar of nitrogen and argon, dry to the instrument&#39;s floor. The sky is a hard dark blue and the wind, when it comes, carries grit that will frost a faceplate within a season.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "biosphereUnknown": true,
+  "contactStatus": { "id": ["xeno.peerdb.org", "CONTACT_STATUS", "NO_CONTACT"] },
+  "firstSurveyed": { "time": "2246-01-01T00:00:00Z", "precision": "y" },
+  "surveyPeriod": { "from": { "time": "2246-01-01T00:00:00Z", "precision": "y" }, "to": { "time": "2288-01-01T00:00:00Z", "precision": "y" } },
+  "image": [{ "value": "/f/N5CU8Wko26kG9XHaHeGi1S", "name": "G2_WINTERBANK.jpg", "caption": "Surface view", "source": "Consortium survey archive" }]
+}

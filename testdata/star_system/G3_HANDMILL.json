@@ -1,0 +1,18 @@
+{
+  "id": ["xeno.peerdb.org", "STAR_SYSTEM", "G3_HANDMILL"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "STAR_SYSTEM"] }],
+  "name": [{ "value": "Handmill", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "catalogueCode": "HB-1/002",
+  "description": [
+    {
+      "value": "<p>The first system in the galaxy entered by a staffed ship, and still the best characterised. Six planets are confirmed, three of them catalogued in any detail; the outer three are known chiefly as transit timings and a great deal of optimism.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "SECTOR", "G3_BELLWETHER"] },
+  "spectralClass": "K4V",
+  "starCount": { "amount": 1, "precision": 1 },
+  "planetCount": { "amount": 6, "precision": 1 },
+  "distanceFromSol": { "value": { "amount": 214.8, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "PARSEC"] }] },
+  "firstSurveyed": { "time": "2258-01-01T00:00:00Z", "precision": "y" }
+}

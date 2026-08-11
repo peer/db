@@ -1,0 +1,39 @@
+{
+  "id": ["xeno.peerdb.org", "ORGANISM", "G3_SEAM_BORER"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "ORGANISM"] }],
+  "name": [{ "value": "Seam Borer", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "taxonCode": "TX-1111-c",
+  "description": [
+    {
+      "value": "<p>A rock-boring filament living two to forty metres down in pore space and fracture surfaces, dissolving its own cavity and advancing perhaps a centimetre in a century. The same organism, or something no instrument has been able to distinguish from it, has been recovered on three worlds in two sectors, which is the strongest argument this galaxy offers for anything ever having travelled. One generation outlasts the survey that finds it.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Um filamento perfurador de rocha que vive entre os dois e os quarenta metros de profundidade, no espaço poroso e nas superfícies de fratura, dissolvendo a sua própria cavidade e avançando talvez um centímetro por século. O mesmo organismo, ou algo que nenhum instrumento conseguiu distinguir dele, foi recolhido em três mundos de dois setores, o que é o argumento mais forte que esta galáxia oferece a favor de alguma coisa alguma vez ter viajado. Uma geração dura mais do que o levantamento que a encontra.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "category": { "id": ["xeno.peerdb.org", "ORGANISM_CATEGORY", "ENDOLITH"] },
+  "foundOn": [
+    { "id": ["xeno.peerdb.org", "PLANET", "G3_HANDMILL_D"] },
+    { "id": ["xeno.peerdb.org", "PLANET", "G3_CAPSTAN_E"] },
+    { "id": ["xeno.peerdb.org", "PLANET", "G3_LATHE_C"] }
+  ],
+  "biome": [{ "id": ["xeno.peerdb.org", "BIOME", "ENDOLITH_ZONE"] }],
+  "typicalSize": { "value": { "amount": 0.02, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+  "typicalMass": { "value": { "amount": 0.0008, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "kg"] }] },
+  "image": [
+    {
+      "value": "/f/KHEqu9YEk29WH9x5uXS5M9",
+      "name": "G3_SEAM_BORER.jpg",
+      "caption": "Field plate",
+      "source": "Drawn in the field; Consortium collection"
+    }
+  ],
+  "notes": [
+    {
+      "value": "<p>The Lathe material was collected during a nine-day visit, which is not long enough to observe this organism doing anything at all.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

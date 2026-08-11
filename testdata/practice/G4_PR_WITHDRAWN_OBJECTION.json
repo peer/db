@@ -1,0 +1,27 @@
+{
+  "id": ["xeno.peerdb.org", "PRACTICE", "G4_PR_WITHDRAWN_OBJECTION"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PRACTICE"] }],
+  "name": [{ "value": "Withdrawing the Objection", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "nehuahiuwe", "gloss": "the taking back of the thing said against" }],
+  "description": [
+    {
+      "value": "<p>Each weave attends a sitting as one party however many bodies it has present, and the sitting continues until every weave has withdrawn its objection; there is no vote and no closing without withdrawal. Objections are stated as slow pulses through the branch structure at roughly one exchange an hour, so a sitting of nine days carries perhaps two hundred exchanges in total. A weave that will not withdraw is neither pressed nor excluded, and in both recorded sittings the last objection was withdrawn in the same figure in which it was first stated, which the transcripts show is the form a concession takes here. The loss of a body during a sitting is not an interruption; the loss of a length of grazed branch suspends proceedings. The guild delegations from the terraces below attended both sittings, contributed at some sixty times the speed, and were heard in full.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Cada trama assiste a uma sessão como uma só parte, por muitos corpos que tenha presentes, e a sessão prossegue até todas as tramas terem retirado a sua objeção; não há votação nem encerramento sem retirada. As objeções são enunciadas em pulsos lentos através da estrutura dos ramos, a cerca de uma troca por hora, pelo que uma sessão de nove dias comporta talvez duzentas trocas ao todo. Uma trama que não retire a objeção não é pressionada nem excluída e, nas duas sessões registadas, a última objeção foi retirada na mesma figura em que fora enunciada, o que as transcrições mostram ser a forma que aqui toma uma cedência. A perda de um corpo durante uma sessão não é uma interrupção; a perda de um troço de ramo pastado suspende os trabalhos. As delegações dos grémios dos terraços de baixo assistiram a ambas as sessões, intervieram a cerca de sessenta vezes a velocidade e foram ouvidas na íntegra.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G4_CU_WEAVE_ASSEMBLIES"] }],
+  "category": { "id": ["xeno.peerdb.org", "PRACTICE_CATEGORY", "DISPUTE_RESOLUTION"] },
+  "periodicity": "whenever a boundary of grazed branch is in question",
+  "participants": {
+    "value": { "from": { "amount": 3, "precision": 1 }, "to": { "amount": 11, "precision": 1 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "firstDocumented": { "time": "2281-01-01T00:00:00Z", "precision": "y" },
+  "image": [
+    { "value": "/f/QgGciiSnW9ytw4NhkUdH1b", "name": "G4_PR_WITHDRAWN_OBJECTION.jpg", "caption": "In progress", "source": "Consortium survey archive" }
+  ]
+}

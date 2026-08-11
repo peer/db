@@ -1,0 +1,25 @@
+{
+  "id": ["xeno.peerdb.org", "PRACTICE", "G3_COLD_WALL"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PRACTICE"] }],
+  "name": [{ "value": "Raising the Cold Wall", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Usselleth", "gloss": "the side that meets the front" }],
+  "description": [
+    {
+      "value": "<p>A shelter is rebuilt by the whole household with the children placing the first course, and the first course fixes which way the building will face for the rest of its life. The thick wall goes on the side the front wind comes from, and a child who lays it wrong is not corrected in words but has the stones taken up and put back into the pile to be laid again. Adults carry, children place, and nobody explains, on the stated grounds that a wall which has to be explained will be built wrong somewhere else later. The work takes about two days and is done nine or ten times in a life, so that by adulthood a person has laid a first course often enough to do it in the dark, which on the night edge of the band is the point. Every camp on the strip therefore faces the same way and a visitor can find the door without asking, which is the first thing a fieldworker is told and the last thing they believe.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Otroci pri gradnji položijo prvo vrsto kamnov in se tako naučijo, da debela stena vedno gleda proti mrazu.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    }
+  ],
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G3_STRIP_STEWARDSHIP"] }],
+  "category": { "id": ["xeno.peerdb.org", "PRACTICE_CATEGORY", "CRAFT_TRANSMISSION"] },
+  "periodicity": "at every rebuilding, perhaps nine times in a life",
+  "participants": {
+    "value": { "from": { "amount": 3, "precision": 1 }, "to": { "amount": 14, "precision": 1 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "firstDocumented": { "time": "2265-01-01T00:00:00Z", "precision": "y" },
+  "relatedPractice": [{ "id": ["xeno.peerdb.org", "PRACTICE", "G3_HANDING_ON"] }]
+}

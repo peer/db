@@ -1,0 +1,18 @@
+{
+  "id": ["xeno.peerdb.org", "STAR_SYSTEM", "G1_SIXTEEN_HUNDRED"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "STAR_SYSTEM"] }],
+  "name": [{ "value": "Sixteen Hundred", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "catalogueCode": "MW-0716-SXH",
+  "description": [
+    {
+      "value": "<p>A close solar analogue with eight planets, the largest catalogued family in the sector and the only one anybody has finished counting. It carries the manifest number that gave the sector its name.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "SECTOR", "G1_LONG_TALLY"] },
+  "spectralClass": "G2V",
+  "starCount": { "amount": 1, "precision": 1 },
+  "planetCount": { "amount": 8, "precision": 1 },
+  "distanceFromSol": { "value": { "amount": 712.8, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "PARSEC"] }] },
+  "firstSurveyed": { "time": "2244-01-01T00:00:00Z", "precision": "y" }
+}

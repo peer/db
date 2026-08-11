@@ -1,0 +1,19 @@
+{
+  "id": ["xeno.peerdb.org", "REGION", "G3_VENT_CHAIN"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "REGION"] }],
+  "name": [{ "value": "The Vent Chain", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Thesserin" }],
+  "description": [
+    {
+      "value": "<p>A line of hydrothermal fields following a spreading ridge for eleven hundred kilometres under four kilometres of water and fifteen of ice. The chimneys are tall, closely spaced and hot, and the communities on them are dense enough to register on sonar as terrain. Everything known about the people here was learned within a few hundred metres of one borehole.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "PLANET", "G3_THESSILA"] },
+  "biome": [{ "id": ["xeno.peerdb.org", "BIOME", "VENT_FIELD"] }, { "id": ["xeno.peerdb.org", "BIOME", "BRINE_SEA"] }],
+  "area": { "value": { "amount": 130000, "precision": 100 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "SQUARE_KILOMETRE"] }] },
+  "elevationRange": {
+    "value": { "from": { "amount": -4800, "precision": 10 }, "to": { "amount": -3600, "precision": 10 } },
+    "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }]
+  }
+}

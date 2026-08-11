@@ -1,0 +1,66 @@
+{
+  "id": ["xeno.peerdb.org", "SPECIES", "G1_SUNARELI"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SPECIES"] }],
+  "name": [{ "value": "Lower Shallows Weirfolk", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [
+    {
+      "value": "Sunareli",
+      "gloss": "those who wait for the water",
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G1_FLATS_SPEECH"] }]
+    }
+  ],
+  "exonym": [
+    { "value": "Sunarhalu, in the speech of the terrace households above them", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }
+  ],
+  "taxonCode": "TX-1207-a",
+  "description": [
+    {
+      "value": "<p>The largest population on the tidal flats and the one the Consortium has worked with longest. They spend two thirds of every tidal cycle out on the flats on foot and go up to the high edge only to sleep and to store, so the working day is nineteen metres of water long and has nothing to do with light. Their built landscape is almost entirely weir: several thousand kilometres of low stacked wall, kept up by rota, some stretches older than any account of who first laid them. What a visitor notices first is that nobody hurries and nobody stops, because the pace is set by something that cannot be argued with. The standing argument in the discipline is whether a turn on a wall is property at all, given that it confers no claim whatever on what the wall catches.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Največja skupnost na blatiščih, ki po ustaljenem vrstnem redu vzdržuje več tisoč kilometrov nizkih kamnitih pregrad.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    }
+  ],
+  "homeworld": { "id": ["xeno.peerdb.org", "PLANET", "G1_HOLLIS_III"] },
+  "bodyPlan": [
+    {
+      "value": "<p>Bilateral and upright, with two heavy walking limbs and four working limbs in two pairs, the lower pair broad and shovel-like and the upper pair fine enough to knot cord. The integument is a soft grey-brown hide that stays damp by design and dries to a pale salt film within an hour of leaving the water. They feed by hand and sort most of the catch where they stand, and they hold breath for something close to nine minutes without any apparent sense of occasion.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "typicalHeight": { "value": { "amount": 1.55, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+  "typicalMass": { "value": { "amount": 54.0, "precision": 0.1 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "kg"] }] },
+  "lifespan": {
+    "value": { "from": { "amount": 44, "precision": 1 }, "to": { "amount": 88, "precision": 1 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_YEAR"] }]
+  },
+  "sensoryModality": [
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "PRESSURE_GRADIENT"] },
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "HYGRORECEPTION"] },
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "CONTACT_CHEMO"] }
+  ],
+  "subsistence": [
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "TIDAL_TRAPPING"] },
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "SILT_GARDENING"] }
+  ],
+  "individuality": { "id": ["xeno.peerdb.org", "INDIVIDUALITY_MODE", "BOUNDED"] },
+  "socialOrganisation": { "id": ["xeno.peerdb.org", "SOCIAL_ORGANISATION", "ROTATING_STEWARDSHIP"] },
+  "kinshipSystem": { "id": ["xeno.peerdb.org", "KINSHIP_SYSTEM", "HEARTH_AFFILIATION"] },
+  "communication": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G1_FLATS_SPEECH"] }],
+  "population": {
+    "value": { "from": { "amount": 1400000, "precision": 1000 }, "to": { "amount": 2200000, "precision": 1000 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "contactStatus": { "id": ["xeno.peerdb.org", "CONTACT_STATUS", "SUSTAINED"] },
+  "firstContact": { "time": "2218-01-01T00:00:00Z", "precision": "y" },
+  "image": [
+    {
+      "value": "/f/2w6ZSdjUJ9UgXhCo78aPaE",
+      "name": "G1_SUNARELI.jpg",
+      "caption": "Field plate",
+      "source": "Drawn in the field; Consortium collection"
+    }
+  ]
+}

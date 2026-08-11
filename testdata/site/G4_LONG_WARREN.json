@@ -1,0 +1,21 @@
+{
+  "id": ["xeno.peerdb.org", "SITE", "G4_LONG_WARREN"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SITE"] }],
+  "name": [{ "value": "Long Warren", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "localName": [{ "value": "Pirrukkat", "gloss": "the deep rooms" }],
+  "description": [
+    {
+      "value": "<p>The largest of the wintering warrens, thirty-one kilometres of mapped passage between a hundred and eighty and four hundred metres below the upland surface, with nine entrances and a rock temperature that does not vary. For most of the orbit it holds only dormant inhabitants. Survey access is by agreement and is limited to four passages, none of them the ones anybody wants.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "REGION", "G4_DEEP_COURSE"] },
+  "siteType": { "id": ["xeno.peerdb.org", "SITE_TYPE", "SUBSURFACE_WARREN"] },
+  "gridReference": "DC-071.2/-22.5",
+  "population": {
+    "value": { "from": { "amount": 9000, "precision": 10 }, "to": { "amount": 21000, "precision": 10 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "occupation": { "from": { "time": "2238-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true },
+  "image": [{ "value": "/f/RxkxCrTdXVgn6YeHSGwkog", "name": "G4_LONG_WARREN.jpg", "caption": "General view", "source": "Consortium survey archive" }]
+}

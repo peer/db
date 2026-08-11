@@ -1,0 +1,27 @@
+{
+  "id": ["xeno.peerdb.org", "SITE", "G3_DRY_RELAY"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SITE"] }],
+  "name": [{ "value": "Dry Relay", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "localName": [{}],
+  "description": [
+    {
+      "value": "<p>A squat concrete navigation beacon built in 2264 on the basin&#39;s eastern wall and decommissioned in 2277 when the sector&#39;s beacon network was rerouted. Its dish is gone and its door does not close. It now serves as a dry store for rock samples awaiting a ship, and has held some of them for longer than it was ever a beacon.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "REGION", "G3_GYPSUM_BASIN"] },
+  "siteType": { "id": ["xeno.peerdb.org", "SITE_TYPE", "RELAY_STATION"] },
+  "gridReference": "HD-134.2/+27.5",
+  "population": {
+    "value": { "from": { "amount": 0, "precision": 10 }, "to": { "amount": 6, "precision": 10 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "founded": { "time": "2264-01-01T00:00:00Z", "precision": "y" },
+  "occupation": { "from": { "time": "2264-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true },
+  "notes": [
+    {
+      "value": "<p>The oldest crate inside is labelled for a ship that was reassigned in 2281 and has not been in this galaxy since.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

@@ -1,0 +1,34 @@
+{
+  "id": ["xeno.peerdb.org", "OBSERVATION", "OBSB_JOINT_WALK_41_42"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "OBSERVATION"] }],
+  "title": [
+    { "value": "Walk of the joint between lengths forty-one and forty-two", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>The eighth-day walk of a wall joint by the two households that hold either side of it, with the survey carrying nothing.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "content": [
+    {
+      "value": "<p>14.viii.2276. Down at the bottom of the tide with Waimeru and Oreimo and the households of both lengths, four people in all. They carried a sounding pole and a coil of new cord. Anything that needs more than that is entered as work and is not a walk, a distinction we were told twice before we set out and once on the wall.</p><p>They started at the seaward end and came landward, sounding at each course change. Each household stated the condition of the other&#39;s stonework aloud, and each statement was made twice, the second time without change of wording.</p><p>Two metres of joint were re-laid with the new cord, wet, which will tighten into the stonework as it dries and cannot afterwards be re-tensioned. The old cord came away in one piece and was given to us on request.</p><p>A slumped face about eleven metres from the seaward end was called sound by both households. It is not sound; we photographed it and it had moved perceptibly by the following walk. Neither household mentioned it on that walk either. We do not know whether the slump falls outside the joint, or outside the walk, or outside what is said aloud.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "expedition": { "id": ["xeno.peerdb.org", "EXPEDITION", "EXP_LONG_WATER_SHELF"] },
+  "observedBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_HALVORSEN"] }, { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_ARAI"] }],
+  "observedAt": { "id": ["xeno.peerdb.org", "SITE", "G4_UPPER_MIDDEN"] },
+  "observedOn": { "time": "2276-08-14T00:00:00Z", "precision": "d" },
+  "about": [
+    { "id": ["xeno.peerdb.org", "SPECIES", "G4_WEIRFOLK"] },
+    { "id": ["xeno.peerdb.org", "PRACTICE", "G4_PR_JOINT_WALK"] },
+    { "id": ["xeno.peerdb.org", "CULTURE", "G4_CU_WEIR_ORDER"] }
+  ],
+  "method": [
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "PARTICIPANT_OBSERVATION"] },
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "PHOTOGRAMMETRY"] }
+  ],
+  "fieldConditions": "Low water before dawn, wind slight, the flats loud with runner shell being worked further along the wall.",
+  "image": [{ "value": "/f/KJ9Q8RBTGScuGnzVTj7NYu", "name": "OBSB_JOINT_WALK_41_42.jpg", "caption": "Taken at the time", "source": "Field record" }]
+}

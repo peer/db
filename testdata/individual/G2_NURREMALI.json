@@ -1,0 +1,21 @@
+{
+  "id": ["xeno.peerdb.org", "INDIVIDUAL", "G2_NURREMALI"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "INDIVIDUAL"] }],
+  "name": [{ "value": "Nurremali" }],
+  "lineageName": [{ "value": "Fourth Fissure, Benders" }],
+  "description": [
+    {
+      "value": "<p>One of the two continuations of the person who began dividing in 2284 and finished in 2285, and holder of the fourth fissure since. They are a bender by training and were a bender before the division, the whole of that career being theirs and also the other continuation&#39;s. They have not been photographed, the survey having no way to work at a running vent without lights and no permission to use them.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "species": { "id": ["xeno.peerdb.org", "SPECIES", "G2_NURRUMALI"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G2_HEARTH_CORPORATIONS"] }, { "id": ["xeno.peerdb.org", "CULTURE", "G2_CUT_CRUST"] }],
+  "role": [
+    { "value": "bender", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "hearth holder", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }
+  ],
+  "formOfAddress": "by fissure and corporation",
+  "born": { "time": "2249-01-01T00:00:00Z", "precision": "y" },
+  "birthplace": { "id": ["xeno.peerdb.org", "SITE", "G2_NURRU_HEARTHS"] }
+}

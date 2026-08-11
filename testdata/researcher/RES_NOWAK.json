@@ -1,0 +1,22 @@
+{
+  "id": ["xeno.peerdb.org", "RESEARCHER", "RES_NOWAK"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "RESEARCHER"] }],
+  "name": [{ "value": "Katarzyna" }],
+  "familyName": [{ "value": "Nowak" }],
+  "researcherCode": "CCX-P-01890",
+  "description": [
+    {
+      "value": "<p>Built the allocation instrument that two thirds of the register now uses and has spent thirty years defending its question order against people who want to improve it. She resented her first posting, a dry world she had not asked for and could not leave, and has worked on nothing else since. She is said to be the only person who enjoys the instrument.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "affiliatedWith": [{ "id": ["xeno.peerdb.org", "INSTITUTE", "INST_LEDGER"] }],
+  "specialisesIn": [
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "STRUCTURED_INTERVIEW"] },
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "ARCHIVAL_COMPARISON"] }
+  ],
+  "activePeriod": { "from": { "time": "2264-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true },
+  "born": { "time": "2240-01-01T00:00:00Z", "precision": "y" },
+  "website": ["https://ledger-school.ccx.example/people/nowak"],
+  "image": [{ "value": "/f/Ljo76JtfzpWg3hdxrbD1Wo", "name": "RES_NOWAK.jpg", "caption": "Staff photograph", "source": "Consortium personnel record" }]
+}

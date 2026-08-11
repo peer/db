@@ -1,0 +1,29 @@
+{
+  "id": ["xeno.peerdb.org", "SITE", "G3_FLOW_MARGIN_STATION"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SITE"] }],
+  "name": [{ "value": "Flow Margin Station", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "description": [
+    {
+      "value": "<p>The Consortium&#39;s only permanently crewed installation in the sector: five insulated modules, a vent laboratory and a landing apron, sunk half a metre into the flow front. Four people winter over and up to twenty are present when a ship is in. It is the address to which all correspondence for this galaxy is sent, and from which very little of it is answered promptly.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "REGION", "G3_FLOW_MARGIN"] },
+  "siteType": { "id": ["xeno.peerdb.org", "SITE_TYPE", "FIELD_CAMP"] },
+  "gridReference": "WH-012.8/+44.0",
+  "population": {
+    "value": { "from": { "amount": 4, "precision": 10 }, "to": { "amount": 20, "precision": 10 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "founded": { "time": "2271-01-01T00:00:00Z", "precision": "y" },
+  "occupation": { "from": { "time": "2271-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true },
+  "image": [
+    { "value": "/f/H9vFVr1b7sLEcVpaMvhfy7", "name": "G3_FLOW_MARGIN_STATION.jpg", "caption": "General view", "source": "Consortium survey archive" }
+  ],
+  "notes": [
+    {
+      "value": "<p>Post arrives roughly twice a decade and is sorted, by long custom, into what is still true and what is not.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

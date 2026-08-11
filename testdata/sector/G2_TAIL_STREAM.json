@@ -1,0 +1,14 @@
+{
+  "id": ["xeno.peerdb.org", "SECTOR", "G2_TAIL_STREAM"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SECTOR"] }],
+  "name": [{ "value": "Tail Stream Sector", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "catalogueCode": "SEC-TS/3",
+  "description": [
+    {
+      "value": "<p>Stars drawn out along the tidal tail the galaxy is shedding into the halo, spread over four hundred parsecs and getting further apart every million years. Two systems have been reached and both were reached slowly. The transit between them is longer than most careers.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "GALAXY", "G2_UNDERCOUNT"] },
+  "surveyPeriod": { "from": { "time": "2258-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true }
+}

@@ -1,0 +1,18 @@
+{
+  "id": ["xeno.peerdb.org", "INDIVIDUAL", "G4_IN_SHITHOVAN"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "INDIVIDUAL"] }],
+  "name": [{ "value": "Shithovan" }],
+  "lineageName": [{ "value": "Second Hearth" }],
+  "description": [
+    {
+      "value": "<p>A knapper at the glass quarry, working the face for blanks that go nightward in trade for chemosynthetic starter. He has carried a grievance against the survey since 2288, when a resurvey placed his grandmother&#39;s hearth eleven kilometres dayward of where his household holds it stood, which reads, in the local account, as an accusation of drifting. He has offered to walk any surveyor to the correct position and nobody has yet taken up the offer.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "species": { "id": ["xeno.peerdb.org", "SPECIES", "G4_HEARTH_WALKERS"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G4_CU_HEARTH_CIRCUIT"] }],
+  "role": [{ "value": "glass knapper", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "formOfAddress": "by hearth and season",
+  "born": { "time": "2271-01-01T00:00:00Z", "precision": "y" },
+  "birthplace": { "id": ["xeno.peerdb.org", "SITE", "G4_WALKING_HEARTHS"] }
+}

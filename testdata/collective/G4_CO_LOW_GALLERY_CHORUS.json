@@ -1,0 +1,23 @@
+{
+  "id": ["xeno.peerdb.org", "COLLECTIVE", "G4_CO_LOW_GALLERY_CHORUS"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "COLLECTIVE"] }],
+  "name": [{ "value": "Low Gallery Chorus", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "description": [
+    {
+      "value": "<p>A self occupying bodies in eleven galleries beneath the drum plain, the furthest pair forty kilometres apart, held together by struck signal through the basement rock. It tends the warm lower mats, states its ledger position before it states anything else, and has never once been observed to close an obligation. The discipline records it as one body on its own insistence and on the evidence, which for once agree.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "species": { "id": ["xeno.peerdb.org", "SPECIES", "G4_DEEP_CHORUS"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G4_CU_GALLERY_LEDGERS"] }],
+  "role": [
+    { "value": "ledger party", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "mat tender", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }
+  ],
+  "memberCount": {
+    "value": { "from": { "amount": 900, "precision": 10 }, "to": { "amount": 2400, "precision": 10 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "activePeriod": { "from": { "time": "2277-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true },
+  "seat": { "id": ["xeno.peerdb.org", "SITE", "G4_QUIET_FLOOR"] }
+}

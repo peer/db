@@ -1,0 +1,39 @@
+{
+  "id": ["xeno.peerdb.org", "NARRATIVE", "G1_GROUND_DREAM"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "NARRATIVE"] }],
+  "title": [{ "value": "I Was Standing On It", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [
+    {
+      "value": "Vethran Nef Threth",
+      "gloss": "what came to somebody in a house that does not come down",
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G1_COLUMN_PERCUSSION"] }]
+    }
+  ],
+  "description": [
+    {
+      "value": "<p>A dream report drummed at the trunk base in the form the canopy houses recognise as reportable, which requires the teller to say where in the house they were sleeping and who was gripping them. Reports about the forest floor are common enough to have their own opening figure and are not treated as remarkable.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "genre": { "id": ["xeno.peerdb.org", "NARRATIVE_GENRE", "DREAM_REPORT"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G1_CANOPY_HOUSES"] }],
+  "recordedBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_BEKELE"] }],
+  "recordedAt": { "id": ["xeno.peerdb.org", "SITE", "G1_CANOPY_TETHER"] },
+  "recordedOn": { "time": "2302-01-01T00:00:00Z", "precision": "y" },
+  "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G1_COLUMN_PERCUSSION"] }],
+  "content": [
+    {
+      "value": "<p>Third layer, north side of the eleventh column, and my sister&#39;s hand on my back the whole night, so this is a true report.</p><p>I was standing on it. Both feet and no grip anywhere and nothing above me holding. It was soft and it was warm and it went down when I put my weight on it, and it came back up.</p><p>I looked up and I could not see the house. I could see the light coming down in the pieces it comes down in, and I could see that there is a great deal of it that never arrives anywhere.</p><p>Then I was gripping again. I have been asked whether I was frightened. I was not frightened. I was counting how far it was, and I had got to forty, and forty is nothing.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "recording": [
+    {
+      "value": "/f/FAP7foXrmCVTCfTWSp9qHA",
+      "name": "narrative-G1_GROUND_DREAM.mp3",
+      "caption": "Performance, recorded on site",
+      "duration": { "value": { "amount": 16, "precision": 1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "MINUTE"] }] },
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G1_COLUMN_PERCUSSION"] }]
+    }
+  ]
+}

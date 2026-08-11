@@ -1,0 +1,37 @@
+{
+  "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G2_BED_FIELD"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM"] }],
+  "name": [{ "value": "Bed Field", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "description": [
+    {
+      "value": "<p>Slow modulated discharges into warm water, produced along the leading edge of the body and read by the same organ that reads the metal content of a gravel channel. Everything it carries is about beds: who grew one, who may cut into it, whose half is owed a meal. It has no second person that is not marked for moiety, so it is not possible to address somebody in this language without stating which side of the divide they are on, and the Consortium&#39;s attempts to do so have been received as either an insult or a proposal. The one recording anybody has was made by lowering a hydrophone from a raft and is nine minutes long.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "modality": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_MODALITY", "ELECTRICAL_DISCHARGE"] }],
+  "users": {
+    "value": { "from": { "amount": 900, "precision": 100 }, "to": { "amount": 2400, "precision": 100 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "sampleGloss": [
+    {
+      "value": "<p><i>[a slow ascending buzz, broken once, then flat]</i> - <b>grown-by-us-not-eaten</b> - &#39;this bed is ours to grow and not ours to eat.&#39;</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "recording": [
+    {
+      "value": "/f/L7hB5ShW1rd9xZ2TkETLuS",
+      "name": "system-G2_BED_FIELD.mp3",
+      "caption": "Elicitation sample",
+      "duration": { "value": { "amount": 4, "precision": 1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "MINUTE"] }] },
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G2_BED_FIELD"] }],
+      "note": [
+        {
+          "value": "<p>Recorded during elicitation and kept as the reference sample for this system.</p>",
+          "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+        }
+      ]
+    }
+  ]
+}

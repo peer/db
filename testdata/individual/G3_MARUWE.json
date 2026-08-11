@@ -1,0 +1,20 @@
+{
+  "id": ["xeno.peerdb.org", "INDIVIDUAL", "G3_MARUWE"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "INDIVIDUAL"] }],
+  "name": [{ "value": "Maruwe" }],
+  "lineageName": [{ "value": "Neimoa" }],
+  "description": [
+    {
+      "value": "<p>Divided his household in 2287 and divided the culture with it, in a procedure the survey was permitted to watch and not to record, and which took nine days. He has since refused two requests to describe the procedure afterwards, saying that a description of it would be a second division and would need a second nine days. He is otherwise the most forthcoming informant at the terraces and has fed four expeditions at his own pits.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "species": { "id": ["xeno.peerdb.org", "SPECIES", "G3_NAWAIMU"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G3_FERMENT_HOUSEHOLDS"] }],
+  "role": [
+    { "value": "pit keeper", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "household head", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }
+  ],
+  "formOfAddress": "by name and then the culture's name",
+  "born": { "time": "2240-01-01T00:00:00Z", "precision": "y" }
+}

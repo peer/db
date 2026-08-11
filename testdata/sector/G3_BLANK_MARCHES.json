@@ -1,0 +1,14 @@
+{
+  "id": ["xeno.peerdb.org", "SECTOR", "G3_BLANK_MARCHES"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SECTOR"] }],
+  "name": [{ "value": "Blank Marches", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "catalogueCode": "HB-4",
+  "description": [
+    {
+      "value": "<p>Almost nothing is known. One system has been entered, by an unstaffed probe on a single pass in 2307, and the rest of the sector is represented by timing data and by the confident opinions of people who have not been there. It is catalogued so that its emptiness is recorded rather than assumed.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "GALAXY", "G3_HOLLOW_BAR"] },
+  "surveyPeriod": { "from": { "time": "2304-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true }
+}

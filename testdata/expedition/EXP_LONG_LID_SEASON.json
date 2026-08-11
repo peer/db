@@ -1,0 +1,32 @@
+{
+  "id": ["xeno.peerdb.org", "EXPEDITION", "EXP_LONG_LID_SEASON"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "EXPEDITION"] }],
+  "name": [{ "value": "Long Lid Vent Season", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "catalogueCode": "EXP-2278-02",
+  "description": [
+    {
+      "value": "<p>Six years under thirty kilometres of ice, four of them spent waiting on a ruling as to whether a working lamp constitutes a first-contact signal on a world where nothing has ever produced light. The ruling was that it does. The expedition is therefore the source of the register&#39;s largest body of recordings made in the dark, and of a method for describing a settlement you have never seen. Its budget was the smallest of any posting of its length and most of it went on batteries.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "destination": [
+    { "id": ["xeno.peerdb.org", "PLANET", "G2_LONG_LID"] },
+    { "id": ["xeno.peerdb.org", "REGION", "G2_WARM_SEAM"] },
+    { "id": ["xeno.peerdb.org", "REGION", "G2_UPPER_CEILING"] }
+  ],
+  "period": { "from": { "time": "2278-01-01T00:00:00Z", "precision": "y" }, "to": { "time": "2284-01-01T00:00:00Z", "precision": "y" } },
+  "ledBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_WEN"] }],
+  "teamMember": [
+    { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_SUBRAMANIAN"] },
+    { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_MOKOENA"] },
+    { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_MOLNAR"] }
+  ],
+  "organisedBy": [{ "id": ["xeno.peerdb.org", "INSTITUTE", "INST_EVENING"] }],
+  "method": [
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "ACOUSTIC_RECORDING"] },
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "PARTICIPANT_OBSERVATION"] }
+  ],
+  "ethics": { "id": ["xeno.peerdb.org", "ETHICS_PROTOCOL", "PROTOCOL_5"] },
+  "budget": { "value": { "amount": 480000, "precision": 1000 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "$"] }] },
+  "report": [{ "value": "/f/JnFNxY3sCw9Btof4PwD7n1", "name": "EXP_LONG_LID_SEASON.pdf", "caption": "Final report" }]
+}

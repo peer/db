@@ -1,0 +1,29 @@
+{
+  "id": ["xeno.peerdb.org", "PUBLICATION", "PUB_LODGE_CORD_READING"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PUBLICATION"] }],
+  "title": [
+    {
+      "value": "Reading Across: Paired Cord Records, Route Ownership and the Setting Down of a Far Road in the Hauling Lodges of Long Tally",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "doi": "10.5281/xeno.2281.0177",
+  "abstract": [
+    {
+      "value": "<p>A hauling route is owned by the pair of cords that record it, one held at each end, and it exists only while both cords can be read against one another. We describe the reading-across procedure, the four classes of discrepancy it recognises, and the ceremony by which a route whose cords no longer agree is set down and may not be hauled again. Twenty-two routes were read during the crossing; six were set down, of which four were later reopened under different names. The lodges are explicit that a reopened route is a new route, and we see no reason to argue with them.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "author": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_FERREIRA"] }, { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_DEMIR"] }],
+  "journal": "Long-Duration Field Reports",
+  "publishedOn": { "time": "2281-10-01T00:00:00Z", "precision": "m" },
+  "about": [
+    { "id": ["xeno.peerdb.org", "SPECIES", "G3_SHELLUTHE"] },
+    { "id": ["xeno.peerdb.org", "CULTURE", "G3_ICE_LODGES"] },
+    { "id": ["xeno.peerdb.org", "PRACTICE", "G3_CORD_MEETING"] }
+  ],
+  "cites": [
+    { "id": ["xeno.peerdb.org", "PUBLICATION", "PUB_FERMENT_LINEAGE"] },
+    { "id": ["xeno.peerdb.org", "PUBLICATION", "PUB_STRIP_STEWARDSHIP"] }
+  ]
+}

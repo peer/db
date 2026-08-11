@@ -1,0 +1,30 @@
+{
+  "id": ["xeno.peerdb.org", "ORGANISM", "G2_BAND_GRAZER"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "ORGANISM"] }],
+  "name": [{ "value": "Band Grazer", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Lumme" }],
+  "taxonCode": "TX-1104-a",
+  "description": [
+    {
+      "value": "<p>A heavy six-limbed browser that walks the habitable ring end to end and back on a circuit of about nine years, cropping wild mat from the ground the terraces do not hold. Herds run from two to four hundred animals and travel at a fixed pace day and night, there being no night. The plates it sheds each year are split, soaked and twisted into the cordage used the whole length of the band, which is the only reason the herds are tolerated on cut ground.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Um herbívoro pesado de seis membros que percorre o anel habitável de ponta a ponta e de volta num circuito de cerca de nove anos, cortando o tapete selvagem do terreno que os terraços não ocupam. As manadas vão de duzentos a quatrocentos animais e avançam a passo constante de dia e de noite, não havendo noite. As placas que muda todos os anos são fendidas, postas de molho e torcidas para fazer o cordame usado em toda a extensão da faixa, e é essa a única razão pela qual as manadas são toleradas em terreno cultivado.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "category": { "id": ["xeno.peerdb.org", "ORGANISM_CATEGORY", "MOTILE_HETEROTROPH"] },
+  "foundOn": [{ "id": ["xeno.peerdb.org", "PLANET", "G2_HALF_LIGHT"] }],
+  "biome": [{ "id": ["xeno.peerdb.org", "BIOME", "DUSK_BELT"] }],
+  "typicalSize": { "value": { "amount": 2.2, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+  "typicalMass": { "value": { "amount": 380.0, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "kg"] }] },
+  "image": [
+    {
+      "value": "/f/WYUBk2X3K3dakjvD8VWHEA",
+      "name": "G2_BAND_GRAZER.jpg",
+      "caption": "Field plate",
+      "source": "Drawn in the field; Consortium collection"
+    }
+  ]
+}

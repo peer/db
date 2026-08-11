@@ -1,0 +1,29 @@
+{
+  "id": ["xeno.peerdb.org", "ARTIFACT", "G4_AR_BOUNDARY_PLAIT"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "ARTIFACT"] }],
+  "name": [{ "value": "Boundary Plait", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "nehuewa", "gloss": "where the grazing stops" }],
+  "accessionCode": "CCX-A-20495",
+  "description": [
+    {
+      "value": "<p>A metre and a half of living branch tips plaited into a four-strand rope and left to lignify in place, marking the limit of one weave&#39;s grazing after the fire of 2279. Plaits are made slowly, a few centimetres a day, by whichever bodies are nearest, and the sitting that agreed the line watched it grow rather than inspecting it afterwards. This section died when the branch carrying it was cut in 2288 and was collected from the ground below. It is stiff, hollow and holds the plait perfectly, and the fourth strand was never completed, the sitting having closed before it was.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "category": { "id": ["xeno.peerdb.org", "ARTIFACT_CATEGORY", "CORDAGE"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G4_CU_WEAVE_ASSEMBLIES"] }],
+  "foundAt": { "id": ["xeno.peerdb.org", "SITE", "G4_TETHER_STUMP"] },
+  "material": [
+    { "value": "living branch tip", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "lignified branch fibre", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }
+  ],
+  "dimension": [
+    { "value": { "amount": 1.58, "precision": 0.001 }, "axis": "length", "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+    { "value": { "amount": 0.045, "precision": 0.001 }, "axis": "diameter", "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] }
+  ],
+  "dateMade": { "time": "2281-01-01T00:00:00Z", "precision": "y" },
+  "collectedBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_PETROVA"] }, { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_DEMIR"] }],
+  "image": [
+    { "value": "/f/Kso4CPbZV8CX6nTQCYrw67", "name": "G4_AR_BOUNDARY_PLAIT.jpg", "caption": "Object drawing", "source": "Consortium collection" }
+  ]
+}

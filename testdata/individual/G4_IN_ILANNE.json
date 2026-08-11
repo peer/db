@@ -1,0 +1,18 @@
+{
+  "id": ["xeno.peerdb.org", "INDIVIDUAL", "G4_IN_ILANNE"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "INDIVIDUAL"] }],
+  "name": [{ "value": "Ilanne" }],
+  "lineageName": [{ "value": "Aunelira Span" }],
+  "description": [
+    {
+      "value": "<p>A dye grinder of the same house, responsible for the bract preparation on which every ownership mark at both levels of the gorge depends. She sells nothing to the terraces below and gives everything, which keeps the lower households obliged and the accounts, in her phrase, correctly shaped. She has twice corrected the survey&#39;s colour standards and has stopped explaining why.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "species": { "id": ["xeno.peerdb.org", "SPECIES", "G4_SMALLFOLK"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G4_CU_LADDER_GORGE"] }],
+  "role": [{ "value": "dye grinder", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "formOfAddress": "as the house, in the house's name",
+  "born": { "time": "2299-01-01T00:00:00Z", "precision": "y" },
+  "birthplace": { "id": ["xeno.peerdb.org", "SITE", "G4_LADDER_TERRACES"] }
+}

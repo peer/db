@@ -1,0 +1,40 @@
+{
+  "id": ["xeno.peerdb.org", "INTERVIEW", "INTA_NUWELLAM_AT_THE_WALL"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "INTERVIEW"] }],
+  "title": [{ "value": "Nuwellam on carrying across the ice line", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "description": [
+    {
+      "value": "<p>A short session at the wall of the closed channel with a carrier of the dead, who has refused recording inside it since 2274. The refusal is restated and the reason for it given for the first time.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "interviewee": [{ "id": ["xeno.peerdb.org", "INDIVIDUAL", "G2_NUWELLAM"] }],
+  "interviewer": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_SEO"] }, { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_MOLNAR"] }],
+  "recordedAt": { "id": ["xeno.peerdb.org", "SITE", "G2_QUIET_FURROW"] },
+  "recordedOn": { "time": "2289-11-21T00:00:00Z", "precision": "d" },
+  "expedition": { "id": ["xeno.peerdb.org", "EXPEDITION", "EXP_EVENING_TERRACES"] },
+  "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G2_PLATE_LIGHT"] }],
+  "duration": { "value": { "amount": 41, "precision": 1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "MINUTE"] }] },
+  "content": [
+    {
+      "value": "<p><b>Q.</b> We would not ask to enter. Could an instrument be left at the mouth instead?</p><p><b>A.</b> You have asked the same question with a different body. It is not that a person of yours may not go in. It is that nothing goes in that comes back out and tells.</p><p><b>Q.</b> Is that a rule about the dead or about the channel?</p><p><b>A.</b> About the carrying. I take four of my stretch across in a cycle and I come back without them. If a thing goes in with me and comes out with me, then I have brought something back, and I have not.</p><p><b>Q.</b> Would you tell us what happens at the wall itself?</p><p><b>A.</b> At the wall, yes. I set the sheet down, I go over, I set them where the wall turns, and I come back on the same line I went. There is nothing at the wall. Everything is on the other side of it and you may not have that.</p><p><b>Q.</b> Has anybody ever gone with you?</p><p><b>A.</b> Four have asked, over the decades. Two of them were yours. I have said no four times and the panel of yours has decided that four is enough, which is the only decision of yours I have ever agreed with.</p><p><b>Q.</b> Is there anything you want on the record?</p><p><b>A.</b> That I was asked again, and by whom, and that I was not angry. Somebody will read this in a hundred years and want to know whether we were being difficult. We were not. It is simply not yours.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "ethics": { "id": ["xeno.peerdb.org", "ETHICS_PROTOCOL", "PROTOCOL_4"] },
+  "consentNote": [
+    {
+      "value": "<p>Nuwellam agreed to a written record of the exchange at the wall and to nothing else. They asked that the description of the wall be kept and the description of the line they walk be struck, and it was struck before deposit.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "clearedReader": ["mock-user-researcher@localhost"],
+  "permission": [
+    { "action": { "id": ["core.peerdb.org", "PERMISSION_ACTIONS", "ACTION_READ"] }, "user": ["mock-user-researcher@localhost"], "scope": ["self"] },
+    {
+      "action": { "id": ["core.peerdb.org", "PERMISSION_ACTIONS", "ACTION_READ_HISTORIC"] },
+      "user": ["mock-user-researcher@localhost"],
+      "scope": ["self"]
+    }
+  ]
+}

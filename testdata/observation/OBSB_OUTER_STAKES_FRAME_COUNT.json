@@ -1,0 +1,32 @@
+{
+  "id": ["xeno.peerdb.org", "OBSERVATION", "OBSB_OUTER_STAKES_FRAME_COUNT"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "OBSERVATION"] }],
+  "title": [
+    {
+      "value": "Count of platform frames off the seaward shore of the outer islands",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "description": [
+    {
+      "value": "<p>A photographic count of the standing frames and their burdens, made at two kilometres in accordance with the approach limit.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "content": [
+    {
+      "value": "<p>27.iii.2309. Two independent counts from the boat, at a range of 1.9 to 2.2 kilometres, in flat afternoon light with the water low.</p><p>The first count gave forty-one frames. The second gave forty-two. Reconciliation of the plates afterwards showed that the disputed frame is a pair standing very close together off the second island, which we are recording as two and flagging as uncertain. Each frame carries a wrapped burden. All the frames appear to be maintained; none of the burdens appears to have been disturbed.</p><p>We did not approach and did not land. Korrenna, asked at the meeting ground whether the frames belonged to the line order, said that they did not belong to anything, which we have chosen to record as given rather than to interpret.</p><p>We can therefore report a number and nothing else. Whether the frames stand in any relation to the holding of the stake lines, which turn over completely every tide-year while these have not moved in the three years we have watched them, is exactly the question this entry cannot answer.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "expedition": { "id": ["xeno.peerdb.org", "EXPEDITION", "EXP_KILN_FLATS"] },
+  "observedBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_ZUPAN"] }, { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_VIRTANEN"] }],
+  "observedAt": { "id": ["xeno.peerdb.org", "SITE", "G3_OUTER_STAKES"] },
+  "observedOn": { "time": "2309-03-27T00:00:00Z", "precision": "d" },
+  "about": [{ "id": ["xeno.peerdb.org", "SPECIES", "G3_TEKKONNO"] }, { "id": ["xeno.peerdb.org", "CULTURE", "G3_TIDE_LINES"] }],
+  "method": [{ "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "REMOTE_SENSING"] }, { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "PHOTOGRAMMETRY"] }],
+  "fieldConditions": "Calm, hazy, low water. Boat crew of three, no local party in sight on either island.",
+  "image": [
+    { "value": "/f/NVmZFQ86CBB9XTYpCDmFqn", "name": "OBSB_OUTER_STAKES_FRAME_COUNT.jpg", "caption": "Taken at the time", "source": "Field record" }
+  ]
+}

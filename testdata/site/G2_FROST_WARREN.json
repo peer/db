@@ -1,0 +1,19 @@
+{
+  "id": ["xeno.peerdb.org", "SITE", "G2_FROST_WARREN"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SITE"] }],
+  "name": [{ "value": "Frost Warren", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "localName": [{ "value": "Munnakal", "gloss": "the under-dark, a compound of the words for night side and hollow" }],
+  "description": [
+    {
+      "value": "<p>A tunnel system of about nine kilometres mapped length, cut into the night side above a shallow warm intrusion and used for cold storage, for overwintering and, in three chambers, for permanent dwelling. Entrances are sealed against the freezing atmosphere with ice plugs cast in place. It is the only known permanent settlement on any night hemisphere in the register.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "REGION", "G2_COLD_QUARTER"] },
+  "siteType": { "id": ["xeno.peerdb.org", "SITE_TYPE", "SUBSURFACE_WARREN"] },
+  "gridReference": "HL-00.2/-118.7",
+  "population": {
+    "value": { "from": { "amount": 700, "precision": 10 }, "to": { "amount": 2600, "precision": 10 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  }
+}

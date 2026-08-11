@@ -1,0 +1,35 @@
+{
+  "id": ["xeno.peerdb.org", "EXPEDITION", "EXP_MARGIN_VENTS"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "EXPEDITION"] }],
+  "name": [{ "value": "Margin Note Vent Following", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "catalogueCode": "EXP-2291-02",
+  "description": [
+    {
+      "value": "<p>Five years following vent settlements as they moved across a surface that repaves itself, annotated throughout together with the people being recorded. The material is the best of its kind anywhere and almost none of it can be read: the community&#39;s own classification placed the greater part under closed knowledge, and the ruling of 2298 suspended contact and sealed the remainder. The expedition is regarded internally as a success and has produced no publications at all. Its deposit occupies four bonded crates and one argument that has been running since the ruling.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "destination": [{ "id": ["xeno.peerdb.org", "PLANET", "G1_MARGIN_NOTE_III"] }, { "id": ["xeno.peerdb.org", "REGION", "G1_MARGIN_ICE"] }],
+  "period": { "from": { "time": "2291-01-01T00:00:00Z", "precision": "y" }, "to": { "time": "2296-01-01T00:00:00Z", "precision": "y" } },
+  "ledBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_PETROVA"] }],
+  "teamMember": [
+    { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_OKONKWO"] },
+    { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_VASILAKIS"] },
+    { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_VIRTANEN"] },
+    { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_ARAI"] }
+  ],
+  "organisedBy": [{ "id": ["xeno.peerdb.org", "INSTITUTE", "INST_ANCHOR"] }, { "id": ["xeno.peerdb.org", "INSTITUTE", "INST_BEACON"] }],
+  "method": [
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "PARTICIPANT_OBSERVATION"] },
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "COLLABORATIVE_ANNOTATION"] },
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "ACOUSTIC_RECORDING"] }
+  ],
+  "ethics": { "id": ["xeno.peerdb.org", "ETHICS_PROTOCOL", "PROTOCOL_4"] },
+  "budget": { "value": { "amount": 1100000, "precision": 1000 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "$"] }] },
+  "notes": [
+    {
+      "value": "<p>The four crates are held under bond and re-inventoried every year by two people who are not permitted to open them.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

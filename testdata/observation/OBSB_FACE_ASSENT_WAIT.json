@@ -1,0 +1,31 @@
+{
+  "id": ["xeno.peerdb.org", "OBSERVATION", "OBSB_FACE_ASSENT_WAIT"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "OBSERVATION"] }],
+  "title": [{ "value": "Fifty-one days of waiting for assent on the ninth face", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "description": [
+    {
+      "value": "<p>Note on an opening that did not happen, and on a tender who declined to be recorded striking.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "content": [
+    {
+      "value": "<p>12.iii.2276, closing a sequence begun on 21.i.2276. Six claims stand on the ninth face. Four were struck in the first fortnight. The fifth was struck on the thirty-eighth day. The sixth had not been struck when we left the terraces.</p><p>Objection here is made by not striking, which is indistinguishable from being elsewhere, and the tenders accordingly wait rather than ask. Methess told us that the waiting is not a stage of the procedure but the whole of it, and that a season is not a long time for a face that has been worked for four hundred years.</p><p>Isselan, who holds the slot on the adjoining face, declined to have her own striking recorded on any instrument, and the survey withdrew the request without argument. She did not object to our presence, only to the record.</p><p>We cannot tell whether the sixth claimant was objecting or simply had not been near the rock. On the evidence available these are the same event, and the tenders appear to regard the distinction as our problem rather than theirs.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "expedition": { "id": ["xeno.peerdb.org", "EXPEDITION", "EXP_HOLLOW_BAR_FIRST"] },
+  "observedBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_DEMIR"] }],
+  "observedAt": { "id": ["xeno.peerdb.org", "SITE", "G3_SHELF_WARREN"] },
+  "observedOn": { "time": "2276-03-12T00:00:00Z", "precision": "d" },
+  "about": [
+    { "id": ["xeno.peerdb.org", "SPECIES", "G3_TESSILEN"] },
+    { "id": ["xeno.peerdb.org", "PRACTICE", "G3_FACE_ASSENT"] },
+    { "id": ["xeno.peerdb.org", "CULTURE", "G3_FACE_TENDING"] }
+  ],
+  "method": [
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "PARTICIPANT_OBSERVATION"] },
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "ARCHIVAL_COMPARISON"] }
+  ],
+  "fieldConditions": "Underground throughout, lamp light only, temperature steady. Two tenders working the neighbouring face on most days."
+}

@@ -1,0 +1,36 @@
+{
+  "id": ["xeno.peerdb.org", "PUBLICATION", "PUB_RIM_FLOOR_ANSWER"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PUBLICATION"] }],
+  "title": [
+    {
+      "value": "One Self, Many Strikes: Geophone Evidence for a Distributed Self at the Basin Rim of The Sump, With a Note on the Convergence at the Ring",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "doi": "10.5281/xeno.2306.0163",
+  "abstract": [
+    {
+      "value": "<p>Percussive activity around the basin rim has been described since the first survey as an exchange between separated drumming groups. Six years of geophone coverage show instead a single response pattern propagating around the rim with no evidence of turn-taking, no addressee structure, and a latency profile consistent with one body distributed across eighty kilometres of floor. The convergence at the ring, previously read as a meeting, appears on this evidence to be closer to a change of posture. We are conscious that we are describing something whose boundary we cannot find, and we do not claim to have found it here.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "author": [
+    { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_MOKOENA"] },
+    { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_MOLNAR"] },
+    { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_VASILAKIS"] },
+    { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_DOYLE"] }
+  ],
+  "journal": "Annals of Remote Observation",
+  "publishedOn": { "time": "2306-10-01T00:00:00Z", "precision": "m" },
+  "about": [
+    { "id": ["xeno.peerdb.org", "SPECIES", "G3_RIM_DRUMMERS"] },
+    { "id": ["xeno.peerdb.org", "CULTURE", "G3_RIM_CONVERGENCE"] },
+    { "id": ["xeno.peerdb.org", "PRACTICE", "G3_STRIKING_TOGETHER"] }
+  ],
+  "cites": [
+    { "id": ["xeno.peerdb.org", "PUBLICATION", "PUB_HAZE_COLLECTIVE_LABOUR"] },
+    { "id": ["xeno.peerdb.org", "PUBLICATION", "PUB_RISER_ASKING"] },
+    { "id": ["xeno.peerdb.org", "PUBLICATION", "PUB_FLOOR_GRADES_NAMES"] }
+  ],
+  "document": [{ "value": "/f/4ES9yZoukSWKGQGw9V3kmt", "name": "PUB_RIM_FLOOR_ANSWER.pdf", "caption": "Author's accepted manuscript" }]
+}

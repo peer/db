@@ -1,0 +1,42 @@
+{
+  "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G1_BASIN_SPEECH"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM"] }],
+  "name": [{ "value": "Basin Speech", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Aoleiaun", "gloss": "the speech of those who stayed" }],
+  "description": [
+    {
+      "value": "<p>The language of the salt basins, spoken across the hot world and carried to the moon above it by the trading guilds, who use it for business and argue in it about everything else. It is precise on quantity, order and time of day, and it has a full notation: incised salt tablets that record who may draw water, in what quantity, and until when. The tablets are the only durable writing in the sector and are read aloud even when nobody else is present. A fieldworker&#39;s first mistake is to read a tablet as a title deed, when every mark on it expires and the expiry is the small scratch at the end that early transcriptions cleaned off as damage.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "modality": [
+    { "id": ["xeno.peerdb.org", "COMMUNICATION_MODALITY", "VOCALISATION"] },
+    { "id": ["xeno.peerdb.org", "COMMUNICATION_MODALITY", "WRITTEN_NOTATION"] }
+  ],
+  "users": {
+    "value": { "from": { "amount": 1040000, "precision": 100 }, "to": { "amount": 1600000, "precision": 100 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "notation": true,
+  "sampleGloss": [
+    {
+      "value": "<p><i>Nau-eiro rau, sen-oa.</i> draw-order open, three-households. Free translation: the second basin is open to three households this dawn. On the tablet it is four marks and a scratch, and the scratch is the expiry.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "recording": [
+    {
+      "value": "/f/31FhVtchEyRuuTMaiZJQbi",
+      "name": "system-G1_BASIN_SPEECH.mp3",
+      "caption": "Elicitation sample",
+      "duration": { "value": { "amount": 4, "precision": 1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "MINUTE"] }] },
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G1_BASIN_SPEECH"] }],
+      "note": [
+        {
+          "value": "<p>Recorded during elicitation and kept as the reference sample for this system.</p>",
+          "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+        }
+      ]
+    }
+  ]
+}

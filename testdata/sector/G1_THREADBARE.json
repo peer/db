@@ -1,0 +1,20 @@
+{
+  "id": ["xeno.peerdb.org", "SECTOR", "G1_THREADBARE"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SECTOR"] }],
+  "name": [{ "value": "Threadbare Sector", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "catalogueCode": "MW-S02-THR",
+  "description": [
+    {
+      "value": "<p>The oldest working sector in the register and by some distance the busiest: four catalogued systems, nine catalogued worlds and three permanent Consortium stations within a hundred parsecs of one another. Survey grids here are numbered to four decimal places and argued over to five. Nothing in Threadbare is unvisited, and very little of it is agreed.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "GALAXY", "G1_MILKY_WAY"] },
+  "surveyPeriod": { "from": { "time": "2201-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true },
+  "notes": [
+    {
+      "value": "<p>Renamed Inner Administrative Group 2 in 2251 and Sector 2 (Consolidated) in 2277. Both names appear on the funding forms. Neither has ever been heard spoken aloud.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

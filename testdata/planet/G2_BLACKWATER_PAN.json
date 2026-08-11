@@ -1,0 +1,39 @@
+{
+  "id": ["xeno.peerdb.org", "PLANET", "G2_BLACKWATER_PAN"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PLANET"] }],
+  "name": [{ "value": "Blackwater Pan", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "catalogueCode": "OE-0247-c",
+  "description": [
+    {
+      "value": "<p>An ice world whose ocean is nearly gone. What remains is a brine layer perhaps two kilometres thick under a crust of forty, held liquid by residual heat that the models expect to fail within about sixty million years. Mats around its two surviving warm patches are the only living things in the system. The survey reports describe the sampling as unusually quiet work.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Um mundo de gelo cujo oceano está quase extinto. O que resta é uma camada de salmoura com talvez dois quilómetros de espessura sob uma crosta de quarenta, mantida líquida por um calor residual que os modelos esperam ver esgotar-se dentro de uns sessenta milhões de anos. Os tapetes em torno das suas duas manchas quentes sobreviventes são a única coisa viva no sistema. Os relatórios do levantamento descrevem a amostragem como um trabalho invulgarmente silencioso.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "STAR_SYSTEM", "G2_OLD_EMBER"] },
+  "planetType": { "id": ["xeno.peerdb.org", "PLANET_TYPE", "ICE_SHELL"] },
+  "biome": [{ "id": ["xeno.peerdb.org", "BIOME", "BRINE_SEA"] }],
+  "radius": { "value": { "amount": 0.84, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_RADIUS"] }] },
+  "mass": { "value": { "amount": 0.24, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_MASS"] }] },
+  "surfaceGravity": { "value": { "amount": 0.34, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "STANDARD_GRAVITY"] }] },
+  "dayLength": { "value": { "amount": 21.4, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "HOUR"] }] },
+  "orbitalPeriod": { "value": { "amount": 685.2, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_DAY"] }] },
+  "meanTemperature": { "value": { "amount": -222.0, "precision": 0.1 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "°C"] }] },
+  "hydrosphere": { "value": { "amount": 100, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "PERCENT"] }] },
+  "atmosphere": [
+    {
+      "value": "<p>Nothing beyond a sputtered oxygen trace. The surface is old dark ice under infallen dust, lit by a red point that gives no useful light and a white point beside it that gives less.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "biosphereUnknown": true,
+  "contactStatus": { "id": ["xeno.peerdb.org", "CONTACT_STATUS", "NO_CONTACT"] },
+  "firstSurveyed": { "time": "2247-01-01T00:00:00Z", "precision": "y" },
+  "surveyPeriod": { "from": { "time": "2247-01-01T00:00:00Z", "precision": "y" }, "to": { "time": "2287-01-01T00:00:00Z", "precision": "y" } },
+  "image": [
+    { "value": "/f/LmkciQvsL2F2easAqncKaC", "name": "G2_BLACKWATER_PAN.jpg", "caption": "Approach view", "source": "Consortium survey archive" }
+  ]
+}

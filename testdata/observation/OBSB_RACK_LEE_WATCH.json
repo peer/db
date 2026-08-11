@@ -1,0 +1,40 @@
+{
+  "id": ["xeno.peerdb.org", "OBSERVATION", "OBSB_RACK_LEE_WATCH"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "OBSERVATION"] }],
+  "title": [
+    {
+      "value": "Two watchers on a lee ledge, from the reoccupied weather station",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "description": [
+    {
+      "value": "<p>Nine days of a division watched at distance from the abandoned station, and a count of the knocked figure that accompanied it.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "content": [
+    {
+      "value": "<p>9.iv.2280. We reoccupied three huts of the 2231 station, which is the only high ground on the belt that is not routinely struck and was established as such by building it twice.</p><p>On the second day a body went down off the crest into the lee, carrying nothing, and was followed at about thirty metres by two others who did not approach it and did not speak to it at any point in the nine days that followed.</p><p>The watchers knocked one figure against wet rock at irregular intervals throughout. Our count is two thousand one hundred and six repetitions, with a gap of eleven hours on the sixth night that we attribute to the storm rather than to them. Rumeio tells us the figure belongs to the language that names no crest, and would not knock it for us in any other context.</p><p>At the end of it, people walked back up. We cannot say who. Both of the resulting people hold the whole shared past as their own and neither is the elder, and the survey&#39;s practice of tracking bodies by marking is not merely rude here but does not describe anything.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "expedition": { "id": ["xeno.peerdb.org", "EXPEDITION", "EXP_LONG_WATER_SHELF"] },
+  "observedBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_BRANDT"] }, { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_ARAI"] }],
+  "observedAt": { "id": ["xeno.peerdb.org", "SITE", "G4_RACK_CAMP"] },
+  "observedOn": { "time": "2280-04-09T00:00:00Z", "precision": "d" },
+  "about": [
+    { "id": ["xeno.peerdb.org", "SPECIES", "G4_RIDGE_DWELLERS"] },
+    { "id": ["xeno.peerdb.org", "PRACTICE", "G4_PR_GOING_TO_LEE"] },
+    { "id": ["xeno.peerdb.org", "CULTURE", "G4_CU_RACK_BANDS"] }
+  ],
+  "method": [
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "REMOTE_SENSING"] },
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "ACOUSTIC_RECORDING"] }
+  ],
+  "fieldConditions": "Continuous rain for the whole period, cloud on the crest most days, three of the old huts weathertight and the fourth not.",
+  "permission": [
+    { "action": { "id": ["core.peerdb.org", "PERMISSION_ACTIONS", "ACTION_UPDATE"] }, "user": ["mock-user-researcher@localhost"], "scope": ["self"] },
+    { "action": { "id": ["core.peerdb.org", "PERMISSION_ACTIONS", "ACTION_DELETE"] }, "user": ["mock-user-curator@localhost"], "scope": ["self"] }
+  ]
+}

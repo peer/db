@@ -1,0 +1,38 @@
+{
+  "id": ["xeno.peerdb.org", "PLANET", "G1_LEDGER_STAR_II"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PLANET"] }],
+  "name": [{ "value": "Ledger Star II", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "catalogueCode": "LDG-0126-b",
+  "description": [
+    {
+      "value": "<p>A high-pressure greenhouse under a permanent sulphate murk, with a surface hot enough to soften lead and a rotation slower than its year. It is lifeless, confirmed by six probes, three of which stopped transmitting before they finished the assay. Surveys are conducted from orbit and the file is closed except for atmospheric monitoring.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Uma estufa de alta pressão sob uma turvação permanente de sulfato, com uma superfície quente o bastante para amolecer chumbo e uma rotação mais lenta do que o seu ano. Não tem vida, o que seis sondas confirmaram, três delas tendo deixado de transmitir antes de terminar o ensaio. Os levantamentos fazem-se a partir de órbita e o processo está encerrado, salvo a monitorização atmosférica.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "STAR_SYSTEM", "G1_LEDGER_STAR"] },
+  "planetType": { "id": ["xeno.peerdb.org", "PLANET_TYPE", "GREENHOUSE"] },
+  "radius": { "value": { "amount": 1.06, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_RADIUS"] }] },
+  "mass": { "value": { "amount": 1.19, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_MASS"] }] },
+  "surfaceGravity": { "value": { "amount": 1.06, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "STANDARD_GRAVITY"] }] },
+  "dayLength": { "value": { "amount": 1104.0, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "HOUR"] }] },
+  "orbitalPeriod": { "value": { "amount": 92.1, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_DAY"] }] },
+  "meanTemperature": { "value": { "amount": 431.0, "precision": 0.1 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "°C"] }] },
+  "hydrosphere": { "value": { "amount": 0, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "PERCENT"] }] },
+  "atmosphere": [
+    {
+      "value": "<p>Carbon dioxide at ninety-two bar with sulphuric aerosol throughout. Standing in it is not survivable in any suit the Consortium owns, and the murk is thick enough that the sun is never visible from the ground.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "biosphereNone": true,
+  "contactStatus": { "id": ["xeno.peerdb.org", "CONTACT_STATUS", "NO_CONTACT"] },
+  "firstSurveyed": { "time": "2223-01-01T00:00:00Z", "precision": "y" },
+  "surveyPeriod": { "from": { "time": "2223-01-01T00:00:00Z", "precision": "y" }, "to": { "time": "2258-01-01T00:00:00Z", "precision": "y" } },
+  "image": [
+    { "value": "/f/LroAzLCu7kvQQRyVVUfKd6", "name": "G1_LEDGER_STAR_II.jpg", "caption": "Approach view", "source": "Consortium survey archive" }
+  ]
+}

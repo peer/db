@@ -1,0 +1,24 @@
+{
+  "id": ["xeno.peerdb.org", "BIOME", "AERIAL_MAT"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "BIOME"] }],
+  "name": [
+    { "value": "Aerial mat", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "Zračna preproga", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }] },
+    { "value": "Tapete aéreo", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>Free-floating photosynthetic mats held aloft in a dense atmosphere, completing the whole life cycle without touching a surface. Excludes spores and plankton that merely travel by air between surface habitats.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Prosto lebdeče fotosintetske preproge v gostem ozračju, ki se v vsem življenju ne dotaknejo tal.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Tapetes fotossintéticos em flutuação livre, suspensos numa atmosfera densa, que cumprem todo o ciclo de vida sem tocar numa superfície. Exclui esporos e plâncton que apenas viajam pelo ar entre habitats de superfície.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "code": ["aerial-mat"]
+}

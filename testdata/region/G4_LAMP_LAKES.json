@@ -1,0 +1,20 @@
+{
+  "id": ["xeno.peerdb.org", "REGION", "G4_LAMP_LAKES"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "REGION"] }],
+  "name": [{ "value": "Lamp Lakes", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Zaivola" }],
+  "description": [
+    {
+      "value": "<p>A district of some four hundred hydrocarbon lakes in the northern lowlands, the largest two hundred and sixty kilometres across, fed by methane rivers and drained by seepage. The liquid is clear and black and lies dead flat; the shorelines are gravel of water ice. Settlement, so far as it has been inferred at all, is along the western shores.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "PLANET", "G4_KERF"] },
+  "biome": [{ "id": ["xeno.peerdb.org", "BIOME", "HYDRO_LAKE"] }],
+  "area": { "value": { "amount": 690000, "precision": 100 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "SQUARE_KILOMETRE"] }] },
+  "elevationRange": {
+    "value": { "from": { "amount": -180, "precision": 10 }, "to": { "amount": 340, "precision": 10 } },
+    "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }]
+  },
+  "image": [{ "value": "/f/VseeZJozWZpGV7xrzbNHc3", "name": "G4_LAMP_LAKES.jpg", "caption": "Regional view", "source": "Consortium survey archive" }]
+}

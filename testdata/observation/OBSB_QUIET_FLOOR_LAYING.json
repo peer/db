@@ -1,0 +1,40 @@
+{
+  "id": ["xeno.peerdb.org", "OBSERVATION", "OBSB_QUIET_FLOOR_LAYING"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "OBSERVATION"] }],
+  "title": [
+    { "value": "A laying out on the polished floor, watched from downwind", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>Note on a deposition at the mortuary floor, approached on foot from downwind with every instrument kept off the rock.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "content": [
+    {
+      "value": "<p>4.v.2301. Four bearers of the grade below the one the dead person held carried the body onto the floor on foot and from downwind, as we did, at about eighty metres behind them.</p><p>Nothing was struck at any point. The bearers set the body down, dressed its striking knob a last time with a fine abrasive, and walked off the rock backwards to the edge. The silence is not a mark of respect within the practice; it is the practice.</p><p>Deposition here runs at about forty a year on a floor six hundred metres across, and the earlier layings are still where they were put. We kept instruments off the rock as instructed and our boots off it entirely, and worked from the grit at the margin.</p><p>The dressing of the knob is what we cannot place. A striking knob is the instrument by which a person is audible to a polity that is audible rather than assembled, and this one will never be used again. Two of the bearers dressed theirs as well, afterwards, at the edge, and we do not know whether that is part of it or simply what one does with an abrasive in one&#39;s hand.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "expedition": { "id": ["xeno.peerdb.org", "EXPEDITION", "EXP_SOUNDING_FLOOR"] },
+  "observedBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_OKONKWO"] }, { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_VIRTANEN"] }],
+  "observedAt": { "id": ["xeno.peerdb.org", "SITE", "G4_QUIET_FLOOR"] },
+  "observedOn": { "time": "2301-05-04T00:00:00Z", "precision": "d" },
+  "about": [
+    { "id": ["xeno.peerdb.org", "SPECIES", "G4_FLOOR_KEEPERS"] },
+    { "id": ["xeno.peerdb.org", "PRACTICE", "G4_PR_LAYING_OUT"] },
+    { "id": ["xeno.peerdb.org", "CULTURE", "G4_CU_FLOOR_GRADES"] }
+  ],
+  "method": [
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "PARTICIPANT_OBSERVATION"] },
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "PHOTOGRAMMETRY"] }
+  ],
+  "fieldConditions": "Steady wind across the drum plain, the floor swept and dry, no other party within sight for the whole of the morning.",
+  "image": [{ "value": "/f/Licf3MXuzwJkXLhn1SitzQ", "name": "OBSB_QUIET_FLOOR_LAYING.jpg", "caption": "Taken at the time", "source": "Field record" }],
+  "notes": [
+    {
+      "value": "<p>Survey instruction for this site is unchanged and is repeated here for the file: approach on foot from downwind, keep all instruments off the rock, and record nothing acoustically within the margin.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

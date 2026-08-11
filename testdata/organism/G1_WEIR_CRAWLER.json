@@ -1,0 +1,26 @@
+{
+  "id": ["xeno.peerdb.org", "ORGANISM", "G1_WEIR_CRAWLER"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "ORGANISM"] }],
+  "name": [{ "value": "Weir crawler", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "meshalu" }],
+  "taxonCode": "TX-2104-b",
+  "description": [
+    {
+      "value": "<p>A heavy-bodied grazer of the tidal flats that follows the water in and is caught by the walls on the way out, which is the entire basis of the local diet. It has no defence beyond bulk and a shell that takes a hard knock, and it has never learned the weirs in three centuries of being caught by them. Roughly two thirds of the protein eaten on the flats passes through a trap, and the household year is organised around the three cycles in which the crawlers run heaviest.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "category": { "id": ["xeno.peerdb.org", "ORGANISM_CATEGORY", "MOTILE_HETEROTROPH"] },
+  "foundOn": [{ "id": ["xeno.peerdb.org", "PLANET", "G1_HOLLIS_III"] }],
+  "biome": [{ "id": ["xeno.peerdb.org", "BIOME", "SWEEP_FLAT"] }],
+  "typicalSize": { "value": { "amount": 0.36, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+  "typicalMass": { "value": { "amount": 2.7, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "kg"] }] },
+  "image": [
+    {
+      "value": "/f/XNxpSDdUdZgtD9xvD7EXdp",
+      "name": "G1_WEIR_CRAWLER.jpg",
+      "caption": "Field plate",
+      "source": "Drawn in the field; Consortium collection"
+    }
+  ]
+}
