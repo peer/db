@@ -195,14 +195,14 @@ func (i *Interval[T]) Validate() errors.E {
 type StringWithLanguage struct {
 	Value string `json:"value" value:""`
 
-	InLanguage []Ref `cardinality:"0.." context:"edit" json:"inLanguage,omitempty" order:"1" property:"IN_LANGUAGE" values:"id=languages"`
+	InLanguage []Ref `cardinality:"0.." context:"edit" duplicate:"top" json:"inLanguage,omitempty" order:"1" property:"IN_LANGUAGE" values:"id=languages"`
 }
 
 // RawHTMLWithLanguage represents raw HTML with language information.
 type RawHTMLWithLanguage struct {
 	Value RawHTML `json:"value" value:""`
 
-	InLanguage []Ref `cardinality:"0.." context:"edit" json:"inLanguage,omitempty" order:"1" property:"IN_LANGUAGE" values:"id=languages"`
+	InLanguage []Ref `cardinality:"0.." context:"edit" duplicate:"top" json:"inLanguage,omitempty" order:"1" property:"IN_LANGUAGE" values:"id=languages"`
 }
 
 // Section represents a section of fields of an entity.
