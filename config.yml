@@ -4,8 +4,9 @@ globals:
       indexPrefix: peerdb
       schema: peerdb
       languagePriority:
-        en: []
-        sl: []
+        en: [und]
+        sl: [en, und]
+        pt: [en, und]
       defaultLanguage: en
       features:
         searchResultsTable: true

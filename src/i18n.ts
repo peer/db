@@ -2,10 +2,12 @@ import { createI18n } from "vue-i18n"
 
 import siteContext from "@/context"
 import en from "@/locales/en.json"
+import pt from "@/locales/pt.json"
 import sl from "@/locales/sl.json"
 
 const messages = {
   en,
+  pt,
   sl,
 }
 
@@ -65,6 +67,7 @@ export const i18n = createI18n({
   // And for regular strings we rely on Vue to escape HTML entities.
   escapeParameter: false,
   messages,
+  // Portuguese pluralises the way English does, so it needs no rule of its own and uses the default.
   pluralRules: {
     sl: (choice: number, choicesLength: number) => {
       if (choicesLength === 1) {

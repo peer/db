@@ -33,6 +33,11 @@ func Classes(mnemonics map[string][]string) ([]any, errors.E) {
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
+			}, {
+				Value: "classe",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "pt-PT"},
+				}},
 			}},
 			ShortName:            nil,
 			AlternativeName:      nil,
@@ -68,6 +73,11 @@ func Classes(mnemonics map[string][]string) ([]any, errors.E) {
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
+			}, {
+				Value: "propriedade",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "pt-PT"},
+				}},
 			}},
 			ShortName: nil,
 			AlternativeName: []StringWithLanguage{{
@@ -81,6 +91,11 @@ func Classes(mnemonics map[string][]string) ([]any, errors.E) {
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
 			}, {
+				Value: "atributo",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "pt-PT"},
+				}},
+			}, {
 				Value: "characteristic",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "en-GB"},
@@ -89,6 +104,11 @@ func Classes(mnemonics map[string][]string) ([]any, errors.E) {
 				Value: "značilnost",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}, {
+				Value: "característica",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "pt-PT"},
 				}},
 			}},
 			Mnemonic: "PROPERTY",
@@ -101,6 +121,11 @@ func Classes(mnemonics map[string][]string) ([]any, errors.E) {
 				Value: "<p>Dokument opisuje lastnost.</p>",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}, {
+				Value: "<p>Um documento descreve uma propriedade.</p>",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "pt-PT"},
 				}},
 			}},
 			SubclassOf:           nil,
@@ -132,6 +157,11 @@ func Classes(mnemonics map[string][]string) ([]any, errors.E) {
 				Value: "stran",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}, {
+				Value: "página",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "pt-PT"},
 				}},
 			}},
 			ShortName:            nil,
@@ -168,6 +198,11 @@ func Classes(mnemonics map[string][]string) ([]any, errors.E) {
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
+			}, {
+				Value: "vocabulário",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "pt-PT"},
+				}},
 			}},
 			ShortName: nil,
 			AlternativeName: []StringWithLanguage{{
@@ -179,6 +214,11 @@ func Classes(mnemonics map[string][]string) ([]any, errors.E) {
 				Value: "šifrant",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}, {
+				Value: "livro de códigos",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "pt-PT"},
 				}},
 			}},
 			Mnemonic:             "VOCABULARY",
@@ -212,6 +252,11 @@ func Classes(mnemonics map[string][]string) ([]any, errors.E) {
 				Value: "jezik",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}, {
+				Value: "língua",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "pt-PT"},
 				}},
 			}},
 			ShortName:       nil,
@@ -250,6 +295,11 @@ func Classes(mnemonics map[string][]string) ([]any, errors.E) {
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
+			}, {
+				Value: "unidade",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "pt-PT"},
+				}},
 			}},
 			ShortName: nil,
 			AlternativeName: []StringWithLanguage{{
@@ -261,6 +311,11 @@ func Classes(mnemonics map[string][]string) ([]any, errors.E) {
 				Value: "enota mere",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}, {
+				Value: "unidade de medição",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "pt-PT"},
 				}},
 			}, {
 				Value: "measurement unit",
@@ -276,6 +331,11 @@ func Classes(mnemonics map[string][]string) ([]any, errors.E) {
 				Value: "merska enota",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}, {
+				Value: "unidade de medida",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "pt-PT"},
 				}},
 			}},
 			Mnemonic:    "UNIT",
@@ -311,6 +371,11 @@ func Classes(mnemonics map[string][]string) ([]any, errors.E) {
 				Value: "tip vrednosti",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}, {
+				Value: "tipo de valor",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "pt-PT"},
 				}},
 			}},
 			ShortName:       nil,
@@ -348,6 +413,11 @@ func Classes(mnemonics map[string][]string) ([]any, errors.E) {
 				Value: "dejanja dovoljenj",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}, {
+				Value: "ações de permissão",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "pt-PT"},
 				}},
 			}},
 			ShortName:       nil,

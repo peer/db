@@ -22,6 +22,11 @@ func Properties() ([]any, errors.E) {
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
+			}, {
+				Value: "subentidade de",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "pt-PT"},
+				}},
 			}},
 			ShortName:              nil,
 			AlternativeName:        nil,
@@ -52,6 +57,11 @@ func Properties() ([]any, errors.E) {
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
+			}, {
+				Value: "instância de",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "pt-PT"},
+				}},
 			}},
 			ShortName: nil,
 			AlternativeName: []StringWithLanguage{{
@@ -65,6 +75,11 @@ func Properties() ([]any, errors.E) {
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
 			}, {
+				Value: "é",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "pt-PT"},
+				}},
+			}, {
 				Value: "kind",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "en-GB"},
@@ -73,6 +88,11 @@ func Properties() ([]any, errors.E) {
 				Value: "vrsta",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}, {
+				Value: "tipo",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "pt-PT"},
 				}},
 			}, {
 				Value: "form",
@@ -85,6 +105,11 @@ func Properties() ([]any, errors.E) {
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
 			}, {
+				Value: "forma",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "pt-PT"},
+				}},
+			}, {
 				Value: "category",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "en-GB"},
@@ -93,6 +118,11 @@ func Properties() ([]any, errors.E) {
 				Value: "kategorija",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}, {
+				Value: "categoria",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "pt-PT"},
 				}},
 			}},
 			Mnemonic:               "INSTANCE_OF",
@@ -123,6 +153,11 @@ func Properties() ([]any, errors.E) {
 				Value: "pod-razred od",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}, {
+				Value: "subclasse de",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "pt-PT"},
 				}},
 			}},
 			ShortName:              nil,
@@ -156,6 +191,11 @@ func Properties() ([]any, errors.E) {
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
+			}, {
+				Value: "subpropriedade de",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "pt-PT"},
+				}},
 			}},
 			ShortName:              nil,
 			AlternativeName:        nil,
@@ -188,6 +228,11 @@ func Properties() ([]any, errors.E) {
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
+			}, {
+				Value: "propriedade inversa de",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "pt-PT"},
+				}},
 			}},
 			ShortName:              nil,
 			AlternativeName:        nil,
@@ -218,6 +263,11 @@ func Properties() ([]any, errors.E) {
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
+			}, {
+				Value: "classe abstrata",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "pt-PT"},
+				}},
 			}},
 			ShortName:              nil,
 			AlternativeName:        nil,
@@ -247,6 +297,11 @@ func Properties() ([]any, errors.E) {
 				Value: "različen od",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}, {
+				Value: "distinto de",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "pt-PT"},
 				}},
 			}},
 			ShortName:              nil,
@@ -281,6 +336,11 @@ func Properties() ([]any, errors.E) {
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
+			}, {
+				Value: "denominação",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "pt-PT"},
+				}},
 			}},
 			ShortName:              nil,
 			AlternativeName:        nil,
@@ -310,6 +370,11 @@ func Properties() ([]any, errors.E) {
 				Value: "ime",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}, {
+				Value: "nome",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "pt-PT"},
 				}},
 			}},
 			ShortName:              nil,
@@ -343,6 +408,11 @@ func Properties() ([]any, errors.E) {
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
+			}, {
+				Value: "nome curto",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "pt-PT"},
+				}},
 			}},
 			ShortName:              nil,
 			AlternativeName:        nil,
@@ -374,6 +444,11 @@ func Properties() ([]any, errors.E) {
 				Value: "alternativno ime",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}, {
+				Value: "nome alternativo",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "pt-PT"},
 				}},
 			}},
 			ShortName:              nil,
@@ -407,6 +482,11 @@ func Properties() ([]any, errors.E) {
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
+			}, {
+				Value: "título",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "pt-PT"},
+				}},
 			}},
 			ShortName:              nil,
 			AlternativeName:        nil,
@@ -439,6 +519,11 @@ func Properties() ([]any, errors.E) {
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
+			}, {
+				Value: "descrição",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "pt-PT"},
+				}},
 			}},
 			ShortName:              nil,
 			AlternativeName:        nil,
@@ -469,6 +554,11 @@ func Properties() ([]any, errors.E) {
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
+			}, {
+				Value: "conteúdo",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "pt-PT"},
+				}},
 			}},
 			ShortName:              nil,
 			AlternativeName:        nil,
@@ -498,6 +588,11 @@ func Properties() ([]any, errors.E) {
 				Value: "mnemonik",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}, {
+				Value: "mnemónica",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "pt-PT"},
 				}},
 			}},
 			ShortName:              nil,
@@ -531,6 +626,11 @@ func Properties() ([]any, errors.E) {
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
+			}, {
+				Value: "na língua",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "pt-PT"},
+				}},
 			}},
 			ShortName:              nil,
 			AlternativeName:        nil,
@@ -561,6 +661,11 @@ func Properties() ([]any, errors.E) {
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
+			}, {
+				Value: "na localização",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "pt-PT"},
+				}},
 			}},
 			ShortName: nil,
 			AlternativeName: []StringWithLanguage{{
@@ -572,6 +677,11 @@ func Properties() ([]any, errors.E) {
 				Value: "v časovnem pasu",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}, {
+				Value: "no fuso horário",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "pt-PT"},
 				}},
 			}},
 			Mnemonic:               "IN_LOCATION",
@@ -601,6 +711,11 @@ func Properties() ([]any, errors.E) {
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
+			}, {
+				Value: "variante",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "pt-PT"},
+				}},
 			}},
 			ShortName:       nil,
 			AlternativeName: nil,
@@ -614,6 +729,11 @@ func Properties() ([]any, errors.E) {
 				Value: "<p>Varianta ima enoličen ID. Vse vrednosti variante si delijo ta ID.</p>",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}, {
+				Value: "<p>Uma variante tem um ID único. Todos os valores de uma variante partilham este ID.</p>",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "pt-PT"},
 				}},
 			}},
 			IdentifierLinkTemplate: "",
@@ -640,6 +760,11 @@ func Properties() ([]any, errors.E) {
 				Value: "privzeta varianta",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}, {
+				Value: "variante predefinida",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "pt-PT"},
 				}},
 			}},
 			ShortName:              nil,
@@ -671,6 +796,11 @@ func Properties() ([]any, errors.E) {
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
+			}, {
+				Value: "variante selecionada",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "pt-PT"},
+				}},
 			}},
 			ShortName:              nil,
 			AlternativeName:        nil,
@@ -701,6 +831,11 @@ func Properties() ([]any, errors.E) {
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
+			}, {
+				Value: "lista",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "pt-PT"},
+				}},
 			}},
 			ShortName:       nil,
 			AlternativeName: nil,
@@ -714,6 +849,11 @@ func Properties() ([]any, errors.E) {
 				Value: "<p>Seznam ima enoličen ID, celo seznam s samo enim elementom. Vsi elementi seznama si delijo ta ID.</p>",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}, {
+				Value: "<p>Uma lista tem um ID único, mesmo uma lista com apenas um elemento. Todos os elementos de uma lista partilham este ID.</p>",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "pt-PT"},
 				}},
 			}},
 			IdentifierLinkTemplate: "",
@@ -741,6 +881,11 @@ func Properties() ([]any, errors.E) {
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
+			}, {
+				Value: "ordem na lista",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "pt-PT"},
+				}},
 			}},
 			ShortName:       nil,
 			AlternativeName: nil,
@@ -754,6 +899,11 @@ func Properties() ([]any, errors.E) {
 				Value: "<p>Vrstni red elementa v seznamu. Manjša vrednost je prej v seznamu.</p>",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}, {
+				Value: "<p>Ordem de um elemento dentro da sua lista. Um número menor fica antes na lista.</p>",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "pt-PT"},
 				}},
 			}},
 			IdentifierLinkTemplate: "",
@@ -780,6 +930,11 @@ func Properties() ([]any, errors.E) {
 				Value: "koda",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}, {
+				Value: "código",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "pt-PT"},
 				}},
 			}},
 			ShortName:              nil,
@@ -813,6 +968,11 @@ func Properties() ([]any, errors.E) {
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
+			}, {
+				Value: "tipo de media",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "pt-PT"},
+				}},
 			}},
 			ShortName: nil,
 			AlternativeName: []StringWithLanguage{{
@@ -824,6 +984,11 @@ func Properties() ([]any, errors.E) {
 				Value: "tip MIME",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}, {
+				Value: "tipo MIME",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "pt-PT"},
 				}},
 			}, {
 				Value: "IMT",
@@ -841,6 +1006,11 @@ func Properties() ([]any, errors.E) {
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
 			}, {
+				Value: "tipo de media da Internet",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "pt-PT"},
+				}},
+			}, {
 				Value: "content type",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "en-GB"},
@@ -849,6 +1019,11 @@ func Properties() ([]any, errors.E) {
 				Value: "tip vsebine",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}, {
+				Value: "tipo de conteúdo",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "pt-PT"},
 				}},
 			}},
 			Mnemonic:               "MEDIA_TYPE",
@@ -878,6 +1053,11 @@ func Properties() ([]any, errors.E) {
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
+			}, {
+				Value: "na unidade",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "pt-PT"},
+				}},
 			}},
 			ShortName: nil,
 			AlternativeName: []StringWithLanguage{{
@@ -889,6 +1069,11 @@ func Properties() ([]any, errors.E) {
 				Value: "v enoti mere",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}, {
+				Value: "na unidade de medição",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "pt-PT"},
 				}},
 			}, {
 				Value: "in measurement unit",
@@ -905,6 +1090,11 @@ func Properties() ([]any, errors.E) {
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
+			}, {
+				Value: "na unidade de medida",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "pt-PT"},
+				}},
 			}},
 			Mnemonic: "IN_UNIT",
 			Description: []RawHTMLWithLanguage{{
@@ -916,6 +1106,11 @@ func Properties() ([]any, errors.E) {
 				Value: "<p>Enota številčne vrednosti.</p>",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}, {
+				Value: "<p>Unidade associada a uma quantidade.</p>",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "pt-PT"},
 				}},
 			}},
 			IdentifierLinkTemplate: "",
@@ -942,6 +1137,11 @@ func Properties() ([]any, errors.E) {
 				Value: "nastavitev",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}, {
+				Value: "definição",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "pt-PT"},
 				}},
 			}},
 			ShortName:              nil,
@@ -972,6 +1172,11 @@ func Properties() ([]any, errors.E) {
 				Value: "izključi iz iskanja po besedilu",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}, {
+				Value: "excluir da pesquisa de texto",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "pt-PT"},
 				}},
 			}},
 			ShortName:              nil,
@@ -1005,6 +1210,11 @@ func Properties() ([]any, errors.E) {
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
+			}, {
+				Value: "secção",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "pt-PT"},
+				}},
 			}},
 			ShortName:              nil,
 			AlternativeName:        nil,
@@ -1036,6 +1246,11 @@ func Properties() ([]any, errors.E) {
 				Value: "polje",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}, {
+				Value: "campo",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "pt-PT"},
 				}},
 			}},
 			ShortName:              nil,
@@ -1069,6 +1284,11 @@ func Properties() ([]any, errors.E) {
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
+			}, {
+				Value: "valores do campo",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "pt-PT"},
+				}},
 			}},
 			ShortName:              nil,
 			AlternativeName:        nil,
@@ -1100,6 +1320,11 @@ func Properties() ([]any, errors.E) {
 				Value: "kontekst polja",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}, {
+				Value: "contexto do campo",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "pt-PT"},
 				}},
 			}},
 			ShortName:              nil,
@@ -1133,6 +1358,11 @@ func Properties() ([]any, errors.E) {
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
+			}, {
+				Value: "todos os duplicados permitidos",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "pt-PT"},
+				}},
 			}},
 			ShortName:              nil,
 			AlternativeName:        nil,
@@ -1164,6 +1394,11 @@ func Properties() ([]any, errors.E) {
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
+			}, {
+				Value: "valores duplicados de nível superior não permitidos",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "pt-PT"},
+				}},
 			}},
 			ShortName:              nil,
 			AlternativeName:        nil,
@@ -1194,6 +1429,11 @@ func Properties() ([]any, errors.E) {
 				Value: "vnosna komponenta polja",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}, {
+				Value: "componente de entrada do campo",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "pt-PT"},
 				}},
 			}},
 			ShortName:              nil,
@@ -1227,6 +1467,11 @@ func Properties() ([]any, errors.E) {
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
+			}, {
+				Value: "propriedades do componente",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "pt-PT"},
+				}},
 			}},
 			ShortName:              nil,
 			AlternativeName:        nil,
@@ -1258,6 +1503,11 @@ func Properties() ([]any, errors.E) {
 				Value: "navodilo polja",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}, {
+				Value: "instrução do campo",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "pt-PT"},
 				}},
 			}},
 			ShortName:              nil,
@@ -1291,6 +1541,11 @@ func Properties() ([]any, errors.E) {
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
+			}, {
+				Value: "modelo de etiqueta de apresentação",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "pt-PT"},
+				}},
 			}},
 			ShortName:       nil,
 			AlternativeName: nil,
@@ -1304,6 +1559,11 @@ func Properties() ([]any, errors.E) {
 				Value: "<p>Predloga Go text/template za izpis prikazane oznake dokumenta.</p>",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}, {
+				Value: "<p>Modelo Go text/template utilizado para compor a etiqueta de apresentação do documento.</p>",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "pt-PT"},
 				}},
 			}},
 			IdentifierLinkTemplate: "",
@@ -1333,6 +1593,11 @@ func Properties() ([]any, errors.E) {
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
+			}, {
+				Value: "modelo de ligação do identificador",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "pt-PT"},
+				}},
 			}},
 			ShortName:       nil,
 			AlternativeName: nil,
@@ -1346,6 +1611,11 @@ func Properties() ([]any, errors.E) {
 				Value: "<p>Predloga URI po RFC 6570 ravni 1 s parametrom {identifier} za sestavo povezave iz vrednosti identifikatorja.</p>",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}, {
+				Value: "<p>Um modelo de URI RFC 6570 de nível 1 com um parâmetro {identifier} utilizado para construir uma ligação a partir de um valor de identificador.</p>",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "pt-PT"},
 				}},
 			}},
 			IdentifierLinkTemplate: "",
@@ -1374,6 +1644,11 @@ func Properties() ([]any, errors.E) {
 				Value: "lastnost",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}, {
+				Value: "propriedade",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "pt-PT"},
 				}},
 			}},
 			ShortName:              nil,
@@ -1407,6 +1682,11 @@ func Properties() ([]any, errors.E) {
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
+			}, {
+				Value: "tipo de valor",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "pt-PT"},
+				}},
 			}},
 			ShortName:              nil,
 			AlternativeName:        nil,
@@ -1438,6 +1718,11 @@ func Properties() ([]any, errors.E) {
 				Value: "pod-polje",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}, {
+				Value: "subcampo",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "pt-PT"},
 				}},
 			}},
 			ShortName:              nil,
@@ -1471,6 +1756,11 @@ func Properties() ([]any, errors.E) {
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
+			}, {
+				Value: "predefinição do campo",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "pt-PT"},
+				}},
 			}},
 			ShortName:              nil,
 			AlternativeName:        nil,
@@ -1502,6 +1792,11 @@ func Properties() ([]any, errors.E) {
 				Value: "bližnjica iskanja",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}, {
+				Value: "atalho de pesquisa",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "pt-PT"},
 				}},
 			}},
 			ShortName:              nil,
@@ -1535,6 +1830,11 @@ func Properties() ([]any, errors.E) {
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
+			}, {
+				Value: "atalho de criação",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "pt-PT"},
+				}},
 			}},
 			ShortName:              nil,
 			AlternativeName:        nil,
@@ -1566,6 +1866,11 @@ func Properties() ([]any, errors.E) {
 				Value: "polja",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}, {
+				Value: "campos",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "pt-PT"},
 				}},
 			}},
 			ShortName:              nil,
@@ -1599,6 +1904,11 @@ func Properties() ([]any, errors.E) {
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
+			}, {
+				Value: "propriedade inversa",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "pt-PT"},
+				}},
 			}},
 			ShortName:              nil,
 			AlternativeName:        nil,
@@ -1630,6 +1940,11 @@ func Properties() ([]any, errors.E) {
 				Value: "vgrajena lastnost",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}, {
+				Value: "propriedade de incorporação",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "pt-PT"},
 				}},
 			}},
 			ShortName:              nil,
@@ -1663,6 +1978,11 @@ func Properties() ([]any, errors.E) {
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
+			}, {
+				Value: "cardinalidade",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "pt-PT"},
+				}},
 			}},
 			ShortName:              nil,
 			AlternativeName:        nil,
@@ -1694,6 +2014,11 @@ func Properties() ([]any, errors.E) {
 				Value: "dovoljenje",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}, {
+				Value: "permissão",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "pt-PT"},
 				}},
 			}},
 			ShortName:              nil,
@@ -1727,6 +2052,11 @@ func Properties() ([]any, errors.E) {
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
+			}, {
+				Value: "permissão solicitada",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "pt-PT"},
+				}},
 			}},
 			ShortName:              nil,
 			AlternativeName:        nil,
@@ -1759,6 +2089,11 @@ func Properties() ([]any, errors.E) {
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
+			}, {
+				Value: "utilizador da permissão",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "pt-PT"},
+				}},
 			}},
 			ShortName:              nil,
 			AlternativeName:        nil,
@@ -1790,6 +2125,11 @@ func Properties() ([]any, errors.E) {
 				Value: "obseg dovoljenja",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}, {
+				Value: "âmbito da permissão",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "pt-PT"},
 				}},
 			}},
 			ShortName:              nil,

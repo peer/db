@@ -31,6 +31,8 @@ linters:
         - "amountInterval"
         - "cast"
         - "CLASS"
+        - "coulomb"
+        - "decibel"
         - "DISTINCT_FROM"
         - "docs"
         - "en-GB"
@@ -48,11 +50,13 @@ linters:
         - "none"
         - "parentProp"
         - "parentTo"
+        - "pascal"
         - "PERMISSION_ACTIONS"
         - "prop"
         - "propDisplay"
         - "PROPERTY"
         - "propNaming"
+        - "pt-PT"
         - "range"
         - "ref"
         - "remove"
@@ -72,6 +76,7 @@ linters:
         - "unknown"
         - "VALUE_TYPE"
         - "VOCABULARY"
+        - "volt"
     godot:
       scope: all
     govet:
@@ -108,6 +113,9 @@ linters:
       - linters:
           - goconst
         path: .*_test\.go
+      - linters:
+          - dupl
+        path: core/(properties|vocabularies)\.go
 formatters:
   enable:
     - gofmt
