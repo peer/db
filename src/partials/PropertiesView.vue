@@ -64,12 +64,18 @@ const rows = computed(() => {
     const firstOfProperty = !seen.has(claim.prop.id)
     seen.add(claim.prop.id)
     const typeName = claimTypeName(claim)
+    const subClaims = (claim.sub?.AllClaims() ?? []) as DeepReadonly<Claim>[]
     return {
       claim,
       propId: claim.prop.id,
       firstOfProperty,
       typeName,
-      hasSub: !!claim.sub && claim.sub.AllClaims().length > 0,
+      hasSub: subClaims.length > 0,
+      // The sub-claim of a value-less claim when that is all the claim carries: one value-less claim with nothing under it,
+      // a marker like "selection". Such a claim has nothing to lay out, so the marker's label is rendered where a value
+      // would be instead of through a table of its own, whose label column is a share (20%) of the cell holding it and
+      // wraps a marker of a few words once the nesting is deep enough.
+      loneMarker: typeName === "has" && subClaims.length === 1 && claimTypeName(subClaims[0]) === "has" && subClaims[0].Size() === 0 ? subClaims[0] : null,
       // A value-less claim renders nothing for its own value (ClaimValueHas is an empty span), so its sub-claims move up into the value cell of the label row
       // instead of sitting a line below an empty value. HAS is the only such type: none and unknown still render a label ("none"/"unknown"), so they are not value-less.
       valueless: typeName === "has",
@@ -140,13 +146,44 @@ const hasContent = computed(() => rows.value.length > 0)
           </td>
           <td v-else class="hidden sm:block"></td>
           <!--
+            A value-less claim which carries nothing but a marker (see rows) puts the marker's label where a value would
+            be, at every depth. When editable the marker's own buttons follow it under the value, the way the buttons of
+            the claim this cell belongs to sit under its label, so the marker stays editable without a table of its own.
+          -->
+          <td v-if="row.loneMarker" class="pd-propertiesview-value px-2 pt-0 pb-1 align-top text-gray-700 sm:pt-1">
+            <div class="flex flex-row flex-wrap items-center gap-x-2 gap-y-1 sm:flex-col sm:items-start">
+              <span :class="{ 'leading-none sm:pt-0.5': editable }"><DocumentRefInline :id="row.loneMarker.prop.id" :link="false" /></span>
+              <div v-if="editable" class="flex flex-row items-center gap-0.5">
+                <Button
+                  type="button"
+                  :primary="editingClaimId === row.loneMarker.id"
+                  :disabled="editingClaimId === row.loneMarker.id"
+                  class="pd-propertiesview-button-edit px-0.5 py-0.5"
+                  @click.prevent="onEdit(row.loneMarker!.id)"
+                  ><PencilIcon class="size-3" :alt="t('common.buttons.edit')"
+                /></Button>
+                <Button
+                  type="button"
+                  :primary="subClaimParentId === row.loneMarker.id"
+                  :disabled="subClaimParentId === row.loneMarker.id"
+                  class="pd-propertiesview-button-subclaim px-0.5 py-0.5"
+                  @click.prevent="onSubClaim(row.loneMarker!.id)"
+                  ><PlusIcon class="size-3" :alt="t('common.buttons.subClaim')"
+                /></Button>
+                <Button type="button" class="pd-propertiesview-button-remove px-0.5 py-0.5" @click.prevent="onRemove(row.loneMarker!.id)"
+                  ><MinusIcon class="size-3" :alt="t('common.buttons.remove')"
+                /></Button>
+              </div>
+            </div>
+          </td>
+          <!--
             A value-less claim (HAS, see rows) renders no value. At the top level its sub-claims sit in the value cell, so
             the first sub-claim aligns to the right of the label (where a value would be) from sm up, and indents one step
             (pl-2) below sm so it sits under the label. In a nested instance the value column is left empty (an empty cell
             keeps the grid aligned from sm up, hidden below sm so it adds no line) and the sub-claims stair-step in the
             sub-row below, so a deep HAS chain does not march across the value columns.
           -->
-          <td v-if="row.valueless && !nested && row.hasSub" class="pd-propertiesview-value py-0 pr-0 pl-2 align-top sm:pl-0">
+          <td v-else-if="row.valueless && !nested && row.hasSub" class="pd-propertiesview-value py-0 pr-0 pl-2 align-top sm:pl-0">
             <PropertiesView
               :claims="row.claim.sub!"
               nested
@@ -165,11 +202,12 @@ const hasContent = computed(() => rows.value.length > 0)
         </tr>
         <!--
           Sub-claims render indented below the claim. A top-level value-less (HAS) claim's sub-claims already sit in its
-          value cell above, so only value claims and nested HAS claims render here. In a top-level instance the sub-table
-          sits in the value column (under the value); in a nested instance it spans both columns (sm:col-span-2) and
-          indents by this cell's px-2 under the label, so deeper sub-claims stair-step down per level.
+          value cell above, as does the marker of a claim which carries nothing else, so only value claims and nested HAS
+          claims render here. In a top-level instance the sub-table sits in the value column (under the value); in a
+          nested instance it spans both columns (sm:col-span-2) and indents by this cell's px-2 under the label, so
+          deeper sub-claims stair-step down per level.
         -->
-        <tr v-if="row.hasSub && !(row.valueless && !nested)" class="pd-propertiesview-row-sub contents">
+        <tr v-if="row.hasSub && !row.loneMarker && !(row.valueless && !nested)" class="pd-propertiesview-row-sub contents">
           <td v-if="!nested" class="hidden sm:block"></td>
           <td class="px-2 py-0 align-top" :class="{ 'sm:col-span-2': nested }">
             <PropertiesView

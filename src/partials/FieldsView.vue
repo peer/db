@@ -170,6 +170,27 @@ function getSubClaims(claimId: string): ClaimTypes {
   return new ClaimTypes(claim?.sub ?? {})
 }
 
+// The sub-field of a value-less HAS claim when everything under the claim is one value-less claim of one
+// sub-field: a marker like "selection", which has nothing of its own to lay out. Returns null otherwise, and
+// the claim's sub-fields are then rendered as a table below the label instead.
+//
+// The marker is rendered where a value would be (see the template) rather than through such a table, because
+// the label column of every instance is a share (20%) of the width of whatever holds it. A table nested a
+// level or two deep therefore has a narrow label column, and a marker of a few words wraps in it while the
+// value column beside it stays empty.
+function loneMarkerSubField(field: DeepReadonly<FieldData>, claim: DeepReadonly<Claim>): DeepReadonly<FieldData> | null {
+  const subClaims = getSubClaims(claim.GetID())
+  const rendered = field.subFields.filter((subField) => fieldShownInView(subField) && getClaimsForField(subClaims, subField, isFileLink).length > 0)
+  if (rendered.length !== 1 || rendered[0].subFields.length > 0) {
+    return null
+  }
+  const claims = getClaimsForField(subClaims, rendered[0], isFileLink)
+  if (claims.length !== 1 || claimTypeName(claims[0]) !== "has" || claims[0].Size() > 0) {
+    return null
+  }
+  return rendered[0]
+}
+
 // Check if any top-level field is shown.
 const hasAnyFieldValues = computed(() => props.fieldsData.fields.some(shown))
 
@@ -196,12 +217,26 @@ const hasContent = computed(() => hasAnyFieldValues.value || (props.sections && 
         <template v-if="shown(field)">
           <template v-for="(claim, cIndex) in displayedClaimsForField(field)" :key="claim.GetID()">
             <!--
+              A value-less HAS claim which carries nothing but a marker (see loneMarkerSubField) puts the marker's label
+              where a value would be, at every depth: there is no table to lay out, and a table would give the marker a
+              label column of its own to wrap in.
+            -->
+            <tr v-if="claimTypeName(claim) === 'has' && loneMarkerSubField(field, claim)" class="pd-fieldsview-row contents">
+              <td v-if="cIndex === 0" class="pd-fieldsview-label px-2 py-1 align-top font-medium text-gray-700">
+                <DocumentRefInline :id="field.propertyId" :link="false" />
+              </td>
+              <td v-else class="hidden sm:block"></td>
+              <td class="pd-fieldsview-value px-2 pt-0 pb-1 align-top text-gray-700 sm:pt-1">
+                <DocumentRefInline :id="loneMarkerSubField(field, claim)!.propertyId" :link="false" />
+              </td>
+            </tr>
+            <!--
               A value-less HAS claim renders no value. At the top level its sub-fields table sits in the value cell of the
               label row, so the first sub-field aligns to the right of the label (where a value would be) from sm up, and
               indents one step (pl-2) below sm so it sits under the label. In a nested instance the value column is left
               empty and the sub-fields stair-step in the sub-row below (the value branch), so a deep HAS chain does not march.
             -->
-            <tr v-if="claimTypeName(claim) === 'has' && !nested && field.subFields.length > 0 && claim.sub" class="pd-fieldsview-row contents">
+            <tr v-else-if="claimTypeName(claim) === 'has' && !nested && field.subFields.length > 0 && claim.sub" class="pd-fieldsview-row contents">
               <td v-if="cIndex === 0" class="pd-fieldsview-label px-2 py-1 align-top font-medium text-gray-700">
                 <DocumentRefInline :id="field.propertyId" :link="false" />
               </td>
@@ -268,8 +303,18 @@ const hasContent = computed(() => hasAnyFieldValues.value || (props.sections && 
             <template v-for="field in sortedByOrder(section.fields)" :key="fieldKey(field)">
               <template v-if="shown(field)">
                 <template v-for="(claim, cIndex) in displayedClaimsForField(field)" :key="claim.GetID()">
+                  <!-- A value-less HAS claim carrying nothing but a marker puts the marker's label where a value would be, see above. -->
+                  <tr v-if="claimTypeName(claim) === 'has' && loneMarkerSubField(field, claim)" class="pd-fieldsview-row contents">
+                    <td v-if="cIndex === 0" class="pd-fieldsview-label px-2 py-1 align-top font-medium text-gray-700">
+                      <DocumentRefInline :id="field.propertyId" :link="false" />
+                    </td>
+                    <td v-else class="hidden sm:block"></td>
+                    <td class="pd-fieldsview-value px-2 pt-0 pb-1 align-top text-gray-700 sm:pt-1">
+                      <DocumentRefInline :id="loneMarkerSubField(field, claim)!.propertyId" :link="false" />
+                    </td>
+                  </tr>
                   <!-- A top-level value-less HAS claim's sub-fields sit in the label row's value cell (first sub-field to the right), see above. -->
-                  <tr v-if="claimTypeName(claim) === 'has' && !nested && field.subFields.length > 0 && claim.sub" class="pd-fieldsview-row contents">
+                  <tr v-else-if="claimTypeName(claim) === 'has' && !nested && field.subFields.length > 0 && claim.sub" class="pd-fieldsview-row contents">
                     <td v-if="cIndex === 0" class="pd-fieldsview-label px-2 py-1 align-top font-medium text-gray-700">
                       <DocumentRefInline :id="field.propertyId" :link="false" />
                     </td>
