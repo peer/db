@@ -427,7 +427,9 @@ onBeforeUnmount(() => {
           >
         </div>
       </li>
-      <li v-else-if="from !== to" class="pd-amountfiltersresult-row-histogram col-span-2 mb-3">
+      <!-- The margin keeps the histogram apart from the rows of values under it. It is dropped when the histogram is the last row, where the margin would
+      show as empty space at the bottom of the facet. -->
+      <li v-else-if="from !== to" class="pd-amountfiltersresult-row-histogram col-span-2 mb-3 last:mb-0">
         <!-- We subtract 1 from chartWidth because we subtract 1 from bar width, so there would be a gap after the last one. -->
         <svg :viewBox="`0 0 ${chartWidth - 1} ${chartHeight}`">
           <!-- We subtract 1 from bar width to have a gap between bars. -->
