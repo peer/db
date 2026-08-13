@@ -1067,7 +1067,7 @@ defineExpose({
       ancestor slot's are), so no further edits pile up before the claim's
       committed state settles.
     -->
-    <div v-if="!isPresenceOnly" class="flex min-w-0 grow flex-col">
+    <div v-if="!isPresenceOnly" class="pd-claiminput-value flex min-w-0 grow flex-col">
       <FieldsFormRow
         ref="formRowRef"
         v-model:entry="local"
@@ -1092,7 +1092,7 @@ defineExpose({
       The message and the checkbox are grouped so the message sits right under it, the way the
       value input shows its own message, instead of being pushed away by the slot's gap.
     -->
-    <div v-if="showCheckbox" class="flex flex-col">
+    <div v-if="showCheckbox" class="pd-claiminput-presence flex flex-col">
       <CheckBox
         :id="checkboxId"
         :model-value="currentClaim !== null"
@@ -1101,7 +1101,7 @@ defineExpose({
         class="pd-claiminput-checkbox"
         @update:model-value="onCheckboxChange"
       />
-      <p v-if="errorMessage" class="mt-1 text-sm text-error-600">{{ errorMessage }}</p>
+      <p v-if="errorMessage" class="pd-claiminput-error mt-1 text-sm text-error-600">{{ errorMessage }}</p>
     </div>
 
     <!--
@@ -1136,7 +1136,7 @@ defineExpose({
         :label-id="subFieldLabelId(subField)"
         :parent-active="subFieldsActive"
       />
-      <p v-if="isPresenceOnly && !showCheckbox && errorMessage" class="text-sm text-error-600">{{ errorMessage }}</p>
+      <p v-if="isPresenceOnly && !showCheckbox && errorMessage" class="pd-claiminput-error text-sm text-error-600">{{ errorMessage }}</p>
     </div>
   </div>
 </template>

@@ -395,7 +395,7 @@ onBeforeUnmount(() => {
       <li v-if="error" class="col-span-2">
         <i class="pd-amountfiltersresult-error text-error-600">{{ t("common.status.loadingDataFailed") }}</i>
       </li>
-      <li v-else-if="total === null" class="col-span-2 motion-safe:animate-pulse" aria-hidden="true">
+      <li v-else-if="total === null" class="pd-amountfiltersresult-loading col-span-2 motion-safe:animate-pulse" aria-hidden="true">
         <div class="my-1.5 grid grid-cols-10 items-end gap-x-1" :style="`aspect-ratio: ${chartWidth - 1} / ${chartHeight}`">
           <div v-for="(h, i) in loadingShortHeights(result.props.join('/'), 10)" :key="i" class="w-auto rounded-sm bg-slate-200" :class="h"></div>
         </div>
@@ -431,7 +431,7 @@ onBeforeUnmount(() => {
       show as empty space at the bottom of the facet. -->
       <li v-else-if="from !== to" class="pd-amountfiltersresult-row-histogram col-span-2 mb-3 last:mb-0">
         <!-- We subtract 1 from chartWidth because we subtract 1 from bar width, so there would be a gap after the last one. -->
-        <svg :viewBox="`0 0 ${chartWidth - 1} ${chartHeight}`">
+        <svg class="pd-amountfiltersresult-chart" :viewBox="`0 0 ${chartWidth - 1} ${chartHeight}`">
           <!-- We subtract 1 from bar width to have a gap between bars. -->
           <rect
             v-for="(res, i) in results"
@@ -442,7 +442,7 @@ onBeforeUnmount(() => {
             :x="i * barWidth"
           ></rect>
         </svg>
-        <div v-if="rangeDisplay" class="flex flex-row justify-between gap-x-1">
+        <div v-if="rangeDisplay" class="pd-amountfiltersresult-row-range-labels flex flex-row justify-between gap-x-1">
           <div class="pd-amountfiltersresult-label-from" :title="String(from)">
             {{ rangeDisplay.from }}
           </div>

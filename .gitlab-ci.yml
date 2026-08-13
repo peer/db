@@ -140,7 +140,8 @@ test_e2e:
     - test_node
 
   before_script:
-    - apk --update add bash jq
+    - apk --update add bash git git-lfs jq
+    - git lfs fetch
     - docker info
     - echo "$CI_REGISTRY_PASSWORD" | docker login --username "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
     - echo "LINK_PUBLISH_JOB_ID=${CI_JOB_ID}" > link_publish.env

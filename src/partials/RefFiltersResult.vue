@@ -423,7 +423,7 @@ function onToggle(node: RefFilterTreeNode) {
         <i class="pd-reffiltersresult-error text-error-600">{{ t("common.status.loadingDataFailed") }}</i>
       </li>
       <template v-else-if="loading">
-        <li v-for="i in 3" :key="i" class="flex items-baseline gap-x-1" aria-hidden="true">
+        <li v-for="i in 3" :key="i" class="pd-reffiltersresult-loading flex items-baseline gap-x-1" aria-hidden="true">
           <div class="my-1.5 h-2 w-4 rounded-sm bg-slate-200 motion-safe:animate-pulse"></div>
           <div class="my-1.5 h-2 rounded-sm bg-slate-200 motion-safe:animate-pulse" :class="[loadingWidth(`${propsKey}/${i}`)]"></div>
           <div class="my-1.5 h-2 w-8 rounded-sm bg-slate-200 motion-safe:animate-pulse"></div>

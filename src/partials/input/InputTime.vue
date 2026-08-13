@@ -363,7 +363,7 @@ async function onFocusOut(event: FocusEvent) {
       @update:model-value="onTimeUpdate"
     />
 
-    <Listbox v-model="precision" :disabled="inactive" as="div" class="w-full" @update:model-value="onPrecisionSelected">
+    <Listbox v-model="precision" :disabled="inactive" as="div" class="pd-inputtime-group-precision w-full" @update:model-value="onPrecisionSelected">
       <div class="relative">
         <!--
           We add additional padding on the right (pr-10) on top of InputStyled's

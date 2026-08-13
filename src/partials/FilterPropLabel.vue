@@ -29,6 +29,6 @@ const { t } = useI18n({ useScope: "global" })
   </template>
   <template v-if="appendHas">
     <template v-if="propIds.length > 0">{{ " > " }}</template>
-    {{ t("partials.FilterPropLabel.hasProperty") }}
+    <span class="pd-filterproplabel-hasproperty">{{ t("partials.FilterPropLabel.hasProperty") }}</span>
   </template>
 </template>

@@ -64,13 +64,13 @@ function timeString(at: string): string {
     <div v-else-if="history === null" class="pd-documenthistory-loading text-center">{{ t("common.status.loading") }}</div>
     <i v-else-if="history.length === 0" class="pd-documenthistory-empty text-gray-500">{{ t("views.DocumentGet.history.empty") }}</i>
     <table v-else class="pd-documenthistory-list w-full table-auto border-collapse">
-      <thead>
-        <tr>
-          <th class="w-1/2 border-r border-slate-200 px-2 py-1 text-left font-bold">{{ t("common.labels.time") }}</th>
-          <th class="w-1/2 border-l border-slate-200 px-2 py-1 text-left font-bold">{{ t("views.DocumentGet.history.author") }}</th>
+      <thead class="pd-documenthistory-header">
+        <tr class="pd-documenthistory-row-header">
+          <th class="pd-documenthistory-column-time w-1/2 border-r border-slate-200 px-2 py-1 text-left font-bold">{{ t("common.labels.time") }}</th>
+          <th class="pd-documenthistory-column-author w-1/2 border-l border-slate-200 px-2 py-1 text-left font-bold">{{ t("views.DocumentGet.history.author") }}</th>
         </tr>
       </thead>
-      <tbody>
+      <tbody class="pd-documenthistory-body">
         <tr v-for="item in history" :key="item.changeset" class="pd-documenthistory-item border-t border-slate-200">
           <td class="pd-documenthistory-text-time border-r border-slate-200 px-2 py-1 align-top">
             <RouterLink class="pd-documenthistory-link-version link" :to="{ name: 'DocumentGet', params: { id }, query: encodeQuery({ version: item.version }) }"

@@ -194,7 +194,7 @@ const WithDocumentD = WithDocument<D>
         <i class="pd-hasfiltersresult-error text-error-600">{{ t("common.status.loadingDataFailed") }}</i>
       </li>
       <template v-else-if="loading">
-        <li v-for="i in 3" :key="i" class="contents">
+        <li v-for="i in 3" :key="i" class="pd-hasfiltersresult-loading contents">
           <div class="my-1.5 h-2 w-4 rounded-sm bg-slate-200 motion-safe:animate-pulse" aria-hidden="true"></div>
           <div class="flex items-baseline gap-x-1" aria-hidden="true">
             <div class="my-1.5 h-2 rounded-sm bg-slate-200 motion-safe:animate-pulse" :class="[loadingWidth(`has/${i}`)]"></div>
@@ -205,7 +205,7 @@ const WithDocumentD = WithDocument<D>
       <template v-else>
         <li v-for="res in limitedResults" :key="res.id" class="pd-hasfiltersresult-row contents">
           <CheckBox :id="'has/' + (result.props?.join('/') ?? '') + '/' + res.id" v-model="checkboxState" class="pd-hasfiltersresult-checkbox" :value="res.id" />
-          <div class="flex items-baseline gap-x-1">
+          <div class="pd-hasfiltersresult-value flex items-baseline gap-x-1">
             <WithDocumentD :id="res.id" name="DocumentGet">
               <template #default="{ doc, url }">
                 <label

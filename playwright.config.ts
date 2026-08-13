@@ -24,7 +24,17 @@ export default defineConfig({
       reducedMotion: "reduce", // Avoids animation-related test flakiness.
     },
     launchOptions: {
-      args: ["--font-render-hinting=none", "--disable-skia-runtime-opts", "--disable-font-subpixel-positioning", "--disable-lcd-text"],
+      args: [
+        "--font-render-hinting=none",
+        "--disable-skia-runtime-opts",
+        "--disable-font-subpixel-positioning",
+        "--disable-lcd-text",
+        "--force-color-profile=srgb",
+        "--disable-partial-raster",
+        "--disable-gpu",
+        "--disable-threaded-animation",
+        "--disable-checker-imaging",
+      ],
     },
   },
   snapshotPathTemplate: "playwright-screenshots/{testFilePath}/{arg}{ext}",
@@ -35,23 +45,38 @@ export default defineConfig({
     },
   },
   projects: [
+    // Read-only projects run first and share one populated database, so their screenshots are
+    // reproducible. Every project which changes documents runs after them, and each such project
+    // is isolated from the others so one project's edits cannot leak into another's screenshots.
+    {
+      name: "chrome",
+      testMatch: /chrome\/.*\.test\.ts$/,
+    },
+    {
+      name: "pages",
+      testMatch: /pages\/.*\.test\.ts$/,
+    },
     {
       name: "search",
       testMatch: /search\/.*\.test\.ts$/,
     },
     {
-      name: "documents",
+      name: "document",
       testMatch: /document\/.*\.test\.ts$/,
-      dependencies: ["search"],
     },
     {
-      name: "navigation",
-      testMatch: /navigation\/.*\.test\.ts$/,
-      dependencies: ["search"],
+      name: "permissions",
+      testMatch: /permissions\/.*\.test\.ts$/,
     },
     {
-      name: "auth",
-      testMatch: /auth\/.*\.test\.ts$/,
+      name: "edit",
+      testMatch: /edit\/.*\.test\.ts$/,
+      dependencies: ["chrome", "pages", "search", "document", "permissions"],
+    },
+    {
+      name: "create",
+      testMatch: /create\/.*\.test\.ts$/,
+      dependencies: ["edit"],
     },
   ],
 })

@@ -213,11 +213,13 @@ function onFocusout(event: FocusEvent) {
 
 <template>
   <fieldset ref="fieldsetRef" class="pd-inputidentityfrompermissions" :class="{ 'pd-locked': lock > 0 }" @focusout="onFocusout">
-    <ul v-if="options.length > 0" class="grid grid-cols-[max-content_auto] gap-x-1">
-      <li v-for="user of options" :key="user" class="contents">
+    <ul v-if="options.length > 0" class="pd-inputidentityfrompermissions-list grid grid-cols-[max-content_auto] gap-x-1">
+      <li v-for="user of options" :key="user" class="pd-inputidentityfrompermissions-item contents" :class="`pd-inputidentityfrompermissions-item-${user}`">
         <RadioButton
           :id="`${baseId}-${user}`"
           v-model="selected"
+          class="pd-inputidentityfrompermissions-radio"
+          :class="`pd-inputidentityfrompermissions-radio-${user}`"
           :name="baseId"
           :value="user"
           :disabled="inactive"
@@ -225,13 +227,18 @@ function onFocusout(event: FocusEvent) {
           @mousedown.prevent
           @click="focusOption(user)"
         />
-        <label :for="`${baseId}-${user}`" :class="inactive ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'" @mousedown.prevent @click="focusOption(user)"
+        <label
+          :for="`${baseId}-${user}`"
+          class="pd-inputidentityfrompermissions-label"
+          :class="inactive ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
+          @mousedown.prevent
+          @click="focusOption(user)"
           ><IdentityInline :subject="user"
         /></label>
       </li>
     </ul>
-    <i v-else-if="loading" class="text-gray-500">{{ t("common.status.loading") }}</i>
-    <i v-else-if="allTaken" class="text-gray-500">{{ t("partials.input.InputIdentityFromPermissions.noMoreUsers") }}</i>
-    <i v-else class="text-gray-500">{{ t("partials.input.InputIdentityFromPermissions.noUsers") }}</i>
+    <i v-else-if="loading" class="pd-inputidentityfrompermissions-loading text-gray-500">{{ t("common.status.loading") }}</i>
+    <i v-else-if="allTaken" class="pd-inputidentityfrompermissions-empty-alltaken text-gray-500">{{ t("partials.input.InputIdentityFromPermissions.noMoreUsers") }}</i>
+    <i v-else class="pd-inputidentityfrompermissions-empty text-gray-500">{{ t("partials.input.InputIdentityFromPermissions.noUsers") }}</i>
   </fieldset>
 </template>

@@ -71,7 +71,12 @@ defineExpose({
       <FieldsFormField v-for="field in sortedByOrder(fieldsData.fields)" :key="fieldKey(field)" :field="field" :claims="claims" :initial-claims="initialClaims" />
     </table>
 
-    <div v-for="section in sortedByOrder(fieldsData.sections)" :key="'section-' + section.id" class="flex flex-col gap-y-4">
+    <div
+      v-for="section in sortedByOrder(fieldsData.sections)"
+      :key="'section-' + section.id"
+      class="pd-fieldsform-section flex flex-col gap-y-4"
+      :class="`pd-fieldsform-section-${section.id}`"
+    >
       <!--
         The id makes the header a scroll/hash target of the table of contents. The
         heading role lets assistive technology jump between sections.

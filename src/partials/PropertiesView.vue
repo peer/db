@@ -110,7 +110,7 @@ const hasContent = computed(() => rows.value.length > 0)
     label from sm up, to the right of it below sm), and the label is repeated per value.
   -->
   <table v-if="hasContent" class="pd-propertiesview flex w-full flex-col">
-    <tbody class="grid grid-cols-1 sm:grid-cols-[20%_1fr] sm:gap-x-3">
+    <tbody class="pd-propertiesview-body grid grid-cols-1 sm:grid-cols-[20%_1fr] sm:gap-x-3">
       <template v-for="row in rows" :key="row.claim.id">
         <!--
           Every row carries the property it is for in its class name. A property's label is rendered once,
@@ -120,8 +120,10 @@ const hasContent = computed(() => rows.value.length > 0)
         <tr class="pd-propertiesview-row contents" :class="`pd-propertiesview-row-${row.propId}`">
           <td v-if="editable || row.firstOfProperty" class="pd-propertiesview-label px-2 py-1 align-top">
             <div class="flex flex-row flex-wrap items-center gap-x-2 gap-y-1 sm:flex-col sm:items-start">
-              <span class="font-medium text-gray-700" :class="{ 'leading-none sm:pt-0.5': editable }"><DocumentRefInline :id="row.propId" :link="false" /></span>
-              <div v-if="editable" class="flex flex-row items-center gap-0.5">
+              <span class="pd-propertiesview-label-text font-medium text-gray-700" :class="{ 'leading-none sm:pt-0.5': editable }"
+                ><DocumentRefInline :id="row.propId" :link="false"
+              /></span>
+              <div v-if="editable" class="pd-propertiesview-actions flex flex-row items-center gap-0.5">
                 <Button
                   type="button"
                   :primary="editingClaimId === row.claim.id"
@@ -207,7 +209,11 @@ const hasContent = computed(() => rows.value.length > 0)
           nested instance it spans both columns (sm:col-span-2) and indents by this cell's px-2 under the label, so
           deeper sub-claims stair-step down per level.
         -->
-        <tr v-if="row.hasSub && !row.loneMarker && !(row.valueless && !nested)" class="pd-propertiesview-row-sub contents">
+        <tr
+          v-if="row.hasSub && !row.loneMarker && !(row.valueless && !nested)"
+          class="pd-propertiesview-row-sub contents"
+          :class="`pd-propertiesview-row-sub-${row.propId}`"
+        >
           <td v-if="!nested" class="hidden sm:block"></td>
           <td class="px-2 py-0 align-top" :class="{ 'sm:col-span-2': nested }">
             <PropertiesView

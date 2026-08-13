@@ -1677,18 +1677,22 @@ function canSave(): boolean {
       </template>
     </NavBar>
   </Teleport>
-  <div class="mt-[var(--pd-navbar-offset)] flex w-full flex-row">
+  <div class="pd-documentedit-layout mt-[var(--pd-navbar-offset)] flex w-full flex-row">
     <!--
       The table of contents lives outside the content column, to its left: its
       sticky/scroll machinery keys off its parent (this wrapper) spanning the whole
       content height.
     -->
-    <TableOfContents v-if="hasDocumentPermission(ACTION_UPDATE, doc) && doc && classesInitialized && showToc" :targets="tocTargets" class="ml-4 w-48 shrink-0">
-      <div class="font-semibold">{{ t("partials.TableOfContents.title") }}</div>
+    <TableOfContents
+      v-if="hasDocumentPermission(ACTION_UPDATE, doc) && doc && classesInitialized && showToc"
+      :targets="tocTargets"
+      class="pd-documentedit-toc ml-4 w-48 shrink-0"
+    >
+      <div class="pd-documentedit-title-toc font-semibold">{{ t("partials.TableOfContents.title") }}</div>
     </TableOfContents>
     <div ref="el" class="pd-documentedit flex min-w-0 grow flex-col gap-y-1 border-t border-transparent p-1 sm:gap-y-4 sm:p-4">
-      <div class="rounded-sm border border-gray-200 bg-white p-4 shadow-sm">
-        <div v-if="hasDocumentPermission(ACTION_UPDATE, doc) && sessionEnded" class="my-1 text-center sm:my-4">
+      <div class="pd-documentedit-card rounded-sm border border-gray-200 bg-white p-4 shadow-sm">
+        <div v-if="hasDocumentPermission(ACTION_UPDATE, doc) && sessionEnded" id="documentedit-text-sessionended" class="my-1 text-center sm:my-4">
           <i18n-t keypath="views.DocumentEdit.sessionEnded" scope="global">
             <template #document>
               <DocumentRefInline :id="id" />
@@ -1701,7 +1705,7 @@ function canSave(): boolean {
           See: https://github.com/tailwindlabs/tailwindcss/discussions/10123
         -->
           <TabGroup manual :selected-index="selectedMainTab" @change="onMainTabChange">
-            <TabList class="mb-4 flex flex-wrap gap-2">
+            <TabList class="pd-documentedit-tabs mb-4 flex flex-wrap gap-2">
               <Tab
                 v-if="classTabId && mergedFieldsData"
                 :key="classTabId"
@@ -1714,11 +1718,11 @@ function canSave(): boolean {
               >
               <Tab
                 v-if="showPermissionsTab"
-                class="rounded-sm border border-gray-300 bg-white px-4 py-2 leading-tight font-medium text-gray-700 uppercase outline-none select-none not-aria-selected:hover:bg-gray-50 focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-1 aria-selected:border-primary-600 aria-selected:bg-primary-600 aria-selected:text-white"
+                class="pd-documentedit-tab-permissions rounded-sm border border-gray-300 bg-white px-4 py-2 leading-tight font-medium text-gray-700 uppercase outline-none select-none not-aria-selected:hover:bg-gray-50 focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-1 aria-selected:border-primary-600 aria-selected:bg-primary-600 aria-selected:text-white"
                 >{{ t("views.DocumentEdit.tabs.permissions") }}</Tab
               >
             </TabList>
-            <h1 v-show="displayLabelComponent?.displayLabel" id="documentedit-title" class="mb-4 text-3xl font-bold drop-shadow-xs"
+            <h1 v-show="displayLabelComponent?.displayLabel" id="documentedit-title" class="pd-documentedit-title mb-4 text-3xl font-bold drop-shadow-xs"
               ><DisplayLabel ref="displayLabelComponent" :doc="doc"
             /></h1>
             <!-- We explicitly disable tabbing. See: https://github.com/tailwindlabs/headlessui/discussions/1433 -->
@@ -1748,12 +1752,12 @@ function canSave(): boolean {
                   @remove-claim="onRemoveClaim"
                   @sub-claim="onSubClaimAdd"
                 />
-                <form id="documentedit-form-claim" ref="claimFormRef" @submit.prevent="onSubmit" @reset="onReset">
+                <form id="documentedit-form-claim" ref="claimFormRef" class="pd-documentedit-form-claim" @submit.prevent="onSubmit" @reset="onReset">
                   <h2 id="documentedit-title-claim" class="mt-4 text-xl font-medium">{{
                     editingClaimId ? t("views.DocumentEdit.editClaim") : subClaimParentId ? t("views.DocumentEdit.addSubClaim") : t("views.DocumentEdit.addClaim")
                   }}</h2>
                   <TabGroup :selected-index="selectedClaimTab" @change="onChangeClaimTab">
-                    <TabList class="mt-4 flex flex-wrap gap-2">
+                    <TabList class="pd-documentedit-tabs-claimtype mt-4 flex flex-wrap gap-2">
                       <Tab
                         v-for="type in claimTypes"
                         :key="type"
@@ -1768,7 +1772,7 @@ function canSave(): boolean {
                     </TabList>
                     <TabPanels as="template">
                       <!-- We explicitly disable tabbing. See: https://github.com/tailwindlabs/headlessui/discussions/1433 -->
-                      <TabPanel tabindex="-1" class="flex flex-col outline-none">
+                      <TabPanel tabindex="-1" class="pd-documentedit-panel-claimtype pd-documentedit-panel-claimtype-id flex flex-col outline-none">
                         <InputField required :label="t('common.labels.property')" class="pd-documentedit-field-property mt-4">
                           <template #input="inputProps">
                             <InputRef v-bind="inputProps" v-model="claimProp" :filter="PROPERTY_FILTER" />
@@ -1780,7 +1784,7 @@ function canSave(): boolean {
                           </template>
                         </InputField>
                       </TabPanel>
-                      <TabPanel tabindex="-1" class="flex flex-col outline-none">
+                      <TabPanel tabindex="-1" class="pd-documentedit-panel-claimtype pd-documentedit-panel-claimtype-string flex flex-col outline-none">
                         <InputField required :label="t('common.labels.property')" class="pd-documentedit-field-property mt-4">
                           <template #input="inputProps">
                             <InputRef v-bind="inputProps" v-model="claimProp" :filter="PROPERTY_FILTER" />
@@ -1792,7 +1796,7 @@ function canSave(): boolean {
                           </template>
                         </InputField>
                       </TabPanel>
-                      <TabPanel tabindex="-1" class="flex flex-col outline-none">
+                      <TabPanel tabindex="-1" class="pd-documentedit-panel-claimtype pd-documentedit-panel-claimtype-html flex flex-col outline-none">
                         <InputField required :label="t('common.labels.property')" class="pd-documentedit-field-property mt-4">
                           <template #input="inputProps">
                             <InputRef v-bind="inputProps" v-model="claimProp" :filter="PROPERTY_FILTER" />
@@ -1804,7 +1808,7 @@ function canSave(): boolean {
                           </template>
                         </InputField>
                       </TabPanel>
-                      <TabPanel tabindex="-1" class="flex flex-col outline-none">
+                      <TabPanel tabindex="-1" class="pd-documentedit-panel-claimtype pd-documentedit-panel-claimtype-amount flex flex-col outline-none">
                         <InputField required :label="t('common.labels.property')" class="pd-documentedit-field-property mt-4">
                           <template #input="inputProps">
                             <InputRef v-bind="inputProps" v-model="claimProp" :filter="PROPERTY_FILTER" />
@@ -1816,7 +1820,7 @@ function canSave(): boolean {
                           </template>
                         </InputField>
                       </TabPanel>
-                      <TabPanel tabindex="-1" class="flex flex-col outline-none">
+                      <TabPanel tabindex="-1" class="pd-documentedit-panel-claimtype pd-documentedit-panel-claimtype-amountinterval flex flex-col outline-none">
                         <InputField required :label="t('common.labels.property')" class="pd-documentedit-field-property mt-4">
                           <template #input="inputProps">
                             <InputRef v-bind="inputProps" v-model="claimProp" :filter="PROPERTY_FILTER" />
@@ -1841,7 +1845,7 @@ function canSave(): boolean {
                           </template>
                         </InputField>
                       </TabPanel>
-                      <TabPanel tabindex="-1" class="flex flex-col outline-none">
+                      <TabPanel tabindex="-1" class="pd-documentedit-panel-claimtype pd-documentedit-panel-claimtype-time flex flex-col outline-none">
                         <InputField required :label="t('common.labels.property')" class="pd-documentedit-field-property mt-4">
                           <template #input="inputProps">
                             <InputRef v-bind="inputProps" v-model="claimProp" :filter="PROPERTY_FILTER" />
@@ -1853,7 +1857,7 @@ function canSave(): boolean {
                           </template>
                         </InputField>
                       </TabPanel>
-                      <TabPanel tabindex="-1" class="flex flex-col outline-none">
+                      <TabPanel tabindex="-1" class="pd-documentedit-panel-claimtype pd-documentedit-panel-claimtype-timeinterval flex flex-col outline-none">
                         <InputField required :label="t('common.labels.property')" class="pd-documentedit-field-property mt-4">
                           <template #input="inputProps">
                             <InputRef v-bind="inputProps" v-model="claimProp" :filter="PROPERTY_FILTER" />
@@ -1878,7 +1882,7 @@ function canSave(): boolean {
                           </template>
                         </InputField>
                       </TabPanel>
-                      <TabPanel tabindex="-1" class="flex flex-col outline-none">
+                      <TabPanel tabindex="-1" class="pd-documentedit-panel-claimtype pd-documentedit-panel-claimtype-link flex flex-col outline-none">
                         <InputField required :label="t('common.labels.property')" class="pd-documentedit-field-property mt-4">
                           <template #input="inputProps">
                             <InputRef v-bind="inputProps" v-model="claimProp" :filter="PROPERTY_FILTER" />
@@ -1890,7 +1894,7 @@ function canSave(): boolean {
                           </template>
                         </InputField>
                       </TabPanel>
-                      <TabPanel tabindex="-1" class="flex flex-col outline-none">
+                      <TabPanel tabindex="-1" class="pd-documentedit-panel-claimtype pd-documentedit-panel-claimtype-file flex flex-col outline-none">
                         <InputField required :label="t('common.labels.property')" class="pd-documentedit-field-property mt-4">
                           <template #input="inputProps">
                             <InputRef v-bind="inputProps" v-model="claimProp" :filter="PROPERTY_FILTER" />
@@ -1902,7 +1906,7 @@ function canSave(): boolean {
                           </template>
                         </InputField>
                       </TabPanel>
-                      <TabPanel tabindex="-1" class="flex flex-col outline-none">
+                      <TabPanel tabindex="-1" class="pd-documentedit-panel-claimtype pd-documentedit-panel-claimtype-ref flex flex-col outline-none">
                         <InputField required :label="t('common.labels.property')" class="pd-documentedit-field-property mt-4">
                           <template #input="inputProps">
                             <InputRef v-bind="inputProps" v-model="claimProp" :filter="PROPERTY_FILTER" />
@@ -1914,21 +1918,21 @@ function canSave(): boolean {
                           </template>
                         </InputField>
                       </TabPanel>
-                      <TabPanel tabindex="-1" class="flex flex-col outline-none">
+                      <TabPanel tabindex="-1" class="pd-documentedit-panel-claimtype pd-documentedit-panel-claimtype-has flex flex-col outline-none">
                         <InputField required :label="t('common.labels.property')" class="pd-documentedit-field-property mt-4">
                           <template #input="inputProps">
                             <InputRef v-bind="inputProps" v-model="claimProp" :filter="PROPERTY_FILTER" />
                           </template>
                         </InputField>
                       </TabPanel>
-                      <TabPanel tabindex="-1" class="flex flex-col outline-none">
+                      <TabPanel tabindex="-1" class="pd-documentedit-panel-claimtype pd-documentedit-panel-claimtype-none flex flex-col outline-none">
                         <InputField required :label="t('common.labels.property')" class="pd-documentedit-field-property mt-4">
                           <template #input="inputProps">
                             <InputRef v-bind="inputProps" v-model="claimProp" :filter="PROPERTY_FILTER" />
                           </template>
                         </InputField>
                       </TabPanel>
-                      <TabPanel tabindex="-1" class="flex flex-col outline-none">
+                      <TabPanel tabindex="-1" class="pd-documentedit-panel-claimtype pd-documentedit-panel-claimtype-unknown flex flex-col outline-none">
                         <InputField required :label="t('common.labels.property')" class="pd-documentedit-field-property mt-4">
                           <template #input="inputProps">
                             <InputRef v-bind="inputProps" v-model="claimProp" :filter="PROPERTY_FILTER" />
@@ -1939,7 +1943,7 @@ function canSave(): boolean {
                   </TabGroup>
                   <div v-if="claimFormErrorCode === 'notAllowed'" id="documentedit-error-claim" class="mt-4 text-error-600">{{ t("common.errors.notAllowed") }}</div>
                   <div v-else-if="claimFormError" id="documentedit-error-claim" class="mt-4 text-error-600">{{ t("common.errors.unexpected") }}</div>
-                  <div class="mt-4 flex flex-row justify-end gap-4">
+                  <div class="pd-documentedit-actions-claim mt-4 flex flex-row justify-end gap-4">
                     <Button id="documentedit-button-cancelclaim" type="reset" :disabled="allEmpty && !anyError">{{ t("common.buttons.cancel") }}</Button>
                     <!--
                     We do enable button even when inputs are invalid because we want the user to
@@ -1955,13 +1959,13 @@ function canSave(): boolean {
                 Permissions tab panel. It is kept mounted across tab switches (:unmount="false"), so
                 pending, not-yet-saved operations survive them.
               -->
-              <TabPanel v-if="showPermissionsTab" tabindex="-1" :unmount="false" class="outline-none">
+              <TabPanel v-if="showPermissionsTab" tabindex="-1" :unmount="false" class="pd-documentedit-panel-permissions outline-none">
                 <PermissionsForm :claims="doc.claims" />
               </TabPanel>
             </TabPanels>
           </TabGroup>
           <div v-if="sessionError" id="documentedit-error-session" class="mt-4 text-error-600">{{ t("common.errors.unexpected") }}</div>
-          <div class="mt-4 flex flex-row justify-between gap-4">
+          <div class="pd-documentedit-actions mt-4 flex flex-row justify-between gap-4">
             <Button id="documentedit-button-discard" type="button" :progress="saveBusy" @click.prevent="onDiscard">{{ t("common.buttons.discard") }}</Button>
             <!-- The button sits outside the claim form (a form cannot nest in it), so saving is a click and not a submit. -->
             <Button id="documentedit-button-save" type="button" primary :disabled="!canSave()" :progress="saveBusy" @click.prevent="onSave">{{

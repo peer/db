@@ -14,12 +14,24 @@ const { t } = useI18n({ useScope: "global" })
 
 <template>
   <template v-if="claim">
-    <template v-if="claim.from">{{ claim.from }}</template>
-    <template v-else-if="claim.fromIsUnknown">{{ t("common.values.unknown") }}</template>
-    <template v-else-if="claim.fromIsNone">{{ t("common.values.none") }}</template>
+    <template v-if="claim.from"
+      ><span class="pd-claimvalueamountinterval-from">{{ claim.from }}</span></template
+    >
+    <template v-else-if="claim.fromIsUnknown"
+      ><span class="pd-claimvalueamountinterval-from">{{ t("common.values.unknown") }}</span></template
+    >
+    <template v-else-if="claim.fromIsNone"
+      ><span class="pd-claimvalueamountinterval-from">{{ t("common.values.none") }}</span></template
+    >
     –
-    <template v-if="claim.to">{{ claim.to }}</template>
-    <template v-else-if="claim.toIsUnknown">{{ t("common.values.unknown") }}</template>
-    <template v-else-if="claim.toIsNone">{{ t("common.values.none") }}</template>
+    <template v-if="claim.to"
+      ><span class="pd-claimvalueamountinterval-to">{{ claim.to }}</span></template
+    >
+    <template v-else-if="claim.toIsUnknown"
+      ><span class="pd-claimvalueamountinterval-to">{{ t("common.values.unknown") }}</span></template
+    >
+    <template v-else-if="claim.toIsNone"
+      ><span class="pd-claimvalueamountinterval-to">{{ t("common.values.none") }}</span></template
+    >
   </template>
 </template>

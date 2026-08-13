@@ -10,6 +10,14 @@ globals:
         pt: [en, und]
       defaultLanguage: en
       features:
+        # Empty is the auto-hiding navbar this site is served with. The e2e tests replace it (see
+        # test-e2e.sh), because a navbar which is not in the document flow is painted wherever the page
+        # happens to be scrolled when a full page screenshot is taken.
+        navbarPosition: ""
+        # Scrolling loads more results and more facets on this site. The e2e tests turn that off (see
+        # test-e2e.sh) and ask for every page themselves, because how much scrolling loads follows how tall
+        # the results have rendered by the time the page is measured, and so how quickly the site answered.
+        disableLoadingOnScroll: false
         searchResultsTable: true
         downloadButtons: true
         indexAncestorProperties: true

@@ -110,8 +110,16 @@ chmod 644 peerdb-container+2.pem peerdb-container+2-key.pem
 cp "$(mkcert -CAROOT)/rootCA.pem" "$ROOT_CA_FILE"
 cleanup_certs=1
 
-# Use config.yml, replacing localhost domain string with $PEERDB_CONTAINER, to expose all features of PeerDB in e2e tests.
-sed "s/localhost/$PEERDB_CONTAINER/g" config.yml > config-e2e.yml
+# Use config.yml, replacing localhost domain string with $PEERDB_CONTAINER, to expose all features of PeerDB in e2e tests,
+# putting the navbar into the document flow, and leaving the loading of further results and facets to the tests. A navbar
+# which stays at the top of the viewport is painted wherever the page happens to be scrolled when a full page screenshot is
+# taken, so such a screenshot would depend on what the test did before it. A search otherwise fills its columns to about two
+# viewports and keeps loading while the page is scrolled, and how much that loads follows how tall the results have rendered
+# by the time the page is measured, so a screenshot of it would depend on how quickly the site answered. A test which is
+# about either of the two asks for the site's own behaviour on its own (overrideSiteFeatures).
+sed -e "s/localhost/$PEERDB_CONTAINER/g" \
+  -e 's/navbarPosition: ""/navbarPosition: static/' \
+  -e 's/disableLoadingOnScroll: false/disableLoadingOnScroll: true/' config.yml > config-e2e.yml
 
 echo "2. Building Docker images..."
 
@@ -166,10 +174,11 @@ docker run --rm \
   -e SSL_CERT_FILE=/data/"$ROOT_CA_FILE" \
   -e SSL_CERT_DIR=/etc/ssl/certs \
   "$PEERDB_IMAGE" \
+  -c /data/config-e2e.yml \
   -d /data/.postgresql.secret \
   --elastic.url=http://peerdb-elastic:9200 \
   -S /data/.storage \
-  populate > "$LOGS_DIR/populate.log" 2>&1 || { tail -n 50 "$LOGS_DIR/populate.log"; exit 1; }
+  populate --test-data=/data/testdata > "$LOGS_DIR/populate.log" 2>&1 || { tail -n 50 "$LOGS_DIR/populate.log"; exit 1; }
 
 echo "7. Reindex PeerDB..."
 
@@ -180,6 +189,7 @@ docker run --rm \
   -e SSL_CERT_FILE=/data/"$ROOT_CA_FILE" \
   -e SSL_CERT_DIR=/etc/ssl/certs \
   "$PEERDB_IMAGE" \
+  -c /data/config-e2e.yml \
   -d /data/.postgresql.secret \
   --elastic.url=http://peerdb-elastic:9200 \
   -S /data/.storage \

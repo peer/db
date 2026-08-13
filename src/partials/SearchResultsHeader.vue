@@ -125,7 +125,10 @@ function countFilters(): number {
       From sm up this wrapper is display: contents, so the button groups are direct children of the header row again.
     -->
     <div class="pd-searchresultsheader-toolbar flex flex-row gap-x-1 sm:contents">
-      <div v-if="sortable && !siteContext.features.disableSearchSort" class="pd-print-hidden flex shrink-0 items-center rounded-sm bg-slate-200 px-1 py-1">
+      <div
+        v-if="sortable && !siteContext.features.disableSearchSort"
+        class="pd-searchresultsheader-group-sort pd-print-hidden flex shrink-0 items-center rounded-sm bg-slate-200 px-1 py-1"
+      >
         <button
           class="pd-searchresultsheader-button pd-searchresultsheader-button-sort h-full rounded-sm px-2 py-0.5 outline-none hover:bg-slate-100 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1"
           type="button"
@@ -144,7 +147,10 @@ function countFilters(): number {
         @update:model-value="(v) => $emit('viewChange', v)"
       />
 
-      <div v-if="printable && !siteContext.features.disablePrintView" class="pd-print-hidden flex shrink-0 items-center rounded-sm bg-slate-200 px-1 py-1">
+      <div
+        v-if="printable && !siteContext.features.disablePrintView"
+        class="pd-searchresultsheader-group-print pd-print-hidden flex shrink-0 items-center rounded-sm bg-slate-200 px-1 py-1"
+      >
         <button
           class="pd-searchresultsheader-button pd-searchresultsheader-button-print h-full rounded-sm px-2 py-0.5 outline-none hover:bg-slate-100 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1"
           type="button"
@@ -157,7 +163,7 @@ function countFilters(): number {
 
       <div
         v-if="siteContext.features.downloadButtons && hasFilePermission(ACTION_READ_BULK)"
-        class="pd-print-hidden flex shrink-0 items-center gap-1 rounded-sm bg-slate-200 px-1 py-1"
+        class="pd-searchresultsheader-group-download pd-print-hidden flex shrink-0 items-center gap-1 rounded-sm bg-slate-200 px-1 py-1"
       >
         <button
           class="pd-searchresultsheader-button pd-searchresultsheader-button-downloadzip h-full rounded-sm px-2 py-0.5 outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-1"

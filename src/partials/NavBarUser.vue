@@ -48,14 +48,21 @@ onBeforeUnmount(() => {
 
 <template>
   <ul v-if="currentRoles.length" class="pd-navbaruser pd-navbaruser-roles flex flex-row flex-wrap items-baseline gap-1 px-2 py-1 text-sm">
-    <li v-for="role of currentRoles" :key="role" class="rounded-xs bg-slate-100 px-1.5 py-0.5 leading-none text-gray-600 shadow-xs">{{ role }}</li>
+    <li
+      v-for="role of currentRoles"
+      :key="role"
+      class="pd-navbaruser-role rounded-xs bg-slate-100 px-1.5 py-0.5 leading-none text-gray-600 shadow-xs"
+      :class="`pd-navbaruser-role-${role}`"
+    >
+      {{ role }}
+    </li>
   </ul>
   <div class="pd-navbaruser pd-navbaruser-id flex flex-row items-center gap-x-1 px-2 py-1">
-    <span class="min-w-0 truncate font-mono text-xs text-gray-700" :title="currentIdentityId">{{ currentIdentityId }}</span>
+    <span class="pd-navbaruser-text-id min-w-0 truncate font-mono text-xs text-gray-700" :title="currentIdentityId">{{ currentIdentityId }}</span>
     <button
       type="button"
       :title="copied ? t('partials.NavBarUser.copied') : t('partials.NavBarUser.copyId')"
-      class="shrink-0 rounded-sm p-0.5 text-slate-500 outline-none hover:bg-slate-300 hover:text-slate-700 focus:ring-2 focus:ring-primary-500 active:bg-slate-100"
+      class="pd-navbaruser-button-copy shrink-0 rounded-sm p-0.5 text-slate-500 outline-none hover:bg-slate-300 hover:text-slate-700 focus:ring-2 focus:ring-primary-500 active:bg-slate-100"
       @click="onCopy"
     >
       <ClipboardDocumentCheckIcon v-if="copied" class="size-4" :alt="t('partials.NavBarUser.copied')" />

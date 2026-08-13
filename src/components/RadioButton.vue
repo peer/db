@@ -68,7 +68,7 @@ function onKeyDown(event: KeyboardEvent) {
 
 <template>
   <!-- We wrap input in div to align radio button correctly vertically inside the grid. -->
-  <div>
+  <div class="pd-radiobutton-wrapper">
     <input
       v-model="model"
       v-tw-merge

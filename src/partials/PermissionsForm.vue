@@ -310,15 +310,15 @@ const WithDocumentIdentity = WithDocument<Identity>
 <template>
   <div class="pd-permissionsform flex flex-col gap-y-4">
     <div class="pd-permissionsform-section-users">
-      <h2 class="pd-permissionsform-title text-xl font-bold">{{ t("partials.PermissionsForm.usersTitle") }}</h2>
+      <h2 class="pd-permissionsform-title pd-permissionsform-title-users text-xl font-bold">{{ t("partials.PermissionsForm.usersTitle") }}</h2>
       <p v-if="users.length === 0" class="pd-permissionsform-empty-users mt-1 text-gray-700">{{ t("partials.PermissionsForm.noUsers") }}</p>
-      <ul v-else class="mt-2 flex flex-col gap-y-3">
+      <ul v-else class="pd-permissionsform-list-users mt-2 flex flex-col gap-y-3">
         <li v-for="grant of users" :key="grant.user" class="pd-permissionsform-item-user flex flex-col gap-y-2 rounded border border-slate-300 p-3">
           <!-- The checkboxes need the user's roles, so that an action their roles already cover is not offered. -->
           <WithDocumentIdentity :id="grant.user" name="UserGet">
             <template #default="{ doc: identity }">
-              <div class="flex flex-row items-center justify-between gap-4">
-                <IdentityLabel :identity="identity" class="font-medium" />
+              <div class="pd-permissionsform-row-user flex flex-row items-center justify-between gap-4">
+                <IdentityLabel :identity="identity" class="pd-permissionsform-label-user font-medium" />
                 <!-- TODO: Remove should be shown even on loading error, so that on can remove the request for non-existing user. -->
                 <Button type="button" class="pd-permissionsform-button-remove" :progress="busy" @click.prevent="onRemoveUser(grant)">{{
                   t("partials.PermissionsForm.removeAccess")
@@ -329,11 +329,13 @@ const WithDocumentIdentity = WithDocument<Identity>
                   <label
                     v-for="checkbox of actionCheckboxes(grant, identity as Identity)"
                     :key="checkbox.action"
-                    class="flex items-center gap-x-2"
-                    :class="checkbox.toggleable ? 'cursor-pointer' : 'cursor-not-allowed text-gray-500'"
+                    class="pd-permissionsform-label-action flex items-center gap-x-2"
+                    :class="[checkbox.toggleable ? 'cursor-pointer' : 'cursor-not-allowed text-gray-500', `pd-permissionsform-label-action-${checkbox.action}`]"
                     :title="actionHint(checkbox.action)"
                   >
                     <CheckBox
+                      class="pd-permissionsform-checkbox-action"
+                      :class="`pd-permissionsform-checkbox-action-${checkbox.action}`"
                       :model-value="checkbox.granted"
                       :disabled="!checkbox.toggleable"
                       @update:model-value="onToggleAction(grant, identity as Identity, checkbox.action)"
@@ -342,16 +344,19 @@ const WithDocumentIdentity = WithDocument<Identity>
                   </label>
                 </div>
                 <!-- Every action their roles cover is left out, so a user whose roles cover them all has no checkbox at all. -->
-                <i v-if="actionCheckboxes(grant, identity as Identity).length === 0" class="text-sm text-neutral-500">
+                <i v-if="actionCheckboxes(grant, identity as Identity).length === 0" class="pd-permissionsform-text-nothingtogrant text-sm text-neutral-500">
                   {{ t("partials.PermissionsForm.nothingToGrant") }}
                 </i>
-                <i v-else-if="actionCheckboxes(grant, identity as Identity).some((checkbox) => !checkbox.toggleable)" class="text-sm text-neutral-500">
+                <i
+                  v-else-if="actionCheckboxes(grant, identity as Identity).some((checkbox) => !checkbox.toggleable)"
+                  class="pd-permissionsform-text-cannotgrant text-sm text-neutral-500"
+                >
                   {{ t("partials.PermissionsForm.cannotGrant") }}
                 </i>
               </div>
             </template>
             <template #loading>
-              <i class="text-gray-500">{{ t("common.status.loading") }}</i>
+              <i class="pd-permissionsform-loading text-gray-500">{{ t("common.status.loading") }}</i>
             </template>
           </WithDocumentIdentity>
         </li>
@@ -361,16 +366,27 @@ const WithDocumentIdentity = WithDocument<Identity>
         the same permissions a user with access has, in the same place, and granting any of them makes
         them one of those users, listed above.
       -->
-      <div class="mt-3 flex flex-col gap-y-2 rounded border border-slate-300 p-3">
+      <div class="pd-permissionsform-section-adduser mt-3 flex flex-col gap-y-2 rounded border border-slate-300 p-3">
         <div class="flex flex-col gap-y-1">
-          <InputIdentity v-model="namedUser" :aria-label="t('partials.PermissionsForm.addUser')" @errors="namedUserErrors = $event" />
-          <p v-if="namedUserErrorMessage" class="text-sm text-error-600">{{ namedUserErrorMessage }}</p>
-          <p class="text-sm text-neutral-500 italic">{{ t("partials.PermissionsForm.addUserHint") }}</p>
+          <InputIdentity
+            v-model="namedUser"
+            class="pd-permissionsform-input-user"
+            :aria-label="t('partials.PermissionsForm.addUser')"
+            @errors="namedUserErrors = $event"
+          />
+          <p v-if="namedUserErrorMessage" class="pd-permissionsform-error-user text-sm text-error-600">{{ namedUserErrorMessage }}</p>
+          <p class="pd-permissionsform-text-adduserhint text-sm text-neutral-500 italic">{{ t("partials.PermissionsForm.addUserHint") }}</p>
         </div>
         <!-- With nobody named there is nobody to grant anything to: the permissions show what could be granted, and none of them can be. -->
         <div v-if="!namedUserResolved" class="flex flex-row flex-wrap gap-x-6 gap-y-1">
-          <label v-for="action of permissionActions" :key="action.id" class="flex cursor-not-allowed items-center gap-x-2 text-gray-500" :title="actionHint(action.id)">
-            <CheckBox :model-value="false" disabled />
+          <label
+            v-for="action of permissionActions"
+            :key="action.id"
+            class="pd-permissionsform-label-action flex cursor-not-allowed items-center gap-x-2 text-gray-500"
+            :class="`pd-permissionsform-label-action-${action.id}`"
+            :title="actionHint(action.id)"
+          >
+            <CheckBox class="pd-permissionsform-checkbox-action" :class="`pd-permissionsform-checkbox-action-${action.id}`" :model-value="false" disabled />
             {{ actionLabel(action.id) }}
           </label>
         </div>
@@ -382,12 +398,17 @@ const WithDocumentIdentity = WithDocument<Identity>
                 <label
                   v-for="checkbox of actionCheckboxes(namedUserGrant, identity as Identity)"
                   :key="checkbox.action"
-                  class="flex items-center gap-x-2"
-                  :class="!checkbox.granted && checkbox.toggleable ? 'cursor-pointer' : 'cursor-not-allowed text-gray-500'"
+                  class="pd-permissionsform-label-action flex items-center gap-x-2"
+                  :class="[
+                    !checkbox.granted && checkbox.toggleable ? 'cursor-pointer' : 'cursor-not-allowed text-gray-500',
+                    `pd-permissionsform-label-action-${checkbox.action}`,
+                  ]"
                   :title="actionHint(checkbox.action)"
                 >
                   <!-- Access is only granted here: what a user holds already is theirs to lose in their own entry above. -->
                   <CheckBox
+                    class="pd-permissionsform-checkbox-action"
+                    :class="`pd-permissionsform-checkbox-action-${checkbox.action}`"
                     :model-value="checkbox.granted"
                     :disabled="checkbox.granted || !checkbox.toggleable"
                     @update:model-value="onGrantNamedUser(identity as Identity, checkbox.action)"
@@ -395,30 +416,36 @@ const WithDocumentIdentity = WithDocument<Identity>
                   {{ actionLabel(checkbox.action) }}
                 </label>
               </div>
-              <i v-if="actionCheckboxes(namedUserGrant, identity as Identity).length === 0" class="text-sm text-neutral-500">
+              <i v-if="actionCheckboxes(namedUserGrant, identity as Identity).length === 0" class="pd-permissionsform-text-nothingtogrant text-sm text-neutral-500">
                 {{ t("partials.PermissionsForm.nothingToGrant") }}
               </i>
               <template v-else>
                 <!-- The two say different things, so a user who is listed above and holds an action nobody can grant gets both. -->
-                <i v-if="actionCheckboxes(namedUserGrant, identity as Identity).some((checkbox) => checkbox.granted)" class="text-sm text-neutral-500">
+                <i
+                  v-if="actionCheckboxes(namedUserGrant, identity as Identity).some((checkbox) => checkbox.granted)"
+                  class="pd-permissionsform-text-alreadygranted text-sm text-neutral-500"
+                >
                   {{ t("partials.PermissionsForm.alreadyGranted") }}
                 </i>
-                <i v-if="actionCheckboxes(namedUserGrant, identity as Identity).some((checkbox) => !checkbox.toggleable)" class="text-sm text-neutral-500">
+                <i
+                  v-if="actionCheckboxes(namedUserGrant, identity as Identity).some((checkbox) => !checkbox.toggleable)"
+                  class="pd-permissionsform-text-cannotgrant text-sm text-neutral-500"
+                >
                   {{ t("partials.PermissionsForm.cannotGrant") }}
                 </i>
               </template>
             </div>
           </template>
           <template #loading>
-            <i class="text-gray-500">{{ t("common.status.loading") }}</i>
+            <i class="pd-permissionsform-loading text-gray-500">{{ t("common.status.loading") }}</i>
           </template>
         </WithDocumentIdentity>
       </div>
     </div>
     <div class="pd-permissionsform-section-requests">
-      <h2 class="pd-permissionsform-title text-xl font-bold">{{ t("partials.PermissionsForm.requestsTitle") }}</h2>
+      <h2 class="pd-permissionsform-title pd-permissionsform-title-requests text-xl font-bold">{{ t("partials.PermissionsForm.requestsTitle") }}</h2>
       <p v-if="requests.length === 0" class="pd-permissionsform-empty-requests mt-1 text-gray-700">{{ t("partials.PermissionsForm.noRequests") }}</p>
-      <ul v-else class="mt-2 flex flex-col gap-y-3">
+      <ul v-else class="pd-permissionsform-list-requests mt-2 flex flex-col gap-y-3">
         <!-- One claim can ask on behalf of several users, so it takes both to tell its requests apart. -->
         <li
           v-for="request of requests"
@@ -432,9 +459,9 @@ const WithDocumentIdentity = WithDocument<Identity>
           -->
           <WithDocumentIdentity :id="request.user" name="UserGet">
             <template #default="{ doc: identity }">
-              <div class="flex flex-row items-center justify-between gap-4">
-                <IdentityLabel :identity="identity" class="font-medium" />
-                <div class="flex flex-row gap-x-2">
+              <div class="pd-permissionsform-row-request flex flex-row items-center justify-between gap-4">
+                <IdentityLabel :identity="identity" class="pd-permissionsform-label-user font-medium" />
+                <div class="pd-permissionsform-actions-request flex flex-row gap-x-2">
                   <!-- TODO: Deny should be shown even on loading error, so that on can remove the request for non-existing user. -->
                   <Button type="button" class="pd-permissionsform-button-deny" :progress="busy" @click.prevent="onDeny(request)">{{
                     t("partials.PermissionsForm.deny")
@@ -451,16 +478,16 @@ const WithDocumentIdentity = WithDocument<Identity>
                 </div>
               </div>
               <div class="flex flex-col gap-y-1">
-                <div class="text-gray-700">{{ t("partials.PermissionsForm.requestedAction") }}: {{ actionLabel(request.action) }}</div>
-                <div v-if="actionHint(request.action)" class="text-sm text-neutral-500 italic">{{ actionHint(request.action) }}</div>
+                <div class="pd-permissionsform-text-action text-gray-700">{{ t("partials.PermissionsForm.requestedAction") }}: {{ actionLabel(request.action) }}</div>
+                <div v-if="actionHint(request.action)" class="pd-permissionsform-text-actionhint text-sm text-neutral-500 italic">{{ actionHint(request.action) }}</div>
               </div>
-              <div v-if="request.note" class="break-words whitespace-pre-wrap text-gray-700">{{ request.note }}</div>
-              <i v-if="!canGrant(missingActions(identity as Identity, request.action))" class="text-sm text-neutral-500">{{
+              <div v-if="request.note" class="pd-permissionsform-text-note break-words whitespace-pre-wrap text-gray-700">{{ request.note }}</div>
+              <i v-if="!canGrant(missingActions(identity as Identity, request.action))" class="pd-permissionsform-text-cannotgrant text-sm text-neutral-500">{{
                 t("partials.PermissionsForm.cannotGrant")
               }}</i>
             </template>
             <template #loading>
-              <i class="text-gray-500">{{ t("common.status.loading") }}</i>
+              <i class="pd-permissionsform-loading text-gray-500">{{ t("common.status.loading") }}</i>
             </template>
           </WithDocumentIdentity>
         </li>

@@ -74,7 +74,7 @@ const homeComponent = getHomeComponent()
       <InputText id="home-input-search" v-model="searchQuery" class="pd-searchinput w-full max-w-2xl sm:w-4/5 md:w-2/3 lg:w-1/2" />
       <Button id="home-button-search" type="submit" primary>{{ t("common.buttons.search") }}</Button>
     </div>
-    <div class="flex grow basis-0"><component :is="homeComponent" v-if="homeComponent" /></div>
+    <div class="pd-home-extra flex grow basis-0"><component :is="homeComponent" v-if="homeComponent" /></div>
   </form>
   <Teleport to="footer">
     <Footer />

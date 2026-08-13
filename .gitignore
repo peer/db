@@ -44,6 +44,8 @@ codeclimate.json
 /coverage-frontend
 /playwright-report
 /playwright-screenshots
+/blob-report
+/blob-report-merged
 /test-results
 /a11y-report
 /.nyc_output

@@ -392,7 +392,7 @@ onBeforeUnmount(() => {
       <li v-if="error" class="col-span-2">
         <i class="pd-timefiltersresult-error text-error-600">{{ t("common.status.loadingDataFailed") }}</i>
       </li>
-      <li v-else-if="total === null" class="col-span-2 motion-safe:animate-pulse" aria-hidden="true">
+      <li v-else-if="total === null" class="pd-timefiltersresult-loading col-span-2 motion-safe:animate-pulse" aria-hidden="true">
         <div class="my-1.5 grid grid-cols-10 items-end gap-x-1" :style="`aspect-ratio: ${chartWidth - 1} / ${chartHeight}`">
           <div v-for="(h, i) in loadingShortHeights(result.props.join('/'), 10)" :key="i" class="w-auto rounded-sm bg-slate-200" :class="h"></div>
         </div>
@@ -404,7 +404,7 @@ onBeforeUnmount(() => {
       </li>
       <li v-else-if="results.length === 1" class="pd-timefiltersresult-row-value contents">
         <CheckBox :id="'time/' + result.props.join('/') + '/value'" v-model="singleValueState" class="pd-timefiltersresult-checkbox-value" />
-        <div class="flex items-baseline gap-x-1">
+        <div class="pd-timefiltersresult-value flex items-baseline gap-x-1">
           <!-- v-if here is just to satisfy typing, results.length === 1 already checked that. -->
           <label
             v-if="singleValueDisplay"
@@ -426,7 +426,7 @@ onBeforeUnmount(() => {
       show as empty space at the bottom of the facet. -->
       <li v-else-if="from !== to" class="pd-timefiltersresult-row-histogram col-span-2 mb-3 last:mb-0">
         <!-- We subtract 1 from chartWidth because we subtract 1 from bar width, so there would be a gap after the last one. -->
-        <svg :viewBox="`0 0 ${chartWidth - 1} ${chartHeight}`">
+        <svg class="pd-timefiltersresult-chart" :viewBox="`0 0 ${chartWidth - 1} ${chartHeight}`">
           <!-- We subtract 1 from bar width to have a gap between bars. -->
           <rect
             v-for="(res, i) in results"

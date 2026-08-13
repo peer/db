@@ -515,7 +515,7 @@ const WithPeerDBDocument = WithDocument<D>
           it toggles the dropdown. Cursor-not-allowed when readonly or
           in-progress, to match the input's own disabled-ish look.
         -->
-        <div class="absolute inset-y-0 right-0 flex items-center gap-1 pr-2">
+        <div class="pd-inputref-actions absolute inset-y-0 right-0 flex items-center gap-1 pr-2">
           <template v-if="selectedDocument?.id">
             <RouterLink v-if="!editMode && !invalid" :to="{ name: 'DocumentGet', params: { id: selectedDocument.id } }" class="pd-inputref-link-document link">
               <ArrowTopRightOnSquareIcon class="size-5" aria-hidden="true" />
@@ -597,7 +597,9 @@ const WithPeerDBDocument = WithDocument<D>
                         <DisplayLabel :doc="doc" />
                       </div>
 
-                      <span v-if="taken.has(result.id)" class="mr-2 ml-2 shrink-0 text-sm text-gray-500 italic">{{ t("partials.input.InputRef.alreadyUsed") }}</span>
+                      <span v-if="taken.has(result.id)" class="pd-inputref-text-alreadyused mr-2 ml-2 shrink-0 text-sm text-gray-500 italic">{{
+                        t("partials.input.InputRef.alreadyUsed")
+                      }}</span>
 
                       <CheckIcon v-if="result.id === selectedDocument?.id" class="mr-2 size-5 text-primary-600" aria-hidden="true" />
 
@@ -616,7 +618,9 @@ const WithPeerDBDocument = WithDocument<D>
                         <i class="block h-4 rounded bg-slate-200 motion-safe:animate-pulse" :data-url="url" :class="[loadingWidth(result.id)]" aria-hidden="true"></i>
                       </div>
 
-                      <span v-if="taken.has(result.id)" class="mr-2 ml-2 shrink-0 text-sm text-gray-500 italic">{{ t("partials.input.InputRef.alreadyUsed") }}</span>
+                      <span v-if="taken.has(result.id)" class="pd-inputref-text-alreadyused mr-2 ml-2 shrink-0 text-sm text-gray-500 italic">{{
+                        t("partials.input.InputRef.alreadyUsed")
+                      }}</span>
 
                       <CheckIcon v-if="result.id === selectedDocument?.id" class="size-5 text-primary-600" aria-hidden="true" />
                     </template>
@@ -625,7 +629,9 @@ const WithPeerDBDocument = WithDocument<D>
                         <i :class="['pd-withdocument-error', accessDenied ? 'text-gray-500' : 'text-error-600']" :data-url="url">{{ message }}</i>
                       </div>
 
-                      <span v-if="taken.has(result.id)" class="mr-2 ml-2 shrink-0 text-sm text-gray-500 italic">{{ t("partials.input.InputRef.alreadyUsed") }}</span>
+                      <span v-if="taken.has(result.id)" class="pd-inputref-text-alreadyused mr-2 ml-2 shrink-0 text-sm text-gray-500 italic">{{
+                        t("partials.input.InputRef.alreadyUsed")
+                      }}</span>
 
                       <CheckIcon v-if="result.id === selectedDocument?.id" class="size-5 text-primary-600" aria-hidden="true" />
                     </template>

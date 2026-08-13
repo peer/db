@@ -514,7 +514,7 @@ async function beginEdit(tab?: string) {
           <div class="pd-navbarshortcut contents">
             <!-- self-stretch so the query link keeps the row height even when the query is empty, instead of collapsing to its text height. -->
             <InputTextLink
-              class="max-w-xl grow self-stretch"
+              class="pd-documentget-link-query max-w-xl grow self-stretch"
               :to="{ name: 'SearchGet', params: { id: searchSession.id }, query: encodeQuery({ at: id }) }"
               :after-click="afterClick"
             >
@@ -535,7 +535,7 @@ async function beginEdit(tab?: string) {
             compress the pair down to the buttons' own floor (an icon each) but not past it, which would let the
             buttons overflow the group and collide with the next navbar item.
           -->
-          <div class="flex min-w-25 gap-x-1">
+          <div class="pd-documentget-group-prevnext flex min-w-25 gap-x-1">
             <ButtonLink
               id="documentget-button-prev"
               primary
@@ -597,7 +597,7 @@ async function beginEdit(tab?: string) {
       >
         <WithDocumentD :id="id" ref="withDocument" :key="documentEpoch" name="DocumentGet" :version="reqVersion">
           <template #default="{ doc }">
-            <div v-if="!classesInitialized" class="my-1 text-center sm:my-4">{{ t("common.status.loading") }}</div>
+            <div v-if="!classesInitialized" id="documentget-loading-classes" class="my-1 text-center sm:my-4">{{ t("common.status.loading") }}</div>
             <!--
             TODO: Fix how hover interacts with focused tab.
             See: https://github.com/tailwindlabs/tailwindcss/discussions/10123
@@ -703,7 +703,7 @@ async function beginEdit(tab?: string) {
       >
         <div
           v-if="!siteContext.features.hideDocumentActions && (hasDocumentPermission(ACTION_UPDATE, docRef) || hasDocumentPermission(ACTION_DELETE, docRef))"
-          class="flex flex-col gap-2"
+          class="pd-documentget-actions flex flex-col gap-2"
         >
           <WithLock v-if="hasDocumentPermission(ACTION_UPDATE, docRef)" :lock="getEditLock">
             <Button id="documentget-button-edit" :progress="editBusy" type="button" class="w-full" @click.prevent="beginEdit()">{{ t("common.buttons.edit") }}</Button>

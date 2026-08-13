@@ -95,26 +95,28 @@ function tags(session: DeepReadonly<DocumentSessionResponse>): { id?: string; la
   <div class="pd-documentsessions mt-[var(--pd-navbar-offset)] flex w-full flex-col p-1 sm:p-4 xl:px-16">
     <div class="flex flex-col rounded-sm border border-gray-200 bg-white p-4 shadow-sm">
       <template v-if="isSignedIn()">
-        <h1 class="text-3xl font-bold drop-shadow-xs">{{ t("views.DocumentSessions.title") }}</h1>
-        <div v-if="sessions === null" class="mt-4">{{ t("common.status.loading") }}</div>
-        <div v-else-if="sessions.length === 0" class="mt-4 text-gray-700">{{ t("views.DocumentSessions.noSessions") }}</div>
-        <ul v-else class="mt-4 flex flex-col gap-y-3">
-          <li v-for="session of sessions" :key="session.session" class="rounded border border-slate-300 p-3">
-            <ButtonLink :to="sessionLink(session)" class="pd-print-hidden float-end mb-1 ml-4 px-4">{{ t("views.DocumentSessions.open") }}</ButtonLink>
+        <h1 id="documentsessions-title" class="text-3xl font-bold drop-shadow-xs">{{ t("views.DocumentSessions.title") }}</h1>
+        <div v-if="sessions === null" id="documentsessions-loading" class="mt-4">{{ t("common.status.loading") }}</div>
+        <div v-else-if="sessions.length === 0" id="documentsessions-empty" class="mt-4 text-gray-700">{{ t("views.DocumentSessions.noSessions") }}</div>
+        <ul v-else class="pd-documentsessions-list mt-4 flex flex-col gap-y-3">
+          <li v-for="session of sessions" :key="session.session" class="pd-documentsessions-item rounded border border-slate-300 p-3">
+            <ButtonLink :to="sessionLink(session)" class="pd-documentsessions-button-open pd-print-hidden float-end mb-1 ml-4 px-4">{{
+              t("views.DocumentSessions.open")
+            }}</ButtonLink>
             <!-- The document is named by the state the session has it in, so a document being created is named by what has been put into it. -->
-            <h2 class="mb-2 min-w-0 text-xl leading-none font-bold">
-              <RouterLink :to="sessionLink(session)" class="link"><DisplayLabel :doc="session.doc" /></RouterLink>
+            <h2 class="pd-documentsessions-title-document mb-2 min-w-0 text-xl leading-none font-bold">
+              <RouterLink :to="sessionLink(session)" class="pd-documentsessions-link-document link"><DisplayLabel :doc="session.doc" /></RouterLink>
             </h2>
-            <SearchResultTags :tags="tags(session)" class="mb-2" />
+            <SearchResultTags :tags="tags(session)" class="pd-documentsessions-tags mb-2" />
             <!-- A session begun or changed while nobody was signed in has no user to name. -->
-            <i18n-t keypath="views.DocumentSessions.started" scope="global" tag="div" class="text-gray-700">
+            <i18n-t keypath="views.DocumentSessions.started" scope="global" tag="div" class="pd-documentsessions-text-started text-gray-700">
               <template #time><TimeDisplay :timestamp="timeString(session.at)" precision="s" /></template>
               <template #user>
                 <IdentityInline v-if="session.by" :subject="session.by.id" />
                 <template v-else>{{ t("views.DocumentGet.history.anonymous") }}</template>
               </template>
             </i18n-t>
-            <i18n-t keypath="views.DocumentSessions.lastChange" scope="global" tag="div" class="text-gray-700">
+            <i18n-t keypath="views.DocumentSessions.lastChange" scope="global" tag="div" class="pd-documentsessions-text-lastchange text-gray-700">
               <template #time><TimeDisplay :timestamp="timeString(session.lastChangeAt)" precision="s" /></template>
               <template #user>
                 <IdentityInline v-if="session.lastChangeBy" :subject="session.lastChangeBy.id" />
@@ -124,7 +126,7 @@ function tags(session: DeepReadonly<DocumentSessionResponse>): { id?: string; la
           </li>
         </ul>
       </template>
-      <div v-else class="my-1 text-center sm:my-4">{{ t("views.DocumentSessions.notSignedIn") }}</div>
+      <div v-else id="documentsessions-text-notsignedin" class="my-1 text-center sm:my-4">{{ t("views.DocumentSessions.notSignedIn") }}</div>
     </div>
   </div>
   <Teleport to="footer">

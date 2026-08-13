@@ -284,7 +284,7 @@ async function onFocusOut(event: FocusEvent) {
         items-start keeps each label sized to its own content, so the clickable area
         does not extend past the text (the column is as wide as the widest label).
       -->
-      <div class="flex flex-col items-start">
+      <div class="pd-inputmissing-group flex flex-col items-start">
         <label class="pd-inputmissing-label-unknown flex cursor-pointer items-center gap-1 leading-5" @mousedown.prevent @click="focusCheckbox(unknownCheckboxId)"
           ><CheckBox
             :id="unknownCheckboxId"

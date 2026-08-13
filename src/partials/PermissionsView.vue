@@ -146,43 +146,53 @@ async function onCancel(action: string) {
 
 <template>
   <div class="pd-permissionsview flex flex-col gap-y-4">
-    <div>
-      <h2 class="text-xl font-bold">{{ t("partials.PermissionsView.usersTitle") }}</h2>
-      <p v-if="users.length === 0" class="mt-1 text-gray-700">{{ t("partials.PermissionsView.noUsers") }}</p>
-      <ul v-else class="mt-2 flex flex-col gap-y-3">
-        <li v-for="row of users" :key="row.user" class="flex flex-col gap-y-2 rounded border border-slate-300 p-3">
-          <IdentityInline :subject="row.user" class="font-medium" />
-          <ul class="flex flex-row flex-wrap content-start items-baseline gap-1 text-sm">
-            <li v-for="action of row.actions" :key="action" class="rounded-xs bg-slate-100 px-1.5 py-0.5 leading-none text-gray-600 shadow-xs">{{
-              actionLabel(action)
-            }}</li>
+    <div class="pd-permissionsview-section-users">
+      <h2 class="pd-permissionsview-title-users text-xl font-bold">{{ t("partials.PermissionsView.usersTitle") }}</h2>
+      <p v-if="users.length === 0" class="pd-permissionsview-empty-users mt-1 text-gray-700">{{ t("partials.PermissionsView.noUsers") }}</p>
+      <ul v-else class="pd-permissionsview-list-users mt-2 flex flex-col gap-y-3">
+        <li v-for="row of users" :key="row.user" class="pd-permissionsview-item-user flex flex-col gap-y-2 rounded border border-slate-300 p-3">
+          <IdentityInline :subject="row.user" class="pd-permissionsview-label-user font-medium" />
+          <ul class="pd-permissionsview-list-actions flex flex-row flex-wrap content-start items-baseline gap-1 text-sm">
+            <li
+              v-for="action of row.actions"
+              :key="action"
+              class="pd-permissionsview-badge-action rounded-xs bg-slate-100 px-1.5 py-0.5 leading-none text-gray-600 shadow-xs"
+              :class="`pd-permissionsview-badge-action-${action}`"
+              >{{ actionLabel(action) }}</li
+            >
           </ul>
         </li>
       </ul>
-      <div v-if="canUpdatePermissions" class="mt-4 flex flex-row justify-end">
-        <Button :progress="editBusy" type="button" @click.prevent="onEdit">{{ t("common.buttons.editPermissions") }}</Button>
+      <div v-if="canUpdatePermissions" class="pd-permissionsview-actions mt-4 flex flex-row justify-end">
+        <Button class="pd-permissionsview-button-edit" :progress="editBusy" type="button" @click.prevent="onEdit">{{ t("common.buttons.editPermissions") }}</Button>
       </div>
     </div>
-    <div v-if="requests.length > 0">
-      <h2 class="text-xl font-bold">{{ t("partials.PermissionsView.requestsTitle") }}</h2>
-      <ul class="mt-2 flex flex-col gap-y-3">
+    <div v-if="requests.length > 0" class="pd-permissionsview-section-requests">
+      <h2 class="pd-permissionsview-title-requests text-xl font-bold">{{ t("partials.PermissionsView.requestsTitle") }}</h2>
+      <ul class="pd-permissionsview-list-requests mt-2 flex flex-col gap-y-3">
         <!-- One claim can ask on behalf of several users, so it takes both to tell its requests apart. -->
-        <li v-for="request of requests" :key="`${request.claimID}-${request.user}`" class="flex flex-col gap-y-2 rounded border border-slate-300 p-3">
+        <li
+          v-for="request of requests"
+          :key="`${request.claimID}-${request.user}`"
+          class="pd-permissionsview-item-request flex flex-col gap-y-2 rounded border border-slate-300 p-3"
+        >
           <div class="flex flex-row items-center justify-between gap-4">
-            <IdentityInline :subject="request.user" class="font-medium" />
+            <IdentityInline :subject="request.user" class="pd-permissionsview-label-user font-medium" />
             <!-- Only the user who made the request can withdraw it. -->
-            <Button v-if="isOwnRequest(request.user)" type="button" :progress="busy" @click.prevent="onCancel(request.action)">{{ t("common.buttons.cancel") }}</Button>
+            <Button v-if="isOwnRequest(request.user)" class="pd-permissionsview-button-cancel" type="button" :progress="busy" @click.prevent="onCancel(request.action)">{{
+              t("common.buttons.cancel")
+            }}</Button>
           </div>
-          <div class="text-gray-700">{{ t("partials.PermissionsView.requestedAction") }}: {{ actionLabel(request.action) }}</div>
-          <div v-if="request.note" class="break-words whitespace-pre-wrap text-gray-700">{{ request.note }}</div>
+          <div class="pd-permissionsview-text-action text-gray-700">{{ t("partials.PermissionsView.requestedAction") }}: {{ actionLabel(request.action) }}</div>
+          <div v-if="request.note" class="pd-permissionsview-text-note break-words whitespace-pre-wrap text-gray-700">{{ request.note }}</div>
         </li>
       </ul>
       <div v-if="canUpdatePermissions" class="mt-4 flex flex-row justify-end">
-        <Button :progress="editBusy" type="button" @click.prevent="onEdit">{{ t("common.buttons.manageRequests") }}</Button>
+        <Button class="pd-permissionsview-button-manage" :progress="editBusy" type="button" @click.prevent="onEdit">{{ t("common.buttons.manageRequests") }}</Button>
       </div>
     </div>
     <div v-if="!canUpdatePermissions && isSignedIn()" class="flex flex-row justify-end">
-      <ButtonLink :to="{ name: 'DocumentRequest', params: { id } }">{{ t("common.buttons.requestPermissions") }}</ButtonLink>
+      <ButtonLink class="pd-permissionsview-button-request" :to="{ name: 'DocumentRequest', params: { id } }">{{ t("common.buttons.requestPermissions") }}</ButtonLink>
     </div>
   </div>
 </template>

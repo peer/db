@@ -1565,7 +1565,7 @@ watch(
       <!--
         History pill.
       -->
-      <span class="mx-0.5 rounded-sm bg-slate-200 box-decoration-clone py-[18px]">
+      <span class="pd-inputhtml-group-history mx-0.5 rounded-sm bg-slate-200 box-decoration-clone py-[18px]">
         <button
           type="button"
           class="pd-inputhtml-button-undo m-0.5 rounded-sm px-2 py-0.5 align-middle outline-none first:ml-1 last:mr-1 hover:bg-slate-100 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 disabled:cursor-not-allowed disabled:text-gray-500 disabled:hover:bg-transparent"
@@ -1591,7 +1591,7 @@ watch(
       <!--
         Block type pill.
       -->
-      <span class="mx-0.5 rounded-sm bg-slate-200 box-decoration-clone py-[18px]">
+      <span class="pd-inputhtml-group-blocktype mx-0.5 rounded-sm bg-slate-200 box-decoration-clone py-[18px]">
         <button
           type="button"
           class="pd-inputhtml-button-paragraph m-0.5 rounded-sm px-2 py-0.5 align-middle outline-none first:ml-1 last:mr-1 not-aria-pressed:hover:bg-slate-100 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 disabled:cursor-not-allowed disabled:text-gray-500 disabled:not-aria-pressed:hover:bg-transparent aria-pressed:bg-white aria-pressed:shadow-xs disabled:aria-pressed:bg-slate-100"
@@ -1694,7 +1694,7 @@ watch(
       </span>
 
       <!-- Formatting pill. -->
-      <span class="mx-0.5 rounded-sm bg-slate-200 box-decoration-clone py-[18px]">
+      <span class="pd-inputhtml-group-formatting mx-0.5 rounded-sm bg-slate-200 box-decoration-clone py-[18px]">
         <button
           type="button"
           class="pd-inputhtml-button-bold m-0.5 rounded-sm px-2 py-0.5 align-middle outline-none first:ml-1 last:mr-1 not-aria-pressed:hover:bg-slate-100 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 disabled:cursor-not-allowed disabled:text-gray-500 disabled:not-aria-pressed:hover:bg-transparent aria-pressed:bg-white aria-pressed:shadow-xs disabled:aria-pressed:bg-slate-100"
@@ -1755,7 +1755,7 @@ watch(
       <!--
         Indent / outdent pill.
       -->
-      <span class="mx-0.5 rounded-sm bg-slate-200 box-decoration-clone py-[18px]">
+      <span class="pd-inputhtml-group-indent mx-0.5 rounded-sm bg-slate-200 box-decoration-clone py-[18px]">
         <button
           type="button"
           class="pd-inputhtml-button-outdent m-0.5 rounded-sm px-2 py-0.5 align-middle outline-none first:ml-1 last:mr-1 hover:bg-slate-100 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 disabled:cursor-not-allowed disabled:text-gray-500 disabled:hover:bg-transparent"
@@ -1781,7 +1781,7 @@ watch(
       <!--
         Inserts pill.
       -->
-      <span class="mx-0.5 rounded-sm bg-slate-200 box-decoration-clone py-[18px]">
+      <span class="pd-inputhtml-group-inserts mx-0.5 rounded-sm bg-slate-200 box-decoration-clone py-[18px]">
         <button
           type="button"
           class="pd-inputhtml-button-link m-0.5 rounded-sm px-2 py-0.5 align-middle outline-none first:ml-1 last:mr-1 hover:bg-slate-100 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 disabled:cursor-not-allowed disabled:text-gray-500 disabled:hover:bg-transparent"
@@ -1940,7 +1940,7 @@ watch(
         <!--
           Label column.
         -->
-        <div class="flex shrink-0 cursor-pointer flex-col items-start gap-1 pt-0.5" @click="onLabelClick">
+        <div class="pd-inputhtml-column-label flex shrink-0 cursor-pointer flex-col items-start gap-1 pt-0.5" @click="onLabelClick">
           <span class="pd-inputhtml-label-link leading-none text-gray-700">{{ bottomLabel }}</span>
           <div class="flex flex-row flex-wrap gap-1">
             <InputBadges :changed="isLinkInputDirty" @revert="onRevertLinkInput" />

@@ -169,8 +169,8 @@ const rowSpan = computed(() => {
 </script>
 
 <template>
-  <div ref="el" class="contents">
-    <div v-if="duplicate">
+  <div ref="el" class="pd-searchresultdocument contents">
+    <div v-if="duplicate" class="pd-searchresultdocument-duplicate">
       <ButtonLink
         :to="{ name: 'DocumentGet', params: { id: doc.id }, query: encodeQuery({ s: searchSessionId }) }"
         class="pd-searchresult-link-details pd-print-hidden float-end mb-1 ml-4 px-4"
@@ -185,7 +185,7 @@ const rowSpan = computed(() => {
         <slot name="labelAside" />
       </h2>
       <SearchResultTags v-if="tags.length" :tags="tags" class="mb-2" />
-      <i18n-t keypath="partials.SearchResult.resultShownAlready" scope="global" tag="p" class="text-slate-500 italic">
+      <i18n-t keypath="partials.SearchResult.resultShownAlready" scope="global" tag="p" class="pd-searchresult-text-duplicate text-slate-500 italic">
         <template #above>
           <RouterLink :to="duplicateOfLink" class="pd-searchresult-link-duplicate link">{{ t("partials.SearchResult.above") }}</RouterLink>
         </template>
@@ -193,7 +193,7 @@ const rowSpan = computed(() => {
     </div>
     <component :is="customResultComponent" v-else-if="customResultComponent" :doc="doc" :search-session-id="searchSessionId" />
     <!-- Pages skip the FieldsView layout (which would dump the Content field into the card) and fall through to the generic card below, which renders title, the instance-of "page" badge, and the description. -->
-    <div v-else-if="!isPage && fieldsData && doc.claims">
+    <div v-else-if="!isPage && fieldsData && doc.claims" class="pd-searchresultdocument-fields">
       <ButtonLink
         :to="{ name: 'DocumentGet', params: { id: doc.id }, query: encodeQuery({ s: searchSessionId }) }"
         class="pd-searchresult-link-details pd-print-hidden float-end mb-1 ml-4 px-4"
@@ -210,7 +210,7 @@ const rowSpan = computed(() => {
       <SearchResultTags v-if="tags.length" :tags="tags" class="mb-2" />
       <FieldsView :fields-data="fieldsData" :claims="doc.claims" limited />
     </div>
-    <div v-else class="grid grid-cols-1 gap-4" :class="previewFiles.length ? `sm:grid-cols-[256px_auto] ${gridRows}` : ''">
+    <div v-else class="pd-searchresultdocument-generic grid grid-cols-1 gap-4" :class="previewFiles.length ? `sm:grid-cols-[256px_auto] ${gridRows}` : ''">
       <div>
         <ButtonLink
           :to="{ name: 'DocumentGet', params: { id: doc.id }, query: encodeQuery({ s: searchSessionId }) }"
@@ -225,9 +225,9 @@ const rowSpan = computed(() => {
         </h2>
         <SearchResultTags v-if="tags.length" :tags="tags" />
       </div>
-      <div v-if="previewFiles.length" :class="`w-full sm:order-first ${rowSpan}`">
-        <RouterLink :to="{ name: 'DocumentGet', params: { id: doc.id }, query: encodeQuery({ s: searchSessionId }) }"
-          ><img :src="previewFiles[0]" class="mx-auto bg-white"
+      <div v-if="previewFiles.length" class="pd-searchresult-preview" :class="`w-full sm:order-first ${rowSpan}`">
+        <RouterLink :to="{ name: 'DocumentGet', params: { id: doc.id }, query: encodeQuery({ s: searchSessionId }) }" class="pd-searchresult-link-preview"
+          ><img :src="previewFiles[0]" class="pd-searchresult-image-preview mx-auto bg-white"
         /></RouterLink>
       </div>
       <!-- eslint-disable-next-line vue/no-v-html -->

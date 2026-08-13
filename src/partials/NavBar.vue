@@ -46,7 +46,7 @@ useValidationRegistry()
       class="pd-navbar w-container left-0 flex min-h-[var(--pd-navbar-height)] grow items-center gap-x-1 border-b border-slate-400 bg-slate-300 p-1 shadow-md will-change-transform sm:gap-x-4 sm:p-4"
       v-bind="navbarAttrs"
     >
-      <RouterLink id="navbar-link-home" :to="{ name: 'Home' }" class="group shrink-0 rounded-sm outline-none hover:bg-slate-400 active:bg-slate-200">
+      <RouterLink id="navbar-link-home" :to="{ name: 'Home' }" class="pd-navbar-link-home group shrink-0 rounded-sm outline-none hover:bg-slate-400 active:bg-slate-200">
         <!--
           The logo is chosen from the configured min-width variants: each larger variant is a source that
           takes over from its width up (largest listed first so the first match wins), and the smallest is

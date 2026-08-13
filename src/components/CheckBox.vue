@@ -35,7 +35,7 @@ defineOptions({
 
 <template>
   <!-- We wrap input in div to align check box correctly vertically inside the grid. -->
-  <div>
+  <div class="pd-checkbox-wrapper">
     <input
       v-model="model"
       v-tw-merge

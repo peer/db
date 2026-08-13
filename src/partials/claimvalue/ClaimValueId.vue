@@ -82,6 +82,8 @@ const identifierUrl = computed(() => {
 <template>
   <template v-if="claim"
     ><Link v-if="identifierUrl" :iri="identifierUrl" class="pd-claimvalueid">{{ claim.value }}</Link
-    ><template v-else>{{ claim.value }}</template></template
+    ><template v-else
+      ><span class="pd-claimvalueid">{{ claim.value }}</span></template
+    ></template
   >
 </template>

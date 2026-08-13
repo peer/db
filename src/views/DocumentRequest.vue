@@ -189,37 +189,48 @@ async function onRequest() {
   </Teleport>
   <div class="pd-documentrequest mt-[var(--pd-navbar-offset)] flex w-full flex-col gap-y-1 border-t border-transparent p-1 sm:gap-y-4 sm:p-4">
     <div class="flex flex-col gap-y-4 rounded-sm border border-gray-200 bg-white p-4 shadow-sm">
-      <form v-if="available && isSignedIn()" class="flex flex-col gap-y-4" @submit.prevent="onRequest">
+      <form v-if="available && isSignedIn()" class="pd-documentrequest-form flex flex-col gap-y-4" @submit.prevent="onRequest">
         <div>
-          <h1 class="text-3xl font-bold drop-shadow-xs">{{ t("views.DocumentRequest.title") }}</h1>
-          <p v-if="requested" class="mt-1 text-gray-700">{{ t("views.DocumentRequest.requested") }}</p>
-          <p v-else class="mt-1 text-gray-700">{{ t("views.DocumentRequest.confirm") }}</p>
+          <h1 id="documentrequest-title" class="text-3xl font-bold drop-shadow-xs">{{ t("views.DocumentRequest.title") }}</h1>
+          <p v-if="requested" id="documentrequest-text-requested" class="mt-1 text-gray-700">{{ t("views.DocumentRequest.requested") }}</p>
+          <p v-else id="documentrequest-text-confirm" class="mt-1 text-gray-700">{{ t("views.DocumentRequest.confirm") }}</p>
         </div>
         <!--
           The document itself, when the caller can read it, so they see what they are asking about. It
           is the document this page has already read, rendered on the card the page provides.
           Once the request is recorded the confirmation stands alone, like the rest of the page.
         -->
-        <SearchResultDocument v-if="doc && !requested" :doc="doc" />
+        <SearchResultDocument v-if="doc && !requested" :doc="doc" class="pd-documentrequest-result" />
         <template v-if="!requested">
-          <div v-if="availableActions.length === 0" class="text-gray-700">{{ t("views.DocumentRequest.nothingToRequest") }}</div>
+          <div v-if="availableActions.length === 0" id="documentrequest-text-nothing" class="text-gray-700">{{ t("views.DocumentRequest.nothingToRequest") }}</div>
           <!--
             The two fields are laid out like the fields of the fields form: the label with its badges on
             the left (above the field below the md breakpoint), the field itself on the right, and the
             field's hints under it.
           -->
-          <div v-else class="grid grid-cols-1 gap-y-4 md:grid-cols-[20%_1fr] md:items-start md:gap-x-3">
+          <div v-else class="pd-documentrequest-fields grid grid-cols-1 gap-y-4 md:grid-cols-[20%_1fr] md:items-start md:gap-x-3">
             <div class="flex flex-row flex-wrap items-center gap-1 font-medium text-gray-700 md:flex-col md:items-start">
-              <span :id="permissionLabelId" class="cursor-pointer pt-0.5 leading-none" @mousedown.prevent="onPermissionLabelMousedown">{{
-                t("views.DocumentRequest.permission")
-              }}</span>
+              <span
+                :id="permissionLabelId"
+                class="pd-documentrequest-label-permission cursor-pointer pt-0.5 leading-none"
+                @mousedown.prevent="onPermissionLabelMousedown"
+                >{{ t("views.DocumentRequest.permission") }}</span
+              >
               <div class="flex flex-row flex-wrap gap-1">
                 <InputBadges required multiple hide-changed />
               </div>
             </div>
-            <PermissionActionsInput ref="permissionActionsRef" v-model="selected" :labelledby="permissionLabelId" :available="availableActions" />
+            <PermissionActionsInput
+              ref="permissionActionsRef"
+              v-model="selected"
+              class="pd-documentrequest-input-permission"
+              :labelledby="permissionLabelId"
+              :available="availableActions"
+            />
             <div class="flex flex-row flex-wrap items-center gap-1 font-medium text-gray-700 md:flex-col md:items-start">
-              <span :id="noteLabelId" class="cursor-pointer pt-0.5 leading-none" @mousedown.prevent="onNoteLabelMousedown">{{ t("views.DocumentRequest.note") }}</span>
+              <span :id="noteLabelId" class="pd-documentrequest-label-note cursor-pointer pt-0.5 leading-none" @mousedown.prevent="onNoteLabelMousedown">{{
+                t("views.DocumentRequest.note")
+              }}</span>
             </div>
             <div class="flex flex-col">
               <TextArea
@@ -234,7 +245,7 @@ async function onRequest() {
             </div>
           </div>
         </template>
-        <div v-if="requestError" class="text-error-600">{{ t("common.errors.unexpected") }}</div>
+        <div v-if="requestError" id="documentrequest-error-request" class="text-error-600">{{ t("common.errors.unexpected") }}</div>
         <!--
           Leaving the page goes to the document, which is offered only to a caller who can read it: the
           cancel of an unsent request, and after it was sent the way to its permissions, where it is now
@@ -260,8 +271,8 @@ async function onRequest() {
           </div>
         </div>
       </form>
-      <div v-else-if="!available" class="my-1 text-center sm:my-4">{{ t("views.DocumentRequest.notAvailable") }}</div>
-      <div v-else class="my-1 text-center sm:my-4">{{ t("views.DocumentRequest.notSignedIn") }}</div>
+      <div v-else-if="!available" id="documentrequest-text-notavailable" class="my-1 text-center sm:my-4">{{ t("views.DocumentRequest.notAvailable") }}</div>
+      <div v-else id="documentrequest-text-notsignedin" class="my-1 text-center sm:my-4">{{ t("views.DocumentRequest.notSignedIn") }}</div>
     </div>
   </div>
   <Teleport to="footer">

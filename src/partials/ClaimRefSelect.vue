@@ -432,7 +432,7 @@ const WithPeerDBDocument = WithDocument<D>
           @click="focusControl(row)"
           @update:model-value="(v) => toggle(row, !!v)"
         />
-        <div class="flex items-baseline gap-x-1">
+        <div class="pd-claimrefselect-value flex items-baseline gap-x-1">
           <WithPeerDBDocument :id="row" name="DocumentGet">
             <template #default="{ doc, url }">
               <label

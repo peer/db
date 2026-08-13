@@ -86,7 +86,7 @@ function childPagerIndex(child: DeepReadonly<Result>): number | undefined {
     -->
     <SearchResult v-if="expanded" :search-session-id="searchSessionId" :result="node">
       <template #labelAside>
-        <span class="flex shrink-0 items-baseline gap-x-1 text-base font-normal text-slate-500">
+        <span class="pd-searchresultgroup-aside flex shrink-0 items-baseline gap-x-1 text-base font-normal text-slate-500">
           <span v-if="node.count != null" class="pd-searchresultgroup-count">({{ node.count }})</span>
           <button
             type="button"
@@ -115,7 +115,7 @@ function childPagerIndex(child: DeepReadonly<Result>): number | undefined {
     </div>
     <ul class="pd-searchresultgroup-list flex flex-col gap-y-1 pl-4 sm:gap-y-4 sm:pl-6">
       <template v-for="(child, i) in node.group" :key="`${child.id}-${i}`">
-        <li v-if="childPagerIndex(child) !== undefined" class="pd-print-hidden">
+        <li v-if="childPagerIndex(child) !== undefined" class="pd-searchresultgroup-item-pager pd-print-hidden">
           <SearchResultsPager :i="childPagerIndex(child)!" :shown="pager.shown" :total="pager.total" :depth="depth + 1" />
         </li>
         <li class="pd-searchresultgroup-item">

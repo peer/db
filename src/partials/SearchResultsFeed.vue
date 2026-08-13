@@ -486,13 +486,13 @@ const WithDocumentD = WithDocument<D>
   <div class="pd-searchresultsfeed relative flex w-full items-start gap-x-1 p-1 sm:gap-x-4 sm:p-4">
     <a
       href="#search-filters"
-      class="sr-only focus:not-sr-only focus:absolute focus:top-1 focus:left-1 focus:z-50 focus:rounded-sm focus:bg-primary-600 focus:px-4 focus:py-2 focus:font-medium focus:text-white focus:shadow-lg focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 focus:outline-none sm:focus:top-4 sm:focus:left-4"
+      class="pd-searchresultsfeed-link-skipfilters sr-only focus:not-sr-only focus:absolute focus:top-1 focus:left-1 focus:z-50 focus:rounded-sm focus:bg-primary-600 focus:px-4 focus:py-2 focus:font-medium focus:text-white focus:shadow-lg focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 focus:outline-none sm:focus:top-4 sm:focus:left-4"
       @click.prevent="onSkipTo('search-filters')"
       >{{ t("partials.SearchResultsFeed.skipToFilters") }}</a
     >
     <a
       href="#search-results"
-      class="sr-only focus:not-sr-only focus:absolute focus:top-1 focus:left-1 focus:z-50 focus:rounded-sm focus:bg-primary-600 focus:px-4 focus:py-2 focus:font-medium focus:text-white focus:shadow-lg focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 focus:outline-none sm:focus:top-4 sm:focus:left-4"
+      class="pd-searchresultsfeed-link-skipresults sr-only focus:not-sr-only focus:absolute focus:top-1 focus:left-1 focus:z-50 focus:rounded-sm focus:bg-primary-600 focus:px-4 focus:py-2 focus:font-medium focus:text-white focus:shadow-lg focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 focus:outline-none sm:focus:top-4 sm:focus:left-4"
       @click.prevent="onSkipTo('search-results')"
       >{{ t("partials.SearchResultsFeed.skipToResults") }}</a
     >
@@ -505,7 +505,7 @@ const WithDocumentD = WithDocument<D>
       :class="filtersEnabled ? 'hidden' : 'flex'"
     >
       <!-- Print row: the close and show-all buttons (preview only, left) and a live timestamp (right). -->
-      <div class="pd-print-only-flex mb-2 items-center gap-x-2">
+      <div class="pd-searchresultsfeed-row-print pd-print-only-flex mb-2 items-center gap-x-2">
         <button
           type="button"
           class="pd-searchresultsfeed-button-closeprint pd-preview-only items-center gap-x-1 rounded-sm bg-slate-700 px-3 py-2 text-sm text-white shadow-lg outline-none hover:bg-slate-800 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1"
@@ -544,7 +544,7 @@ const WithDocumentD = WithDocument<D>
       <SearchPrintFilters :filters="printFilters" class="pd-print-only" />
 
       <!-- Print-only: the ID scope (results limited to an explicit document set). -->
-      <div v-if="searchSession.ids && searchSession.ids.length > 0" class="pd-print-only mx-1">
+      <div v-if="searchSession.ids && searchSession.ids.length > 0" class="pd-searchresultsfeed-text-scoped pd-print-only mx-1">
         {{ t("partials.SearchResultsFeed.resultsScoped", { count: searchSession.ids.length }) }}
       </div>
 
@@ -553,7 +553,7 @@ const WithDocumentD = WithDocument<D>
         the target's full result card instead of the one-line heading. The expand/collapse controls are
         preview-only (interactive), so a real print just shows the chosen form.
       -->
-      <div v-if="searchSession.reverse" class="pd-print-only">
+      <div v-if="searchSession.reverse" class="pd-searchresultsfeed-text-referencing pd-print-only">
         <!-- Collapsed: the referenced target inline, with a control to expand it into its full card. -->
         <div v-if="!searchSession.reverseExpand" class="mx-1 flex items-baseline gap-x-1">
           <i18n-t keypath="partials.SearchResultsFeed.resultsReferencing" scope="global">
@@ -595,7 +595,7 @@ const WithDocumentD = WithDocument<D>
               <ChevronDownUpIcon class="size-5" :alt="t('partials.SearchResultsFeed.collapseReferencing')" />
             </button>
           </div>
-          <SearchResult :search-session-id="searchSession.id" :result="{ id: searchSession.reverse }" class="mt-1 sm:mt-4" />
+          <SearchResult :search-session-id="searchSession.id" :result="{ id: searchSession.reverse }" class="pd-searchresultsfeed-result-referencing mt-1 sm:mt-4" />
           <!-- Separator below the expanded reference card, matching the border under a group heading. -->
           <hr class="mt-1 border-slate-200 sm:mt-4" />
         </template>
@@ -619,7 +619,7 @@ const WithDocumentD = WithDocument<D>
           >
 
           <!-- Print: instead of a load-more button, note how many results are not shown. -->
-          <div v-if="searchTotal - limitedGroupedResults.shown > 0" class="pd-print-only my-1 text-center text-sm sm:my-4">
+          <div v-if="searchTotal - limitedGroupedResults.shown > 0" class="pd-searchresultsfeed-text-notshown pd-print-only my-1 text-center text-sm sm:my-4">
             {{ t("partials.SearchResultsFeed.resultsNotShown", { count: searchTotal - limitedGroupedResults.shown, total: searchTotal }) }}
           </div>
 
@@ -646,7 +646,7 @@ const WithDocumentD = WithDocument<D>
           >
 
           <!-- Print: instead of pager bars or a load-more button, note how many results are not shown. -->
-          <div v-if="searchTotal - limitedSearchResults.length > 0" class="pd-print-only my-1 text-center text-sm sm:my-4">
+          <div v-if="searchTotal - limitedSearchResults.length > 0" class="pd-searchresultsfeed-text-notshown pd-print-only my-1 text-center text-sm sm:my-4">
             {{ t("partials.SearchResultsFeed.resultsNotShown", { count: searchTotal - limitedSearchResults.length, total: searchTotal }) }}
           </div>
 
@@ -675,11 +675,11 @@ const WithDocumentD = WithDocument<D>
       </div>
 
       <div v-else-if="searchTotal === null || filtersTotal === null" class="my-1 sm:my-4">
-        <div class="text-center text-sm">{{ t("partials.SearchResultsFeed.determiningFilters") }}</div>
+        <div class="pd-searchresultsfeed-loading-filters text-center text-sm">{{ t("partials.SearchResultsFeed.determiningFilters") }}</div>
       </div>
 
       <template v-else>
-        <div v-if="searchSession.ids && searchSession.ids.length > 0" class="text-sm">
+        <div v-if="searchSession.ids && searchSession.ids.length > 0" class="pd-searchresultsfeed-text-scoped text-sm">
           <Button
             type="button"
             class="pd-searchresultsfeed-button-clearids float-right ml-2 px-2.5 py-1"
@@ -691,7 +691,7 @@ const WithDocumentD = WithDocument<D>
           {{ t("partials.SearchResultsFeed.resultsScoped", { count: searchSession.ids.length }) }}
         </div>
 
-        <div v-if="searchSession.reverse" class="text-sm">
+        <div v-if="searchSession.reverse" class="pd-searchresultsfeed-text-referencing text-sm">
           <Button
             type="button"
             class="pd-searchresultsfeed-button-clearreverse float-right ml-2 px-2.5 py-1"
@@ -719,7 +719,10 @@ const WithDocumentD = WithDocument<D>
           </i18n-t>
         </div>
 
-        <div v-if="searchSession.prefilters && searchSession.prefilters.length > 0 && !siteContext.features.hidePrefilters" class="text-sm">
+        <div
+          v-if="searchSession.prefilters && searchSession.prefilters.length > 0 && !siteContext.features.hidePrefilters"
+          class="pd-searchresultsfeed-text-prefilters text-sm"
+        >
           <Button
             type="button"
             class="pd-searchresultsfeed-button-clearprefilters float-right ml-2 px-2.5 py-1"
@@ -797,7 +800,7 @@ const WithDocumentD = WithDocument<D>
               :search-session="searchSession"
               :filters="filters"
               :query="filterQuery"
-              class="rounded-sm border border-gray-200 bg-white p-4 shadow-sm"
+              class="pd-searchresultsfeed-item-filter rounded-sm border border-gray-200 bg-white p-4 shadow-sm"
               @filter-updates="(updates) => $emit('filterUpdates', updates)"
             />
           </template>
@@ -812,7 +815,7 @@ const WithDocumentD = WithDocument<D>
           >
 
           <!-- Counts of shown vs returned use the (possibly narrowed) returned facets, not the constant total. -->
-          <div v-else-if="filtersResults.length > limitedFiltersResults.length" class="text-center text-sm">{{
+          <div v-else-if="filtersResults.length > limitedFiltersResults.length" class="pd-searchresultsfeed-text-filtersnotshown text-center text-sm">{{
             t("partials.SearchResultsFeed.filtersNotShown", { count: filtersResults.length - limitedFiltersResults.length })
           }}</div>
 
