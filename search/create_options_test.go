@@ -15,6 +15,36 @@ import (
 	"gitlab.com/peerdb/peerdb/search"
 )
 
+// classDoc builds a class document carrying just the claims classCreatable inspects: an ABSTRACT_CLASS
+// has-claim when abstract, and a FIELDS has-claim with one FIELD when it defines fields.
+func classDoc(t *testing.T, id identifier.Identifier, abstract, hasField bool) *document.D {
+	t.Helper()
+
+	doc := &document.D{}
+	doc.ID = id
+	if abstract {
+		errE := doc.Add(&document.HasClaim{
+			CoreClaim: document.CoreClaim{ID: identifier.New(), Confidence: document.HighConfidence},
+			Prop:      document.Reference{ID: internalCore.AbstractClassPropID},
+		})
+		require.NoError(t, errE, "% -+#.1v", errE)
+	}
+	if hasField {
+		fields := &document.HasClaim{
+			CoreClaim: document.CoreClaim{ID: identifier.New(), Confidence: document.HighConfidence},
+			Prop:      document.Reference{ID: internalCore.FieldsPropID},
+		}
+		errE := fields.Add(&document.HasClaim{
+			CoreClaim: document.CoreClaim{ID: identifier.New(), Confidence: document.HighConfidence},
+			Prop:      document.Reference{ID: internalCore.FieldPropID},
+		})
+		require.NoError(t, errE, "% -+#.1v", errE)
+		errE = doc.Add(fields)
+		require.NoError(t, errE, "% -+#.1v", errE)
+	}
+	return doc
+}
+
 // TestCreateOptionsIntegration drives search.CreateOptions over a small class hierarchy:
 //
 //	A (abstract root, no fields)
@@ -52,34 +82,6 @@ func TestCreateOptionsIntegration(t *testing.T) {
 		}))
 	}
 
-	// makeClassDoc builds a class document carrying just the claims classCreatable inspects: an
-	// ABSTRACT_CLASS has-claim when abstract, and a FIELDS has-claim with one FIELD when it defines fields.
-	makeClassDoc := func(id identifier.Identifier, abstract, hasField bool) *document.D {
-		doc := &document.D{}
-		doc.ID = id
-		if abstract {
-			errE := doc.Add(&document.HasClaim{
-				CoreClaim: document.CoreClaim{ID: identifier.New(), Confidence: document.HighConfidence},
-				Prop:      document.Reference{ID: internalCore.AbstractClassPropID},
-			})
-			require.NoError(t, errE, "% -+#.1v", errE)
-		}
-		if hasField {
-			fields := &document.HasClaim{
-				CoreClaim: document.CoreClaim{ID: identifier.New(), Confidence: document.HighConfidence},
-				Prop:      document.Reference{ID: internalCore.FieldsPropID},
-			}
-			errE := fields.Add(&document.HasClaim{
-				CoreClaim: document.CoreClaim{ID: identifier.New(), Confidence: document.HighConfidence},
-				Prop:      document.Reference{ID: internalCore.FieldPropID},
-			})
-			require.NoError(t, errE, "% -+#.1v", errE)
-			errE = doc.Add(fields)
-			require.NoError(t, errE, "% -+#.1v", errE)
-		}
-		return doc
-	}
-
 	// Each class is an instance of the core CLASS so it is enumerated.
 	for _, id := range []identifier.Identifier{classA, classB, classC, classD, classE} {
 		indexInstanceOf(id, internalCore.ClassClassID)
@@ -104,11 +106,11 @@ func TestCreateOptionsIntegration(t *testing.T) {
 		},
 	}
 	docs := map[identifier.Identifier]*document.D{
-		classA: makeClassDoc(classA, true, false),
-		classB: makeClassDoc(classB, false, true),
-		classC: makeClassDoc(classC, false, true),
-		classD: makeClassDoc(classD, false, false),
-		classE: makeClassDoc(classE, false, true),
+		classA: classDoc(t, classA, true, false),
+		classB: classDoc(t, classB, false, true),
+		classC: classDoc(t, classC, false, true),
+		classD: classDoc(t, classD, false, false),
+		classE: classDoc(t, classE, false, true),
 	}
 	loadDocument := func(_ context.Context, id identifier.Identifier) (*document.D, errors.E) {
 		return docs[id], nil
@@ -181,6 +183,55 @@ func TestCreateOptionsIntegration(t *testing.T) {
 	nothing, errE := search.CreateOptions(ctx, getSearchService, nil, loadDocument, denyAll, documentHierarchyPaths, "")
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Empty(t, nothing)
+}
+
+// TestCreateOptionsTieOrderIntegration verifies that classes tying on everything the offering is ordered by
+// are offered in id order. Two classes nothing is an instance of tie on count and on depth, and what is left
+// to order them is the order the enumerating search returns them in, which is the index's internal document
+// order unless the search asks for another. Two indexes holding the same documents do not have to agree on
+// that order, so the same site would offer the same two classes in a different order from one index to the
+// next: the class picker of the create view is where this shows.
+func TestCreateOptionsTieOrderIntegration(t *testing.T) {
+	t.Parallel()
+
+	ctx := t.Context()
+	esClient, getSearchService, index := initES(t)
+
+	lower := identifier.From("createTieClassOne")
+	higher := identifier.From("createTieClassTwo")
+	if lower.String() > higher.String() {
+		lower, higher = higher, lower
+	}
+
+	// The class with the greater id is indexed first, so the document order of the index is the reverse of
+	// the order the classes are expected in and cannot be what puts them in it.
+	for _, id := range []identifier.Identifier{higher, lower} {
+		indexDocument(t, ctx, esClient, index, idClaimsDoc(id, internalSearch.ClaimTypes{ //nolint:exhaustruct
+			Rel: internalSearch.RelClaims{refRecord(internalCore.InstanceOfPropID, internalCore.ClassClassID, nil)},
+		}))
+	}
+	refreshIndex(t, ctx, esClient, index)
+
+	docs := map[identifier.Identifier]*document.D{
+		lower:  classDoc(t, lower, false, true),
+		higher: classDoc(t, higher, false, true),
+	}
+	loadDocument := func(_ context.Context, id identifier.Identifier) (*document.D, errors.E) {
+		return docs[id], nil
+	}
+	// Neither class is placed under anything, so both are roots and tie on depth as well as on count.
+	documentHierarchyPaths := func(_ context.Context, _ identifier.Identifier) ([]string, errors.E) {
+		return nil, nil
+	}
+
+	options, errE := search.CreateOptions(ctx, getSearchService, nil, loadDocument, nil, documentHierarchyPaths, "")
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	ids := make([]string, 0, len(options))
+	for _, o := range options {
+		ids = append(ids, o.ID)
+	}
+	assert.Equal(t, []string{lower.String(), higher.String()}, ids)
 }
 
 func TestClassCreatable(t *testing.T) {

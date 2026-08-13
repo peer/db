@@ -10,12 +10,19 @@ import (
 	internalSearch "gitlab.com/peerdb/peerdb/internal/search"
 )
 
+// scoreSort orders by relevance, best first. A search which sets no sort at all is ordered this way by
+// ElasticSearch, so it is named wherever a sort is set: setting one replaces the default instead of
+// adding to it, and a search which ranks its hits has to say so to keep doing it.
+func scoreSort() types.SortCombinationsVariant { //nolint:ireturn
+	return esdsl.NewSortOptions().Score_(esdsl.NewScoreSort().Order(sortorder.Desc))
+}
+
 // defaultSortOrder is the ordering used when the session has no sort columns of its own: relevance first,
 // then the document's earliest time (newest first), then its display label in the session's language.
 // Documents missing a sort field sort last.
 func defaultSortOrder(lang string) []types.SortCombinationsVariant {
 	return []types.SortCombinationsVariant{
-		esdsl.NewSortOptions().Score_(esdsl.NewScoreSort().Order(sortorder.Desc)),
+		scoreSort(),
 		esdsl.NewSortOptions().AddSortOption("time", esdsl.NewFieldSort(sortorder.Desc).Missing(esdsl.NewMissing().String("_last"))),
 		esdsl.NewSortOptions().AddSortOption(
 			"displaySort."+lang,
@@ -26,7 +33,9 @@ func defaultSortOrder(lang string) []types.SortCombinationsVariant {
 }
 
 // idTieBreak is the final key of every sort, which makes the ordering a total order so that the result
-// never depends on the index's internal document order. The top-level "id" keyword is always mapped and
+// never depends on the index's internal document order. It is the last key of the sort a search session
+// asks for, and the only key of a search which ranks nothing (a query of nothing but filters scores every
+// hit the same, which leaves the internal order deciding). The top-level "id" keyword is always mapped and
 // always populated, so it needs neither unmapped_type nor missing handling. The document's own id field is
 // used and not the Lucene _id metadata field, because sorting on _id requires fielddata and is deprecated
 // and expensive.

@@ -2,6 +2,7 @@ package search_test
 
 import (
 	"os"
+	"slices"
 	"strconv"
 	"strings"
 	"testing"
@@ -98,6 +99,90 @@ func refResultsByID(results []search.RefFilterResult) map[string]search.RefFilte
 		out[r.ID] = r
 	}
 	return out
+}
+
+// refResultIDs lists the value ids of reference filter results in the order they are in.
+func refResultIDs(results []search.RefFilterResult) []string {
+	out := make([]string, 0, len(results))
+	for _, r := range results {
+		out = append(out, r.ID)
+	}
+	return out
+}
+
+// TestCompareRefFilterResults pins the order reference filter results are put in, which is also the order
+// the create view offers its classes in: by count descending, then by depth ascending, then by id. The id
+// is what makes the order total, so results which tie on everything else come out the same whatever order
+// they were collected in, and what a facet lists does not depend on how the index is laid out.
+func TestCompareRefFilterResults(t *testing.T) {
+	t.Parallel()
+
+	// result builds a result with the given id and count, placed at the given depth by an ancestor chain
+	// of that length. What the chain holds does not matter to the comparison, only how long it is.
+	result := func(id string, count int64, depth int) search.RefFilterResult {
+		var paths [][]string
+		if depth > 0 {
+			paths = [][]string{make([]string, depth)}
+		}
+		return search.RefFilterResult{ID: id, Count: count, ChildCount: 0, ChildCountAtLeast: false, Paths: paths}
+	}
+
+	t.Run("count first", func(t *testing.T) {
+		t.Parallel()
+
+		// The higher count comes first even though that value is deeper and its id is greater.
+		assert.Negative(t, search.TestingCompareRefFilterResults(result("b", 5, 2), result("a", 3, 1)))
+	})
+
+	t.Run("then depth", func(t *testing.T) {
+		t.Parallel()
+
+		// An ancestor and its descendant tie on count whenever every document referencing the one references
+		// the other, and the shallower of the two has to be listed first for the tree to render.
+		assert.Negative(t, search.TestingCompareRefFilterResults(result("b", 3, 1), result("a", 3, 2)))
+	})
+
+	t.Run("then specials", func(t *testing.T) {
+		t.Parallel()
+
+		// A special entry follows every value it ties with, whatever the ids compare as, and the specials
+		// keep the order the facet offers them in rather than the order of their synthetic ids.
+		assert.Negative(t, search.TestingCompareRefFilterResults(result("zzz", 1, 0), result(search.HasPropertyValueID, 1, 0)))
+		assert.Negative(t, search.TestingCompareRefFilterResults(result(search.HasPropertyValueID, 1, 0), result(search.UnknownValueID, 1, 0)))
+		assert.Negative(t, search.TestingCompareRefFilterResults(result(search.UnknownValueID, 1, 0), result(search.NoneValueID, 1, 0)))
+		assert.Negative(t, search.TestingCompareRefFilterResults(result(search.NoneValueID, 1, 0), result(search.MissingValueID, 1, 0)))
+	})
+
+	t.Run("then id", func(t *testing.T) {
+		t.Parallel()
+
+		// Siblings nothing references tie on everything before the id, and are ordered by it.
+		assert.Negative(t, search.TestingCompareRefFilterResults(result("a", 0, 1), result("b", 0, 1)))
+		assert.Positive(t, search.TestingCompareRefFilterResults(result("b", 0, 1), result("a", 0, 1)))
+		assert.Zero(t, search.TestingCompareRefFilterResults(result("a", 0, 1), result("a", 0, 1)))
+	})
+
+	t.Run("total", func(t *testing.T) {
+		t.Parallel()
+
+		results := []search.RefFilterResult{
+			result("d", 0, 1),
+			result("c", 3, 1),
+			result("b", 0, 1),
+			result("a", 3, 2),
+		}
+		reversed := slices.Clone(results)
+		slices.Reverse(reversed)
+
+		sorted := slices.Clone(results)
+		slices.SortStableFunc(sorted, search.TestingCompareRefFilterResults)
+		slices.SortStableFunc(reversed, search.TestingCompareRefFilterResults)
+
+		assert.Equal(t, []string{"c", "a", "b", "d"}, refResultIDs(sorted))
+		// Two orders of the same results sort the same, which a stable sort gives only when no pair ties:
+		// a pair the comparator calls equal would keep whichever order it was handed.
+		assert.Equal(t, refResultIDs(sorted), refResultIDs(reversed))
+	})
 }
 
 func TestRefFilterGetIntegration(t *testing.T) {

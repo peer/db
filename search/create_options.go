@@ -304,6 +304,11 @@ func instanceCounts(ctx context.Context, getSearchService func() *esSearch.Searc
 // classIDs enumerates every class: a document that is an instance of the core CLASS. Because INSTANCE_OF
 // references are expanded over the SUBCLASS_OF hierarchy at index time, a document that is an instance of
 // any sub-class of CLASS (a class declared via a metaclass) also matches, so this captures all classes.
+//
+// The classes come back ordered by id. The query is nothing but filters, so every hit scores the same and
+// without a sort the order would be the index's internal document order, which differs between two indexes
+// holding the same documents. Classes tying on everything CreateOptions orders by keep the order they are
+// returned in, so that order has to be one of the index and not of how it happens to be laid out.
 func classIDs(ctx context.Context, getSearchService func() *esSearch.Search, accessFilter types.QueryVariant) ([]identifier.Identifier, errors.E) {
 	metrics, _ := waf.GetMetrics(ctx)
 
@@ -319,7 +324,7 @@ func classIDs(ctx context.Context, getSearchService func() *esSearch.Search, acc
 		filters = append(filters, accessFilter)
 	}
 
-	searchService := getSearchService().Size(MaxResultsCount).Query(esdsl.NewBoolQuery().Filter(filters...))
+	searchService := getSearchService().Size(MaxResultsCount).Query(esdsl.NewBoolQuery().Filter(filters...)).Sort(idTieBreak())
 
 	m := metrics.Duration(internalStore.MetricElasticSearch2).Start()
 	res, err := searchService.Do(ctx)

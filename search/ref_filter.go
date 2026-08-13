@@ -281,17 +281,46 @@ func refFilterDepth(r RefFilterResult) int {
 	return depth
 }
 
+// refFilterSpecialRank ranks an entry among the entries it ties with: every real value first (the direct
+// entry of a value among them), then the special value entries in the order the facet offers them. A
+// special is a synthetic row and not a document, so its id says nothing about where it belongs and only
+// the offered order does.
+func refFilterSpecialRank(r RefFilterResult) int {
+	switch r.ID {
+	case HasPropertyValueID:
+		return 1
+	case UnknownValueID:
+		return 2 //nolint:mnd
+	case NoneValueID:
+		return 3 //nolint:mnd
+	case MissingValueID:
+		return 4 //nolint:mnd
+	}
+	return 0
+}
+
 // compareRefFilterResults orders reference filter results for the frontend tree:
-// by count descending, then by hierarchy depth ascending. Ancestor counts are
-// always greater than or equal to descendant counts (a reference is indexed for
-// the target and every ancestor), so the only way a descendant could precede an
+// by count descending, then by hierarchy depth ascending, then specials last in
+// the order they are offered in, then by id ascending. Ancestor counts are always
+// greater than or equal to descendant counts (a reference is indexed for the
+// target and every ancestor), so the only way a descendant could precede an
 // ancestor is a count tie, which the depth tiebreak resolves by placing the
-// shallower (ancestor) value first.
+// shallower (ancestor) value first. The id makes the order total: values tying on
+// everything before it (siblings nothing references, for example) would otherwise
+// keep whatever order they were collected in, which is the order of the
+// aggregation buckets or of the search hits they came from and therefore not the
+// same from one index to the next.
 func compareRefFilterResults(a, b RefFilterResult) int {
 	if c := cmp.Compare(b.Count, a.Count); c != 0 {
 		return c
 	}
-	return cmp.Compare(refFilterDepth(a), refFilterDepth(b))
+	if c := cmp.Compare(refFilterDepth(a), refFilterDepth(b)); c != 0 {
+		return c
+	}
+	if c := cmp.Compare(refFilterSpecialRank(a), refFilterSpecialRank(b)); c != 0 {
+		return c
+	}
+	return cmp.Compare(a.ID, b.ID)
 }
 
 // refValueTermsAggregation builds the value terms sub-aggregation shared by the reference facets:

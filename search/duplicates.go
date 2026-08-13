@@ -569,12 +569,16 @@ func duplicatesQuery(doc *document.D, enabledLanguages []string, exclude identif
 	return query
 }
 
-// DuplicatesGet returns up to limit potential duplicates of doc, highest structural score first.
+// DuplicatesGet returns up to limit potential duplicates of doc, highest structural score first and,
+// among candidates scoring the same, by id.
 //
 // It runs duplicatesQuery and keeps only hits scoring at least minDuplicateScore (the search
 // min_score), so candidates matching just one weak field (or a bare shared type) are dropped. Scores
 // are sums of constant per-field weights, so the ranking and the threshold are independent of corpus
-// term statistics. extraFilters are added as bool filter clauses (the per-caller access restriction).
+// term statistics. That also makes ties common, which is why the id is the last key: two candidates
+// matching the same fields would otherwise be listed in the index's internal document order, and which
+// of them the limit cuts off would differ between two indexes holding the same documents.
+// extraFilters are added as bool filter clauses (the per-caller access restriction).
 // When doc has no matchable claims it returns an empty list without querying ElasticSearch.
 func DuplicatesGet(
 	ctx context.Context, getSearchService func() *esSearch.Search, doc *document.D,
@@ -589,7 +593,8 @@ func DuplicatesGet(
 		From(0).
 		Size(limit).
 		MinScore(types.Float64(minDuplicateScore)).
-		Query(query)
+		Query(query).
+		Sort(scoreSort(), idTieBreak())
 
 	res, err := searchService.Do(ctx)
 	if err != nil {

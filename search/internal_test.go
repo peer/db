@@ -14,6 +14,7 @@ var (
 	TestingAncestorChains          = ancestorChains
 	TestingBuildSort               = buildSort
 	TestingClassCreatable          = classCreatable
+	TestingCompareRefFilterResults = compareRefFilterResults
 	TestingComputeInterval         = computeInterval
 	TestingDistinctValuesTotal     = distinctValuesTotal
 	TestingDocumentTextSearchQuery = documentTextSearchQuery

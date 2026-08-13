@@ -11,6 +11,7 @@ import (
 
 	"gitlab.com/peerdb/peerdb/document"
 	internalCore "gitlab.com/peerdb/peerdb/internal/core"
+	internalSearch "gitlab.com/peerdb/peerdb/internal/search"
 	"gitlab.com/peerdb/peerdb/internal/testutils"
 	"gitlab.com/peerdb/peerdb/search"
 )
@@ -365,4 +366,68 @@ func TestDuplicatesGetNoClaims(t *testing.T) {
 	results, errE := search.DuplicatesGet(t.Context(), getSearchService, doc, exclude, []string{"en", "und"}, 5)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Empty(t, results)
+}
+
+// TestDuplicatesGetOrderIntegration verifies that candidates scoring the same are listed by id. Scores are
+// sums of constant per-field weights, so two candidates matching the same fields of the document score
+// exactly the same and nothing but the id can order them. Which of them the limit keeps would otherwise
+// follow the index's internal document order, and two indexes holding the same documents do not have to
+// agree on it.
+func TestDuplicatesGetOrderIntegration(t *testing.T) {
+	t.Parallel()
+
+	ctx := t.Context()
+	esClient, getSearchService, index := initES(t)
+
+	identProp := identifier.From("duplicateOrderIdentifier")
+	const value = "Q42"
+
+	lower := identifier.From("duplicateOrderCandidateOne")
+	higher := identifier.From("duplicateOrderCandidateTwo")
+	if lower.String() > higher.String() {
+		lower, higher = higher, lower
+	}
+
+	// The candidate with the greater id is indexed first, so the document order of the index is the reverse
+	// of the order the candidates are expected in and cannot be what puts them in it. Both carry the same
+	// identifier value, which is the only thing the document below is matched on, so they score the same.
+	for _, id := range []identifier.Identifier{higher, lower} {
+		indexDocument(t, ctx, esClient, index, idClaimsDoc(id, internalSearch.ClaimTypes{ //nolint:exhaustruct
+			Identifier: internalSearch.IdentifierClaims{{ //nolint:exhaustruct
+				Prop:  identProp,
+				Value: value,
+			}},
+		}))
+	}
+	refreshIndex(t, ctx, esClient, index)
+
+	exclude := identifier.From("duplicateOrderDoc")
+	doc := &document.D{
+		CoreDocument: document.CoreDocument{ID: exclude, Base: []string{"x", "doc"}},
+		Claims: &document.ClaimTypes{
+			Identifier: document.IdentifierClaims{{
+				CoreClaim: document.CoreClaim{ID: identifier.New(), Confidence: document.HighConfidence},
+				Prop:      document.Reference{ID: identProp},
+				Value:     value,
+			}},
+		},
+	}
+
+	results, errE := search.DuplicatesGet(ctx, getSearchService, doc, exclude, []string{"en", "und"}, 5)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	ids := make([]string, 0, len(results))
+	for _, r := range results {
+		ids = append(ids, r.ID)
+	}
+	assert.Equal(t, []string{lower.String(), higher.String()}, ids)
+
+	// The limit therefore keeps the same candidate every time, rather than whichever one the index happened
+	// to return first.
+	limited, errE := search.DuplicatesGet(ctx, getSearchService, doc, exclude, []string{"en", "und"}, 1)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	limitedIDs := make([]string, 0, len(limited))
+	for _, r := range limited {
+		limitedIDs = append(limitedIDs, r.ID)
+	}
+	assert.Equal(t, []string{lower.String()}, limitedIDs)
 }
