@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"io"
+	"maps"
 	"net/http"
 	"net/url"
 	"slices"
@@ -1390,7 +1391,19 @@ func parseSearchShortcutQuery(ctx context.Context, query url.Values) (*search.Se
 		Sort:          nil,
 	}
 
-	for key, group := range groups {
+	// The groups are visited in a fixed order, so that the same address always builds the same session:
+	// the prefilters are stored in the order they are appended in, and the interface lists them in that
+	// order, both in the filters column and in the printed summary of a search. Ranging over the map
+	// directly would order them differently on every request.
+	keys := slices.SortedFunc(maps.Keys(groups), func(a, b shortcutPropKey) int {
+		if c := strings.Compare(a.Parent.String(), b.Parent.String()); c != 0 {
+			return c
+		}
+		return strings.Compare(a.Prop.String(), b.Prop.String())
+	})
+
+	for _, key := range keys {
+		group := groups[key]
 		var props []identifier.Identifier
 		if key.Nested {
 			props = []identifier.Identifier{key.Parent, key.Prop}
