@@ -324,6 +324,9 @@ export type SiteContext = {
     // The navbar positioning mode: "fixed" keeps the navbar at the viewport top, "static" leaves
     // it in the document flow at the page top, and unset means the default auto-hide behavior.
     navbarPosition?: "fixed" | "static"
+    // Stops scrolling and resizing from loading more results and more facets into a search, leaving the
+    // load more buttons as the only way to load them.
+    disableLoadingOnScroll?: boolean
     disableSearchSort?: boolean
     disablePrintView?: boolean
     // Hides the session's prefilters from the UI (the "results limited to" notice in the filters

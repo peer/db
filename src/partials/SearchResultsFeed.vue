@@ -408,7 +408,14 @@ const resultsEl = useTemplateRef<HTMLElement>("resultsEl")
 // page) is only ever as tall as the taller of them, so growth of the shorter one would go unnoticed. Growing here
 // means both revealing a batch and results already revealed getting taller as their documents arrive, which is why
 // the observer, and not a check right after revealing, drives this: each reveal is measured once it has rendered.
-useOnScrollOrResize([resultsEl, filtersEl], onScrollOrResize)
+//
+// A site which asks for its columns to be filled by hand is not observed at all, so nothing but a press of a load
+// more button loads anything. The feature is read once here rather than checked inside the handler because the
+// site context is fetched at boot and never changes, so there is no state in which this component is mounted with
+// the observer registered under the wrong answer.
+if (!siteContext.features.disableLoadingOnScroll) {
+  useOnScrollOrResize([resultsEl, filtersEl], onScrollOrResize)
+}
 
 // fillColumn reveals another batch into a column while the column ends less than one viewport below the fold,
 // which both fills the first screen after a search and keeps loading while scrolling. Each column is measured on

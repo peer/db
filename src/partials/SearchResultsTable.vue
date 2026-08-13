@@ -13,6 +13,7 @@ import { useI18n } from "vue-i18n"
 
 import Button from "@/components/Button.vue"
 import WithDocument from "@/components/WithDocument.vue"
+import siteContext from "@/context"
 import { getClaimsOfTypeWithConfidence } from "@/document"
 import ClaimValue from "@/partials/ClaimValue.vue"
 import DisplayLabel from "@/partials/DisplayLabel.vue"
@@ -120,7 +121,13 @@ useLocationAt(
   visibles,
 )
 
-useOnScrollOrResize([tableEl], onScrollOrResize)
+// A site which asks for its table to be filled by hand is not observed at all, so nothing but a press of a load
+// more button loads anything. The feature is read here rather than checked inside the handler because the site
+// context is fetched at boot and never changes, so there is no state in which this component is mounted with the
+// observer registered under the wrong answer.
+if (!siteContext.features.disableLoadingOnScroll) {
+  useOnScrollOrResize([tableEl], onScrollOrResize)
+}
 
 // fill reveals another batch while the table ends less than one viewport past the fold in the direction that batch
 // extends it, which both fills the first screen after a search and keeps loading while scrolling. More results add

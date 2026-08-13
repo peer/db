@@ -80,6 +80,14 @@ type SiteFeatures struct {
 	// auto-hide behavior (hidden while scrolling down, shown when scrolling up).
 	NavbarPosition string `json:"navbarPosition,omitempty" yaml:"navbarPosition,omitempty"`
 
+	// DisableLoadingOnScroll stops scrolling and resizing from loading more results and more facets into a
+	// search, leaving the load more buttons as the only way to load them. A search otherwise fills each of
+	// its columns to about two viewports and keeps loading as the visitor scrolls towards the end. How much
+	// that loads follows how tall the results have rendered by the time the page is measured, and so how
+	// quickly the site answered, which is why a site whose screenshots have to be the same from one run to
+	// the next (the e2e tests) turns it off and asks for every page itself.
+	DisableLoadingOnScroll bool `json:"disableLoadingOnScroll,omitempty" yaml:"disableLoadingOnScroll,omitempty"`
+
 	// DisableDocumentPermissions turns off document-level permissions: the permissions tabs of the
 	// document page and of the document edit page and the access request page are not offered, the
 	// request API is not served, the create-session seeding grants the creator nothing, and permission
