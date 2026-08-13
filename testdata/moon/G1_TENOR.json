@@ -22,5 +22,6 @@
   "biosphereNone": true,
   "contactStatus": { "id": ["xeno.peerdb.org", "CONTACT_STATUS", "NO_CONTACT"] },
   "firstSurveyed": { "time": "2226-01-01T00:00:00Z", "precision": "y" },
+  "populationEstimateNone": true,
   "image": [{ "value": "/f/1CbmAuBdP2uT4zB7efSBxn", "name": "G1_TENOR.jpg", "caption": "Approach view", "source": "Consortium survey archive" }]
 }

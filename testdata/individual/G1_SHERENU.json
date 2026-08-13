@@ -17,6 +17,7 @@
   ],
   "formOfAddress": "house first, then name",
   "born": { "time": "2244-01-01T00:00:00Z", "precision": "y" },
+  "diedNone": true,
   "birthplace": { "id": ["xeno.peerdb.org", "SITE", "G1_ANCHOR_STEPS"] },
   "image": [
     { "value": "/f/4ieKezxMh9qskWVwacAMom", "name": "G1_SHERENU.jpg", "caption": "Portrait", "source": "Made with consent; Consortium collection" }

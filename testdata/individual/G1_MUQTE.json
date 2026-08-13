@@ -13,6 +13,7 @@
   "role": [{ "value": "jar keeper", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
   "formOfAddress": "the name alone, never with an ordinal",
   "born": { "time": "2247-01-01T00:00:00Z", "precision": "y" },
+  "diedOnRecord": true,
   "birthplace": { "id": ["xeno.peerdb.org", "SITE", "G1_KUTAK_MEET"] },
   "notes": [
     {

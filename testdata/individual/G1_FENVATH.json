@@ -14,5 +14,6 @@
   "role": [{ "value": "cutter", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
   "formOfAddress": "house first, then name",
   "born": { "time": "2276-01-01T00:00:00Z", "precision": "y" },
+  "diedNone": true,
   "birthplace": { "id": ["xeno.peerdb.org", "SITE", "G1_CANOPY_TETHER"] }
 }

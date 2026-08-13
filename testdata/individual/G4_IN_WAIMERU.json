@@ -17,5 +17,6 @@
   ],
   "formOfAddress": "by length and term, never by personal name",
   "born": { "time": "2261-01-01T00:00:00Z", "precision": "y" },
+  "diedOnRecord": true,
   "birthplace": { "id": ["xeno.peerdb.org", "SITE", "G4_UPPER_MIDDEN"] }
 }

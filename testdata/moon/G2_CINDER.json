@@ -22,5 +22,6 @@
   "biosphereNone": true,
   "contactStatus": { "id": ["xeno.peerdb.org", "CONTACT_STATUS", "NO_CONTACT"] },
   "firstSurveyed": { "time": "2222-01-01T00:00:00Z", "precision": "y" },
+  "populationEstimateNone": true,
   "image": [{ "value": "/f/XoyEdB8zAEdQ1gH9ZfmgXJ", "name": "G2_CINDER.jpg", "caption": "Approach view", "source": "Consortium survey archive" }]
 }

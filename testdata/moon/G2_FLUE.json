@@ -29,5 +29,6 @@
   "biosphereUnknown": true,
   "contactStatus": { "id": ["xeno.peerdb.org", "CONTACT_STATUS", "NO_CONTACT"] },
   "firstSurveyed": { "time": "2223-01-01T00:00:00Z", "precision": "y" },
+  "populationEstimateUnknown": true,
   "image": [{ "value": "/f/M6Uqi6tykjUkqubCSNFgUz", "name": "G2_FLUE.jpg", "caption": "Surface view", "source": "Consortium survey archive" }]
 }

@@ -162,14 +162,23 @@ type WorldEnvironment struct {
 
 // WorldSurvey groups what the Consortium has done about the world so far.
 //
+// The population estimate is the catalogue's worked example of the four states an amount can be in
+// besides carrying a number: a world nobody has counted carries nothing at all, an uninhabited world
+// carries the property with no value, a world whose life the survey has not established carries it as
+// unknown, and a world whose count stands in the expedition files without having been transcribed
+// here carries the property alone, which says that an estimate is on record without giving it.
+//
 //nolint:lll
 type WorldSurvey struct {
-	ContactStatus      *core.Ref                         `cardinality:"0..1" json:"contactStatus,omitempty"      order:"1" property:"HAS_CONTACT_STATUS"  values:"core.peerdb.org,INSTANCE_OF=xeno.peerdb.org,CONTACT_STATUS"`
-	FirstSurveyed      *core.Time                        `cardinality:"0..1" json:"firstSurveyed,omitempty"      order:"2" property:"FIRST_SURVEYED"`
-	SurveyPeriod       *core.Interval[core.Time]         `cardinality:"0..1" json:"surveyPeriod,omitempty"       order:"3" property:"SURVEY_PERIOD"`
-	PopulationEstimate *core.AmountIntervalWithUnit[int] `cardinality:"0..1" json:"populationEstimate,omitempty" order:"4" property:"POPULATION_ESTIMATE"`
-	Image              []Image                           `cardinality:"0.."  json:"image,omitempty"              order:"5" property:"IMAGE"`
-	Notes              []core.RawHTMLWithLanguage        `cardinality:"0.."  json:"notes,omitempty"              order:"6" property:"NOTES"`
+	ContactStatus              *core.Ref                         `cardinality:"0..1" json:"contactStatus,omitempty"              order:"1" property:"HAS_CONTACT_STATUS"  values:"core.peerdb.org,INSTANCE_OF=xeno.peerdb.org,CONTACT_STATUS"`
+	FirstSurveyed              *core.Time                        `cardinality:"0..1" json:"firstSurveyed,omitempty"              order:"2" property:"FIRST_SURVEYED"`
+	SurveyPeriod               *core.Interval[core.Time]         `cardinality:"0..1" json:"surveyPeriod,omitempty"               order:"3" property:"SURVEY_PERIOD"`
+	PopulationEstimate         *core.AmountIntervalWithUnit[int] `cardinality:"0..1" json:"populationEstimate,omitempty"         order:"4" property:"POPULATION_ESTIMATE"`
+	PopulationEstimateNone     core.None                         `cardinality:"0..1" json:"populationEstimateNone,omitempty"     order:"5" property:"POPULATION_ESTIMATE"`
+	PopulationEstimateUnknown  core.Unknown                      `cardinality:"0..1" json:"populationEstimateUnknown,omitempty"  order:"6" property:"POPULATION_ESTIMATE"`
+	PopulationEstimateOnRecord bool                              `cardinality:"0..1" json:"populationEstimateOnRecord,omitempty" order:"7" property:"POPULATION_ESTIMATE"`
+	Image                      []Image                           `cardinality:"0.."  json:"image,omitempty"                      order:"8" property:"IMAGE"`
+	Notes                      []core.RawHTMLWithLanguage        `cardinality:"0.."  json:"notes,omitempty"                      order:"9" property:"NOTES"`
 }
 
 // WorldFields is the field schema shared by planets and moons, split into the four sections a world
@@ -255,11 +264,14 @@ type SpeciesSociety struct {
 	Individuality *core.Ref `cardinality:"0..1" json:"individuality,omitempty" order:"1" property:"HAS_INDIVIDUALITY_MODE" values:"core.peerdb.org,INSTANCE_OF=xeno.peerdb.org,INDIVIDUALITY_MODE"`
 	// The minority reading of how individual the species is, where the discipline has not settled it.
 	// It is recorded at reduced confidence, so it stands beside the accepted reading rather than
-	// competing with it.
-	ContestedIndividuality *core.Ref                         `cardinality:"0..1" confidence:"0.4"                                   json:"contestedIndividuality,omitempty" order:"1.5" property:"HAS_INDIVIDUALITY_MODE"    values:"core.peerdb.org,INSTANCE_OF=xeno.peerdb.org,INDIVIDUALITY_MODE"`
-	SocialOrganisation     *core.Ref                         `cardinality:"0..1"                                                    json:"socialOrganisation,omitempty"     order:"2"   property:"HAS_SOCIAL_ORGANISATION"   values:"core.peerdb.org,INSTANCE_OF=xeno.peerdb.org,SOCIAL_ORGANISATION"`
-	KinshipSystem          *core.Ref                         `cardinality:"0..1"                                                    json:"kinshipSystem,omitempty"          order:"3"   property:"HAS_KINSHIP_SYSTEM"        values:"core.peerdb.org,INSTANCE_OF=xeno.peerdb.org,KINSHIP_SYSTEM"`
-	Communication          []core.Ref                        `cardinality:"0.."                   inverseProperty:"USED_BY_SPECIES" json:"communication,omitempty"          order:"4"   property:"USES_COMMUNICATION_SYSTEM" values:"core.peerdb.org,INSTANCE_OF=xeno.peerdb.org,COMMUNICATION_SYSTEM"`
+	// competing with it. It is stated on a property of its own, a subproperty of the accepted one, so
+	// that a search for the accepted reading still finds it while the form keeps the two apart: a field
+	// is told from another by the property, the value type and the sub-fields it holds, so two fields on
+	// one property which differ only in confidence would be the same field.
+	ContestedIndividuality *core.Ref                         `cardinality:"0..1" confidence:"0.4"                                   json:"contestedIndividuality,omitempty" order:"1.5" property:"CONTESTED_INDIVIDUALITY_MODE" values:"core.peerdb.org,INSTANCE_OF=xeno.peerdb.org,INDIVIDUALITY_MODE"`
+	SocialOrganisation     *core.Ref                         `cardinality:"0..1"                                                    json:"socialOrganisation,omitempty"     order:"2"   property:"HAS_SOCIAL_ORGANISATION"      values:"core.peerdb.org,INSTANCE_OF=xeno.peerdb.org,SOCIAL_ORGANISATION"`
+	KinshipSystem          *core.Ref                         `cardinality:"0..1"                                                    json:"kinshipSystem,omitempty"          order:"3"   property:"HAS_KINSHIP_SYSTEM"           values:"core.peerdb.org,INSTANCE_OF=xeno.peerdb.org,KINSHIP_SYSTEM"`
+	Communication          []core.Ref                        `cardinality:"0.."                   inverseProperty:"USED_BY_SPECIES" json:"communication,omitempty"          order:"4"   property:"USES_COMMUNICATION_SYSTEM"    values:"core.peerdb.org,INSTANCE_OF=xeno.peerdb.org,COMMUNICATION_SYSTEM"`
 	Population             *core.AmountIntervalWithUnit[int] `cardinality:"0..1"                                                    json:"population,omitempty"             order:"5"   property:"POPULATION_ESTIMATE"`
 }
 
@@ -299,14 +311,23 @@ type BeingFields struct {
 
 // IndividualFields describes one being of a species which has beings.
 //
+// The date of death is the catalogue's worked example of the four states a time can be in besides
+// carrying a date: a being the survey has not followed up on carries nothing at all, a living being
+// carries the property with no value, a being known to have died on a date nobody wrote down carries
+// it as unknown, and a being whose date stands in a register the survey has seen but not copied
+// carries the property alone, which says that a date is on record without giving it.
+//
 //nolint:lll
 type IndividualFields struct {
 	BeingFields
 
-	FormOfAddress *string    `cardinality:"0..1" json:"formOfAddress,omitempty" order:"7"  property:"FORM_OF_ADDRESS"`
-	Born          *core.Time `cardinality:"0..1" json:"born,omitempty"          order:"8"  property:"BORN"`
-	Died          *core.Time `cardinality:"0..1" json:"died,omitempty"          order:"9"  property:"DIED"`
-	Birthplace    *core.Ref  `cardinality:"0..1" json:"birthplace,omitempty"    order:"10" property:"BIRTHPLACE"      values:"core.peerdb.org,INSTANCE_OF=xeno.peerdb.org,SITE"`
+	FormOfAddress *string      `cardinality:"0..1" json:"formOfAddress,omitempty" order:"7"  property:"FORM_OF_ADDRESS"`
+	Born          *core.Time   `cardinality:"0..1" json:"born,omitempty"          order:"8"  property:"BORN"`
+	Died          *core.Time   `cardinality:"0..1" json:"died,omitempty"          order:"9"  property:"DIED"`
+	DiedNone      core.None    `cardinality:"0..1" json:"diedNone,omitempty"      order:"10" property:"DIED"`
+	DiedUnknown   core.Unknown `cardinality:"0..1" json:"diedUnknown,omitempty"   order:"11" property:"DIED"`
+	DiedOnRecord  bool         `cardinality:"0..1" json:"diedOnRecord,omitempty"  order:"12" property:"DIED"`
+	Birthplace    *core.Ref    `cardinality:"0..1" json:"birthplace,omitempty"    order:"13" property:"BIRTHPLACE"      values:"core.peerdb.org,INSTANCE_OF=xeno.peerdb.org,SITE"`
 }
 
 // CollectiveFields describes a body which acts as one and which the discipline cannot sensibly

@@ -14,6 +14,7 @@
   "role": [{ "value": "account holder", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
   "formOfAddress": "by house and rib",
   "born": { "time": "2271-01-01T00:00:00Z", "precision": "y" },
+  "diedNone": true,
   "birthplace": { "id": ["xeno.peerdb.org", "SITE", "G2_LOWER_MIDDEN"] },
   "notes": [
     {

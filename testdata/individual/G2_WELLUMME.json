@@ -17,6 +17,7 @@
   ],
   "formOfAddress": "by the holding name, never the personal one",
   "born": { "time": "2241-01-01T00:00:00Z", "precision": "y" },
+  "diedNone": true,
   "birthplace": { "id": ["xeno.peerdb.org", "SITE", "G2_LONG_EVENING_ROWS"] },
   "image": [
     { "value": "/f/Tdccki7kBGaNtvneh2U21F", "name": "G2_WELLUMME.jpg", "caption": "Portrait", "source": "Made with consent; Consortium collection" }

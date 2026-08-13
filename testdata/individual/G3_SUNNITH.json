@@ -17,6 +17,7 @@
   ],
   "formOfAddress": "by the name-slot",
   "born": { "time": "2266-01-01T00:00:00Z", "precision": "y" },
+  "diedUnknown": true,
   "birthplace": { "id": ["xeno.peerdb.org", "SITE", "G3_SHELF_WARREN"] },
   "notes": [
     {

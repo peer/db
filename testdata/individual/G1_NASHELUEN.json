@@ -14,5 +14,6 @@
   "role": [{ "value": "sluice keeper", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
   "formOfAddress": "house first, then name",
   "born": { "time": "2251-01-01T00:00:00Z", "precision": "y" },
+  "diedOnRecord": true,
   "birthplace": { "id": ["xeno.peerdb.org", "SITE", "G1_ANCHOR_STEPS"] }
 }

@@ -14,6 +14,7 @@
   "role": [{ "value": "cable works foreman", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
   "formOfAddress": "by corporation, then by name",
   "born": { "time": "2258-01-01T00:00:00Z", "precision": "y" },
+  "diedUnknown": true,
   "birthplace": { "id": ["xeno.peerdb.org", "SITE", "G4_TETHER_STUMP"] },
   "image": [
     { "value": "/f/MHjWaz24G4xDgEmDwpWCYB", "name": "G4_IN_NEHUAWE.jpg", "caption": "Portrait", "source": "Made with consent; Consortium collection" }

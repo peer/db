@@ -23,5 +23,6 @@
   "biosphereUnknown": true,
   "contactStatus": { "id": ["xeno.peerdb.org", "CONTACT_STATUS", "NO_CONTACT"] },
   "firstSurveyed": { "time": "2262-01-01T00:00:00Z", "precision": "y" },
+  "populationEstimateOnRecord": true,
   "image": [{ "value": "/f/WAfFAr9esSPBENSfimuaAs", "name": "G3_KEEL.jpg", "caption": "Surface view", "source": "Consortium survey archive" }]
 }

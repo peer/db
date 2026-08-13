@@ -23,6 +23,7 @@
   "biosphereUnknown": true,
   "contactStatus": { "id": ["xeno.peerdb.org", "CONTACT_STATUS", "NO_CONTACT"] },
   "firstSurveyed": { "time": "2258-01-01T00:00:00Z", "precision": "y" },
+  "populationEstimateUnknown": true,
   "image": [
     { "value": "/f/NV4FtrVirV5npCgQS3BVSx", "name": "G1_KEPHRA_TWO_A.jpg", "caption": "Approach view", "source": "Consortium survey archive" }
   ]

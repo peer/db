@@ -14,6 +14,7 @@
   "role": [{ "value": "house head", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
   "formOfAddress": "by house name",
   "born": { "time": "2190-01-01T00:00:00Z", "precision": "y" },
+  "diedUnknown": true,
   "image": [
     { "value": "/f/CWWp9PutcMhBWaX38j4Krn", "name": "G3_NEIWARO.jpg", "caption": "Portrait", "source": "Made with consent; Consortium collection" }
   ]

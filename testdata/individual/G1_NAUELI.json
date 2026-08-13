@@ -14,6 +14,7 @@
   "role": [{ "value": "water clerk", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
   "formOfAddress": "ferment first, then name",
   "born": { "time": "2263-01-01T00:00:00Z", "precision": "y" },
+  "diedOnRecord": true,
   "birthplace": { "id": ["xeno.peerdb.org", "SITE", "G1_EVAPORITE_WORKINGS"] },
   "image": [
     { "value": "/f/BfrRNSz5h9FUrCJi3Y2LBD", "name": "G1_NAUELI.jpg", "caption": "Portrait", "source": "Made with consent; Consortium collection" }

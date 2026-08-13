@@ -23,5 +23,6 @@
   "biosphereUnknown": true,
   "contactStatus": { "id": ["xeno.peerdb.org", "CONTACT_STATUS", "NO_CONTACT"] },
   "firstSurveyed": { "time": "2265-01-01T00:00:00Z", "precision": "y" },
+  "populationEstimateOnRecord": true,
   "image": [{ "value": "/f/1tTRGDzZASmag2icvXNDjZ", "name": "G3_HOB.jpg", "caption": "Approach view", "source": "Consortium survey archive" }]
 }

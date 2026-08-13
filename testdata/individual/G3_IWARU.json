@@ -17,6 +17,7 @@
   ],
   "formOfAddress": "by grade and then name",
   "born": { "time": "2244-01-01T00:00:00Z", "precision": "y" },
+  "diedNone": true,
   "birthplace": { "id": ["xeno.peerdb.org", "SITE", "G3_TIDE_MEET"] },
   "notes": [
     {

@@ -16,6 +16,7 @@
   ],
   "formOfAddress": "by personal name, having no other",
   "born": { "time": "2267-01-01T00:00:00Z", "precision": "y" },
+  "diedNone": true,
   "birthplace": { "id": ["xeno.peerdb.org", "SITE", "G2_LONG_EVENING_ROWS"] },
   "image": [
     { "value": "/f/U42aijZmveGmLUN7jJcEXg", "name": "G2_AMMENUWE.jpg", "caption": "Portrait", "source": "Made with consent; Consortium collection" }

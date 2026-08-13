@@ -14,5 +14,6 @@
   "role": [{ "value": "glass knapper", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
   "formOfAddress": "by hearth and season",
   "born": { "time": "2271-01-01T00:00:00Z", "precision": "y" },
+  "diedUnknown": true,
   "birthplace": { "id": ["xeno.peerdb.org", "SITE", "G4_WALKING_HEARTHS"] }
 }

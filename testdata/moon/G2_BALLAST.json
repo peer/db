@@ -22,5 +22,6 @@
   "biosphereNone": true,
   "contactStatus": { "id": ["xeno.peerdb.org", "CONTACT_STATUS", "NO_CONTACT"] },
   "firstSurveyed": { "time": "2224-01-01T00:00:00Z", "precision": "y" },
+  "populationEstimateNone": true,
   "image": [{ "value": "/f/6fTXzvfxwHbs9PKwxcDmJN", "name": "G2_BALLAST.jpg", "caption": "Approach view", "source": "Consortium survey archive" }]
 }

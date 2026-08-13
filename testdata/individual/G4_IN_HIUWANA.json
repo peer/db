@@ -16,6 +16,7 @@
   ],
   "formOfAddress": "by open obligation, then by name",
   "born": { "time": "2252-01-01T00:00:00Z", "precision": "y" },
+  "diedUnknown": true,
   "birthplace": { "id": ["xeno.peerdb.org", "SITE", "G4_TETHER_STUMP"] },
   "notes": [
     {
