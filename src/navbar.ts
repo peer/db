@@ -2,7 +2,6 @@ import type { Ref, StyleValue, TemplateRef } from "vue"
 
 import { computed, onBeforeUnmount, onMounted, ref, useTemplateRef, watchEffect } from "vue"
 
-import { getConfig } from "@/config"
 import siteContext from "@/context"
 
 const prefersReducedMotionQuery = window.matchMedia("(prefers-reduced-motion: reduce)")
@@ -25,15 +24,14 @@ export type NavbarMode = "auto" | "fixed" | "static"
 
 // The navbar positioning mode. The site's navbarPosition feature decides it: "static" keeps the navbar in
 // the document flow at the page top (it also satisfies the reduced-motion preference since nothing moves),
-// "fixed" keeps it at the viewport top, and unset means auto-hide, upgraded to fixed by the provided config
-// or the reduced-motion preference. Reactive so callers can react to config or reduced-motion changes.
+// "fixed" keeps it at the viewport top, and unset means auto-hide, upgraded to fixed by the reduced-motion
+// preference. Reactive so callers can react to reduced-motion changes.
 export function useNavbarMode(): Ref<NavbarMode> {
-  const config = getConfig()
   return computed(() => {
     if (siteContext.features.navbarPosition === "static") {
       return "static"
     }
-    if (siteContext.features.navbarPosition === "fixed" || !!config.value.fixedNavbar || prefersReducedMotion.value) {
+    if (siteContext.features.navbarPosition === "fixed" || prefersReducedMotion.value) {
       return "fixed"
     }
     return "auto"
