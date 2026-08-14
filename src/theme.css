@@ -458,7 +458,7 @@
     @apply my-5;
   }
 
-  .data-reloading {
+  .pd-data-reloading {
     filter: grayscale(0.8) contrast(0.9) brightness(1.06);
   }
 

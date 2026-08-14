@@ -175,7 +175,7 @@ const WithDocumentD = WithDocument<D>
 </script>
 
 <template>
-  <div v-if="!hiddenByQuery" class="pd-hasfiltersresult flex flex-col" :class="{ 'data-reloading': laterLoad }" :data-url="resultsUrl">
+  <div v-if="!hiddenByQuery" class="pd-hasfiltersresult flex flex-col" :class="{ 'pd-data-reloading': laterLoad }" :data-url="resultsUrl">
     <div :id="labelId" class="pd-filtersresult-header">
       <Button
         v-if="filter"

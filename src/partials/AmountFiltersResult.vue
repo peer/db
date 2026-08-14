@@ -371,7 +371,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="pd-amountfiltersresult flex flex-col" :class="{ 'data-reloading': laterLoad }" :data-url="resultsUrl">
+  <div class="pd-amountfiltersresult flex flex-col" :class="{ 'pd-data-reloading': laterLoad }" :data-url="resultsUrl">
     <div :id="labelId" class="pd-filtersresult-header">
       <Button
         v-if="filter || specials"
