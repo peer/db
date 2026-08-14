@@ -122,15 +122,16 @@ async function become(page: Page, identity: Identity): Promise<void> {
   }
 }
 
-// The identifiers of the classes the create page offers to start a document of, read out of the hook every
-// class button carries. A class which is a subclass of more than one class is listed once under each of
-// them, so the identifiers are reported as a set.
+// The identifiers of the classes the create page offers to start a document of, read out of the CSS class
+// every class button carries. A class which is a subclass of more than one class is listed once under each
+// of them, so the identifiers are reported as a set.
 async function offeredClasses(page: Page): Promise<Array<string>> {
   const prefix = "pd-classtreelabel-button-"
   const ids = await page
     .locator(".pd-classtreelabel-button")
     .evaluateAll(
-      (buttons, hook) => buttons.flatMap((button) => [...button.classList].filter((name) => name.startsWith(hook)).map((name) => name.slice(hook.length))),
+      (buttons, cssPrefix) =>
+        buttons.flatMap((button) => [...button.classList].filter((name) => name.startsWith(cssPrefix)).map((name) => name.slice(cssPrefix.length))),
       prefix,
     )
   return [...new Set(ids)].sort()

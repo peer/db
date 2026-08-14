@@ -19,10 +19,10 @@ import {
   volatile,
 } from "../utils"
 
-// The suffix the hooks of a sortable column end in: the column type alone for the three columns the dialog
-// always offers, and the type followed by the property identifier for a column which comes from a facet of
-// the search (colClass in SearchSortDialog.vue). An amount facet without a unit, which is what the staff
-// count of an institute is, carries no unit in its hook either.
+// The suffix the CSS classes of a sortable column end in: the column type alone for the three columns the
+// dialog always offers, and the type followed by the property identifier for a column which comes from a
+// facet of the search (colClass in SearchSortDialog.vue). An amount facet without a unit, which is what the
+// staff count of an institute is, carries no unit in its CSS class either.
 const RELEVANCE_COLUMN = "score"
 const TIME_COLUMN = "time"
 const LABEL_COLUMN = "label"
@@ -78,7 +78,7 @@ async function flipSortDirection(page: Page, column: string): Promise<void> {
 }
 
 // Asserts that the sort order consists of exactly the given columns, in the given order. The columns are
-// identified by the hook each entry carries and not by their labels, which differ between languages.
+// identified by the CSS class each entry carries and not by their labels, which differ between languages.
 async function expectSortOrder(page: Page, columns: Array<string>): Promise<void> {
   const items = page.locator(".pd-searchsortdialog-item-sort")
   await expect(items, "the number of columns sorted by").toHaveCount(columns.length)

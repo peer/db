@@ -39,7 +39,7 @@ test.describe("PeerDB Mock Sign-In Flows", () => {
     await expect(page.locator("#authmocksignin-button-signin"), "sign in button").toBeVisible()
 
     // The page lists exactly the roles the site is configured with, one checkbox each, and each of them
-    // carries the role in its own hook.
+    // carries the role in its own CSS class.
     await expectOfferedRoles(page, ROLES)
     for (const role of ROLES) {
       await expect(page.locator(`.pd-authmocksignin-checkbox-role-${role}`), `checkbox of the ${role} role`).toBeVisible()

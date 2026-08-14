@@ -23,9 +23,9 @@ import {
   volatile,
 } from "../utils"
 
-// The suffix the hooks of a sortable column end in: its type followed by the property identifier for a column
-// which comes from a facet of the search, and the type alone for a column the dialog always offers. Only a
-// reference column can be grouped by, so every column these tests group by is a reference one.
+// The suffix the CSS classes of a sortable column end in: its type followed by the property identifier for a
+// column which comes from a facet of the search, and the type alone for a column the dialog always offers.
+// Only a reference column can be grouped by, so every column these tests group by is a reference one.
 const LABEL_COLUMN = "label"
 const WORLD_TYPE_COLUMN = `ref-${PROPERTY_IDS.HAS_PLANET_TYPE}`
 const CONTACT_STATUS_COLUMN = `ref-${PROPERTY_IDS.HAS_CONTACT_STATUS}`

@@ -1122,7 +1122,7 @@ export function documentId(page: Page): string {
 
 // Switches to one of the tabs of the document view. The tabs are rendered by headless-ui, which generates
 // their ids, so they are addressed by the class we add instead. Which tabs there are depends on the
-// document and on what the application registers, so the tab is named by the suffix of its hook.
+// document and on what the application registers, so the tab is named by the suffix of its CSS class.
 export async function openDocumentTab(page: Page, tab: string): Promise<void> {
   const tabButton = page.locator(`.pd-documentget-tab-${tab}`)
   await expect(tabButton).toBeVisible()
@@ -1608,8 +1608,8 @@ export async function expandFilter(page: Page, block: Locator): Promise<void> {
   }
 }
 
-// One facet of the filters panel, addressed by the hook it carries: its kind followed by the identifiers of
-// the property path it filters on. A nested facet passes both properties of its path.
+// One facet of the filters panel, addressed by the CSS class it carries: its kind followed by the identifiers
+// of the property path it filters on. A nested facet passes both properties of its path.
 export function filter(page: Page, kind: "ref" | "has" | "time" | "amount", ...props: Array<string>): Locator {
   return page.locator([".pd-filtersresult", kind, ...props].join("-"))
 }

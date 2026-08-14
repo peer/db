@@ -23,8 +23,8 @@ import {
 // print view to have something to reveal.
 const CULTURE = await documentIdOf("CULTURE", "G4_CU_LADDER_GORGE")
 
-// The suffix the sort dialog builds a column's hooks from: the type of the column followed by the identifiers
-// of the property path it sorts on. Worlds are grouped by the type of world they are, because it is a
+// The suffix the sort dialog builds a column's CSS classes from: the type of the column followed by the
+// identifiers of the property path it sorts on. Worlds are grouped by the type of world they are, because it is a
 // reference column, which is the only kind of column results can be grouped by, and because few enough types
 // are used for the grouped tree to stay readable.
 const WORLD_TYPE_COLUMN = `ref-${PROPERTY_IDS.HAS_PLANET_TYPE}`
@@ -238,8 +238,8 @@ test.describe("PeerDB Search Print Flows", () => {
     await expand.click()
     await expect(collapse, "the expanded target offers to be collapsed").toBeVisible()
     await expect(expand, "the expanded target does not offer to be expanded again").toHaveCount(0)
-    // The target is asserted through the hook its own card carries rather than by counting the cards on the
-    // page: the feed reveals results as the page moves, and a capture or a click moves it, so a count taken
+    // The target is asserted through the CSS class its own card carries rather than by counting the cards on
+    // the page: the feed reveals results as the page moves, and a capture or a click moves it, so a count taken
     // before the expanding and one taken after it are not counts of the same set.
     const target = page.locator(".pd-searchresultsfeed-result-referencing")
     await expect(target, "the expanded target is a result card of its own").toHaveCount(1, { timeout: LOADING_TIMEOUT })
