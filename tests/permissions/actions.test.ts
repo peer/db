@@ -130,8 +130,7 @@ async function offeredClasses(page: Page): Promise<Array<string>> {
   const ids = await page
     .locator(".pd-classtreelabel-button")
     .evaluateAll(
-      (buttons, cssPrefix) =>
-        buttons.flatMap((button) => [...button.classList].filter((name) => name.startsWith(cssPrefix)).map((name) => name.slice(cssPrefix.length))),
+      (buttons, cssPrefix) => buttons.flatMap((button) => [...button.classList].filter((name) => name.startsWith(cssPrefix)).map((name) => name.slice(cssPrefix.length))),
       prefix,
     )
   return [...new Set(ids)].sort()

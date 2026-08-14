@@ -371,7 +371,7 @@ test.describe("PeerDB Language Flows", () => {
         page.locator(".pd-fieldsview-header-section-identification"),
         `the identification section of the created species, in ${LANGUAGE_NAMES[language]}`,
       ).toHaveText(SECTION_NAMES.identification[language])
-      await expect(fieldValues(page,PROPERTY_IDS.BODY_PLAN), "the body plan which was written").toContainText(bodyPlanText(language))
+      await expect(fieldValues(page, PROPERTY_IDS.BODY_PLAN), "the body plan which was written").toContainText(bodyPlanText(language))
       await checkpoint(page, `languages-create-${language}-saved`, { mask: volatile(page) })
 
       // Editing a document which already exists has to be as translated as creating one, which is not the
@@ -398,7 +398,7 @@ test.describe("PeerDB Language Flows", () => {
       const savedAgain = await saveEdit(page)
       expect(savedAgain, "editing a document leaves it under the identifier it was created with").toBe(id)
 
-      await expect(fieldValues(page,PROPERTY_IDS.HAS_INDIVIDUALITY_MODE), `the mode of individuality which was picked, in ${LANGUAGE_NAMES[language]}`).toHaveText(
+      await expect(fieldValues(page, PROPERTY_IDS.HAS_INDIVIDUALITY_MODE), `the mode of individuality which was picked, in ${LANGUAGE_NAMES[language]}`).toHaveText(
         BOUNDED_MODE_NAME[language],
       )
       await expect(page.locator(".pd-fieldsview-header-section-society"), `the society section of the edited species, in ${LANGUAGE_NAMES[language]}`).toHaveText(
@@ -414,7 +414,7 @@ test.describe("PeerDB Language Flows", () => {
       await expectNothingLoading(page)
       await expect(page.locator(".pd-documentget-tab-properties"), "the tab of the class, in English").toHaveText(SPECIES_CLASS_NAME.en)
       await expect(viewLabel(page, PROPERTY_IDS.BODY_PLAN), "the label of the body plan row, in English").toHaveText(PROPERTY_LABELS[PROPERTY_IDS.BODY_PLAN].en)
-      await expect(fieldValues(page,PROPERTY_IDS.HAS_INDIVIDUALITY_MODE), "the mode of individuality which was picked, in English").toHaveText(BOUNDED_MODE_NAME.en)
+      await expect(fieldValues(page, PROPERTY_IDS.HAS_INDIVIDUALITY_MODE), "the mode of individuality which was picked, in English").toHaveText(BOUNDED_MODE_NAME.en)
       await expect(page.locator("#documentget-title"), "a value stated in no language at all is shown to an English reader too").toHaveText(name)
       await checkpoint(page, `languages-edit-${language}-saved-in-english`, { mask: volatile(page) })
 
@@ -459,8 +459,8 @@ test.describe("PeerDB Language Flows", () => {
       await closeUserMenu(page)
       await expectNothingLoading(page)
 
-      await expect(fieldValues(page,PROPERTY_IDS.NAME), `the name shown to a reader of ${LANGUAGE_NAMES[language]}`).toHaveText(EXPECTED_NAME[language])
-      await expect(fieldValues(page,PROPERTY_IDS.ALTERNATIVE_NAME), `the exonym shown to a reader of ${LANGUAGE_NAMES[language]}`).toHaveText(EXPECTED_EXONYM[language])
+      await expect(fieldValues(page, PROPERTY_IDS.NAME), `the name shown to a reader of ${LANGUAGE_NAMES[language]}`).toHaveText(EXPECTED_NAME[language])
+      await expect(fieldValues(page, PROPERTY_IDS.ALTERNATIVE_NAME), `the exonym shown to a reader of ${LANGUAGE_NAMES[language]}`).toHaveText(EXPECTED_EXONYM[language])
       // Only the value of the language being read is rendered, so the other one is not somewhere further
       // down the page either.
       for (const other of [NAME_IN_ENGLISH, NAME_IN_SLOVENIAN, EXONYM_IN_SLOVENIAN, EXONYM_WITHOUT_LANGUAGE]) {
@@ -476,7 +476,7 @@ test.describe("PeerDB Language Flows", () => {
 
     // Which language a value is in is an editing detail rather than something to read, so the view does
     // not render it as a row of its own, even though it is a claim like any other.
-    await expect(fieldRow(page,PROPERTY_IDS.IN_LANGUAGE), "the language of a value is not a row of the document view").toHaveCount(0)
+    await expect(fieldRow(page, PROPERTY_IDS.IN_LANGUAGE), "the language of a value is not a row of the document view").toHaveCount(0)
 
     // The claims tab is not the document view: it lists what the document holds rather than what a reader
     // of one language is shown, so every name is there whatever language it is stated in.
