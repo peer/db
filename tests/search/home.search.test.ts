@@ -187,7 +187,7 @@ test.describe("PeerDB Search Flows", () => {
     })
 
     await settleFilters(page)
-    await checkpointElement(page, matched, "homesearch-description-match", volatile(page))
+    await checkpointElement(page, matched, "homesearch-description-match", { mask: volatile(page) })
 
     console.log(`Successfully ran the query ${DESCRIPTION_QUERY}, which matched ${DESCRIPTION_TOTAL} documents through their description.`)
   })
@@ -211,7 +211,7 @@ test.describe("PeerDB Search Flows", () => {
       // language while the order the rest of it comes in follows term statistics of that language, so only the
       // first card is the same from one run to the next.
       await settle(page)
-      await checkpointElement(page, page.locator(`#result-${VENT_FIELD}`), `homesearch-language-${language}`, volatile(page))
+      await checkpointElement(page, page.locator(`#result-${VENT_FIELD}`), `homesearch-language-${language}`, { mask: volatile(page) })
 
       console.log(`Successfully ran a query written in ${language}, which found ${LANGUAGE_TOTAL} documents and ranked the document it names first.`)
     })
@@ -246,7 +246,7 @@ test.describe("PeerDB Search Flows", () => {
     await expect(result.locator(`.pd-fieldsview-row-${PROPERTY_IDS.DESCRIPTION}`), "the card shows the description of the document").toBeVisible()
 
     await settle(page)
-    await checkpointElement(page, result, "homesearch-result-card", volatile(page))
+    await checkpointElement(page, result, "homesearch-result-card", { mask: volatile(page) })
 
     console.log(`Successfully verified what a search result shows for the document ${MILKY_WAY}.`)
   })

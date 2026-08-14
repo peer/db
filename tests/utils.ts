@@ -335,11 +335,23 @@ async function checkpointBox(page: Page, locator: Locator, name: string, mask: A
   }
 }
 
+interface CheckpointElementOptions extends Pick<CheckpointOptions, "mask"> {
+  // Whether the element is captured with something in it locked. A capture is normally of an element at
+  // rest, so the default is to wait for the locked controls to be released, and a caller which drives an
+  // operation and captures the element while it runs says so here, which waits for the lock instead.
+  locked?: boolean
+}
+
+// The controls which an operation of the view they are in has made inactive. The class is carried by every
+// control which renders that state, and by the control itself rather than by a wrapper of it, so an element
+// which is a control on its own is asked about as well as the controls inside it.
+const LOCKED_CONTROLS = ":scope.pd-locked, .pd-locked"
+
 // Takes a checkpoint of one element only, so a regression in the part of the view which was just driven
 // is reported against a screenshot of that part rather than only against the whole page. The clip is
 // measured with the page scrolled to the top, which is where checkpoint puts it before taking a full page
 // screenshot, so the element's viewport box and its box in the full page screenshot are the same.
-export async function checkpointElement(page: Page, locator: Locator, name: string, mask: Array<Locator> = []): Promise<void> {
+export async function checkpointElement(page: Page, locator: Locator, name: string, { mask = [], locked = false }: CheckpointElementOptions = {}): Promise<void> {
   await expect(locator, `element for ${name}`).toBeVisible()
   await page.evaluate(() => window.scrollTo({ top: 0, left: 0, behavior: "instant" }))
 
@@ -348,6 +360,17 @@ export async function checkpointElement(page: Page, locator: Locator, name: stri
   // somewhere else by the time the screenshot is taken, which the reads below cannot see: they only say
   // that the element is not moving right now, not that nothing is about to move it.
   await expectNothingInFlight(page, `measuring the element for ${name}`)
+
+  // A locked control is drawn greyed and does not accept anything, so which of the two states it is in
+  // decides what the screenshot shows. The progress bar does not answer this on its own: a lock can be held
+  // by work which fetches nothing, a validation pass of the form being one, so it can be raised and released
+  // without the bar ever lighting. Waiting for the state the caller says it wants makes both reproducible.
+  const lockedControls = locator.locator(LOCKED_CONTROLS)
+  if (locked) {
+    await expect(lockedControls, `a locked control in the element for ${name}`).not.toHaveCount(0, { timeout: LOADING_TIMEOUT })
+  } else {
+    await expect(lockedControls, `the locked controls in the element for ${name}`).toHaveCount(0, { timeout: LOADING_TIMEOUT })
+  }
 
   // The clip is a box on the page and not the element itself, so anything above the element which is still
   // settling would move the element out from under the box and the screenshot would be of somewhere else.

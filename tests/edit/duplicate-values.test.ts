@@ -197,7 +197,7 @@ test.describe("PeerDB Edit Duplicate Value Flows", () => {
       "aria-invalid",
       "true",
     )
-    await checkpointElement(page, endonymField, "edit-duplicates-endonym-refused", volatileSelect(page))
+    await checkpointElement(page, endonymField, "edit-duplicates-endonym-refused", { mask: volatileSelect(page) })
     await checkpoint(page, "edit-duplicates-endonym-form", { mask: volatileSelect(page) })
 
     // This is what tells a field comparing top-level values from one comparing whole claims: a gloss on
@@ -207,7 +207,7 @@ test.describe("PeerDB Edit Duplicate Value Flows", () => {
     const gloss = subField(fieldSlots(page, PROPERTY_IDS.ENDONYM).nth(1), PROPERTY_IDS.GLOSS).locator(".pd-inputstring").first()
     await fillAndCommit(page, gloss, GLOSS, "the gloss of the second endonym")
     await expect(fieldErrors(page, PROPERTY_IDS.ENDONYM), "complaints while the gloss is being typed").toHaveCount(0)
-    await checkpointElement(page, endonymField, "edit-duplicates-endonym-glossed", volatileSelect(page))
+    await checkpointElement(page, endonymField, "edit-duplicates-endonym-glossed", { mask: volatileSelect(page) })
 
     await pressSave(page)
     await expectSaveRefused(page)
@@ -264,14 +264,14 @@ test.describe("PeerDB Edit Duplicate Value Flows", () => {
     const errors = fieldErrors(page, PROPERTY_IDS.DIMENSION)
     await expect(errors, "the slots complained about").toHaveCount(2, { timeout: LOADING_TIMEOUT })
     await expect(errors.first(), "what the form says about the repeated measurement").toHaveText(DUPLICATE_MESSAGE)
-    await checkpointElement(page, dimensionField, "edit-duplicates-dimension-refused", volatileSelect(page))
+    await checkpointElement(page, dimensionField, "edit-duplicates-dimension-refused", { mask: volatileSelect(page) })
 
     // This is the half which tells the two kinds of field apart: another axis on the second measurement
     // leaves both claims saying the same number while the claims themselves differ, and a field
     // comparing whole claims accepts that. The endonym field above refuses exactly this.
     await fillAndCommit(page, secondAxis, OTHER_AXIS, "the axis of the second measurement after it was changed")
     await expect(fieldErrors(page, PROPERTY_IDS.DIMENSION), "complaints once the claims differ").toHaveCount(0)
-    await checkpointElement(page, dimensionField, "edit-duplicates-dimension-distinguished", volatileSelect(page))
+    await checkpointElement(page, dimensionField, "edit-duplicates-dimension-distinguished", { mask: volatileSelect(page) })
 
     const id = await saveEdit(page)
     await checkpoint(page, "edit-duplicates-dimension-saved", { mask: volatileSelect(page) })
@@ -319,7 +319,7 @@ test.describe("PeerDB Edit Duplicate Value Flows", () => {
     await expect(taken, "the researcher who is already on the team is still offered").toBeVisible({ timeout: LOADING_TIMEOUT })
     await expect(taken.locator(".pd-inputref-text-alreadyused"), "the researcher who is already on the team is marked as taken").toBeVisible()
     await expect(taken, "the researcher who is already on the team cannot be picked again").toHaveAttribute("aria-disabled", "true")
-    await checkpointElement(page, teamField, "edit-duplicates-team-alreadyused", volatileSelect(page))
+    await checkpointElement(page, teamField, "edit-duplicates-team-alreadyused", { mask: volatileSelect(page) })
 
     // Anybody else is offered as usual, so it is the value the field holds which is taken and not the
     // search which stopped working.
@@ -331,7 +331,7 @@ test.describe("PeerDB Edit Duplicate Value Flows", () => {
     await free.click()
     await expect(secondSlot.locator(".pd-inputref-value"), "the second team member").toBeVisible({ timeout: LOADING_TIMEOUT })
     await expect(fieldErrors(page, PROPERTY_IDS.HAS_TEAM_MEMBER), "complaints about the two team members").toHaveCount(0)
-    await checkpointElement(page, teamField, "edit-duplicates-team-picked", volatileSelect(page))
+    await checkpointElement(page, teamField, "edit-duplicates-team-picked", { mask: volatileSelect(page) })
 
     // Nothing is saved: a create session materializes no document until it is saved, so the expedition
     // this test drove leaves nothing behind.

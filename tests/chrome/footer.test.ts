@@ -82,7 +82,7 @@ test.describe("PeerDB Footer Flows", () => {
       await expectDocument(page)
       await expect(page.locator(".pd-footer-bar"), "footer of the document view").toBeVisible()
       await expect(page.locator(".pd-footer-link-peerdb"), "link to PeerDB on the document view").toBeVisible()
-      await checkpointElement(page, page.locator(".pd-footer-bar"), `footer-document-${language}`, volatile(page))
+      await checkpointElement(page, page.locator(".pd-footer-bar"), `footer-document-${language}`, { mask: volatile(page) })
 
       // A search with more results than one page holds gets its footer only once the last of them is loaded.
       await page.goto(`${PEERDB_URL}${LONG_SEARCH_PATH}`)

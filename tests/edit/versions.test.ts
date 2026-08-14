@@ -181,7 +181,7 @@ test.describe("PeerDB Document Version Flows", () => {
     // writes the class and the values into it. Both are recorded, so the history of a document which was
     // only ever created already has two entries.
     await openHistory(page, id, 2)
-    await checkpointElement(page, page.locator(".pd-documenthistory-list"), "editversions-history-created", volatile(page))
+    await checkpointElement(page, page.locator(".pd-documenthistory-list"), "editversions-history-created", { mask: volatile(page) })
 
     // Every further save adds one entry and takes none away, so the history grows by exactly one per write
     // whatever the write changed.
@@ -203,7 +203,7 @@ test.describe("PeerDB Document Version Flows", () => {
     }
     await expect(page.locator(".pd-documenthistory-empty"), "the history of a document which was written is not empty").toHaveCount(0)
     await checkpoint(page, "editversions-history-tab", { mask: volatile(page) })
-    await checkpointElement(page, page.locator(".pd-documenthistory-list"), "editversions-history-written", volatile(page))
+    await checkpointElement(page, page.locator(".pd-documenthistory-list"), "editversions-history-written", { mask: volatile(page) })
 
     // The entries the tab lists are the changesets the server reports, each linking to the version that
     // changeset produced, and no two of them are the same version.
@@ -239,7 +239,7 @@ test.describe("PeerDB Document Version Flows", () => {
     await openHistory(page, id, VERSIONS)
     const links = page.locator(".pd-documenthistory-link-version")
     await expect(links, "version links of the history entries").toHaveCount(VERSIONS)
-    await checkpointElement(page, page.locator(".pd-documentget-panel-history"), "editversions-links-panel", volatile(page))
+    await checkpointElement(page, page.locator(".pd-documentget-panel-history"), "editversions-links-panel", { mask: volatile(page) })
 
     const versions = await Promise.all([NEWEST, ORIGINAL, OLDEST].map(async (entry) => versionOf(await links.nth(entry).getAttribute("href"), `history entry ${entry}`)))
     expect(new Set(versions).size, "the three history entries link to three different versions").toBe(VERSIONS)
@@ -377,7 +377,7 @@ test.describe("PeerDB Document Version Flows", () => {
     // place.
     await openHistory(page, INTERVIEW, granted.entries.length)
     await expectNothingLoading(page)
-    await checkpointElement(page, page.locator(".pd-documenthistory-list"), "editversions-restricted-history", volatile(page))
+    await checkpointElement(page, page.locator(".pd-documenthistory-list"), "editversions-restricted-history", { mask: volatile(page) })
 
     console.log(
       `Successfully verified that the history of a restricted document is refused to ${UNGRANTED_ROLES.length + 1} callers which are granted none of it and lists ` +

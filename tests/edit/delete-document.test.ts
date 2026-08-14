@@ -269,7 +269,7 @@ test.describe("PeerDB Delete Document Flows", () => {
       } else {
         await expect(deleteButton, `${identity.what} is offered no deleting`).toHaveCount(0)
       }
-      await checkpointElement(page, page.locator(".pd-documentget-card"), `editdelete-offered-${identity.slug}`, volatile(page))
+      await checkpointElement(page, page.locator(".pd-documentget-card"), `editdelete-offered-${identity.slug}`, { mask: volatile(page) })
 
       // The confirmation page is gated by the same action as the button leading to it, and the server
       // refuses the address itself rather than serving a page which could not go through, so the wording

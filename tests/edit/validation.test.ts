@@ -161,7 +161,7 @@ test.describe("PeerDB Edit Validation Flows", () => {
     // Nothing is said while the value is being typed: the input complains once it is left, or once a
     // save asks every input of the form whether it is happy with what it holds.
     await expect(fieldErrors(page, PROPERTY_IDS.WEBSITE), "complaint about the website before the save").toHaveCount(0)
-    await checkpointElement(page, field(page, PROPERTY_IDS.WEBSITE), "edit-validation-link-typed", volatileSelect(page))
+    await checkpointElement(page, field(page, PROPERTY_IDS.WEBSITE), "edit-validation-link-typed", { mask: volatileSelect(page) })
 
     await pressSave(page)
 
@@ -186,7 +186,7 @@ test.describe("PeerDB Edit Validation Flows", () => {
     await expect(websiteInput, "website input holds the corrected link").toHaveValue(corrected)
     await expect(fieldErrors(page, PROPERTY_IDS.WEBSITE), "complaint about the corrected website").toHaveCount(0)
     await expect(websiteInput, "website input is no longer marked as invalid").not.toHaveAttribute("aria-invalid", "true")
-    await checkpointElement(page, field(page, PROPERTY_IDS.WEBSITE), "edit-validation-link-corrected", volatileSelect(page))
+    await checkpointElement(page, field(page, PROPERTY_IDS.WEBSITE), "edit-validation-link-corrected", { mask: volatileSelect(page) })
 
     await saveEdit(page)
     await expect(page.locator(".pd-claimvaluelink").first(), "link shown on the saved researcher").toHaveText(corrected)
@@ -219,7 +219,7 @@ test.describe("PeerDB Edit Validation Flows", () => {
     await bornInput.fill(INVALID_DATE)
     await expect(bornInput, "year of birth input holds the impossible date").toHaveValue(INVALID_DATE)
     await expect(fieldErrors(page, PROPERTY_IDS.BORN), "complaint about the year of birth before the save").toHaveCount(0)
-    await checkpointElement(page, field(page, PROPERTY_IDS.BORN), "edit-validation-time-typed", volatileSelect(page))
+    await checkpointElement(page, field(page, PROPERTY_IDS.BORN), "edit-validation-time-typed", { mask: volatileSelect(page) })
 
     await pressSave(page)
 
@@ -243,7 +243,7 @@ test.describe("PeerDB Edit Validation Flows", () => {
     // A date is read for how precise it is, and a full date is precise to the day, which is what the
     // precision next to the input says once the value parses again.
     await expect(fieldInput(page, PROPERTY_IDS.BORN, ".pd-inputtime-precision"), "precision of the corrected year of birth").toHaveText("days")
-    await checkpointElement(page, field(page, PROPERTY_IDS.BORN), "edit-validation-time-corrected", volatileSelect(page))
+    await checkpointElement(page, field(page, PROPERTY_IDS.BORN), "edit-validation-time-corrected", { mask: volatileSelect(page) })
 
     await saveEdit(page)
     await expect(page.locator(".pd-claimvaluetime").first(), "time shown on the saved researcher").toContainText("1980")
@@ -312,7 +312,7 @@ test.describe("PeerDB Edit Validation Flows", () => {
     await expect(fieldErrors(page, PROPERTY_IDS.WEBSITE), "complaint about the website which is still invalid").toHaveText(INVALID_VALUE_MESSAGE)
     await expect(websiteInput, "the field which is still invalid takes the focus").toBeFocused()
     await expectSaveRefused(page, editUrl)
-    await checkpointElement(page, field(page, PROPERTY_IDS.WEBSITE), "edit-validation-order-second-refused", volatileSelect(page))
+    await checkpointElement(page, field(page, PROPERTY_IDS.WEBSITE), "edit-validation-order-second-refused", { mask: volatileSelect(page) })
 
     // The corrected date of birth was committed into the session by the save which was refused over the
     // website, but a refused save flushes nothing, so the stored document still holds the old date.
@@ -380,7 +380,7 @@ test.describe("PeerDB Edit Validation Flows", () => {
     await expect(referenceInput, "reference input takes the focus").toBeFocused()
     await expect(referenceInput, "the typed query stays in the form").toHaveValue(query)
     await expectSaveRefused(page, editUrl)
-    await checkpointElement(page, specialisation, "edit-validation-reference-refused", volatileSelect(page))
+    await checkpointElement(page, specialisation, "edit-validation-reference-refused", { mask: volatileSelect(page) })
 
     // The refused save flushes nothing at all, the change which is not complained about included.
     expect(await storedDocument(page, id), "the refused save stores neither the reference nor the website next to it").not.toContain(website)
@@ -396,7 +396,7 @@ test.describe("PeerDB Edit Validation Flows", () => {
     await expect(picked, "the results the edited query offers").toBeVisible({ timeout: LOADING_TIMEOUT })
     await picked.click()
     await expect(specialisation.locator(".pd-inputref-value").first(), "the picked reference").toBeVisible()
-    await checkpointElement(page, specialisation, "edit-validation-reference-picked", volatileSelect(page))
+    await checkpointElement(page, specialisation, "edit-validation-reference-picked", { mask: volatileSelect(page) })
 
     await saveEdit(page)
     await expect(page.locator(".pd-claimvalueref").first(), "reference shown on the saved researcher").toBeVisible()
@@ -441,7 +441,7 @@ test.describe("PeerDB Edit Validation Flows", () => {
       timeout: LOADING_TIMEOUT,
     })
     await expect(toInput, "the upper bound cannot be typed into while it is marked as unknown").toHaveAttribute("readonly", "")
-    await checkpointElement(page, period, "edit-validation-interval-half", volatileSelect(page))
+    await checkpointElement(page, period, "edit-validation-interval-half", { mask: volatileSelect(page) })
 
     // Taking the mark off is what makes room for a value, and the two of them must not end up on the
     // claim together.
@@ -450,7 +450,7 @@ test.describe("PeerDB Edit Validation Flows", () => {
     await toInput.fill(to)
     await toInput.blur()
     await expect(toInput, "the upper bound holds the entered date").toHaveValue(to)
-    await checkpointElement(page, period, "edit-validation-interval-both", volatileSelect(page))
+    await checkpointElement(page, period, "edit-validation-interval-both", { mask: volatileSelect(page) })
 
     await saveEdit(page)
     const both = await storedClaim(page, id, "timeInterval", PROPERTY_IDS.ACTIVE_PERIOD)
@@ -478,7 +478,7 @@ test.describe("PeerDB Edit Validation Flows", () => {
     await markedFrom.locator(".pd-inputtime-input-time").fill(laterFrom)
     await markedFrom.locator(".pd-inputtime-input-time").blur()
     await settleEdit(page)
-    await checkpointElement(page, field(page, PROPERTY_IDS.ACTIVE_PERIOD), "edit-validation-interval-unmarked", volatileSelect(page))
+    await checkpointElement(page, field(page, PROPERTY_IDS.ACTIVE_PERIOD), "edit-validation-interval-unmarked", { mask: volatileSelect(page) })
     await saveEdit(page)
 
     const unmarked = await storedClaim(page, id, "timeInterval", PROPERTY_IDS.ACTIVE_PERIOD)

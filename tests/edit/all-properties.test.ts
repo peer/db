@@ -447,7 +447,7 @@ test.describe("PeerDB All Properties Editor Flows", () => {
         await claimCase.fill(page, panel)
       }
       const masks = claimCase.volatile ? claimCase.volatile(page) : []
-      await checkpointElement(page, page.locator("#documentedit-form-claim"), `allpropsedit-form-${claimCase.tab}`, masks)
+      await checkpointElement(page, page.locator("#documentedit-form-claim"), `allpropsedit-form-${claimCase.tab}`, { mask: masks })
 
       await addClaim(page, propertyId, 1, `the ${claimCase.tab} claim`)
       // Adding a claim empties the form for the next one, so there is nothing left to add.
@@ -462,7 +462,9 @@ test.describe("PeerDB All Properties Editor Flows", () => {
       await claimCase.shows(page, row)
       await expectStoredClaim(page, id, claimCase.stored, propertyId, `the ${claimCase.tab} claim`)
 
-      await checkpointElement(page, page.locator(".pd-documentget-panel-allproperties .pd-propertiesview").first(), `allpropsedit-saved-${claimCase.tab}`, masks)
+      await checkpointElement(page, page.locator(".pd-documentget-panel-allproperties .pd-propertiesview").first(), `allpropsedit-saved-${claimCase.tab}`, {
+        mask: masks,
+      })
 
       console.log(
         `Successfully verified that a claim of the ${claimCase.tab} type added through the all properties editor is stored as 1 ${claimCase.stored} claim and renders as that type.`,

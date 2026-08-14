@@ -166,7 +166,7 @@ test.describe("PeerDB Attachment Flows", () => {
     await expect(image.locator(".pd-inputfile-error"), "error after the image uploaded").toHaveCount(0)
     // The field may hold several images, so taking one grows a second, empty entry below it.
     await expect(image.locator(".pd-fieldsformrow-file"), "entries of the image field after the upload").toHaveCount(2)
-    await checkpointElement(page, image, "attachments-image-uploaded", volatileFileLinks(page))
+    await checkpointElement(page, image, "attachments-image-uploaded", { mask: volatileFileLinks(page) })
 
     // The uploaded entry has to point at the stored file, which is the value the field ends up holding.
     await expect(value.locator(".pd-claimvaluelink"), "link of the uploaded image entry").toHaveAttribute("href", /^\/f\/[0-9A-Za-z]+$/)
@@ -200,7 +200,7 @@ test.describe("PeerDB Attachment Flows", () => {
     await expect(captionInput, "caption sub-field of the uploaded image").toBeVisible()
     // The image also carries where it came from, which is written as rich text rather than as a string.
     await expect(imageSubField(page, PROPERTY_IDS.SOURCE).locator(".pd-inputhtml-editor"), "source sub-field of the uploaded image").toBeVisible()
-    await checkpointElement(page, image, "attachments-image-subfields", volatileFileLinks(page))
+    await checkpointElement(page, image, "attachments-image-subfields", { mask: volatileFileLinks(page) })
 
     const name = basename(FIRST_FILE)
     const caption = "The tide table as it was read back on the flats."
@@ -210,7 +210,7 @@ test.describe("PeerDB Attachment Flows", () => {
     await captionInput.blur()
     await expect(nameInput, "name sub-field after filling it").toHaveValue(name)
     await expect(captionInput, "caption sub-field after filling it").toHaveValue(caption)
-    await checkpointElement(page, image, "attachments-image-subfields-filled", volatileFileLinks(page))
+    await checkpointElement(page, image, "attachments-image-subfields-filled", { mask: volatileFileLinks(page) })
 
     await saveEdit(page)
 
@@ -236,7 +236,7 @@ test.describe("PeerDB Attachment Flows", () => {
 
     const image = imageField(page)
     const value = await uploadImage(page, FIRST_FILE)
-    await checkpointElement(page, image, "attachments-image-clear-uploaded", volatileFileLinks(page))
+    await checkpointElement(page, image, "attachments-image-clear-uploaded", { mask: volatileFileLinks(page) })
 
     // Clearing has to take the field back to its empty state, ready to take another file.
     const clearButton = image.locator(".pd-inputfile-button-clear")
@@ -294,7 +294,7 @@ test.describe("PeerDB Attachment Flows", () => {
 
     // The field has to be usable again afterwards, so the same file goes up once more, this time fully.
     await uploadImage(page, SECOND_FILE)
-    await checkpointElement(page, image, "attachments-image-cancel-retried", volatileFileLinks(page))
+    await checkpointElement(page, image, "attachments-image-cancel-retried", { mask: volatileFileLinks(page) })
 
     await saveEdit(page)
     await checkpoint(page, "attachments-image-cancel-saved-document", { mask: [...volatile(page), ...volatileFileLinks(page)] })
@@ -337,7 +337,7 @@ test.describe("PeerDB Attachment Flows", () => {
     await page.unrouteAll({ behavior: "ignoreErrors" })
     await uploadImage(page, FIRST_FILE)
     await expect(error, "error after the upload which was accepted").toHaveCount(0)
-    await checkpointElement(page, image, "attachments-image-hash-retried", volatileFileLinks(page))
+    await checkpointElement(page, image, "attachments-image-hash-retried", { mask: volatileFileLinks(page) })
 
     await saveEdit(page)
     const savedLink = page.locator(`.pd-documentget-panel-properties .pd-fieldsview-row-${PROPERTY_IDS.IMAGE} .pd-claimvaluelink`).first()

@@ -155,7 +155,7 @@ test.describe("PeerDB Document Tabs Flows", () => {
       // from here.
       await expect(historyPanel.locator(".pd-documenthistory-link-version"), "version links of the history entries").toHaveCount(historyCount)
       await checkpoint(page, `tabs-observation-tab-history-${language}`, { mask: volatile(page) })
-      await checkpointElement(page, historyPanel, `tabs-observation-panel-history-${language}`, volatile(page))
+      await checkpointElement(page, historyPanel, `tabs-observation-panel-history-${language}`, { mask: volatile(page) })
 
       // Going back to the tab the view opened on has to bring the class fields back, so that the tabs can be
       // switched between in either direction, and has to drop the tab from the address again.

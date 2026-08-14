@@ -173,7 +173,7 @@ test.describe("PeerDB Editing Session Flows", () => {
     )
     await expect(item.locator(".pd-documentsessions-text-started"), "the line saying when the session was begun").toBeVisible()
     await expect(item.locator(".pd-documentsessions-text-lastchange"), "the line saying when the session last changed").toBeVisible()
-    await checkpointElement(page, item, "editsessions-item-create", sessionTimes(page))
+    await checkpointElement(page, item, "editsessions-item-create", { mask: sessionTimes(page) })
 
     // Continuing the session goes back to the form with everything which was put into it.
     await item.locator(".pd-documentsessions-button-open").click()
@@ -225,7 +225,7 @@ test.describe("PeerDB Editing Session Flows", () => {
     await expect(item.locator(".pd-documentsessions-tags").locator("li").first(), "the tag saying what the session does").toHaveText(
       LOCALES.en.views.DocumentSessions.edit,
     )
-    await checkpointElement(page, item, "editsessions-item-edit", sessionTimes(page))
+    await checkpointElement(page, item, "editsessions-item-edit", { mask: sessionTimes(page) })
 
     // The title of the item is a link to the session as much as the button next to it is.
     await item.locator(".pd-documentsessions-link-document").click()

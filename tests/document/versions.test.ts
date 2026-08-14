@@ -90,7 +90,7 @@ test.describe("PeerDB Document Versions Flows", () => {
     }
 
     await checkpoint(page, "versions-planet-history", { mask: volatile(page) })
-    await checkpointElement(page, page.locator(".pd-documenthistory-list"), "versions-planet-history-list", volatile(page))
+    await checkpointElement(page, page.locator(".pd-documenthistory-list"), "versions-planet-history-list", { mask: volatile(page) })
 
     console.log(`Successfully verified that the history tab lists the ${count} changesets the server reports for the document, each linking to the version it recorded.`)
   })
