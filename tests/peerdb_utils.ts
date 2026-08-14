@@ -1,9 +1,12 @@
-import type { Page } from "@playwright/test"
+import type { Locator, Page } from "@playwright/test"
+
+import { readFileSync } from "node:fs"
+import { fileURLToPath } from "node:url"
 
 import { Identifier } from "@tozd/identifier"
 
 import * as core from "@/core"
-import { createNamed as createNamedDocument, type CreateNamedOptions, searchByProperty, type SearchOptions, startCreate as startCreateClass } from "./utils"
+import { createNamed as createNamedDocument, type CreateNamedOptions, fieldSlots, searchByProperty, type SearchOptions, startCreate as startCreateClass } from "./utils"
 
 // The namespace the test data documents live in (Namespace in internal/xeno/namespace.go), and the
 // segment between it and a file's path in the identifier a test data attachment is stored under
@@ -398,4 +401,28 @@ export interface CreateNamedClassOptions extends CreateNamedOptions {
 // was saved under, leaving the browser on the document view of what was created.
 export async function createNamed(page: Page, entityClass: EntityClass, name: string, options: CreateNamedClassOptions = {}): Promise<string> {
   return await createNamedDocument(page, CLASS_IDS[entityClass], options.property ?? PROPERTY_IDS.NAME, name, options)
+}
+
+// The role a test signs in with: the one the site grants creating the worked-on class to. It is looked
+// up rather than written out so that the tests follow the same table the site is configured by.
+export function roleWhichCreates(entityClass: EntityClass): Role {
+  const role = ROLES.find((r) => ROLE_CREATES[r]?.includes(entityClass))
+  if (role === undefined) {
+    throw new Error(`no role may create ${entityClass}`)
+  }
+  return role
+}
+
+// The contents of one file of the test data the instance under test was populated from. What a document has
+// to show is read out of the same file rather than written out here again, so a test asserts the data and not
+// a copy of it.
+export function readTestData(path: string): Record<string, unknown> {
+  return JSON.parse(readFileSync(fileURLToPath(new URL(`../../testdata/${path}`, import.meta.url)), { encoding: "utf-8" })) as Record<string, unknown>
+}
+
+// The block of the form which holds the notes of a species. The notes may be stated more than once, so
+// the field grows a second editor as soon as the first one holds something, and everything about the
+// editor is therefore addressed inside the first slot rather than inside the whole field.
+export function notesSlot(page: Page): Locator {
+  return fieldSlots(page, PROPERTY_IDS.NOTES).first()
 }

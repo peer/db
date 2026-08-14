@@ -8,8 +8,10 @@ import {
   checkpoint,
   checkpointElement,
   clearRefusedRequestErrors,
+  discardCreate,
   discardEdit,
   documentId,
+  editingDocumentId,
   expect,
   fetchFromPage,
   fillSlot,
@@ -79,14 +81,6 @@ function sessionPath(page: Page): string {
   return match![1]
 }
 
-// The identifier of the document an editing session is about. A create session allocates the identifier up
-// front, so this is how a test names the document of a session which has not been saved yet.
-function editingDocumentId(page: Page): string {
-  const match = /\/d\/edit\/([0-9A-Za-z]+)\/[0-9A-Za-z]+(?:[?#]|$)/.exec(page.url())
-  expect(match, `the browser is on an editing session: ${page.url()}`).not.toBeNull()
-  return match![1]
-}
-
 // Opens the sessions view and waits for the list of sessions to be there, whether it holds anything or not.
 // The view is reached through the menu of the signed-in user, which is where the site offers it.
 async function openSessions(page: Page): Promise<void> {
@@ -98,21 +92,6 @@ async function openSessions(page: Page): Promise<void> {
   await expect(page.locator(".pd-documentsessions"), "the sessions view").toBeVisible({ timeout: LOADING_TIMEOUT })
   await expect(page.locator("#documentsessions-loading"), "the sessions view while it is loading").toHaveCount(0, { timeout: LOADING_TIMEOUT })
   await settle(page)
-}
-
-// Discards a create session and waits for the class tree it goes back to. A document which is being created
-// exists only inside its session, so a discarded create session has no document view to land on.
-//
-// Focus is moved onto the button before it is pressed, the same way saveEdit does it: the form focuses its
-// first input as soon as it opens, and the blur which the press itself causes commits that input and grows
-// the form by whatever the committed value asks for, which moves the button out from under the press.
-async function discardCreate(page: Page): Promise<void> {
-  const discardButton = page.locator("#documentedit-button-discard")
-  await expect(discardButton, "discard button of the create form").toBeVisible()
-  await discardButton.focus()
-  await discardButton.click()
-  await expect(page.locator(".pd-documentcreate"), "the create page a discarded create session goes back to").toBeVisible({ timeout: LOADING_TIMEOUT })
-  await expect(page.locator("#documentcreate-title"), "title of the create page").toBeVisible()
 }
 
 // Opens a create session of the vocabulary class and gives the document being created a name, so that the

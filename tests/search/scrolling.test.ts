@@ -1,7 +1,20 @@
-import type { Locator, Page } from "@playwright/test"
+import type { Page } from "@playwright/test"
 
 import { searchByClass } from "../peerdb_utils"
-import { checkpoint, expect, LOADING_TIMEOUT, overrideSiteFeatures, resultCount, resultIds, settle, settleFilters, test, volatile } from "../utils"
+import {
+  checkpoint,
+  expect,
+  LOADING_TIMEOUT,
+  loadMoreButton,
+  overrideSiteFeatures,
+  resultCount,
+  resultIds,
+  searchResults,
+  settle,
+  settleFilters,
+  test,
+  volatile,
+} from "../utils"
 
 // The class the feed is scrolled through. It needs clearly more documents than one page holds so that
 // reaching the end of the page has something to load several times over, few enough that loading all of
@@ -19,21 +32,13 @@ const PAGE_SIZE = 10
 // rather than that the search is large.
 const SCROLL_PASSES = 30
 
-function results(page: Page): Locator {
-  return page.locator(".pd-searchresult")
-}
-
-function loadMoreButton(page: Page): Locator {
-  return page.locator("#searchresultsfeed-button-loadmore")
-}
-
 // Scrolls to the end of the page, which is what a visitor reading down the results does, and returns how
 // many results the feed shows once it has answered. Reaching the end is what the feed watches for, so this
 // is the whole of the interaction: nothing in this test presses the load more button.
 async function scrollToEnd(page: Page): Promise<number> {
   await page.evaluate(() => window.scrollTo({ top: document.body.scrollHeight, behavior: "instant" }))
   await settle(page)
-  return await results(page).count()
+  return await searchResults(page).count()
 }
 
 test.describe("PeerDB Scrolling Flows", () => {
@@ -59,7 +64,7 @@ test.describe("PeerDB Scrolling Flows", () => {
     // results but not a fixed number of them: it stops once the column reaches about two viewports, and how
     // many pages that takes follows how tall the results have rendered. So it is asserted to be pages, and
     // to be less than everything, rather than to be a particular count.
-    const onLoad = await results(page).count()
+    const onLoad = await searchResults(page).count()
     expect(onLoad, "the feed fills its column with whole pages of results").toBeGreaterThanOrEqual(PAGE_SIZE)
     expect(onLoad % PAGE_SIZE, "the feed fills its column with whole pages of results").toBe(0)
     expect(onLoad, "filling the column leaves results for the visitor to scroll to").toBeLessThan(total)
@@ -80,7 +85,7 @@ test.describe("PeerDB Scrolling Flows", () => {
         .poll(async () => await scrollToEnd(page), { message: "reaching the end of the page loads more results", timeout: LOADING_TIMEOUT })
         .toBeGreaterThan(before.length)
 
-      shown = await results(page).count()
+      shown = await searchResults(page).count()
       expect(shown, "scrolling never loads more results than the search found").toBeLessThanOrEqual(total)
       // Every page but the last is whole, and the last one is whatever is left of the result set.
       expect(shown % PAGE_SIZE === 0 || shown === total, "scrolling loads whole pages of results until the last one").toBeTruthy()

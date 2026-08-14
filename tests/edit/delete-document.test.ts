@@ -9,15 +9,14 @@ import {
   clearRefusedRequestErrors,
   expect,
   expectNothingLoading,
+  expectSearchFinds,
   goHome,
   LOADING_TIMEOUT,
   openDocument,
   PEERDB_URL,
-  resultIds,
   settle,
   settleDocument,
   settleFilters,
-  settleSearch,
   signIn,
   signOut,
   test,
@@ -52,11 +51,6 @@ const CREATOR_NAME = "PDEDELETE Izmerjenoslovje"
 // document carrying any of its words, the galaxies of the test data included, while this word is carried by
 // the created document alone.
 const DELETE_QUERY = "Zbrisoslovje"
-
-// How long the index is given to catch up with a write. Indexing runs after the write has been committed,
-// so a document becomes searchable, and stops being searchable, some time after the view which wrote it
-// has already moved on.
-const INDEXING_TIMEOUT = 60000
 
 // What the server answers a caller who asks for a page they hold no action for.
 const FORBIDDEN = 403
@@ -128,21 +122,6 @@ async function deleteDocument(page: Page, id: string): Promise<void> {
   expect(opened?.status(), "the delete page of the document to clean up").toBe(200)
   await expect(page.locator("#documentdelete-button-delete"), "delete button of the confirmation").toBeVisible({ timeout: LOADING_TIMEOUT })
   await confirmDeletion(page)
-}
-
-// The identifiers a full text search for the given query finds. Every attempt starts a fresh search
-// session, because a session which has already run keeps the result set it found when it ran.
-async function searchIds(page: Page, query: string): Promise<Array<string>> {
-  await page.goto(`${PEERDB_URL}/s?q=${encodeURIComponent(query)}`)
-  await settleSearch(page)
-  return await resultIds(page)
-}
-
-// Waits until a search for the given query does or does not find the given document, and leaves the browser
-// on the results of the search which decided it. What is waited for is the document the test created and not
-// the number of results: other tests write to the same index while this one runs.
-async function expectSearchFinds(page: Page, query: string, id: string, found: boolean, what: string): Promise<void> {
-  await expect.poll(async () => (await searchIds(page, query)).includes(id), { message: what, timeout: INDEXING_TIMEOUT, intervals: [1000] }).toBe(found)
 }
 
 test.describe("PeerDB Delete Document Flows", () => {

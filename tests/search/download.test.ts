@@ -5,7 +5,21 @@ import { readFileSync } from "node:fs"
 import { fileURLToPath } from "node:url"
 
 import { documentIdOf } from "../peerdb_utils"
-import { checkpoint, checkpointElement, expect, expectResults, LOADING_TIMEOUT, PEERDB_URL, settleFilters, signIn, test, volatile } from "../utils"
+import {
+  checkpoint,
+  checkpointElement,
+  downloadOverlay,
+  expect,
+  expectResults,
+  holdFileRequests,
+  LOADING_TIMEOUT,
+  PEERDB_URL,
+  requestGate,
+  settleFilters,
+  signIn,
+  test,
+  volatile,
+} from "../utils"
 
 // The role which is granted bulk reading of files, which is what the download buttons are offered to. It is
 // the only role of the site other than the administrator which holds that action.
@@ -49,41 +63,6 @@ const ZIP_FILENAME = "download.zip"
 // is held back on purpose: two checkpoints, each of which takes a screenshot and runs an accessibility scan.
 const DOWNLOAD_TIMEOUT = 3 * LOADING_TIMEOUT
 
-// A promise which a request handler waits on and the test opens when it wants the request to go through.
-interface Gate {
-  open: () => void
-  wait: Promise<void>
-}
-
-function gate(): Gate {
-  let open!: () => void
-  const wait = new Promise<void>((resolve) => {
-    open = resolve
-  })
-  return { open, wait }
-}
-
-// Holds back part of the traffic a bulk download makes, so that the overlay can be screenshotted in a state
-// which stays put while the screenshot is taken: without this the progress runs to the end and the overlay
-// closes itself before a stable screenshot of it exists. Every request for a file goes through here. The
-// metadata requests (HEAD, one per attachment, which the download makes while it collects the files to
-// download) are held while the preparation progress is screenshotted, and the content request (GET) of the
-// last attachment is held while the final progress is screenshotted. Neither changes what is downloaded.
-async function holdFileRequests(page: Page, attachments: number, metadata: Gate, lastContent: Gate): Promise<void> {
-  let contentRequests = 0
-  await page.route("**/f/*", async (route) => {
-    if (route.request().method() === "HEAD") {
-      await metadata.wait
-    } else {
-      contentRequests += 1
-      if (contentRequests === attachments) {
-        await lastContent.wait
-      }
-    }
-    await route.continue()
-  })
-}
-
 // Takes away the save picker, which is a dialog of the browser itself and cannot be driven from a test.
 // Without it the zip download falls back to handing the finished archive to the browser as a download, which
 // is what the test then waits for. The directory picker is left alone: the browser has one, which is what
@@ -112,15 +91,10 @@ function downloadFilesButton(page: Page) {
   return page.locator(".pd-searchresultsheader-button-downloadfiles")
 }
 
-// The overlay a download shows while it runs. It closes itself once the download is over.
-function overlay(page: Page) {
-  return page.locator(".pd-downloadoverlay-dialog")
-}
-
 // Waits until the download has collected everything it downloads and is about to start, which is the state
 // the held-back metadata requests keep it in.
 async function expectPreparing(page: Page): Promise<void> {
-  await expect(overlay(page), "the download overlay").toBeVisible()
+  await expect(downloadOverlay(page), "the download downloadOverlay").toBeVisible()
   await expect(page.locator(".pd-downloadoverlay-text-preparing"), "the download says it is collecting the files").toBeVisible()
   await expect(page.locator(".pd-downloadoverlay-progress"), "the download shows how far it has come").toBeVisible()
 }
@@ -128,7 +102,7 @@ async function expectPreparing(page: Page): Promise<void> {
 // Waits until the download is at its last attachment, which is the state the held-back content request keeps
 // it in, and where it names the attachment it is on.
 async function expectDownloadingLast(page: Page): Promise<void> {
-  await expect(overlay(page), "the download overlay").toBeVisible()
+  await expect(downloadOverlay(page), "the download downloadOverlay").toBeVisible()
   await expect(page.locator(".pd-downloadoverlay-text-downloading"), "the download says it is downloading").toBeVisible()
   await expect(page.locator(".pd-downloadoverlay-text-file"), "the download names the file it is on").toBeVisible()
   await expect(page.locator(".pd-downloadoverlay-error"), "the download reports no error").toHaveCount(0)
@@ -164,8 +138,8 @@ test.describe("PeerDB Search Download Flows", () => {
     await settleFilters(page)
     await checkpoint(page, "download-zip-search-results", { mask: volatile(page) })
 
-    const metadata = gate()
-    const lastContent = gate()
+    const metadata = requestGate()
+    const lastContent = requestGate()
     await holdFileRequests(page, ATTACHMENTS.length, metadata, lastContent)
 
     // The archive is handed to the browser as a download once it is assembled, so the download is waited for
@@ -175,11 +149,11 @@ test.describe("PeerDB Search Download Flows", () => {
     await downloadZipButton(page).click()
 
     await expectPreparing(page)
-    await checkpoint(page, "download-zip-overlay-preparing", { mask: volatile(page), fullPage: false })
+    await checkpoint(page, "download-zip-downloadOverlay-preparing", { mask: volatile(page), fullPage: false })
 
     metadata.open()
     await expectDownloadingLast(page)
-    await checkpoint(page, "download-zip-overlay-downloading", { mask: volatile(page), fullPage: false })
+    await checkpoint(page, "download-zip-downloadOverlay-downloading", { mask: volatile(page), fullPage: false })
 
     lastContent.open()
     const zip = await download
@@ -197,8 +171,8 @@ test.describe("PeerDB Search Download Flows", () => {
       expect(Buffer.from(entries[name]).equals(stored), `the archived ${name} is the file it was uploaded from`).toBe(true)
     }
 
-    // The overlay closes itself once the download is over, leaving the results as they were.
-    await expect(overlay(page), "the overlay closes itself once the download is over").toBeHidden()
+    // The downloadOverlay closes itself once the download is over, leaving the results as they were.
+    await expect(downloadOverlay(page), "the downloadOverlay closes itself once the download is over").toBeHidden()
     await expect(downloadZipButton(page), "the archive download is offered again").toBeEnabled()
     await settleFilters(page)
     await checkpoint(page, "download-zip-search-results-after", { mask: volatile(page) })
@@ -232,8 +206,8 @@ test.describe("PeerDB Search Download Flows", () => {
     // either of them disables both for as long as it lasts. The download is held at its first step so that
     // the disabled state can be asserted and screenshotted while it is in effect. The directory download
     // itself is not driven: picking a directory is a dialog of the browser which a test cannot answer.
-    const metadata = gate()
-    const lastContent = gate()
+    const metadata = requestGate()
+    const lastContent = requestGate()
     await holdFileRequests(page, ATTACHMENTS.length, metadata, lastContent)
 
     const download = page.waitForEvent("download", { timeout: DOWNLOAD_TIMEOUT })
@@ -246,7 +220,7 @@ test.describe("PeerDB Search Download Flows", () => {
     metadata.open()
     lastContent.open()
     await download
-    await expect(overlay(page), "the overlay closes itself once the download is over").toBeHidden()
+    await expect(downloadOverlay(page), "the downloadOverlay closes itself once the download is over").toBeHidden()
     await expect(downloadFilesButton(page), "the directory download is offered again once the download is over").toBeEnabled()
     await expect(downloadZipButton(page), "the archive download is offered again once the download is over").toBeEnabled()
     await checkpointElement(page, page.locator(".pd-searchresultsheader-toolbar"), "download-toolbar-after-download")

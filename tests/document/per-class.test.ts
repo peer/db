@@ -1,9 +1,9 @@
-import type { Locator, Page } from "@playwright/test"
+import type { Page } from "@playwright/test"
 
 import type { DocumentClass, Role, VocabularyClass } from "../peerdb_utils"
 
 import { CLASS_IDS, DOCUMENT_CLASSES, documentIdOf, PROPERTY_IDS, RESTRICTED_CLASS, VOCABULARY_CLASSES } from "../peerdb_utils"
-import { checkpoint, expect, openDocument, openDocumentTab, settle, signIn, test, volatile } from "../utils"
+import { checkpoint, expect, fieldsPanel, openDocument, openDocumentTab, settle, signIn, test, volatile } from "../utils"
 
 // The document of each class which fills in the most of the fields the class declares (the richest document
 // per class of the test data). Opening the richest one is what makes a per-class view test say something: a
@@ -78,12 +78,6 @@ const RESTRICTED_CLASS_ROLE: Role = "ethics"
 // The part of a screenshot name which identifies the class.
 function slug(mnemonic: string): string {
   return mnemonic.toLowerCase().replaceAll("_", "-")
-}
-
-// The panel of the document view which renders the fields the document's class declares, which is the tab the
-// view opens on.
-function fieldsPanel(page: Page): Locator {
-  return page.locator(".pd-documentget-panel-properties")
 }
 
 // Asserts that the document view shows the document: the title its naming claim gives it, and the fields its

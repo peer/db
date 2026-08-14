@@ -1,20 +1,20 @@
 import type { Locator, Page } from "@playwright/test"
 
-import { mkdtempSync, statSync, writeFileSync } from "node:fs"
+import { mkdtempSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { basename, join } from "node:path"
 
-import { documentIdOf, PROPERTY_IDS, startCreate } from "../peerdb_utils"
+import { documentIdOf, notesSlot, PROPERTY_IDS, startCreate } from "../peerdb_utils"
 import {
   checkpoint,
   checkpointElement,
   clearConsoleErrors,
   discardEdit,
   expect,
-  fetchFromPage,
+  expectAttachmentServed,
   field,
-  fieldSlots,
   hideDuplicates,
+  holdUploads,
   LOADING_TIMEOUT,
   openDocument,
   openDocumentTab,
@@ -25,6 +25,7 @@ import {
   startEdit,
   test,
   volatile,
+  volatileFileLinks,
 } from "../utils"
 
 // Every document these tests create is named with this prefix, so that the documents of this file never
@@ -54,9 +55,6 @@ const INTERVIEWEE_QUERY = "Aselune"
 const INTERVIEWER_ID = await documentIdOf("RESEARCHER", "RES_HALVORSEN")
 const INTERVIEWER_QUERY = "Halvorsen"
 
-// The request every upload starts with, and the one a cancelled upload releases its session with.
-// Holding the first is how a test freezes an upload in flight.
-const BEGIN_UPLOAD_URL = "**/api/f/beginUpload"
 const DISCARD_UPLOAD_URL = "**/api/f/discardUpload/*"
 const END_UPLOAD_URL = "**/api/f/endUpload/*"
 
@@ -87,37 +85,9 @@ const FIRST_FILE = fixture(
 )
 const SECOND_FILE = fixture("attachments-tide-table.csv", "turn,height,read_by\n1,0.4,warden\n2,1.1,warden\n3,0.9,informant\n")
 
-// Holds every upload the page starts at its first request, until the returned release function is
-// called. An upload of a small file is over before a screenshot of it can be taken, so the states which
-// exist only while it runs (the progress bar, the cancel button) are reachable only by making the upload
-// wait.
-async function holdUploads(page: Page): Promise<() => Promise<void>> {
-  let held = true
-  await page.route(BEGIN_UPLOAD_URL, async (route) => {
-    while (held) {
-      await new Promise((resolve) => setTimeout(resolve, 50))
-    }
-    // The browser drops the request when the upload is cancelled while it is held here, and continuing a
-    // request which the browser no longer waits for throws, which is the expected outcome then.
-    await route.continue().catch(() => null)
-  })
-  return async () => {
-    held = false
-    // Waits for the handler above to finish, so a route is never removed while it is still held.
-    await page.unrouteAll({ behavior: "ignoreErrors" })
-  }
-}
-
 // The block of the form which holds the image of a species, which is the file field these tests drive.
 function imageField(page: Page): Locator {
   return field(page, PROPERTY_IDS.IMAGE)
-}
-
-// The block of the form which holds the notes of a species. The notes may be stated more than once, so
-// the field grows a second editor as soon as the first one holds something, and everything about the
-// editor is therefore addressed inside the first slot rather than inside the whole field.
-function notesSlot(page: Page): Locator {
-  return fieldSlots(page, PROPERTY_IDS.NOTES).first()
 }
 
 // One sub-field of the image, which is where the name and the caption of an uploaded file are edited.
@@ -125,18 +95,6 @@ function notesSlot(page: Page): Locator {
 // identifier of its own property.
 function imageSubField(page: Page, subPropertyId: string): Locator {
   return imageField(page).locator(`.pd-claimcardinality-${subPropertyId}`).first()
-}
-
-// Where the address a stored file is served under is rendered: the value box of the file field on the
-// form, and the value cell holding the link on the saved document. A stored file gets a fresh identifier
-// every time one is uploaded, so a screenshot showing that address would differ between runs. Pass these
-// to the mask option of a checkpoint.
-//
-// The two boxes are masked rather than the link itself, because a link is only as wide as the address it
-// holds, so the mask would move with the address it is there to hide, while both boxes are as wide as
-// the layout makes them. A file attached to the notes is linked by its name and needs no masking.
-function volatileFileLinks(page: Page): Array<Locator> {
-  return [page.locator(".pd-inputfile-value"), page.locator(".pd-fieldsview-value:has(.pd-claimvaluelink)")]
 }
 
 // Signs in and starts creating a species, which is where every test but the last one starts. The name is
@@ -164,21 +122,6 @@ async function uploadImage(page: Page, path: string): Promise<Locator> {
   await imageField(page).locator(".pd-inputfile-input").setInputFiles(path)
   await expect(value, "uploaded image entry").toBeVisible({ timeout: LOADING_TIMEOUT })
   return value
-}
-
-// Asserts that the file the given link points at is served whole, so that the attachment is reachable
-// from the saved document and not just referenced by it. The size is compared against the file on disk,
-// which is what says the whole file came back and not only its first bytes, and the address is asserted
-// to be one of a stored file, which is what the link classes below rest on.
-async function expectAttachmentServed(page: Page, link: Locator, path: string, what: string): Promise<void> {
-  await expect(link, `link to the attachment of ${what}`).toBeVisible()
-  const href = await link.getAttribute("href")
-  expect(href, `address of the attachment of ${what}`).toMatch(/^\/f\/[0-9A-Za-z]+$/)
-
-  const response = await fetchFromPage(page, href!)
-  expect(response.status, `status of the attachment of ${what}`).toBe(200)
-  expect(response.length, `size of the attachment of ${what}`).toBe(statSync(path).size)
-  expect(response.headers["content-disposition"], `filename the attachment of ${what} is served under`).toContain(basename(path))
 }
 
 // The link of a stored file is an ordinary anchor and not a route of the application, because a file is

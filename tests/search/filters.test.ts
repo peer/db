@@ -10,6 +10,7 @@ import {
   expectNoResults,
   filter,
   filterValue,
+  hasValue,
   LOADING_TIMEOUT,
   openFilters,
   resultCount,
@@ -67,13 +68,6 @@ async function rowCount(count: Locator, what: string): Promise<number> {
 // checkbox, so it is addressed by the same id the checkbox carries.
 function refCount(page: Page, props: Array<string>, value: string): Locator {
   return page.locator(`label[for="${["ref", ...props, value].join("/")}"].pd-reffiltertreerow-count`)
-}
-
-// The checkbox of one property of the has facet on the document itself. That facet filters on no property
-// path of its own, so the id its checkboxes carry has an empty path segment in the middle, which is what a
-// path of a single empty string produces.
-function hasValue(page: Page, propertyId: string): Locator {
-  return filterValue(page, "has", [""], propertyId)
 }
 
 // Selects the vocabulary entry the reference filter tests filter on.

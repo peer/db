@@ -7,8 +7,10 @@ import {
   checkpoint,
   checkpointElement,
   expect,
+  expectFacetBack,
   expectNoConsoleErrors,
   expectResults,
+  facetMetadata,
   fetchFromPage,
   filter,
   goHome,
@@ -94,25 +96,6 @@ async function checkpointFacet(page: Page, name: string, facet: Locator): Promis
   await checkpointElement(page, facet, name)
 }
 
-// Waits until a facet is back on the page after the search it belongs to has changed. A search which changed
-// takes the panel back to the facets it shows first, so a facet beyond them is off the page until the rest of
-// them are asked for again. Without this an assertion which passes on a facet not being there (that it offers
-// nothing to clear, for one) would pass while the facet is merely missing, and one about what the facet says
-// would fail for the same reason. The panel is asked for the rest of its facets until the facet turns up,
-// because the collapse happens once the changed search comes back and can therefore be later than the press.
-async function expectFacetBack(page: Page, facet: Locator): Promise<void> {
-  await expect
-    .poll(
-      async () => {
-        await settleFilters(page)
-        return await facet.count()
-      },
-      { message: "the facet is on the page again after the search changed", timeout: LOADING_TIMEOUT },
-    )
-    .toBeGreaterThan(0)
-  await expect(facet, "the facet is on the page again after the search changed").toBeVisible()
-}
-
 // Waits until the panel shows the facet's filter as active or as inactive. The clear button is rendered
 // exactly when a filter on the facet is part of the search session, so it tells apart a filter which has
 // been applied from one whose update is still in flight.
@@ -157,30 +140,6 @@ async function expectFewerResults(page: Page, than: string): Promise<string> {
     })
     .toBeLessThan(Number(than))
   return await countDigits(count)
-}
-
-// The bounds and the counts the API reports next to a facet's histogram, read from the response the facet
-// itself loaded: it publishes the very URL it fetched, so the numbers are the ones it is rendering rather
-// than ones from a separately built request. The server sends them in a header next to the buckets, as
-// "exists=44, from="0.5", missing=1377, ...".
-//
-// Assertions are written against these rather than against the numbers of the test data wherever the rule
-// the view follows is what matters, so that a document another test adds cannot make this file fail.
-async function facetMetadata(page: Page, facet: Locator): Promise<Record<string, number>> {
-  const url = await facet.getAttribute("data-url")
-  expect(url, "the facet publishes the URL it loaded its values from").toBeTruthy()
-  const response = await fetchFromPage(page, url!)
-  expect(response.status, "the request the facet made is answered").toBe(200)
-  const metadata = response.headers["metadata"]
-  expect(metadata, "the answer carries the bounds and counts of the facet").toBeTruthy()
-  const values: Record<string, number> = {}
-  for (const part of metadata.split(",")) {
-    const match = /^\s*([a-z_]+)="?(-?[0-9.]+(?:[eE][-+]?[0-9]+)?)"?\s*$/.exec(part)
-    if (match) {
-      values[match[1]] = Number(match[2])
-    }
-  }
-  return values
 }
 
 // Moves one of the slider's handles by tapping the track. The slider is created with the "snap" behaviour,

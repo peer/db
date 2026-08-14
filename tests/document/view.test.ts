@@ -1,15 +1,13 @@
 import type { Locator, Page } from "@playwright/test"
 
-import { readFileSync } from "node:fs"
-import { fileURLToPath } from "node:url"
-
-import { coreDocumentIdOf, documentIdOf, LANGUAGES, PROPERTY_IDS } from "../peerdb_utils"
+import { coreDocumentIdOf, documentIdOf, LANGUAGES, PROPERTY_IDS, readTestData } from "../peerdb_utils"
 import {
   checkpoint,
   checkpointElement,
   expect,
   expectResults,
   fetchFromPage,
+  fieldsPanel,
   goHome,
   openDocument,
   resultCount,
@@ -53,13 +51,6 @@ interface TestDataValue {
   inLanguage?: Array<{ id: Array<string> }>
 }
 
-// The contents of one file of the test data the instance under test was populated from. What a document has
-// to show is read out of the same file rather than written out here again, so a test asserts the data and not
-// a copy of it.
-function readTestData(path: string): Record<string, unknown> {
-  return JSON.parse(readFileSync(fileURLToPath(new URL(`../../testdata/${path}`, import.meta.url)), { encoding: "utf-8" })) as Record<string, unknown>
-}
-
 // The text a rich text value renders as. The test data writes descriptions and notes as HTML, while the view
 // renders them as text, so the markup is dropped before the two are compared.
 function textOf(value: string): string {
@@ -86,12 +77,6 @@ function valuesByLanguage(document: Record<string, unknown>, field: string): Rec
 // go next, and finally the value which carries no language at all.
 function inLanguage(values: Record<string, string>, language: string): string {
   return values[language] ?? values.en ?? values.und
-}
-
-// The panel of the document view which renders the fields the document's class declares, which is the tab the
-// view opens on.
-function fieldsPanel(page: Page): Locator {
-  return page.locator(".pd-documentget-panel-properties")
 }
 
 // The rows of the fields panel which hold one property. A property stated more than once renders one row per

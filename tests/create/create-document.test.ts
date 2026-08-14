@@ -8,10 +8,13 @@ import { CLASS_IDS, CORE_CLASS_IDS, createNamed, documentIdOf, LANGUAGES, PROPER
 import {
   checkpoint,
   checkpointElement,
+  checkpointFormAt,
   expect,
   fetchFromPage,
   field,
   fieldSlots,
+  fieldsPanel,
+  fillHtmlField,
   fillSlot,
   goHome,
   hideDuplicates,
@@ -102,40 +105,6 @@ function expectedClasses(role: Role): Array<string> {
 // cannot be created for is rendered: a heading gathering the classes below it rather than a button.
 function classGroup(page: Page, classId: string): Locator {
   return page.locator(`.pd-classtreelist-item:has(> .pd-classtreelabel-title[data-url="/api/d/${classId}"])`)
-}
-
-// The panel of the document view which renders the fields the document's class declares, which is the tab
-// the view opens on and where everything a create test entered has to show up again.
-function fieldsPanel(page: Page): Locator {
-  return page.locator(".pd-documentget-panel-properties")
-}
-
-// Writes into a rich text field and commits it. A rich text field is typed into rather than filled,
-// because the editor is a content editable surface and not an input, and it writes its value into the
-// editing session when the focus leaves it.
-async function fillHtml(page: Page, propertyId: string, text: string, what: string): Promise<void> {
-  const editor = field(page, propertyId).locator(".pd-inputhtml-editor").first()
-  await expect(editor, `rich text editor of ${what}`).toBeVisible({ timeout: LOADING_TIMEOUT })
-  await editor.click()
-  await page.keyboard.type(text)
-  await editor.blur()
-  await settleEdit(page)
-  await expect(editor, `rich text editor of ${what} after typing`).toContainText(text)
-}
-
-// Screenshots the part of the form which was just driven, with the page scrolled so that the part sits at
-// the top of the window.
-//
-// The window is captured rather than the whole page, which is what every other checkpoint of this file
-// does. The editor of a class whose fields are grouped into sections opens on an address ending in an
-// anchor to the first section, and capturing a whole page makes the browser lay the page out again, which
-// sends it to that anchor a second time. That happens between one capture and the next, so a whole page
-// capture of such a form catches it either before or after the jump depending on how quickly the capture
-// runs. A window capture lays nothing out again and stays where the page was put.
-async function checkpointFormAt(page: Page, locator: Locator, name: string): Promise<void> {
-  await expect(locator, `the part of the form for ${name}`).toBeVisible()
-  await locator.evaluate((element) => element.scrollIntoView({ block: "start", behavior: "instant" }))
-  await checkpoint(page, name, { fullPage: false })
 }
 
 // Reads the document the server holds under the given identifier, so that a test can assert on what was
@@ -337,7 +306,7 @@ test.describe("PeerDB Document Create Flows", () => {
     // repeated field is added to.
     await fillSlot(page, PROPERTY_IDS.NAME, 0, ".pd-inputstring", BIOME_NAME, 2, "the name of the new biome")
     await fillSlot(page, PROPERTY_IDS.CODE, 0, ".pd-inputidentifier", BIOME_CODE, 2, "the code of the new biome")
-    await fillHtml(page, PROPERTY_IDS.DESCRIPTION, BIOME_DESCRIPTION, "the description of the new biome")
+    await fillHtmlField(page, PROPERTY_IDS.DESCRIPTION, BIOME_DESCRIPTION, "the description of the new biome")
     await checkpoint(page, "create-doc-biome-form-filled")
 
     const id = await saveEdit(page)

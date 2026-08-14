@@ -1,8 +1,8 @@
 import type { Locator, Page } from "@playwright/test"
 
-import type { EntityClass, Role } from "../peerdb_utils"
+import type { EntityClass } from "../peerdb_utils"
 
-import { documentIdOf, PROPERTY_IDS, ROLE_CREATES, ROLES, startCreate } from "../peerdb_utils"
+import { documentIdOf, PROPERTY_IDS, roleWhichCreates, startCreate } from "../peerdb_utils"
 import {
   changePosted,
   checkpoint,
@@ -10,16 +10,19 @@ import {
   expect,
   fetchFromPage,
   field,
+  fieldErrors,
   fieldInput,
   fieldSlots,
   hideDuplicates,
   LOADING_TIMEOUT,
   pickReference,
+  pressSave,
   saveEdit,
   settleEdit,
   signIn,
+  slotValue,
   test,
-  volatile,
+  volatileSelect,
 } from "../utils"
 
 // The first two tests work on an artifact they create themselves, because that class carries one field
@@ -74,46 +77,13 @@ const BONETTI_QUERY = "Bonetti"
 const ARAI_QUERY = "Arai"
 const BELLWETHER_QUERY = "Bellwether"
 
-// The role a test signs in with: the one the site grants creating the worked-on class to. It is looked
-// up rather than written out so that the tests follow the same table the site is configured by.
-function roleWhichCreates(entityClass: EntityClass): Role {
-  const role = ROLES.find((r) => ROLE_CREATES[r]?.includes(entityClass))
-  if (role === undefined) {
-    throw new Error(`no role may create ${entityClass}`)
-  }
-  return role
-}
-
 const ARTIFACT_ROLE = roleWhichCreates(ARTIFACT_CLASS)
 const EXPEDITION_ROLE = roleWhichCreates(EXPEDITION_CLASS)
-
-// The parts of a view which do not look the same on every run, and which every checkpoint therefore
-// masks. Next to the times the shared helper masks, a reference field whose candidates all fit is
-// rendered as a list of options which comes from a search of the index, and the order in which a search
-// returns the documents a filter alone matches is not stable while the suite is writing documents, so
-// such a list is masked rather than compared.
-function unstable(page: Page): Array<Locator> {
-  return [...volatile(page), page.locator(".pd-claimrefselect-list")]
-}
-
-// The complaints the form shows on one field. Every value slot renders the error of the input inside it,
-// so a field which nothing is wrong with matches no element at all.
-function fieldErrors(page: Page, propertyId: string): Locator {
-  return field(page, propertyId).locator(".pd-inputfield-error")
-}
 
 // The block of one sub-field inside one slot of a repeated field, which is where the values which hang
 // off that slot's own value are edited.
 function subField(slot: Locator, propertyId: string): Locator {
   return slot.locator(`.pd-claimcardinality-${propertyId}`)
-}
-
-// The input of one slot's own value, without the inputs of the sub-fields which hang off it. A field
-// whose entries carry sub-fields renders their inputs inside the same slot, and a sub-field of the same
-// kind as the field itself (a gloss under an endonym, both strings) would otherwise be matched just as
-// well, so the value block of the slot's own claim is what is looked in.
-function slotValue(page: Page, propertyId: string, slot: number, input: string): Locator {
-  return fieldSlots(page, propertyId).nth(slot).locator(`.pd-claiminput-${propertyId} > .pd-claiminput-value`).locator(input).first()
 }
 
 // Fills one slot's own value and waits until the form has settled on the number of slots the field is
@@ -147,18 +117,6 @@ async function fillAndCommit(page: Page, input: Locator, value: string, what: st
   await expect(input, `${what} after typing`).toHaveValue(value)
   await posted
   await settleEdit(page)
-}
-
-// Presses save without waiting for the session to end, which is what a test of a refused save needs.
-// Focus is moved onto the discard button next to save first, so the value typed last is committed into
-// the editing session before the save runs.
-async function pressSave(page: Page): Promise<void> {
-  const discardButton = page.locator("#documentedit-button-discard")
-  await expect(discardButton, "discard button").toBeVisible()
-  await discardButton.focus()
-  const saveButton = page.locator("#documentedit-button-save")
-  await expect(saveButton, "save button").toBeEnabled()
-  await saveButton.click()
 }
 
 // Asserts that the save was refused and left the editing session open, so the repeated value is reported
@@ -239,8 +197,8 @@ test.describe("PeerDB Edit Duplicate Value Flows", () => {
       "aria-invalid",
       "true",
     )
-    await checkpointElement(page, endonymField, "edit-duplicates-endonym-refused", unstable(page))
-    await checkpoint(page, "edit-duplicates-endonym-form", { mask: unstable(page) })
+    await checkpointElement(page, endonymField, "edit-duplicates-endonym-refused", volatileSelect(page))
+    await checkpoint(page, "edit-duplicates-endonym-form", { mask: volatileSelect(page) })
 
     // This is what tells a field comparing top-level values from one comparing whole claims: a gloss on
     // the second endonym makes the two claims differ in what hangs off them, and the field goes on
@@ -249,7 +207,7 @@ test.describe("PeerDB Edit Duplicate Value Flows", () => {
     const gloss = subField(fieldSlots(page, PROPERTY_IDS.ENDONYM).nth(1), PROPERTY_IDS.GLOSS).locator(".pd-inputstring").first()
     await fillAndCommit(page, gloss, GLOSS, "the gloss of the second endonym")
     await expect(fieldErrors(page, PROPERTY_IDS.ENDONYM), "complaints while the gloss is being typed").toHaveCount(0)
-    await checkpointElement(page, endonymField, "edit-duplicates-endonym-glossed", unstable(page))
+    await checkpointElement(page, endonymField, "edit-duplicates-endonym-glossed", volatileSelect(page))
 
     await pressSave(page)
     await expectSaveRefused(page)
@@ -266,7 +224,7 @@ test.describe("PeerDB Edit Duplicate Value Flows", () => {
     const properties = page.locator(".pd-documentget-panel-properties")
     await expect(properties, "the first endonym of the saved artifact").toContainText(ENDONYM)
     await expect(properties, "the second endonym of the saved artifact").toContainText(OTHER_ENDONYM)
-    await checkpoint(page, "edit-duplicates-endonym-saved", { mask: unstable(page) })
+    await checkpoint(page, "edit-duplicates-endonym-saved", { mask: volatileSelect(page) })
 
     const saved = await storedDocument(page, id)
     expect(saved, "the endonym which was repeated is stored once").toContain(`"${ENDONYM}"`)
@@ -306,17 +264,17 @@ test.describe("PeerDB Edit Duplicate Value Flows", () => {
     const errors = fieldErrors(page, PROPERTY_IDS.DIMENSION)
     await expect(errors, "the slots complained about").toHaveCount(2, { timeout: LOADING_TIMEOUT })
     await expect(errors.first(), "what the form says about the repeated measurement").toHaveText(DUPLICATE_MESSAGE)
-    await checkpointElement(page, dimensionField, "edit-duplicates-dimension-refused", unstable(page))
+    await checkpointElement(page, dimensionField, "edit-duplicates-dimension-refused", volatileSelect(page))
 
     // This is the half which tells the two kinds of field apart: another axis on the second measurement
     // leaves both claims saying the same number while the claims themselves differ, and a field
     // comparing whole claims accepts that. The endonym field above refuses exactly this.
     await fillAndCommit(page, secondAxis, OTHER_AXIS, "the axis of the second measurement after it was changed")
     await expect(fieldErrors(page, PROPERTY_IDS.DIMENSION), "complaints once the claims differ").toHaveCount(0)
-    await checkpointElement(page, dimensionField, "edit-duplicates-dimension-distinguished", unstable(page))
+    await checkpointElement(page, dimensionField, "edit-duplicates-dimension-distinguished", volatileSelect(page))
 
     const id = await saveEdit(page)
-    await checkpoint(page, "edit-duplicates-dimension-saved", { mask: unstable(page) })
+    await checkpoint(page, "edit-duplicates-dimension-saved", { mask: volatileSelect(page) })
 
     // Both measurements reach the saved document, which is what says they were not treated as one claim.
     const saved = JSON.parse(await storedDocument(page, id)) as { claims: { amount?: Array<Record<string, unknown>> } }
@@ -361,7 +319,7 @@ test.describe("PeerDB Edit Duplicate Value Flows", () => {
     await expect(taken, "the researcher who is already on the team is still offered").toBeVisible({ timeout: LOADING_TIMEOUT })
     await expect(taken.locator(".pd-inputref-text-alreadyused"), "the researcher who is already on the team is marked as taken").toBeVisible()
     await expect(taken, "the researcher who is already on the team cannot be picked again").toHaveAttribute("aria-disabled", "true")
-    await checkpointElement(page, teamField, "edit-duplicates-team-alreadyused", unstable(page))
+    await checkpointElement(page, teamField, "edit-duplicates-team-alreadyused", volatileSelect(page))
 
     // Anybody else is offered as usual, so it is the value the field holds which is taken and not the
     // search which stopped working.
@@ -373,7 +331,7 @@ test.describe("PeerDB Edit Duplicate Value Flows", () => {
     await free.click()
     await expect(secondSlot.locator(".pd-inputref-value"), "the second team member").toBeVisible({ timeout: LOADING_TIMEOUT })
     await expect(fieldErrors(page, PROPERTY_IDS.HAS_TEAM_MEMBER), "complaints about the two team members").toHaveCount(0)
-    await checkpointElement(page, teamField, "edit-duplicates-team-picked", unstable(page))
+    await checkpointElement(page, teamField, "edit-duplicates-team-picked", volatileSelect(page))
 
     // Nothing is saved: a create session materializes no document until it is saved, so the expedition
     // this test drove leaves nothing behind.
@@ -416,7 +374,7 @@ test.describe("PeerDB Edit Duplicate Value Flows", () => {
     // The whole form is checkpointed rather than the field which was just driven, because the rows of a
     // list of options are exactly what a checkpoint has to mask, so a screenshot of that field alone
     // would be a screenshot of the mask.
-    await checkpoint(page, "edit-duplicates-organisers-form", { mask: unstable(page) })
+    await checkpoint(page, "edit-duplicates-organisers-form", { mask: volatileSelect(page) })
 
     // The destination is the one field an expedition cannot be saved without, and it is a combobox
     // because it may point at any world or region of the catalogue.
@@ -427,7 +385,7 @@ test.describe("PeerDB Edit Duplicate Value Flows", () => {
     // and the save goes through.
     await expect(page.locator(".pd-inputfield-error"), "complaints anywhere on the form").toHaveCount(0)
     const id = await saveEdit(page)
-    await checkpoint(page, "edit-duplicates-organisers-saved", { mask: unstable(page) })
+    await checkpoint(page, "edit-duplicates-organisers-saved", { mask: volatileSelect(page) })
 
     const saved = JSON.parse(await storedDocument(page, id)) as { claims: { ref?: Array<Record<string, unknown>> } }
     const organisers = (saved.claims.ref ?? [])

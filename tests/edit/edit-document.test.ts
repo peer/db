@@ -7,9 +7,13 @@ import { createNamed, LANGUAGES, PROPERTY_IDS, startCreate } from "../peerdb_uti
 import {
   checkpoint,
   checkpointElement,
+  checkpointFields,
   clearRefusedRequestErrors,
+  discardCreate,
   discardEdit,
   documentId,
+  documentValues,
+  editingDocumentId,
   expect,
   fetchFromPage,
   fieldSlots,
@@ -23,6 +27,7 @@ import {
   settleEdit,
   signIn,
   slotInput,
+  slotRevert,
   startEdit,
   switchLanguage,
   test,
@@ -55,49 +60,6 @@ const LOCALES = { en, sl, pt }
 // and the field's own badge sits in its label cell, which comes first in the document.
 function fieldRevert(page: Page, propertyId: string): Locator {
   return page.locator(`.pd-fieldsformfield-${propertyId} .pd-inputbadges-button-revert`).first()
-}
-
-// The per-entry revert button of one slot of a repeated field, which reverts that entry alone.
-function slotRevert(page: Page, propertyId: string, slot: number): Locator {
-  return fieldSlots(page, propertyId).nth(slot).locator(".pd-claimcardinality-button-revert").first()
-}
-
-// The value cells of the class tab of the document view, in the order the class lays its fields out. What
-// they hold is what was saved, so a test asserts a whole edit through them.
-function documentValues(page: Page): Locator {
-  return page.locator(".pd-documentget-panel-properties .pd-fieldsview-value")
-}
-
-// The identifier of the document an editing session is about, read out of the address of the edit view. A
-// create session allocates the identifier up front and puts it in the address, so this is how a test learns
-// which document a session will save into before anything has been saved.
-function editingDocumentId(page: Page): string {
-  const match = /\/d\/edit\/([0-9A-Za-z]+)\/[0-9A-Za-z]+(?:[?#]|$)/.exec(page.url())
-  expect(match, `the browser is on an editing session: ${page.url()}`).not.toBeNull()
-  return match![1]
-}
-
-// Takes a checkpoint of the fields form only. While a document is being created the view also shows the
-// panel of its potential duplicates, which from the second run on lists the document an earlier run created,
-// so a full page screenshot of the create view would differ between runs. The form itself sits above that
-// panel and is not moved by it, so a screenshot of the form alone is the same on every run.
-async function checkpointFields(page: Page, name: string): Promise<void> {
-  await checkpointElement(page, page.locator(".pd-fieldsform"), name)
-}
-
-// Discards a create session and waits for the class tree it goes back to. A document which is being created
-// exists only inside its session, so a discarded create session has no document view to land on.
-//
-// Focus is moved onto the button before it is pressed, the same way saveEdit does it: the form focuses its
-// first input as soon as it opens, and the blur which the press itself causes commits that input and grows
-// the form by whatever the committed value asks for, which moves the button out from under the press.
-async function discardCreate(page: Page): Promise<void> {
-  const discardButton = page.locator("#documentedit-button-discard")
-  await expect(discardButton, "discard button of the create form").toBeVisible()
-  await discardButton.focus()
-  await discardButton.click()
-  await expect(page.locator(".pd-documentcreate"), "the create page a discarded create session goes back to").toBeVisible({ timeout: LOADING_TIMEOUT })
-  await expect(page.locator("#documentcreate-title"), "title of the create page").toBeVisible()
 }
 
 // Types into the rich text editor of a field. Focus is moved off the editor by pressing the document's

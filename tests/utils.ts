@@ -7,7 +7,8 @@ import { test as baseTest } from "@playwright/test"
 import { createHtmlReport } from "axe-html-reporter"
 import serialize from "canonicalize"
 import { createHash } from "node:crypto"
-import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, writeFileSync } from "node:fs"
+import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, statSync, writeFileSync } from "node:fs"
+import { basename } from "node:path"
 
 // Allowed console message patterns.
 const CONSOLE_ALLOWLIST = [/^Failed to load resource: the server responded with a status of 400 \(\)$/, /\[vite]/, /\[Vue/]
@@ -358,6 +359,68 @@ export function volatile(page: Page): Array<Locator> {
   return [page.locator(".pd-documenthistory-text-time")]
 }
 
+// The panel of the document view which renders the fields the document's class declares, which is the tab the
+// view opens on.
+export function fieldsPanel(page: Page): Locator {
+  return page.locator(".pd-documentget-panel-properties")
+}
+
+// Screenshots the part of the form which the shortcut filled in, with the page scrolled so that the part
+// sits at the top of the window.
+//
+// The window is captured rather than the whole page. The editor of a class whose fields are grouped into
+// sections opens on an address ending in an anchor to the first section, and capturing a whole page makes
+// the browser lay the page out again, which sends it to that anchor a second time. That happens between one
+// capture and the next, so a whole page capture of such a form catches it either before or after the jump
+// depending on how quickly the capture runs. A window capture lays nothing out again.
+export async function checkpointFormAt(page: Page, locator: Locator, name: string): Promise<void> {
+  await expect(locator, `the part of the form for ${name}`).toBeVisible()
+  await locator.evaluate((element) => element.scrollIntoView({ block: "start", behavior: "instant" }))
+  await checkpoint(page, name, { fullPage: false })
+}
+
+// The parts of a view which do not look the same on every run, and which every checkpoint therefore
+// masks. Next to the times the shared helper masks, a reference field whose candidates all fit is
+// rendered as a list of options which comes from a search of the index, and the order in which a search
+// returns the documents a filter alone matches is not stable while the suite is writing documents, so
+// such a list is masked rather than compared.
+export function volatileSelect(page: Page): Array<Locator> {
+  return [...volatile(page), page.locator(".pd-claimrefselect-list")]
+}
+
+// Where the address a stored file is served under is rendered: the value box of the image file field on the
+// form, and the value cell holding the link on the saved document. A stored file gets a fresh identifier
+// every time one is uploaded, so a screenshot showing that address would differ between runs. Pass these to
+// the mask option of a checkpoint.
+//
+// The two boxes are masked rather than the link itself, because a link is only as wide as the address it
+// holds, so the mask would move with the address it is there to hide, while both boxes are as wide as the
+// layout makes them. A file attached to the notes is linked by its name and needs no masking.
+export function volatileFileLinks(page: Page): Array<Locator> {
+  return [page.locator(".pd-inputfile-value"), page.locator(".pd-fieldsview-value:has(.pd-claimvaluelink)")]
+}
+
+// Takes a checkpoint of the fields form only. While a document is being created the view also shows
+// the panel of its potential duplicates, which from the second run on lists the document an earlier
+// run created, so a full page screenshot of the create view would differ between runs. The form
+// itself sits above that panel and is not moved by it, so a screenshot of the form alone is the same
+// on every run.
+export async function checkpointFields(page: Page, name: string): Promise<void> {
+  await checkpointElement(page, page.locator(".pd-fieldsform"), name)
+}
+
+// The values the class tab of the document view shows, in the order the class gives its fields, which for
+// an art discipline is the name and then the code.
+export function documentValues(page: Page): Locator {
+  return page.locator(".pd-documentget-panel-properties .pd-fieldsview-value")
+}
+
+// The print view shows a timestamp which ticks every second, so it never looks the same twice and has to be
+// masked together with the rest of the volatile content.
+export function printVolatile(page: Page): Array<Locator> {
+  return [...volatile(page), page.locator(".pd-searchresultsfeed-timestamp")]
+}
+
 // Opens the home page. Every test starts here so that the navbar is in its initial state.
 export async function goHome(page: Page): Promise<void> {
   await page.goto(PEERDB_URL)
@@ -530,6 +593,26 @@ export async function expectResults(page: Page): Promise<void> {
   await expect(page.locator(".pd-searchresult").first()).toBeVisible()
 }
 
+export function searchResults(page: Page): Locator {
+  return page.locator(".pd-searchresult")
+}
+
+export function loadMoreButton(page: Page): Locator {
+  return page.locator("#searchresultsfeed-button-loadmore")
+}
+
+// Clicks a navbar element which starts or updates a search session and waits until the new session
+// has rendered. Every such click ends in a session of its own, so waiting for the location to change
+// is what tells the old results from the new ones.
+export async function clickIntoSearch(page: Page, selector: string): Promise<void> {
+  const element = page.locator(selector)
+  await expect(element).toBeVisible()
+  const before = page.url()
+  await element.click()
+  await page.waitForFunction((url) => window.location.href !== url, before)
+  await expectResults(page)
+}
+
 // Waits for a settled search which is expected to have found nothing. The count the header renders is
 // then the message saying so, and the feed renders no result at all: it drops its whole result block,
 // pagers and load more button included, rather than showing an empty one.
@@ -680,6 +763,25 @@ export async function settleFilters(page: Page): Promise<void> {
   }
 }
 
+// Waits until a facet is back on the page after the search it belongs to has changed. A search which changed
+// takes the panel back to the facets it shows first, so a facet beyond them is off the page until the rest of
+// them are asked for again. Without this an assertion which passes on a facet not being there (that it offers
+// nothing to clear, for one) would pass while the facet is merely missing, and one about what the facet says
+// would fail for the same reason. The panel is asked for the rest of its facets until the facet turns up,
+// because the collapse happens once the changed search comes back and can therefore be later than the press.
+export async function expectFacetBack(page: Page, facet: Locator): Promise<void> {
+  await expect
+    .poll(
+      async () => {
+        await settleFilters(page)
+        return await facet.count()
+      },
+      { message: "the facet is on the page again after the search changed", timeout: LOADING_TIMEOUT },
+    )
+    .toBeGreaterThan(0)
+  await expect(facet, "the facet is on the page again after the search changed").toBeVisible()
+}
+
 // Waits until nothing on the page stands in for something still being fetched: the document itself,
 // every display label, every inline reference and every referenced document have all resolved. A
 // screenshot taken before that catches the loading placeholders instead of the page they stand in for.
@@ -775,6 +877,32 @@ export async function searchByQuery(page: Page, query = "", { results = true }: 
   }
 }
 
+// How long the index is given to catch up with a write. Indexing runs after the write has been committed,
+// so a document becomes searchable, and stops being searchable, some time after the view which wrote it
+// has already moved on.
+export const INDEXING_TIMEOUT = 60000
+
+// The identifiers a full text search for the given query finds, without asserting that it found anything:
+// what a test which waits for the index to catch up with a write is asking is exactly whether the document
+// is there yet. Every attempt starts a fresh search session, because a session which has already run keeps
+// the result set it found when it ran.
+export async function searchIdsForQuery(page: Page, query: string): Promise<Array<string>> {
+  await page.goto(`${PEERDB_URL}/s?q=${encodeURIComponent(query)}`)
+  await settleSearch(page)
+  return await resultIds(page)
+}
+
+// Waits until a search for the given query does or does not find the given document, which is how a test
+// waits for the index to catch up with what it wrote.
+export async function expectSearchFinds(page: Page, query: string, id: string, found: boolean, what: string): Promise<void> {
+  await expect.poll(async () => (await searchIdsForQuery(page, query)).includes(id), { message: what, timeout: INDEXING_TIMEOUT, intervals: [1000] }).toBe(found)
+}
+
+// The rows of one kind inside one field of the form, for a field which renders a row per value of a claim.
+export function slotRows(scope: Locator, property: string, kind: string): Locator {
+  return scope.locator(`.pd-claiminput-${property} > div > .pd-fieldsformrow-${kind}`)
+}
+
 // The row of the "all properties" tab which is for the given property, addressed by the class the row
 // carries, so a row is found without depending on the property's label.
 export function propertyRow(page: Page, propertyId: string): Locator {
@@ -845,6 +973,61 @@ export async function startEdit(page: Page): Promise<void> {
   await settleEdit(page)
 }
 
+// The identifier of the document an editing session is about. A create session allocates the identifier up
+// front, so this is how a test names the document of a session which has not been saved yet.
+export function editingDocumentId(page: Page): string {
+  const match = /\/d\/edit\/([0-9A-Za-z]+)\/[0-9A-Za-z]+(?:[?#]|$)/.exec(page.url())
+  expect(match, `the browser is on an editing session: ${page.url()}`).not.toBeNull()
+  return match![1]
+}
+
+// Discards a create session and waits for the class tree it goes back to. A document which is being created
+// exists only inside its session, so a discarded create session has no document view to land on.
+//
+// Focus is moved onto the button before it is pressed, the same way saveEdit does it: the form focuses its
+// first input as soon as it opens, and the blur which the press itself causes commits that input and grows
+// the form by whatever the committed value asks for, which moves the button out from under the press.
+export async function discardCreate(page: Page): Promise<void> {
+  const discardButton = page.locator("#documentedit-button-discard")
+  await expect(discardButton, "discard button of the create form").toBeVisible()
+  await discardButton.focus()
+  await discardButton.click()
+  await expect(page.locator(".pd-documentcreate"), "the create page a discarded create session goes back to").toBeVisible({ timeout: LOADING_TIMEOUT })
+  await expect(page.locator("#documentcreate-title"), "title of the create page").toBeVisible()
+}
+
+// The count a shortcut shows in parentheses after its label. The count is fetched after the document
+// renders, so this waits for it to appear before reading it.
+export async function shortcutCount(row: Locator): Promise<number> {
+  const link = row.locator(".pd-searchshortcutlink-link")
+  await expect(link, "the shortcut link shows a count").toHaveText(/\(\d+\)/, { timeout: LOADING_TIMEOUT })
+  const text = (await link.textContent()) || ""
+  const match = /\((\d+)\)/.exec(text)
+  expect(match, `the shortcut link "${text.trim()}" shows a count`).not.toBeNull()
+  return Number(match![1])
+}
+
+// Presses the "+" of a create shortcut whose limit resolves to a single creatable class, and asserts that
+// the press lands in an editing session without the class picker ever being shown.
+export async function pressCreateShortcut(page: Page, button: Locator): Promise<void> {
+  await expect(button, "the create button of the shortcut").toBeVisible()
+  await button.click()
+  await settleEdit(page)
+  await hideDuplicates(page)
+  await expect(page.locator(".pd-classtreelist"), "the class picker of the create view").toHaveCount(0)
+  await expect(page.locator("#documentcreate-title"), "the title of the create view").toHaveCount(0)
+  await expect(page, "the press landed in an editing session").toHaveURL(/\/d\/edit\/[0-9A-Za-z]+\/[0-9A-Za-z]+/)
+}
+
+// The "+" of the shortcut which creates a document of the given class and points the given property at
+// the document currently open. The button is picked out by what its link does rather than by where the
+// sidebar renders it or by the label it carries, which differs between the two interface languages. Both
+// parts of the query are matched separately because the create view sorts its query parameters, so which
+// of the two comes first depends on the identifiers.
+export function createShortcutButton(page: Page, classId: string, propertyId: string, selfId: string): Locator {
+  return page.locator(`.pd-searchshortcutlink-button-create[href*="limit=${classId}"][href*="${propertyId}=${selfId}"]`)
+}
+
 // The form block of the field holding the given property.
 export function field(page: Page, propertyId: string): Locator {
   return page.locator(`.pd-fieldsformfield-${propertyId}`)
@@ -876,9 +1059,153 @@ export function fieldSlots(page: Page, propertyId: string): Locator {
   return page.locator(`${cardinality} > .pd-claimcardinality-item, ${cardinality} > div > .pd-claimcardinality-item`)
 }
 
+// The complaints the form shows on one field. Every value slot renders the error of the input inside it,
+// so a field which nothing is wrong with matches no element at all.
+export function fieldErrors(page: Page, propertyId: string): Locator {
+  return field(page, propertyId).locator(".pd-inputfield-error")
+}
+
+// Presses save on the open editing session without waiting for the session to end, which is what a test
+// of a save which is refused needs. Focus is moved onto the discard button next to save first, the way
+// saveEdit does it, so that the value typed last is offered to the session before the save runs.
+export async function pressSave(page: Page): Promise<void> {
+  const discardButton = page.locator("#documentedit-button-discard")
+  await expect(discardButton, "discard button").toBeVisible()
+  await discardButton.focus()
+  const saveButton = page.locator("#documentedit-button-save")
+  await expect(saveButton, "save button").toBeEnabled()
+  await saveButton.click()
+}
+
+// The per-entry revert button of one slot of a repeated field, which reverts that entry alone.
+export function slotRevert(page: Page, propertyId: string, slot: number): Locator {
+  return fieldSlots(page, propertyId).nth(slot).locator(".pd-claimcardinality-button-revert").first()
+}
+
 // The value input of one slot of a field. The input class says which kind of value the field holds.
 export function slotInput(page: Page, propertyId: string, slot: number, input: string): Locator {
   return fieldSlots(page, propertyId).nth(slot).locator(input)
+}
+
+// The input of one slot's own value, without the inputs of the sub-fields which hang off it. A field
+// whose entries carry sub-fields renders their inputs inside the same slot, and a sub-field of the same
+// kind as the field itself would otherwise be matched just as well, so the value block of the slot's
+// own claim is what is looked in.
+export function slotValue(page: Page, propertyId: string, slot: number, input: string): Locator {
+  return fieldSlots(page, propertyId).nth(slot).locator(`.pd-claiminput-${propertyId} > .pd-claiminput-value`).locator(input).first()
+}
+
+// Writes into a rich text field and commits it. A rich text field is typed into rather than filled,
+// because the editor is a content editable surface and not an input, and it writes its value into the
+// editing session when the focus leaves it.
+export async function fillHtmlField(page: Page, propertyId: string, text: string, what: string): Promise<void> {
+  const editor = field(page, propertyId).locator(".pd-inputhtml-editor").first()
+  await expect(editor, `rich text editor of ${what}`).toBeVisible({ timeout: LOADING_TIMEOUT })
+  await editor.click()
+  await page.keyboard.type(text)
+  await editor.blur()
+  await settleEdit(page)
+  await expect(editor, `rich text editor of ${what} after typing`).toContainText(text)
+}
+
+// Everything below is about one rich text editor of a form. Which part of the form holds it differs between
+// the applications and between the forms (a whole field, or one slot of a field which may hold several
+// values), so the part holding it is what these take, and the editor inside it is what they address.
+
+// The toolbar of the rich text editor held by the given part of the form.
+export function htmlToolbar(editor: Locator): Locator {
+  return editor.locator(".pd-inputhtml-toolbar")
+}
+
+// One toolbar button, addressed by the part of its class name which says what it does.
+export function htmlToolbarButton(editor: Locator, name: string): Locator {
+  return htmlToolbar(editor).locator(`.pd-inputhtml-button-${name}`)
+}
+
+// The element ProseMirror makes editable inside the mount point of the editor. The mount point itself is
+// not focusable and holds no text, so everything about focus and about the value is asserted on this one.
+export function htmlEditorContent(editor: Locator): Locator {
+  return editor.locator('.pd-inputhtml-editor [contenteditable="true"]').first()
+}
+
+// What one toolbar button is, as a keyboard test sees it: what it does, whether it can be used at all,
+// whether it is the tab stop of the toolbar, and whether it is the focused element.
+export interface HtmlToolbarButtonState {
+  name: string
+  disabled: boolean
+  tabIndex: number
+  focused: boolean
+}
+
+export async function htmlToolbarState(editor: Locator): Promise<Array<HtmlToolbarButtonState>> {
+  return await htmlToolbar(editor)
+    .locator("button")
+    .evaluateAll((buttons) =>
+      buttons.map((button) => ({
+        name:
+          Array.from(button.classList)
+            .find((name) => name.startsWith("pd-inputhtml-button-"))
+            ?.replace("pd-inputhtml-button-", "") ?? "",
+        disabled: (button as HTMLButtonElement).disabled,
+        tabIndex: (button as HTMLButtonElement).tabIndex,
+        focused: button === document.activeElement,
+      })),
+    )
+}
+
+// The button the toolbar currently offers as its single tab stop, which is the whole point of the roving
+// tabindex: one Tab reaches the toolbar and the next one leaves it, however many buttons it holds.
+export async function htmlTabbableButton(editor: Locator): Promise<string> {
+  const tabbable = (await htmlToolbarState(editor)).filter((button) => button.tabIndex === 0)
+  expect(
+    tabbable.map((button) => button.name),
+    "exactly one button of the toolbar is a tab stop",
+  ).toHaveLength(1)
+  return tabbable[0].name
+}
+
+// The name of the toolbar button which is focused, or the empty string when focus is elsewhere.
+export async function htmlFocusedButton(editor: Locator): Promise<string> {
+  const focused = (await htmlToolbarState(editor)).filter((button) => button.focused)
+  return focused.length === 1 ? focused[0].name : ""
+}
+
+// Moves focus with an arrow key of the toolbar and asserts where it lands: the button has to be both the
+// focused one and the one the toolbar offers as its tab stop, because the two are kept in step by the
+// focusin handler and a button which is focused but not tabbable would strand the next Tab.
+export async function pressHtmlToolbarKey(page: Page, editor: Locator, key: string, expected: string): Promise<void> {
+  await page.keyboard.press(key)
+  await expect.poll(() => htmlFocusedButton(editor), { message: `${key} moves focus to the ${expected} button` }).toBe(expected)
+  expect(await htmlTabbableButton(editor), `${key} makes the ${expected} button the tab stop of the toolbar`).toBe(expected)
+}
+
+// Activates a toolbar button from the keyboard rather than with a click, which is how the command it
+// stands for is reached without a pointer. Focusing the button also makes it the tab stop of the toolbar,
+// which is what the roving tabindex is for.
+export async function activateHtmlToolbarButton(page: Page, editor: Locator, name: string): Promise<void> {
+  const button = htmlToolbarButton(editor, name)
+  await expect(button, `${name} button`).toBeEnabled()
+  await button.focus()
+  await page.keyboard.press("Enter")
+}
+
+// The HTML of the value being edited, as the editor holds it. The editor writes the claim from this, so
+// a command which changed this changed the value.
+export async function htmlEditorValue(editor: Locator): Promise<string> {
+  return await htmlEditorContent(editor).innerHTML()
+}
+
+// Waits until the value being edited holds the given HTML. A key press is delivered to the page and
+// handled there, so what it did is not in the DOM the moment the press returns.
+export async function expectHtmlEditorValue(editor: Locator, expected: string, message: string): Promise<void> {
+  await expect.poll(() => htmlEditorValue(editor), { message }).toContain(expected)
+}
+
+// The text the browser has selected, which is what a mark shortcut applies to. A shortcut pressed while
+// the selection is still collapsed only arms the mark for what is typed next and leaves the value alone,
+// so a test which applies a mark to existing text waits for the selection before pressing the shortcut.
+export async function selectedText(page: Page): Promise<string> {
+  return await page.evaluate(() => window.getSelection()?.toString() ?? "")
 }
 
 // The API a slot of the edit form posts a change to.
@@ -1128,6 +1455,13 @@ export function filterValue(page: Page, kind: "ref" | "has", props: Array<string
   return page.locator(`[id="${[kind, ...props, value].join("/")}"]`)
 }
 
+// The checkbox of one property of the has facet on the document itself. That facet filters on no property
+// path of its own, so the id its checkboxes carry has an empty path segment in the middle, which is what a
+// path of a single empty string produces.
+export function hasValue(page: Page, propertyId: string): Locator {
+  return filterValue(page, "has", [""], propertyId)
+}
+
 // Runs an action which changes the search from inside the result page, and waits until what the page shows
 // is the result of the changed search.
 //
@@ -1172,6 +1506,23 @@ export async function openSortDialog(page: Page): Promise<void> {
   await expect(page.locator(".pd-searchsortdialog-panel")).toBeVisible()
 }
 
+// The checkbox which groups the results by the given column. It is offered only for a reference column
+// which every column before it is also grouped by, so that the grouped columns stay the leading ones.
+export function groupCheckbox(page: Page, column: string): Locator {
+  return sortColumn(page, column).locator(".pd-searchsortdialog-checkbox-group")
+}
+
+// The checkbox which renders each of the given column's group values as a full result card instead of a
+// one-line heading. It is offered only while the column is grouped by.
+export function expandCheckbox(page: Page, column: string): Locator {
+  return sortColumn(page, column).locator(".pd-searchsortdialog-checkbox-expand")
+}
+
+// The sort order entry for the given column, from which its buttons are reached.
+export function sortColumn(page: Page, column: string): Locator {
+  return page.locator(`.pd-searchsortdialog-item-sort-${column}`)
+}
+
 // What a request made from inside the page reports back about the response it got.
 export interface FetchedResponse {
   status: number
@@ -1202,4 +1553,105 @@ export async function fetchFromPage(page: Page, path: string): Promise<FetchedRe
       length: buffer.byteLength,
     }
   }, path)
+}
+
+// The bounds and the counts the API reports next to a facet's histogram, read from the response the facet
+// itself loaded: it publishes the very URL it fetched, so the numbers are the ones it is rendering rather
+// than ones from a separately built request. The server sends them in a header next to the buckets, as
+// "exists=44, from="0.5", missing=1377, ...".
+//
+// Assertions are written against these rather than against the numbers of the test data wherever the rule
+// the view follows is what matters, so that a document another test adds cannot make this file fail.
+export async function facetMetadata(page: Page, facet: Locator): Promise<Record<string, number>> {
+  const url = await facet.getAttribute("data-url")
+  expect(url, "the facet publishes the URL it loaded its values from").toBeTruthy()
+  const response = await fetchFromPage(page, url!)
+  expect(response.status, "the request the facet made is answered").toBe(200)
+  const metadata = response.headers["metadata"]
+  expect(metadata, "the answer carries the bounds and counts of the facet").toBeTruthy()
+  const values: Record<string, number> = {}
+  for (const part of metadata.split(",")) {
+    const match = /^\s*([a-z_]+)="?(-?[0-9.]+(?:[eE][-+]?[0-9]+)?)"?\s*$/.exec(part)
+    if (match) {
+      values[match[1]] = Number(match[2])
+    }
+  }
+  return values
+}
+
+// Asserts that the file the given link points at is served whole, so that the attachment is reachable from
+// the saved document and not just referenced by it. The size is compared against the file on disk, which is
+// what says the whole file came back and not only its first bytes.
+export async function expectAttachmentServed(page: Page, link: Locator, path: string, what: string): Promise<void> {
+  await expect(link, `link to the attachment of ${what}`).toBeVisible()
+  const href = await link.getAttribute("href")
+  expect(href, `address of the attachment of ${what}`).toMatch(/^\/f\/[0-9A-Za-z]+$/)
+
+  const response = await fetchFromPage(page, href!)
+  expect(response.status, `status of the attachment of ${what}`).toBe(200)
+  expect(response.length, `size of the attachment of ${what}`).toBe(statSync(path).size)
+  expect(response.headers["content-disposition"], `filename the attachment of ${what} is served under`).toContain(basename(path))
+}
+
+// Holds every upload the page starts at its first request, until the returned release function is called.
+// An upload of a small file is over before a screenshot of it can be taken, so the states which exist only
+// while it is running (the progress bar, the cancel button) are reachable only by making the upload wait.
+export async function holdUploads(page: Page): Promise<() => Promise<void>> {
+  let held = true
+  await page.route(BEGIN_UPLOAD_URL, async (route) => {
+    while (held) {
+      await new Promise((resolve) => setTimeout(resolve, 50))
+    }
+    // The browser drops the request when the upload is cancelled while it is held here, and continuing a
+    // request which the browser no longer waits for throws, which is the expected outcome then.
+    await route.continue().catch(() => null)
+  })
+  return async () => {
+    held = false
+    // Waits for the handler above to finish, so a route is never removed while it is still held.
+    await page.unrouteAll({ behavior: "ignoreErrors" })
+  }
+}
+
+// The request every upload starts with. Holding it is how a test freezes an upload in flight.
+export const BEGIN_UPLOAD_URL = "**/api/f/beginUpload"
+
+// The downloadOverlay a download shows while it runs. It closes itself once the download is over.
+export function downloadOverlay(page: Page) {
+  return page.locator(".pd-downloadoverlay-dialog")
+}
+
+// Holds back part of the traffic a bulk download makes, so that the overlay can be screenshotted in a state
+// which stays put while the screenshot is taken: without this the progress runs to the end and the overlay
+// closes itself before a stable screenshot of it exists. Every request for a file goes through here. The
+// metadata requests (HEAD, one per attachment, which the download makes while it collects the files to
+// download) are held while the preparation progress is screenshotted, and the content request (GET) of the
+// last attachment is held while the final progress is screenshotted. Neither changes what is downloaded.
+export async function holdFileRequests(page: Page, attachments: number, metadata: RequestGate, lastContent: RequestGate): Promise<void> {
+  let contentRequests = 0
+  await page.route("**/f/*", async (route) => {
+    if (route.request().method() === "HEAD") {
+      await metadata.wait
+    } else {
+      contentRequests += 1
+      if (contentRequests === attachments) {
+        await lastContent.wait
+      }
+    }
+    await route.continue()
+  })
+}
+
+export function requestGate(): RequestGate {
+  let open!: () => void
+  const wait = new Promise<void>((resolve) => {
+    open = resolve
+  })
+  return { open, wait }
+}
+
+// A promise which a request handler waits on and the test opens when it wants the request to go through.
+export interface RequestGate {
+  open: () => void
+  wait: Promise<void>
 }

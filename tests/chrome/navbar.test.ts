@@ -4,6 +4,7 @@ import { CLASS_IDS, LANGUAGES, PROPERTY_IDS } from "../peerdb_utils"
 import {
   checkpoint,
   checkpointElement,
+  clickIntoSearch,
   expect,
   expectDocument,
   expectResults,
@@ -24,18 +25,6 @@ import {
 // The class the navbar tests search by. Individuals are numerous enough for the results to fill the feed
 // and for walking them with the previous and next buttons to have somewhere to go.
 const SEARCH_CLASS = CLASS_IDS.INDIVIDUAL
-
-// Clicks a navbar element which starts or updates a search session and waits until the new session has
-// rendered. Every such click ends in a session of its own, so waiting for the location to change is what
-// tells the old results from the new ones.
-async function clickIntoSearch(page: Page, selector: string): Promise<void> {
-  const element = page.locator(selector)
-  await expect(element).toBeVisible()
-  const before = page.url()
-  await element.click()
-  await page.waitForFunction((url) => window.location.href !== url, before)
-  await expectResults(page)
-}
 
 // Opens a search of one class through the search shortcut route, which is the shortest way to a results
 // page whose navbar the tests below then look at.

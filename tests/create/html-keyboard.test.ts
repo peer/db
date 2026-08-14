@@ -1,14 +1,25 @@
 import type { Locator, Page } from "@playwright/test"
 
-import { createNamed, documentIdOf, PROPERTY_IDS } from "../peerdb_utils"
+import { createNamed, documentIdOf, notesSlot, PROPERTY_IDS } from "../peerdb_utils"
 import {
+  activateHtmlToolbarButton,
   checkpoint,
   checkpointElement,
   expect,
-  fieldSlots,
+  expectHtmlEditorValue,
   hideDuplicates,
+  htmlEditorContent,
+  htmlEditorValue,
+  htmlFocusedButton,
+  htmlTabbableButton,
+  htmlToolbar,
+  htmlToolbarButton,
+  type HtmlToolbarButtonState,
+  htmlToolbarState,
   LOADING_TIMEOUT,
+  pressHtmlToolbarKey,
   saveEdit,
+  selectedText,
   settleDocument,
   settleFormFocus,
   signIn,
@@ -77,27 +88,51 @@ const ENABLED_BUTTONS = [
 // walks the enabled ones also states which ones it expects to be skipped.
 const DISABLED_BUTTONS = ["undo", "redo", "outdent", "indent"]
 
-// The slot of the notes field which holds the editor every test drives. The notes may be stated more
-// than once, so the field grows a second editor as soon as the first one holds something, and
-// everything below is addressed inside the first slot rather than inside the whole field.
-function notesSlot(page: Page): Locator {
-  return fieldSlots(page, PROPERTY_IDS.NOTES).first()
-}
+// Everything below addresses the one rich text editor of the form, which is the notes field. The logic is
+// shared with the other applications built on PeerDB (utils.ts); what is local is only which part of the
+// form holds the editor.
 
 // The toolbar of the rich text editor of the notes field.
 function toolbar(page: Page): Locator {
-  return notesSlot(page).locator(".pd-inputhtml-toolbar")
+  return htmlToolbar(notesSlot(page))
 }
 
 // One toolbar button, addressed by the part of its class name which says what it does.
 function toolbarButton(page: Page, name: string): Locator {
-  return toolbar(page).locator(`.pd-inputhtml-button-${name}`)
+  return htmlToolbarButton(notesSlot(page), name)
 }
 
-// The element ProseMirror makes editable inside the mount point of the editor. The mount point itself is
-// not focusable and holds no text, so everything about focus and about the value is asserted on this one.
+// The element ProseMirror makes editable inside the mount point of the editor.
 function editorContent(page: Page): Locator {
-  return notesSlot(page).locator('.pd-inputhtml-editor [contenteditable="true"]').first()
+  return htmlEditorContent(notesSlot(page))
+}
+
+async function toolbarState(page: Page): Promise<Array<HtmlToolbarButtonState>> {
+  return await htmlToolbarState(notesSlot(page))
+}
+
+async function tabbableButton(page: Page): Promise<string> {
+  return await htmlTabbableButton(notesSlot(page))
+}
+
+async function focusedButton(page: Page): Promise<string> {
+  return await htmlFocusedButton(notesSlot(page))
+}
+
+async function pressToolbarKey(page: Page, key: string, expected: string): Promise<void> {
+  await pressHtmlToolbarKey(page, notesSlot(page), key, expected)
+}
+
+async function activateToolbarButton(page: Page, name: string): Promise<void> {
+  await activateHtmlToolbarButton(page, notesSlot(page), name)
+}
+
+async function editorHtml(page: Page): Promise<string> {
+  return await htmlEditorValue(notesSlot(page))
+}
+
+async function expectEditorHtml(page: Page, expected: string, message: string): Promise<void> {
+  await expectHtmlEditorValue(notesSlot(page), expected, message)
 }
 
 // The form at the bottom of the editor which takes the address of a link or the source of a quotation.
@@ -161,86 +196,6 @@ async function focusInfo(page: Page): Promise<FocusInfo> {
       editable: active.getAttribute("contenteditable") === "true",
     }
   })
-}
-
-// One entry per button of the toolbar, in the order the toolbar renders them, with everything the roving
-// tabindex pattern is defined in terms of.
-interface ToolbarButtonState {
-  name: string
-  disabled: boolean
-  tabIndex: number
-  focused: boolean
-}
-
-async function toolbarState(page: Page): Promise<Array<ToolbarButtonState>> {
-  return await toolbar(page)
-    .locator("button")
-    .evaluateAll((buttons) =>
-      buttons.map((button) => ({
-        name:
-          Array.from(button.classList)
-            .find((name) => name.startsWith("pd-inputhtml-button-"))
-            ?.replace("pd-inputhtml-button-", "") ?? "",
-        disabled: (button as HTMLButtonElement).disabled,
-        tabIndex: (button as HTMLButtonElement).tabIndex,
-        focused: button === document.activeElement,
-      })),
-    )
-}
-
-// The button the toolbar currently offers as its single tab stop, which is the whole point of the roving
-// tabindex: one Tab reaches the toolbar and the next one leaves it, however many buttons it holds.
-async function tabbableButton(page: Page): Promise<string> {
-  const tabbable = (await toolbarState(page)).filter((button) => button.tabIndex === 0)
-  expect(
-    tabbable.map((button) => button.name),
-    "exactly one button of the toolbar is a tab stop",
-  ).toHaveLength(1)
-  return tabbable[0].name
-}
-
-// The name of the toolbar button which is focused, or the empty string when focus is elsewhere.
-async function focusedButton(page: Page): Promise<string> {
-  const focused = (await toolbarState(page)).filter((button) => button.focused)
-  return focused.length === 1 ? focused[0].name : ""
-}
-
-// Moves focus with an arrow key of the toolbar and asserts where it lands: the button has to be both the
-// focused one and the one the toolbar offers as its tab stop, because the two are kept in step by the
-// focusin handler and a button which is focused but not tabbable would strand the next Tab.
-async function pressToolbarKey(page: Page, key: string, expected: string): Promise<void> {
-  await page.keyboard.press(key)
-  await expect.poll(() => focusedButton(page), { message: `${key} moves focus to the ${expected} button` }).toBe(expected)
-  expect(await tabbableButton(page), `${key} makes the ${expected} button the tab stop of the toolbar`).toBe(expected)
-}
-
-// Activates a toolbar button from the keyboard rather than with a click, which is how the command it
-// stands for is reached without a pointer. Focusing the button also makes it the tab stop of the
-// toolbar, which is what the roving tabindex is for.
-async function activateToolbarButton(page: Page, name: string): Promise<void> {
-  const button = toolbarButton(page, name)
-  await expect(button, `${name} button`).toBeEnabled()
-  await button.focus()
-  await page.keyboard.press("Enter")
-}
-
-// The HTML of the value being edited, as the editor holds it. The editor writes the claim from this, so
-// a command which changed this changed the value.
-async function editorHtml(page: Page): Promise<string> {
-  return await editorContent(page).innerHTML()
-}
-
-// Waits until the value being edited holds the given HTML. A key press is delivered to the page and
-// handled there, so what it did is not in the DOM the moment the press returns.
-async function expectEditorHtml(page: Page, expected: string, message: string): Promise<void> {
-  await expect.poll(() => editorHtml(page), { message }).toContain(expected)
-}
-
-// The text the browser has selected, which is what a mark shortcut applies to. A shortcut pressed while
-// the selection is still collapsed only arms the mark for what is typed next and leaves the value alone,
-// so a test which applies a mark to existing text waits for the selection before pressing the shortcut.
-async function selectedText(page: Page): Promise<string> {
-  return await page.evaluate(() => window.getSelection()?.toString() ?? "")
 }
 
 // Selects the line the cursor is on, which is what the buttons which wrap a selection (the marks and the

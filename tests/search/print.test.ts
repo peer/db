@@ -1,7 +1,22 @@
-import type { Locator, Page } from "@playwright/test"
+import type { Page } from "@playwright/test"
 
 import { documentIdOf, PROPERTY_IDS, searchByClass } from "../peerdb_utils"
-import { checkpoint, expect, expectResults, LOADING_TIMEOUT, openSortDialog, PEERDB_URL, resultCount, searchAgain, settle, settleFilters, test, volatile } from "../utils"
+import {
+  checkpoint,
+  expect,
+  expectResults,
+  LOADING_TIMEOUT,
+  openSortDialog,
+  PEERDB_URL,
+  printVolatile,
+  resultCount,
+  searchAgain,
+  settle,
+  settleFilters,
+  sortColumn,
+  test,
+  volatile,
+} from "../utils"
 
 // The document the search of the referencing documents is run from. A culture is referenced by everything
 // the culture leaves behind and by everyone who belongs to it, so the search has enough results for the
@@ -19,12 +34,6 @@ const WORLD_TYPE_COLUMN = `ref-${PROPERTY_IDS.HAS_PLANET_TYPE}`
 // such a state would differ for a reason which is not a regression. Those states are captured as the viewport
 // shows them; a state in which every result is revealed is captured whole.
 const VIEWPORT_ONLY = { fullPage: false }
-
-// The print view shows a timestamp which ticks every second, so it never looks the same twice and has to be
-// masked together with the rest of the volatile content.
-function printVolatile(page: Page): Array<Locator> {
-  return [...volatile(page), page.locator(".pd-searchresultsfeed-timestamp")]
-}
 
 // Opens the print view, an in-app preview of how the results print. It hides the interactive chrome (the
 // toolbar and the filters column) and shows the printed layout instead: the filter summary, a timestamp, and
@@ -62,11 +71,6 @@ async function showAllResults(page: Page): Promise<void> {
     await expect(loadAll, "nothing is left to reveal").toBeHidden()
   }
   await settle(page)
-}
-
-// The sort order entry for the given column, from which its checkboxes are reached.
-function sortColumn(page: Page, column: string): Locator {
-  return page.locator(`.pd-searchsortdialog-item-sort-${column}`)
 }
 
 // Groups the results by the given reference column and renders each group value as a full result card instead

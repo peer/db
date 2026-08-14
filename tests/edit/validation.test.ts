@@ -1,8 +1,8 @@
 import type { Locator, Page } from "@playwright/test"
 
-import type { EntityClass, Role } from "../peerdb_utils"
+import type { EntityClass } from "../peerdb_utils"
 
-import { PROPERTY_IDS, ROLE_CREATES, ROLES, startCreate } from "../peerdb_utils"
+import { PROPERTY_IDS, roleWhichCreates, startCreate } from "../peerdb_utils"
 import {
   checkpoint,
   checkpointElement,
@@ -10,16 +10,18 @@ import {
   expect,
   fetchFromPage,
   field,
+  fieldErrors,
   fieldInput,
   hideDuplicates,
   LOADING_TIMEOUT,
+  pressSave,
   saveEdit,
   settleEdit,
   signIn,
   startEdit,
   switchLanguage,
   test,
-  volatile,
+  volatileSelect,
 } from "../utils"
 
 // Every test here works on a researcher it creates itself. That class carries one field of each kind
@@ -47,32 +49,7 @@ const INVALID_DATE_MESSAGE = "Months need to be between 0-12."
 const INVALID_VALUE_MESSAGE = "Invalid value."
 const UNFINISHED_VALUE_MESSAGE = "Unfinished value."
 
-// The role a test signs in with: the one the site grants creating the worked-on class to. It is looked
-// up rather than written out so that the tests follow the same table the site is configured by.
-function roleWhichCreates(entityClass: EntityClass): Role {
-  const role = ROLES.find((r) => ROLE_CREATES[r]?.includes(entityClass))
-  if (role === undefined) {
-    throw new Error(`no role may create ${entityClass}`)
-  }
-  return role
-}
-
 const ROLE = roleWhichCreates(RESEARCHER_CLASS)
-
-// The parts of a view which do not look the same on every run, and which every checkpoint therefore
-// masks. Next to the times the shared helper masks, a reference field whose candidates all fit is
-// rendered as a list of options which comes from a search of the index, and the order in which a search
-// returns the documents a filter alone matches is not stable while the suite is writing documents, so
-// such a list is masked rather than compared.
-function unstable(page: Page): Array<Locator> {
-  return [...volatile(page), page.locator(".pd-claimrefselect-list")]
-}
-
-// The complaint the form shows on the given field. Every value slot renders the error of the input
-// inside it, so a field which nothing is wrong with matches no element at all.
-function fieldError(page: Page, propertyId: string): Locator {
-  return field(page, propertyId).locator(".pd-inputfield-error")
-}
 
 // One bound of the interval field, which renders its two bounds as rows of its own.
 function intervalBound(page: Page, propertyId: string, bound: "from" | "to"): Locator {
@@ -97,18 +74,6 @@ async function storedClaim(page: Page, id: string, kind: string, propertyId: str
   const claims = (document.claims[kind] ?? []).filter((claim) => (claim.prop as { id: string } | undefined)?.id === propertyId)
   expect(claims.length, `the stored document ${id} states one ${kind} claim on ${propertyId}`).toBe(1)
   return claims[0]
-}
-
-// Presses save on the open editing session without waiting for the session to end, which is what a test
-// of a save which is refused needs. Focus is moved onto the discard button next to save first, the way
-// saveEdit does it, so that the value typed last is offered to the session before the save runs.
-async function pressSave(page: Page): Promise<void> {
-  const discardButton = page.locator("#documentedit-button-discard")
-  await expect(discardButton, "discard button").toBeVisible()
-  await discardButton.focus()
-  const saveButton = page.locator("#documentedit-button-save")
-  await expect(saveButton, "save button").toBeEnabled()
-  await saveButton.click()
 }
 
 // Asserts that the save was refused and left the editing session as it was: the browser is still in the
@@ -195,19 +160,19 @@ test.describe("PeerDB Edit Validation Flows", () => {
     await expect(websiteInput, "website input holds the invalid link").toHaveValue(INVALID_URL)
     // Nothing is said while the value is being typed: the input complains once it is left, or once a
     // save asks every input of the form whether it is happy with what it holds.
-    await expect(fieldError(page, PROPERTY_IDS.WEBSITE), "complaint about the website before the save").toHaveCount(0)
-    await checkpointElement(page, field(page, PROPERTY_IDS.WEBSITE), "edit-validation-link-typed", unstable(page))
+    await expect(fieldErrors(page, PROPERTY_IDS.WEBSITE), "complaint about the website before the save").toHaveCount(0)
+    await checkpointElement(page, field(page, PROPERTY_IDS.WEBSITE), "edit-validation-link-typed", volatileSelect(page))
 
     await pressSave(page)
 
-    await expect(fieldError(page, PROPERTY_IDS.WEBSITE), "complaint about the website after the refused save").toHaveText(INVALID_VALUE_MESSAGE)
+    await expect(fieldErrors(page, PROPERTY_IDS.WEBSITE), "complaint about the website after the refused save").toHaveText(INVALID_VALUE_MESSAGE)
     await expect(websiteInput, "website input is marked as invalid").toHaveAttribute("aria-invalid", "true")
     // The save puts the caret back into the input it stumbled over, so the user does not have to look
     // for it (focusFirstInvalid in DocumentEdit.onSave).
     await expect(websiteInput, "website input takes the focus").toBeFocused()
     await expect(websiteInput, "the invalid link stays in the form").toHaveValue(INVALID_URL)
     await expectSaveRefused(page, editUrl)
-    await checkpoint(page, "edit-validation-link-refused", { mask: unstable(page) })
+    await checkpoint(page, "edit-validation-link-refused", { mask: volatileSelect(page) })
 
     // A refused save flushes nothing, so the stored document is exactly what it was.
     const refused = await storedDocument(page, id)
@@ -219,13 +184,13 @@ test.describe("PeerDB Edit Validation Flows", () => {
     await websiteInput.fill(corrected)
     await websiteInput.blur()
     await expect(websiteInput, "website input holds the corrected link").toHaveValue(corrected)
-    await expect(fieldError(page, PROPERTY_IDS.WEBSITE), "complaint about the corrected website").toHaveCount(0)
+    await expect(fieldErrors(page, PROPERTY_IDS.WEBSITE), "complaint about the corrected website").toHaveCount(0)
     await expect(websiteInput, "website input is no longer marked as invalid").not.toHaveAttribute("aria-invalid", "true")
-    await checkpointElement(page, field(page, PROPERTY_IDS.WEBSITE), "edit-validation-link-corrected", unstable(page))
+    await checkpointElement(page, field(page, PROPERTY_IDS.WEBSITE), "edit-validation-link-corrected", volatileSelect(page))
 
     await saveEdit(page)
     await expect(page.locator(".pd-claimvaluelink").first(), "link shown on the saved researcher").toHaveText(corrected)
-    await checkpoint(page, "edit-validation-link-saved", { mask: unstable(page) })
+    await checkpoint(page, "edit-validation-link-saved", { mask: volatileSelect(page) })
 
     const saved = await storedDocument(page, id)
     expect(saved, "the corrected link is stored").toContain(corrected)
@@ -253,19 +218,19 @@ test.describe("PeerDB Edit Validation Flows", () => {
     await expect(bornInput, "year of birth input holds the date of the created researcher").toHaveValue(born)
     await bornInput.fill(INVALID_DATE)
     await expect(bornInput, "year of birth input holds the impossible date").toHaveValue(INVALID_DATE)
-    await expect(fieldError(page, PROPERTY_IDS.BORN), "complaint about the year of birth before the save").toHaveCount(0)
-    await checkpointElement(page, field(page, PROPERTY_IDS.BORN), "edit-validation-time-typed", unstable(page))
+    await expect(fieldErrors(page, PROPERTY_IDS.BORN), "complaint about the year of birth before the save").toHaveCount(0)
+    await checkpointElement(page, field(page, PROPERTY_IDS.BORN), "edit-validation-time-typed", volatileSelect(page))
 
     await pressSave(page)
 
     // A time says what exactly is wrong with it rather than only that it is invalid, and the month is
     // what it checks first, so the day being impossible too is not what it reports.
-    await expect(fieldError(page, PROPERTY_IDS.BORN), "complaint about the year of birth after the refused save").toHaveText(INVALID_DATE_MESSAGE)
+    await expect(fieldErrors(page, PROPERTY_IDS.BORN), "complaint about the year of birth after the refused save").toHaveText(INVALID_DATE_MESSAGE)
     await expect(bornInput, "year of birth input is marked as invalid").toHaveAttribute("aria-invalid", "true")
     await expect(bornInput, "year of birth input takes the focus").toBeFocused()
     await expect(bornInput, "the impossible date stays in the form").toHaveValue(INVALID_DATE)
     await expectSaveRefused(page, editUrl)
-    await checkpoint(page, "edit-validation-time-refused", { mask: unstable(page) })
+    await checkpoint(page, "edit-validation-time-refused", { mask: volatileSelect(page) })
 
     const refused = await storedDocument(page, id)
     expect(refused, "the refused save leaves the stored date of birth alone").toContain(born)
@@ -274,15 +239,15 @@ test.describe("PeerDB Edit Validation Flows", () => {
     await bornInput.fill(corrected)
     await bornInput.blur()
     await expect(bornInput, "year of birth input holds the corrected date").toHaveValue(corrected)
-    await expect(fieldError(page, PROPERTY_IDS.BORN), "complaint about the corrected year of birth").toHaveCount(0)
+    await expect(fieldErrors(page, PROPERTY_IDS.BORN), "complaint about the corrected year of birth").toHaveCount(0)
     // A date is read for how precise it is, and a full date is precise to the day, which is what the
     // precision next to the input says once the value parses again.
     await expect(fieldInput(page, PROPERTY_IDS.BORN, ".pd-inputtime-precision"), "precision of the corrected year of birth").toHaveText("days")
-    await checkpointElement(page, field(page, PROPERTY_IDS.BORN), "edit-validation-time-corrected", unstable(page))
+    await checkpointElement(page, field(page, PROPERTY_IDS.BORN), "edit-validation-time-corrected", volatileSelect(page))
 
     await saveEdit(page)
     await expect(page.locator(".pd-claimvaluetime").first(), "time shown on the saved researcher").toContainText("1980")
-    await checkpoint(page, "edit-validation-time-saved", { mask: unstable(page) })
+    await checkpoint(page, "edit-validation-time-saved", { mask: volatileSelect(page) })
 
     const saved = await storedDocument(page, id)
     expect(saved, "the corrected date of birth is stored").toContain(corrected)
@@ -321,18 +286,18 @@ test.describe("PeerDB Edit Validation Flows", () => {
     await websiteInput.fill(INVALID_URL)
     await expect(bornInput, "year of birth input holds the impossible date").toHaveValue(INVALID_DATE)
     await expect(websiteInput, "website input holds the invalid link").toHaveValue(INVALID_URL)
-    await expect(fieldError(page, PROPERTY_IDS.BORN), "complaint about the year of birth which was left").toHaveText(INVALID_DATE_MESSAGE)
-    await expect(fieldError(page, PROPERTY_IDS.WEBSITE), "complaint about the website which still has the focus").toHaveCount(0)
+    await expect(fieldErrors(page, PROPERTY_IDS.BORN), "complaint about the year of birth which was left").toHaveText(INVALID_DATE_MESSAGE)
+    await expect(fieldErrors(page, PROPERTY_IDS.WEBSITE), "complaint about the website which still has the focus").toHaveCount(0)
 
     await pressSave(page)
 
     // Both fields say what is wrong with them, and the caret goes to the first of them in the form,
     // which is the year of birth: the class puts it above the website.
-    await expect(fieldError(page, PROPERTY_IDS.BORN), "complaint about the year of birth").toHaveText(INVALID_DATE_MESSAGE)
-    await expect(fieldError(page, PROPERTY_IDS.WEBSITE), "complaint about the website").toHaveText(INVALID_VALUE_MESSAGE)
+    await expect(fieldErrors(page, PROPERTY_IDS.BORN), "complaint about the year of birth").toHaveText(INVALID_DATE_MESSAGE)
+    await expect(fieldErrors(page, PROPERTY_IDS.WEBSITE), "complaint about the website").toHaveText(INVALID_VALUE_MESSAGE)
     await expect(bornInput, "the first invalid field takes the focus").toBeFocused()
     await expectSaveRefused(page, editUrl)
-    await checkpoint(page, "edit-validation-order-both-refused", { mask: unstable(page) })
+    await checkpoint(page, "edit-validation-order-both-refused", { mask: volatileSelect(page) })
 
     const refusedBoth = await storedDocument(page, id)
     expect(refusedBoth, "the refused save leaves the stored date of birth alone").toContain(born)
@@ -343,11 +308,11 @@ test.describe("PeerDB Edit Validation Flows", () => {
     await bornInput.fill(correctedBorn)
     await pressSave(page)
 
-    await expect(fieldError(page, PROPERTY_IDS.BORN), "complaint about the corrected year of birth").toHaveCount(0)
-    await expect(fieldError(page, PROPERTY_IDS.WEBSITE), "complaint about the website which is still invalid").toHaveText(INVALID_VALUE_MESSAGE)
+    await expect(fieldErrors(page, PROPERTY_IDS.BORN), "complaint about the corrected year of birth").toHaveCount(0)
+    await expect(fieldErrors(page, PROPERTY_IDS.WEBSITE), "complaint about the website which is still invalid").toHaveText(INVALID_VALUE_MESSAGE)
     await expect(websiteInput, "the field which is still invalid takes the focus").toBeFocused()
     await expectSaveRefused(page, editUrl)
-    await checkpointElement(page, field(page, PROPERTY_IDS.WEBSITE), "edit-validation-order-second-refused", unstable(page))
+    await checkpointElement(page, field(page, PROPERTY_IDS.WEBSITE), "edit-validation-order-second-refused", volatileSelect(page))
 
     // The corrected date of birth was committed into the session by the save which was refused over the
     // website, but a refused save flushes nothing, so the stored document still holds the old date.
@@ -355,11 +320,11 @@ test.describe("PeerDB Edit Validation Flows", () => {
 
     await websiteInput.fill(correctedWebsite)
     await websiteInput.blur()
-    await expect(fieldError(page, PROPERTY_IDS.WEBSITE), "complaint about the corrected website").toHaveCount(0)
+    await expect(fieldErrors(page, PROPERTY_IDS.WEBSITE), "complaint about the corrected website").toHaveCount(0)
 
     await saveEdit(page)
     await expect(page.locator(".pd-claimvaluelink").first(), "link shown on the saved researcher").toHaveText(correctedWebsite)
-    await checkpoint(page, "edit-validation-order-saved", { mask: unstable(page) })
+    await checkpoint(page, "edit-validation-order-saved", { mask: volatileSelect(page) })
 
     const saved = await storedDocument(page, id)
     expect(saved, "the corrected date of birth is stored").toContain(correctedBorn)
@@ -406,16 +371,16 @@ test.describe("PeerDB Edit Validation Flows", () => {
     // Leaving the input without picking anything says nothing yet: what was typed may still become a
     // reference, so the complaint waits for the save.
     await referenceInput.blur()
-    await expect(fieldError(page, PROPERTY_IDS.SPECIALISES_IN), "complaint about the unfinished reference before the save").toHaveCount(0)
+    await expect(fieldErrors(page, PROPERTY_IDS.SPECIALISES_IN), "complaint about the unfinished reference before the save").toHaveCount(0)
 
     await pressSave(page)
 
-    await expect(fieldError(page, PROPERTY_IDS.SPECIALISES_IN), "complaint about the reference which was never picked").toHaveText(UNFINISHED_VALUE_MESSAGE)
+    await expect(fieldErrors(page, PROPERTY_IDS.SPECIALISES_IN), "complaint about the reference which was never picked").toHaveText(UNFINISHED_VALUE_MESSAGE)
     await expect(referenceInput, "reference input is marked as invalid").toHaveAttribute("aria-invalid", "true")
     await expect(referenceInput, "reference input takes the focus").toBeFocused()
     await expect(referenceInput, "the typed query stays in the form").toHaveValue(query)
     await expectSaveRefused(page, editUrl)
-    await checkpointElement(page, specialisation, "edit-validation-reference-refused", unstable(page))
+    await checkpointElement(page, specialisation, "edit-validation-reference-refused", volatileSelect(page))
 
     // The refused save flushes nothing at all, the change which is not complained about included.
     expect(await storedDocument(page, id), "the refused save stores neither the reference nor the website next to it").not.toContain(website)
@@ -423,7 +388,7 @@ test.describe("PeerDB Edit Validation Flows", () => {
     // Editing the query is enough to clear the complaint: what is typed now may resolve into a document,
     // so the form stops saying it will not.
     await referenceInput.fill(`${query}r`)
-    await expect(fieldError(page, PROPERTY_IDS.SPECIALISES_IN), "complaint about the reference once the query is edited").toHaveCount(0)
+    await expect(fieldErrors(page, PROPERTY_IDS.SPECIALISES_IN), "complaint about the reference once the query is edited").toHaveCount(0)
     await expect(referenceInput, "reference input is no longer marked as invalid").not.toHaveAttribute("aria-invalid", "true")
 
     // Picking one of the offered documents is what the field asks for, and the save then goes through.
@@ -431,7 +396,7 @@ test.describe("PeerDB Edit Validation Flows", () => {
     await expect(picked, "the results the edited query offers").toBeVisible({ timeout: LOADING_TIMEOUT })
     await picked.click()
     await expect(specialisation.locator(".pd-inputref-value").first(), "the picked reference").toBeVisible()
-    await checkpointElement(page, specialisation, "edit-validation-reference-picked", unstable(page))
+    await checkpointElement(page, specialisation, "edit-validation-reference-picked", volatileSelect(page))
 
     await saveEdit(page)
     await expect(page.locator(".pd-claimvalueref").first(), "reference shown on the saved researcher").toBeVisible()
@@ -476,7 +441,7 @@ test.describe("PeerDB Edit Validation Flows", () => {
       timeout: LOADING_TIMEOUT,
     })
     await expect(toInput, "the upper bound cannot be typed into while it is marked as unknown").toHaveAttribute("readonly", "")
-    await checkpointElement(page, period, "edit-validation-interval-half", unstable(page))
+    await checkpointElement(page, period, "edit-validation-interval-half", volatileSelect(page))
 
     // Taking the mark off is what makes room for a value, and the two of them must not end up on the
     // claim together.
@@ -485,14 +450,14 @@ test.describe("PeerDB Edit Validation Flows", () => {
     await toInput.fill(to)
     await toInput.blur()
     await expect(toInput, "the upper bound holds the entered date").toHaveValue(to)
-    await checkpointElement(page, period, "edit-validation-interval-both", unstable(page))
+    await checkpointElement(page, period, "edit-validation-interval-both", volatileSelect(page))
 
     await saveEdit(page)
     const both = await storedClaim(page, id, "timeInterval", PROPERTY_IDS.ACTIVE_PERIOD)
     expect(both.from, "the lower bound of the stored period").toBe(from)
     expect(both.to, "the upper bound of the stored period").toBe(to)
     expect("toIsUnknown" in both, "the stored period keeps no unknown mark on the bound which was given a value").toBe(false)
-    await checkpoint(page, "edit-validation-interval-saved", { mask: unstable(page) })
+    await checkpoint(page, "edit-validation-interval-saved", { mask: volatileSelect(page) })
 
     // The other way round: a bound which is marked as having no value at all stores the mark and no value.
     await editDocument(page)
@@ -513,7 +478,7 @@ test.describe("PeerDB Edit Validation Flows", () => {
     await markedFrom.locator(".pd-inputtime-input-time").fill(laterFrom)
     await markedFrom.locator(".pd-inputtime-input-time").blur()
     await settleEdit(page)
-    await checkpointElement(page, field(page, PROPERTY_IDS.ACTIVE_PERIOD), "edit-validation-interval-unmarked", unstable(page))
+    await checkpointElement(page, field(page, PROPERTY_IDS.ACTIVE_PERIOD), "edit-validation-interval-unmarked", volatileSelect(page))
     await saveEdit(page)
 
     const unmarked = await storedClaim(page, id, "timeInterval", PROPERTY_IDS.ACTIVE_PERIOD)

@@ -1,7 +1,22 @@
 import type { Locator, Page } from "@playwright/test"
 
 import { PROPERTY_IDS, searchByClass, searchByCoreClass } from "../peerdb_utils"
-import { checkpoint, expect, loadAllResults, LOADING_TIMEOUT, openSortDialog, PEERDB_URL, resultCount, resultIds, settle, settleFilters, test, volatile } from "../utils"
+import {
+  checkpoint,
+  expect,
+  loadAllResults,
+  LOADING_TIMEOUT,
+  loadMoreButton,
+  openSortDialog,
+  PEERDB_URL,
+  resultCount,
+  resultIds,
+  searchResults,
+  settle,
+  settleFilters,
+  test,
+  volatile,
+} from "../utils"
 
 // The class the results feed is paged through. It needs clearly more documents than the feed renders at
 // once, its documents have to be small enough that a screenshot of all of them is worth comparing, and no
@@ -41,16 +56,6 @@ function pagerRowsFor(shown: number): number {
   return Math.floor((shown - 1) / PAGE_SIZE)
 }
 
-// The result cards the feed currently renders, which is the same set resultIds reads its identifiers from,
-// so a count taken here and a list of identifiers describe the same results.
-function results(page: Page): Locator {
-  return page.locator(".pd-searchresult")
-}
-
-function loadMoreButton(page: Page): Locator {
-  return page.locator("#searchresultsfeed-button-loadmore")
-}
-
 // The numbers a pager row or the end bar reports: how far down the results the row sits and how many results
 // there are. The sentence around them is written in the language of the page and its numbers are grouped for
 // the locale, so the digit runs are read out of it rather than the sentence being matched.
@@ -70,9 +75,9 @@ async function reportedNumbers(row: Locator): Promise<Array<number>> {
 async function loadNextPage(page: Page): Promise<void> {
   const loadMore = loadMoreButton(page)
   await expect(loadMore, "the feed offers to load more results").toBeVisible()
-  const shown = await results(page).count()
+  const shown = await searchResults(page).count()
   await loadMore.dispatchEvent("click")
-  await expect.poll(() => results(page).count(), { message: "the feed adds results when more are asked for" }).toBeGreaterThan(shown)
+  await expect.poll(() => searchResults(page).count(), { message: "the feed adds results when more are asked for" }).toBeGreaterThan(shown)
   await settle(page)
 }
 
@@ -138,7 +143,7 @@ test.describe("PeerDB Load More Flows", () => {
 
     // The header reports the whole result set while the feed renders the first page of it, so the two numbers
     // differ and the visitor is told there is more than what is in front of them.
-    const shown = await results(page).count()
+    const shown = await searchResults(page).count()
     expect(shown, "the feed renders the first page of results").toBe(PAGE_SIZE)
     expect(shown, "what is rendered on load is less than the search found").toBeLessThan(total)
 
@@ -163,7 +168,7 @@ test.describe("PeerDB Load More Flows", () => {
 
     await loadNextPage(page)
 
-    const shown = await results(page).count()
+    const shown = await searchResults(page).count()
     expect(shown, "loading more adds a page of results").toBe(2 * PAGE_SIZE)
     expect(shown, "what is shown after loading more is still not all of it").toBeLessThan(total)
     await expect(loadMoreButton(page), "the feed keeps offering the results which are still not shown").toBeVisible()
@@ -199,16 +204,16 @@ test.describe("PeerDB Load More Flows", () => {
     const page = await context.newPage()
 
     const total = await searchPaged(page)
-    const onLoad = await results(page).count()
+    const onLoad = await searchResults(page).count()
     const startedAt = new URL(page.url()).searchParams.get("at")
 
     // Nothing is pressed here: the feed watches the page and loads the next results by itself as soon as the
     // end of the list comes near the viewport, so a visitor who only scrolls never runs out of results.
     await page.evaluate(() => window.scrollTo({ top: document.body.scrollHeight, behavior: "instant" }))
-    await expect.poll(() => results(page).count(), { message: "scrolling to the end of the list loads more results" }).toBeGreaterThan(onLoad)
+    await expect.poll(() => searchResults(page).count(), { message: "scrolling to the end of the list loads more results" }).toBeGreaterThan(onLoad)
     await settle(page)
 
-    const shown = await results(page).count()
+    const shown = await searchResults(page).count()
     expect(shown, "scrolling adds no more than the search found").toBeLessThanOrEqual(total)
     const shownIds = await resultIds(page)
     expect(shownIds, "scrolling shows no result twice").toHaveLength(new Set(shownIds).size)
@@ -227,11 +232,11 @@ test.describe("PeerDB Load More Flows", () => {
     // The count in the header is what the search found, so it has to stay where it is while the feed reveals
     // more of it: a header which counted the rendered results would climb as the reader scrolls.
     const total = await searchPaged(page)
-    const onLoad = await results(page).count()
+    const onLoad = await searchResults(page).count()
     expect(onLoad, "the feed renders less than the search found").toBeLessThan(total)
 
     await loadNextPage(page)
-    const shown = await results(page).count()
+    const shown = await searchResults(page).count()
     expect(shown, "loading more results renders more of them").toBeGreaterThan(onLoad)
     await expect.poll(() => resultCount(page), { message: "the header goes on reporting the whole result set" }).toBe(total)
 
@@ -256,7 +261,7 @@ test.describe("PeerDB Load More Flows", () => {
     await loadAllResults(page)
     await settle(page)
 
-    const shown = await results(page).count()
+    const shown = await searchResults(page).count()
     expect(shown, "loading everything shows every result the search found").toBe(total)
     await expect(loadMoreButton(page), "nothing is left to load once every result is shown").toHaveCount(0)
 
@@ -398,7 +403,7 @@ test.describe("PeerDB Load More Flows", () => {
     const expand = page.locator(".pd-searchresultgroup-button-expand")
     const collapsed = await expand.count()
     expect(collapsed, "the grouped results are collapsed to headings").toBeGreaterThan(0)
-    const cards = await results(page).count()
+    const cards = await searchResults(page).count()
 
     // What is asserted is that no heading of the column is left collapsed rather than an exact number of
     // expanded ones: an expanded heading is taller than a collapsed one, so expanding shortens the column and
@@ -408,7 +413,7 @@ test.describe("PeerDB Load More Flows", () => {
     await expect.poll(() => collapse.count(), { message: "expanding a heading expands the column it belongs to" }).toBeGreaterThanOrEqual(collapsed)
     await expect(expand, "no heading of the expanded column is left collapsed").toHaveCount(0)
     await settle(page)
-    expect(await results(page).count(), "an expanded heading is rendered as the full card of its document").toBeGreaterThan(cards)
+    expect(await searchResults(page).count(), "an expanded heading is rendered as the full card of its document").toBeGreaterThan(cards)
 
     // Collapsing takes the column back to its headings, so the choice is one a reader can undo.
     await collapse.first().click()

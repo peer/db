@@ -10,6 +10,7 @@ import {
   expectNothingLoading,
   field,
   fieldSlots,
+  fillHtmlField,
   fillSlot,
   hideDuplicates,
   LOADING_TIMEOUT,
@@ -192,19 +193,6 @@ async function closeUserMenu(page: Page): Promise<void> {
   await expect(panel, "the menu of the signed-in user is closed").toBeHidden()
 }
 
-// Writes into a rich text field and commits it. A rich text field is typed into rather than filled,
-// because the editor is a content editable surface and not an input, and it writes its value into the
-// editing session when the focus leaves it.
-async function fillHtml(page: Page, propertyId: string, text: string, what: string): Promise<void> {
-  const editor = field(page, propertyId).locator(".pd-inputhtml-editor").first()
-  await expect(editor, `rich text editor of ${what}`).toBeVisible({ timeout: LOADING_TIMEOUT })
-  await editor.click()
-  await page.keyboard.type(text)
-  await editor.blur()
-  await settleEdit(page)
-  await expect(editor, `rich text editor of ${what} after typing`).toContainText(text)
-}
-
 // The label of one field of the edit form, which is the display label of the property the field holds.
 function formLabel(page: Page, propertyId: string): Locator {
   return field(page, propertyId).locator(".pd-fieldsformfield-label")
@@ -374,7 +362,7 @@ test.describe("PeerDB Language Flows", () => {
       await fillSlot(page, PROPERTY_IDS.NAME, 0, ".pd-inputstring", name, 2, `the name of the new species in ${LANGUAGE_NAMES[language]}`)
       await checkpointElement(page, field(page, PROPERTY_IDS.NAME), `languages-create-${language}-name`)
 
-      await fillHtml(page, PROPERTY_IDS.BODY_PLAN, bodyPlanText(language), `the body plan of the new species in ${LANGUAGE_NAMES[language]}`)
+      await fillHtmlField(page, PROPERTY_IDS.BODY_PLAN, bodyPlanText(language), `the body plan of the new species in ${LANGUAGE_NAMES[language]}`)
       await checkpointElement(page, field(page, PROPERTY_IDS.BODY_PLAN), `languages-create-${language}-bodyplan`)
 
       const id = await saveEdit(page)

@@ -1,11 +1,8 @@
 import type { Locator, Page } from "@playwright/test"
 
-import { readFileSync } from "node:fs"
-import { fileURLToPath } from "node:url"
-
 import type { DocumentClass } from "../peerdb_utils"
 
-import { documentIdOf, LANGUAGES, PROPERTY_IDS, searchByClass } from "../peerdb_utils"
+import { documentIdOf, LANGUAGES, PROPERTY_IDS, readTestData, searchByClass } from "../peerdb_utils"
 import {
   checkpoint,
   checkpointElement,
@@ -47,13 +44,6 @@ const RECORD = { file: "observation/OBSA_CORD_READING_RECORDER.json", id: await 
 interface TestDataValue {
   value?: string
   time?: string
-}
-
-// The contents of one file of the test data the instance under test was populated from. What a document has to
-// show is read out of the same file rather than written out here again, so a test asserts the data and not a
-// copy of it.
-function readTestData(path: string): Record<string, unknown> {
-  return JSON.parse(readFileSync(fileURLToPath(new URL(`../../testdata/${path}`, import.meta.url)), { encoding: "utf-8" })) as Record<string, unknown>
 }
 
 // The string one field of a test data document is written with. The fields read here are stated once, in

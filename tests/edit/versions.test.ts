@@ -1,4 +1,4 @@
-import type { Locator, Page } from "@playwright/test"
+import type { Page } from "@playwright/test"
 
 import type { Role } from "../peerdb_utils"
 
@@ -8,6 +8,7 @@ import {
   checkpointElement,
   clearRefusedRequestErrors,
   discardEdit,
+  documentValues,
   expect,
   expectNothingLoading,
   fetchFromPage,
@@ -79,12 +80,6 @@ const UNGRANTED_ROLES: ReadonlyArray<Role> = ["surveyor", "curator"]
 
 // What the server answers a caller who asks for something they hold no action for.
 const FORBIDDEN = 403
-
-// The values the class tab of the document view shows, in the order the class gives its fields, which for a
-// galaxy is the name and then the catalogue code.
-function documentValues(page: Page): Locator {
-  return page.locator(".pd-documentget-panel-properties .pd-fieldsview-value")
-}
 
 // The version a history entry links to, read out of the query of its href. A version is minted when the
 // document is written, so a test which writes the document cannot know it in advance.

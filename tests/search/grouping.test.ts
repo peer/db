@@ -4,9 +4,11 @@ import { documentIdOf, LANGUAGES, PROPERTY_IDS, searchByClass } from "../peerdb_
 import {
   checkpoint,
   checkpointElement,
+  expandCheckbox,
   expect,
   expectNothingLoading,
   goHome,
+  groupCheckbox,
   LOADING_TIMEOUT,
   openSortDialog,
   resultCount,
@@ -15,6 +17,7 @@ import {
   searchByProperty,
   settle,
   settleFilters,
+  sortColumn,
   switchLanguage,
   test,
   volatile,
@@ -67,23 +70,6 @@ const WITHOUT_CULTURE = ["G2_BASIN_SHEET", "G2_FRACTURE_BELT", "G3_UVVEI_FRAME"]
 // the documents carrying the given value for the given property.
 async function openGroupedSearch(page: Page): Promise<void> {
   await searchByProperty(page, PROPERTY_IDS.HAS_PLANET_TYPE, await documentIdOf(WORLD_TYPE_VOCABULARY, GROUPED_TYPE))
-}
-
-// The sort order entry for the given column, from which its checkboxes are reached.
-function sortColumn(page: Page, column: string): Locator {
-  return page.locator(`.pd-searchsortdialog-item-sort-${column}`)
-}
-
-// The checkbox which groups the results by the given column. It is offered only for a reference column which
-// every column before it is also a reference column, so that the grouped columns stay the leading ones.
-function groupCheckbox(page: Page, column: string): Locator {
-  return sortColumn(page, column).locator(".pd-searchsortdialog-checkbox-group")
-}
-
-// The checkbox which renders each of the given column's group values as a full result card instead of a
-// one-line heading. It is offered only while the column is grouped by.
-function expandCheckbox(page: Page, column: string): Locator {
-  return sortColumn(page, column).locator(".pd-searchsortdialog-checkbox-expand")
 }
 
 // Adds the given column to the sort order and waits for the results the change produced.

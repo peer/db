@@ -1,25 +1,28 @@
 import type { Locator, Page } from "@playwright/test"
 
-import type { EntityClass, Role } from "../peerdb_utils"
+import type { EntityClass } from "../peerdb_utils"
 
-import { PROPERTY_IDS, ROLE_CREATES, ROLES, startCreate } from "../peerdb_utils"
+import { PROPERTY_IDS, roleWhichCreates, startCreate } from "../peerdb_utils"
 import {
   checkpoint,
   checkpointElement,
   expect,
   fetchFromPage,
   field,
+  fieldErrors,
   fieldInput,
   fieldSlots,
   hideDuplicates,
   LOADING_TIMEOUT,
+  pressSave,
   saveEdit,
   settleEdit,
   signIn,
+  slotValue,
   startEdit,
   switchLanguage,
   test,
-  volatile,
+  volatileSelect,
 } from "../utils"
 
 // Every test here works on an artifact it creates itself, because that class carries one field of each
@@ -49,32 +52,7 @@ const AXIS = "length"
 // What the form says about a field which is required and holds nothing.
 const REQUIRED_MESSAGE = "Required value."
 
-// The role a test signs in with: the one the site grants creating the worked-on class to. It is looked
-// up rather than written out so that the tests follow the same table the site is configured by.
-function roleWhichCreates(entityClass: EntityClass): Role {
-  const role = ROLES.find((r) => ROLE_CREATES[r]?.includes(entityClass))
-  if (role === undefined) {
-    throw new Error(`no role may create ${entityClass}`)
-  }
-  return role
-}
-
 const ROLE = roleWhichCreates(ARTIFACT_CLASS)
-
-// The parts of a view which do not look the same on every run, and which every checkpoint therefore
-// masks. Next to the times the shared helper masks, a reference field whose candidates all fit is
-// rendered as a list of options which comes from a search of the index, and the order in which a search
-// returns the documents a filter alone matches is not stable while the suite is writing documents, so
-// such a list is masked rather than compared.
-function unstable(page: Page): Array<Locator> {
-  return [...volatile(page), page.locator(".pd-claimrefselect-list")]
-}
-
-// The complaints the form shows on one field. Every value slot renders the error of the input inside it,
-// so a field which nothing is wrong with matches no element at all.
-function fieldErrors(page: Page, propertyId: string): Locator {
-  return field(page, propertyId).locator(".pd-inputfield-error")
-}
 
 // The label cell of a field, which is where the badges saying what the field is (required, repeated,
 // changed) live, and where the button reverting the whole field sits.
@@ -93,14 +71,6 @@ function fieldRevert(page: Page, propertyId: string): Locator {
 // off that slot's own value are edited.
 function subField(slot: Locator, propertyId: string): Locator {
   return slot.locator(`.pd-claimcardinality-${propertyId}`)
-}
-
-// The input of one slot's own value, without the inputs of the sub-fields which hang off it. A field
-// whose entries carry sub-fields renders their inputs inside the same slot, and a sub-field of the same
-// kind as the field itself would otherwise be matched just as well, so the value block of the slot's
-// own claim is what is looked in.
-function slotValue(page: Page, propertyId: string, slot: number, input: string): Locator {
-  return fieldSlots(page, propertyId).nth(slot).locator(`.pd-claiminput-${propertyId} > .pd-claiminput-value`).locator(input).first()
 }
 
 // The values every slot of a repeated field currently holds, in the order the form shows them, which is
@@ -126,18 +96,6 @@ async function fillSlotValue(page: Page, propertyId: string, slot: number, input
   await filled.fill(value)
   await filled.blur()
   await expect(fieldSlots(page, propertyId), `slots of ${what} after typing`).toHaveCount(slots, { timeout: LOADING_TIMEOUT })
-}
-
-// Presses save without waiting for the session to end, which is what a test of a refused save needs.
-// Focus is moved onto the discard button next to save first, so the value typed last is committed into
-// the editing session before the save runs.
-async function pressSave(page: Page): Promise<void> {
-  const discardButton = page.locator("#documentedit-button-discard")
-  await expect(discardButton, "discard button").toBeVisible()
-  await discardButton.focus()
-  const saveButton = page.locator("#documentedit-button-save")
-  await expect(saveButton, "save button").toBeEnabled()
-  await saveButton.click()
 }
 
 // Asserts that the save was refused and left the editing session open, so what the form complains about
@@ -200,7 +158,7 @@ test.describe("PeerDB Edit Cardinality Flows", () => {
     const materialField = field(page, PROPERTY_IDS.MATERIAL)
     await expect(fieldLabel(page, PROPERTY_IDS.MATERIAL).locator(".pd-inputbadges-badge-multiple"), "the material field says it may hold several values").toBeVisible()
     await expect(fieldSlots(page, PROPERTY_IDS.MATERIAL), "the empty material field offers a single slot").toHaveCount(1)
-    await checkpointElement(page, materialField, "edit-cardinality-material-empty", unstable(page))
+    await checkpointElement(page, materialField, "edit-cardinality-material-empty", volatileSelect(page))
 
     // Every filled slot is followed by an empty one, so there is always somewhere to put the next value
     // and never a button to press for it.
@@ -211,7 +169,7 @@ test.describe("PeerDB Edit Cardinality Flows", () => {
 
     // The slots are numbered as they are shown, so the trailing empty one is counted too.
     expect(await materialField.locator(".pd-claimcardinality-count").allTextContents(), "the numbering of the material slots").toEqual(["1.", "2.", "3."])
-    await checkpointElement(page, materialField, "edit-cardinality-material-grown", unstable(page))
+    await checkpointElement(page, materialField, "edit-cardinality-material-grown", volatileSelect(page))
 
     // A field which holds at most one value never grows: filling it leaves it with the slot it started
     // with, and it does not say it may hold several values either.
@@ -222,8 +180,8 @@ test.describe("PeerDB Edit Cardinality Flows", () => {
     ).toHaveCount(0)
     await expect(fieldSlots(page, PROPERTY_IDS.ACCESSION_CODE), "the empty accession code offers a single slot").toHaveCount(1)
     await fillSlotValue(page, PROPERTY_IDS.ACCESSION_CODE, 0, ".pd-inputidentifier", ACCESSION_CODE, 1, "the accession code")
-    await checkpointElement(page, codeField, "edit-cardinality-code-filled", unstable(page))
-    await checkpoint(page, "edit-cardinality-growing-form", { mask: unstable(page) })
+    await checkpointElement(page, codeField, "edit-cardinality-code-filled", volatileSelect(page))
+    await checkpoint(page, "edit-cardinality-growing-form", { mask: volatileSelect(page) })
 
     // The trailing empty slot is somewhere to type and nothing else: it reaches the saved document as no
     // value at all.
@@ -248,7 +206,7 @@ test.describe("PeerDB Edit Cardinality Flows", () => {
     await expect(fieldLabel(page, PROPERTY_IDS.NAME).locator(".pd-inputbadges-badge-required"), "the name field says it is required").toBeVisible()
     await expect(fieldLabel(page, PROPERTY_IDS.MATERIAL).locator(".pd-inputbadges-badge-required"), "the material field says nothing about being required").toHaveCount(0)
     await expect(fieldErrors(page, PROPERTY_IDS.NAME), "complaint about the empty name before the save").toHaveCount(0)
-    await checkpointElement(page, field(page, PROPERTY_IDS.NAME), "edit-cardinality-required-empty", unstable(page))
+    await checkpointElement(page, field(page, PROPERTY_IDS.NAME), "edit-cardinality-required-empty", volatileSelect(page))
 
     await pressSave(page)
 
@@ -259,8 +217,8 @@ test.describe("PeerDB Edit Cardinality Flows", () => {
     await expect(fieldErrors(page, PROPERTY_IDS.NAME), "complaint about the empty name after the refused save").toHaveText(REQUIRED_MESSAGE)
     await expect(nameInput, "name input is marked as invalid").toHaveAttribute("aria-invalid", "true")
     await expect(nameInput, "name input takes the focus").toBeFocused()
-    await checkpointElement(page, field(page, PROPERTY_IDS.NAME), "edit-cardinality-required-refused", unstable(page))
-    await checkpoint(page, "edit-cardinality-required-form", { mask: unstable(page) })
+    await checkpointElement(page, field(page, PROPERTY_IDS.NAME), "edit-cardinality-required-refused", volatileSelect(page))
+    await checkpoint(page, "edit-cardinality-required-form", { mask: volatileSelect(page) })
 
     // Typing a value is what the field asks for, and the same save then goes through.
     await fillName(page, name)
@@ -305,7 +263,7 @@ test.describe("PeerDB Edit Cardinality Flows", () => {
       "3.",
     ])
     await expect(fieldErrors(page, PROPERTY_IDS.MATERIAL), "complaints about the compacted field").toHaveCount(0)
-    await checkpointElement(page, materialField, "edit-cardinality-material-compacted", unstable(page))
+    await checkpointElement(page, materialField, "edit-cardinality-material-compacted", volatileSelect(page))
 
     // What the compaction did to the form is what the save writes: the emptied value is gone and the two
     // which were kept are stored in the order the form shows them.
@@ -334,7 +292,7 @@ test.describe("PeerDB Edit Cardinality Flows", () => {
     const untouched = fieldSlots(page, PROPERTY_IDS.DIMENSION).nth(0)
     await expect(subField(untouched, PROPERTY_IDS.AXIS), "the axis of an entry nobody started").toHaveCount(0)
     await expect(fieldErrors(page, PROPERTY_IDS.DIMENSION), "complaints about an entry nobody started").toHaveCount(0)
-    await checkpointElement(page, dimensionField, "edit-cardinality-dimension-untouched", unstable(page))
+    await checkpointElement(page, dimensionField, "edit-cardinality-dimension-untouched", volatileSelect(page))
 
     const id = await saveEdit(page)
     await expect(page.locator("#documentget-title"), "the artifact saved with the entry untouched").toBeVisible()
@@ -347,14 +305,14 @@ test.describe("PeerDB Edit Cardinality Flows", () => {
     const axis = subField(started, PROPERTY_IDS.AXIS)
     await expect(axis, "the axis of the entry which was started").toBeVisible({ timeout: LOADING_TIMEOUT })
     await expect(axis.locator(".pd-inputbadges-badge-required"), "the axis says it is required once the entry holds a measurement").toBeVisible()
-    await checkpointElement(page, field(page, PROPERTY_IDS.DIMENSION), "edit-cardinality-dimension-started", unstable(page))
+    await checkpointElement(page, field(page, PROPERTY_IDS.DIMENSION), "edit-cardinality-dimension-started", volatileSelect(page))
 
     await pressSave(page)
     await expectSaveRefused(page)
     const axisInput = axis.locator(".pd-inputstring").first()
     await expect(fieldErrors(page, PROPERTY_IDS.DIMENSION), "complaint about the axis which was left empty").toHaveText(REQUIRED_MESSAGE)
     await expect(axisInput, "the axis input takes the focus").toBeFocused()
-    await checkpointElement(page, field(page, PROPERTY_IDS.DIMENSION), "edit-cardinality-dimension-refused", unstable(page))
+    await checkpointElement(page, field(page, PROPERTY_IDS.DIMENSION), "edit-cardinality-dimension-refused", volatileSelect(page))
 
     await axisInput.fill(AXIS)
     await axisInput.blur()
@@ -368,7 +326,7 @@ test.describe("PeerDB Edit Cardinality Flows", () => {
     expect(measurements.length, "the measurements of the saved artifact").toBe(1)
     expect(measurements[0].amount, "the measurement stored for the entry which was started").toBe(MEASUREMENT)
     expect(subStrings(measurements[0], PROPERTY_IDS.AXIS), "the axis stored under the measurement").toEqual([AXIS])
-    await checkpoint(page, "edit-cardinality-dimension-saved", { mask: unstable(page) })
+    await checkpoint(page, "edit-cardinality-dimension-saved", { mask: volatileSelect(page) })
 
     console.log(`Successfully saved document ${id} with an untouched entry whose sub-field is required, and had 1 save refused once the entry was started.`)
   })
@@ -400,13 +358,13 @@ test.describe("PeerDB Edit Cardinality Flows", () => {
     // to get the value back: the click must not be swallowed by the slot committing what was typed.
     await fillSlotValue(page, PROPERTY_IDS.MATERIAL, 0, ".pd-inputstring", CHANGED_MATERIAL, 3, "the first material after it was changed")
     await expect(revert, "the revert button of a field which was changed").toBeVisible()
-    await checkpointElement(page, materialField, "edit-cardinality-revert-changed", unstable(page))
+    await checkpointElement(page, materialField, "edit-cardinality-revert-changed", volatileSelect(page))
     await revert.click()
     await expect
       .poll(async () => await slotValues(page, PROPERTY_IDS.MATERIAL, ".pd-inputstring"), { message: "the material field after one click on revert" })
       .toEqual([FIRST_MATERIAL, SECOND_MATERIAL, ""])
     await expect(revert, "the revert button once the field is back to what it held").toBeHidden()
-    await checkpointElement(page, materialField, "edit-cardinality-revert-restored", unstable(page))
+    await checkpointElement(page, materialField, "edit-cardinality-revert-restored", volatileSelect(page))
 
     // Reverting a value which was removed brings the value back as a claim of its own, and the field
     // then counts as untouched again: a second click has nothing left to undo, and the restored value
@@ -419,7 +377,7 @@ test.describe("PeerDB Edit Cardinality Flows", () => {
       .poll(async () => [...(await slotValues(page, PROPERTY_IDS.MATERIAL, ".pd-inputstring"))].sort(), { message: "the material field after the removal was reverted" })
       .toEqual(["", FIRST_MATERIAL, SECOND_MATERIAL].sort())
     await expect(revert, "the revert button once the removed value is back").toBeHidden()
-    await checkpointElement(page, materialField, "edit-cardinality-revert-resurrected", unstable(page))
+    await checkpointElement(page, materialField, "edit-cardinality-revert-resurrected", volatileSelect(page))
 
     // The same for one entry of the field: every slot carries a revert of its own, which takes back what
     // was done to that slot alone.

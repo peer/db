@@ -1,4 +1,4 @@
-import type { Locator, Page } from "@playwright/test"
+import type { Page } from "@playwright/test"
 
 import { documentIdOf, PROPERTY_IDS, searchByClass } from "../peerdb_utils"
 import {
@@ -9,6 +9,7 @@ import {
   expectNothingLoading,
   filter,
   filterValue,
+  hasValue,
   LOADING_TIMEOUT,
   openFilters,
   resultCount,
@@ -43,13 +44,6 @@ async function openSearch(page: Page): Promise<void> {
   await searchByClass(page, "WORLD")
   await openFilters(page)
   await expect(page.locator(".pd-filtersresult"), "the panel shows its first batch of facets").toHaveCount(SHOWN)
-}
-
-// The checkbox of one property of the has facet on the document itself. That facet filters on no property
-// path of its own, so the id its checkboxes carry has an empty path segment in the middle, which is what a
-// path of a single empty string produces.
-function hasValue(page: Page, propertyId: string): Locator {
-  return filterValue(page, "has", [""], propertyId)
 }
 
 // Waits until the panel has answered whatever was last typed into the box which searches the filters.

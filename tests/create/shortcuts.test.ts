@@ -3,6 +3,8 @@ import type { Locator, Page } from "@playwright/test"
 import { CLASS_IDS, documentIdOf, PROPERTY_IDS } from "../peerdb_utils"
 import {
   checkpoint,
+  checkpointFormAt,
+  createShortcutButton,
   expect,
   expectResults,
   field,
@@ -14,12 +16,14 @@ import {
   openDocument,
   openDocumentTab,
   PEERDB_URL,
+  pressCreateShortcut,
   propertyValues,
   resultCount,
   resultIds,
   saveEdit,
   settle,
   settleEdit,
+  shortcutCount,
   signIn,
   test,
   volatile,
@@ -46,57 +50,11 @@ const GRID_44_THIRD_OBSERVATIONS = [await documentIdOf("OBSERVATION", "OBSA_DUSK
 // view has to be given.
 const INDEX_CATCHUP_TIMEOUT = 120000
 
-// The "+" of the shortcut which creates a document of the given class with the given property pointed at
-// the document currently open. The button is picked out by what its link does rather than by where the
-// sidebar renders it or by the label it carries, which differs between the three interface languages. The
-// two parts of the address are matched separately because the create view sorts its query parameters, so
-// which of them comes first follows from the identifiers.
-function createShortcutButton(page: Page, classId: string, propertyId: string, selfId: string): Locator {
-  return page.locator(`.pd-searchshortcutlink-button-create[href*="limit=${classId}"][href*="${propertyId}=${selfId}"]`)
-}
-
 // The whole sidebar row of that same shortcut, which holds the search link and its count next to the "+".
 // The row is addressed by what its search link does rather than by the "+" next to it, so that it is found
 // for a caller who may not create and is offered no "+" at all.
 function shortcutRow(page: Page, classId: string, propertyId: string, selfId: string): Locator {
   return page.locator(`.pd-documentget-link-shortcut:has(.pd-searchshortcutlink-link[href*="${propertyId}=${selfId}"][href*="${PROPERTY_IDS.INSTANCE_OF}=${classId}"])`)
-}
-
-// The count a shortcut shows in parentheses after its label. The count comes from a search which is run
-// after the document renders, so this waits for it to appear before reading it.
-async function shortcutCount(row: Locator): Promise<number> {
-  const link = row.locator(".pd-searchshortcutlink-link")
-  await expect(link, "the shortcut link shows a count").toHaveText(/\(\d+\)/, { timeout: LOADING_TIMEOUT })
-  const text = (await link.textContent()) || ""
-  const match = /\((\d+)\)/.exec(text)
-  expect(match, `the shortcut link "${text.trim()}" shows a count`).not.toBeNull()
-  return Number(match![1])
-}
-
-// Screenshots the part of the form which the shortcut filled in, with the page scrolled so that the part
-// sits at the top of the window.
-//
-// The window is captured rather than the whole page. The editor of a class whose fields are grouped into
-// sections opens on an address ending in an anchor to the first section, and capturing a whole page makes
-// the browser lay the page out again, which sends it to that anchor a second time. That happens between one
-// capture and the next, so a whole page capture of such a form catches it either before or after the jump
-// depending on how quickly the capture runs. A window capture lays nothing out again.
-async function checkpointFormAt(page: Page, locator: Locator, name: string): Promise<void> {
-  await expect(locator, `the part of the form for ${name}`).toBeVisible()
-  await locator.evaluate((element) => element.scrollIntoView({ block: "start", behavior: "instant" }))
-  await checkpoint(page, name, { fullPage: false })
-}
-
-// Presses the "+" of a create shortcut whose class has no subclasses to choose between, and asserts that
-// the press lands in an editing session without the class picker ever being shown.
-async function pressCreateShortcut(page: Page, button: Locator): Promise<void> {
-  await expect(button, "the create button of the shortcut").toBeVisible()
-  await button.click()
-  await settleEdit(page)
-  await hideDuplicates(page)
-  await expect(page.locator(".pd-classtreelist"), "the class picker of the create view").toHaveCount(0)
-  await expect(page.locator("#documentcreate-title"), "the title of the create view").toHaveCount(0)
-  await expect(page, "the press landed in an editing session").toHaveURL(/\/d\/edit\/[0-9A-Za-z]+\/[0-9A-Za-z]+/)
 }
 
 // Asserts that the document being edited holds exactly one claim pointing the given property at the given
