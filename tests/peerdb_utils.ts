@@ -423,7 +423,7 @@ export function roleWhichCreates(entityClass: EntityClass): Role {
 // to show is read out of the same file rather than written out here again, so a test asserts the data and not
 // a copy of it.
 export function readTestData(path: string): Record<string, unknown> {
-  return JSON.parse(readFileSync(fileURLToPath(new URL(`../../testdata/${path}`, import.meta.url)), { encoding: "utf-8" })) as Record<string, unknown>
+  return JSON.parse(readFileSync(fileURLToPath(new URL(`../testdata/${path}`, import.meta.url)), { encoding: "utf-8" })) as Record<string, unknown>
 }
 
 // The block of the form which holds the notes of a species. The notes may be stated more than once, so
