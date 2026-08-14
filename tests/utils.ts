@@ -419,6 +419,11 @@ const RESULT_PASSES = 10
 // page fetches its results from it again, under the version the change produced.
 const SEARCH_RESULTS_API = "/api/s/results/"
 
+// The API route a change to the search session is posted to. Its answer says which version the session is at
+// after the change, and the results of that version are fetched under that version, which is how a change is
+// followed from the click to the results it produced.
+const SEARCH_UPDATE_API = "/api/s/update/"
+
 // The API route the facets of a search are fetched from. It is the only source the filters panel builds
 // itself from, so every replacement of its list of facets is a response of this route.
 const SEARCH_FILTERS_API = "/api/s/filters/"
@@ -1611,10 +1616,20 @@ export function hasValue(page: Page, propertyId: string): Locator {
 // network to go idle does not bridge the two: the fetch is issued a few ticks after the click, and until it
 // is the page is idle, so that wait can be over before the search has even started. The response of the
 // search itself is therefore what is waited for.
+// Which results are waited for is decided by the change itself: a change is posted to the session and
+// answered with the version the session is at afterwards, and the results of that version are fetched under
+// it, so the two together follow the change from the click to the results it produced. Waiting for the next
+// results of any version instead is satisfied by an answer to a question asked before the action: a result
+// page fetches its results whenever anything about it changes, so one of those fetches can still be in
+// flight when the action runs, and what the page shows when such a wait returns is still the previous
+// search.
 export async function searchAgain(page: Page, action: () => Promise<void>): Promise<void> {
-  const results = page.waitForResponse((response) => response.url().includes(SEARCH_RESULTS_API), { timeout: LOADING_TIMEOUT })
+  const updated = page.waitForResponse((response) => response.url().includes(SEARCH_UPDATE_API) && response.request().method() === "POST", { timeout: LOADING_TIMEOUT })
   await action()
-  await results
+  const { version } = (await (await updated).json()) as { version: number }
+  await page.waitForResponse((response) => response.url().includes(SEARCH_RESULTS_API) && new URL(response.url()).searchParams.get("version") === String(version), {
+    timeout: LOADING_TIMEOUT,
+  })
   await expectResults(page)
 }
 
