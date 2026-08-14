@@ -431,22 +431,14 @@ test.describe("PeerDB Search Grouping Flows", () => {
     const worldType = await documentIdOf(WORLD_TYPE_VOCABULARY, GROUPED_TYPE)
     expect(await cardIds(innerCards(page)), "every one of those cards is of the same document").toEqual(Array(outer).fill(worldType))
 
-    // Every one of those cards carries the element identifier of the document it shows, so the page ends up
-    // with the same identifier on it several times.
-    //
-    // TODO: Screenshot this page once a repeated card no longer repeats an element identifier.
-    //       A result card is given id="result-<document id>" (SearchResult.vue) whatever placement it is
-    //       rendered for, so a value sitting under several groups puts that identifier on the page once per
-    //       group. It makes the markup invalid, and it makes the identifier unusable for reaching a card:
-    //       the address of a walked result carries "at=<document id>" and the view scrolls to the element of
-    //       that identifier, which can only ever be the first of them. Screenshotting is what would catch it
-    //       from here, because checkpoint refuses a page with a repeated element identifier.
+    // The element identifier of a card names the document it shows, and a document placed under several
+    // groups is shown in full under the first of them alone, so the identifier is on the page once however
+    // many placements the document has (SearchResult.vue). The screenshot is what covers this from here as
+    // well, because checkpoint refuses a page which uses an identifier twice.
     await settleFilters(page)
-    const repeated = await page.evaluate(() => {
-      const ids = Array.from(document.querySelectorAll("[id^='result-']"), (el) => el.id)
-      return ids.length - new Set(ids).size
-    })
-    expect(repeated, "the repeated cards repeat their element identifier, which is the defect above").toBe(outer - 1)
+    const identified = await page.locator(`[id="result-${worldType}"]`).count()
+    expect(identified, "the identifier of the placed document names one card of the page").toBe(1)
+    await checkpoint(page, "grouping-group-repeated", { mask: volatile(page) })
 
     console.log(`Successfully verified that a group value sitting under ${outer} groups is rendered as a card under each of them.`)
   })
@@ -545,20 +537,22 @@ test.describe("PeerDB Search Grouping Flows", () => {
     // A moon may state several biomes, and it is then placed in a group for each of them. Its contents are
     // shown at the first of those placements only, and every other placement is a card which says so and links
     // back to the first one through the "at" query parameter of the page.
-    //
-    // What the cards say is asserted rather than screenshotted, because a page carrying a card per placement
-    // carries the identifier of the placed document as many times, which the test above covers.
     const duplicates = page.locator(".pd-searchresult-link-duplicate")
     const repeated = await duplicates.count()
     expect(repeated, "a document with several values is placed in a group for each of them").toBeGreaterThan(0)
     const back = await duplicates.first().getAttribute("href")
     const at = new URL(back || "", "https://localhost").searchParams.get("at")
     expect(at, "the repeated placement links back to the first one").not.toBeNull()
-    expect(await page.locator(`#result-${at}`).count(), "the document the repeated placement links back to is the one on the page more than once").toBeGreaterThan(1)
+    // What the link points back at is the placement which shows the document in full, which is the only one
+    // carrying the identifier: a card which says the document is shown already carries none.
+    await expect(page.locator(`[id="result-${at}"]`), "the placement the repeated one links back to").toHaveCount(1)
+    await expect(page.locator(`[id="result-${at}"] .pd-searchresult-link-duplicate`), "the placement linked back to is the one shown in full").toHaveCount(0)
     const stub = page.locator(".pd-searchresultdocument-duplicate").first()
     await expect(stub.locator(".pd-searchresult-link-title"), "a repeated placement is headed by the title of its document").toBeVisible()
     await expect(stub.locator(".pd-fieldsview"), "a repeated placement shows none of the contents of its document").toHaveCount(0)
     expect(await page.locator(".pd-searchresult").count(), "the page holds a card for every placement").toBe(total + repeated)
+    await settleFilters(page)
+    await checkpoint(page, "grouping-results-repeated", { mask: volatile(page) })
 
     console.log(`Successfully verified that ${repeated} placements of the ${total} results are repeated ones which link back to their first placement.`)
   })

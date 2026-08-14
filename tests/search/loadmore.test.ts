@@ -370,30 +370,16 @@ test.describe("PeerDB Load More Flows", () => {
     await expect(stub, "a document which belongs under several headings is rendered in full only once").toBeVisible()
     const at = new URL((await stub.getAttribute("href")) || "", PEERDB_URL).searchParams.get("at")
     expect(at, "the stub of a repeated result points back at the document it stands for").not.toBeNull()
-    const full = page.locator(`[id="result-${at}"]`).filter({ hasNot: page.locator(".pd-searchresult-link-duplicate") })
+    const full = page.locator(`[id="result-${at}"]`)
     await expect(full, "the document the stub points back at is rendered in full somewhere on the page").toHaveCount(1)
+    await expect(full.locator(".pd-searchresult-link-duplicate"), "what the stub points back at is the placement shown in full").toHaveCount(0)
 
-    // Every result carries the identifier of the document it stands for as the identifier of its element
-    // (SearchResult.vue), and the stub of a repeated result carries it as well, so a document which belongs
-    // under two headings puts the same identifier on the page twice.
-    //
-    // TODO: Assert that no element identifier is used twice, and screenshot a grouped feed.
-    //       An identifier has to name one element: the address of a walked result carries "at=<document id>"
-    //       and the view scrolls to the element of that identifier, which can only ever be the first of
-    //       them, which is exactly what the stub above links by. Until a repeated card stops repeating the
-    //       identifier this asserts the repetition instead, and no grouped run here takes a screenshot,
-    //       because every checkpoint refuses a page with a repeated element identifier.
-    const repeated = await page.evaluate(() =>
-      Object.entries(
-        Array.from(document.querySelectorAll("[id]")).reduce<Record<string, number>>((counts, element) => {
-          counts[element.id] = (counts[element.id] || 0) + 1
-          return counts
-        }, {}),
-      )
-        .filter(([, count]) => count > 1)
-        .map(([id]) => id),
-    )
-    expect(repeated, "the stub repeats the element identifier of the card it points back at, which is the defect above").toContain(`result-${at}`)
+    // The identifier of a card names the document it stands for, and only the placement which shows the
+    // document in full carries it (SearchResult.vue), so it is what the stub can point back at. The
+    // screenshot covers this as well as the layout: checkpoint refuses a page which uses an identifier
+    // twice, which a stub carrying one of its own would make of every grouped feed.
+    await settleFilters(page)
+    await checkpoint(page, "loadmore-grouped-repeated", { mask: volatile(page) })
 
     console.log(`Successfully verified that the document ${at} is rendered in full once and pointed back at from the group it belongs to as well.`)
   })
