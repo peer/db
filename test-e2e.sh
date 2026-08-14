@@ -83,6 +83,7 @@ cleanup() {
   if [ "$cleanup_certs" -ne 0 ]; then
     echo "Cleaning up temporary files"
     rm "$ROOT_CA_FILE" config-e2e.yml
+    rm -rf testdata-e2e
   fi
 }
 
@@ -157,6 +158,14 @@ for i in $(seq 1 120); do docker exec peerdb-elastic curl -sf "http://localhost:
 
 echo "6. Populating PeerDB with documents..."
 
+# The subject of a user is made out of the domain of the site they signed into, so the users the permission claims of the test data name are
+# the users of a site served under the domain the test data was written for. The config above renames that domain to the container the tests
+# reach the site at, so the claims are renamed with it, in a copy of the test data which is what is populated below. The test data itself
+# keeps naming the domain a local run serves the site under. The copy is made only now, so that it is not part of the build context of the
+# images built above.
+cp -a testdata testdata-e2e
+find testdata-e2e -name '*.json' -exec sed -i "s/@localhost/@$PEERDB_CONTAINER/g" {} +
+
 echo "postgres://test:test@peerdb-postgres:5432/test" > .postgresql.secret
 
 mkdir -p coverage
@@ -178,7 +187,7 @@ docker run --rm \
   -d /data/.postgresql.secret \
   --elastic.url=http://peerdb-elastic:9200 \
   -S /data/.storage \
-  populate --test-data=/data/testdata > "$LOGS_DIR/populate.log" 2>&1 || { tail -n 50 "$LOGS_DIR/populate.log"; exit 1; }
+  populate --test-data=/data/testdata-e2e > "$LOGS_DIR/populate.log" 2>&1 || { tail -n 50 "$LOGS_DIR/populate.log"; exit 1; }
 
 echo "7. Reindex PeerDB..."
 
