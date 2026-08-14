@@ -157,7 +157,7 @@ test.describe("PeerDB Attachment Flows", () => {
     const cancelButton = image.locator(".pd-inputfile-button-cancel")
     await expect(cancelButton, "cancel button while the image uploads").toBeVisible()
     await expect(image.locator(".pd-progressbar"), "progress bar while the image uploads").toBeVisible()
-    await checkpointElement(page, image, "attachments-image-upload-in-progress")
+    await checkpointElement(page, image, "attachments-image-upload-in-progress", { locked: true })
 
     await release()
 
@@ -277,7 +277,7 @@ test.describe("PeerDB Attachment Flows", () => {
 
     const cancelButton = image.locator(".pd-inputfile-button-cancel")
     await expect(cancelButton, "cancel button while the image uploads").toBeVisible()
-    await checkpointElement(page, image, "attachments-image-cancel-in-progress")
+    await checkpointElement(page, image, "attachments-image-cancel-in-progress", { locked: true })
 
     // A cancelled upload has to release the session it opened on the server rather than leaving it
     // behind, so the request which discards it is waited for.
