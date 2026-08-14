@@ -24,6 +24,10 @@ PEERDB_IMAGE="peerdb-image"
 PLAYWRIGHT_IMAGE="peerdb-playwright-image"
 NETWORK="peerdb-e2e-network"
 
+# The prefix the site under test indexes under (indexPrefix in config.yml). Each visibility level gets an
+# index of its own under it, so the dumps below read every index the prefix covers rather than naming one.
+INDEX_PREFIX="peerdb"
+
 LOGS_DIR="logs"
 mkdir -p "$LOGS_DIR"
 
@@ -212,6 +216,37 @@ echo "8. Merging away deleted documents in Elasticsearch..."
 # search carrying a query and makes the screenshots of those searches differ for no reason of their own.
 docker exec peerdb-elastic curl -sf -XPOST "http://localhost:9200/_forcemerge?max_num_segments=1" > /dev/null
 
+# Records what the ranking of a search is computed from, so that two runs whose results came back in a
+# different order can be compared without guessing. What a document is ranked by is its counts.score (its
+# own claims plus the documents referencing it), which the boost is scaled by the corpus percentile of, and
+# what a text query is ranked by on top of that is the term statistics of the segments. All three are
+# written out here rather than derived from the screenshots afterwards, because a screenshot shows the order
+# and never says which of the three produced it.
+dump_ranking_inputs() {
+  local when="$1"
+
+  # Every document with the counts it is ranked by, ordered by identifier so that two dumps line up.
+  docker exec peerdb-elastic curl -sf -XPOST "http://localhost:9200/${INDEX_PREFIX}_*/_search" \
+    -H 'Content-Type: application/json' \
+    -d '{"size":10000,"query":{"match_all":{}},"_source":false,"docvalue_fields":["id","counts.score","counts.claims","counts.references"],"sort":["id"]}' \
+    > "$LOGS_DIR/ranking-counts-$when.json" || echo "could not dump the counts $when" >&2
+
+  # The corpus percentile the boost factor is derived from (ScoreFactor in search/search.go): the factor is
+  # what decides whether counts.score separates two documents at all, and it is computed once per index and
+  # cached, so a run which read it early keeps it.
+  docker exec peerdb-elastic curl -sf -XPOST "http://localhost:9200/${INDEX_PREFIX}_*/_search" \
+    -H 'Content-Type: application/json' \
+    -d '{"size":0,"aggs":{"scoreP99":{"percentiles":{"field":"counts.score","percents":[99],"keyed":false}}}}' \
+    > "$LOGS_DIR/ranking-factor-$when.json" || echo "could not dump the score percentile $when" >&2
+
+  # The segments each index is made of, with the deleted documents still in them. Term statistics are per
+  # segment, so two runs whose segments differ score the same text query differently even on identical data.
+  docker exec peerdb-elastic curl -sf "http://localhost:9200/_cat/segments/${INDEX_PREFIX}_*?v&h=index,shard,segment,docs.count,docs.deleted,size" \
+    > "$LOGS_DIR/ranking-segments-$when.txt" || echo "could not dump the segments $when" >&2
+}
+
+dump_ranking_inputs before-tests
+
 echo "9. Starting PeerDB container..."
 
 # Start PeerDB container with certificates.
@@ -263,6 +298,11 @@ docker run --rm \
   -e CI_PIPELINE_ID \
   -e CI_JOB_ID \
   "$PLAYWRIGHT_IMAGE"
+
+# The same dump again, so that a difference which the run itself produced (the projects which create and
+# edit documents change what references what, and so what the counts are) is told apart from one the run
+# started with.
+dump_ranking_inputs after-tests
 
 # Stop the PeerDB container and check its exit code.
 echo "12. Stopping PeerDB container..."

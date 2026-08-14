@@ -15,6 +15,7 @@ import (
 	esSearch "github.com/elastic/go-elasticsearch/v9/typedapi/core/search"
 	"github.com/elastic/go-elasticsearch/v9/typedapi/esdsl"
 	"github.com/elastic/go-elasticsearch/v9/typedapi/types"
+	"github.com/rs/zerolog"
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/go/x"
 	"gitlab.com/tozd/identifier"
@@ -168,6 +169,12 @@ func (s *Service) scoreFactor(ctx context.Context, req *http.Request, index stri
 
 	entry.factor = factor
 	entry.computed = time.Now()
+
+	// The factor is computed once per index and then reused for the whole TTL, so what it came out as, and
+	// when, is not visible from any later request. It decides whether counts.score separates two documents
+	// at all, which is what orders results a search does not otherwise rank, so a run whose results came
+	// back in an unexpected order is read starting here.
+	zerolog.Ctx(ctx).Info().Str("index", index).Float64("factor", factor).Msg("score factor computed")
 
 	return factor, nil
 }
