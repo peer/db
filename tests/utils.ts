@@ -4,6 +4,7 @@ import type { PageScreenshotOptions } from "playwright-core"
 
 import AxeBuilder from "@axe-core/playwright"
 import { test as baseTest } from "@playwright/test"
+import { Identifier } from "@tozd/identifier"
 import { createHtmlReport } from "axe-html-reporter"
 import serialize from "canonicalize"
 import { createHash } from "node:crypto"
@@ -14,6 +15,14 @@ import { basename } from "node:path"
 const CONSOLE_ALLOWLIST = [/^Failed to load resource: the server responded with a status of 400 \(\)$/, /\[vite]/, /\[Vue/]
 
 export const PEERDB_URL = process.env.PEERDB_URL || "https://localhost:8080"
+
+// The identifier a document is stored under, derived the way the application derives it: from the namespace
+// the document lives in and the parts of its base which say which document of that namespace it is. A test
+// names a document by those parts instead of by the opaque string they hash to, and each application wraps
+// this with the namespaces of its own (see documentIdOf in its utils).
+export async function identifierOf(namespace: string, ...base: Array<string>): Promise<string> {
+  return (await Identifier.from(namespace, ...base)).toString()
+}
 
 // Extend BrowserContext to include console messages.
 interface ExtendedBrowserContext extends BrowserContext {
@@ -520,6 +529,19 @@ export async function checkpointFields(page: Page, name: string): Promise<void> 
 // an art discipline is the name and then the code.
 export function documentValues(page: Page): Locator {
   return page.locator(".pd-documentget-panel-properties .pd-fieldsview-value")
+}
+
+// The row of the class tab of the document view which is for the given property, addressed by the property
+// the row carries, so a row is found without depending on its label. The all properties tab has a row per
+// property as well, which propertyRow addresses.
+export function fieldRow(page: Page, propertyId: string): Locator {
+  return page.locator(`.pd-documentget-panel-properties .pd-fieldsview-row-${propertyId}`)
+}
+
+// The value cells of the row of the class tab which is for one property. A label is rendered once per field
+// and a value once per claim, so a property stated more than once has one label and several of these.
+export function fieldValues(page: Page, propertyId: string): Locator {
+  return fieldRow(page, propertyId).locator(".pd-fieldsview-value")
 }
 
 // The print view shows a timestamp which ticks every second, so it never looks the same twice and has to be

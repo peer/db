@@ -5,6 +5,7 @@ import {
   checkpoint,
   checkpointElement,
   expect,
+  fieldValues,
   goHome,
   openDocument,
   openDocumentTab,
@@ -86,12 +87,6 @@ function subClaimTable(page: Page, propertyId: string): Locator {
 // unit of an amount, the language of a text and the caption of a file are addressed.
 function subClaimValues(page: Page, parentPropertyId: string, propertyId: string): Locator {
   return subClaimRow(page, parentPropertyId).locator(`.pd-propertiesview-row-${propertyId} .pd-propertiesview-value`)
-}
-
-// The value cells of one field of the class tab, which unlike the "all properties" tab renders only the claims
-// which match the language the interface is in.
-function fieldValues(page: Page, propertyId: string): Locator {
-  return page.locator(`.pd-documentget-panel-properties .pd-fieldsview-row-${propertyId} .pd-fieldsview-value`)
 }
 
 test.describe("PeerDB Document Claim Values Flows", () => {

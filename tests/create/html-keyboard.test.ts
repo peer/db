@@ -7,6 +7,7 @@ import {
   checkpointElement,
   expect,
   expectHtmlEditorValue,
+  fieldRow,
   hideDuplicates,
   htmlEditorContent,
   htmlEditorValue,
@@ -234,7 +235,7 @@ async function createSpeciesAndEdit(page: Page, name: string): Promise<void> {
 
 // The value of the notes of the saved document, which is what the editor wrote into the claim.
 function savedNotes(page: Page): Locator {
-  return page.locator(`.pd-documentget-panel-properties .pd-fieldsview-row-${PROPERTY_IDS.NOTES} .pd-claimvaluehtml`).first()
+  return fieldRow(page, PROPERTY_IDS.NOTES).locator(".pd-claimvaluehtml").first()
 }
 
 test.describe("PeerDB HTML Editor Keyboard Flows", () => {

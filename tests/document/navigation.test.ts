@@ -10,6 +10,7 @@ import {
   expect,
   expectDocument,
   expectResults,
+  fieldRow,
   goHome,
   loadAllResults,
   openDocument,
@@ -96,7 +97,7 @@ async function walk(page: Page, button: Locator, target: string, what: string): 
 
 // The value cell of the first row of one property of the class tab of the document view.
 function fieldValue(page: Page, propertyId: string): Locator {
-  return page.locator(`.pd-documentget-panel-properties .pd-fieldsview-row-${propertyId}`).first().locator(".pd-fieldsview-value")
+  return fieldRow(page, propertyId).first().locator(".pd-fieldsview-value")
 }
 
 test.describe("PeerDB Document Navigation Flows", () => {

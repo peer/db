@@ -12,6 +12,7 @@ import {
   field,
   fieldInput,
   fieldSlots,
+  fieldValues,
   fillSlot,
   hideDuplicates,
   LOADING_TIMEOUT,
@@ -68,12 +69,6 @@ const TRADE_DEPENDENCY_ID = await documentIdOf("SUBSISTENCE_MODE", "TRADE_DEPEND
 // value it belongs to has been entered, and it carries the identifier of its own property.
 function subField(page: Page, propertyId: string, subPropertyId: string): Locator {
   return field(page, propertyId).locator(`.pd-claimcardinality-${subPropertyId}`).first()
-}
-
-// The value cells of one field of the document view, which is what a value just saved is read back
-// from. A field which holds several values renders one of these per value.
-function savedField(page: Page, propertyId: string): Locator {
-  return page.locator(`.pd-documentget-panel-properties .pd-fieldsview-row-${propertyId} .pd-fieldsview-value`)
 }
 
 // One of the entries a reference select offers, addressed by the document the entry stands for.
@@ -279,9 +274,9 @@ test.describe("PeerDB Claim Input Flows", () => {
     await checkpointBlock(page, field(page, PROPERTY_IDS.ENDONYM), "claiminputs-string-endonym")
 
     await saveEdit(page)
-    await expect(savedField(page, PROPERTY_IDS.ALTERNATIVE_NAME), "both alternative names are shown on the saved document").toHaveCount(2)
-    await expect(savedField(page, PROPERTY_IDS.ENDONYM).first(), "the endonym shown on the saved document").toHaveText("kesh-anaru")
-    await expect(savedField(page, PROPERTY_IDS.GLOSS).first(), "the gloss shown under the endonym").toHaveText("those who wait at the rim")
+    await expect(fieldValues(page,PROPERTY_IDS.ALTERNATIVE_NAME), "both alternative names are shown on the saved document").toHaveCount(2)
+    await expect(fieldValues(page,PROPERTY_IDS.ENDONYM).first(), "the endonym shown on the saved document").toHaveText("kesh-anaru")
+    await expect(fieldValues(page,PROPERTY_IDS.GLOSS).first(), "the gloss shown under the endonym").toHaveText("those who wait at the rim")
     await checkpointPage(page, "claiminputs-string-saved-document", volatile(page))
 
     // What was typed has to come back when the document is opened for editing again.
@@ -323,7 +318,7 @@ test.describe("PeerDB Claim Input Flows", () => {
     // is shown as a link into that register rather than as plain text. Only the register the link
     // leads into is asserted, and not the whole address: how the identifier is written into the
     // template is the template's business and is asserted where templates are tested.
-    const savedCode = savedField(page, PROPERTY_IDS.TAXON_CODE).locator(".pd-claimvalueid")
+    const savedCode = fieldValues(page,PROPERTY_IDS.TAXON_CODE).locator(".pd-claimvalueid")
     await expect(savedCode, "the identifier shown on the saved document").toHaveText("TX-9101-c")
     await expect(savedCode, "the identifier links into the register its property names").toHaveAttribute("href", /^https:\/\/registry\.ccx\.example\/taxon\//)
     await checkpointPage(page, "claiminputs-identifier-saved-document", volatile(page))
@@ -363,7 +358,7 @@ test.describe("PeerDB Claim Input Flows", () => {
     await checkpointBlock(page, field(page, PROPERTY_IDS.WEBSITE), "claiminputs-link-normalized")
 
     await saveEdit(page)
-    const savedLink = savedField(page, PROPERTY_IDS.WEBSITE).locator(".pd-claimvaluelink")
+    const savedLink = fieldValues(page,PROPERTY_IDS.WEBSITE).locator(".pd-claimvaluelink")
     await expect(savedLink, "the link shown on the saved document").toHaveText("https://anchor.ccx.example/people/Claim-Inputs")
     await expect(savedLink, "the link shown on the saved document leads to the entered URL").toHaveAttribute("href", "https://anchor.ccx.example/people/Claim-Inputs")
     await checkpointPage(page, "claiminputs-link-saved-document", volatile(page))
@@ -419,7 +414,7 @@ test.describe("PeerDB Claim Input Flows", () => {
     await checkpointBlock(page, contact, "claiminputs-time-months")
 
     await saveEdit(page)
-    await expect(savedField(page, PROPERTY_IDS.FIRST_CONTACT), "the time shown on the saved document").toHaveCount(1)
+    await expect(fieldValues(page,PROPERTY_IDS.FIRST_CONTACT), "the time shown on the saved document").toHaveCount(1)
     await checkpointPage(page, "claiminputs-time-saved-document", volatile(page))
 
     await startEdit(page)
@@ -478,7 +473,7 @@ test.describe("PeerDB Claim Input Flows", () => {
     await expect(unit.locator(".pd-inputref-link-document").first(), "the picked unit links to the unit document").toHaveAttribute("href", new RegExp(`/d/${METRE_ID}`))
 
     await saveEdit(page)
-    await expect(savedField(page, PROPERTY_IDS.TYPICAL_HEIGHT).locator(".pd-claimvalueamount"), "the amount shown on the saved document").toHaveText("1.75")
+    await expect(fieldValues(page,PROPERTY_IDS.TYPICAL_HEIGHT).locator(".pd-claimvalueamount"), "the amount shown on the saved document").toHaveText("1.75")
     await checkpointPage(page, "claiminputs-amount-saved-document", volatile(page))
 
     await startEdit(page)
@@ -537,8 +532,8 @@ test.describe("PeerDB Claim Input Flows", () => {
     await checkpointBlock(page, lifespan, "claiminputs-amountinterval-unit-picked")
 
     await saveEdit(page)
-    await expect(savedField(page, PROPERTY_IDS.LIFESPAN).locator(".pd-claimvalueamountinterval-from"), "the from bound on the saved document").toHaveText("55")
-    await expect(savedField(page, PROPERTY_IDS.LIFESPAN).locator(".pd-claimvalueamountinterval-to"), "the to bound on the saved document").toHaveText("110")
+    await expect(fieldValues(page,PROPERTY_IDS.LIFESPAN).locator(".pd-claimvalueamountinterval-from"), "the from bound on the saved document").toHaveText("55")
+    await expect(fieldValues(page,PROPERTY_IDS.LIFESPAN).locator(".pd-claimvalueamountinterval-to"), "the to bound on the saved document").toHaveText("110")
     await checkpointPage(page, "claiminputs-amountinterval-saved-document", volatile(page))
 
     await startEdit(page)
@@ -607,8 +602,8 @@ test.describe("PeerDB Claim Input Flows", () => {
     await checkpointPage(page, "claiminputs-timeinterval-edit-form")
 
     await saveEdit(page)
-    await expect(savedField(page, PROPERTY_IDS.ACTIVE_PERIOD).locator(".pd-claimvaluetimeinterval-from"), "the from bound on the saved document").toBeVisible()
-    await expect(savedField(page, PROPERTY_IDS.ACTIVE_PERIOD).locator(".pd-claimvaluetimeinterval-to"), "the to bound on the saved document").toBeVisible()
+    await expect(fieldValues(page,PROPERTY_IDS.ACTIVE_PERIOD).locator(".pd-claimvaluetimeinterval-from"), "the from bound on the saved document").toBeVisible()
+    await expect(fieldValues(page,PROPERTY_IDS.ACTIVE_PERIOD).locator(".pd-claimvaluetimeinterval-to"), "the to bound on the saved document").toBeVisible()
     await checkpointPage(page, "claiminputs-timeinterval-saved-document", volatile(page))
 
     await startEdit(page)
@@ -661,7 +656,7 @@ test.describe("PeerDB Claim Input Flows", () => {
     await pickReferenceShown(page, homeworld, HOMEWORLD_QUERY, HOMEWORLD_ID, "claiminputs-ref-homeworld-again", "the homeworld picked again")
 
     await saveEdit(page)
-    await expect(savedField(page, PROPERTY_IDS.HAS_HOMEWORLD).locator(`a[href*="/d/${HOMEWORLD_ID}"]`), "the reference shown on the saved document").toBeVisible()
+    await expect(fieldValues(page,PROPERTY_IDS.HAS_HOMEWORLD).locator(`a[href*="/d/${HOMEWORLD_ID}"]`), "the reference shown on the saved document").toBeVisible()
     await checkpointPage(page, "claiminputs-ref-saved-document", volatile(page))
 
     await startEdit(page)
@@ -746,7 +741,7 @@ test.describe("PeerDB Claim Input Flows", () => {
     await checkpointBlock(page, notes, "claiminputs-html-marks")
 
     await saveEdit(page)
-    const savedHtml = await savedField(page, PROPERTY_IDS.NOTES).locator(".pd-claimvaluehtml").innerHTML()
+    const savedHtml = await fieldValues(page,PROPERTY_IDS.NOTES).locator(".pd-claimvaluehtml").innerHTML()
     expect(savedHtml, "the saved note keeps the marks").toContain("<p><b><i>The first paragraph of the note.</i></b></p>")
     expect(savedHtml, "the saved note keeps the heading").toContain("<h2>Section heading</h2>")
     expect(savedHtml, "the saved note keeps the list").toContain("<li><p>First item</p></li>")
@@ -803,7 +798,7 @@ test.describe("PeerDB Claim Input Flows", () => {
 
     await saveEdit(page)
     await expect(
-      savedField(page, PROPERTY_IDS.HAS_INDIVIDUALITY_MODE).locator(`a[href*="/d/${BOUNDED_ID}"]`),
+      fieldValues(page,PROPERTY_IDS.HAS_INDIVIDUALITY_MODE).locator(`a[href*="/d/${BOUNDED_ID}"]`),
       "the selected mode of individuality on the saved document",
     ).toBeVisible()
     await checkpointPage(page, "claiminputs-radioselect-saved-document", volatile(page))
@@ -866,13 +861,13 @@ test.describe("PeerDB Claim Input Flows", () => {
     await expect(trade, "the second entry is selected again").toBeChecked({ timeout: LOADING_TIMEOUT })
 
     await saveEdit(page)
-    await expect(savedField(page, PROPERTY_IDS.HAS_SUBSISTENCE_MODE), "both selected values are shown on the saved document").toHaveCount(2)
+    await expect(fieldValues(page,PROPERTY_IDS.HAS_SUBSISTENCE_MODE), "both selected values are shown on the saved document").toHaveCount(2)
     await expect(
-      savedField(page, PROPERTY_IDS.HAS_SUBSISTENCE_MODE).locator(`a[href*="/d/${SEALED_CULTIVATION_ID}"]`),
+      fieldValues(page,PROPERTY_IDS.HAS_SUBSISTENCE_MODE).locator(`a[href*="/d/${SEALED_CULTIVATION_ID}"]`),
       "the first selected value on the saved document",
     ).toBeVisible()
     await expect(
-      savedField(page, PROPERTY_IDS.HAS_SUBSISTENCE_MODE).locator(`a[href*="/d/${TRADE_DEPENDENCY_ID}"]`),
+      fieldValues(page,PROPERTY_IDS.HAS_SUBSISTENCE_MODE).locator(`a[href*="/d/${TRADE_DEPENDENCY_ID}"]`),
       "the second selected value on the saved document",
     ).toBeVisible()
     await checkpointPage(page, "claiminputs-checkboxselect-saved-document", volatile(page))

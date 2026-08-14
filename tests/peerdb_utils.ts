@@ -3,10 +3,16 @@ import type { Locator, Page } from "@playwright/test"
 import { readFileSync } from "node:fs"
 import { fileURLToPath } from "node:url"
 
-import { Identifier } from "@tozd/identifier"
-
 import * as core from "@/core"
-import { createNamed as createNamedDocument, type CreateNamedOptions, fieldSlots, searchByProperty, type SearchOptions, startCreate as startCreateClass } from "./utils"
+import {
+  createNamed as createNamedDocument,
+  type CreateNamedOptions,
+  fieldSlots,
+  identifierOf,
+  searchByProperty,
+  type SearchOptions,
+  startCreate as startCreateClass,
+} from "./utils"
 
 // The namespace the test data documents live in (Namespace in internal/xeno/namespace.go), and the
 // segment between it and a file's path in the identifier a test data attachment is stored under
@@ -19,20 +25,20 @@ export const FilesStorage = "TEST_STORAGE"
 // document of the test data it is, instead of by the opaque string the two hash to. The parts are exactly
 // the "id" of the document's JSON file in testdata, without the leading namespace.
 export async function documentIdOf(...base: Array<string>): Promise<string> {
-  return (await Identifier.from(Namespace, ...base)).toString()
+  return await identifierOf(Namespace, ...base)
 }
 
 // The same for a document of the core namespace: the schema documents (classes, properties, value types)
 // and the vocabularies PeerDB inserts itself (the languages and the units among them).
 export async function coreDocumentIdOf(...base: Array<string>): Promise<string> {
-  return (await Identifier.from(core.Namespace, ...base)).toString()
+  return await identifierOf(core.Namespace, ...base)
 }
 
 // The address a test data attachment is served from. The file is stored under an identifier derived from
 // its path inside the test data files directory, so the address follows from that path alone and a test
 // can ask for a file without reading it out of a document it may not be allowed to read.
 export async function filePathOf(path: string): Promise<string> {
-  return `/f/${(await Identifier.from(Namespace, FilesStorage, path)).toString()}`
+  return `/f/${await identifierOf(Namespace, FilesStorage, path)}`
 }
 
 // Derives the identifier of every mnemonic of a namespace at once, so that the tables below stay a list of
@@ -40,7 +46,7 @@ export async function filePathOf(path: string): Promise<string> {
 async function mnemonicIds<T extends string>(namespace: string, mnemonics: ReadonlyArray<T>): Promise<Record<T, string>> {
   const ids = {} as Record<T, string>
   for (const mnemonic of mnemonics) {
-    ids[mnemonic] = (await Identifier.from(namespace, mnemonic)).toString()
+    ids[mnemonic] = await identifierOf(namespace, mnemonic)
   }
   return ids
 }

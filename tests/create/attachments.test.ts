@@ -13,6 +13,7 @@ import {
   expect,
   expectAttachmentServed,
   field,
+  fieldRow,
   hideDuplicates,
   holdUploads,
   LOADING_TIMEOUT,
@@ -174,7 +175,7 @@ test.describe("PeerDB Attachment Flows", () => {
     await saveEdit(page)
     await checkpoint(page, "attachments-image-saved-document", { mask: [...volatile(page), ...volatileFileLinks(page)] })
 
-    const savedLink = page.locator(`.pd-documentget-panel-properties .pd-fieldsview-row-${PROPERTY_IDS.IMAGE} .pd-claimvaluelink`).first()
+    const savedLink = fieldRow(page, PROPERTY_IDS.IMAGE).locator(".pd-claimvaluelink").first()
     await expectFileLinkClasses(savedLink, "the saved species")
     await expectAttachmentServed(page, savedLink, FIRST_FILE, "the saved species")
 
@@ -216,7 +217,7 @@ test.describe("PeerDB Attachment Flows", () => {
 
     // The name of a file stands in for the address it is served under, so the saved link is named by it
     // rather than by the path, which is what makes the file readable to somebody who did not upload it.
-    const savedLink = page.locator(`.pd-documentget-panel-properties .pd-fieldsview-row-${PROPERTY_IDS.IMAGE} .pd-claimvaluelink`).first()
+    const savedLink = fieldRow(page, PROPERTY_IDS.IMAGE).locator(".pd-claimvaluelink").first()
     await expect(savedLink, "the saved image link is named by the file").toHaveText(name)
     await checkpoint(page, "attachments-image-subfields-saved-document", { mask: volatile(page) })
 
@@ -299,7 +300,7 @@ test.describe("PeerDB Attachment Flows", () => {
     await saveEdit(page)
     await checkpoint(page, "attachments-image-cancel-saved-document", { mask: [...volatile(page), ...volatileFileLinks(page)] })
 
-    const savedLink = page.locator(`.pd-documentget-panel-properties .pd-fieldsview-row-${PROPERTY_IDS.IMAGE} .pd-claimvaluelink`).first()
+    const savedLink = fieldRow(page, PROPERTY_IDS.IMAGE).locator(".pd-claimvaluelink").first()
     await expectAttachmentServed(page, savedLink, SECOND_FILE, "the retried species")
 
     console.log("Successfully cancelled 1 upload, released its session, uploaded the same file again and reached it from the saved document.")
@@ -340,7 +341,7 @@ test.describe("PeerDB Attachment Flows", () => {
     await checkpointElement(page, image, "attachments-image-hash-retried", { mask: volatileFileLinks(page) })
 
     await saveEdit(page)
-    const savedLink = page.locator(`.pd-documentget-panel-properties .pd-fieldsview-row-${PROPERTY_IDS.IMAGE} .pd-claimvaluelink`).first()
+    const savedLink = fieldRow(page, PROPERTY_IDS.IMAGE).locator(".pd-claimvaluelink").first()
     await expectAttachmentServed(page, savedLink, FIRST_FILE, "the species whose first upload was refused")
 
     console.log("Successfully had 1 upload refused for a hash which does not match its contents, and uploaded the same file again afterwards.")
@@ -384,7 +385,7 @@ test.describe("PeerDB Attachment Flows", () => {
     await saveEdit(page)
     await checkpoint(page, "attachments-notes-saved-document", { mask: volatile(page) })
 
-    const savedLink = page.locator(`.pd-documentget-panel-properties .pd-fieldsview-row-${PROPERTY_IDS.NOTES} .pd-claimvaluehtml .pd-link-file`).first()
+    const savedLink = fieldRow(page, PROPERTY_IDS.NOTES).locator(".pd-claimvaluehtml .pd-link-file").first()
     await expect(savedLink, "name of the file link of the saved species").toHaveText(basename(FIRST_FILE))
     await expectFileLinkClasses(savedLink, "the notes of the saved species")
     await expectAttachmentServed(page, savedLink, FIRST_FILE, "the notes of the saved species")
@@ -444,7 +445,7 @@ test.describe("PeerDB Attachment Flows", () => {
     await checkpoint(page, "attachments-notes-replace-saved-document", { mask: volatile(page) })
 
     // The saved document has to serve the replacement, which is the file the second upload stored.
-    const savedLink = page.locator(`.pd-documentget-panel-properties .pd-fieldsview-row-${PROPERTY_IDS.NOTES} .pd-claimvaluehtml .pd-link-file`).first()
+    const savedLink = fieldRow(page, PROPERTY_IDS.NOTES).locator(".pd-claimvaluehtml .pd-link-file").first()
     await expectAttachmentServed(page, savedLink, SECOND_FILE, "the notes of the saved species")
 
     console.log("Successfully replaced 1 file attached to the notes and reached the replacement from the saved document.")
@@ -508,9 +509,7 @@ test.describe("PeerDB Attachment Flows", () => {
 
     // The removed attachment must not come back through the saved document.
     await expect(page.locator(".pd-documentget-panel-properties .pd-link-file"), "file links of the saved species").toHaveCount(0)
-    await expect(page.locator(`.pd-documentget-panel-properties .pd-fieldsview-row-${PROPERTY_IDS.NOTES}`), "notes of the saved species").toContainText(
-      "These notes keep their text:",
-    )
+    await expect(fieldRow(page, PROPERTY_IDS.NOTES), "notes of the saved species").toContainText("These notes keep their text:")
 
     console.log("Successfully cancelled 1 attachment upload, attached a file, removed it again and verified the saved species carries no file.")
   })
