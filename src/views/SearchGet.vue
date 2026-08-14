@@ -10,13 +10,14 @@ import { useRouter } from "vue-router"
 
 import { useDownload } from "@/download"
 import { useNavbarSearchQuery } from "@/navbar"
+import WithLock from "@/components/WithLock.vue"
 import DownloadOverlay from "@/partials/DownloadOverlay.vue"
 import Footer from "@/partials/Footer.vue"
 import NavBar from "@/partials/NavBar.vue"
 import NavBarSearch from "@/partials/NavBarSearch.vue"
 import SearchResultsFeed from "@/partials/SearchResultsFeed.vue"
 import SearchResultsTable from "@/partials/SearchResultsTable.vue"
-import { useBusy } from "@/progress"
+import { pairCounters, useLock, useProgress } from "@/progress"
 import { searchShortcutControllerKey, updateSearchSession, useSearch, useSearchSession } from "@/search"
 import { clone } from "@/utils"
 
@@ -27,8 +28,13 @@ const props = defineProps<{
 const { t, locale } = useI18n({ useScope: "global" })
 const router = useRouter()
 
-// Data loading and controls for data loading.
-const busy = useBusy()
+// Data loading and controls for data loading. The two channels are made here rather than through useBusy so
+// that the download can raise the lock alone: while files are being gathered the view's controls have to
+// stay out of the way, but the bar across the top of the page is about the page fetching what it shows, and
+// the download has an overlay of its own which reports how far it has got.
+const progress = useProgress()
+const lock = useLock()
+const busy = pairCounters(progress, lock)
 
 const abortController = new AbortController()
 onBeforeUnmount(() => {
@@ -64,6 +70,24 @@ const {
   startBulkDownload,
   cancelDownload,
 } = useDownload(abortController, router, searchResults)
+
+// A download in preparation makes the view busy: its controls lock, so a filter, a sort or an edit cannot
+// land in the middle of gathering the files it was asked for. It is raised on the lock alone (see above),
+// and the overlay opts out of it below, because the way out of a download is its own cancel button.
+watch(downloadingPhase, (phase, previous) => {
+  if (phase !== null && previous === null) {
+    lock.value += 1
+  } else if (phase === null && previous !== null) {
+    lock.value -= 1
+  }
+})
+
+// The lock the download overlay is rendered under: a constant zero, so the overlay stays usable while the
+// download it reports on has the rest of the view locked.
+const overlayLock = ref(0)
+function getOverlayLock() {
+  return overlayLock
+}
 
 // A non-read-only version of filters so that we can modify it as necessary.
 const filters = ref<Filter[]>([])
@@ -405,7 +429,6 @@ async function onDownloadFiles() {
       :search-more-than-total="searchMoreThanTotal"
       :search-session="searchSession"
       :filters="filters"
-      :is-downloading="downloadingPhase !== null"
       @filter-updates="onFilterUpdates"
       @view-change="onViewChange"
       @download-zip="onDownloadZip"
@@ -424,7 +447,6 @@ async function onDownloadFiles() {
       :search-more-than-total="searchMoreThanTotal"
       :search-session="searchSession"
       :filters="filters"
-      :is-downloading="downloadingPhase !== null"
       @filter-updates="onFilterUpdates"
       @view-change="onViewChange"
       @download-zip="onDownloadZip"
@@ -440,13 +462,15 @@ async function onDownloadFiles() {
     <Footer class="border-t border-slate-50 bg-slate-200 shadow-sm" />
   </Teleport>
 
-  <DownloadOverlay
-    :open="(downloadingPhase !== null && downloadingPhase !== 'picking') || downloadError !== null"
-    :downloading-phase="downloadingPhase"
-    :completed="completed"
-    :total="total"
-    :current-file="currentFile"
-    :error="downloadError"
-    @cancel="cancelDownload"
-  />
+  <WithLock :lock="getOverlayLock">
+    <DownloadOverlay
+      :open="(downloadingPhase !== null && downloadingPhase !== 'picking') || downloadError !== null"
+      :downloading-phase="downloadingPhase"
+      :completed="completed"
+      :total="total"
+      :current-file="currentFile"
+      :error="downloadError"
+      @cancel="cancelDownload"
+    />
+  </WithLock>
 </template>

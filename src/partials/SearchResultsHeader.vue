@@ -18,13 +18,13 @@ import { hasFilePermission } from "@/auth"
 import { ACTION_READ_BULK } from "@/core"
 import SelectButton from "@/components/SelectButton.vue"
 import siteContext from "@/context"
+import { useLocked } from "@/progress"
 
 const props = withDefaults(
   defineProps<{
     searchSession: DeepReadonly<SearchSession>
     searchTotal: number | null
     searchMoreThanTotal: boolean
-    isDownloading: boolean
     // sortable shows the sort & grouping button (the feed toolbar; the table does not use it).
     sortable?: boolean
     // printable shows the print-view button (the feed toolbar; the table does not use it).
@@ -35,6 +35,11 @@ const props = withDefaults(
     printable: false,
   },
 )
+
+// Starting a download while the view is working would act on a result set which is being replaced, and a
+// download of its own locks the view (see SearchGet), so the buttons which start one follow the lock rather
+// than a state of their own.
+const locked = useLocked()
 
 const $emit = defineEmits<{
   viewChange: [value: ViewType]
@@ -157,10 +162,11 @@ function countFilters(): number {
         <button
           class="pd-searchresultsheader-button pd-searchresultsheader-button-downloadzip h-full rounded-sm px-2 py-0.5 outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-1"
           :class="{
-            'cursor-not-allowed text-gray-500': isDownloading, // Disabled style.
-            'hover:bg-slate-100': !isDownloading, // Enabled style.
+            'pd-locked': locked,
+            'cursor-not-allowed text-gray-500': locked, // Disabled style.
+            'hover:bg-slate-100': !locked, // Enabled style.
           }"
-          :disabled="isDownloading"
+          :disabled="locked"
           :title="t('partials.SearchResultsHeader.downloadZip')"
           @click.prevent="$emit('downloadZip')"
         >
@@ -170,10 +176,11 @@ function countFilters(): number {
           v-if="directoryPickerSupported"
           class="pd-searchresultsheader-button pd-searchresultsheader-button-downloadfiles h-full rounded-sm px-2 py-0.5 outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-1"
           :class="{
-            'cursor-not-allowed text-gray-500': isDownloading, // Disabled style.
-            'hover:bg-slate-100': !isDownloading, // Enabled style.
+            'pd-locked': locked,
+            'cursor-not-allowed text-gray-500': locked, // Disabled style.
+            'hover:bg-slate-100': !locked, // Enabled style.
           }"
-          :disabled="isDownloading"
+          :disabled="locked"
           :title="t('partials.SearchResultsHeader.downloadFiles')"
           @click.prevent="$emit('downloadFiles')"
         >

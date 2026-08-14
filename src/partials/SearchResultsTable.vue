@@ -34,7 +34,6 @@ const props = defineProps<{
   searchTotal: number | null
   searchMoreThanTotal: boolean
   searchSession: DeepReadonly<SearchSession>
-  isDownloading: boolean
 
   // Filter props.
   filters: Filter[]
@@ -263,7 +262,6 @@ const WithDocumentD = WithDocument<D>
       :search-session="searchSession"
       :search-total="searchTotal"
       :search-more-than-total="searchMoreThanTotal"
-      :is-downloading="isDownloading"
       @view-change="(v) => $emit('viewChange', v)"
       @download-zip="$emit('downloadZip')"
       @download-files="$emit('downloadFiles')"

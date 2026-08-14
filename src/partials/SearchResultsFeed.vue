@@ -50,7 +50,6 @@ const props = defineProps<{
   searchTotal: number | null
   searchMoreThanTotal: boolean
   searchSession: DeepReadonly<SearchSession>
-  isDownloading: boolean
 
   // Filter props.
   filters: Filter[]
@@ -532,7 +531,6 @@ const WithDocumentD = WithDocument<D>
         :search-session="searchSession"
         :search-total="searchTotal"
         :search-more-than-total="searchMoreThanTotal"
-        :is-downloading="isDownloading"
         sortable
         printable
         @view-change="(v) => $emit('viewChange', v)"
