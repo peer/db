@@ -1660,13 +1660,35 @@ export function hasValue(page: Page, propertyId: string): Locator {
 // page fetches its results whenever anything about it changes, so one of those fetches can still be in
 // flight when the action runs, and what the page shows when such a wait returns is still the previous
 // search.
+// The version of the results cannot be waited for the way the change itself is, because it is not known
+// until the change has been answered: the answer has to be read first, and the results of the changed search
+// can be back before it has been. The action is what makes that likely rather than rare, because an action
+// which waits for something the page does with the changed search returns after the results it is waiting
+// for have already arrived. Every results response is therefore recorded from before the action, and the
+// version is looked for among the ones which have come back as well as the ones still to come.
 export async function applySearchChange(page: Page, action: () => Promise<void>): Promise<void> {
-  const updated = page.waitForResponse((response) => response.url().includes(SEARCH_UPDATE_API) && response.request().method() === "POST", { timeout: LOADING_TIMEOUT })
-  await action()
-  const { version } = (await (await updated).json()) as { version: number }
-  await page.waitForResponse((response) => response.url().includes(SEARCH_RESULTS_API) && new URL(response.url()).searchParams.get("version") === String(version), {
-    timeout: LOADING_TIMEOUT,
-  })
+  const fetched = new Set<string>()
+  const record = (response: Response) => {
+    if (response.url().includes(SEARCH_RESULTS_API)) {
+      const version = new URL(response.url()).searchParams.get("version")
+      if (version !== null) {
+        fetched.add(version)
+      }
+    }
+  }
+  page.on("response", record)
+  try {
+    const updated = page.waitForResponse((response) => response.url().includes(SEARCH_UPDATE_API) && response.request().method() === "POST", {
+      timeout: LOADING_TIMEOUT,
+    })
+    await action()
+    const { version } = (await (await updated).json()) as { version: number }
+    await expect
+      .poll(() => fetched.has(String(version)), { message: `the results of the search at version ${version} the change produced`, timeout: LOADING_TIMEOUT })
+      .toBe(true)
+  } finally {
+    page.off("response", record)
+  }
 }
 
 // Runs an action which changes the search and waits until the results of the changed search are on the
