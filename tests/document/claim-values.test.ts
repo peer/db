@@ -78,7 +78,7 @@ function subClaimRow(page: Page, propertyId: string): Locator {
 
 // The table of the sub-claims of the claims of one property. A row of the properties table is laid out as
 // contents rather than as a box of its own, so the table inside it is what a screenshot of the sub-claims can
-// be clipped to.
+// be taken of.
 function subClaimTable(page: Page, propertyId: string): Locator {
   return subClaimRow(page, propertyId).locator(".pd-propertiesview").first()
 }
@@ -370,7 +370,7 @@ test.describe("PeerDB Document Claim Values Flows", () => {
     await expect(ringRow.locator(".pd-propertiesview-label-text"), "the ring system claim is labelled by its property").not.toHaveText(/^\s*$/)
     await expect(propertyValues(page, PROPERTY_IDS.HAS_RING_SYSTEM), "the ring system claim renders no value").toHaveCount(0)
     // A row of the properties table is laid out as contents rather than as a box of its own, so the label cell
-    // is what a screenshot of the row can be clipped to.
+    // is what a screenshot of the row can be taken of.
     await checkpointElement(page, ringRow.locator(".pd-propertiesview-label"), "claim-values-has-ringsystem")
 
     // An unknown claim says that the document has a value for the property but that the value is not known,

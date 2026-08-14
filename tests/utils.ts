@@ -1,6 +1,5 @@
 import type { BrowserContext, Locator, Page, Response } from "@playwright/test"
 import type { Result } from "axe-core"
-import type { PageScreenshotOptions } from "playwright-core"
 
 import AxeBuilder from "@axe-core/playwright"
 import { test as baseTest } from "@playwright/test"
@@ -136,25 +135,13 @@ export async function expectNoConsoleErrors(page: Page): Promise<void> {
   expect(resolvedMessages.length, `Console errors detected:\n${resolvedMessages.join("\n")}`).toBe(0)
 }
 
-// The box of an element on the page, which is what a screenshot of that element is clipped to.
-interface BoundingBox {
-  x: number
-  y: number
-  width: number
-  height: number
-}
-
 interface CheckpointOptions {
   mask?: Array<Locator>
   fullPage?: boolean
-  clip?: BoundingBox
-  // The element the clip was measured from. When it is given, the element is measured again the moment the
-  // capture is over, and a capture of an element which has moved out of its box is a capture of something
-  // else than what it is named after, so nothing is compared and checkpoint reports that it took none.
-  clipOf?: Locator
-  // Whether an element which moved away from its box is reported. It is passed by a caller which captures
-  // again when the element moves, so that only the last attempt of it fails the test.
-  reportMoved?: boolean
+  // The element to capture instead of the page. What is captured is the element itself and not a region of
+  // the page measured from it, so a page which moves between the moment the capture is asked for and the
+  // moment it is taken cannot leave the capture framed on somewhere else.
+  of?: Locator
   // Whether the checks which read the whole page are run: the duplicate identifiers and the accessibility
   // violations. They are about the page and not about the screenshot, and both walk the whole document, so a
   // test which captures the same page many times over (one screenshot per step of a movement, say) runs them
@@ -172,19 +159,19 @@ const SCREENSHOT_TIMEOUT = 60000
 
 // Take up to 10 screenshots, wait until they stabilize. We had issues (and flakiness) because sometimes
 // screenshots are not saved fully (just part of the page is visible, the rest is blank). Now we wait
-// visually for screenshot to stabilize (instead of waiting just for DOM).
-async function takeStableScreenshot(page: Page, options: PageScreenshotOptions): Promise<Buffer> {
-  const screenshotOptions = { ...options, timeout: SCREENSHOT_TIMEOUT }
-  let olderScreenshot = await page.screenshot(screenshotOptions)
+// visually for screenshot to stabilize (instead of waiting just for DOM). What one attempt captures is
+// decided by the caller through shoot, so the same waiting covers a page and an element alike.
+async function takeStableScreenshot(page: Page, name: string, shoot: () => Promise<Buffer>): Promise<Buffer> {
+  let olderScreenshot = await shoot()
   for (let i = 0; i < 10; i++) {
     await page.waitForTimeout(500)
-    const newerScreenshot = await page.screenshot(screenshotOptions)
+    const newerScreenshot = await shoot()
     if (olderScreenshot.equals(newerScreenshot)) {
       return newerScreenshot
     }
     olderScreenshot = newerScreenshot
   }
-  throw new Error(`unable to take stable screenshot: ${screenshotOptions.path}`)
+  throw new Error(`unable to take stable screenshot: ${name}`)
 }
 
 // Waits until the page has everything it asked for. The bar across the top is drawn while any request is in
@@ -195,55 +182,37 @@ async function expectNothingInFlight(page: Page, what: string): Promise<void> {
   await expect(page.locator(".pd-navbar-progress"), `the progress bar while ${what}`).toHaveCount(0, { timeout: LOADING_TIMEOUT })
 }
 
-// Takes a screenshot of the page (or of the given box of it) and compares it with the one stored under the
-// given name, then checks the page for duplicate identifiers, accessibility violations and console errors.
-//
-// It returns whether the checkpoint was taken. The one case in which it was not is an element which moved
-// out of the box its capture was measured from: what was captured is then a part of the page the name does
-// not describe, so it is left uncompared for the caller to take again.
-export async function checkpoint(
-  page: Page,
-  name: string,
-  { mask = [], fullPage = true, clip, clipOf, reportMoved = true, checks = true }: CheckpointOptions = {},
-): Promise<boolean> {
+// Takes a screenshot of the page (or of the given element of it) and compares it with the one stored under
+// the given name, then checks the page for duplicate identifiers, accessibility violations and console errors.
+export async function checkpoint(page: Page, name: string, { mask = [], fullPage = true, of, checks = true }: CheckpointOptions = {}): Promise<void> {
   // A screenshot which catches the progress bar is a screenshot of a page which is not done. It is waited out
   // here rather than at the call sites because it can be lit by anything the page is doing, and it sits over
-  // the top of the navbar, which is inside the clip of an element screenshot of the navbar just as much as it
-  // is on a whole page.
+  // the top of the navbar, which is inside an element screenshot of the navbar just as much as it is on a
+  // whole page.
   await expectNothingInFlight(page, `taking ${name}`)
-  // Anchor scroll to the top so position:fixed elements land at the top of fullPage screenshots.
-  if (fullPage) {
+  // Anchor scroll to the top so position:fixed elements land at the top of fullPage screenshots. An element
+  // capture starts from there as well: Playwright scrolls the element into view itself, and starting every
+  // capture from the top of the page is what makes it scroll the same way twice.
+  if (of !== undefined || fullPage) {
     await page.evaluate(() => window.scrollTo({ top: 0, left: 0, behavior: "instant" }))
   }
   // Move mouse to the same location so the same element gets focused every time.
   await page.mouse.move(0, 0)
   const screenshotPath = test.info().snapshotPath(`${name}.png`, { kind: "screenshot" })
+  // A screenshot which has nothing stored under its name yet is written to where the comparison would have
+  // read it from, so that the run which adds a checkpoint is also the one which gives it its stored copy.
+  const isNew = !existsSync(screenshotPath)
   const screenshotOptions = {
-    fullPage,
     mask,
-    clip,
-    ...(existsSync(screenshotPath) ? {} : { path: screenshotPath }),
+    timeout: SCREENSHOT_TIMEOUT,
+    ...(isNew ? { path: screenshotPath } : {}),
   }
 
-  const screenshotBuffer = await takeStableScreenshot(page, screenshotOptions)
+  const screenshotBuffer = await takeStableScreenshot(page, name, () =>
+    of !== undefined ? of.screenshot(screenshotOptions) : page.screenshot({ ...screenshotOptions, fullPage }),
+  )
 
-  // Whether what was captured is still what the clip was measured from is asked here, before anything else
-  // this function does: the checks below read the whole page and take their time, and a page which moves
-  // while they run moves after the capture, which says nothing about the capture. A capture of an element
-  // which has moved away is left uncompared, so that the caller can take it again where the element now is
-  // without the attempt it is replacing having failed the test on its own.
-  if (clipOf !== undefined) {
-    const after = await clipOf.boundingBox()
-    const moved = after === null || after.x !== clip?.x || after.y !== clip.y || after.width !== clip.width || after.height !== clip.height
-    if (moved) {
-      if (reportMoved) {
-        expect.soft(after, `the element for ${name} stayed in the box its screenshot was taken of`).toEqual(clip)
-      }
-      return false
-    }
-  }
-
-  if (screenshotOptions.path) {
+  if (isNew) {
     // Only attach new screenshots to the report.
     await test.info().attach(name, {
       contentType: "image/png",
@@ -258,7 +227,7 @@ export async function checkpoint(
 
   if (!checks) {
     await expectNoConsoleErrors(page)
-    return true
+    return
   }
 
   // Check for duplicate IDs.
@@ -290,8 +259,6 @@ export async function checkpoint(
 
   // Check for any console logs.
   await expectNoConsoleErrors(page)
-
-  return true
 }
 
 export async function takeScreenshotsOfEntries(
@@ -305,46 +272,29 @@ export async function takeScreenshotsOfEntries(
   const entries = page.locator(entrySelector)
   const count = await entries.count()
 
+  // The first capture is the one which reads the whole page: what the duplicate identifiers and the
+  // accessibility scan look at is the same page for every entry below, so the rest ask for the screenshot
+  // alone. The console is read for every one of them, so an error raised while a later entry is captured
+  // is still reported.
+  let firstEntry = true
+
   for (let i = 0; i < count; i++) {
     const entry = entries.nth(i)
-    const box = await entry.boundingBox()
-    if (!box) {
+    // An entry which is not rendered is passed over rather than waited for: what is captured here is the
+    // entries the page shows.
+    if ((await entry.boundingBox()) === null) {
       continue
     }
 
     const displayNameElement = entry.locator(displayNameSelector)
     const displayName = (await displayNameElement.textContent())?.replace(/\s/g, "")
 
-    await checkpointBox(page, entry, `${screenshotPrefix}-${displayName}`, mask, box)
+    await checkpointElement(page, entry, `${screenshotPrefix}-${displayName}`, { mask, checks: firstEntry })
+    firstEntry = false
   }
 }
 
-// Captures a box of the page as the screenshot of the element it was measured from.
-//
-// The box is a box and not the element, so it is a screenshot of the element only while the element is still
-// in it: anything above which settles after the box was measured moves the element out from under it and
-// whatever took its place is captured instead, which reads as the element having changed rather than as the
-// page having moved. A move is therefore answered by measuring again and capturing again, because what moved
-// the element has by then happened and the next capture is of the element where it now is. Only an element
-// which keeps moving is reported, which is a page that never settles rather than one which settled late.
-//
-// An element which is gone by the time it is measured again keeps the box it had, so that the capture which
-// follows is the one which reports it rather than a screenshot of the whole page taken with no box at all.
-async function checkpointBox(page: Page, locator: Locator, name: string, mask: Array<Locator>, box: BoundingBox): Promise<void> {
-  let clip = box
-  for (let pass = 0; pass < CLIP_PASSES; pass++) {
-    const taken = await checkpoint(page, name, { mask, clip, clipOf: locator, reportMoved: pass === CLIP_PASSES - 1 })
-    if (taken) {
-      return
-    }
-    const moved = await locator.boundingBox()
-    if (moved !== null) {
-      clip = moved
-    }
-  }
-}
-
-interface CheckpointElementOptions extends Pick<CheckpointOptions, "mask"> {
+interface CheckpointElementOptions extends Pick<CheckpointOptions, "mask" | "checks"> {
   // Whether the element is captured with something in it locked. A capture is normally of an element at
   // rest, so the default is to wait for the locked controls to be released, and a caller which drives an
   // operation and captures the element while it runs says so here, which waits for the lock instead.
@@ -357,18 +307,20 @@ interface CheckpointElementOptions extends Pick<CheckpointOptions, "mask"> {
 const LOCKED_CONTROLS = ":scope.pd-locked, .pd-locked"
 
 // Takes a checkpoint of one element only, so a regression in the part of the view which was just driven
-// is reported against a screenshot of that part rather than only against the whole page. The clip is
-// measured with the page scrolled to the top, which is where checkpoint puts it before taking a full page
-// screenshot, so the element's viewport box and its box in the full page screenshot are the same.
-export async function checkpointElement(page: Page, locator: Locator, name: string, { mask = [], locked = false }: CheckpointElementOptions = {}): Promise<void> {
+// is reported against a screenshot of that part rather than only against the whole page. What it adds to
+// a checkpoint of the element is the waiting: the element has to be there, the page has to have everything
+// it asked for, and what is in the element has to be in the state the caller names.
+export async function checkpointElement(
+  page: Page,
+  locator: Locator,
+  name: string,
+  { mask = [], locked = false, checks = true }: CheckpointElementOptions = {},
+): Promise<void> {
   await expect(locator, `element for ${name}`).toBeVisible()
-  await page.evaluate(() => window.scrollTo({ top: 0, left: 0, behavior: "instant" }))
 
-  // The box is measured on a page which has everything it asked for. A box read while an answer is still
-  // on its way is a box of where the element is before the answer is rendered, and the element is then
-  // somewhere else by the time the screenshot is taken, which the reads below cannot see: they only say
-  // that the element is not moving right now, not that nothing is about to move it.
-  await expectNothingInFlight(page, `measuring the element for ${name}`)
+  // An element captured while an answer is still on its way is an element captured before what the answer
+  // changes in it has been changed, which is a state the name does not describe.
+  await expectNothingInFlight(page, `taking the element for ${name}`)
 
   // A locked control is drawn greyed and does not accept anything, so which of the two states it is in
   // decides what the screenshot shows. The progress bar does not answer this on its own: a lock can be held
@@ -381,22 +333,7 @@ export async function checkpointElement(page: Page, locator: Locator, name: stri
     await expect(lockedControls, `the locked controls in the element for ${name}`).toHaveCount(0, { timeout: LOADING_TIMEOUT })
   }
 
-  // The clip is a box on the page and not the element itself, so anything above the element which is still
-  // settling would move the element out from under the box and the screenshot would be of somewhere else.
-  // The box is therefore read until it stops moving before it is used.
-  let box = await locator.boundingBox()
-  await expect
-    .poll(
-      async () => {
-        const previous = box
-        box = await locator.boundingBox()
-        return previous !== null && box !== null && previous.x === box.x && previous.y === box.y && previous.width === box.width && previous.height === box.height
-      },
-      { message: `the box of the element for ${name} stops moving` },
-    )
-    .toBe(true)
-
-  await checkpointBox(page, locator, name, mask, box!)
+  await checkpoint(page, name, { mask, checks, of: locator })
 }
 
 // Everything below drives the interface PeerDB itself provides, so it is the same for every application
@@ -408,12 +345,6 @@ export async function checkpointElement(page: Page, locator: Locator, name: stri
 // timeout is enough while the site is idle, but tests run next to each other and the ones which write
 // make the site answer noticeably slower, so waiting for a fetch is given more room than the default.
 export const LOADING_TIMEOUT = 30000
-
-// How many times an element screenshot may be taken again because the element moved out of the box the
-// previous attempt was measured from. Whatever moved it has happened by the time that attempt is over, so
-// one more attempt is normally enough, and an element still moving after these is a page which never
-// settles rather than one which settled late.
-const CLIP_PASSES = 3
 
 // How many times settleFilters may reveal another batch of facets before it gives up on the filters panel
 // ever listing them all.

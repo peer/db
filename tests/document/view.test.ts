@@ -349,7 +349,7 @@ test.describe("PeerDB Document View Flows", () => {
     await expect(identifier, "the researcher code shows its value").toHaveText(code)
     // The value cell is what is captured and not the row it sits in: a row of the fields table is laid out as
     // display: contents so that the table reflows on narrow viewports, which leaves the row itself without a
-    // box for a screenshot to be clipped to.
+    // box for a screenshot to be taken of.
     await checkpointElement(page, fieldValue(page, PROPERTY_IDS.RESEARCHER_CODE), "document-view-identifier-link")
 
     // The template is read from the property document itself, so the test asserts what the schema says rather

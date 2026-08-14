@@ -160,10 +160,10 @@ const NAVBAR_CLEARANCE = 8
 // jump depending on how quickly the capture runs. A window capture lays nothing out again and stays where
 // the page was put.
 //
-// One field of the form is screenshotted with the shared checkpointElement instead, which clips a whole
-// page capture to the field: what a clip holds does not depend on where the page happens to be scrolled,
-// and a field whose box the window is scrolled to lands against the edge of the navbar, where the corner
-// of an input is blended with the navbar's shadow a shade differently from one run to the next.
+// One field of the form is screenshotted with the shared checkpointElement instead, which captures the
+// field itself: what such a capture holds does not depend on where the page happens to be scrolled, and a
+// field whose box the window is scrolled to lands against the edge of the navbar, where the corner of an
+// input is blended with the navbar's shadow a shade differently from one run to the next.
 async function checkpointEditorTop(page: Page, name: string): Promise<void> {
   const editor = page.locator(".pd-documentedit")
   await expect(editor, `the editor for ${name}`).toBeVisible()

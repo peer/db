@@ -46,7 +46,7 @@ function attachmentDetail(page: Page, attachmentPropertyId: string, propertyId: 
 
 // The table holding everything recorded about one attachment. A row of the properties table is laid out as
 // contents rather than as a box of its own, so the table inside it is what a screenshot of the sub-claims can
-// be clipped to.
+// be taken of.
 function attachmentDetails(page: Page, attachmentPropertyId: string): Locator {
   return page.locator(`.pd-documentget-panel-allproperties .pd-propertiesview-row-sub-${attachmentPropertyId} .pd-propertiesview`).first()
 }
