@@ -28,6 +28,7 @@ import {
   settle,
   settleFilters,
   signIn,
+  slug,
   switchLanguage,
   test,
   volatile,
@@ -79,11 +80,6 @@ function documentClassesBelow(entityClass: EntityClass): Array<EntityClass> {
     return [entityClass]
   }
   return children.flatMap(documentClassesBelow)
-}
-
-// The part of a screenshot name which identifies the class.
-function slug(mnemonic: string): string {
-  return mnemonic.toLowerCase().replaceAll("_", "-")
 }
 
 // The class facet: the reference facet on the property every document states its class with. It is the only

@@ -3,8 +3,9 @@ import type { Page } from "@playwright/test"
 import { documentIdOf, LANGUAGES, PROPERTY_IDS, searchByClass } from "../peerdb_utils"
 import {
   checkpoint,
+  checkpointDialog,
+  closeSortDialog,
   expect,
-  expectNothingLoading,
   expectResults,
   goHome,
   openSortDialog,
@@ -85,24 +86,6 @@ async function expectSortOrder(page: Page, columns: Array<string>): Promise<void
   for (const [i, column] of columns.entries()) {
     await expect(items.nth(i), `the column at position ${i} of the sort order`).toHaveClass(new RegExp(`(^|\\s)pd-searchsortdialog-item-sort-${column}(\\s|$)`))
   }
-}
-
-// Closes the sort dialog so that the results behind it are shown unobstructed.
-async function closeSortDialog(page: Page): Promise<void> {
-  const closeButton = page.locator(".pd-searchsortdialog-button-close")
-  await expect(closeButton, "the button which closes the sort dialog").toBeVisible()
-  await closeButton.click()
-  await expect(page.locator(".pd-searchsortdialog-panel"), "the closed sort dialog").toBeHidden()
-}
-
-// Screenshots the dialog itself. The screenshot covers the viewport rather than the whole page, because the
-// dialog is drawn over the page and only dims what is behind it. A column which comes from a facet is named
-// by the property it sorts on, which the dialog fetches, so the capture waits until every label on the page
-// has resolved.
-async function checkpointDialog(page: Page, name: string): Promise<void> {
-  await expect(page.locator(".pd-searchsortdialog-panel"), "the sort dialog").toBeVisible()
-  await expectNothingLoading(page)
-  await checkpoint(page, name, { mask: volatile(page), fullPage: false })
 }
 
 // Screenshots the whole list of results the current sort order produces, which is what shows that the order

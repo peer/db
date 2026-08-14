@@ -6,16 +6,20 @@ import { coreDocumentIdOf, documentIdOf, LANGUAGES, PROPERTY_IDS, searchByClass 
 import {
   checkpoint,
   checkpointElement,
+  checkpointFacet,
+  countDigits,
   expect,
   expectFacetBack,
+  expectFewerResults,
+  expectFilterActive,
   expectNoConsoleErrors,
-  expectResults,
+  expectResultsCount,
   facetMetadata,
   fetchFromPage,
   filter,
   goHome,
   loadAllResults,
-  LOADING_TIMEOUT,
+  openAllDocumentsSearch,
   openFilters,
   settleFilters,
   switchLanguage,
@@ -86,23 +90,6 @@ function facetKey(facet: { props?: Array<string>; unit?: string }): string {
   return `${(facet.props ?? []).join("-")}:${facet.unit ?? ""}`
 }
 
-// Runs the search over all documents from the home page and opens the filters panel. Tests take their own
-// checkpoints so that every screenshot name in this file is unique even when tests run next to each other.
-async function openAllDocumentsSearch(page: Page): Promise<void> {
-  await goHome(page)
-
-  const searchInput = page.locator("#home-input-search")
-  await expect(searchInput, "the search box of the home page").toBeVisible()
-  const searchButton = page.locator("#home-button-search")
-  await expect(searchButton, "the search button of the home page").toBeVisible()
-
-  await searchInput.fill("")
-  await searchButton.click()
-
-  await expectResults(page)
-  await openFilters(page)
-}
-
 // Opens the search over the documents of one class of the test data and its filters panel. A class
 // prefilter is used rather than the search over everything wherever a test only needs one facet: the panel
 // of a class then holds a handful of facets instead of every facet the catalogue has, which keeps what a
@@ -110,60 +97,6 @@ async function openAllDocumentsSearch(page: Page): Promise<void> {
 async function openClassSearch(page: Page, entityClass: EntityClass): Promise<void> {
   await searchByClass(page, entityClass)
   await openFilters(page)
-}
-
-// Screenshots one facet instead of the whole page, so that a change in the facet is reported as such rather
-// than as a change somewhere in a very tall page. The panel is settled first, because a facet still waiting
-// for the ones above it to load would be framed at the wrong place.
-async function checkpointFacet(page: Page, name: string, facet: Locator): Promise<void> {
-  await settleFilters(page)
-  await checkpointElement(page, facet, name)
-}
-
-// Waits until the panel shows the facet's filter as active or as inactive. The clear button is rendered
-// exactly when a filter on the facet is part of the search session, so it tells apart a filter which has
-// been applied from one whose update is still in flight.
-async function expectFilterActive(page: Page, facet: Locator, active: boolean): Promise<void> {
-  const clear = facet.locator(".pd-filtersresult-button-clear")
-  if (active) {
-    await expect(clear, "the facet whose filter is applied offers to be cleared").toBeVisible({ timeout: LOADING_TIMEOUT })
-  } else {
-    await expect(clear, "the facet without a filter offers nothing to clear").toHaveCount(0)
-  }
-  await page.waitForLoadState("networkidle")
-}
-
-// The digits of a rendered count, so that a count can be compared without depending on how the locale
-// groups thousands. Counts are rendered both in the results header and next to a facet or one of its rows.
-async function countDigits(locator: Locator): Promise<string> {
-  await expect(locator, "the element rendering a count").toBeVisible()
-  return ((await locator.textContent()) || "").replace(/\D/g, "")
-}
-
-// Waits until the results header reports the given number of results. The header updates only once the
-// filtered search comes back, so this is polled rather than read once.
-async function expectResultsCount(page: Page, digits: string): Promise<void> {
-  const count = page.locator(".pd-searchresultsheader-count-results")
-  await expect(count, "the results header").toBeVisible()
-  await expect
-    .poll(async () => ((await count.textContent()) || "").replace(/\D/g, ""), { message: `results header reports ${digits} results`, timeout: LOADING_TIMEOUT })
-    .toBe(digits)
-}
-
-// Waits until the results header reports fewer results than the given count, and returns the new count.
-// Narrowing a filter which is already active leaves the panel looking the same while the filtered search is
-// in flight, so the header is polled rather than read once: read too early, it still holds the count from
-// before the narrowing.
-async function expectFewerResults(page: Page, than: string): Promise<string> {
-  const count = page.locator(".pd-searchresultsheader-count-results")
-  await expect(count, "the results header").toBeVisible()
-  await expect
-    .poll(async () => Number(((await count.textContent()) || "").replace(/\D/g, "")), {
-      message: `results header reports fewer than ${than} results`,
-      timeout: LOADING_TIMEOUT,
-    })
-    .toBeLessThan(Number(than))
-  return await countDigits(count)
 }
 
 // The path the facet loaded its values from, without the query string the version is passed as. A facet

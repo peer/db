@@ -955,6 +955,77 @@ export async function expectFacetBack(page: Page, facet: Locator): Promise<void>
   await expect(facet, "the facet is on the page again after the search changed").toBeVisible()
 }
 
+// Screenshots one facet instead of the whole page, so that a change in the facet is reported as such rather
+// than as a change somewhere in a very tall page. The panel is settled first, because a facet still waiting
+// for the ones above it to load would be framed at the wrong place.
+export async function checkpointFacet(page: Page, name: string, facet: Locator): Promise<void> {
+  await settleFilters(page)
+  await checkpointElement(page, facet, name)
+}
+
+// The digits of a rendered count, so that a count can be compared without depending on how the locale
+// groups thousands. Counts are rendered both in the results header and next to a facet or one of its rows.
+export async function countDigits(locator: Locator): Promise<string> {
+  await expect(locator, "the element rendering a count").toBeVisible()
+  return ((await locator.textContent()) || "").replace(/\D/g, "")
+}
+
+// Waits until the results header reports the given number of results. The header updates only once the
+// filtered search comes back, so this is polled rather than read once.
+export async function expectResultsCount(page: Page, digits: string): Promise<void> {
+  const count = page.locator(".pd-searchresultsheader-count-results")
+  await expect(count, "the results header").toBeVisible()
+  await expect
+    .poll(async () => ((await count.textContent()) || "").replace(/\D/g, ""), { message: `results header reports ${digits} results`, timeout: LOADING_TIMEOUT })
+    .toBe(digits)
+}
+
+// Waits until the results header reports fewer results than the given count, and returns the new count.
+// Narrowing a filter which is already active leaves the panel looking the same while the filtered search is
+// in flight, so the header is polled rather than read once: read too early, it still holds the count from
+// before the narrowing.
+export async function expectFewerResults(page: Page, than: string): Promise<string> {
+  const count = page.locator(".pd-searchresultsheader-count-results")
+  await expect(count, "the results header").toBeVisible()
+  await expect
+    .poll(async () => Number(((await count.textContent()) || "").replace(/\D/g, "")), {
+      message: `results header reports fewer than ${than} results`,
+      timeout: LOADING_TIMEOUT,
+    })
+    .toBeLessThan(Number(than))
+  return await countDigits(count)
+}
+
+// Waits until the panel shows the facet's filter as active or as inactive. The clear button is rendered
+// exactly when a filter on the facet is part of the search session, so it tells apart a filter which has
+// been applied from one whose update is still in flight.
+export async function expectFilterActive(page: Page, facet: Locator, active: boolean): Promise<void> {
+  const clear = facet.locator(".pd-filtersresult-button-clear")
+  if (active) {
+    await expect(clear, "the facet whose filter is applied offers to be cleared").toBeVisible({ timeout: LOADING_TIMEOUT })
+  } else {
+    await expect(clear, "the facet without a filter offers nothing to clear").toHaveCount(0)
+  }
+  await page.waitForLoadState("networkidle")
+}
+
+// Runs the search over all documents from the home page and opens the filters panel. A test takes its own
+// checkpoints, so that every screenshot name stays unique even when tests run next to each other.
+export async function openAllDocumentsSearch(page: Page): Promise<void> {
+  await goHome(page)
+
+  const searchInput = page.locator("#home-input-search")
+  await expect(searchInput, "the search box of the home page").toBeVisible()
+  const searchButton = page.locator("#home-button-search")
+  await expect(searchButton, "the search button of the home page").toBeVisible()
+
+  await searchInput.fill("")
+  await searchButton.click()
+
+  await expectResults(page)
+  await openFilters(page)
+}
+
 // Waits until nothing on the page stands in for something still being fetched: the document itself,
 // every display label, every inline reference and every referenced document have all resolved. A
 // screenshot taken before that catches the loading placeholders instead of the page they stand in for.
@@ -1059,7 +1130,7 @@ export const INDEXING_TIMEOUT = 60000
 // what a test which waits for the index to catch up with a write is asking is exactly whether the document
 // is there yet. Every attempt starts a fresh search session, because a session which has already run keeps
 // the result set it found when it ran.
-export async function searchIdsForQuery(page: Page, query: string): Promise<Array<string>> {
+async function searchIdsForQuery(page: Page, query: string): Promise<Array<string>> {
   await page.goto(`${PEERDB_URL}/s?q=${encodeURIComponent(query)}`)
   await settleSearch(page)
   return await resultIds(page)
@@ -1468,17 +1539,6 @@ export async function startCreate(page: Page, classId: string): Promise<void> {
   await settleEdit(page)
 }
 
-// Drives a reference input the way a user does: type a query, wait for the results, pick one. Used
-// both for picking the class of a new document and for filling any reference field.
-export async function selectRef(page: Page, inputSelector: string, query: string): Promise<void> {
-  const input = page.locator(inputSelector)
-  await expect(input).toBeVisible()
-  await input.fill(query)
-  const firstResult = page.locator(".pd-inputref-item").first()
-  await expect(firstResult).toBeVisible()
-  await firstResult.click()
-}
-
 // How long one search of a reference input is given to offer the wanted document, and how many times the
 // query is typed again before the search is given up on. The two together are the time a document a test
 // has just saved is given to reach the search index, which tests writing next to each other make slower.
@@ -1747,6 +1807,30 @@ export async function applyFilterValue(page: Page, facet: Locator, value: Locato
     const cleared = facet.locator(".pd-filtersresult-button-clear")
     await expect(cleared, "the facet whose value was selected offers to be cleared").toBeVisible({ timeout: LOADING_TIMEOUT })
   })
+}
+
+// The part of a screenshot name which identifies a mnemonic: the mnemonic in lower case, with its
+// underscores written as dashes.
+export function slug(mnemonic: string): string {
+  return mnemonic.toLowerCase().replaceAll("_", "-")
+}
+
+// Closes the sort and grouping dialog so that the results behind it are shown unobstructed.
+export async function closeSortDialog(page: Page): Promise<void> {
+  const closeButton = page.locator(".pd-searchsortdialog-button-close")
+  await expect(closeButton, "the button which closes the sort dialog").toBeVisible()
+  await closeButton.click()
+  await expect(page.locator(".pd-searchsortdialog-panel"), "the closed sort dialog").toBeHidden()
+}
+
+// Screenshots the sort and grouping dialog itself. The screenshot covers the viewport rather than the whole
+// page, because the dialog is drawn over the page and only dims what is behind it. A column which comes from
+// a facet is named by the property it is for, which the dialog fetches, so the capture waits until every
+// label on the page has resolved.
+export async function checkpointDialog(page: Page, name: string): Promise<void> {
+  await expect(page.locator(".pd-searchsortdialog-panel"), "the sort dialog").toBeVisible()
+  await expectNothingLoading(page)
+  await checkpoint(page, name, { mask: volatile(page), fullPage: false })
 }
 
 // Opens the sort and grouping dialog.

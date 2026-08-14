@@ -3,7 +3,7 @@ import type { Page } from "@playwright/test"
 import type { DocumentClass, Role, VocabularyClass } from "../peerdb_utils"
 
 import { CLASS_IDS, DOCUMENT_CLASSES, documentIdOf, PROPERTY_IDS, RESTRICTED_CLASS, VOCABULARY_CLASSES } from "../peerdb_utils"
-import { checkpoint, expect, fieldsPanel, openDocument, openDocumentTab, settle, signIn, test, volatile } from "../utils"
+import { checkpoint, expect, fieldsPanel, openDocument, openDocumentTab, settle, signIn, slug, test, volatile } from "../utils"
 
 // The document of each class which fills in the most of the fields the class declares (the richest document
 // per class of the test data). Opening the richest one is what makes a per-class view test say something: a
@@ -74,11 +74,6 @@ const VOCABULARY_ENTRIES: Record<VocabularyClass, string> = {
 // config.yml). A document of that class is not readable by a visitor who is not signed in, so the one test
 // over it signs in first while every other class is viewed as an anonymous visitor.
 const RESTRICTED_CLASS_ROLE: Role = "ethics"
-
-// The part of a screenshot name which identifies the class.
-function slug(mnemonic: string): string {
-  return mnemonic.toLowerCase().replaceAll("_", "-")
-}
 
 // Asserts that the document view shows the document: the title its naming claim gives it, and the fields its
 // class declares, each row with a property label and a value. Returns how many field rows the class tab shows.

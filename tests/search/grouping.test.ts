@@ -3,10 +3,11 @@ import type { Locator, Page } from "@playwright/test"
 import { documentIdOf, LANGUAGES, PROPERTY_IDS, searchByClass } from "../peerdb_utils"
 import {
   checkpoint,
+  checkpointDialog,
   checkpointElement,
+  closeSortDialog,
   expandCheckbox,
   expect,
-  expectNothingLoading,
   goHome,
   groupCheckbox,
   LOADING_TIMEOUT,
@@ -183,24 +184,6 @@ async function revealAllResults(page: Page): Promise<void> {
     )
     .toBe(false)
   await settle(page)
-}
-
-// Closes the sort dialog. It covers the whole viewport, so the group headings behind it can only be expanded
-// or collapsed in place once it is gone.
-async function closeSortDialog(page: Page): Promise<void> {
-  const closeButton = page.locator(".pd-searchsortdialog-button-close")
-  await expect(closeButton, "the button which closes the sort dialog").toBeVisible()
-  await closeButton.click()
-  await expect(page.locator(".pd-searchsortdialog-panel"), "the closed sort dialog").toBeHidden()
-}
-
-// Screenshots the dialog itself. The screenshot covers the viewport rather than the whole page, because the
-// dialog is drawn over the page and only dims what is behind it. A column which comes from a facet is named by
-// the property it groups on, which the dialog fetches, so the capture waits until every label has resolved.
-async function checkpointDialog(page: Page, name: string): Promise<void> {
-  await expect(page.locator(".pd-searchsortdialog-panel"), "the sort dialog").toBeVisible()
-  await expectNothingLoading(page)
-  await checkpoint(page, name, { mask: volatile(page), fullPage: false })
 }
 
 test.describe("PeerDB Search Grouping Flows", () => {
