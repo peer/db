@@ -20,6 +20,7 @@ import {
   signIn,
   slotValue,
   startEdit,
+  subField,
   switchLanguage,
   test,
   volatileSelect,
@@ -65,12 +66,6 @@ function fieldLabel(page: Page, propertyId: string): Locator {
 // visible rather than on whether it is there.
 function fieldRevert(page: Page, propertyId: string): Locator {
   return fieldLabel(page, propertyId).locator(".pd-inputbadges-button-revert")
-}
-
-// The block of one sub-field inside one slot of a repeated field, which is where the values which hang
-// off that slot's own value are edited.
-function subField(slot: Locator, propertyId: string): Locator {
-  return slot.locator(`.pd-claimcardinality-${propertyId}`)
 }
 
 // The values every slot of a repeated field currently holds, in the order the form shows them, which is

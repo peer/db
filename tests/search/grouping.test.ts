@@ -2,6 +2,7 @@ import type { Locator, Page } from "@playwright/test"
 
 import { documentIdOf, LANGUAGES, PROPERTY_IDS, searchByClass } from "../peerdb_utils"
 import {
+  addSortColumn,
   checkpoint,
   checkpointDialog,
   checkpointElement,
@@ -71,13 +72,6 @@ const WITHOUT_CULTURE = ["G2_BASIN_SHEET", "G2_FRACTURE_BELT", "G3_UVVEI_FRAME"]
 // the documents carrying the given value for the given property.
 async function openGroupedSearch(page: Page): Promise<void> {
   await searchByProperty(page, PROPERTY_IDS.HAS_PLANET_TYPE, await documentIdOf(WORLD_TYPE_VOCABULARY, GROUPED_TYPE))
-}
-
-// Adds the given column to the sort order and waits for the results the change produced.
-async function addSortColumn(page: Page, column: string): Promise<void> {
-  const button = page.locator(`.pd-searchsortdialog-button-add-${column}`)
-  await expect(button, `the button which adds the ${column} column`).toBeVisible()
-  await searchAgain(page, async () => await button.click())
 }
 
 // Clicks the given checkbox of the sort dialog and waits for the results the change produced. The checkbox

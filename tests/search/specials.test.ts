@@ -5,6 +5,7 @@ import {
   applyFilterValue,
   checkpoint,
   checkpointElement,
+  clearFilter,
   documentId,
   expect,
   expectResults,
@@ -19,11 +20,11 @@ import {
   propertyRow,
   resultCount,
   resultIds,
-  searchAgain,
   searchWithQuery,
   settle,
   settleDocument,
   settleFilters,
+  showFilter,
   switchLanguage,
   test,
   volatile,
@@ -88,15 +89,6 @@ function directCount(page: Page, props: Array<string>, value: string): Locator {
   return page.locator(`label[for="${["ref", ...props, DIRECT + value].join("/")}"].pd-reffiltertreerow-count-direct`)
 }
 
-// Shows a facet which sits below the ones the panel shows at first: the panel is settled, which adds every
-// facet it has and waits for its list to stop being replaced, and the facet is then asserted to be among
-// them. A facet revealed without that wait can be taken away again by a list which arrives afterwards,
-// because the panel starts its batches over whenever one does.
-async function showFilter(page: Page, facet: Locator, what: string): Promise<void> {
-  await settleFilters(page)
-  await expect(facet, what).toBeVisible({ timeout: LOADING_TIMEOUT })
-}
-
 // How long one facet has to stay where it is before a screenshot of it is taken, and how often its box is
 // read while waiting for that.
 const FACET_SETTLED_READINGS = 4
@@ -158,16 +150,6 @@ async function openBiosphereFacet(page: Page, entityClass: (typeof WORLD_CLASSES
   const biosphere = filter(page, "ref", PROPERTY_IDS.BIOSPHERE)
   await showFilter(page, biosphere, "the facet on the biosphere property")
   return biosphere
-}
-
-// Clears one filter through its own clear button and waits until the search it started has come back.
-async function clearFilter(page: Page, applied: Locator): Promise<void> {
-  const clearButton = applied.locator(".pd-filtersresult-button-clear")
-  await expect(clearButton, "the clear button of the applied filter").toBeVisible()
-  await searchAgain(page, async () => {
-    await clearButton.click()
-    await expect(clearButton, "the cleared facet no longer offers to be cleared").toHaveCount(0)
-  })
 }
 
 // The claims a document makes about the biosphere property, counted by the kind of statement they are.

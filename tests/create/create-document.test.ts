@@ -19,6 +19,7 @@ import {
   goHome,
   hideDuplicates,
   LOADING_TIMEOUT,
+  offeredClasses,
   PEERDB_URL,
   pickReference,
   saveEdit,
@@ -79,19 +80,6 @@ const SINGLE_CLASS_ROLES: ReadonlyArray<Role> = ["author", "ethics"]
 const SINGLE_CLASS_OF_ROLE: Record<string, EntityClass> = {
   author: "PUBLICATION",
   ethics: "ETHICS_PROTOCOL",
-}
-
-// The identifiers of the classes the create page currently offers, read out of the identifier every class
-// button carries in its own class name, so what is offered is compared as a set of documents rather than
-// as a list of labels, which differ between the three languages. A class which is a subclass of more than
-// one class is listed once under each of them, so the identifiers are deduplicated.
-async function offeredClasses(page: Page): Promise<Array<string>> {
-  const ids = await page
-    .locator(".pd-classtreelabel-button")
-    .evaluateAll((buttons) =>
-      buttons.map((button) => [...button.classList].map((name) => /^pd-classtreelabel-button-(.+)$/.exec(name)?.[1]).find((id) => id !== undefined) ?? ""),
-    )
-  return [...new Set(ids)].sort()
 }
 
 // The class buttons and headings the create page is expected to show for a role: the classes the role may

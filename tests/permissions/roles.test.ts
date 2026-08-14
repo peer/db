@@ -2,7 +2,7 @@ import type { Locator, Page } from "@playwright/test"
 
 import type { Role } from "../peerdb_utils"
 
-import { CLASS_IDS, documentIdOf, PROPERTY_IDS, RESTRICTED_CLASS, ROLES } from "../peerdb_utils"
+import { become, CLASS_IDS, documentIdOf, PROPERTY_IDS, RESTRICTED_CLASS, ROLES } from "../peerdb_utils"
 import {
   checkpoint,
   checkpointElement,
@@ -89,16 +89,6 @@ const IDENTITIES: ReadonlyArray<Identity> = [
   { what: "the ethics role", slug: "ethics", roles: ["ethics"], interviews: ALL_INTERVIEWS, protocolReferences: 11, enumerates: false },
   { what: "the admin role", slug: "admin", roles: ["admin"], interviews: ALL_INTERVIEWS, protocolReferences: 11, enumerates: true },
 ]
-
-// Puts the browser in the state the identity describes: signed in as the roles it names, or on the home
-// page of a visitor who did not sign in.
-async function become(page: Page, identity: Identity): Promise<void> {
-  if (identity.roles === null) {
-    await goHome(page)
-  } else {
-    await signIn(page, identity.roles)
-  }
-}
 
 // Opens a search prefiltered to the restricted class and waits for it to settle, whether or not it found
 // anything. The class is reached through the search shortcut route, which takes the property and the value

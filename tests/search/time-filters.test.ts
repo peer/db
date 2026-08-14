@@ -1,8 +1,6 @@
 import type { Locator, Page } from "@playwright/test"
 
-import type { EntityClass } from "../peerdb_utils"
-
-import { LANGUAGES, PROPERTY_IDS, searchByClass } from "../peerdb_utils"
+import { LANGUAGES, openClassSearch, PROPERTY_IDS } from "../peerdb_utils"
 import {
   checkpoint,
   checkpointFacet,
@@ -19,7 +17,6 @@ import {
   goHome,
   loadAllResults,
   openAllDocumentsSearch,
-  openFilters,
   PEERDB_URL,
   settleFilters,
   switchLanguage,
@@ -52,15 +49,6 @@ const TIME_FACETS: Array<Array<string>> = [
 // turns the span between them into years, closely enough to tell one spanning centuries from one spanning
 // decades.
 const YEAR = 365.2425 * 24 * 60 * 60
-
-// Opens the search over the documents of one class of the test data and its filters panel. A class
-// prefilter is used rather than the search over everything wherever a test only needs one facet: the panel
-// of a class then holds a handful of facets instead of every facet the catalogue has, which keeps what a
-// screenshot covers to the facet the test is about.
-async function openClassSearch(page: Page, entityClass: EntityClass): Promise<void> {
-  await searchByClass(page, entityClass)
-  await openFilters(page)
-}
 
 // Shows the facets beyond the first page of them, which is where every time facet other than the one for
 // the period of a document lives.

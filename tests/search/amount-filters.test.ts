@@ -1,8 +1,6 @@
-import type { Locator, Page } from "@playwright/test"
+import type { Locator } from "@playwright/test"
 
-import type { EntityClass } from "../peerdb_utils"
-
-import { coreDocumentIdOf, documentIdOf, LANGUAGES, PROPERTY_IDS, searchByClass } from "../peerdb_utils"
+import { coreDocumentIdOf, documentIdOf, LANGUAGES, openClassSearch, PROPERTY_IDS } from "../peerdb_utils"
 import {
   checkpoint,
   checkpointElement,
@@ -20,7 +18,6 @@ import {
   goHome,
   loadAllResults,
   openAllDocumentsSearch,
-  openFilters,
   settleFilters,
   switchLanguage,
   test,
@@ -88,15 +85,6 @@ const AMOUNT_FACETS: Array<{ props: Array<string>; unit?: string }> = [
 // same property measured in different units stay apart.
 function facetKey(facet: { props?: Array<string>; unit?: string }): string {
   return `${(facet.props ?? []).join("-")}:${facet.unit ?? ""}`
-}
-
-// Opens the search over the documents of one class of the test data and its filters panel. A class
-// prefilter is used rather than the search over everything wherever a test only needs one facet: the panel
-// of a class then holds a handful of facets instead of every facet the catalogue has, which keeps what a
-// screenshot covers to the facet the test is about.
-async function openClassSearch(page: Page, entityClass: EntityClass): Promise<void> {
-  await searchByClass(page, entityClass)
-  await openFilters(page)
 }
 
 // The path the facet loaded its values from, without the query string the version is passed as. A facet

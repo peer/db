@@ -8,7 +8,6 @@ import {
   checkpointElement,
   documentId,
   expect,
-  fetchFromPage,
   field,
   fieldErrors,
   fieldInput,
@@ -19,6 +18,7 @@ import {
   settleEdit,
   signIn,
   startEdit,
+  storedDocument,
   switchLanguage,
   test,
   volatileSelect,
@@ -54,16 +54,6 @@ const ROLE = roleWhichCreates(RESEARCHER_CLASS)
 // One bound of the interval field, which renders its two bounds as rows of its own.
 function intervalBound(page: Page, propertyId: string, bound: "from" | "to"): Locator {
   return field(page, propertyId).locator(`.pd-fieldsformrow-field-${bound}`)
-}
-
-// The document as the server stores it, fetched from the API as text. An editing session keeps its
-// changes to itself until the save goes through, so this is how a test tells what a refused save left
-// behind. The body is searched as text rather than dug through as a claim tree, because that would make
-// the test know the shape of every kind of claim it looks at.
-async function storedDocument(page: Page, id: string): Promise<string> {
-  const response = await fetchFromPage(page, `/api/d/${id}`)
-  expect(response.status, `status of the stored document ${id}`).toBe(200)
-  return response.body
 }
 
 // One stored claim of a document, picked by the property it is stated on and by the kind of claim it is,

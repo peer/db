@@ -5,6 +5,7 @@ import {
   applyFilterValue,
   checkpoint,
   checkpointElement,
+  clearFilter,
   expandFilter,
   expect,
   expectNoResults,
@@ -17,6 +18,7 @@ import {
   resultCount,
   searchAgain,
   settleFilters,
+  showFilter,
   test,
   volatile,
 } from "../utils"
@@ -98,18 +100,6 @@ async function pressMoreFilters(page: Page): Promise<void> {
   await moreFilters.dispatchEvent("click")
 }
 
-// Shows a facet which sits below the ones the panel shows at first: the panel is settled, which adds every
-// facet it has and waits for its list to stop being replaced, and the facet is then asserted to be among
-// them.
-//
-// Asking for batches until the facet appears is not enough on its own. The panel starts its batches over
-// whenever a new list of facets arrives, so a facet revealed just before one lands is taken away again, and
-// what is then waited for is a value of a facet which is no longer on the page.
-async function showFilter(page: Page, facet: Locator, what: string): Promise<void> {
-  await settleFilters(page)
-  await expect(facet, what).toBeVisible({ timeout: LOADING_TIMEOUT })
-}
-
 // Selects the property the has filter tests filter on: documents which state that they have a ring system
 // without stating anything more about it. The has facet sits below the facets shown at first, so the rest
 // of the facets have to be shown before it can be used.
@@ -118,17 +108,6 @@ async function applyHasFilter(page: Page): Promise<Locator> {
   await showFilter(page, hasFacet, "the has facet on the document itself")
   await applyFilterValue(page, hasFacet, hasValue(page, PROPERTY_IDS.HAS_RING_SYSTEM))
   return hasFacet
-}
-
-// Clears one filter through its own clear button, the way a user drops a single filter while keeping the
-// others.
-async function clearFilter(page: Page, applied: Locator): Promise<void> {
-  const clearButton = applied.locator(".pd-filtersresult-button-clear")
-  await expect(clearButton, "the clear button of the applied filter").toBeVisible()
-  await searchAgain(page, async () => {
-    await clearButton.click()
-    await expect(clearButton, "the cleared facet no longer offers to be cleared").toHaveCount(0)
-  })
 }
 
 // Clears every active filter. Active filters are sorted to the top of the panel, so they are all reachable

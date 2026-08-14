@@ -955,6 +955,29 @@ export async function expectFacetBack(page: Page, facet: Locator): Promise<void>
   await expect(facet, "the facet is on the page again after the search changed").toBeVisible()
 }
 
+// Clears one filter through its own clear button, the way a user drops a single filter while keeping the
+// others.
+export async function clearFilter(page: Page, applied: Locator): Promise<void> {
+  const clearButton = applied.locator(".pd-filtersresult-button-clear")
+  await expect(clearButton, "the clear button of the applied filter").toBeVisible()
+  await searchAgain(page, async () => {
+    await clearButton.click()
+    await expect(clearButton, "the cleared facet no longer offers to be cleared").toHaveCount(0)
+  })
+}
+
+// Shows a facet which sits below the ones the panel shows at first: the panel is settled, which adds every
+// facet it has and waits for its list to stop being replaced, and the facet is then asserted to be among
+// them.
+//
+// Asking for batches until the facet appears is not enough on its own. The panel starts its batches over
+// whenever a new list of facets arrives, so a facet revealed just before one lands is taken away again, and
+// what is then waited for is a value of a facet which is no longer on the page.
+export async function showFilter(page: Page, facet: Locator, what: string): Promise<void> {
+  await settleFilters(page)
+  await expect(facet, what).toBeVisible({ timeout: LOADING_TIMEOUT })
+}
+
 // Screenshots one facet instead of the whole page, so that a change in the facet is reported as such rather
 // than as a change somewhere in a very tall page. The panel is settled first, because a facet still waiting
 // for the ones above it to load would be framed at the wrong place.
@@ -1137,9 +1160,25 @@ async function searchIdsForQuery(page: Page, query: string): Promise<Array<strin
 }
 
 // Waits until a search for the given query does or does not find the given document, which is how a test
+// The document as the server stores it, fetched from the API as text. An editing session keeps its changes
+// to itself until the save goes through, so this is how a test tells what a refused save left behind, and
+// what one which went through actually wrote. The body is searched as text rather than dug through as a
+// claim tree, because that would make the test know the shape of every kind of claim it looks at.
+export async function storedDocument(page: Page, id: string): Promise<string> {
+  const response = await fetchFromPage(page, `/api/d/${id}`)
+  expect(response.status, `status of the stored document ${id}`).toBe(200)
+  return response.body
+}
+
 // waits for the index to catch up with what it wrote.
 export async function expectSearchFinds(page: Page, query: string, id: string, found: boolean, what: string): Promise<void> {
   await expect.poll(async () => (await searchIdsForQuery(page, query)).includes(id), { message: what, timeout: INDEXING_TIMEOUT, intervals: [1000] }).toBe(found)
+}
+
+// The block of one sub-field inside one slot of a repeated field, which is where the values which hang
+// off that slot's own value are edited.
+export function subField(slot: Locator, propertyId: string): Locator {
+  return slot.locator(`.pd-claimcardinality-${propertyId}`)
 }
 
 // The rows of one kind inside one field of the form, for a field which renders a row per value of a claim.
@@ -1527,6 +1566,19 @@ export async function discardEdit(page: Page): Promise<void> {
 // class is chosen by clicking it, so the class is addressed by the identifier in its class name.
 //
 // A class which is a subclass of more than one class is listed once under each of them, so its button
+// The identifiers of the classes the create page offers to start a document of, read out of the identifier
+// every class button carries in its own CSS class, so what is offered is compared as a set of documents
+// rather than as a list of labels, which differ between languages. A class which is a subclass of more than
+// one class is listed once under each of them, so the identifiers are deduplicated.
+export async function offeredClasses(page: Page): Promise<Array<string>> {
+  const ids = await page
+    .locator(".pd-classtreelabel-button")
+    .evaluateAll((buttons) =>
+      buttons.map((button) => [...button.classList].map((name) => /^pd-classtreelabel-button-(.+)$/.exec(name)?.[1]).find((id) => id !== undefined) ?? ""),
+    )
+  return [...new Set(ids)].sort()
+}
+
 // matches more than once and the first match is taken.
 export async function startCreate(page: Page, classId: string): Promise<void> {
   const createButton = page.locator(".pd-createbutton")
@@ -1831,6 +1883,13 @@ export async function checkpointDialog(page: Page, name: string): Promise<void> 
   await expect(page.locator(".pd-searchsortdialog-panel"), "the sort dialog").toBeVisible()
   await expectNothingLoading(page)
   await checkpoint(page, name, { mask: volatile(page), fullPage: false })
+}
+
+// Adds the given column to the sort order and waits for the results the change produced.
+export async function addSortColumn(page: Page, column: string): Promise<void> {
+  const button = page.locator(`.pd-searchsortdialog-button-add-${column}`)
+  await expect(button, `the button which adds the ${column} column`).toBeVisible()
+  await searchAgain(page, async () => await button.click())
 }
 
 // Opens the sort and grouping dialog.

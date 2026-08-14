@@ -8,9 +8,12 @@ import {
   createNamed as createNamedDocument,
   type CreateNamedOptions,
   fieldSlots,
+  goHome,
   identifierOf,
+  openFilters,
   searchByProperty,
   type SearchOptions,
+  signIn,
   startCreate as startCreateClass,
 } from "./utils"
 
@@ -389,6 +392,25 @@ export async function searchByClass(page: Page, entityClass: EntityClass, option
 // the schema itself (the classes, the properties, the units) are reached.
 export async function searchByCoreClass(page: Page, coreClass: keyof typeof CORE_CLASS_IDS, options: SearchOptions = {}): Promise<void> {
   await searchByProperty(page, PROPERTY_IDS.INSTANCE_OF, CORE_CLASS_IDS[coreClass], options)
+}
+
+// Opens a search narrowed to one class with its filters panel showing, which is where the facets of the
+// properties that class carries are offered. A class prefilter is used rather than the search over
+// everything wherever a test needs one facet: the panel of a class then holds a handful of facets instead
+// of every facet the catalogue has, which keeps what a screenshot covers to the facet the test is about.
+export async function openClassSearch(page: Page, entityClass: EntityClass): Promise<void> {
+  await searchByClass(page, entityClass)
+  await openFilters(page)
+}
+
+// Puts the browser in the state the identity describes: signed in as the roles it names, or on the home
+// page of a visitor who did not sign in.
+export async function become(page: Page, identity: { roles: ReadonlyArray<Role> | null }): Promise<void> {
+  if (identity.roles === null) {
+    await goHome(page)
+  } else {
+    await signIn(page, identity.roles)
+  }
 }
 
 // Starts creating a document of the given class of the test data schema.

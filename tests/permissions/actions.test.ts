@@ -2,7 +2,7 @@ import type { Page } from "@playwright/test"
 
 import type { Role } from "../peerdb_utils"
 
-import { CLASS_IDS, CORE_CLASS_IDS, documentIdOf, RESTRICTED_CLASS, ROLE_CREATES, ROLES } from "../peerdb_utils"
+import { become, CLASS_IDS, CORE_CLASS_IDS, documentIdOf, RESTRICTED_CLASS, ROLE_CREATES, ROLES } from "../peerdb_utils"
 import {
   checkpoint,
   checkpointElement,
@@ -12,6 +12,7 @@ import {
   fetchFromPage,
   goHome,
   LOADING_TIMEOUT,
+  offeredClasses,
   openDocument,
   openDocumentTab,
   PEERDB_URL,
@@ -112,29 +113,6 @@ const IDENTITIES: ReadonlyArray<Identity> = [
   },
   { what: "the admin role", slug: "admin", roles: ["admin"], creates: null, edits: true, deletes: true, updatesPermissions: true },
 ]
-
-// Puts the browser in the state the identity describes.
-async function become(page: Page, identity: Identity): Promise<void> {
-  if (identity.roles === null) {
-    await goHome(page)
-  } else {
-    await signIn(page, identity.roles)
-  }
-}
-
-// The identifiers of the classes the create page offers to start a document of, read out of the CSS class
-// every class button carries. A class which is a subclass of more than one class is listed once under each
-// of them, so the identifiers are reported as a set.
-async function offeredClasses(page: Page): Promise<Array<string>> {
-  const prefix = "pd-classtreelabel-button-"
-  const ids = await page
-    .locator(".pd-classtreelabel-button")
-    .evaluateAll(
-      (buttons, cssPrefix) => buttons.flatMap((button) => [...button.classList].filter((name) => name.startsWith(cssPrefix)).map((name) => name.slice(cssPrefix.length))),
-      prefix,
-    )
-  return [...new Set(ids)].sort()
-}
 
 // The identifiers of the classes the create page would offer, asked of the endpoint the page builds itself
 // from. It is used for a role which may start exactly one class: opening the create page then skips the

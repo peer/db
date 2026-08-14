@@ -2,7 +2,7 @@ import type { Page } from "@playwright/test"
 
 import type { EntityClass } from "../peerdb_utils"
 
-import { CLASS_IDS, PROPERTY_IDS, searchByClass } from "../peerdb_utils"
+import { CLASS_IDS, openClassSearch, PROPERTY_IDS, searchByClass } from "../peerdb_utils"
 import { checkpointElement, expect, expectResults, filter, loadAllResults, openFilters, PEERDB_URL, resultCount, resultIds, test } from "../utils"
 
 // The site is configured to index the ancestors of a property as well as the property itself
@@ -22,13 +22,6 @@ const TREES = [
   { what: "the classification property", ancestor: "CLASSIFIED_AS", descendant: "HAS_SITE_TYPE", entityClass: "SITE" },
   { what: "the classification property", ancestor: "CLASSIFIED_AS", descendant: "HAS_NARRATIVE_GENRE", entityClass: "NARRATIVE" },
 ] as const
-
-// Opens a search narrowed to one class with its filters panel showing, which is where the facets of the
-// properties that class carries are offered.
-async function openClassSearch(page: Page, entityClass: EntityClass): Promise<void> {
-  await searchByClass(page, entityClass)
-  await openFilters(page)
-}
 
 // The identifiers of the values one reference facet offers, read out of the id each checkbox carries, which
 // is the kind, the property path and the value joined by slashes. The special rows (a missing value, and the

@@ -8,7 +8,6 @@ import {
   checkpoint,
   checkpointElement,
   expect,
-  fetchFromPage,
   field,
   fieldErrors,
   fieldInput,
@@ -21,6 +20,8 @@ import {
   settleEdit,
   signIn,
   slotValue,
+  storedDocument,
+  subField,
   test,
   volatileSelect,
 } from "../utils"
@@ -79,12 +80,6 @@ const BELLWETHER_QUERY = "Bellwether"
 
 const ARTIFACT_ROLE = roleWhichCreates(ARTIFACT_CLASS)
 const EXPEDITION_ROLE = roleWhichCreates(EXPEDITION_CLASS)
-
-// The block of one sub-field inside one slot of a repeated field, which is where the values which hang
-// off that slot's own value are edited.
-function subField(slot: Locator, propertyId: string): Locator {
-  return slot.locator(`.pd-claimcardinality-${propertyId}`)
-}
 
 // Fills one slot's own value and waits until the form has settled on the number of slots the field is
 // expected to show afterwards, and until the change has reached the session. Filling the trailing empty
@@ -153,14 +148,6 @@ async function startNamed(page: Page, entityClass: EntityClass, name: string): P
   // The name has to reach the session like every other value, or the save which ends these tests writes a
   // document without one, which the class requires.
   await posted
-}
-
-// The document as the server stores it, fetched from the API as text, which is how a test tells what a
-// save which went through actually wrote.
-async function storedDocument(page: Page, id: string): Promise<string> {
-  const response = await fetchFromPage(page, `/api/d/${id}`)
-  expect(response.status, `status of the stored document ${id}`).toBe(200)
-  return response.body
 }
 
 test.describe("PeerDB Edit Duplicate Value Flows", () => {

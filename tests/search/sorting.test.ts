@@ -2,6 +2,7 @@ import type { Page } from "@playwright/test"
 
 import { documentIdOf, LANGUAGES, PROPERTY_IDS, searchByClass } from "../peerdb_utils"
 import {
+  addSortColumn,
   checkpoint,
   checkpointDialog,
   closeSortDialog,
@@ -47,13 +48,6 @@ const QUERY = "weir"
 // The institutes of the test data in the order they were founded, which is the order the founded column puts
 // them in. The years are the ones the "founded" field of each institute file in testdata records.
 const FOUNDED_ORDER = ["INST_ANCHOR", "INST_LEDGER", "INST_EVENING", "INST_IELUARO", "INST_FARSIGHT", "INST_CANOPY", "INST_SUBSTRATE", "INST_BEACON"]
-
-// Adds the given column to the sort order and waits for the results the change produced.
-async function addSortColumn(page: Page, column: string): Promise<void> {
-  const button = page.locator(`.pd-searchsortdialog-button-add-${column}`)
-  await expect(button, `the button which adds the ${column} column`).toBeVisible()
-  await searchAgain(page, async () => await button.click())
-}
 
 // Removes the given column from the sort order and waits for the results the change produced.
 async function removeSortColumn(page: Page, column: string): Promise<void> {

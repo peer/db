@@ -16,6 +16,7 @@ import {
   fillSlot,
   hideDuplicates,
   LOADING_TIMEOUT,
+  offeredClasses,
   openDocumentTab,
   PEERDB_URL,
   propertyValues,
@@ -244,19 +245,6 @@ async function stateLanguage(page: Page, propertyId: string, slot: number, langu
   await option.check()
   await expect(option, `${what} is stated to be in ${LANGUAGE_NAMES[language]}`).toBeChecked()
   await settleEdit(page)
-}
-
-// The identifiers of the classes the create page offers, read out of the identifier every class button
-// carries in its own class name, so that what is offered is compared between languages as a set of
-// documents rather than as a list of labels. A class which is a subclass of more than one class is listed
-// once under each of them, so the identifiers are deduplicated.
-async function offeredClasses(page: Page): Promise<Array<string>> {
-  const ids = await page
-    .locator(".pd-classtreelabel-button")
-    .evaluateAll((buttons) =>
-      buttons.map((button) => [...button.classList].map((name) => /^pd-classtreelabel-button-(.+)$/.exec(name)?.[1]).find((id) => id !== undefined) ?? ""),
-    )
-  return [...new Set(ids)].sort()
 }
 
 test.describe("PeerDB Language Flows", () => {
