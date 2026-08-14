@@ -512,6 +512,37 @@ export function mockUsername(roles: ReadonlyArray<string>): string {
   return ["mock", ...[...roles].sort()].join("-")
 }
 
+// How much of the text of an unexpected page a sign-in which did not land reports, which is plenty for the status text an error page carries.
+const SIGN_IN_PAGE_TEXT_LENGTH = 200
+
+// What stands where the menu of the signed-in user was expected, so that a sign-in which did not land says what happened instead of only that an
+// element is missing. The application is served for both of the pages a sign-in passes through, so those two are told apart by what they render,
+// and anything else is the server answering the callback with a refusal, whose body is the plain text of the status it was refused with.
+async function signInPageState(page: Page): Promise<string> {
+  const menu = page.locator(".pd-navbarmenu-button")
+  if ((await menu.count()) > 0) {
+    return `the menu names ${JSON.stringify(((await menu.first().textContent()) ?? "").trim())}`
+  }
+  if ((await page.locator("#navbar-button-signin").count()) > 0) {
+    return "the application is served, to a caller who is not signed in"
+  }
+  if ((await page.locator(".pd-authmocksignin").count()) > 0) {
+    return "the page choosing the roles is still up, so the callback was never made"
+  }
+  let body = ""
+  try {
+    body = await page.locator("body").innerText()
+  } catch {
+    // A page which went away while it was being read says nothing about itself, and it is a failure
+    // which is being described here, so reading it must not fail on its own.
+  }
+  const text = body.replace(/\s+/g, " ").trim()
+  if (text === "") {
+    return "the page is empty"
+  }
+  return `the page says ${JSON.stringify(text.slice(0, SIGN_IN_PAGE_TEXT_LENGTH))}`
+}
+
 // Signs in through the mock authenticator with exactly the given roles. Passing no role at all signs in
 // as a user who holds none, which is what a test asserting that signing in alone grants nothing needs.
 //
@@ -547,8 +578,13 @@ export async function signIn(page: Page, roles: ReadonlyArray<string>): Promise<
 
   // A signed-in user gets a menu of their own, named by them, which is where everything of theirs
   // (the sign-out button among it) moves, so the menu carrying their name is what says the sign-in
-  // landed.
-  await expect(page.locator(".pd-navbarmenu-button"), "the menu of the signed-in user").toHaveText(mockUsername(roles))
+  // landed. The sign-in goes through two server-side redirects, so where the browser ended up and what
+  // stands there is what a sign-in which did not land is diagnosed from.
+  try {
+    await expect(page.locator(".pd-navbarmenu-button"), "the menu of the signed-in user").toHaveText(mockUsername(roles))
+  } catch {
+    throw new Error(`the sign-in as ${mockUsername(roles)} did not land, on ${page.url()}: ${await signInPageState(page)}`)
+  }
 }
 
 // Asserts that the given roles are exactly the ones the mock sign-in page offers, which is what says the
