@@ -11,6 +11,8 @@ import type { SelectButtonOption } from "@/types"
 
 import { useSlots } from "vue"
 
+import { useLocked } from "@/progress"
+
 const props = defineProps<{
   // Options cannot have an option with name "default" because it is
   // reserved for the default slot.
@@ -32,8 +34,17 @@ for (const slot in useSlots()) {
   }
 }
 
+const locked = useLocked()
+
+// An option is disabled by its own state: it is doing something itself, or the caller marked it so.
 function isDisabled(option: SelectButtonOption<T>) {
   return (option.progress ?? 0) > 0 || option.disabled
+}
+
+// Every option is inactive while the surrounding lock is held, because switching between them is a change
+// of what the enclosing subtree shows and that cannot land in the middle of the work holding the lock.
+function isInactive(option: SelectButtonOption<T>) {
+  return locked.value || isDisabled(option)
 }
 </script>
 
@@ -42,14 +53,15 @@ function isDisabled(option: SelectButtonOption<T>) {
     <button
       v-for="option in options"
       :key="option.name"
-      :disabled="isDisabled(option)"
+      :disabled="isInactive(option)"
       class="pd-selectbutton-button h-full rounded-sm px-2 py-0.5 outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-1"
       :class="{
         [`pd-selectbutton-button-${option.name}`]: true,
-        'cursor-not-allowed text-gray-500': isDisabled(option),
-        'bg-white shadow-xs': model === option.value && !isDisabled(option),
-        'bg-slate-100 shadow-xs': model === option.value && isDisabled(option),
-        'hover:bg-slate-100': model !== option.value && !isDisabled(option),
+        'pd-locked': locked,
+        'cursor-not-allowed text-gray-500': isInactive(option),
+        'bg-white shadow-xs': model === option.value && !isInactive(option),
+        'bg-slate-100 shadow-xs': model === option.value && isInactive(option),
+        'hover:bg-slate-100': model !== option.value && !isInactive(option),
       }"
       @click.prevent="model = option.value"
     >
