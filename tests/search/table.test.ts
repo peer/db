@@ -22,6 +22,11 @@ const WORLD_TYPE = await documentIdOf("PLANET_TYPE", "DENSE_SILICATE")
 // something a table cell can render, so it gets no column of its own.
 const HAS_CLAIM_PROPERTY = PROPERTY_IDS.TIDALLY_LOCKED
 
+// How many times the table is asked for another batch of columns before that is reported as a table which
+// never runs out of them. Every batch is FILTERS_INCREASE facets, so this is far above what any search of
+// the test data offers.
+const COLUMN_PASSES = 20
+
 // How many results the table shows before it is asked for more (SEARCH_INITIAL_LIMIT in
 // SearchResultsTable.vue).
 const TABLE_INITIAL_LIMIT = 100
@@ -84,6 +89,29 @@ async function expectView(page: Page, view: "feed" | "table"): Promise<void> {
   await settle(page)
 }
 
+// Asks the table for every facet it has not made a column of yet, and reports how many columns it ends with.
+//
+// The press is dispatched rather than clicked, for the same reason as the one which reveals more results: the
+// table widens itself whenever its right edge comes near the fold, so the sideways scrolling a click needs in
+// order to reach the button at that edge widens the table and takes the button out from under the click. Each
+// press adds a batch, so the cap is far above what any search of the test data needs and reaching it means
+// the button never went away.
+async function showAllColumns(page: Page): Promise<number> {
+  const moreColumns = page.locator(".pd-searchresultstable-button-morecolumns")
+  for (let pass = 0; pass < COLUMN_PASSES; pass++) {
+    if (!(await moreColumns.isVisible().catch(() => false))) {
+      await settle(page)
+      return await tableColumns(page).count()
+    }
+    const before = await tableColumns(page).count()
+    await moreColumns.dispatchEvent("click")
+    await expect
+      .poll(async () => await tableColumns(page).count(), { message: "asking for more columns adds facets to the table", timeout: LOADING_TIMEOUT })
+      .toBeGreaterThan(before)
+  }
+  throw new Error("the table kept offering more columns")
+}
+
 // Opens a search of every document of a class and switches it to the table.
 async function openTable(page: Page, entityClass: EntityClass): Promise<number> {
   await searchByClass(page, entityClass)
@@ -137,15 +165,12 @@ test.describe("PeerDB Search Table Flows", () => {
     expect(columns, "the table shows a column per facet").toBeGreaterThan(1)
     await expect(page.locator(".pd-searchresultstable-link-document"), "every row links to the document it stands for").toHaveCount(total)
 
-    // A column is offered for the three kinds of facet whose claims a cell can render.
+    // A column is offered for the three kinds of facet whose claims a cell can render. The reference and the
+    // amount facets of this search are among the columns the table starts with.
     await expect(tableColumn(page, PROPERTY_IDS.INSTANCE_OF), "the reference column of the class of a document").toHaveCount(1)
     await expect(tableColumn(page, PROPERTY_IDS.HAS_PLANET_TYPE), "the reference column of the type of world").toHaveCount(1)
     await expect(tableColumn(page, PROPERTY_IDS.CONTAINED_IN), "the reference column of what a world is contained in").toHaveCount(1)
     await expect(tableColumn(page, PROPERTY_IDS.RADIUS), "the amount column of the radius").toHaveCount(1)
-    await expect(tableColumn(page, PROPERTY_IDS.FIRST_SURVEYED), "the time column of when a world was first surveyed").toHaveCount(1)
-    // A property stated without a value is not one of them, so it gets no column even though the search can
-    // be filtered by it.
-    await expect(tableColumn(page, HAS_CLAIM_PROPERTY), "a property whose claims carry no value gets no column").toHaveCount(0)
 
     // Each column header is a button which opens the filter of that facet, so a column says both what it
     // holds and how the results are narrowed by it.
@@ -158,7 +183,24 @@ test.describe("PeerDB Search Table Flows", () => {
     expect(new Set(rowIds).size, "no document is shown twice").toBe(total)
     await checkpoint(page, "table-columns", { mask: volatile(page) })
 
-    console.log(`Successfully verified the table of a search of ${total} results: an index column and ${columns} facet columns.`)
+    // The rest of the facets are behind the button, so the two assertions below are made of the whole set
+    // rather than of the batch the table starts with: a facet which is merely further down the list would
+    // otherwise read as one the table gives no column to. The site the tests are served from does not widen
+    // the table by itself (disableLoadingOnScroll in test-e2e.sh), so every batch is asked for here.
+    const shown = await showAllColumns(page)
+
+    // A time facet gets a column like the other two kinds. It is the last of the facets which cover every
+    // document of this search, because facets covering the same number of documents are ordered by kind, so
+    // it is never among the ones the table starts with.
+    await expect(tableColumn(page, PROPERTY_IDS.FIRST_SURVEYED), "the time column of when a world was first surveyed").toHaveCount(1)
+
+    // A property stated without a value is not one of the three kinds, so it gets no column even though the
+    // search can be filtered by it.
+    await expect(tableColumn(page, HAS_CLAIM_PROPERTY), "a property whose claims carry no value gets no column").toHaveCount(0)
+
+    console.log(
+      `Successfully verified the table of a search of ${total} results: an index column, ${columns} facet columns to begin with and ${shown} once every facet was asked for.`,
+    )
   })
 
   test("Test adding a column to the table", async ({ context }) => {
