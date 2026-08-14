@@ -215,7 +215,9 @@ test.describe("PeerDB Search Download Flows", () => {
     await expectPreparing(page)
     await expect(downloadFilesButton(page), "the directory download is refused while a download runs").toBeDisabled()
     await expect(downloadZipButton(page), "the archive download is refused while a download runs").toBeDisabled()
-    await checkpointElement(page, page.locator(".pd-searchresultsheader-toolbar"), "download-toolbar-downloading")
+    // The toolbar is captured while the download it started is still running, which is what makes both of
+    // its buttons inactive, so it is captured with something in it locked.
+    await checkpointElement(page, page.locator(".pd-searchresultsheader-toolbar"), "download-toolbar-downloading", { locked: true })
 
     metadata.open()
     lastContent.open()
