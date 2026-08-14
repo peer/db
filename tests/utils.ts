@@ -1605,17 +1605,20 @@ export function hasValue(page: Page, propertyId: string): Locator {
   return filterValue(page, "has", [""], propertyId)
 }
 
-// Runs an action which changes the search from inside the result page, and waits until what the page shows
-// is the result of the changed search.
+// Runs an action which changes the search from inside the result page, and waits until the results of the
+// changed search have come back. What the page then makes of them is not waited for, so a caller waits for
+// that itself: searchAgain is that wait for a change which is expected to find something and to show it in
+// the feed, and a caller whose change finds nothing, or which shows what it found in something else, waits
+// for what it expects instead.
 //
-// Nothing the page renders can be waited for instead. The results header goes on reporting the count of the
-// previous search for as long as the new one is in flight, because useSearchResults replaces its total only
-// once the new results are in and does not clear it while it fetches them, and the feed goes on showing the
-// results that count belongs to. A control which was just used says nothing either: it renders state of the
-// search session rather than of the search, so it takes the change the moment it is clicked. Waiting for the
-// network to go idle does not bridge the two: the fetch is issued a few ticks after the click, and until it
-// is the page is idle, so that wait can be over before the search has even started. The response of the
-// search itself is therefore what is waited for.
+// Nothing the page renders can be waited for instead of the response. The results header goes on reporting
+// the count of the previous search for as long as the new one is in flight, because useSearchResults replaces
+// its total only once the new results are in and does not clear it while it fetches them, and the feed goes
+// on showing the results that count belongs to. A control which was just used says nothing either: it renders
+// state of the search session rather than of the search, so it takes the change the moment it is clicked.
+// Waiting for the network to go idle does not bridge the two: the fetch is issued a few ticks after the
+// click, and until it is the page is idle, so that wait can be over before the search has even started.
+//
 // Which results are waited for is decided by the change itself: a change is posted to the session and
 // answered with the version the session is at afterwards, and the results of that version are fetched under
 // it, so the two together follow the change from the click to the results it produced. Waiting for the next
@@ -1623,13 +1626,19 @@ export function hasValue(page: Page, propertyId: string): Locator {
 // page fetches its results whenever anything about it changes, so one of those fetches can still be in
 // flight when the action runs, and what the page shows when such a wait returns is still the previous
 // search.
-export async function searchAgain(page: Page, action: () => Promise<void>): Promise<void> {
+export async function applySearchChange(page: Page, action: () => Promise<void>): Promise<void> {
   const updated = page.waitForResponse((response) => response.url().includes(SEARCH_UPDATE_API) && response.request().method() === "POST", { timeout: LOADING_TIMEOUT })
   await action()
   const { version } = (await (await updated).json()) as { version: number }
   await page.waitForResponse((response) => response.url().includes(SEARCH_RESULTS_API) && new URL(response.url()).searchParams.get("version") === String(version), {
     timeout: LOADING_TIMEOUT,
   })
+}
+
+// Runs an action which changes the search and waits until the results of the changed search are on the
+// screen, which is what a change expected to find something is followed by.
+export async function searchAgain(page: Page, action: () => Promise<void>): Promise<void> {
+  await applySearchChange(page, action)
   await expectResults(page)
 }
 

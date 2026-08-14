@@ -6,6 +6,7 @@ import sl from "@/locales/sl.json" with { type: "json" }
 import { CLASS_IDS, documentIdOf, LANGUAGES, PROPERTY_IDS, RESTRICTED_CLASS, searchByClass } from "../peerdb_utils"
 import {
   applyFilterValue,
+  applySearchChange,
   checkpoint,
   expect,
   expectNoResults,
@@ -78,13 +79,10 @@ async function openPrefiltered(page: Page, pairs: Array<[string, string]>): Prom
 // the result of the changed search.
 //
 // This is the searchAgain of the shared helpers with the one difference the tests here need: what is waited
-// for after the response has come back follows what the changed search is expected to find, because a search
-// which found nothing renders no result to wait for and waiting for one could only time out. Nothing the page
-// renders can be waited for instead of the response itself, see the note on searchAgain in tests/utils.ts.
+// for once the results of the changed search have come back follows what that search is expected to find,
+// because a search which found nothing renders no result to wait for and waiting for one could only time out.
 async function changeSearch(page: Page, action: () => Promise<void>, found: boolean): Promise<void> {
-  const results = page.waitForResponse((response) => response.url().includes("/api/s/results/"), { timeout: LOADING_TIMEOUT })
-  await action()
-  await results
+  await applySearchChange(page, action)
   if (found) {
     await expectResults(page)
   } else {

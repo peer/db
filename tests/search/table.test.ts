@@ -3,7 +3,7 @@ import type { Locator, Page } from "@playwright/test"
 import type { EntityClass } from "../peerdb_utils"
 
 import { documentIdOf, PROPERTY_IDS, searchByClass } from "../peerdb_utils"
-import { checkpoint, expect, filterValue, LOADING_TIMEOUT, resultCount, resultIds, searchAgain, settle, settleFilters, test, volatile } from "../utils"
+import { applySearchChange, checkpoint, expect, filterValue, LOADING_TIMEOUT, resultCount, resultIds, searchAgain, settle, settleFilters, test, volatile } from "../utils"
 
 // The class the table is looked at over. Its documents carry a reference, an amount and a time claim each, so
 // the table has a column of every kind it supports, and there are few enough of them for the whole table to
@@ -52,11 +52,9 @@ async function tableRowIds(page: Page): Promise<Array<string>> {
 
 // Runs an action which changes the search from inside the table and waits until the table shows what the
 // changed search found. The shared helper for this waits for a result card of the feed, which the table does
-// not render at all, so the response of the search is waited for here and then the rows of the table.
+// not render at all, so what is waited for once the results have come back are the rows of the table.
 async function searchAgainInTable(page: Page, action: () => Promise<void>): Promise<void> {
-  const results = page.waitForResponse((response) => response.url().includes("/api/s/results/"), { timeout: LOADING_TIMEOUT })
-  await action()
-  await results
+  await applySearchChange(page, action)
   await expect(page.locator(".pd-searchresultsheader-count-results"), "the table reports what the changed search found").toBeVisible({ timeout: LOADING_TIMEOUT })
   await expect(tableRows(page).first(), "the table shows the results of the changed search").toBeVisible({ timeout: LOADING_TIMEOUT })
   await settle(page)
