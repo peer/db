@@ -99,7 +99,7 @@ import {
   triggerUndo,
 } from "@/partials/input/InputHTML.view"
 import InputLink from "@/partials/input/InputLink.vue"
-import { useLock } from "@/progress"
+import { useInactivated, useLock } from "@/progress"
 import { uploadFile } from "@/upload"
 import { useValidation, useValidationRegistry } from "@/validation"
 
@@ -138,6 +138,7 @@ watch(errors, (v) => emit("errors", v), { flush: "sync" })
 // signal avoids that flicker without changing what the toolbar / parent
 // forms see as locked.
 const lock = useLock()
+const inactivated = useInactivated()
 const validationLock = ref(0)
 
 const { t } = useI18n({ useScope: "global" })
@@ -376,7 +377,7 @@ const validator: ValidatorFn<string> = async function (_value, options) {
   return isStructurallyEmpty.value ? [{ code: "required" }] : []
 }
 
-const isInactive = computed(() => lock.value > 0 || props.readonly)
+const isInactive = computed(() => lock.value > 0 || inactivated.value || props.readonly)
 const invalid = computed(() => props.invalid || errors.value.length > 0)
 
 const { runValidation, validatedInput } = useValidation(
@@ -1535,7 +1536,7 @@ watch(
     focus-within
     :aria-readonly="isInactive || undefined"
     class="pd-inputhtml p-0 contain-inline-size"
-    :class="{ 'pd-locked': lock > 0 }"
+    :class="{ 'pd-locked': lock > 0, 'pd-inactive': inactivated || readonly }"
     @dragenter="onWrapperDragEnter"
     @dragover="onWrapperDragOver"
     @dragleave="onWrapperDragLeave"

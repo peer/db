@@ -46,7 +46,7 @@ import ProgressBar from "@/components/ProgressBar.vue"
 import WithDocument from "@/components/WithDocument.vue"
 import { takenValuesKey } from "@/fields"
 import DisplayLabel from "@/partials/DisplayLabel.vue"
-import { useLock } from "@/progress"
+import { useInactivated, useLock } from "@/progress"
 import { shortcutToFilters } from "@/shortcut"
 import { addPrefixWildcard, anySignal, loadingWidth } from "@/utils"
 import { useValidation } from "@/validation"
@@ -124,7 +124,8 @@ const query = ref("")
 // The Clear button visually appears but is disabled, distinguishing this
 // state from the harder readonly prop where Clear is hidden entirely.
 const lock = useLock()
-const inactive = computed(() => lock.value > 0 || props.readonly)
+const inactivated = useInactivated()
+const inactive = computed(() => lock.value > 0 || inactivated.value || props.readonly)
 const searchResults = ref<Result[]>([])
 
 // Toggles between the two "selected" visual states: false shows the chip,
@@ -372,7 +373,12 @@ const WithPeerDBDocument = WithDocument<D>
     target the combobox input), so the wrapper needs explicit flex-item
     classes to stretch in a row-flex parent the way InputString et al. do.
   -->
-  <div ref="wrapperRef" class="pd-inputref min-w-0 flex-auto grow" :class="{ 'pd-locked': lock > 0 }" @focusout="onWrapperFocusout">
+  <div
+    ref="wrapperRef"
+    class="pd-inputref min-w-0 flex-auto grow"
+    :class="{ 'pd-locked': lock > 0, 'pd-inactive': inactivated || readonly }"
+    @focusout="onWrapperFocusout"
+  >
     <Combobox v-slot="{ open }" :model-value="selectedDocument" as="div" immediate by="id" @update:model-value="onSelect">
       <!--
         Grid with a single minmax(0,1fr) column. The "0" min track size

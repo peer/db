@@ -37,7 +37,7 @@ import NavBarSearch from "@/partials/NavBarSearch.vue"
 import PermissionsView from "@/partials/PermissionsView.vue"
 import PropertiesView from "@/partials/PropertiesView.vue"
 import SearchShortcutLink from "@/partials/SearchShortcutLink.vue"
-import { getParentLock, localCounter, lockScope, useProgress } from "@/progress"
+import { getParentLock, localCounter, counterScope, useProgress } from "@/progress"
 import { getDocumentComponents } from "@/registry/document"
 import { getDocumentHeaderComponents } from "@/registry/document-header"
 import { useSearch, useSearchSession } from "@/search"
@@ -71,7 +71,7 @@ const progress = useProgress()
 // editBusy is the writable handle used in the handler and as the button's
 // :progress visual. Local count is isolated from any ancestor lock
 // contributions; writes still propagate into editLock for descendant cascade.
-const editLock = lockScope(getParentLock())
+const editLock = counterScope(getParentLock())
 const editBusy = localCounter(editLock)
 function getEditLock() {
   return editLock

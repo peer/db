@@ -41,7 +41,7 @@ import Button from "@/components/Button.vue"
 import InputStyled from "@/components/InputStyled.vue"
 import ProgressBar from "@/components/ProgressBar.vue"
 import IdentityInline from "@/partials/IdentityInline.vue"
-import { useLock } from "@/progress"
+import { useInactivated, useLock } from "@/progress"
 import { useValidation } from "@/validation"
 
 const props = withDefaults(
@@ -102,7 +102,8 @@ const lookupProgress = ref(0)
 // edited or cleared. The Clear button then visually appears but is disabled, which the harder readonly
 // prop distinguishes by hiding it entirely.
 const lock = useLock()
-const inactive = computed(() => lock.value > 0 || props.readonly)
+const inactivated = useInactivated()
+const inactive = computed(() => lock.value > 0 || inactivated.value || props.readonly)
 
 // Toggles between the two visual states: false shows the chip naming the user, true shows the input so
 // the subject can be typed. There is nothing to show a chip for while the value is empty.
@@ -251,7 +252,7 @@ async function clearSelection() {
         :aria-readonly="inactive || undefined"
         :aria-invalid="invalid || undefined"
         class="pd-inputidentity-value w-full truncate"
-        :class="[readonly ? '' : 'pr-23', { 'pd-locked': lock > 0 }]"
+        :class="[readonly ? '' : 'pr-23', { 'pd-locked': lock > 0, 'pd-inactive': inactivated || readonly }]"
         @click="enterEditMode"
         @focus="enterEditMode"
         @beforeinput.prevent
@@ -274,7 +275,7 @@ async function clearSelection() {
         :aria-invalid="invalid || undefined"
         v-bind="$attrs"
         class="pd-inputidentity-input w-full"
-        :class="[clearable && !readonly ? 'pr-23' : 'pr-3', { 'pd-locked': lock > 0 }]"
+        :class="[clearable && !readonly ? 'pr-23' : 'pr-3', { 'pd-locked': lock > 0, 'pd-inactive': inactivated || readonly }]"
         @update:model-value="text = $event"
       />
 

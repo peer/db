@@ -9,7 +9,7 @@ Clicking on the already-selected radio clears the selection.
 -->
 
 <script setup lang="ts" generic="T">
-import { useLocked } from "@/progress"
+import { useInactivated, useLocked } from "@/progress"
 
 const props = withDefaults(
   defineProps<{
@@ -25,7 +25,8 @@ const props = withDefaults(
 const model = defineModel<T>()
 
 const locked = useLocked()
-const inactive = () => locked.value || props.disabled
+const inactivated = useInactivated()
+const inactive = () => locked.value || inactivated.value || props.disabled
 
 // We want all fallthrough attributes to be passed to the input element.
 defineOptions({
@@ -79,6 +80,7 @@ function onKeyDown(event: KeyboardEvent) {
       class="pd-radiobutton -mt-0.5 align-middle"
       :class="{
         'pd-locked': locked,
+        'pd-inactive': inactivated || disabled,
         'cursor-not-allowed bg-gray-400 text-primary-300': inactive(),
         'cursor-pointer text-primary-600 focus:ring-primary-500': !inactive() && !invalid,
         'cursor-pointer bg-error-50 text-error-600 checked:bg-error-600 focus:ring-primary-500': !inactive() && invalid,
