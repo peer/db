@@ -289,12 +289,15 @@ test.describe("PeerDB Amount Filter Flows", () => {
     await expect(starCount, "the facet for the number of stars of a system").toBeVisible()
 
     // A measured property is a facet of the property and the unit together, so the unit is part of the
-    // address its values are loaded from, and the facet renders it next to the name of the property.
-    expect(await facetPath(radius), "the facet of a measured property is addressed by its property and its unit").toMatch(
-      new RegExp(`/amount/${PROPERTY_IDS.RADIUS}/${UNIT_IDS.EARTH_RADIUS}$`),
+    // address its values are loaded from, and the facet renders it next to the name of the property. The
+    // whole address is compared and not only its end, so the facet is pinned to this search as well as to
+    // the property and the unit.
+    const session = new URL(page.url()).pathname.split("/").pop()
+    expect(await facetPath(radius), "the facet of a measured property is addressed by its property and its unit").toBe(
+      `/api/s/filters/${session}/amount/${PROPERTY_IDS.RADIUS}/${UNIT_IDS.EARTH_RADIUS}`,
     )
     await expect(unitReference(radius), "the facet of a measured property names its unit").toHaveCount(1)
-    await expect(unitReference(radius), "the unit named is the one the amounts are measured in").toHaveAttribute("data-url", new RegExp(`/${UNIT_IDS.EARTH_RADIUS}$`))
+    await expect(unitReference(radius), "the unit named is the one the amounts are measured in").toHaveAttribute("data-url", `/api/d/${UNIT_IDS.EARTH_RADIUS}`)
 
     // A counted property has no unit at all, so neither its address nor its label carries one.
     expect(await facetPath(starCount), "the facet of a counted property is addressed by its property alone").toMatch(new RegExp(`/amount/${PROPERTY_IDS.STAR_COUNT}$`))

@@ -17,6 +17,7 @@ import {
   loadAllResults,
   LOADING_TIMEOUT,
   openFilters,
+  PEERDB_URL,
   settleFilters,
   switchLanguage,
   test,
@@ -215,6 +216,13 @@ test.describe("PeerDB Time Filter Flows", () => {
 
     // The chart draws one bar per bucket of the histogram, so the bars are counted against the number of
     // buckets the server reported rather than against a number written down here.
+    // The facet records the address its values came from, which for a time facet is the property alone: a
+    // time is a moment and not a measurement, so nothing further narrows it the way a unit narrows an amount.
+    const session = new URL(page.url()).pathname.split("/").pop()
+    const source = await born.getAttribute("data-url")
+    expect(source, "the facet names the address its values came from").not.toBeNull()
+    expect(new URL(source!, PEERDB_URL).pathname, "the facet is the values of its property in this search").toBe(`/api/s/filters/${session}/time/${PROPERTY_IDS.BORN}`)
+
     const metadata = await facetMetadata(page, born)
     await expect(born.locator(".pd-timefiltersresult-chart rect"), "the chart draws one bar per bucket").toHaveCount(metadata.total)
     expect(metadata.total, "the histogram has more than one bucket to draw").toBeGreaterThan(1)

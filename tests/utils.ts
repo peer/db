@@ -823,7 +823,15 @@ export async function resultIds(page: Page): Promise<Array<string>> {
     )
 
   await expect.poll(async () => (await read()).every((id) => id !== ""), { message: "every result shows the document it links to" }).toBe(true)
-  return await read()
+  const ids = await read()
+
+  // Every card records the address it read its document from, and it has to be the document the card links
+  // to: a card which links to one document while rendering another is a card a reader cannot trust, and the
+  // two come from different places in the view, so nothing else holds them together.
+  const fetched = await page.locator(".pd-searchresult").evaluateAll((cards) => cards.map((card) => card.getAttribute("data-url")))
+  expect(fetched, "every result names the address it read its document from").toEqual(ids.map((id) => `/api/d/${id}`))
+
+  return ids
 }
 
 // The titles of the results the feed currently shows, in the order it shows them, so that a test can assert
@@ -1107,6 +1115,10 @@ export async function expectDocument(page: Page, options: DocumentViewOptions = 
 export async function openDocument(page: Page, id: string): Promise<void> {
   await page.goto(`${PEERDB_URL}/d/${id}`)
   await expectDocument(page)
+  // The view records the address it read the document from, which is what says the document on the screen is
+  // the one which was asked for rather than one the view was left holding. It is asserted here because every
+  // test which opens a document by its identifier comes through here knowing which one it asked for.
+  await expect(page.locator(".pd-documentget"), "the document view names the address it read the document from").toHaveAttribute("data-url", `/api/d/${id}`)
 }
 
 // The identifier of the document the browser is on, read out of the address of the document view. A document

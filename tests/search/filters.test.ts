@@ -13,6 +13,7 @@ import {
   hasValue,
   LOADING_TIMEOUT,
   openFilters,
+  PEERDB_URL,
   resultCount,
   searchAgain,
   settleFilters,
@@ -167,6 +168,24 @@ test.describe("PeerDB Search Filters Flows", () => {
     await expect(filter(page, "amount", PROPERTY_IDS.RADIUS), "a facet on an amount").toBeVisible()
     await showFilter(page, filter(page, "time", PROPERTY_IDS.FIRST_SURVEYED), "a facet on a moment in time")
     await showFilter(page, filter(page, "has"), "the has facet on the document itself")
+
+    // The panel and its facets each record the address they were fetched from, which is what says a facet on
+    // the page belongs to this search and to the property it is headed by rather than to a search or a
+    // property it was left over from. The addresses carry the version of the session as a query, so the path
+    // is what is compared.
+    const session = new URL(page.url()).pathname.split("/").pop()
+    const sourcePath = async (facet: Locator, what: string): Promise<string> => {
+      const url = await facet.getAttribute("data-url")
+      expect(url, `${what} names the address it was fetched from`).not.toBeNull()
+      return new URL(url!, PEERDB_URL).pathname
+    }
+    expect(await sourcePath(page.locator(".pd-searchresultsfeed-panel-filters"), "the filters panel"), "the panel is the list of facets of this search").toBe(
+      `/api/s/filters/${session}`,
+    )
+    expect(await sourcePath(filter(page, "ref", PROPERTY_IDS.INSTANCE_OF), "the class facet"), "the class facet is the values of its property").toBe(
+      `/api/s/filters/${session}/ref/${PROPERTY_IDS.INSTANCE_OF}`,
+    )
+    expect(await sourcePath(filter(page, "has"), "the has facet"), "the has facet is the properties stated without a value").toBe(`/api/s/filters/${session}/has`)
 
     // Nothing is filtered yet, so no facet offers to be cleared and the panel is not empty either.
     await expect(page.locator(".pd-filtersresult-button-clear"), "no facet offers to be cleared").toHaveCount(0)
