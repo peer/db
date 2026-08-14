@@ -132,6 +132,13 @@ export function useBusy(): Ref<number> {
 //
 // They can be used for inputs controls to decide whether they should render in
 // their disabled/read-only state.
+//
+// An inputs control which renders that state also carries the pd-locked class
+// while it does. The class marks the state as one which passes: a control is
+// locked while something is being done and is usable again afterwards, unlike
+// one which is inactive because it was given the readonly or disabled prop.
+// That is what tells a screenshot taken of a form mid-operation from one taken
+// of the form at rest, which is otherwise only visible as a shade of grey.
 export function useLocked(): ComputedRef<boolean> {
   const lock = getParentLock()
   return computed(() => lock.value > 0)

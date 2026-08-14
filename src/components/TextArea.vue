@@ -101,6 +101,7 @@ onBeforeUnmount(() => {
     :readonly="inactive"
     :aria-invalid="invalid || undefined"
     class="pd-textarea min-h-22 resize-none whitespace-break-spaces"
+    :class="{ 'pd-locked': lock > 0 }"
     @update:model-value="model = $event"
     @blur="onBlur"
   />

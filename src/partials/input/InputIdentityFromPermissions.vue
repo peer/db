@@ -212,7 +212,7 @@ function onFocusout(event: FocusEvent) {
 </script>
 
 <template>
-  <fieldset ref="fieldsetRef" class="pd-inputidentityfrompermissions" @focusout="onFocusout">
+  <fieldset ref="fieldsetRef" class="pd-inputidentityfrompermissions" :class="{ 'pd-locked': lock > 0 }" @focusout="onFocusout">
     <ul v-if="options.length > 0" class="grid grid-cols-[max-content_auto] gap-x-1">
       <li v-for="user of options" :key="user" class="contents">
         <RadioButton

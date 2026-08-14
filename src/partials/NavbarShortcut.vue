@@ -70,7 +70,20 @@ function onClickCapture(event: MouseEvent) {
 </script>
 
 <template>
-  <ButtonLink :to="to" :active="active" :disabled="disabled" :primary="primary" class="pd-navbarshortcut" @click.capture="onClickCapture">
+  <!--
+    What makes this link inactive is the lock of the view providing the controller, so it carries the
+    pd-locked class with it. ButtonLink does not read the lock itself: a link stays usable while something
+    above it is working, unless it is told otherwise, which is what the disabled prop does here.
+  -->
+  <ButtonLink
+    :to="to"
+    :active="active"
+    :disabled="disabled"
+    :primary="primary"
+    class="pd-navbarshortcut"
+    :class="{ 'pd-locked': disabled }"
+    @click.capture="onClickCapture"
+  >
     <slot />
   </ButtonLink>
 </template>

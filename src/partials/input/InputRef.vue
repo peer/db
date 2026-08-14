@@ -372,7 +372,7 @@ const WithPeerDBDocument = WithDocument<D>
     target the combobox input), so the wrapper needs explicit flex-item
     classes to stretch in a row-flex parent the way InputString et al. do.
   -->
-  <div ref="wrapperRef" class="pd-inputref min-w-0 flex-auto grow" @focusout="onWrapperFocusout">
+  <div ref="wrapperRef" class="pd-inputref min-w-0 flex-auto grow" :class="{ 'pd-locked': lock > 0 }" @focusout="onWrapperFocusout">
     <Combobox v-slot="{ open }" :model-value="selectedDocument" as="div" immediate by="id" @update:model-value="onSelect">
       <!--
         Grid with a single minmax(0,1fr) column. The "0" min track size

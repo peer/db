@@ -361,7 +361,13 @@ async function onDrop(e: DragEvent) {
       pr-23 reserves space on the right for the Clear button overlay so
       the display label does not slide underneath it.
     -->
-    <InputStyled as="div" :inactive="inactive" :invalid="invalid" class="pd-inputfile-value w-full truncate" :class="readonly ? '' : 'pr-23'">
+    <InputStyled
+      as="div"
+      :inactive="inactive"
+      :invalid="invalid"
+      class="pd-inputfile-value w-full truncate"
+      :class="[readonly ? '' : 'pr-23', { 'pd-locked': lock > 0 }]"
+    >
       <!--
         When the current value fails validation (e.g. it is not a route that
         classifies as a file link), rendering ClaimValue/Link could resolve

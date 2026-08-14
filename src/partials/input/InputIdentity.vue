@@ -251,7 +251,7 @@ async function clearSelection() {
         :aria-readonly="inactive || undefined"
         :aria-invalid="invalid || undefined"
         class="pd-inputidentity w-full truncate"
-        :class="readonly ? '' : 'pr-23'"
+        :class="[readonly ? '' : 'pr-23', { 'pd-locked': lock > 0 }]"
         @click="enterEditMode"
         @focus="enterEditMode"
         @beforeinput.prevent
@@ -274,7 +274,7 @@ async function clearSelection() {
         :aria-invalid="invalid || undefined"
         v-bind="$attrs"
         class="pd-inputidentity w-full"
-        :class="clearable && !readonly ? 'pr-23' : 'pr-3'"
+        :class="[clearable && !readonly ? 'pr-23' : 'pr-3', { 'pd-locked': lock > 0 }]"
         @update:model-value="text = $event"
       />
 

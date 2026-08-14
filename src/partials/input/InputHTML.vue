@@ -1535,6 +1535,7 @@ watch(
     focus-within
     :aria-readonly="isInactive || undefined"
     class="pd-inputhtml p-0 contain-inline-size"
+    :class="{ 'pd-locked': lock > 0 }"
     @dragenter="onWrapperDragEnter"
     @dragover="onWrapperDragOver"
     @dragleave="onWrapperDragLeave"

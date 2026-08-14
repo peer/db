@@ -75,6 +75,7 @@ async function onBlur() {
     :readonly="inactive"
     :aria-invalid="invalid || undefined"
     class="pd-inputtext"
+    :class="{ 'pd-locked': lock > 0 }"
     @update:model-value="model = $event"
     @blur="onBlur"
   />

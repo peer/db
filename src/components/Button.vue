@@ -32,7 +32,16 @@ const inactive = () => locked.value || props.disabled
 </script>
 
 <template>
-  <ButtonStyled as="button" :inactive="inactive()" :primary="primary" :active="active" :invalid="invalid" :disabled="inactive()" class="pd-button">
+  <ButtonStyled
+    as="button"
+    :inactive="inactive()"
+    :primary="primary"
+    :active="active"
+    :invalid="invalid"
+    :disabled="inactive()"
+    class="pd-button"
+    :class="{ 'pd-locked': locked }"
+  >
     <slot />
     <ProgressBar :progress="progress" :total="total" class="pd-button-loading absolute inset-x-0 bottom-0 rounded-b" />
   </ButtonStyled>

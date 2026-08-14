@@ -347,7 +347,7 @@ async function onFocusOut(event: FocusEvent) {
     display:contents so the time and precision inputs become direct grid items
     of the enclosing component, each in its own column.
   -->
-  <div ref="rootRef" class="pd-inputtime contents" @focusout="onFocusOut">
+  <div ref="rootRef" class="pd-inputtime contents" :class="{ 'pd-locked': locked }" @focusout="onFocusOut">
     <!-- Fall-through attrs (e.g. aria-describedby pointing at InputField's error) go on the time input, the focusable control. -->
     <InputText
       :id="timeInputId"
