@@ -28,6 +28,9 @@ const (
 	DefaultShards = "10"
 	// DefaultTitle is the default application title.
 	DefaultTitle = internalSite.DefaultTitle
+	// DefaultTestData is the default directory with the test data set. It is empty, so populate inserts only the core documents unless a directory is passed.
+	// An application built on PeerDB which ships a test data set of its own passes the directory it keeps it in instead.
+	DefaultTestData = ""
 )
 
 // PostgresConfig contains configuration for PostgreSQL database connection.
@@ -204,10 +207,10 @@ func (c *ServeCommand) Validate() error {
 //
 //nolint:lll
 type PopulateCommand struct {
-	SaveDir     string `help:"Save intermediate structs as files into a directory."                                                                                    name:"save"      placeholder:"DIR"           type:"path" yaml:"saveDir"`
-	OutputDir   string `help:"Save documents as files into a directory."                                                                                               name:"output"    placeholder:"DIR" short:"O" type:"path" yaml:"outputDir"`
-	TestDataDir string `help:"Populate also with the test data set from a directory, together with the schema it needs. Without it only core documents are populated." name:"test-data" placeholder:"DIR"           type:"path" yaml:"testDataDir"`
-	DryRun      bool   `help:"Dry run. Do everything, but insert documents into the database."                                                                                                                                  yaml:"dryRun"`
+	SaveDir     string `                             help:"Save intermediate structs as files into a directory."                                 name:"save"      placeholder:"DIR"           type:"path" yaml:"saveDir"`
+	OutputDir   string `                             help:"Save documents as files into a directory."                                            name:"output"    placeholder:"DIR" short:"O" type:"path" yaml:"outputDir"`
+	TestDataDir string `default:"${defaultTestData}" help:"Path to directory with test data to load. Pass an empty value to not load test data." name:"test-data" placeholder:"DIR" short:"T" type:"path" yaml:"testDataDir"`
+	DryRun      bool   `                             help:"Dry run. Do everything, but insert documents into the database."                                                                               yaml:"dryRun"`
 
 	// PopulateSite is set in code by a consumer using PeerDB as a library to replace how a site is
 	// populated. When nil, core documents are generated and inserted. It is called with a per-site
