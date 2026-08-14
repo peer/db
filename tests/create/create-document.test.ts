@@ -259,8 +259,10 @@ test.describe("PeerDB Document Create Flows", () => {
     await expect(pressed.locator(".pd-button-loading"), "the button which was pressed shows it is working").toBeVisible()
     await expect(page.locator(".pd-classtreelist .pd-button-loading"), "how many class buttons show they are working").toHaveCount(1)
     // The button is screenshotted rather than the page it sits on, because the tree around it puts the
-    // classes holding the most documents first and this suite creates documents as it runs.
-    await checkpointElement(page, pressed, "create-doc-classtree-pressed")
+    // classes holding the most documents first and this suite creates documents as it runs. It is captured
+    // while the creation it started is still held up, which is the whole point of the capture, so it is
+    // captured with something in it locked.
+    await checkpointElement(page, pressed, "create-doc-classtree-pressed", { locked: true })
 
     await settleEdit(page)
     await page.unroute("**/api/d/create*")

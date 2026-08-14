@@ -149,6 +149,12 @@ interface CheckpointOptions {
   // console is read whatever this says, because the messages are collected as they arrive and reading them
   // costs nothing.
   checks?: boolean
+  // Whether the capture is of a view with an operation still running. A capture is normally of a view at
+  // rest, so the default waits for what is in flight to land before anything is captured. A caller which
+  // drives an operation and captures the view while it runs says so here, because the answer which has not
+  // arrived is exactly what it is capturing, and waiting for it would capture the view after the operation
+  // or, where the answer takes the captured element off the page, not at all.
+  running?: boolean
 }
 
 // How long one screenshot may take. The action timeout the rest of the suite runs under covers waiting for
@@ -184,12 +190,14 @@ async function expectNothingInFlight(page: Page, what: string): Promise<void> {
 
 // Takes a screenshot of the page (or of the given element of it) and compares it with the one stored under
 // the given name, then checks the page for duplicate identifiers, accessibility violations and console errors.
-export async function checkpoint(page: Page, name: string, { mask = [], fullPage = true, of, checks = true }: CheckpointOptions = {}): Promise<void> {
+export async function checkpoint(page: Page, name: string, { mask = [], fullPage = true, of, checks = true, running = false }: CheckpointOptions = {}): Promise<void> {
   // A screenshot which catches the progress bar is a screenshot of a page which is not done. It is waited out
   // here rather than at the call sites because it can be lit by anything the page is doing, and it sits over
   // the top of the navbar, which is inside an element screenshot of the navbar just as much as it is on a
-  // whole page.
-  await expectNothingInFlight(page, `taking ${name}`)
+  // whole page. A capture of a view with an operation running is the one case where it is not waited out.
+  if (!running) {
+    await expectNothingInFlight(page, `taking ${name}`)
+  }
   // Anchor scroll to the top so position:fixed elements land at the top of fullPage screenshots. An element
   // capture starts from there as well: Playwright scrolls the element into view itself, and starting every
   // capture from the top of the page is what makes it scroll the same way twice.
@@ -318,9 +326,13 @@ export async function checkpointElement(
 ): Promise<void> {
   await expect(locator, `element for ${name}`).toBeVisible()
 
-  // An element captured while an answer is still on its way is an element captured before what the answer
+  // An element captured with something in it locked is an element captured while an operation runs, so what
+  // is in flight is not waited out for it: it is the operation being captured. Everything else is captured at
+  // rest, because an element captured while an answer is on its way is captured before what the answer
   // changes in it has been changed, which is a state the name does not describe.
-  await expectNothingInFlight(page, `taking the element for ${name}`)
+  if (!locked) {
+    await expectNothingInFlight(page, `taking the element for ${name}`)
+  }
 
   // A locked control is drawn greyed and does not accept anything, so which of the two states it is in
   // decides what the screenshot shows. The progress bar does not answer this on its own: a lock can be held
@@ -333,7 +345,7 @@ export async function checkpointElement(
     await expect(lockedControls, `the locked controls in the element for ${name}`).toHaveCount(0, { timeout: LOADING_TIMEOUT })
   }
 
-  await checkpoint(page, name, { mask, checks, of: locator })
+  await checkpoint(page, name, { mask, checks, of: locator, running: locked })
 }
 
 // Everything below drives the interface PeerDB itself provides, so it is the same for every application
