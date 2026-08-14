@@ -97,13 +97,15 @@ async function pressMoreFilters(page: Page): Promise<void> {
   await moreFilters.dispatchEvent("click")
 }
 
-// Shows a facet which sits below the ones the panel shows at first, by asking for another batch until the
-// facet is there or until there is nothing left to add.
+// Shows a facet which sits below the ones the panel shows at first: the panel is settled, which adds every
+// facet it has and waits for its list to stop being replaced, and the facet is then asserted to be among
+// them.
+//
+// Asking for batches until the facet appears is not enough on its own. The panel starts its batches over
+// whenever a new list of facets arrives, so a facet revealed just before one lands is taken away again, and
+// what is then waited for is a value of a facet which is no longer on the page.
 async function showFilter(page: Page, facet: Locator, what: string): Promise<void> {
-  const moreFilters = page.locator(".pd-searchresultsfeed-button-morefilters")
-  while ((await facet.count()) === 0 && (await moreFilters.isVisible().catch(() => false))) {
-    await pressMoreFilters(page)
-  }
+  await settleFilters(page)
   await expect(facet, what).toBeVisible({ timeout: LOADING_TIMEOUT })
 }
 

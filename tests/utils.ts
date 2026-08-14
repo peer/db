@@ -127,10 +127,32 @@ export async function expectNoConsoleErrors(page: Page): Promise<void> {
   expect(resolvedMessages.length, `Console errors detected:\n${resolvedMessages.join("\n")}`).toBe(0)
 }
 
+// The box of an element on the page, which is what a screenshot of that element is clipped to.
+interface BoundingBox {
+  x: number
+  y: number
+  width: number
+  height: number
+}
+
 interface CheckpointOptions {
   mask?: Array<Locator>
   fullPage?: boolean
-  clip?: { x: number; y: number; width: number; height: number }
+  clip?: BoundingBox
+  // The element the clip was measured from. When it is given, the element is measured again the moment the
+  // capture is over, and a capture of an element which has moved out of its box is a capture of something
+  // else than what it is named after, so nothing is compared and checkpoint reports that it took none.
+  clipOf?: Locator
+  // Whether an element which moved away from its box is reported. It is passed by a caller which captures
+  // again when the element moves, so that only the last attempt of it fails the test.
+  reportMoved?: boolean
+  // Whether the checks which read the whole page are run: the duplicate identifiers and the accessibility
+  // violations. They are about the page and not about the screenshot, and both walk the whole document, so a
+  // test which captures the same page many times over (one screenshot per step of a movement, say) runs them
+  // on its first capture and turns them off for the rest instead of deriving the same answer every time. The
+  // console is read whatever this says, because the messages are collected as they arrive and reading them
+  // costs nothing.
+  checks?: boolean
 }
 
 // How long one screenshot may take. The action timeout the rest of the suite runs under covers waiting for
@@ -164,7 +186,17 @@ async function expectNothingInFlight(page: Page, what: string): Promise<void> {
   await expect(page.locator(".pd-navbar-progress"), `the progress bar while ${what}`).toHaveCount(0, { timeout: LOADING_TIMEOUT })
 }
 
-export async function checkpoint(page: Page, name: string, { mask = [], fullPage = true, clip }: CheckpointOptions = {}) {
+// Takes a screenshot of the page (or of the given box of it) and compares it with the one stored under the
+// given name, then checks the page for duplicate identifiers, accessibility violations and console errors.
+//
+// It returns whether the checkpoint was taken. The one case in which it was not is an element which moved
+// out of the box its capture was measured from: what was captured is then a part of the page the name does
+// not describe, so it is left uncompared for the caller to take again.
+export async function checkpoint(
+  page: Page,
+  name: string,
+  { mask = [], fullPage = true, clip, clipOf, reportMoved = true, checks = true }: CheckpointOptions = {},
+): Promise<boolean> {
   // A screenshot which catches the progress bar is a screenshot of a page which is not done. It is waited out
   // here rather than at the call sites because it can be lit by anything the page is doing, and it sits over
   // the top of the navbar, which is inside the clip of an element screenshot of the navbar just as much as it
@@ -185,6 +217,23 @@ export async function checkpoint(page: Page, name: string, { mask = [], fullPage
   }
 
   const screenshotBuffer = await takeStableScreenshot(page, screenshotOptions)
+
+  // Whether what was captured is still what the clip was measured from is asked here, before anything else
+  // this function does: the checks below read the whole page and take their time, and a page which moves
+  // while they run moves after the capture, which says nothing about the capture. A capture of an element
+  // which has moved away is left uncompared, so that the caller can take it again where the element now is
+  // without the attempt it is replacing having failed the test on its own.
+  if (clipOf !== undefined) {
+    const after = await clipOf.boundingBox()
+    const moved = after === null || after.x !== clip?.x || after.y !== clip.y || after.width !== clip.width || after.height !== clip.height
+    if (moved) {
+      if (reportMoved) {
+        expect.soft(after, `the element for ${name} stayed in the box its screenshot was taken of`).toEqual(clip)
+      }
+      return false
+    }
+  }
+
   if (screenshotOptions.path) {
     // Only attach new screenshots to the report.
     await test.info().attach(name, {
@@ -196,6 +245,11 @@ export async function checkpoint(page: Page, name: string, { mask = [], fullPage
     // test: the test runs on and is compared at every checkpoint it reaches, and fails at its end with one error per mismatch. It also keeps the checks
     // below running for a checkpoint whose screenshot differs, which a throwing comparison skips exactly where the interface changed.
     expect.soft(screenshotBuffer).toMatchSnapshot(`${name}.png`)
+  }
+
+  if (!checks) {
+    await expectNoConsoleErrors(page)
+    return true
   }
 
   // Check for duplicate IDs.
@@ -227,6 +281,8 @@ export async function checkpoint(page: Page, name: string, { mask = [], fullPage
 
   // Check for any console logs.
   await expectNoConsoleErrors(page)
+
+  return true
 }
 
 export async function takeScreenshotsOfEntries(
@@ -250,7 +306,32 @@ export async function takeScreenshotsOfEntries(
     const displayNameElement = entry.locator(displayNameSelector)
     const displayName = (await displayNameElement.textContent())?.replace(/\s/g, "")
 
-    await checkpoint(page, `${screenshotPrefix}-${displayName}`, { mask, fullPage: true, clip: { x: box.x, y: box.y, width: box.width, height: box.height } })
+    await checkpointBox(page, entry, `${screenshotPrefix}-${displayName}`, mask, box)
+  }
+}
+
+// Captures a box of the page as the screenshot of the element it was measured from.
+//
+// The box is a box and not the element, so it is a screenshot of the element only while the element is still
+// in it: anything above which settles after the box was measured moves the element out from under it and
+// whatever took its place is captured instead, which reads as the element having changed rather than as the
+// page having moved. A move is therefore answered by measuring again and capturing again, because what moved
+// the element has by then happened and the next capture is of the element where it now is. Only an element
+// which keeps moving is reported, which is a page that never settles rather than one which settled late.
+//
+// An element which is gone by the time it is measured again keeps the box it had, so that the capture which
+// follows is the one which reports it rather than a screenshot of the whole page taken with no box at all.
+async function checkpointBox(page: Page, locator: Locator, name: string, mask: Array<Locator>, box: BoundingBox): Promise<void> {
+  let clip = box
+  for (let pass = 0; pass < CLIP_PASSES; pass++) {
+    const taken = await checkpoint(page, name, { mask, clip, clipOf: locator, reportMoved: pass === CLIP_PASSES - 1 })
+    if (taken) {
+      return
+    }
+    const moved = await locator.boundingBox()
+    if (moved !== null) {
+      clip = moved
+    }
   }
 }
 
@@ -283,15 +364,7 @@ export async function checkpointElement(page: Page, locator: Locator, name: stri
     )
     .toBe(true)
 
-  await checkpoint(page, name, { mask, clip: box! })
-
-  // What was captured is a box of the page, so it is a screenshot of the element only while the element is
-  // still in that box. Something above it which settles after the box was measured moves the element out
-  // from under it and whatever took its place is captured instead, which reads as the element having
-  // changed rather than as the page having moved. The box is read once more so that this is reported as
-  // what it is. The comparison is soft for the same reason as the one of the screenshot itself.
-  const after = await locator.boundingBox()
-  expect.soft(after, `the element for ${name} stayed in the box its screenshot was taken of`).toEqual(box)
+  await checkpointBox(page, locator, name, mask, box!)
 }
 
 // Everything below drives the interface PeerDB itself provides, so it is the same for every application
@@ -303,6 +376,12 @@ export async function checkpointElement(page: Page, locator: Locator, name: stri
 // timeout is enough while the site is idle, but tests run next to each other and the ones which write
 // make the site answer noticeably slower, so waiting for a fetch is given more room than the default.
 export const LOADING_TIMEOUT = 30000
+
+// How many times an element screenshot may be taken again because the element moved out of the box the
+// previous attempt was measured from. Whatever moved it has happened by the time that attempt is over, so
+// one more attempt is normally enough, and an element still moving after these is a page which never
+// settles rather than one which settled late.
+const CLIP_PASSES = 3
 
 // How many times settleFilters may reveal another batch of facets before it gives up on the filters panel
 // ever listing them all.
@@ -1480,13 +1559,46 @@ export async function searchAgain(page: Page, action: () => Promise<void>): Prom
   await expectResults(page)
 }
 
+// Waits for a value of a facet to be on the page, and says which facet was looked at and what that facet
+// offers when it is not there.
+//
+// A value is addressed by the identifiers of the property it belongs to and of the value itself, which is
+// what the markup carries and what makes the address independent of the interface language. Those
+// identifiers name nothing a reader of a failure can recognise, while the facet renders both as labels, so
+// the labels are what the failure is written with: which facet was looked at, and which values it offers
+// instead of the one which was asked for.
+async function expectFilterValueOffered(facet: Locator, value: Locator): Promise<void> {
+  try {
+    await expect(value, "value of the facet to select").toBeVisible({ timeout: LOADING_TIMEOUT })
+  } catch {
+    const title = ((await facet.locator(".pd-filtersresult-title").first().textContent()) ?? "").replace(/\s+/g, " ").trim()
+    const offered = (await facet.locator(".pd-reffiltertreerow-label, .pd-hasfiltersresult-label").allTextContents())
+      .map((label) => label.replace(/\s+/g, " ").trim())
+      .filter((label) => label !== "")
+    throw new Error(
+      `the facet "${title || "which is on the page unnamed"}" does not offer the value to select (${String(value)}): it offers ${offered.length > 0 ? offered.join(", ") : "no value at all"}`,
+    )
+  }
+}
+
 // Selects a value of a facet and waits until the search it started has come back. A facet grows a clear
 // button only once its filter is active, so that is what tells a click which took effect apart from one
 // which has not been applied yet.
 export async function applyFilterValue(page: Page, facet: Locator, value: Locator): Promise<void> {
-  // The values of a facet are fetched per facet rather than coming with the panel, so a facet card is on
-  // the page before the values it offers are, and waiting for one of them is waiting for an answer.
-  await expect(value, "value of the facet to select").toBeVisible({ timeout: LOADING_TIMEOUT })
+  // The values of a facet are fetched per facet rather than coming with the panel, so a facet card is on the
+  // page before the values it offers are, and a facet renders only its first values and keeps the rest
+  // behind a button of its own. Which of them the wanted value is among follows the counts, so it is asked
+  // for rather than assumed to be in the first batch: every pass shows another batch, and the cap is far
+  // above what any facet of the test data holds.
+  const more = facet.locator(".pd-filtersresult-more")
+  for (let pass = 0; pass < FILTER_PASSES && (await value.count()) === 0; pass++) {
+    await settle(page)
+    if (!(await more.isVisible().catch(() => false))) {
+      break
+    }
+    await more.dispatchEvent("click").catch(() => null)
+  }
+  await expectFilterValueOffered(facet, value)
   // Every control of the view is disabled while a request is in flight (useLocked in PeerDB), and the filters
   // panel keeps fetching after the results have arrived, so a value which is on the page is not yet a value
   // which can be ticked.

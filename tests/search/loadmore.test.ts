@@ -8,6 +8,7 @@ import {
   LOADING_TIMEOUT,
   loadMoreButton,
   openSortDialog,
+  overrideSiteFeatures,
   PEERDB_URL,
   resultCount,
   resultIds,
@@ -110,16 +111,18 @@ async function groupBy(page: Page, propertyId: string): Promise<void> {
 
 // Reveals every group of a grouped feed.
 //
-// The rest is loaded by scrolling rather than by pressing the button, because the feed presses that button
-// itself whenever the end of the list comes near the viewport, so a press and the scrolling a press needs
-// would load a page each. What is waited for is the button going away, which is what says the feed has
-// nothing left to reveal: how many elements a grouped feed renders is not the number of results, because a
-// document which belongs under several headings is rendered under each of them.
+// What is waited for is the load more button going away, which is what says the feed has nothing left to
+// reveal: how many elements a grouped feed renders is not the number of results, because a document which
+// belongs under several headings is rendered under each of them. The press is dispatched rather than
+// clicked, because a click first scrolls the button into view, and on a site which loads while scrolling
+// that scrolling loads a page of its own.
 async function loadAllGroups(page: Page): Promise<void> {
   await expect
     .poll(
       async () => {
-        await page.evaluate(() => window.scrollTo({ top: document.body.scrollHeight, behavior: "instant" }))
+        await loadMoreButton(page)
+          .dispatchEvent("click")
+          .catch(() => null)
         return await loadMoreButton(page).count()
       },
       { message: "the grouped feed runs out of results to reveal", timeout: 2 * LOADING_TIMEOUT },
@@ -202,6 +205,10 @@ test.describe("PeerDB Load More Flows", () => {
 
   test("Test loading more results by scrolling", async ({ context }) => {
     const page = await context.newPage()
+
+    // The site is served to the tests without loading while scrolling, and this is the one test here which
+    // is about that loading, so it asks for the site's own behaviour back.
+    await overrideSiteFeatures(page, { disableLoadingOnScroll: false })
 
     const total = await searchPaged(page)
     const onLoad = await searchResults(page).count()

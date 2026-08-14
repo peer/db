@@ -88,15 +88,12 @@ function directCount(page: Page, props: Array<string>, value: string): Locator {
   return page.locator(`label[for="${["ref", ...props, DIRECT + value].join("/")}"].pd-reffiltertreerow-count-direct`)
 }
 
-// Asks the filters panel for another batch of facets until the wanted facet is there. The press is
-// dispatched rather than clicked, because the panel replaces the button while it re-renders (fillColumn in
-// SearchResultsFeed.vue), and a click waits for an element which is being taken away from under it.
+// Shows a facet which sits below the ones the panel shows at first: the panel is settled, which adds every
+// facet it has and waits for its list to stop being replaced, and the facet is then asserted to be among
+// them. A facet revealed without that wait can be taken away again by a list which arrives afterwards,
+// because the panel starts its batches over whenever one does.
 async function showFilter(page: Page, facet: Locator, what: string): Promise<void> {
-  const moreFilters = page.locator(".pd-searchresultsfeed-button-morefilters")
-  while ((await facet.count()) === 0 && (await moreFilters.isVisible().catch(() => false))) {
-    await expect(moreFilters, "the button which shows more facets").toBeVisible()
-    await moreFilters.dispatchEvent("click")
-  }
+  await settleFilters(page)
   await expect(facet, what).toBeVisible({ timeout: LOADING_TIMEOUT })
 }
 

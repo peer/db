@@ -39,8 +39,8 @@ test.describe("PeerDB Navbar Scrolling Flows", () => {
   test.use({ contextOptions: { reducedMotion: "no-preference" } })
 
   test("Test the navbar hides itself while scrolling down and comes back while scrolling up", async ({ context }) => {
-    // Every step of the way is screenshotted, twice the number of steps, which is more than a test of the
-    // default length has time for.
+    // Sixty steps of scrolling, each settling and screenshotted, take longer than a test of the default
+    // length is given, even with the checks which read the whole page left to the first capture.
     test.slow()
 
     const page = await context.newPage()
@@ -55,13 +55,16 @@ test.describe("PeerDB Navbar Scrolling Flows", () => {
 
     const shown = await navbarTop(page)
     expect(shown, "the navbar starts at the top of the viewport").toBe(0)
+    // The first capture is the one which reads the whole page: what the duplicate identifiers and the
+    // accessibility scan look at is the same page at every step of the scrolling below, so the steps ask
+    // for the screenshot alone.
     await checkpoint(page, "navbar-scrolling-0", { fullPage: false, mask: volatile(page) })
 
     // Scrolling down takes the navbar away with the page and then leaves it behind, so what the screenshots
     // hold is the navbar moving up out of the viewport step by step.
     for (let step = 1; step <= STEPS; step++) {
       await scrollBy(page, STEP)
-      await checkpoint(page, `navbar-scrolling-down-${step}`, { fullPage: false, mask: volatile(page) })
+      await checkpoint(page, `navbar-scrolling-down-${step}`, { fullPage: false, mask: volatile(page), checks: false })
     }
     const hidden = await navbarTop(page)
     expect(hidden, "the navbar gave up its place at the top while the page was scrolled down").toBeLessThan(shown)
@@ -70,7 +73,7 @@ test.describe("PeerDB Navbar Scrolling Flows", () => {
     // as the visitor moves back towards what they came from, without waiting for the top of the page.
     for (let step = 1; step <= STEPS; step++) {
       await scrollBy(page, -STEP)
-      await checkpoint(page, `navbar-scrolling-up-${step}`, { fullPage: false, mask: volatile(page) })
+      await checkpoint(page, `navbar-scrolling-up-${step}`, { fullPage: false, mask: volatile(page), checks: false })
     }
     const back = await navbarTop(page)
     expect(back, "the navbar came back while the page was scrolled up").toBeGreaterThan(hidden)
