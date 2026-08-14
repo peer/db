@@ -249,6 +249,10 @@ docker run --rm \
   -e PEERDB_URL="https://$PEERDB_CONTAINER:8080" \
   -e LINK_PUBLISH_JOB_ID \
   -e UPDATE_SCREENSHOTS \
+  -e CI_COMMIT_SHA \
+  -e CI_COMMIT_REF_NAME \
+  -e CI_PIPELINE_ID \
+  -e CI_JOB_ID \
   "$PLAYWRIGHT_IMAGE"
 
 # Stop the PeerDB container and check its exit code.
