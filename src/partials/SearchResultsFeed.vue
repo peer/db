@@ -222,11 +222,25 @@ function groupedLoadAll(): void {
 const groupedPager = computed(() => {
   const seen = new Set<string>()
   const pagerBefore = new Map<object, number>()
+  // A group value which sits under several groups is a heading under each of them, and an expanded column
+  // renders each heading as the full card of its document, so the same document would be carded once per
+  // group. Every occurrence after the first is marked so that only the first is carded in full, the way a
+  // leaf result placed several times is. This is done here rather than over the whole tree because the tree
+  // which is rendered is built by rebuilding every group node (limitGroupedResults), so a group node marked
+  // over the whole tree is not the object which ends up on screen. Leaves are carried over by reference and
+  // are marked there, against the whole tree, so that what is a duplicate does not depend on the limit.
+  const seenGroups = new Set<string>()
+  const duplicates = new Set<object>(groupedTotals.value.duplicates)
   // Groups entered since the last leaf, outermost first; the next leaf seen is their shared first leaf.
   let pending: DeepReadonly<Result>[] = []
   const walk = (nodes: DeepReadonly<Result[]>): void => {
     for (const node of nodes) {
       if (node.group) {
+        if (seenGroups.has(node.id)) {
+          duplicates.add(toRaw(node))
+        } else {
+          seenGroups.add(node.id)
+        }
         pending.push(node)
         walk(node.group)
       } else {
@@ -242,7 +256,7 @@ const groupedPager = computed(() => {
     }
   }
   walk(limitedGroupedResults.value.results)
-  return { pagerBefore, shown: groupedTotals.value.shown, total: props.searchTotal ?? 0, duplicates: groupedTotals.value.duplicates }
+  return { pagerBefore, shown: groupedTotals.value.shown, total: props.searchTotal ?? 0, duplicates }
 })
 provide(searchPagerKey, groupedPager)
 

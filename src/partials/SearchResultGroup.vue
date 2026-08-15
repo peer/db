@@ -84,7 +84,7 @@ function childPagerIndex(child: DeepReadonly<Result>): number | undefined {
       An expanded group value shows the full result card for its document. It is not a search result and is
       not registered with the visibility tracker, so the "at" scroll position keeps following the leaves.
     -->
-    <SearchResult v-if="expanded" :search-session-id="searchSessionId" :result="node">
+    <SearchResult v-if="expanded" :search-session-id="searchSessionId" :result="node" :duplicate="isDuplicate(node)">
       <template #labelAside>
         <span class="pd-searchresultgroup-aside flex shrink-0 items-baseline gap-x-1 text-base font-normal text-slate-500">
           <span v-if="node.count != null" class="pd-searchresultgroup-count">({{ node.count }})</span>
