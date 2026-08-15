@@ -243,6 +243,37 @@ dump_ranking_inputs() {
   # segment, so two runs whose segments differ score the same text query differently even on identical data.
   docker exec peerdb-elastic curl -sf "http://localhost:9200/_cat/segments/${INDEX_PREFIX}_*?v&h=index,shard,segment,docs.count,docs.deleted,size" \
     > "$LOGS_DIR/ranking-segments-$when.txt" || echo "could not dump the segments $when" >&2
+
+  # The order the API answers two fixed searches in. The dumps above are what the order is computed from, and
+  # this is the order itself, which is what tells a run whose results came back differently apart into a
+  # server which answered differently and a page which laid the same answer out differently. Both searches
+  # are addressed by nothing but their own address, so neither depends on an identifier written down here:
+  # one ranks nothing (the whole corpus, ordered by the keys after the score) and one ranks by a query.
+  dump_search_order "$when" everything ""
+  dump_search_order "$when" query "?q=weir"
+}
+
+# Runs one search through the site the way a reader does, and writes the identifiers it answered with, in
+# order, to the logs. The search shortcut answers with the session it made, and the results of that session
+# are then asked for under the version it is at.
+dump_search_order() {
+  local when="$1" name="$2" query="$3"
+  local out="$LOGS_DIR/ranking-order-$name-$when.json"
+
+  local location
+  location=$(docker exec peerdb-elastic curl -sk -o /dev/null -w "%{redirect_url}" "https://$PEERDB_CONTAINER:8080/s$query") || {
+    echo "could not open the $name search $when" >&2
+    return
+  }
+  local session="${location##*/s/}"
+  session="${session%%\?*}"
+  if [ -z "$session" ]; then
+    echo "the $name search $when answered with no session: $location" >&2
+    return
+  fi
+
+  docker exec peerdb-elastic curl -sk "https://$PEERDB_CONTAINER:8080/api/s/results/$session?version=1" \
+    > "$out" || echo "could not read the results of the $name search $when" >&2
 }
 
 dump_ranking_inputs before-tests
@@ -280,7 +311,9 @@ mkdir -p playwright-report test-results playwright-screenshots coverage-frontend
 # We chown to the container user so the process running inside Docker container can write to them.
 chown 1000:1000 playwright-report test-results playwright-screenshots coverage-frontend a11y-report .nyc_output
 
-# Run Playwright tests in separate container.
+# Run Playwright tests in separate container. Its exit code is kept rather than ending the run here, so that
+# what the run looked like afterwards is still written out below; the run exits with it at the end.
+PLAYWRIGHT_EXIT_CODE=0
 docker run --rm \
   --name peerdb-playwright \
   --network "$NETWORK" \
@@ -297,7 +330,7 @@ docker run --rm \
   -e CI_COMMIT_REF_NAME \
   -e CI_PIPELINE_ID \
   -e CI_JOB_ID \
-  "$PLAYWRIGHT_IMAGE"
+  "$PLAYWRIGHT_IMAGE" || PLAYWRIGHT_EXIT_CODE=$?
 
 # The same dump again, so that a difference which the run itself produced (the projects which create and
 # edit documents change what references what, and so what the counts are) is told apart from one the run
@@ -312,6 +345,12 @@ PEERDB_EXIT_CODE=$(docker wait "$PEERDB_CONTAINER")
 if [ "$PEERDB_EXIT_CODE" -ne 0 ]; then
   echo "ERROR: PeerDB container exited with code $PEERDB_EXIT_CODE"
   exit 1
+fi
+
+# The tests failing is what the run reports, now that the state they left behind has been written out.
+if [ "$PLAYWRIGHT_EXIT_CODE" -ne 0 ]; then
+  echo "ERROR: Playwright exited with code $PLAYWRIGHT_EXIT_CODE"
+  exit "$PLAYWRIGHT_EXIT_CODE"
 fi
 
 echo "=== E2E Tests Completed Successfully ==="
