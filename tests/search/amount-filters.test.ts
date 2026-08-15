@@ -17,6 +17,7 @@ import {
   filter,
   goHome,
   loadAllResults,
+  LOADING_TIMEOUT,
   openAllDocumentsSearch,
   settleFilters,
   switchLanguage,
@@ -109,11 +110,22 @@ function unitReference(facet: Locator): Locator {
 async function tapRange(facet: Locator, fraction: number): Promise<void> {
   const slider = facet.locator(".pd-amountfiltersresult-input-range")
   await expect(slider, "the range slider of the amount facet").toBeVisible()
-  const box = await slider.boundingBox()
-  if (!box) {
-    throw new Error("amount filter range slider has no bounding box")
-  }
-  await slider.click({ position: { x: box.width * fraction, y: box.height / 2 } })
+
+  // The box is polled rather than read once. The panel replaces a facet whenever the list of facets it
+  // belongs to comes back, so a slider which was on the page a moment ago can be off it again by the time it
+  // is measured, which yields no box at all. Waiting for one measures the slider which is there now.
+  let box: Awaited<ReturnType<Locator["boundingBox"]>> = null
+  await expect
+    .poll(
+      async () => {
+        box = await slider.boundingBox()
+        return box !== null
+      },
+      { message: "the range slider of the amount facet has a box to tap", timeout: LOADING_TIMEOUT },
+    )
+    .toBe(true)
+
+  await slider.click({ position: { x: box!.width * fraction, y: box!.height / 2 } })
 }
 
 test.describe("PeerDB Amount Filter Flows", () => {
