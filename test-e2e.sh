@@ -137,6 +137,7 @@ echo "3. Starting PostgreSQL container..."
 docker run -d \
   --name peerdb-postgres \
   --network "$NETWORK"  \
+  -e LOG_TO_STDOUT=1 \
   -e PGSQL_ROLE_1_USERNAME=test \
   -e PGSQL_ROLE_1_PASSWORD=test \
   -e PGSQL_DB_1_NAME=test \
