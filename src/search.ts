@@ -1089,28 +1089,74 @@ export function useLocationAt(searchResults: Ref<DeepReadonly<Result[]>>, search
   })
 
   const initialRouteName = route.name
+
+  const topVisible = computed(() => {
+    const sorted = Array.from(visibles.value)
+    sorted.sort((a, b) => (idToIndex.value.get(a) ?? Infinity) - (idToIndex.value.get(b) ?? Infinity))
+    return sorted[0]
+  })
+
+  // Recording where the reader is must never decide where they go. Starting a navigation aborts whichever one
+  // is already in flight, and this one is started by scrolling, which is what a click does to the page on its
+  // way to what was clicked: the reader's own navigation is then cancelled by the record of them having
+  // scrolled towards it, and they stay on the results with nothing to show for the click. So nothing is
+  // recorded while a navigation is in flight, and where they ended up is recorded once it has settled.
+  let navigating = 0
+  let pending = false
+
+  async function record(topId: string | undefined): Promise<void> {
+    // Watch can continue to run for some time after the route changes.
+    if (initialRouteName !== route.name) {
+      return
+    }
+    // Initial data has not yet been loaded, so we wait.
+    if (!topId && searchTotal.value === null) {
+      return
+    }
+    // Positions the reader passes through during a navigation collapse into the one they land on, because only
+    // where they end up is of any interest. Which position that is, is read when the navigation settles and not
+    // remembered from here, so that a navigation onto another set of results does not record a position in the
+    // set it left.
+    if (navigating > 0) {
+      pending = true
+      return
+    }
+    await router.replace({
+      name: route.name as string,
+      params: route.params,
+      // We do not want to set an empty "at" query parameter.
+      query: encodeQuery({ ...route.query, at: topId || undefined }),
+      hash: route.hash,
+    })
+  }
+
+  const stopBeforeEach = router.beforeEach(() => {
+    navigating += 1
+  })
+  // afterEach runs for a navigation which failed as well as for one which went through, so the count comes
+  // back down however a navigation ends.
+  const stopAfterEach = router.afterEach(() => {
+    navigating = Math.max(0, navigating - 1)
+    if (navigating === 0 && pending) {
+      pending = false
+      void record(topVisible.value)
+    }
+  })
+  // onError covers what never reaches afterEach at all, because a count which never came down would leave
+  // the reader's position unrecorded for as long as the page is open.
+  const stopOnError = router.onError(() => {
+    navigating = 0
+  })
+  onBeforeUnmount(() => {
+    stopBeforeEach()
+    stopAfterEach()
+    stopOnError()
+  })
+
   watch(
-    () => {
-      const sorted = Array.from(visibles.value)
-      sorted.sort((a, b) => (idToIndex.value.get(a) ?? Infinity) - (idToIndex.value.get(b) ?? Infinity))
-      return sorted[0]
-    },
-    async (topId, oldTopId, onCleanup) => {
-      // Watch can continue to run for some time after the route changes.
-      if (initialRouteName !== route.name) {
-        return
-      }
-      // Initial data has not yet been loaded, so we wait.
-      if (!topId && searchTotal.value === null) {
-        return
-      }
-      await router.replace({
-        name: route.name as string,
-        params: route.params,
-        // We do not want to set an empty "at" query parameter.
-        query: encodeQuery({ ...route.query, at: topId || undefined }),
-        hash: route.hash,
-      })
+    topVisible,
+    async (topId) => {
+      await record(topId)
     },
     {
       immediate: true,
