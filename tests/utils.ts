@@ -843,6 +843,8 @@ export async function loadAllResults(page: Page): Promise<void> {
 // for it, so a response arriving late belongs to something the test itself did and can be waited out.
 export async function settleFilters(page: Page): Promise<void> {
   const moreFilters = page.locator(".pd-searchresultsfeed-button-morefilters")
+  // One header per facet, whatever kind of facet it is, so this counts what the panel is showing.
+  const facets = page.locator(".pd-filtersresult-header")
   let filtersFetched = 0
   let lastFiltersURL = ""
   const onResponse = (response: Response) => {
@@ -867,9 +869,16 @@ export async function settleFilters(page: Page): Promise<void> {
       // The button is away while a list is being fetched as well, because a panel with no facets has none to
       // add, and it comes back with the response. So nothing is concluded from one look: the panel is settled
       // once it still offers nothing after another wait and no list arrived in the meantime.
+      //
+      // How many facets it is showing is confirmed along with the button, because a list which arrives takes
+      // the panel back to the facets it shows first, and it does so while re-rendering rather than over the
+      // network: the button is briefly away in the middle of that, which on its own reads the same as a panel
+      // with nothing left to add. A panel taken back to its first facets shows fewer of them than the one
+      // which was settled, so the count is what tells the two apart.
       const fetched = filtersFetched
+      const shown = await facets.count()
       await settle(page)
-      if (filtersFetched === fetched && !(await moreFilters.isVisible().catch(() => false))) {
+      if (filtersFetched === fetched && (await facets.count()) === shown && !(await moreFilters.isVisible().catch(() => false))) {
         return
       }
     }

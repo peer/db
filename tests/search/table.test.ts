@@ -214,6 +214,10 @@ test.describe("PeerDB Search Table Flows", () => {
     expect(before, "the table starts with the columns which fit").toBeGreaterThan(0)
     const moreColumns = page.locator(".pd-searchresultstable-button-morecolumns")
     await expect(moreColumns, "the table offers the facets it has not made a column of yet").toBeVisible()
+    // The table is settled before it is captured, because a column is as wide as the widest thing in it and the
+    // rows reach far below the fold: a row which is still waiting for its document holds nothing to be wide,
+    // so a capture taken while any of them is would frame columns of a width which is not reached again.
+    await settle(page)
     await checkpoint(page, "table-columns-before-adding", { mask: volatile(page), ...VIEWPORT_ONLY })
 
     // The press is dispatched rather than clicked, for the same reason as the one which reveals more results:
