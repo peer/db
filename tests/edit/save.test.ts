@@ -3,7 +3,7 @@ import type { Locator, Page } from "@playwright/test"
 import type { EntityClass } from "../peerdb_utils"
 
 import { PROPERTY_IDS, roleWhichCreates, startCreate } from "../peerdb_utils"
-import { changePosted, expect, field, fieldErrors, fieldInput, hideDuplicates, LOADING_TIMEOUT, pressSave, settleEdit, signIn, test } from "../utils"
+import { changePosted, expect, field, fieldInput, hideDuplicates, LOADING_TIMEOUT, pressSave, settleEdit, signIn, test } from "../utils"
 
 // The class these tests create. A sector is named (required, a string) and is contained in a galaxy
 // (required, a reference), and the catalogue of four galaxies is short enough for the form to offer
@@ -72,6 +72,12 @@ function galaxyOptions(page: Page): Locator {
   return field(page, PROPERTY_IDS.CONTAINED_IN).locator(".pd-claimrefselect-radio")
 }
 
+// What the galaxy field says about what it was given, which a list of options says of the list as a whole
+// rather than of a slot of its own.
+function galaxyErrors(page: Page): Locator {
+  return field(page, PROPERTY_IDS.CONTAINED_IN).locator(".pd-claimrefselect-error")
+}
+
 test.describe("PeerDB Edit Save Flows", () => {
   test("Test the form is locked for as long as the save runs", async ({ context }) => {
     const page = await context.newPage()
@@ -121,12 +127,14 @@ test.describe("PeerDB Edit Save Flows", () => {
     await startSector(page, `${NAME_PREFIX} Refused Sector`)
 
     // Nothing is picked for the galaxy, so the save is refused over it. The name is filled, so it is the
-    // only field the form has anything to say about and the only one the focus can land on.
-    await expect(fieldErrors(page, PROPERTY_IDS.CONTAINED_IN), "complaints about the galaxy before the save").toHaveCount(0)
+    // only field the form has anything to say about and the only one the focus can land on. A list of
+    // options says what is missing where its own errors go rather than where a slot's errors go, which is
+    // what fieldErrors reads, so the complaint is read off the list itself.
+    await expect(galaxyErrors(page), "complaints about the galaxy before the save").toHaveCount(0)
 
     await pressSave(page)
 
-    await expect(fieldErrors(page, PROPERTY_IDS.CONTAINED_IN), "what the form says about the galaxy it was not given").toHaveText(REQUIRED_MESSAGE, {
+    await expect(galaxyErrors(page), "what the form says about the galaxy it was not given").toHaveText(REQUIRED_MESSAGE, {
       timeout: LOADING_TIMEOUT,
     })
     await expect(page.locator(".pd-fieldsform"), "the form of the editing session stays open").toBeVisible()
