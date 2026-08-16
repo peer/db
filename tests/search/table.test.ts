@@ -65,12 +65,15 @@ async function searchAgainInTable(page: Page, action: () => Promise<void>): Prom
   await settle(page)
 }
 
-// Switches the results between the feed and the table. The switch changes the search session, which is read
-// back before the view it asked for is rendered, so what says the switch landed is the view itself.
+// Switches the results between the feed and the table. Which view the results are shown in belongs to the
+// search session, so the switch changes the session and the results are fetched again under the version it
+// produced: the switch is applied as any other change to the search, which waits for those results to be
+// the ones on the screen. What is rendered then is waited for on top of it, because the same results are
+// rendered in a different view and the version alone does not say which of the two is showing them.
 async function switchView(page: Page, view: "feed" | "table"): Promise<void> {
   const button = page.locator(`.pd-selectbutton-button-${view}`)
   await expect(button, `the button which switches to the ${view}`).toBeVisible()
-  await button.click()
+  await applySearchChange(page, async () => await button.click())
   await expectView(page, view)
 }
 
