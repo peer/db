@@ -185,7 +185,7 @@ func (d documentInfo) CollectHierarchyPaths() ([]string, map[string][]string, ma
 	for hierProp := range d.IDPaths {
 		hierProps = append(hierProps, hierProp)
 	}
-	slices.SortFunc(hierProps, func(a, b identifier.Identifier) int { return bytes.Compare(a[:], b[:]) })
+	slices.SortFunc(hierProps, internalCore.CompareIdentifiers)
 
 	for _, hierProp := range hierProps {
 		prefix := hierProp.String() + ":"
@@ -738,11 +738,6 @@ func isInstanceOf(doc *document.D, classID identifier.Identifier) bool {
 	return false
 }
 
-// compareIdentifiers orders identifiers by their bytes.
-func compareIdentifiers(a, b identifier.Identifier) int {
-	return bytes.Compare(a[:], b[:])
-}
-
 // buildPropertyHierarchy computes transitive descendants and ancestors for each property
 // based on SUBPROPERTY_OF reference claims. Only documents that are instances of PROPERTY
 // are considered.
@@ -777,7 +772,7 @@ func (c *Converter) buildPropertyHierarchy(properties []*document.D) {
 			if c := cmp.Compare(a.Order, b.Order); c != 0 {
 				return c
 			}
-			return compareIdentifiers(a.ID, b.ID)
+			return internalCore.CompareIdentifiers(a.ID, b.ID)
 		})
 		ids := make([]identifier.Identifier, 0, len(children))
 		for _, ch := range children {
@@ -786,7 +781,7 @@ func (c *Converter) buildPropertyHierarchy(properties []*document.D) {
 		parentChildren[parent] = ids
 	}
 	for _, parents := range childParents {
-		slices.SortFunc(parents, compareIdentifiers)
+		slices.SortFunc(parents, internalCore.CompareIdentifiers)
 	}
 
 	// Compute transitive descendants for each property (used for naming properties).
@@ -837,7 +832,7 @@ func (c *Converter) buildPropertyHierarchy(properties []*document.D) {
 		if len(visited) > 0 {
 			// Sorted for the same reason the descendants are.
 			result := slices.Collect(maps.Keys(visited))
-			slices.SortFunc(result, compareIdentifiers)
+			slices.SortFunc(result, internalCore.CompareIdentifiers)
 			c.propertyAncestors[prop.ID] = result
 		}
 	}

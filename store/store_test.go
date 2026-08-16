@@ -1,7 +1,6 @@
 package store_test
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"os"
@@ -21,6 +20,7 @@ import (
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/identifier"
 
+	internalCore "gitlab.com/peerdb/peerdb/internal/core"
 	internalStore "gitlab.com/peerdb/peerdb/internal/store"
 	"gitlab.com/peerdb/peerdb/internal/testutils"
 	"gitlab.com/peerdb/peerdb/store"
@@ -1437,9 +1437,7 @@ func TestDiscardInUseChangeset(t *testing.T) {
 }
 
 func sortIDs(ids ...identifier.Identifier) []identifier.Identifier {
-	slices.SortFunc(ids, func(a, b identifier.Identifier) int {
-		return bytes.Compare(a[:], b[:])
-	})
+	slices.SortFunc(ids, internalCore.CompareIdentifiers)
 	return ids
 }
 
