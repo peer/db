@@ -1112,180 +1112,189 @@ async function executeFills(fills: readonly CardinalityFill[], parentId: string 
 }
 
 async function onSave() {
-  const sessionController = abortController
+  let sessionController = abortController
   if (sessionController.signal.aborted) {
     return
   }
 
-  sessionError.value = ""
+  saveBusy.value += 1
+  try {
+    sessionError.value = ""
 
-  // Validate the FieldsForm tab before saving (only mounted when that tab is
-  // active - the All-properties tab does not need this gate because its claim
-  // form is submitted independently). If validation finds errors, focus the
-  // first invalid input and abort the save - no changes flushed, the session
-  // stays open for the user to fix the field.
-  if (fieldsFormRef.value) {
-    await fieldsFormRef.value.validateAll(sessionController.signal, { final: true })
-    if (sessionController.signal.aborted) {
-      return
+    // Validate the FieldsForm tab before saving (only mounted when that tab is
+    // active - the All-properties tab does not need this gate because its claim
+    // form is submitted independently). If validation finds errors, focus the
+    // first invalid input and abort the save - no changes flushed, the session
+    // stays open for the user to fix the field.
+    if (fieldsFormRef.value) {
+      await fieldsFormRef.value.validateAll(sessionController.signal, { final: true })
+      if (sessionController.signal.aborted) {
+        return
+      }
+      if (fieldsFormInvalid.value) {
+        focusFirstInvalid(fieldsFormRef.value.inputs)
+        return
+      }
     }
-    if (fieldsFormInvalid.value) {
-      focusFirstInvalid(fieldsFormRef.value.inputs)
-      return
-    }
-  }
 
-  // Flush any pending edits from all slot inputs before saving (each flush commits like
-  // the slot's blur would; invalid values stay in the form and set fieldsFormInvalid),
-  // then wait for every queued change to settle on the server - including changes queued
-  // outside the flush, e.g. by the focusout commit fired by the Save click itself.
-  for (const instance of flushRegistry) {
-    await instance.flush()
-    // Each flush commits a value by queueing a change, so no further slot is flushed once the
-    // editor is going away (only an unmount or a route change aborts this controller).
-    if (sessionController.signal.aborted) {
-      return
+    // Flush any pending edits from all slot inputs before saving (each flush commits like
+    // the slot's blur would; invalid values stay in the form and set fieldsFormInvalid),
+    // then wait for every queued change to settle on the server - including changes queued
+    // outside the flush, e.g. by the focusout commit fired by the Save click itself.
+    for (const instance of flushRegistry) {
+      await instance.flush()
+      // Each flush commits a value by queueing a change, so no further slot is flushed once the
+      // editor is going away (only an unmount or a route change aborts this controller).
+      if (sessionController.signal.aborted) {
+        return
+      }
     }
-  }
-  await drainSaveChanges()
-  if (sessionController.signal.aborted) {
-    return
-  }
-
-  // Validate again now that the drain has left the form holding what the session will commit. The pass
-  // above ran against the form as it was before anything was flushed, which is not everything the save
-  // is about to write: a value committed a moment earlier reaches the form only once its change comes
-  // back, and the flush commits more of them still. Checks which are of one value alone survive that
-  // (a slot which is invalid says so on its own), while a check comparing a field's claims with each
-  // other (see duplicateClaimIds) is only as good as the claims the form had when it ran, so it is run
-  // again here. Abort the save but keep the valid changes posted above.
-  if (fieldsFormRef.value) {
-    await fieldsFormRef.value.validateAll(sessionController.signal, { final: true })
-    if (sessionController.signal.aborted) {
-      return
-    }
-    if (fieldsFormInvalid.value) {
-      focusFirstInvalid(fieldsFormRef.value.inputs)
-      return
-    }
-  }
-
-  // Fill default form claims to satisfy min cardinality: a field with a default is not required
-  // of the user (fieldIsRequired), so a document may reach save short on such fields (e.g. a
-  // person left with no last name). We add exactly the missing default (none/unknown) form claims
-  // now, then validate strictly - the check ignores defaults, so a still-unsatisfied field means
-  // the fill logic missed it, and we revert the fills and abort rather than save a malformed
-  // document. Non-default under-min fields never reach here (validateAll's required check catches
-  // them above). Only the class-tab form is filled; the All-properties tab manages claims itself.
-  if (fieldsFormRef.value && mergedFieldsData.value && doc.value) {
-    const fields = flattenFields(mergedFieldsData.value)
-    const fill = await executeFills(computeCardinalityFills(fields, doc.value.claims, isFileLink), undefined)
     await drainSaveChanges()
     if (sessionController.signal.aborted) {
       return
     }
-    // The fills stopped part way without this session aborting, which is the page going away with
-    // changes still unposted. The document is short of claims the fills were meant to add, so the
-    // cardinality check below would report violations which say nothing about what the user filled
-    // in. Nothing is rolled back and no error is surfaced: the form is going away with the page.
-    if (!fill.completed) {
-      return
-    }
-    const violations = cardinalityViolations(fields, doc.value.claims, isFileLink)
-    if (violations.length > 0) {
-      console.error("DocumentEdit.onSave cardinality violations after fill", violations)
-      // Roll back the fills children-first (the ids list parents before children) so a partly
-      // filled document is not left behind, then surface the error and keep the session open.
-      for (const id of [...fill.ids].reverse()) {
-        try {
-          await saveChange({ type: "remove", id })
-        } catch (err) {
-          if (!(err instanceof ChangeDroppedError)) {
-            throw err
-          }
-        }
-        // A partial rollback is acceptable once the session is being torn down.
-        if (sessionController.signal.aborted) {
-          return
-        }
+
+    // Validate again now that the drain has left the form holding what the session will commit. The pass
+    // above ran against the form as it was before anything was flushed, which is not everything the save
+    // is about to write: a value committed a moment earlier reaches the form only once its change comes
+    // back, and the flush commits more of them still. Checks which are of one value alone survive that
+    // (a slot which is invalid says so on its own), while a check comparing a field's claims with each
+    // other (see duplicateClaimIds) is only as good as the claims the form had when it ran, so it is run
+    // again here. Abort the save but keep the valid changes posted above.
+    if (fieldsFormRef.value) {
+      await fieldsFormRef.value.validateAll(sessionController.signal, { final: true })
+      if (sessionController.signal.aborted) {
+        return
       }
+      if (fieldsFormInvalid.value) {
+        focusFirstInvalid(fieldsFormRef.value.inputs)
+        return
+      }
+    }
+
+    // Fill default form claims to satisfy min cardinality: a field with a default is not required
+    // of the user (fieldIsRequired), so a document may reach save short on such fields (e.g. a
+    // person left with no last name). We add exactly the missing default (none/unknown) form claims
+    // now, then validate strictly - the check ignores defaults, so a still-unsatisfied field means
+    // the fill logic missed it, and we revert the fills and abort rather than save a malformed
+    // document. Non-default under-min fields never reach here (validateAll's required check catches
+    // them above). Only the class-tab form is filled; the All-properties tab manages claims itself.
+    if (fieldsFormRef.value && mergedFieldsData.value && doc.value) {
+      const fields = flattenFields(mergedFieldsData.value)
+      const fill = await executeFills(computeCardinalityFills(fields, doc.value.claims, isFileLink), undefined)
       await drainSaveChanges()
       if (sessionController.signal.aborted) {
         return
       }
-      sessionError.value = "cardinality"
-      return
+      // The fills stopped part way without this session aborting, which is the page going away with
+      // changes still unposted. The document is short of claims the fills were meant to add, so the
+      // cardinality check below would report violations which say nothing about what the user filled
+      // in. Nothing is rolled back and no error is surfaced: the form is going away with the page.
+      if (!fill.completed) {
+        return
+      }
+      const violations = cardinalityViolations(fields, doc.value.claims, isFileLink)
+      if (violations.length > 0) {
+        console.error("DocumentEdit.onSave cardinality violations after fill", violations)
+        // Roll back the fills children-first (the ids list parents before children) so a partly
+        // filled document is not left behind, then surface the error and keep the session open.
+        for (const id of [...fill.ids].reverse()) {
+          try {
+            await saveChange({ type: "remove", id })
+          } catch (err) {
+            if (!(err instanceof ChangeDroppedError)) {
+              throw err
+            }
+          }
+          // A partial rollback is acceptable once the session is being torn down.
+          if (sessionController.signal.aborted) {
+            return
+          }
+        }
+        await drainSaveChanges()
+        if (sessionController.signal.aborted) {
+          return
+        }
+        sessionError.value = "cardinality"
+        return
+      }
     }
-  }
 
-  // Stop polling for changes before ending the session by aborting and creating a fresh controller.
-  // The fresh controller is needed for the save request itself.
-  sessionController.abort()
-  abortController = new AbortController()
-  const saveController = abortController
+    // Stop polling for changes before ending the session by aborting and creating a fresh controller.
+    // The fresh controller is needed for the save request itself.
+    sessionController.abort()
+    abortController = new AbortController()
+    const saveController = abortController
+    sessionController = abortController
 
-  saveBusy.value += 1
-  try {
-    await postJSON<DocumentEndEditResponse>(
-      router.apiResolve({
-        name: "DocumentEndEdit",
-        params: {
-          session: props.session,
-        },
-      }).href,
-      {},
-      saveController.signal,
-      saveBusy,
-    )
-    if (saveController.signal.aborted) {
-      return
-    }
-
-    // Poll until the session is fully completed (document committed).
-    const editStatusURL = router.apiResolve({
-      name: "DocumentEdit",
-      params: {
-        id: props.id,
-        session: props.session,
-      },
-    }).href
-    while (true) {
-      await delay(pollInterval, saveController.signal)
+    try {
+      await postJSON<DocumentEndEditResponse>(
+        router.apiResolve({
+          name: "DocumentEndEdit",
+          params: {
+            session: props.session,
+          },
+        }).href,
+        {},
+        saveController.signal,
+        saveBusy,
+      )
       if (saveController.signal.aborted) {
         return
       }
-      const statusResponse = await getURLDirect<DocumentEditStatus>(editStatusURL, saveController.signal, saveBusy)
-      if (saveController.signal.aborted || statusResponse === null) {
-        return
-      }
-      const status = statusResponse.doc
-      if (status.errored) {
-        // The commit was rejected at completion (e.g. by the commit permission check).
-        throw new Error("edit session errored")
-      }
-      if (status.changeset || status.discarded) {
-        break
-      }
-    }
 
-    deleteFromCache(
-      router.apiResolve({
+      // Poll until the session is fully completed (document committed).
+      const editStatusURL = router.apiResolve({
+        name: "DocumentEdit",
+        params: {
+          id: props.id,
+          session: props.session,
+        },
+      }).href
+      while (true) {
+        await delay(pollInterval, saveController.signal)
+        if (saveController.signal.aborted) {
+          return
+        }
+        const statusResponse = await getURLDirect<DocumentEditStatus>(editStatusURL, saveController.signal, saveBusy)
+        if (saveController.signal.aborted || statusResponse === null) {
+          return
+        }
+        const status = statusResponse.doc
+        if (status.errored) {
+          // The commit was rejected at completion (e.g. by the commit permission check).
+          throw new Error("edit session errored")
+        }
+        if (status.changeset || status.discarded) {
+          break
+        }
+      }
+
+      deleteFromCache(
+        router.apiResolve({
+          name: "DocumentGet",
+          params: {
+            id: props.id,
+          },
+        }).href,
+      )
+      await router.push({
         name: "DocumentGet",
         params: {
           id: props.id,
         },
-      }).href,
-    )
-    await router.push({
-      name: "DocumentGet",
-      params: {
-        id: props.id,
-      },
-    })
+      })
+    } catch (err) {
+      if (saveController.signal.aborted) {
+        return
+      }
+      throw err
+    }
   } catch (err) {
-    if (saveController.signal.aborted) {
+    if (sessionController.signal.aborted) {
       return
     }
+
     console.error("DocumentEdit.onSave", err)
     // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
     sessionError.value = `${err}`
