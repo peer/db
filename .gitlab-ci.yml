@@ -67,9 +67,9 @@ test_go:
       -e xpack.security.enabled=false
       -e ingest.geoip.downloader.enabled=false
       -e "cluster.routing.allocation.disk.watermark.flood_stage=100%"
-      -e ES_LOG_STYLE=file
       "$CI_REGISTRY_IMAGE/elastic/$ELASTIC_VERSION:latest"
     - docker run -d --name pgsql -p 5432:5432
+      -e LOG_TO_STDOUT=1
       -e PGSQL_ROLE_1_USERNAME=test
       -e PGSQL_ROLE_1_PASSWORD=test
       -e PGSQL_DB_1_NAME=test
@@ -81,12 +81,9 @@ test_go:
     - make test-ci
 
   after_script:
-    - docker cp elasticsearch:/usr/share/elasticsearch/logs elasticsearch-logs || true
-    - docker cp pgsql:/var/log/postgresql pgsql-logs || true
-    # Just in case any command above have not made directories.
-    - mkdir -p elasticsearch-logs pgsql-logs
-    - docker logs elasticsearch > elasticsearch-logs/docker.log 2>&1 || true
-    - docker logs pgsql > pgsql-logs/docker.log 2>&1 || true
+    - mkdir -p logs
+    - docker logs elasticsearch > logs/elasticsearch.log 2>&1 || true
+    - docker logs pgsql > logs/pgsql.log 2>&1 || true
 
   artifacts:
     when: always
@@ -95,8 +92,7 @@ test_go:
     paths:
       - coverage/
       - tests.xml
-      - elasticsearch-logs
-      - pgsql-logs
+      - logs/
     expire_in: never
 
 test_node:
