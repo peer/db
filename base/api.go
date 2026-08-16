@@ -14,6 +14,7 @@ import (
 	"gitlab.com/peerdb/peerdb/auth"
 	"gitlab.com/peerdb/peerdb/coordinator"
 	"gitlab.com/peerdb/peerdb/document"
+	internalCore "gitlab.com/peerdb/peerdb/internal/core"
 	internalStore "gitlab.com/peerdb/peerdb/internal/store"
 	"gitlab.com/peerdb/peerdb/storage"
 	"gitlab.com/peerdb/peerdb/store"
@@ -488,8 +489,13 @@ func (b *B) ListEditSessions(ctx context.Context) ([]EditSession, errors.E) {
 			LastChangeBy: lastChangeBy,
 		})
 	}
+	// Two sessions can begin in the same instant, so the identifier decides between them and the list comes
+	// out the same way twice.
 	slices.SortFunc(sessions, func(a, b EditSession) int {
-		return time.Time(b.At).Compare(time.Time(a.At))
+		if c := time.Time(b.At).Compare(time.Time(a.At)); c != 0 {
+			return c
+		}
+		return internalCore.CompareIdentifiers(a.Session, b.Session)
 	})
 	return sessions, nil
 }

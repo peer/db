@@ -337,6 +337,64 @@ describe("GetClaimsOfTypeWithConfidence", () => {
   })
 })
 
+describe("claims of equal confidence", () => {
+  // Sorting a short array is stable whether or not the sort says it is, so there are enough claims here to
+  // be sorted the way a longer one is.
+  const EQUAL_CONFIDENCE_CLAIM_COUNT = 40
+
+  // A document saying the same property many times over: mostly at one confidence, with one more confident
+  // claim in the middle and one less confident one, so that the equally confident ones are neither first nor
+  // last and an order which keeps them where the document has them cannot be mistaken for one which sorted
+  // them by anything they carry. The expected order comes back with it.
+  function equalConfidenceDocument(prop: string): { ct: ClaimTypes; expected: string[] } {
+    const claims = []
+    const expected = ["high"]
+    for (let i = 0; i < EQUAL_CONFIDENCE_CLAIM_COUNT; i++) {
+      if (i === EQUAL_CONFIDENCE_CLAIM_COUNT / 2) {
+        claims.push({ id: Identifier.new().toString(), confidence: 1.0, prop: { id: prop }, string: "high" })
+      }
+      const string = `medium ${String(i).padStart(2, "0")}`
+      claims.push({ id: Identifier.new().toString(), confidence: 0.75, prop: { id: prop }, string })
+      expected.push(string)
+    }
+    claims.push({ id: Identifier.new().toString(), confidence: 0.5, prop: { id: prop }, string: "low" })
+    expected.push("low")
+    return { ct: new ClaimTypes({ string: claims }), expected }
+  }
+
+  test("come back in the order the document has them in", () => {
+    const prop = Identifier.new().toString()
+    const { ct, expected } = equalConfidenceDocument(prop)
+
+    // Get sorts the claims it collects, and is what the typed getters below are built on.
+    assert.deepEqual(
+      ct.Get(prop).map((c) => (c as StringClaim).string),
+      expected,
+    )
+    assert.deepEqual(
+      getClaimsOfTypeWithConfidence(ct, "string", prop, LowConfidence).map((c) => c.string),
+      expected,
+    )
+    // getAllClaimsOfTypeWithConfidence sorts a collection of its own, so it is pinned separately.
+    assert.deepEqual(
+      getAllClaimsOfTypeWithConfidence(ct, "string", LowConfidence).map((c) => c.string),
+      expected,
+    )
+  })
+
+  test("the best claim is the first of the most confident ones", () => {
+    const prop = Identifier.new().toString()
+    const ct = new ClaimTypes({
+      string: [
+        { id: Identifier.new().toString(), confidence: 1.0, prop: { id: prop }, string: "first" },
+        { id: Identifier.new().toString(), confidence: 1.0, prop: { id: prop }, string: "second" },
+      ],
+    })
+
+    assert.equal(getBestClaimOfType(ct, "string", prop)?.string, "first")
+  })
+})
+
 describe("GetClaimsListsOfType", () => {
   test("groups by LIST and sorts by ORDER_IN_LIST", () => {
     const prop = Identifier.new().toString()

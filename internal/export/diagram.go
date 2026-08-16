@@ -1,11 +1,11 @@
 package export
 
 import (
+	"cmp"
 	"fmt"
 	"io"
 	"reflect"
 	"slices"
-	"sort"
 	"strconv"
 	"strings"
 
@@ -313,8 +313,13 @@ func collectDiagramEntities(
 		entities = append(entities, e)
 		idToName[e.id] = e.name
 	}
-	sort.Slice(entities, func(i, j int) bool {
-		return entities[i].name < entities[j].name
+	// Two entities can share a name, so the identifier decides between them and the diagram comes out the
+	// same way twice.
+	slices.SortFunc(entities, func(a, b diagramEntity) int {
+		if c := cmp.Compare(a.name, b.name); c != 0 {
+			return c
+		}
+		return internalCore.CompareIdentifiers(a.id, b.id)
 	})
 
 	return entities, idToName, nil

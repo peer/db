@@ -1,6 +1,7 @@
 package document_test
 
 import (
+	"fmt"
 	"math"
 	"slices"
 	"testing"
@@ -1305,6 +1306,98 @@ func TestGetBestClaimOfType(t *testing.T) {
 	// No match returns zero value.
 	bestAmount := document.GetBestClaimOfType[document.AmountClaim](ct, prop)
 	assert.Nil(t, bestAmount)
+}
+
+// stringClaimWithConfidence builds a string claim of the given property, said with the given confidence.
+func stringClaimWithConfidence(prop identifier.Identifier, value string, confidence document.Confidence) document.StringClaim {
+	return document.StringClaim{
+		CoreClaim: document.CoreClaim{ID: identifier.New(), Confidence: confidence},
+		Prop:      document.Reference{ID: prop},
+		String:    value,
+	}
+}
+
+// equalConfidenceClaimCount is how many equally confident claims the documents below say. Sorting a short
+// slice is stable whether or not the sort says it is (Go sorts one by insertion), so there are enough of
+// them here to be sorted the way a longer slice is.
+const equalConfidenceClaimCount = 40
+
+// equalConfidenceDocument is a document saying the same property many times over: mostly at one confidence,
+// with one more confident claim in the middle and one less confident one, so that the equally confident
+// ones are neither first nor last and an order which keeps them where the document has them cannot be
+// mistaken for one which sorted them by anything they carry.
+//
+// The expected order is returned with it: the confident one, then the equally confident ones in the order
+// the document has them, then the least confident one.
+func equalConfidenceDocument(prop identifier.Identifier) (*document.ClaimTypes, []string) {
+	claims := make(document.StringClaims, 0, equalConfidenceClaimCount+2)
+	expected := make([]string, 0, equalConfidenceClaimCount+2)
+	expected = append(expected, "high")
+	for i := range equalConfidenceClaimCount {
+		if i == equalConfidenceClaimCount/2 {
+			claims = append(claims, stringClaimWithConfidence(prop, "high", document.HighConfidence))
+		}
+		value := fmt.Sprintf("medium %02d", i)
+		claims = append(claims, stringClaimWithConfidence(prop, value, document.MediumConfidence))
+		expected = append(expected, value)
+	}
+	claims = append(claims, stringClaimWithConfidence(prop, "low", document.LowConfidence))
+	expected = append(expected, "low")
+	return &document.ClaimTypes{String: claims}, expected
+}
+
+// TestClaimsOfEqualConfidenceKeepDocumentOrder tests that claims which are equally confident come back in
+// the order the document has them in. Nothing else says which of them comes first (a claim's identifier is
+// assigned and says nothing about what the claim is worth), and the first of them is the best claim of the
+// property, so what the document says has to be what decides it.
+func TestClaimsOfEqualConfidenceKeepDocumentOrder(t *testing.T) {
+	t.Parallel()
+
+	prop := identifier.New()
+	ct, expected := equalConfidenceDocument(prop)
+
+	// Get sorts the claims it collects, and is what the typed getters below are built on.
+	values := make([]string, 0, len(expected))
+	for _, claim := range ct.Get(prop) {
+		values = append(values, claim.(*document.StringClaim).String) //nolint:errcheck,forcetypeassert
+	}
+	assert.Equal(t, expected, values)
+
+	// The best claim is the first of the most confident ones, which is the first the document has.
+	best := document.GetBestClaimOfType[document.StringClaim](ct, prop)
+	require.NotNil(t, best)
+	assert.Equal(t, "high", best.String)
+
+	typed := make([]string, 0, len(expected))
+	for _, claim := range document.GetClaimsOfTypeWithConfidence[document.StringClaim](ct, prop, document.LowConfidence) {
+		typed = append(typed, claim.String)
+	}
+	assert.Equal(t, expected, typed)
+
+	// GetAllClaimsOfTypeWithConfidence sorts a collection of its own, so it is pinned separately.
+	all := make([]string, 0, len(expected))
+	for _, claim := range document.GetAllClaimsOfTypeWithConfidence[document.StringClaim](ct, document.LowConfidence) {
+		all = append(all, claim.String)
+	}
+	assert.Equal(t, expected, all)
+}
+
+// TestBestClaimOfEqualConfidenceIsTheFirstOne tests that when the most confident thing a document says is
+// said twice, the first of the two is what is read out of it.
+func TestBestClaimOfEqualConfidenceIsTheFirstOne(t *testing.T) {
+	t.Parallel()
+
+	prop := identifier.New()
+	ct := &document.ClaimTypes{
+		String: document.StringClaims{
+			stringClaimWithConfidence(prop, "first", document.HighConfidence),
+			stringClaimWithConfidence(prop, "second", document.HighConfidence),
+		},
+	}
+
+	best := document.GetBestClaimOfType[document.StringClaim](ct, prop)
+	require.NotNil(t, best)
+	assert.Equal(t, "first", best.String)
 }
 
 // TestGetClaimsOfTypeWithConfidence tests the generic GetClaimsOfTypeWithConfidence function.

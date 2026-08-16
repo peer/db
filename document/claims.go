@@ -18,9 +18,12 @@ import (
 	internalCore "gitlab.com/peerdb/peerdb/internal/core"
 )
 
-// sortByConfidence sorts claims in decreasing confidence order.
+// sortByConfidence sorts claims in decreasing confidence order. The sort is stable, so claims of equal
+// confidence stay in the order the document has them in: nothing else says which of them comes first (a
+// claim's identifier is assigned and says nothing about what the claim is worth), and the first of them is
+// what the best claim of a property is, so the document is what decides it.
 func sortByConfidence(claims []Claim) {
-	slices.SortFunc(claims, func(a, b Claim) int {
+	slices.SortStableFunc(claims, func(a, b Claim) int {
 		// Reverse order: higher confidence first.
 		return cmp.Compare(b.GetConfidence(), a.GetConfidence())
 	})
@@ -183,7 +186,9 @@ func getAllClaimsOfType[T any, PT interface {
 			result = append(result, typed)
 		}
 	}
-	slices.SortFunc(result, func(a, b PT) int {
+	// Stable for the same reason sortByConfidence is: claims of equal confidence stay in the order the
+	// document has them in.
+	slices.SortStableFunc(result, func(a, b PT) int {
 		// Reverse order: higher confidence first.
 		return cmp.Compare(b.GetConfidence(), a.GetConfidence())
 	})
