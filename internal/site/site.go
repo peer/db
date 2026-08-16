@@ -180,6 +180,14 @@ type Site struct {
 	// TODO: How to keep LanguageCodes in sync, if they are added or removed after initialization?
 	LanguageCodes map[identifier.Identifier]string `json:"languageCodes,omitempty" yaml:"-"`
 
+	// NamingProperties are the properties a display label is picked from, in the order they are
+	// considered: the first one a document has a claim for is the one its label is taken from. The order
+	// is the one the properties state (see core.RefWithOrder) and is computed while the base starts, the
+	// same way LanguageCodes is. It is published so that the frontend renders the label the indexing
+	// wrote, instead of deciding for itself which of a document's names to show. It always names at least
+	// NAMING itself, so it is always sent and the frontend can count on it being there.
+	NamingProperties []identifier.Identifier `json:"namingProperties" yaml:"-"`
+
 	Features SiteFeatures `json:"features" yaml:"features"`
 
 	// Roles maps role names to the permission actions each role grants and, per action, the permission
@@ -554,9 +562,10 @@ func (s *Site) validateDefaultLanguage() errors.E {
 }
 
 // This should be run before calling service.RouteWith because it freezes site's context.json
-// as static file and updating language codes later means they are not included in context.json.
-func (s *Site) updateLanguageCodes(_ context.Context) errors.E { //nolint:unparam
+// as static file and updating them later means they are not included in context.json.
+func (s *Site) updateFromBase(_ context.Context) errors.E { //nolint:unparam
 	s.LanguageCodes = s.Base.LanguageCodes()
+	s.NamingProperties = s.Base.NamingProperties()
 
 	return nil
 }
@@ -585,7 +594,7 @@ func (s *Site) Start(ctx context.Context, documents []base.StartDocument) (func(
 		return onShutdown, errE
 	}
 
-	errE = s.updateLanguageCodes(ctx)
+	errE = s.updateFromBase(ctx)
 	if errE != nil {
 		return onShutdown, errE
 	}
@@ -622,7 +631,7 @@ func (s *Site) PopulateAndStart(
 		return onShutdown, errE
 	}
 
-	errE = s.updateLanguageCodes(ctx)
+	errE = s.updateFromBase(ctx)
 	if errE != nil {
 		return onShutdown, errE
 	}

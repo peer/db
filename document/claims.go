@@ -314,7 +314,7 @@ func GetClaimsAndLanguageOfTypeWithConfidence[T any, PT interface {
 	}
 	for lang, entries := range grouped {
 		// Sort by decreasing confidence.
-		slices.SortFunc(entries, func(a, b PT) int {
+		slices.SortStableFunc(entries, func(a, b PT) int {
 			return cmp.Compare(b.GetConfidence(), a.GetConfidence())
 		})
 		// Store it back.

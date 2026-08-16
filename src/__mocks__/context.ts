@@ -3,6 +3,7 @@ import type { SiteContext, UserInfo } from "@/types"
 import { Identifier } from "@tozd/identifier"
 
 import { Namespace } from "@/core/namespace"
+import { ALTERNATIVE_NAME, NAME, NAMING, SHORT_NAME, TITLE } from "@/core/properties"
 
 const siteContext: SiteContext = {
   domain: "test.example.com",
@@ -15,6 +16,7 @@ const siteContext: SiteContext = {
     [(await Identifier.from(Namespace, "LANGUAGE", "en-GB")).toString()]: "en",
     [(await Identifier.from(Namespace, "LANGUAGE", "sl-SI")).toString()]: "sl",
   },
+  namingProperties: [NAME, TITLE, SHORT_NAME, ALTERNATIVE_NAME, NAMING],
   features: {},
 }
 

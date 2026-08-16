@@ -1438,7 +1438,11 @@ func stringClaimInList(prop identifier.Identifier, value, list, order string) do
 	}
 	if order != "" {
 		sub.Amount = document.AmountClaims{
-			{CoreClaim: document.CoreClaim{ID: identifier.New(), Confidence: 1.0}, Prop: document.Reference{ID: internalCore.OrderInListPropID}, Amount: document.Amount(order), Precision: 1},
+			{
+				CoreClaim: document.CoreClaim{ID: identifier.New(), Confidence: 1.0},
+				Prop:      document.Reference{ID: internalCore.OrderInListPropID},
+				Amount:    document.Amount(order), Precision: 1,
+			},
 		}
 	}
 	return document.StringClaim{

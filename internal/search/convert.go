@@ -2,6 +2,7 @@ package search
 
 import (
 	"bytes"
+	"cmp"
 	"context"
 	"encoding/hex"
 	"maps"
@@ -305,8 +306,11 @@ type Converter struct {
 	// valueHierarchyProperties lists hierarchy-defining property IDs for value expansion
 	// (sub-properties of SUBENTITY_OF, excluding INSTANCE_OF and SUBPROPERTY_OF).
 	valueHierarchyProperties []identifier.Identifier
-	// namingProperties is the set of property IDs that are NAMING or sub-properties of NAMING.
-	namingProperties []identifier.Identifier
+	// NamingProperties are the property IDs a display label is picked from (NAMING and its
+	// sub-properties), in the order they are considered: the first one the document has a claim for is
+	// the label. The order is the one the properties state (see PropertyFields.OrderInList), so a site
+	// decides it in its schema rather than getting whichever order the hierarchy happened to be walked in.
+	NamingProperties []identifier.Identifier
 	// inverseProperties maps a property ID to all its inverse property IDs.
 	// Both directions are stored: if X has INVERSE_PROPERTY_OF -> Y, then
 	// Y is in inverseProperties[X] and X is in inverseProperties[Y].
@@ -590,7 +594,7 @@ func NewConverter(
 		propertyDescendants:      nil,
 		propertyAncestors:        nil,
 		valueHierarchyProperties: nil,
-		namingProperties:         nil,
+		NamingProperties:         nil,
 		inverseProperties:        nil,
 		textExcludedProperties:   nil,
 		fieldInverseProperties:   nil,
@@ -734,33 +738,72 @@ func isInstanceOf(doc *document.D, classID identifier.Identifier) bool {
 	return false
 }
 
+// compareIdentifiers orders identifiers by their bytes.
+func compareIdentifiers(a, b identifier.Identifier) int {
+	return bytes.Compare(a[:], b[:])
+}
+
 // buildPropertyHierarchy computes transitive descendants and ancestors for each property
 // based on SUBPROPERTY_OF reference claims. Only documents that are instances of PROPERTY
 // are considered.
+//
+// The children of a property come in the order they state on the claim which makes them its children
+// (see core.RefWithOrder), so everything walking the hierarchy from here on is walking it in the order
+// the schema asked for.
 func (c *Converter) buildPropertyHierarchy(properties []*document.D) {
 	// Build parent -> children and child -> parents maps.
 	// A property X with SUBPROPERTY_OF -> Y means X is a child (sub-property) of Y.
-	parentChildren := map[identifier.Identifier][]identifier.Identifier{}
+	type child struct {
+		ID    identifier.Identifier
+		Order float64
+	}
+	parentChildrenOrdered := map[identifier.Identifier][]child{}
 	childParents := map[identifier.Identifier][]identifier.Identifier{}
 	for _, prop := range properties {
 		if !isInstanceOf(prop, internalCore.PropertyClassID) {
 			continue
 		}
 		for _, rel := range document.GetClaimsOfTypeWithConfidence[document.ReferenceClaim](prop, internalCore.SubpropertyOfPropID, document.LowConfidence) {
-			parentChildren[rel.To.ID] = append(parentChildren[rel.To.ID], prop.ID)
+			parentChildrenOrdered[rel.To.ID] = append(parentChildrenOrdered[rel.To.ID], child{ID: prop.ID, Order: document.ClaimOrderInList(rel)})
 			childParents[prop.ID] = append(childParents[prop.ID], rel.To.ID)
 		}
+	}
+
+	// Each parent's children in the order they state, and by identifier where they state none or state the
+	// same one, so that the hierarchy is walked the same way however the properties were given.
+	parentChildren := map[identifier.Identifier][]identifier.Identifier{}
+	for parent, children := range parentChildrenOrdered {
+		slices.SortFunc(children, func(a, b child) int {
+			if c := cmp.Compare(a.Order, b.Order); c != 0 {
+				return c
+			}
+			return compareIdentifiers(a.ID, b.ID)
+		})
+		ids := make([]identifier.Identifier, 0, len(children))
+		for _, ch := range children {
+			ids = append(ids, ch.ID)
+		}
+		parentChildren[parent] = ids
+	}
+	for _, parents := range childParents {
+		slices.SortFunc(parents, compareIdentifiers)
 	}
 
 	// Compute transitive descendants for each property (used for naming properties).
 	c.propertyDescendants = map[identifier.Identifier][]identifier.Identifier{}
 	for _, prop := range properties {
 		visited := map[identifier.Identifier]bool{}
+		// The descendants in the order they are reached, which is each parent's children in the order they
+		// state, deepest first. Ranging over what was walked instead would order them differently every
+		// time the converter is built, and what is first here decides things elsewhere (the display label
+		// a document is given, for one).
+		ordered := []identifier.Identifier{}
 		var walk func(identifier.Identifier)
 		walk = func(propID identifier.Identifier) {
 			for _, child := range parentChildren[propID] {
 				if !visited[child] {
 					visited[child] = true
+					ordered = append(ordered, child)
 					walk(child)
 				}
 			}
@@ -768,13 +811,9 @@ func (c *Converter) buildPropertyHierarchy(properties []*document.D) {
 		walk(prop.ID)
 		// Exclude the property itself to avoid duplicates when consuming code
 		// prepends the property (e.g., propagateProp).
-		delete(visited, prop.ID)
-		if len(visited) > 0 {
-			result := make([]identifier.Identifier, 0, len(visited))
-			for d := range visited {
-				result = append(result, d)
-			}
-			c.propertyDescendants[prop.ID] = result
+		ordered = slices.DeleteFunc(ordered, func(id identifier.Identifier) bool { return id == prop.ID })
+		if len(ordered) > 0 {
+			c.propertyDescendants[prop.ID] = ordered
 		}
 	}
 
@@ -796,10 +835,9 @@ func (c *Converter) buildPropertyHierarchy(properties []*document.D) {
 		// prepends the property (e.g., propagateProp).
 		delete(visited, prop.ID)
 		if len(visited) > 0 {
-			result := make([]identifier.Identifier, 0, len(visited))
-			for a := range visited {
-				result = append(result, a)
-			}
+			// Sorted for the same reason the descendants are.
+			result := slices.Collect(maps.Keys(visited))
+			slices.SortFunc(result, compareIdentifiers)
 			c.propertyAncestors[prop.ID] = result
 		}
 	}
@@ -819,11 +857,15 @@ func (c *Converter) discoverValueHierarchyProperties() {
 	}
 }
 
-// buildNamingProperties computes the set of all properties that are
-// NAMING or transitive sub-properties of NAMING.
+// buildNamingProperties computes the properties a display label is picked from: the sub-properties of
+// NAMING in the order the hierarchy holds them, which is the order they state on the claims making them
+// sub-properties (see core.RefWithOrder), and NAMING itself last. A claim made with NAMING says nothing
+// more than that it names the document, which is less than any of its sub-properties say, so it is what a
+// document is called only when it is called nothing more specific. It is also the one property here which
+// cannot state where it belongs, having no claim making it a sub-property of itself, so its place is
+// decided here rather than by the schema.
 func (c *Converter) buildNamingProperties() {
-	c.namingProperties = []identifier.Identifier{internalCore.NamingPropID}
-	c.namingProperties = append(c.namingProperties, c.propertyDescendants[internalCore.NamingPropID]...)
+	c.NamingProperties = append(slices.Clone(c.propertyDescendants[internalCore.NamingPropID]), internalCore.NamingPropID)
 }
 
 // buildLanguageCodes extracts language codes from language documents.
@@ -1261,10 +1303,10 @@ func (c *Converter) makeDisplayStrings(ctx context.Context, doc *document.D) (di
 		}
 
 		// No template for this language. Search naming strings in the fallback chain.
-		// Both here and in namingProperties we traverse naming claims, so we traverse it twice, but we do that
+		// Both here and in NamingProperties we traverse naming claims, so we traverse it twice, but we do that
 		// so that code here matches the implementation on the frontend and that it is easier to compare with it.
 		selected := document.SelectClaimsByLanguage[document.StringClaim](
-			doc, c.namingProperties, lang,
+			doc, c.NamingProperties, lang,
 			func(claims []*document.StringClaim) bool {
 				// Here we want only a non-empty string (after sanitization).
 				// So if we got an empty string here, we ignore it and continue searching.
@@ -1574,7 +1616,7 @@ func (c *Converter) templateFuncs(ctx context.Context, lang string) template.Fun
 // (NAME, SHORT_NAME, ALTERNATIVE_NAME, TITLE, CODE, MNEMONIC, etc.).
 func (c *Converter) namingStrings(doc *document.D) map[string][]string {
 	claimsByLang := document.GetClaimsAndLanguageOfTypeWithConfidence[document.StringClaim](
-		doc, c.namingProperties, document.LowConfidence, c.LanguageCodes, c.languagePriority,
+		doc, c.NamingProperties, document.LowConfidence, c.LanguageCodes, c.languagePriority,
 	)
 	if len(claimsByLang) == 0 {
 		return nil

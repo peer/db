@@ -129,8 +129,9 @@ func Properties() ([]any, errors.E) {
 			Description:            nil,
 			IdentifierLinkTemplate: "",
 			ExcludeFromTextSearch:  false,
-			SubpropertyOf: []Ref{{
-				ID: []string{Namespace, "SUBENTITY_OF"},
+			SubpropertyOf: []RefWithOrder{{
+				Value:       Ref{ID: []string{Namespace, "SUBENTITY_OF"}},
+				OrderInList: nil,
 			}},
 			InversePropertyOf: nil,
 		},
@@ -166,8 +167,9 @@ func Properties() ([]any, errors.E) {
 			Description:            nil,
 			IdentifierLinkTemplate: "",
 			ExcludeFromTextSearch:  false,
-			SubpropertyOf: []Ref{{
-				ID: []string{Namespace, "SUBENTITY_OF"},
+			SubpropertyOf: []RefWithOrder{{
+				Value:       Ref{ID: []string{Namespace, "SUBENTITY_OF"}},
+				OrderInList: nil,
 			}},
 			InversePropertyOf: nil,
 		},
@@ -203,8 +205,9 @@ func Properties() ([]any, errors.E) {
 			Description:            nil,
 			IdentifierLinkTemplate: "",
 			ExcludeFromTextSearch:  false,
-			SubpropertyOf: []Ref{{
-				ID: []string{Namespace, "SUBENTITY_OF"},
+			SubpropertyOf: []RefWithOrder{{
+				Value:       Ref{ID: []string{Namespace, "SUBENTITY_OF"}},
+				OrderInList: nil,
 			}},
 			InversePropertyOf: nil,
 		},
@@ -383,8 +386,9 @@ func Properties() ([]any, errors.E) {
 			Description:            nil,
 			IdentifierLinkTemplate: "",
 			ExcludeFromTextSearch:  false,
-			SubpropertyOf: []Ref{{
-				ID: []string{Namespace, "NAMING"},
+			SubpropertyOf: []RefWithOrder{{
+				Value:       Ref{ID: []string{Namespace, "NAMING"}},
+				OrderInList: &Amount[float64]{Amount: 1, Precision: 1},
 			}},
 			InversePropertyOf: nil,
 		},
@@ -420,8 +424,9 @@ func Properties() ([]any, errors.E) {
 			Description:            nil,
 			IdentifierLinkTemplate: "",
 			ExcludeFromTextSearch:  false,
-			SubpropertyOf: []Ref{{
-				ID: []string{Namespace, "NAMING"},
+			SubpropertyOf: []RefWithOrder{{
+				Value:       Ref{ID: []string{Namespace, "NAMING"}},
+				OrderInList: &Amount[float64]{Amount: 3, Precision: 1}, //nolint:mnd
 			}},
 			InversePropertyOf: nil,
 		},
@@ -457,8 +462,9 @@ func Properties() ([]any, errors.E) {
 			Description:            nil,
 			IdentifierLinkTemplate: "",
 			ExcludeFromTextSearch:  false,
-			SubpropertyOf: []Ref{{
-				ID: []string{Namespace, "NAMING"},
+			SubpropertyOf: []RefWithOrder{{
+				Value:       Ref{ID: []string{Namespace, "NAMING"}},
+				OrderInList: &Amount[float64]{Amount: 4, Precision: 1}, //nolint:mnd
 			}},
 			InversePropertyOf: nil,
 		},
@@ -494,8 +500,9 @@ func Properties() ([]any, errors.E) {
 			Description:            nil,
 			IdentifierLinkTemplate: "",
 			ExcludeFromTextSearch:  false,
-			SubpropertyOf: []Ref{{
-				ID: []string{Namespace, "NAMING"},
+			SubpropertyOf: []RefWithOrder{{
+				Value:       Ref{ID: []string{Namespace, "NAMING"}},
+				OrderInList: &Amount[float64]{Amount: 2, Precision: 1}, //nolint:mnd
 			}},
 			InversePropertyOf: nil,
 		},
@@ -601,8 +608,9 @@ func Properties() ([]any, errors.E) {
 			Description:            nil,
 			IdentifierLinkTemplate: "",
 			ExcludeFromTextSearch:  false,
-			SubpropertyOf: []Ref{{
-				ID: []string{Namespace, "NAMING"},
+			SubpropertyOf: []RefWithOrder{{
+				Value:       Ref{ID: []string{Namespace, "NAMING"}},
+				OrderInList: nil,
 			}},
 			InversePropertyOf: nil,
 		},
@@ -943,8 +951,9 @@ func Properties() ([]any, errors.E) {
 			Description:            nil,
 			IdentifierLinkTemplate: "",
 			ExcludeFromTextSearch:  false,
-			SubpropertyOf: []Ref{{
-				ID: []string{Namespace, "NAMING"},
+			SubpropertyOf: []RefWithOrder{{
+				Value:       Ref{ID: []string{Namespace, "NAMING"}},
+				OrderInList: nil,
 			}},
 			InversePropertyOf: nil,
 		},
@@ -1185,8 +1194,9 @@ func Properties() ([]any, errors.E) {
 			Description:            nil,
 			IdentifierLinkTemplate: "",
 			ExcludeFromTextSearch:  false,
-			SubpropertyOf: []Ref{{
-				ID: []string{Namespace, "SETTING"},
+			SubpropertyOf: []RefWithOrder{{
+				Value:       Ref{ID: []string{Namespace, "SETTING"}},
+				OrderInList: nil,
 			}},
 			InversePropertyOf: nil,
 		},
@@ -1222,8 +1232,9 @@ func Properties() ([]any, errors.E) {
 			Description:            nil,
 			IdentifierLinkTemplate: "",
 			ExcludeFromTextSearch:  false,
-			SubpropertyOf: []Ref{{
-				ID: []string{Namespace, "SETTING"},
+			SubpropertyOf: []RefWithOrder{{
+				Value:       Ref{ID: []string{Namespace, "SETTING"}},
+				OrderInList: nil,
 			}},
 			InversePropertyOf: nil,
 		},
@@ -1259,8 +1270,9 @@ func Properties() ([]any, errors.E) {
 			Description:            nil,
 			IdentifierLinkTemplate: "",
 			ExcludeFromTextSearch:  false,
-			SubpropertyOf: []Ref{{
-				ID: []string{Namespace, "SETTING"},
+			SubpropertyOf: []RefWithOrder{{
+				Value:       Ref{ID: []string{Namespace, "SETTING"}},
+				OrderInList: nil,
 			}},
 			InversePropertyOf: nil,
 		},
@@ -1296,8 +1308,9 @@ func Properties() ([]any, errors.E) {
 			Description:            nil,
 			IdentifierLinkTemplate: "",
 			ExcludeFromTextSearch:  false,
-			SubpropertyOf: []Ref{{
-				ID: []string{Namespace, "SETTING"},
+			SubpropertyOf: []RefWithOrder{{
+				Value:       Ref{ID: []string{Namespace, "SETTING"}},
+				OrderInList: nil,
 			}},
 			InversePropertyOf: nil,
 		},
@@ -1333,8 +1346,9 @@ func Properties() ([]any, errors.E) {
 			Description:            nil,
 			IdentifierLinkTemplate: "",
 			ExcludeFromTextSearch:  false,
-			SubpropertyOf: []Ref{{
-				ID: []string{Namespace, "SETTING"},
+			SubpropertyOf: []RefWithOrder{{
+				Value:       Ref{ID: []string{Namespace, "SETTING"}},
+				OrderInList: nil,
 			}},
 			InversePropertyOf: nil,
 		},
@@ -1370,8 +1384,9 @@ func Properties() ([]any, errors.E) {
 			Description:            nil,
 			IdentifierLinkTemplate: "",
 			ExcludeFromTextSearch:  false,
-			SubpropertyOf: []Ref{{
-				ID: []string{Namespace, "SETTING"},
+			SubpropertyOf: []RefWithOrder{{
+				Value:       Ref{ID: []string{Namespace, "SETTING"}},
+				OrderInList: nil,
 			}},
 			InversePropertyOf: nil,
 		},
@@ -1406,8 +1421,9 @@ func Properties() ([]any, errors.E) {
 			Description:            nil,
 			IdentifierLinkTemplate: "",
 			ExcludeFromTextSearch:  false,
-			SubpropertyOf: []Ref{{
-				ID: []string{Namespace, "SETTING"},
+			SubpropertyOf: []RefWithOrder{{
+				Value:       Ref{ID: []string{Namespace, "SETTING"}},
+				OrderInList: nil,
 			}},
 			InversePropertyOf: nil,
 		},
@@ -1442,8 +1458,9 @@ func Properties() ([]any, errors.E) {
 			Description:            nil,
 			IdentifierLinkTemplate: "",
 			ExcludeFromTextSearch:  false,
-			SubpropertyOf: []Ref{{
-				ID: []string{Namespace, "SETTING"},
+			SubpropertyOf: []RefWithOrder{{
+				Value:       Ref{ID: []string{Namespace, "SETTING"}},
+				OrderInList: nil,
 			}},
 			InversePropertyOf: nil,
 		},
@@ -1479,8 +1496,9 @@ func Properties() ([]any, errors.E) {
 			Description:            nil,
 			IdentifierLinkTemplate: "",
 			ExcludeFromTextSearch:  false,
-			SubpropertyOf: []Ref{{
-				ID: []string{Namespace, "SETTING"},
+			SubpropertyOf: []RefWithOrder{{
+				Value:       Ref{ID: []string{Namespace, "SETTING"}},
+				OrderInList: nil,
 			}},
 			InversePropertyOf: nil,
 		},
@@ -1516,8 +1534,9 @@ func Properties() ([]any, errors.E) {
 			Description:            nil,
 			IdentifierLinkTemplate: "",
 			ExcludeFromTextSearch:  false,
-			SubpropertyOf: []Ref{{
-				ID: []string{Namespace, "SETTING"},
+			SubpropertyOf: []RefWithOrder{{
+				Value:       Ref{ID: []string{Namespace, "SETTING"}},
+				OrderInList: nil,
 			}},
 			InversePropertyOf: nil,
 		},
@@ -1568,8 +1587,9 @@ func Properties() ([]any, errors.E) {
 			}},
 			IdentifierLinkTemplate: "",
 			ExcludeFromTextSearch:  false,
-			SubpropertyOf: []Ref{{
-				ID: []string{Namespace, "SETTING"},
+			SubpropertyOf: []RefWithOrder{{
+				Value:       Ref{ID: []string{Namespace, "SETTING"}},
+				OrderInList: nil,
 			}},
 			InversePropertyOf: nil,
 		},
@@ -1620,8 +1640,9 @@ func Properties() ([]any, errors.E) {
 			}},
 			IdentifierLinkTemplate: "",
 			ExcludeFromTextSearch:  false,
-			SubpropertyOf: []Ref{{
-				ID: []string{Namespace, "SETTING"},
+			SubpropertyOf: []RefWithOrder{{
+				Value:       Ref{ID: []string{Namespace, "SETTING"}},
+				OrderInList: nil,
 			}},
 			InversePropertyOf: nil,
 		},
@@ -1657,8 +1678,9 @@ func Properties() ([]any, errors.E) {
 			Description:            nil,
 			IdentifierLinkTemplate: "",
 			ExcludeFromTextSearch:  false,
-			SubpropertyOf: []Ref{{
-				ID: []string{Namespace, "SETTING"},
+			SubpropertyOf: []RefWithOrder{{
+				Value:       Ref{ID: []string{Namespace, "SETTING"}},
+				OrderInList: nil,
 			}},
 			InversePropertyOf: nil,
 		},
@@ -1694,8 +1716,9 @@ func Properties() ([]any, errors.E) {
 			Description:            nil,
 			IdentifierLinkTemplate: "",
 			ExcludeFromTextSearch:  false,
-			SubpropertyOf: []Ref{{
-				ID: []string{Namespace, "SETTING"},
+			SubpropertyOf: []RefWithOrder{{
+				Value:       Ref{ID: []string{Namespace, "SETTING"}},
+				OrderInList: nil,
 			}},
 			InversePropertyOf: nil,
 		},
@@ -1731,8 +1754,9 @@ func Properties() ([]any, errors.E) {
 			Description:            nil,
 			IdentifierLinkTemplate: "",
 			ExcludeFromTextSearch:  false,
-			SubpropertyOf: []Ref{{
-				ID: []string{Namespace, "SETTING"},
+			SubpropertyOf: []RefWithOrder{{
+				Value:       Ref{ID: []string{Namespace, "SETTING"}},
+				OrderInList: nil,
 			}},
 			InversePropertyOf: nil,
 		},
@@ -1768,8 +1792,9 @@ func Properties() ([]any, errors.E) {
 			Description:            nil,
 			IdentifierLinkTemplate: "",
 			ExcludeFromTextSearch:  false,
-			SubpropertyOf: []Ref{{
-				ID: []string{Namespace, "SETTING"},
+			SubpropertyOf: []RefWithOrder{{
+				Value:       Ref{ID: []string{Namespace, "SETTING"}},
+				OrderInList: nil,
 			}},
 			InversePropertyOf: nil,
 		},
@@ -1805,8 +1830,9 @@ func Properties() ([]any, errors.E) {
 			Description:            nil,
 			IdentifierLinkTemplate: "",
 			ExcludeFromTextSearch:  false,
-			SubpropertyOf: []Ref{{
-				ID: []string{Namespace, "SETTING"},
+			SubpropertyOf: []RefWithOrder{{
+				Value:       Ref{ID: []string{Namespace, "SETTING"}},
+				OrderInList: nil,
 			}},
 			InversePropertyOf: nil,
 		},
@@ -1842,8 +1868,9 @@ func Properties() ([]any, errors.E) {
 			Description:            nil,
 			IdentifierLinkTemplate: "",
 			ExcludeFromTextSearch:  false,
-			SubpropertyOf: []Ref{{
-				ID: []string{Namespace, "SETTING"},
+			SubpropertyOf: []RefWithOrder{{
+				Value:       Ref{ID: []string{Namespace, "SETTING"}},
+				OrderInList: nil,
 			}},
 			InversePropertyOf: nil,
 		},
@@ -1879,8 +1906,9 @@ func Properties() ([]any, errors.E) {
 			Description:            nil,
 			IdentifierLinkTemplate: "",
 			ExcludeFromTextSearch:  false,
-			SubpropertyOf: []Ref{{
-				ID: []string{Namespace, "SETTING"},
+			SubpropertyOf: []RefWithOrder{{
+				Value:       Ref{ID: []string{Namespace, "SETTING"}},
+				OrderInList: nil,
 			}},
 			InversePropertyOf: nil,
 		},
@@ -1916,8 +1944,9 @@ func Properties() ([]any, errors.E) {
 			Description:            nil,
 			IdentifierLinkTemplate: "",
 			ExcludeFromTextSearch:  false,
-			SubpropertyOf: []Ref{{
-				ID: []string{Namespace, "SETTING"},
+			SubpropertyOf: []RefWithOrder{{
+				Value:       Ref{ID: []string{Namespace, "SETTING"}},
+				OrderInList: nil,
 			}},
 			InversePropertyOf: nil,
 		},
@@ -1953,8 +1982,9 @@ func Properties() ([]any, errors.E) {
 			Description:            nil,
 			IdentifierLinkTemplate: "",
 			ExcludeFromTextSearch:  false,
-			SubpropertyOf: []Ref{{
-				ID: []string{Namespace, "SETTING"},
+			SubpropertyOf: []RefWithOrder{{
+				Value:       Ref{ID: []string{Namespace, "SETTING"}},
+				OrderInList: nil,
 			}},
 			InversePropertyOf: nil,
 		},
@@ -1990,8 +2020,9 @@ func Properties() ([]any, errors.E) {
 			Description:            nil,
 			IdentifierLinkTemplate: "",
 			ExcludeFromTextSearch:  false,
-			SubpropertyOf: []Ref{{
-				ID: []string{Namespace, "SETTING"},
+			SubpropertyOf: []RefWithOrder{{
+				Value:       Ref{ID: []string{Namespace, "SETTING"}},
+				OrderInList: nil,
 			}},
 			InversePropertyOf: nil,
 		},
@@ -2027,8 +2058,9 @@ func Properties() ([]any, errors.E) {
 			Description:            nil,
 			IdentifierLinkTemplate: "",
 			ExcludeFromTextSearch:  true,
-			SubpropertyOf: []Ref{{
-				ID: []string{Namespace, "SETTING"},
+			SubpropertyOf: []RefWithOrder{{
+				Value:       Ref{ID: []string{Namespace, "SETTING"}},
+				OrderInList: nil,
 			}},
 			InversePropertyOf: nil,
 		},
@@ -2064,8 +2096,9 @@ func Properties() ([]any, errors.E) {
 			Description:            nil,
 			IdentifierLinkTemplate: "",
 			ExcludeFromTextSearch:  true,
-			SubpropertyOf: []Ref{{
-				ID: []string{Namespace, "SETTING"},
+			SubpropertyOf: []RefWithOrder{{
+				Value:       Ref{ID: []string{Namespace, "SETTING"}},
+				OrderInList: nil,
 			}},
 			InversePropertyOf: nil,
 		},
@@ -2101,8 +2134,9 @@ func Properties() ([]any, errors.E) {
 			Description:            nil,
 			IdentifierLinkTemplate: "",
 			ExcludeFromTextSearch:  true,
-			SubpropertyOf: []Ref{{
-				ID: []string{Namespace, "SETTING"},
+			SubpropertyOf: []RefWithOrder{{
+				Value:       Ref{ID: []string{Namespace, "SETTING"}},
+				OrderInList: nil,
 			}},
 			InversePropertyOf: nil,
 		},
@@ -2138,8 +2172,9 @@ func Properties() ([]any, errors.E) {
 			Description:            nil,
 			IdentifierLinkTemplate: "",
 			ExcludeFromTextSearch:  true,
-			SubpropertyOf: []Ref{{
-				ID: []string{Namespace, "SETTING"},
+			SubpropertyOf: []RefWithOrder{{
+				Value:       Ref{ID: []string{Namespace, "SETTING"}},
+				OrderInList: nil,
 			}},
 			InversePropertyOf: nil,
 		},

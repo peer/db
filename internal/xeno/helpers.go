@@ -68,7 +68,7 @@ func describes(en, sl, pt string) propertyOption {
 func subpropertyOf(mnemonics ...string) propertyOption {
 	return func(p *core.PropertyFields) {
 		for _, mnemonic := range mnemonics {
-			p.SubpropertyOf = append(p.SubpropertyOf, ref(mnemonic))
+			p.SubpropertyOf = append(p.SubpropertyOf, core.RefWithOrder{Value: ref(mnemonic), OrderInList: nil})
 		}
 	}
 }
@@ -80,7 +80,7 @@ func subpropertyOf(mnemonics ...string) propertyOption {
 func subpropertyOfCore(mnemonics ...string) propertyOption {
 	return func(p *core.PropertyFields) {
 		for _, mnemonic := range mnemonics {
-			p.SubpropertyOf = append(p.SubpropertyOf, coreRef(mnemonic))
+			p.SubpropertyOf = append(p.SubpropertyOf, core.RefWithOrder{Value: coreRef(mnemonic), OrderInList: nil})
 		}
 	}
 }

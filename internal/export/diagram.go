@@ -778,7 +778,14 @@ func diagramValuesTag(field reflect.StructField) (string, bool) {
 	if internalCore.UnwrapSliceAndPointer(field.Type) == internalCore.RefType {
 		return field.Tag.Get("values"), true
 	}
-	return diagramStructValuesTag(field.Type)
+	tag, isRef := diagramStructValuesTag(field.Type)
+	// A struct which wraps a reference (core.RefWithOrder) can carry the tag on the field instead of on the
+	// reference inside it, which is where transform reads it from as well (see parseValuesTag): what the tag
+	// says is which documents the field may point at, and that is the field's own business.
+	if isRef && tag == "" {
+		return field.Tag.Get("values"), true
+	}
+	return tag, isRef
 }
 
 // diagramStructValuesTag walks into a struct type and returns the "values" tag
