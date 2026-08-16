@@ -6,6 +6,7 @@ import { basename, join } from "node:path"
 
 import { documentIdOf, notesSlot, PROPERTY_IDS, startCreate } from "../peerdb_utils"
 import {
+  changePosted,
   checkpoint,
   checkpointElement,
   clearConsoleErrors,
@@ -21,6 +22,7 @@ import {
   openDocumentTab,
   pickReference,
   saveEdit,
+  settleEdit,
   settleFormFocus,
   signIn,
   startEdit,
@@ -109,9 +111,15 @@ async function createSpecies(page: Page, name: string): Promise<void> {
 
   const nameInput = field(page, PROPERTY_IDS.NAME).locator(".pd-inputstring").first()
   await expect(nameInput, "name input of the new species").toBeVisible({ timeout: LOADING_TIMEOUT })
+  const posted = changePosted(page)
   await nameInput.fill(`${NAME_PREFIX} ${name}`)
   await nameInput.blur()
   await expect(nameInput, "name input of the new species after filling it").toHaveValue(`${NAME_PREFIX} ${name}`)
+  // The name is left on its way to the session otherwise, and the tests below drive the form while it is
+  // still owed: a slot with a change in flight is read-only, and everything derived from the document is
+  // fetched again once it lands, both of which a capture taken meanwhile shows instead of what it names.
+  await posted
+  await settleEdit(page)
 }
 
 // Uploads a file into the image field and waits until the field holds it, without looking at the states
@@ -371,6 +379,9 @@ test.describe("PeerDB Attachment Flows", () => {
     await expect(notes.locator(".pd-inputhtml-text-upload"), "upload message of the notes editor").toContainText(basename(FIRST_FILE))
     await expect(notes.locator(".pd-inputhtml-button-cancelupload"), "cancel button while the attachment uploads").toBeVisible()
     await expect(notes.locator(".pd-inputhtml-loading"), "progress bar while the attachment uploads").toBeVisible()
+    // Picking a file commits the text typed above it, so the form is waited for even though the upload it
+    // is captured over is held: what is captured is the upload, not the form catching up with the typing.
+    await settleEdit(page)
     await checkpointElement(page, notes, "attachments-notes-in-progress")
 
     await release()
@@ -430,6 +441,9 @@ test.describe("PeerDB Attachment Flows", () => {
 
     await expect(notes.locator(".pd-inputhtml-text-upload"), "upload message of the notes editor").toContainText(basename(SECOND_FILE))
     await expect(notes.locator(".pd-inputhtml-button-cancelupload"), "cancel button while the replacement uploads").toBeVisible()
+    // The file link the first upload inserted is committed by the same interaction which picks the
+    // replacement, so the form is waited for before the replacement is captured.
+    await settleEdit(page)
     await checkpointElement(page, notes, "attachments-notes-replace-in-progress")
 
     await release()
@@ -471,6 +485,9 @@ test.describe("PeerDB Attachment Flows", () => {
 
     const cancelButton = notes.locator(".pd-inputhtml-button-cancelupload")
     await expect(cancelButton, "cancel button while the attachment uploads").toBeVisible()
+    // Picking a file commits the text typed above it, so the form is waited for even though the upload it
+    // is captured over is held: what is captured is the upload, not the form catching up with the typing.
+    await settleEdit(page)
     await checkpointElement(page, notes, "attachments-notes-remove-in-progress")
 
     const discarded = page.waitForRequest(DISCARD_UPLOAD_URL, { timeout: LOADING_TIMEOUT })

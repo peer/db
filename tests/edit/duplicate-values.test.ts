@@ -8,6 +8,7 @@ import {
   checkpoint,
   checkpointElement,
   expect,
+  expectNothingPending,
   field,
   fieldErrors,
   fieldInput,
@@ -99,6 +100,7 @@ async function fillSlotValue(page: Page, propertyId: string, slot: number, input
   await expect(filled, `${what} after typing`).toHaveValue(value)
   await expect(fieldSlots(page, propertyId), `slots of ${what} after typing`).toHaveCount(slots, { timeout: LOADING_TIMEOUT })
   await posted
+  await expectNothingPending(page)
 }
 
 // Fills a text-like input and commits the slot by taking the focus out of it. A slot posts its change
@@ -148,6 +150,7 @@ async function startNamed(page: Page, entityClass: EntityClass, name: string): P
   // The name has to reach the session like every other value, or the save which ends these tests writes a
   // document without one, which the class requires.
   await posted
+  await expectNothingPending(page)
 }
 
 test.describe("PeerDB Edit Duplicate Value Flows", () => {

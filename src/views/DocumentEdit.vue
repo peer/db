@@ -1721,7 +1721,12 @@ function canSave(): boolean {
     >
       <div class="pd-documentedit-title-toc font-semibold">{{ t("partials.TableOfContents.title") }}</div>
     </TableOfContents>
-    <div ref="el" class="pd-documentedit flex min-w-0 grow flex-col gap-y-1 p-1 sm:gap-y-4 sm:p-4">
+    <!--
+      The number of changes the form has queued or in flight is published here so that what the form is
+      still owing the server can be read off it. A slot with a change in flight is read-only and everything
+      derived from the document lags it, so a zero here is what says the form shows the state it has.
+    -->
+    <div ref="el" class="pd-documentedit flex min-w-0 grow flex-col gap-y-1 p-1 sm:gap-y-4 sm:p-4" :data-pending-changes="pendingChangeCount">
       <div class="pd-documentedit-card rounded-sm border border-gray-200 bg-white p-4 shadow-sm">
         <div v-if="hasDocumentPermission(ACTION_UPDATE, doc) && sessionEnded" id="documentedit-text-sessionended" class="my-1 text-center sm:my-4">
           <i18n-t keypath="views.DocumentEdit.sessionEnded" scope="global">

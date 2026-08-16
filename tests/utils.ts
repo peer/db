@@ -1011,6 +1011,19 @@ export async function expectNothingLoading(page: Page, timeout: number = LOADING
   await expect(page.locator(".pd-documentget-loading"), "document").toHaveCount(0, { timeout })
 }
 
+// Waits until the edit form owes the server nothing: every change it has queued and every change it has in
+// flight has settled. The form publishes the count of them on its root element, because the changes go
+// through a queue of its own which never lights the page's progress bar, so neither the bar nor the network
+// answers this. A form which owes nothing is also a form which shows what it holds: a slot whose change has
+// not landed is read-only, which greys the controls of its sub-fields.
+//
+// This says nothing about a change which is about to be posted, only about the ones the form has taken on,
+// so it is what a step which has waited for its own change (see changePosted) adds rather than what it
+// replaces.
+export async function expectNothingPending(page: Page, timeout: number = LOADING_TIMEOUT): Promise<void> {
+  await expect(page.locator(".pd-documentedit"), "changes the form has queued or in flight").toHaveAttribute("data-pending-changes", "0", { timeout })
+}
+
 // Waits until a view which does not poll the server has settled, both on the network and in what it
 // renders. Not usable on the edit view, which never goes network-idle, see settleEdit.
 export async function settle(page: Page): Promise<void> {
@@ -1032,16 +1045,24 @@ export async function settleDocument(page: Page, options: DocumentViewOptions = 
   await expectNothingLoading(page)
 }
 
-// Waits until the edit view has rendered its form and everything the form shows has resolved.
+// Waits until the edit view has rendered its form, owes the server nothing, and everything the form shows
+// has resolved.
 //
 // Waiting for the network to go idle instead, the way the other views are waited for, cannot work here:
 // the edit view polls its editing session for changes every 100 milliseconds (pollInterval in
 // DocumentEdit.vue) for as long as it is open, so its network is never quiet and the wait can only run
 // into the test's timeout. What the view renders is waited for instead.
+//
+// The changes the form has queued or in flight are waited for before what it shows, because a change is
+// what makes the view fetch again: a slot whose change has not landed is read-only, which greys the
+// controls of its sub-fields, and the document is read back once it has, which sends every label derived
+// from it through its loading state again. The page's progress bar answers neither: the form posts its
+// changes through a queue of its own which never lights it.
 export async function settleEdit(page: Page): Promise<void> {
   await expect(page.locator(".pd-documentedit"), "edit view").toBeVisible({ timeout: LOADING_TIMEOUT })
   await expect(page.locator(".pd-fieldsform"), "fields form").toBeVisible({ timeout: LOADING_TIMEOUT })
   await expect(page.locator("#documentedit-button-save"), "save button").toBeVisible({ timeout: LOADING_TIMEOUT })
+  await expectNothingPending(page)
   await expectNothingLoading(page)
 }
 
@@ -1458,6 +1479,12 @@ const SAVE_CHANGE_API = "/api/d/saveChange/"
 //
 // Only call this for an action which changes a value: a slot which is filled with what it already holds
 // posts nothing, and the wait would then run into its timeout.
+//
+// What it answers is that a change has landed, not that the caller's has: it resolves on the first post to
+// answer, which is another slot's change when one was still on its way when this was asked for. Follow it
+// with expectNothingPending, which covers the rest of what the form owes. The two are needed together: this
+// one alone can be handed the wrong answer, and expectNothingPending alone is satisfied by a form which has
+// not taken the change on yet.
 export function changePosted(page: Page): Promise<Response> {
   return page.waitForResponse((response) => response.url().includes(SAVE_CHANGE_API) && response.request().method() === "POST", { timeout: LOADING_TIMEOUT })
 }
@@ -1476,6 +1503,7 @@ export async function fillSlot(page: Page, propertyId: string, slot: number, inp
   await expect(filled, `${what} after typing`).toHaveValue(value)
   await expect(fieldSlots(page, propertyId), `slots of ${what} after typing`).toHaveCount(slots)
   await posted
+  await expectNothingPending(page)
 }
 
 // Clears the console errors which asking for an address the server refuses provokes on purpose, so that a
@@ -1656,6 +1684,7 @@ export async function createNamed(page: Page, classId: string, propertyId: strin
   // The save below acts on the claims the session holds, so the name has to have reached it: a save which
   // goes ahead of the post creates a document without a name.
   await posted
+  await expectNothingPending(page)
   if (options.checkpointPrefix !== undefined) {
     await checkpointElement(page, nameField, `${options.checkpointPrefix}-name`)
   }

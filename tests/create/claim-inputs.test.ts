@@ -9,6 +9,7 @@ import {
   checkpointElement,
   expect,
   expectNothingLoading,
+  expectNothingPending,
   field,
   fieldInput,
   fieldSlots,
@@ -154,6 +155,7 @@ async function createDocument(page: Page, entityClass: EntityClass, name: string
   // posted it, and the save below acts on the session: without the wait it can write a document with no
   // name, which the class requires.
   await posted
+  await expectNothingPending(page)
   await checkpointBlock(page, field(page, PROPERTY_IDS.NAME), `${prefix}-name`)
 
   await saveEdit(page)
