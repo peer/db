@@ -210,11 +210,26 @@ async function focusInfo(page: Page): Promise<FocusInfo> {
 // toolbar tells apart: a link made at a caret is the address written out as its own text, while a link
 // made out of a selection wraps the selected text, and the toolbar offers both, so nothing about how the
 // buttons look says which of the two the editor is about to make.
+// The line is selected again for as long as the editor has not read it. A selection the editor drops is
+// not a state the test can wait out: the editor reads the browser's selection when the browser tells it
+// of one, and one made while it is still busy with the selection before it is read as nothing at all.
+// Selecting the same line again is what gives it another chance, and the same keys on the same line make
+// the same selection, so nothing is moved by asking twice.
 async function selectLine(page: Page, text: string): Promise<void> {
-  await page.keyboard.press("End")
-  await page.keyboard.press("Shift+Home")
-  await expect.poll(() => selectedText(page), { message: `the line "${text}" is selected` }).toContain(text)
-  await expect(notesSlot(page).locator(".pd-inputhtml-selection-range"), `the editor has read the selection of "${text}"`).toHaveCount(1)
+  const rangeSelection = notesSlot(page).locator(".pd-inputhtml-selection-range")
+  await expect
+    .poll(
+      async () => {
+        await page.keyboard.press("End")
+        await page.keyboard.press("Shift+Home")
+        if (!(await selectedText(page)).includes(text)) {
+          return false
+        }
+        return (await rangeSelection.count()) === 1
+      },
+      { message: `the line "${text}" is selected and the editor has read it`, timeout: LOADING_TIMEOUT },
+    )
+    .toBe(true)
   await expect(toolbarButton(page, "link"), `the link button once the editor has read the selection of "${text}"`).toBeEnabled()
 }
 
