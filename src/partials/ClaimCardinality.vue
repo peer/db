@@ -252,6 +252,14 @@ const unregisterRemoteAdds = injectFn(unregisterRemoteAddsKey, () => {})
 
 const locked = useLocked()
 
+// Hands the designation to the slots even while the form is locked. A locked form asks nothing of them
+// (see where designated is given to them), because the lock says the form is in a noop state: it is
+// raised by the data still loading as much as by the save, and a form which is filling itself in must not
+// tell the user that what it has not loaded yet is missing. The save is the one case where the question
+// is put to the form rather than shown to the user, and it has to be answered whatever the form is doing,
+// so the final pass sets this for as long as it takes.
+const forceDesignated = ref(false)
+
 // Slots: the user-facing list of editable rows. Each has a stable key
 // so Vue's v-for can re-anchor across claim renames; claim is the
 // committed claim (or null for an as-yet-unfilled trailing slot).
@@ -319,6 +327,7 @@ const {
 } = useValidationRegistry(() => {
   reconcileSlots()
   duplicateIds.value = new Set()
+  forceDesignated.value = false
   forwardInteraction?.()
 })
 
@@ -696,9 +705,9 @@ const requiredEnforced = computed<boolean>(() => fieldIsRequired(props.field) &&
 // slot while a designated one is empty moves the designation onto the filled
 // slot and off the empty one. Empty for non-enforced fields (min <= 0, a field with a
 // default whose pre-open slot stores the default form when left empty, or a sub-field of an
-// inactive placeholder, see requiredEnforced) and while locked (the surrounding form is in a noop state).
+// inactive placeholder, see requiredEnforced). A locked form hands none of this to its slots, which is
+// done where the designation is given to them rather than here, so that the save can still ask.
 const designated = computed<boolean[]>(() => {
-  if (locked.value) return slots.value.map(() => false)
   const min = props.field.minCardinality
   if (min <= 0 || !requiredEnforced.value) return slots.value.map(() => false)
   let nonEmptyCount = 0
@@ -762,6 +771,23 @@ const validatedInput: ValidatedInput = {
   // so the min-cardinality violation reaches the aggregate without a field-level
   // error of our own.
   validate: async (signal, options) => {
+    // forceDesignated is not taken back when the pass is over, because a slot re-validates when the designation
+    // it was given drops (see the watcher in FieldsFormRow) and taking it back would clear what the pass has just
+    // found. It goes with the next pass which is not final, or as soon as the user touches the field.
+    if (options?.final) {
+      // The designation reaches each slot as a prop, so the final pass is announced a render before the
+      // slots are asked: without the nextTick it is the awaits of the cascade below which happen to let the
+      // render through, and what the slots answer for would rest on the cascade staying asynchronous.
+      forceDesignated.value = true
+      await nextTick()
+    } else if (forceDesignated.value) {
+      // Dropped before the wait for the same reason it is set before one: what the slots answer for is
+      // the designation they were rendered with, so the render has to have happened by the time they are
+      // asked. Without the nextTick they would assert what the pass is about to take back, and it would be
+      // the watcher in FieldsFormRow which cleared it again.
+      forceDesignated.value = false
+      await nextTick()
+    }
     await validateChildAll(signal, options)
     // Only the final pass (Save) complains about duplicates: every other pass runs while the user is
     // still working, and their next keystroke may be what makes the values differ again.
@@ -1035,7 +1061,7 @@ onBeforeUnmount(() => {
             :parent-claim-id="parentClaimId"
             :invalid="invalid"
             :errors="slotErrors(slot)"
-            :required="designated[idx]"
+            :required="!locked || forceDesignated ? designated[idx] : false"
             :readonly="readonly"
             :label-id="labelId"
             :hide-labels="!isInterval"
@@ -1067,7 +1093,7 @@ onBeforeUnmount(() => {
           :parent-claim-id="parentClaimId"
           :invalid="invalid"
           :errors="slotErrors(slot)"
-          :required="designated[idx]"
+          :required="!locked || forceDesignated ? designated[idx] : false"
           :readonly="readonly"
           :label-id="labelId"
           @update:model-value="(claim) => updateSlotClaim(slot.key, claim)"
