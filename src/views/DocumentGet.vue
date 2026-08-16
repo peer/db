@@ -576,11 +576,7 @@ async function beginEdit(tab?: string) {
       </template>
     </NavBar>
   </Teleport>
-  <div
-    ref="el"
-    class="pd-documentget mt-[var(--pd-navbar-offset)] flex w-full flex-col gap-y-1 border-t border-transparent p-1 sm:gap-y-4 sm:p-4"
-    :data-url="withDocument?.url"
-  >
+  <div ref="el" class="pd-documentget mt-[var(--pd-navbar-offset)] flex w-full flex-col gap-y-1 p-1 sm:gap-y-4 sm:p-4" :data-url="withDocument?.url">
     <!--
       Registered document header components render above the card, on every tab. They get the document
       the card renders, so the page reads it once, and null while it is still being read.

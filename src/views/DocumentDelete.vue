@@ -85,7 +85,7 @@ async function onDelete() {
   <Teleport to="header">
     <NavBar />
   </Teleport>
-  <div class="pd-documentdelete mt-[var(--pd-navbar-offset)] flex w-full flex-col gap-y-1 border-t border-transparent p-1 sm:gap-y-4 sm:p-4">
+  <div class="pd-documentdelete mt-[var(--pd-navbar-offset)] flex w-full flex-col gap-y-1 p-1 sm:gap-y-4 sm:p-4">
     <div class="flex flex-col gap-y-4 rounded-sm border border-gray-200 bg-white p-4 shadow-sm">
       <!--
         The delete action is decided on the document, because the document's own permission claims can

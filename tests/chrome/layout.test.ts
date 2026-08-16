@@ -13,6 +13,10 @@ const WIDE = { width: 1440, height: 900 }
 // column something to hold, which is what the sticky header and the skip links are for.
 const SEARCH_PATH = `/s?${PROPERTY_IDS.INSTANCE_OF}=${CLASS_IDS.INDIVIDUAL}`
 
+// The three ways the navbar can be placed. The auto-hide is the site's own default and is asked for by
+// dropping the feature, which is why it is undefined here rather than named.
+const NAVBAR_MODES = ["static", "fixed", undefined] as const
+
 test.describe("PeerDB Layout Flows", () => {
   test("Test the home page puts the caret in the search box", async ({ context }) => {
     const page = await context.newPage()
@@ -152,5 +156,54 @@ test.describe("PeerDB Layout Flows", () => {
     }
 
     console.log("Successfully verified that the keyboard walks the values of a facet without stopping at their links.")
+  })
+
+  /*
+    Every navbar mode has to start a page in the same place. The fixed and the auto-hiding navbar are out of
+    the document flow and content leaves room for them; the static navbar is in the flow and content follows
+    it. Both routes arrive at the same top edge only while the room left matches what the navbar takes, and a
+    navbar a pixel taller than that room looks right in any one mode on its own, which is why the modes are
+    asked the question together.
+  */
+  test.describe("Navbar Modes", () => {
+    // The auto-hiding navbar exists only for a visitor who did not ask for reduced motion, which the rest of
+    // the suite runs under, so this block asks for a browser which did not.
+    test.use({ contextOptions: { reducedMotion: "no-preference" } })
+
+    test("Test that every navbar mode starts a page in the same place", async ({ context }) => {
+      const page = await context.newPage()
+
+      let firstMode = true
+      for (const mode of NAVBAR_MODES) {
+        const name = mode ?? "auto-hiding"
+        // The site is served to the tests with the navbar in the document flow, so the other two modes are
+        // asked for here.
+        await overrideSiteFeatures(page, { navbarPosition: mode })
+        await page.goto(`${PEERDB_URL}${SEARCH_PATH}`)
+        await expectResults(page)
+        await settleFilters(page)
+
+        // Where the results start against where the navbar ends. This is the one number the modes reach by
+        // different routes, and a screenshot of a single mode cannot tell a page which leaves too little room
+        // from one which leaves the right amount.
+        const navbar = await page.locator("#navbar").boundingBox()
+        const results = await page.locator(".pd-searchresultsfeed").boundingBox()
+        expect(navbar, `the box of the ${name} navbar`).not.toBeNull()
+        expect(results, `the box of the results under the ${name} navbar`).not.toBeNull()
+        // Compared to a tenth of a pixel: the navbar can be a fraction of a pixel tall, and what this is
+        // about is a whole pixel of room too little.
+        expect(results!.y, `the results start where the ${name} navbar ends`).toBeCloseTo(navbar!.y + navbar!.height, 1)
+
+        // Every mode is compared with one stored screenshot, so they are compared with each other through it:
+        // what a visitor sees at the top of a page which has not been scrolled is the same in all three. The
+        // window and not the whole page, because a whole page capture of a fixed navbar is a picture of the
+        // navbar over the top of the page rather than of the page. The checks which read the whole page are
+        // left to the first capture: the page is the same page in each of them.
+        await checkpoint(page, "layout-navbar-modes", { fullPage: false, mask: volatile(page), checks: firstMode })
+        firstMode = false
+      }
+
+      console.log("Successfully verified that the static, fixed and auto-hiding navbar all start a page in the same place.")
+    })
   })
 })

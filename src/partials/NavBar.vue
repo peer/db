@@ -43,7 +43,7 @@ useValidationRegistry()
     <div
       id="navbar"
       ref="navbar"
-      class="pd-navbar w-container left-0 flex min-h-[var(--pd-navbar-height)] grow items-center gap-x-1 border-b border-slate-400 bg-slate-300 p-1 shadow-md will-change-transform sm:gap-x-4 sm:p-4"
+      class="pd-navbar w-container left-0 flex min-h-[var(--pd-navbar-min-height)] grow items-center gap-x-1 border-b border-slate-400 bg-slate-300 p-1 shadow-md will-change-transform sm:gap-x-4 sm:p-4"
       v-bind="navbarAttrs"
     >
       <!--

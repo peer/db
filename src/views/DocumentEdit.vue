@@ -1690,7 +1690,7 @@ function canSave(): boolean {
     >
       <div class="pd-documentedit-title-toc font-semibold">{{ t("partials.TableOfContents.title") }}</div>
     </TableOfContents>
-    <div ref="el" class="pd-documentedit flex min-w-0 grow flex-col gap-y-1 border-t border-transparent p-1 sm:gap-y-4 sm:p-4">
+    <div ref="el" class="pd-documentedit flex min-w-0 grow flex-col gap-y-1 p-1 sm:gap-y-4 sm:p-4">
       <div class="pd-documentedit-card rounded-sm border border-gray-200 bg-white p-4 shadow-sm">
         <div v-if="hasDocumentPermission(ACTION_UPDATE, doc) && sessionEnded" id="documentedit-text-sessionended" class="my-1 text-center sm:my-4">
           <i18n-t keypath="views.DocumentEdit.sessionEnded" scope="global">

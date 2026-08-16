@@ -113,14 +113,39 @@ export function useNavbar(): { navbar: TemplateRef<HTMLElement>; attrs: Ref<{ st
     document.documentElement.style.setProperty("--pd-navbar-top", `${clamped}px`)
   }
 
+  // Publish how tall the navbar is and, with it, how much room content leaves at the top of the page for it.
+  // Both are measured rather than taken from the styled minimum height, because that is what the navbar is
+  // styled to be at least: the navbar is as tall as what is in it plus its border, and content which leaves
+  // the minimum for it starts under the navbar's bottom edge.
+  function publishNavbarHeight() {
+    if (!navbar.value) return
+    const { height } = navbar.value.getBoundingClientRect()
+    document.documentElement.style.setProperty("--pd-navbar-height", `${height}px`)
+    // An in-flow navbar takes the room at the top of the page itself, so content leaves none for it.
+    document.documentElement.style.setProperty("--pd-navbar-offset", navbarMode.value === "static" ? "0px" : `${height}px`)
+  }
+
   watchEffect((onCleanup) => {
     attrs.value.style.top = "0px"
     attrs.value.class["animate-navbar"] = false
 
+    // The height is published in every mode, because what follows the navbar lines up with it wherever the
+    // navbar is, and it is measured again whenever the navbar resizes: it grows at the sm breakpoint, and
+    // what is in it can grow it at any width.
+    publishNavbarHeight()
+    const navbarElement = navbar.value
+    const heightObserver = navbarElement ? new ResizeObserver(publishNavbarHeight) : null
+    if (navbarElement && heightObserver) {
+      heightObserver.observe(navbarElement)
+    }
+    onCleanup(() => {
+      heightObserver?.disconnect()
+      document.documentElement.style.removeProperty("--pd-navbar-height")
+      document.documentElement.style.removeProperty("--pd-navbar-offset")
+    })
+
     if (navbarMode.value === "static") {
       attrs.value.style.position = "static"
-      // The in-flow navbar pushes content down by itself, so content does not need the top margin.
-      document.documentElement.style.setProperty("--pd-navbar-offset", "0px")
       // The navbar scrolls with the page, so followers still need its published viewport top.
       window.addEventListener("scroll", publishNavbarTop, { passive: true })
       window.addEventListener("scrollend", publishNavbarTop, { passive: true })
@@ -128,7 +153,6 @@ export function useNavbar(): { navbar: TemplateRef<HTMLElement>; attrs: Ref<{ st
       onCleanup(() => {
         window.removeEventListener("scroll", publishNavbarTop)
         window.removeEventListener("scrollend", publishNavbarTop)
-        document.documentElement.style.removeProperty("--pd-navbar-offset")
         document.documentElement.style.removeProperty("--pd-navbar-top")
       })
       return
