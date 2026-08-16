@@ -108,19 +108,19 @@ type SiteFeatures struct {
 	// discovery drops facets whose property path contains one of them, top-level and sub-facets
 	// ("parent > prop") alike. The properties stay indexed, and active filters on them keep working
 	// and being shown. When the configuration leaves this unset (nil), site initialization fills in
-	// DefaultHiddenFacetProperties (the permission properties) before the SiteDefaults customizer
-	// runs, so the customizer can extend, replace, or unset the list; an explicitly empty list hides
-	// none. Backend-only; not exposed to the frontend.
+	// DefaultHiddenFacetProperties before the SiteDefaults customizer runs, so the customizer can
+	// extend, replace, or unset the list; an explicitly empty list hides none. Backend-only; not
+	// exposed to the frontend.
 	HiddenFacetProperties []string `json:"-" yaml:"hiddenFacetProperties,omitempty"`
 }
 
 // DefaultHiddenFacetProperties returns the default value site initialization fills into
-// Features.HiddenFacetProperties when the configuration leaves it unset: the permission properties,
-// whose facets would list permission actions and are not useful for searching.
+// Features.HiddenFacetProperties when the configuration leaves it unset.
 func DefaultHiddenFacetProperties() []string {
 	return []string{
 		internalCore.HasPermissionPropID.String(),
 		internalCore.HasRequestedPermissionPropID.String(),
+		internalCore.OrderInListPropID.String(),
 	}
 }
 

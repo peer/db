@@ -21,11 +21,12 @@ globals:
         searchResultsTable: true
         downloadButtons: true
         indexAncestorProperties: true
-        # The list replaces the default rather than extending it, so the permission properties,
-        # hidden by default, are repeated here.
+        # The list replaces the default rather than extending it, so what is hidden by default is repeated
+        # here. The language and the unit of a claim are hidden on top of it.
         hiddenFacetProperties:
           - SBCZpqwjH3DvAyqJnWpT1Z # HAS_PERMISSION
           - 3Gj34jZfgiR9gJ1m1b7mJX # HAS_REQUESTED_PERMISSION
+          - VioFLnHN67NqGkDv9NwncJ # ORDER_IN_LIST
           - D3CeMvwWZrrNr49MWTAqys # IN_LANGUAGE
           - AhZqQb5fpmXT9Xgnbt1z3t # IN_UNIT
       # Reading is granted per class instead of on everything, so that the test data set has
