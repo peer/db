@@ -203,13 +203,19 @@ async function openPrecision(scope: Locator, what: string): Promise<void> {
   // scrolls it out from under the navbar, and a press which the page moves under lands as a press
   // outside the list the selector has just opened, which closes it again. Bringing the selector into
   // view first makes that unlikely and pressing it again makes it harmless.
+  //
+  // The middle of the window is where it is brought, so that the whole list fits below it. An open list
+  // marks the precision it holds as the one the keyboard would take next and scrolls that entry into view,
+  // which moves the page under the pointer resting on the selector whenever the list reaches past the
+  // bottom of the window. The pointer can land on the marked entry that way, and taking a checkpoint moves
+  // the pointer off it, which takes the mark with it.
   await expect
     .poll(
       async () => {
         if (await opened()) {
           return true
         }
-        await selector.scrollIntoViewIfNeeded().catch(() => null)
+        await selector.evaluate((element) => element.scrollIntoView({ block: "center", behavior: "instant" })).catch(() => null)
         await selector.click().catch(() => null)
         return await opened()
       },

@@ -366,6 +366,13 @@ test.describe("PeerDB Document Create Flows", () => {
     await expect(precision, "the precision of a full date").toHaveText("days")
 
     const precisionButton = field(page, PROPERTY_IDS.FIRST_SURVEYED).locator(".pd-inputtime-select-precision")
+    // The list is opened with the field in the middle of the window, where the whole list fits below it. An
+    // open list marks the precision it holds as the one the keyboard would take next and scrolls that entry
+    // into view, which moves the page under the pointer resting on the button whenever the list reaches past
+    // the bottom of the window. The pointer can land on the marked entry that way, and taking a checkpoint
+    // moves the pointer off it, which takes the mark with it: where the page happened to be scrolled to when
+    // the list was opened would otherwise decide which of the two the capture shows.
+    await precisionButton.evaluate((element) => element.scrollIntoView({ block: "center", behavior: "instant" }))
     await precisionButton.click()
     await expect(field(page, PROPERTY_IDS.FIRST_SURVEYED).locator(".pd-inputtime-list-precision"), "the list of precisions").toBeVisible()
     await checkpoint(page, "create-doc-starsystem-precision-open")
