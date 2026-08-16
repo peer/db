@@ -1152,11 +1152,22 @@ async function onSave() {
     return
   }
 
-  // Re-check after flush: validateAll above clears stale state, but flush itself
-  // might surface new invalidity if mutation watchers fired. Abort save but keep
-  // the valid changes posted above.
-  if (fieldsFormInvalid.value) {
-    return
+  // Validate again now that the drain has left the form holding what the session will commit. The pass
+  // above ran against the form as it was before anything was flushed, which is not everything the save
+  // is about to write: a value committed a moment earlier reaches the form only once its change comes
+  // back, and the flush commits more of them still. Checks which are of one value alone survive that
+  // (a slot which is invalid says so on its own), while a check comparing a field's claims with each
+  // other (see duplicateClaimIds) is only as good as the claims the form had when it ran, so it is run
+  // again here. Abort the save but keep the valid changes posted above.
+  if (fieldsFormRef.value) {
+    await fieldsFormRef.value.validateAll(sessionController.signal, { final: true })
+    if (sessionController.signal.aborted) {
+      return
+    }
+    if (fieldsFormInvalid.value) {
+      focusFirstInvalid(fieldsFormRef.value.inputs)
+      return
+    }
   }
 
   // Fill default form claims to satisfy min cardinality: a field with a default is not required
