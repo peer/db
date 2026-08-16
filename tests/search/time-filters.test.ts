@@ -277,6 +277,13 @@ test.describe("PeerDB Time Filter Flows", () => {
     await expectFilterActive(page, born, true)
     const afterStart = await expectFewerResults(page, withProperty)
 
+    // The results and the facets are fetched separately, so the results narrowing above says nothing about
+    // the panel: the facet is reloaded with the range the first tap left, and the slider is rebuilt to span
+    // it. A tap which lands before that rebuild is a tap on the slider of the range before it, so the same
+    // pixel picks a different value, and the histogram of a range selected from both ends spans exactly the
+    // values picked. The facets are therefore settled before the range is narrowed from the other end.
+    await settleFilters(page)
+
     // Move the end of the range as well, so a bounded range is selected and the results narrow again. The
     // slider snaps to the handle nearest what was tapped, so a tap in the upper half moves the end.
     await tapRange(born, 0.7)
