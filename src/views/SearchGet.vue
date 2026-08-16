@@ -58,7 +58,13 @@ const {
   toRef(() => ({ id: props.id, version: searchSessionVersion.value })),
   busy,
 )
-const { results: searchResults, total: searchTotal, moreThanTotal: searchMoreThanTotal, error: searchResultsError } = useSearch(searchSession, searchEl, busy)
+const {
+  results: searchResults,
+  total: searchTotal,
+  moreThanTotal: searchMoreThanTotal,
+  error: searchResultsError,
+  loadedURL: searchResultsURL,
+} = useSearch(searchSession, searchEl, busy)
 
 const {
   downloadingPhase,
@@ -425,6 +431,7 @@ async function onDownloadFiles() {
     <SearchResultsFeed
       v-else-if="searchSession.view === 'feed'"
       :search-results="searchResults"
+      :search-results-url="searchResultsURL"
       :search-total="searchTotal"
       :search-more-than-total="searchMoreThanTotal"
       :search-session="searchSession"
@@ -443,6 +450,7 @@ async function onDownloadFiles() {
     <SearchResultsTable
       v-else-if="searchSession.view === 'table'"
       :search-results="searchResults"
+      :search-results-url="searchResultsURL"
       :search-total="searchTotal"
       :search-more-than-total="searchMoreThanTotal"
       :search-session="searchSession"

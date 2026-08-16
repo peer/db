@@ -18,6 +18,7 @@ import {
   checkpoint,
   checkpointElement,
   expect,
+  expectResultsCount,
   filter,
   filterValue,
   goHome,
@@ -242,7 +243,9 @@ test.describe("PeerDB Search by Class Flows", () => {
       await selectClass(page, CLASS_IDS[documentClass], documentClass)
       await checkpointSearch(page, `by-class-filter-${slug(documentClass)}`)
 
-      expect(await resultCount(page), `both ways of narrowing to ${documentClass} find the same number of documents`).toBe(throughPrefilter)
+      // The header is polled rather than read once: the answer the class filter produced has landed, but
+      // the header renders it a tick later, so a single read can still report the search before it.
+      await expectResultsCount(page, String(throughPrefilter))
       await expectResultsOfClasses(page, [CLASS_IDS[documentClass]], documentClass)
 
       console.log(`Successfully narrowed a search to ${documentClass} both ways, with ${throughPrefilter} documents found by each and ${shown} of them shown.`)

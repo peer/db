@@ -47,6 +47,7 @@ import { searchTrackKey, useVisibilityTracking } from "@/visibility"
 const props = defineProps<{
   // Search props.
   searchResults: DeepReadonly<Result[]>
+  searchResultsUrl: string | null
   searchTotal: number | null
   searchMoreThanTotal: boolean
   searchSession: DeepReadonly<SearchSession>
@@ -515,6 +516,7 @@ const WithDocumentD = WithDocument<D>
       id="search-results"
       ref="resultsEl"
       tabindex="-1"
+      :data-url="searchResultsUrl"
       class="pd-searchresultsfeed-list-results flex-auto basis-3/4 flex-col gap-y-1 rounded-sm [--pd-indent:calc(var(--spacing)*4)] focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-1 focus-visible:outline-none sm:gap-y-4 sm:[--pd-indent:calc(var(--spacing)*6)] min-[56rem]:flex"
       :class="filtersEnabled ? 'hidden' : 'flex'"
     >

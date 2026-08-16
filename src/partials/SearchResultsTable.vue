@@ -31,6 +31,7 @@ import { useVisibilityTracking } from "@/visibility"
 const props = defineProps<{
   // Search props.
   searchResults: DeepReadonly<Result[]>
+  searchResultsUrl: string | null
   searchTotal: number | null
   searchMoreThanTotal: boolean
   searchSession: DeepReadonly<SearchSession>
@@ -324,7 +325,7 @@ const WithDocumentD = WithDocument<D>
         </thead>
 
         <!-- Results -->
-        <tbody class="pd-searchresultstable-list-results divide-y divide-gray-200">
+        <tbody :data-url="searchResultsUrl" class="pd-searchresultstable-list-results divide-y divide-gray-200">
           <template v-for="(result, index) in limitedSearchResults" :key="result.id">
             <WithDocumentD :id="result.id" name="DocumentGet">
               <template #default="{ doc, url }">

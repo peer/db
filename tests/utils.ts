@@ -1741,18 +1741,42 @@ export async function applySearchChange(page: Page, action: () => Promise<void>)
     }
   }
   page.on("response", record)
+  let version: number
   try {
     const updated = page.waitForResponse((response) => response.url().includes(SEARCH_UPDATE_API) && response.request().method() === "POST", {
       timeout: LOADING_TIMEOUT,
     })
     await action()
-    const { version } = (await (await updated).json()) as { version: number }
+    ;({ version } = (await (await updated).json()) as { version: number })
     await expect
       .poll(() => fetched.has(String(version)), { message: `the results of the search at version ${version} the change produced`, timeout: LOADING_TIMEOUT })
       .toBe(true)
   } finally {
     page.off("response", record)
   }
+
+  // The answer having arrived is not the same as it being on the screen: the results are rendered a tick
+  // later, so a read which follows this can otherwise still be a read of the search before the change. What
+  // renders the results publishes the address they came from, so waiting for that address to name the
+  // version the change produced waits for the render itself.
+  await expectResultsVersion(page, version)
+}
+
+// The element rendering the results, in either of the two views the results are shown in. Each publishes
+// the address its results came from, the way the filters panel publishes the address of its facets.
+const RESULTS_ELEMENT = ".pd-searchresultsfeed-list-results, .pd-searchresultstable-list-results"
+
+// Waits until what is rendered are the results of the given version of the search.
+async function expectResultsVersion(page: Page, version: number): Promise<void> {
+  await expect
+    .poll(
+      async () => {
+        const url = await page.locator(RESULTS_ELEMENT).first().getAttribute("data-url")
+        return url === null ? null : new URL(url, PEERDB_URL).searchParams.get("version")
+      },
+      { message: `the results on the screen are the ones of the search at version ${version}`, timeout: LOADING_TIMEOUT },
+    )
+    .toBe(String(version))
 }
 
 // Runs an action which changes the search and waits until the results of the changed search are on the

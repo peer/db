@@ -220,6 +220,7 @@ export function useSearch(
   moreThanTotal: DeepReadonly<Ref<boolean>>
   error: DeepReadonly<Ref<string | null>>
   url: DeepReadonly<Ref<string | null>>
+  loadedURL: DeepReadonly<Ref<string | null>>
 } {
   const router = useRouter()
 
@@ -312,6 +313,7 @@ function useSearchResults<T extends Result | FilterResult | RefFilterResult | Ha
   moreThanTotal: DeepReadonly<Ref<boolean>>
   error: DeepReadonly<Ref<string | null>>
   url: DeepReadonly<Ref<string | null>>
+  loadedURL: DeepReadonly<Ref<string | null>>
 } {
   const route = useRoute()
 
@@ -320,11 +322,15 @@ function useSearchResults<T extends Result | FilterResult | RefFilterResult | Ha
   const _moreThanTotal = ref(false)
   const _error = ref<string | null>(null)
   const _url = ref<string | null>(null)
+  // The URL the results currently held came from, which is not the URL above: that one is set when a
+  // request is made, while this one is set when its answer is taken, so it says what is being shown.
+  const _loadedURL = ref<string | null>(null)
   const results = process.env.NODE_ENV !== "production" ? readonly(_results) : (_results as unknown as Readonly<Ref<readonly DeepReadonly<T>[]>>)
   const total = process.env.NODE_ENV !== "production" ? readonly(_total) : _total
   const moreThanTotal = process.env.NODE_ENV !== "production" ? readonly(_moreThanTotal) : _moreThanTotal
   const error = process.env.NODE_ENV !== "production" ? readonly(_error) : _error
   const url = process.env.NODE_ENV !== "production" ? readonly(_url) : _url
+  const loadedURL = process.env.NODE_ENV !== "production" ? readonly(_loadedURL) : _loadedURL
 
   const mainController = new AbortController()
   onBeforeUnmount(() => mainController.abort())
@@ -346,6 +352,7 @@ function useSearchResults<T extends Result | FilterResult | RefFilterResult | Ha
         _results.value = []
         _total.value = null
         _moreThanTotal.value = false
+        _loadedURL.value = null
         return
       }
       const controller = new AbortController()
@@ -362,6 +369,7 @@ function useSearchResults<T extends Result | FilterResult | RefFilterResult | Ha
         _results.value = []
         _total.value = null
         _moreThanTotal.value = false
+        _loadedURL.value = null
         // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
         _error.value = `${err}`
         return
@@ -370,6 +378,7 @@ function useSearchResults<T extends Result | FilterResult | RefFilterResult | Ha
         return
       }
       _results.value = data.results
+      _loadedURL.value = newURL
       if (typeof data.total === "string") {
         if (data.total.endsWith("+")) {
           _moreThanTotal.value = true
@@ -395,6 +404,7 @@ function useSearchResults<T extends Result | FilterResult | RefFilterResult | Ha
     moreThanTotal,
     error,
     url,
+    loadedURL,
   }
 }
 
