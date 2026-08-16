@@ -1822,8 +1822,14 @@ export async function closeSortDialog(page: Page): Promise<void> {
 // page, because the dialog is drawn over the page and only dims what is behind it. A column which comes from
 // a facet is named by the property it is for, which the dialog fetches, so the capture waits until every
 // label on the page has resolved.
+//
+// The panel behind the dialog is settled first, because the columns the dialog offers to add are the facets
+// the panel has loaded: a dialog opened over a panel which is still loading offers however many of them had
+// arrived by then, which is not the same twice. Settling it is what fixes the list to every facet the search
+// has.
 export async function checkpointDialog(page: Page, name: string): Promise<void> {
   await expect(page.locator(".pd-searchsortdialog-panel"), "the sort dialog").toBeVisible()
+  await settleFilters(page)
   await expectNothingLoading(page)
   await checkpoint(page, name, { mask: volatile(page), fullPage: false })
 }

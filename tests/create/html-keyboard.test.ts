@@ -205,13 +205,16 @@ async function focusInfo(page: Page): Promise<FocusInfo> {
 // A caret key is the browser's own and moves the browser's selection, which the editor reads back into
 // its own state afterwards, and the commands the toolbar runs work on the state rather than on what the
 // browser has selected. What is waited for is therefore both: that the browser has selected the line, and
-// that the editor has read that selection. The link button is what says the reading has happened, because
-// it is offered only outside an existing link, so it is disabled while the cursor is still on the line
-// which was linked last and enabled once the editor knows the cursor has moved off it.
+// that the editor has read that selection. The editor says it has by the class it carries for a selection
+// which spans a range, and the reading is waited for rather than assumed because the two are what the
+// toolbar tells apart: a link made at a caret is the address written out as its own text, while a link
+// made out of a selection wraps the selected text, and the toolbar offers both, so nothing about how the
+// buttons look says which of the two the editor is about to make.
 async function selectLine(page: Page, text: string): Promise<void> {
   await page.keyboard.press("End")
   await page.keyboard.press("Shift+Home")
   await expect.poll(() => selectedText(page), { message: `the line "${text}" is selected` }).toContain(text)
+  await expect(notesSlot(page).locator(".pd-inputhtml-selection-range"), `the editor has read the selection of "${text}"`).toHaveCount(1)
   await expect(toolbarButton(page, "link"), `the link button once the editor has read the selection of "${text}"`).toBeEnabled()
 }
 
@@ -639,6 +642,9 @@ test.describe("PeerDB HTML Editor Keyboard Flows", () => {
     await input.fill(EXTERNAL_URL)
     await confirmButton.click()
     await expectEditorHtml(page, `<a href="${EXTERNAL_URL}"`, "the accepted address is written into the note")
+    // The link is made out of the selection, so it is the selected text which carries the address. A link
+    // made at a caret instead carries the address as its own text, which is what this tells apart.
+    await expect(content.locator("a").first(), "the link is made out of the selected line").toHaveText("An outside page")
     // An address which leaves this site is marked as such while it is being written, which is what the
     // icon next to it is drawn from.
     await expect(content.locator("a").first(), "the class of the link which leaves the site").toHaveClass(/pd-link-external/)
@@ -651,6 +657,7 @@ test.describe("PeerDB HTML Editor Keyboard Flows", () => {
     await confirmButton.click()
     await expectEditorHtml(page, `<a href="/d/${LINKED_DOCUMENT_ID}"`, "the address of a document of this site is written into the note")
     const internalLink = content.locator(`a[href="/d/${LINKED_DOCUMENT_ID}"]`)
+    await expect(internalLink, "the link is made out of the selected line").toHaveText("A planet of the survey")
     await expect(internalLink, "the class of the link to a document of this site").toHaveClass(/pd-link-internal/)
     await expect(internalLink, "the link to a document of this site is one the application routes").not.toHaveClass(/pd-link-internal-noview/)
 
@@ -661,6 +668,7 @@ test.describe("PeerDB HTML Editor Keyboard Flows", () => {
     await input.fill(CONTACT_URL)
     await confirmButton.click()
     await expectEditorHtml(page, `<a href="${CONTACT_URL}"`, "the contact address is written into the note")
+    await expect(content.locator(`a[href="${CONTACT_URL}"]`), "the link is made out of the selected line").toHaveText("The station")
     await expect(content.locator(`a[href="${CONTACT_URL}"]`), "the class of the contact link").not.toHaveClass(/pd-link/)
     // Every line the note was given has to still be a line of its own, each with the link it was given.
     await expect(content.locator("a"), "the links the note holds").toHaveCount(3)

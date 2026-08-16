@@ -240,6 +240,15 @@ const canOutdent = ref(false)
 // accepts marks - so we only need this flag to gate the block-type buttons.
 const isTextblockSelection = ref(true)
 
+// True when the editor's selection spans a range rather than sitting at
+// a caret. It drives the pd-inputhtml-selection-range class on the
+// wrapper, which is how the editor publishes which of the two it is
+// working with: the toolbar looks the same either way (a link can be
+// made at a caret as well as out of a selection), while the two produce
+// different results, and the selection the editor has is the one it
+// read from the DOM rather than the one the DOM currently holds.
+const hasRangeSelection = ref(false)
+
 // True when the cursor's textblock accepts inline marks. Drives the
 // disabled state for the inline mark buttons (bold / italic / etc.).
 const marksAllowedHere = ref(true)
@@ -547,6 +556,7 @@ function updateActiveState(state: EditorState) {
   marksAllowedHere.value = toggleMark(schema.marks.bold)(state)
   italicAllowedHere.value = toggleMark(schema.marks.italic)(state)
   isTextblockSelection.value = !(state.selection instanceof NodeSelection)
+  hasRangeSelection.value = !state.selection.empty
 }
 
 // Click handler for the top toolbar's Link button. The button is gated
@@ -1536,7 +1546,7 @@ watch(
     focus-within
     :aria-readonly="isInactive || undefined"
     class="pd-inputhtml p-0 contain-inline-size"
-    :class="{ 'pd-locked': lock > 0, 'pd-inactive': inactivated || readonly }"
+    :class="{ 'pd-locked': lock > 0, 'pd-inactive': inactivated || readonly, 'pd-inputhtml-selection-range': hasRangeSelection }"
     @dragenter="onWrapperDragEnter"
     @dragover="onWrapperDragOver"
     @dragleave="onWrapperDragLeave"
