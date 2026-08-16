@@ -641,11 +641,14 @@ Frontend tests use [Vitest](https://vitest.dev/):
 npm run test-ci
 ```
 
-We use [Playwright](https://playwright.dev/) for end-to-end testing. Run tests with:
+We use [Playwright](https://playwright.dev/) for end-to-end testing. The tests run against an instance
+populated with [the test data set](#test-data), so populate and reindex with it before running them, and
+serve the instance with `config.yml` so that the sites, roles and languages the tests expect are configured.
+Point the tests at the instance with `PEERDB_URL` (it defaults to `https://localhost:8080`):
 
 ```sh
 npm run test-e2e-install
-npm run test-e2e
+PEERDB_URL=https://localhost:8080 npm run test-e2e
 ```
 
 ## GitHub mirror
