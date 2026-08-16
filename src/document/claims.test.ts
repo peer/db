@@ -381,13 +381,40 @@ describe("GetClaimsListsOfType", () => {
     const lists = getClaimsListsOfType(ct, "string", prop)
     assert.equal(lists.length, 2)
 
-    // Find list A (2 items) and list B (1 item).
-    const listAClaims = lists.find((l) => l.length === 2)!
-    const listBClaims = lists.find((l) => l.length === 1)!
+    // The lists come back in the order their first claim is in on the document, so list A comes first: its
+    // "a2" is the first claim of the document, while list B is not reached until "b1".
+    const [listAClaims, listBClaims] = lists
 
     assert.equal(listAClaims[0].string, "a1") // Order 1.
     assert.equal(listAClaims[1].string, "a2") // Order 2.
     assert.equal(listBClaims[0].string, "b1")
+  })
+
+  test("an order of zero is an order, no order sorts last, and equal orders keep document order", () => {
+    const prop = Identifier.new().toString()
+    const list = Identifier.new().toString()
+
+    const claim = (value: string, order?: string) => ({
+      id: Identifier.new().toString(),
+      confidence: 1.0,
+      prop: { id: prop },
+      string: value,
+      sub: {
+        id: [{ id: Identifier.new().toString(), confidence: 1.0, prop: { id: LIST }, value: list }],
+        ...(order === undefined ? {} : { amount: [{ id: Identifier.new().toString(), confidence: 1.0, prop: { id: ORDER_IN_LIST }, amount: order, precision: 1 }] }),
+      },
+    })
+
+    const ct = new ClaimTypes({
+      string: [claim("unplaced first on the document"), claim("second", "1"), claim("unplaced second on the document"), claim("first", "0"), claim("third", "2")],
+    })
+
+    const lists = getClaimsListsOfType(ct, "string", prop)
+    assert.equal(lists.length, 1)
+    assert.deepEqual(
+      lists[0].map((c) => c.string),
+      ["first", "second", "third", "unplaced first on the document", "unplaced second on the document"],
+    )
   })
 
   test("claims without LIST go into one group", () => {

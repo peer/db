@@ -1001,9 +1001,29 @@ export function getAllClaimsOfTypeWithConfidence<K extends ClaimTypeName>(
   return claims.filter((claim) => claim.confidence >= confidence)
 }
 
+// claimOrderInList is where a claim states it belongs among the claims it is listed with, read from its
+// ORDER_IN_LIST sub-claim. A claim which states no order, or states one which is not a number, is placed
+// after every claim which states one, so that a claim nobody has placed never comes ahead of the placed
+// ones. An order of zero is an order like any other and is kept as one.
+export function claimOrderInList(sub: DeepReadonly<ClaimTypes> | undefined | null): number {
+  const amount = getBestClaimOfType(sub, "amount", ORDER_IN_LIST)?.amount
+  if (amount === undefined) {
+    return Number.MAX_VALUE
+  }
+  const order = parseFloat(amount)
+  return Number.isNaN(order) ? Number.MAX_VALUE : order
+}
+
 // getClaimsListsOfType groups claims by their LIST sub-claim and sorts within
 // each list by the ORDER_IN_LIST sub-claim. Returns an array of lists, where each
 // list is an array of claims sorted by order.
+//
+// A claim which states no order is placed after every claim which states one, and claims which
+// share an order (those without one among them) keep the order they are in on the document. The
+// lists come back in the order their first claim is in on the document. Neither the claims nor the
+// lists are ordered by anything of their own (their identifiers are assigned and say nothing about
+// where a claim belongs), so what the document says is what decides, and the same document is
+// always answered the same way.
 //
 // Claim has to have at least LowConfidence confidence.
 // TODO: Support also negation claims (i.e., those with negative confidence).
@@ -1015,17 +1035,23 @@ export function getClaimsListsOfType<K extends ClaimTypeName>(
   propertyId: string | string[],
 ): Required<DeepReadonly<ClaimTypes>>[K][number][][] {
   const claims = getClaimsOfTypeWithConfidence(claimTypes, claimType, propertyId)
-  const claimsPerList: Record<string, [Required<DeepReadonly<ClaimTypes>>[K][number], number][]> = {}
+  // A Map keeps the lists in the order their first claim was seen in whatever the list identifiers are,
+  // which an object does not: an identifier which is all digits would be an index and would come first.
+  const claimsPerList = new Map<string, [Required<DeepReadonly<ClaimTypes>>[K][number], number][]>()
   for (const claim of claims) {
     const list = getBestClaimOfType(claim.sub, "id", LIST)?.value || "none"
-    const order = parseFloat(getBestClaimOfType(claim.sub, "amount", ORDER_IN_LIST)?.amount ?? "") || Number.MAX_VALUE
-    if (!(list in claimsPerList)) {
-      claimsPerList[list] = []
+    const order = claimOrderInList(claim.sub)
+    let entries = claimsPerList.get(list)
+    if (entries === undefined) {
+      entries = []
+      claimsPerList.set(list, entries)
     }
-    claimsPerList[list].push([claim, order])
+    entries.push([claim, order])
   }
   const res = []
-  for (const c of Object.values(claimsPerList)) {
+  for (const c of claimsPerList.values()) {
+    // Array.prototype.sort is stable, so claims which share an order stay in the order the document has
+    // them in.
     res.push(c.sort(([_c1, o1], [_c2, o2]) => o1 - o2).map(([cl]) => cl))
   }
   return res

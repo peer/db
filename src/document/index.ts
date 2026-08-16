@@ -26,6 +26,7 @@ export {
   TimeIntervalClaim,
   UNDETERMINED_LANGUAGE,
   UnknownClaim,
+  claimOrderInList,
   claimTypeName,
   getAllClaimsOfTypeWithConfidence,
   getBestClaimOfType,

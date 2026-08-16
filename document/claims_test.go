@@ -1414,15 +1414,9 @@ func TestGetClaimsListsOfType(t *testing.T) {
 	lists := document.GetClaimsListsOfType[document.StringClaim](ct, prop)
 	require.Len(t, lists, 2)
 
-	// Find list A and list B (order of lists is not guaranteed).
-	var listAClaims, listBClaims []*document.StringClaim
-	for _, list := range lists {
-		if len(list) == 2 {
-			listAClaims = list
-		} else {
-			listBClaims = list
-		}
-	}
+	// The lists come back in the order their first claim is in on the document, so list A comes first: its
+	// "a2" is the first claim of the document, while list B is not reached until "b1".
+	listAClaims, listBClaims := lists[0], lists[1]
 
 	// List A should have two claims sorted by order: "a1" (order 1), "a2" (order 2).
 	require.Len(t, listAClaims, 2)
@@ -1432,6 +1426,57 @@ func TestGetClaimsListsOfType(t *testing.T) {
 	// List B should have one claim: "b1".
 	require.Len(t, listBClaims, 1)
 	assert.Equal(t, "b1", listBClaims[0].String)
+}
+
+// stringClaimInList builds a string claim of the given property which states which list it belongs to and,
+// unless order is empty, where in that list it belongs.
+func stringClaimInList(prop identifier.Identifier, value, list, order string) document.StringClaim {
+	sub := &document.ClaimTypes{
+		Identifier: document.IdentifierClaims{
+			{CoreClaim: document.CoreClaim{ID: identifier.New(), Confidence: 1.0}, Prop: document.Reference{ID: internalCore.ListPropID}, Value: list},
+		},
+	}
+	if order != "" {
+		sub.Amount = document.AmountClaims{
+			{CoreClaim: document.CoreClaim{ID: identifier.New(), Confidence: 1.0}, Prop: document.Reference{ID: internalCore.OrderInListPropID}, Amount: document.Amount(order), Precision: 1},
+		}
+	}
+	return document.StringClaim{
+		CoreClaim: document.CoreClaim{ID: identifier.New(), Confidence: 1.0, Sub: sub},
+		Prop:      document.Reference{ID: prop},
+		String:    value,
+	}
+}
+
+// TestGetClaimsListsOfTypeOrdering tests what decides the order a list comes back in: the order each claim
+// states, where a claim stating none goes, and what happens to claims which state the same one.
+func TestGetClaimsListsOfTypeOrdering(t *testing.T) {
+	t.Parallel()
+
+	prop := identifier.New()
+	list := identifier.New().String()
+
+	ct := &document.ClaimTypes{
+		String: document.StringClaims{
+			stringClaimInList(prop, "unplaced first on the document", list, ""),
+			stringClaimInList(prop, "second", list, "1"),
+			stringClaimInList(prop, "unplaced second on the document", list, ""),
+			stringClaimInList(prop, "first", list, "0"),
+			stringClaimInList(prop, "third", list, "2"),
+		},
+	}
+
+	lists := document.GetClaimsListsOfType[document.StringClaim](ct, prop)
+	require.Len(t, lists, 1)
+
+	// An order of zero places a claim ahead of the ones after it rather than counting as no order at all, a
+	// claim which states no order comes after every claim which states one, and the two which state none keep
+	// the order the document has them in.
+	values := make([]string, 0, len(lists[0]))
+	for _, claim := range lists[0] {
+		values = append(values, claim.String)
+	}
+	assert.Equal(t, []string{"first", "second", "third", "unplaced first on the document", "unplaced second on the document"}, values)
 }
 
 // TestGetClaimsListsOfTypeNoList tests claims without LIST sub-claims.
