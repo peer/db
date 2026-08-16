@@ -1117,6 +1117,12 @@ async function onSave() {
     return
   }
 
+  // The inputs a refused save leaves the user to fix, focused once the save is over. Focusing while the
+  // save is still running would not land on every kind of input: the form is locked for as long as the
+  // save runs, and a locked control which is a button (or a checkbox) is disabled rather than read-only,
+  // so it cannot take focus at all.
+  let invalidInputs: Iterable<ValidatedInput> | null = null
+
   saveBusy.value += 1
   try {
     sessionError.value = ""
@@ -1132,7 +1138,7 @@ async function onSave() {
         return
       }
       if (fieldsFormInvalid.value) {
-        focusFirstInvalid(fieldsFormRef.value.inputs)
+        invalidInputs = fieldsFormRef.value.inputs
         return
       }
     }
@@ -1167,7 +1173,7 @@ async function onSave() {
         return
       }
       if (fieldsFormInvalid.value) {
-        focusFirstInvalid(fieldsFormRef.value.inputs)
+        invalidInputs = fieldsFormRef.value.inputs
         return
       }
     }
@@ -1300,6 +1306,11 @@ async function onSave() {
     sessionError.value = `${err}`
   } finally {
     saveBusy.value -= 1
+    if (invalidInputs !== null) {
+      // The inputs are focusable again only once the render which unlocks them has run.
+      await nextTick()
+      focusFirstInvalid(invalidInputs)
+    }
   }
 }
 
