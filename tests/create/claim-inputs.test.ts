@@ -65,6 +65,20 @@ const FISSIONING_ID = await documentIdOf("INDIVIDUALITY_MODE", "FISSIONING")
 const SEALED_CULTIVATION_ID = await documentIdOf("SUBSISTENCE_MODE", "SEALED_CULTIVATION")
 const TRADE_DEPENDENCY_ID = await documentIdOf("SUBSISTENCE_MODE", "TRADE_DEPENDENCY")
 
+// A species declares no required reference select, so the two tests of one work on the classes which
+// do: a sector, which must name the galaxy it slices (one galaxy at a time, so radio buttons), and a
+// communication system, which must name at least one modality it is carried by (several, so
+// checkboxes). Both are listed at once, the catalogue holding a handful of each.
+const SECTOR_CLASS = "SECTOR"
+const SECTOR_ROLE = "surveyor"
+const COMMUNICATION_SYSTEM_CLASS = "COMMUNICATION_SYSTEM"
+const COMMUNICATION_SYSTEM_ROLE = "researcher"
+const MILKY_WAY_ID = await documentIdOf("GALAXY", "G1_MILKY_WAY")
+const VOCALISATION_ID = await documentIdOf("COMMUNICATION_MODALITY", "VOCALISATION")
+
+// What the form says about a field which is required and holds nothing.
+const REQUIRED_MESSAGE = "Required value."
+
 // The block of one sub-field of a field of the edit form, which is where the sub-claims of a value
 // are edited: the gloss of an endonym, the unit of an amount. A sub-field is rendered only once the
 // value it belongs to has been entered, and it carries the identifier of its own property.
@@ -75,6 +89,13 @@ function subField(page: Page, propertyId: string, subPropertyId: string): Locato
 // One of the entries a reference select offers, addressed by the document the entry stands for.
 function selectItem(page: Page, propertyId: string, documentId: string): Locator {
   return field(page, propertyId).locator(`.pd-claimrefselect-item-${documentId}`)
+}
+
+// What a reference select complains about the selection it holds. The select manages all of the
+// field's claims itself and renders its complaint inside its own fieldset, rather than through the
+// value slots every other input errors in, so the shared fieldErrors does not match it.
+function selectErrors(page: Page, propertyId: string): Locator {
+  return field(page, propertyId).locator(".pd-claimrefselect-error")
 }
 
 // Waits until the edit form has taken focus into a field of its own. The form focuses a field as
@@ -160,6 +181,33 @@ async function createDocument(page: Page, entityClass: EntityClass, name: string
 
   await saveEdit(page)
   await expect(page.locator("#documentget-title"), `the title of the created ${entityClass}`).toHaveText(name, { timeout: LOADING_TIMEOUT })
+}
+
+// Starts a document of the given class, writes its name into the form and leaves the form open on it.
+// This is createDocument up to the save, which a class with a required reference select cannot pass
+// before that select holds a value, so its tests work on the form of a document which was never saved.
+async function startNamed(page: Page, entityClass: EntityClass, name: string): Promise<void> {
+  await startCreate(page, entityClass)
+  await hideDuplicates(page)
+  await settleFormFocus(page)
+
+  const nameInput = fieldInput(page, PROPERTY_IDS.NAME, ".pd-inputstring")
+  await expect(nameInput, `the name input of the new ${entityClass}`).toBeVisible({ timeout: LOADING_TIMEOUT })
+  const posted = changePosted(page)
+  await nameInput.fill(name)
+  await nameInput.blur()
+  await expect(nameInput, `the name input of the new ${entityClass} holds the entered name`).toHaveValue(name)
+  await expect(page.locator("#documentedit-title"), `the title of the form of the new ${entityClass}`).toHaveText(name)
+  await posted
+  await expectNothingPending(page)
+}
+
+// Takes the focus out of the reference select which is being worked on, onto the name at the top of
+// the form, which is what a user does by going to another field. The focus is moved rather than tabbed
+// away because Tab out of a list of checkboxes lands on the next checkbox of the same list, which is
+// not leaving the field at all.
+async function leaveField(page: Page): Promise<void> {
+  await fieldInput(page, PROPERTY_IDS.NAME, ".pd-inputstring").focus()
 }
 
 // Drives a reference input the way a user does and checkpoints the three states it goes through: the
@@ -895,6 +943,106 @@ test.describe("PeerDB Claim Input Flows", () => {
 
     console.log(
       "Successfully selected 2 reference claims, unselected 1 of them and selected it again through the checkboxes of a reference select, on a newly created species.",
+    )
+  })
+
+  test("Test the required reference select rendered as radio buttons", async ({ context }) => {
+    const page = await context.newPage()
+
+    await signIn(page, [SECTOR_ROLE])
+    await startNamed(page, SECTOR_CLASS, `${NAME_PREFIX} Required Radio Select`)
+
+    // The galaxy a sector slices is required, and the galaxies are few enough to be listed at once, so
+    // the required field is a reference select of radio buttons.
+    const galaxy = field(page, PROPERTY_IDS.CONTAINED_IN)
+    await expect(galaxy.locator(".pd-claimrefselect"), "the galaxy of the sector is a reference select").toBeVisible({ timeout: LOADING_TIMEOUT })
+    await expect(galaxy.locator(".pd-inputbadges-badge-required"), "the galaxy of the sector says it is required").toBeVisible()
+
+    // Selecting disables the list until the change has committed, and a disabled entry cannot keep the
+    // focus the click gave it. That blur must not be read as the user leaving the field: the field
+    // would be complained about as empty over the very value which is on its way into it.
+    const milkyWay = selectItem(page, PROPERTY_IDS.CONTAINED_IN, MILKY_WAY_ID).locator(".pd-claimrefselect-radio")
+    await milkyWay.click()
+    await expect(milkyWay, "the selected galaxy").toBeChecked({ timeout: LOADING_TIMEOUT })
+    await expectNothingPending(page)
+    await expect(selectErrors(page, PROPERTY_IDS.CONTAINED_IN), "complaints about the galaxy which was just selected").toHaveCount(0)
+    // The focus is given back to the entry once the change settled, so the user is still on the field
+    // and leaving it later is what validates it.
+    await expect(milkyWay, "the selected entry keeps the focus").toBeFocused()
+    await checkpointBlock(page, galaxy, "claiminputs-requiredradioselect-selected")
+
+    // Clearing the selection is what the complaint is for, and it comes as soon as the field is left.
+    await milkyWay.click()
+    await expect(milkyWay, "the selection is cleared by clicking the selected entry again").not.toBeChecked({ timeout: LOADING_TIMEOUT })
+    await expectNothingPending(page)
+    await expect(selectErrors(page, PROPERTY_IDS.CONTAINED_IN), "complaints while the user is still on the emptied galaxy").toHaveCount(0)
+    await leaveField(page)
+    await expect(selectErrors(page, PROPERTY_IDS.CONTAINED_IN), "the complaint about the galaxy which was left empty").toHaveText(REQUIRED_MESSAGE)
+    await checkpointBlock(page, galaxy, "claiminputs-requiredradioselect-emptied")
+
+    // Selecting again answers the complaint, and the sector can be saved once it names a galaxy.
+    await milkyWay.click()
+    await expect(milkyWay, "the galaxy is selected again").toBeChecked({ timeout: LOADING_TIMEOUT })
+    await expectNothingPending(page)
+    await expect(selectErrors(page, PROPERTY_IDS.CONTAINED_IN), "complaints once the galaxy holds a selection again").toHaveCount(0)
+
+    await saveEdit(page)
+    await expect(fieldValues(page, PROPERTY_IDS.CONTAINED_IN).locator(`a[href*="/d/${MILKY_WAY_ID}"]`), "the galaxy of the saved sector").toBeVisible()
+    await checkpointPage(page, "claiminputs-requiredradioselect-saved-document", volatile(page))
+
+    console.log(
+      "Successfully selected, cleared and selected again 1 required reference claim through the radio buttons of a reference select, on a new sector, and saw it complained about only while it was left empty.",
+    )
+  })
+
+  test("Test the required reference select rendered as checkboxes", async ({ context }) => {
+    const page = await context.newPage()
+
+    await signIn(page, [COMMUNICATION_SYSTEM_ROLE])
+    await startNamed(page, COMMUNICATION_SYSTEM_CLASS, `${NAME_PREFIX} Required Checkbox Select`)
+
+    // A communication system must be carried by at least one modality, so the required field is a
+    // reference select which may hold several values and therefore offers checkboxes.
+    const modality = field(page, PROPERTY_IDS.HAS_COMMUNICATION_MODALITY)
+    await expect(modality.locator(".pd-claimrefselect"), "the modality of the communication system is a reference select").toBeVisible({
+      timeout: LOADING_TIMEOUT,
+    })
+    await expect(modality.locator(".pd-inputbadges-badge-required"), "the modality of the communication system says it is required").toBeVisible()
+
+    // Ticking an entry disables the list the same way selecting a radio button does, so the same blur
+    // must not be read as the user leaving the field.
+    const vocalisation = selectItem(page, PROPERTY_IDS.HAS_COMMUNICATION_MODALITY, VOCALISATION_ID).locator(".pd-claimrefselect-checkbox")
+    await vocalisation.click()
+    await expect(vocalisation, "the ticked modality").toBeChecked({ timeout: LOADING_TIMEOUT })
+    await expectNothingPending(page)
+    await expect(selectErrors(page, PROPERTY_IDS.HAS_COMMUNICATION_MODALITY), "complaints about the modality which was just ticked").toHaveCount(0)
+    await expect(vocalisation, "the ticked entry keeps the focus").toBeFocused()
+    await checkpointBlock(page, modality, "claiminputs-requiredcheckboxselect-selected")
+
+    // Unticking the only value leaves the field holding nothing, which it is complained about for once
+    // the user goes elsewhere.
+    await vocalisation.click()
+    await expect(vocalisation, "the modality is unticked by clicking it again").not.toBeChecked({ timeout: LOADING_TIMEOUT })
+    await expectNothingPending(page)
+    await expect(selectErrors(page, PROPERTY_IDS.HAS_COMMUNICATION_MODALITY), "complaints while the user is still on the emptied modality").toHaveCount(0)
+    await leaveField(page)
+    await expect(selectErrors(page, PROPERTY_IDS.HAS_COMMUNICATION_MODALITY), "the complaint about the modality which was left empty").toHaveText(REQUIRED_MESSAGE)
+    await checkpointBlock(page, modality, "claiminputs-requiredcheckboxselect-emptied")
+
+    await vocalisation.click()
+    await expect(vocalisation, "the modality is ticked again").toBeChecked({ timeout: LOADING_TIMEOUT })
+    await expectNothingPending(page)
+    await expect(selectErrors(page, PROPERTY_IDS.HAS_COMMUNICATION_MODALITY), "complaints once the modality holds a value again").toHaveCount(0)
+
+    await saveEdit(page)
+    await expect(
+      fieldValues(page, PROPERTY_IDS.HAS_COMMUNICATION_MODALITY).locator(`a[href*="/d/${VOCALISATION_ID}"]`),
+      "the modality of the saved communication system",
+    ).toBeVisible()
+    await checkpointPage(page, "claiminputs-requiredcheckboxselect-saved-document", volatile(page))
+
+    console.log(
+      "Successfully ticked, unticked and ticked again 1 required reference claim through the checkboxes of a reference select, on a new communication system, and saw it complained about only while it was left empty.",
     )
   })
 })

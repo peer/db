@@ -234,6 +234,7 @@ function toggle(target: string, checked: boolean): void {
     } else if (!checked && existing) {
       await doRemove(existing)
     }
+    await settleFocus(target)
   })
 }
 
@@ -242,6 +243,8 @@ function select(target: string | undefined): void {
   clearErrors()
   void runSerialized(async () => {
     const existing = current.value.length > 0 ? current.value[0] : null
+    // The row the user acted on: the one they selected, or, on a deselect, the one they cleared.
+    const row = target ?? (existing ? claimTarget(existing) : undefined)
     if (target === undefined) {
       if (existing) {
         await doRemove(existing)
@@ -251,6 +254,7 @@ function select(target: string | undefined): void {
     } else if (claimTarget(existing) !== target) {
       await doSet(existing, target)
     }
+    await settleFocus(row)
   })
 }
 
@@ -298,7 +302,16 @@ const errorMessage = computed<string | null>(() => pickErrorMessage(errors.value
 // validation so the required error appears as soon as the user tabs/clicks away
 // from a selection which is still too small. The nextTick is needed because
 // focusout fires while document.activeElement is still in transition.
-async function onFocusout(): Promise<void> {
+async function onFocusout(event: FocusEvent): Promise<void> {
+  // The list is disabled while a toggle commits, and a disabled control cannot keep
+  // the focus the user just gave it: the browser blurs it, which fires this focusout
+  // although the user is still on the field. Such a blur is told apart by the control
+  // which lost the focus being disabled. Validating on it would flag the field as
+  // required against the very selection which is committing right now, so it is left
+  // to settleFocus, which decides once the change settled.
+  if (event.target instanceof HTMLInputElement && event.target.disabled) {
+    return
+  }
   await nextTick()
   if (abortController.signal.aborted) {
     return
@@ -307,6 +320,30 @@ async function onFocusout(): Promise<void> {
     return
   }
   await validate()
+}
+
+// settleFocus resolves, after a toggle's change settled, where the focus the commit's
+// disable took belongs. The focus goes back to the control of the acted-on row when
+// nothing else claimed it, so the field keeps the focus the user gave it (the controls
+// are enabled again by the render which follows the commit, and a disabled control
+// refuses the focus). When the user moved the focus elsewhere while the change was
+// committing the field really has been left, so it is validated here instead - the
+// focusout could not, having skipped the disable's blur.
+async function settleFocus(row: string | undefined): Promise<void> {
+  await nextTick()
+  if (abortController.signal.aborted) {
+    return
+  }
+  const active = document.activeElement
+  if (active === null || active === document.body) {
+    if (row !== undefined) {
+      focusControl(row)
+    }
+    return
+  }
+  if (!fieldsetRef.value?.contains(active)) {
+    await validate()
+  }
 }
 
 // revert reconciles the selection back to the checkpoint, posting the reverting
