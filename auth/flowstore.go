@@ -41,6 +41,15 @@ type flowState struct {
 // flowStore persists the authentication flow state in the per-site PostgreSQL
 // schema. It is constructed once per Authenticator. Connections pick up the
 // right schema via the search_path that the request context configures.
+//
+// Every flow statement stands on its own: a row is written, taken, or swept,
+// and nothing is read in one statement and acted on in another, so the
+// atomicity of a single statement is all any of them needs and they run at
+// READ COMMITTED. At SERIALIZABLE the rows a taking DELETE reads to find its
+// own are part of its read set, and can include the rows other sign-ins are
+// taking at that moment, so concurrent sign-ins conflict with one another and
+// with the sweep. Under load that exhausts the retries, and a sign-in which
+// runs out of them fails with an error the caller cannot do anything about.
 type flowStore struct {
 	DBPool *pgxpool.Pool
 }
@@ -89,7 +98,7 @@ func (s *flowStore) Init(ctx context.Context) errors.E {
 // BeginFlow stores a new flow row keyed by state. The state value must be
 // unpredictable to a third party.
 func (s *flowStore) BeginFlow(ctx context.Context, state string, fs flowState) errors.E {
-	return internalStore.RetryTransaction(ctx, s.DBPool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
+	return internalStore.RetryTransactionWithIsoLevel(ctx, s.DBPool, pgx.ReadCommitted, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
 		_, err := tx.Exec(ctx, `
 			INSERT INTO "AuthFlows" ("state", "codeVerifier", "nonce", "redirect", "expiresAt")
 			VALUES ($1, $2, $3, $4, now() + make_interval(secs => $5))
@@ -101,9 +110,14 @@ func (s *flowStore) BeginFlow(ctx context.Context, state string, fs flowState) e
 // ConsumeFlow atomically deletes the row identified by state and returns its
 // flowState. Single-use semantics: a second call with the same state returns
 // errFlowNotFound. Expired rows are treated as absent.
+//
+// The single-use guarantee is the deleting statement's own: of two callers
+// racing for one state, the second waits for the first to commit and then
+// finds no row left to delete, so it returns no row and the flow is consumed
+// exactly once.
 func (s *flowStore) ConsumeFlow(ctx context.Context, state string) (flowState, errors.E) {
 	var fs flowState
-	errE := internalStore.RetryTransaction(ctx, s.DBPool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
+	errE := internalStore.RetryTransactionWithIsoLevel(ctx, s.DBPool, pgx.ReadCommitted, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
 		// Initialize in the case transaction is retried.
 		fs = flowState{}
 
@@ -125,10 +139,11 @@ func (s *flowStore) ConsumeFlow(ctx context.Context, state string) (flowState, e
 }
 
 // cleanupExpired removes rows whose expiresAt is in the past. Safe to call
-// concurrently with BeginFlow / ConsumeFlow because all writes go through
-// serializable transactions.
+// concurrently with BeginFlow/ConsumeFlow: it takes only rows which have
+// expired, which is exactly what ConsumeFlow refuses to hand out, so the two
+// never disagree about a row either of them takes.
 func (s *flowStore) cleanupExpired(ctx context.Context) errors.E {
-	return internalStore.RetryTransaction(ctx, s.DBPool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
+	return internalStore.RetryTransactionWithIsoLevel(ctx, s.DBPool, pgx.ReadCommitted, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
 		_, err := tx.Exec(ctx, `DELETE FROM "AuthFlows" WHERE "expiresAt" <= now()`)
 		return internalStore.WithPgxError(err)
 	})

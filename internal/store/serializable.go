@@ -81,10 +81,15 @@ func RetryTransaction(
 }
 
 // RetryTransactionWithIsoLevel is like RetryTransaction but at an explicit isolation level. Most transactions
-// should use RetryTransaction. A weaker level is appropriate only for read-only queries which tolerate
-// observing a snapshot that is consistent but possibly not serializable with concurrent transactions, where
-// SERIALIZABLE would make the query both fail spuriously and force concurrent writers to retry. The level is
-// always set explicitly so that semantics do not depend on the server's default_transaction_isolation setting.
+// should use RetryTransaction. A weaker level is appropriate in two cases. One is a read-only query which
+// tolerates observing a snapshot that is consistent but possibly not serializable with concurrent
+// transactions, where SERIALIZABLE would make the query both fail spuriously and force concurrent writers to
+// retry. The other is a transaction of a single statement which decides everything it needs from that
+// statement alone, where the statement's own atomicity already provides what SERIALIZABLE would: nothing is
+// read in one statement and acted on in another, so there is no invariant across statements to protect, while
+// SERIALIZABLE would still make the rows the statement reads part of a read set which concurrent statements
+// conflict with. The level is always set explicitly so that semantics do not depend on the server's
+// default_transaction_isolation setting.
 //
 // If ctx already carries a transaction, fn runs inside that transaction, at its isolation level.
 func RetryTransactionWithIsoLevel(

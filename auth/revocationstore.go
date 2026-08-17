@@ -44,6 +44,13 @@ type revocationCacheEntry struct {
 // result is then written back to the cache. The cache stores both
 // outcomes. Revoked rows are cached until the token expires anyway,
 // not-revoked answers for notRevokedCacheTTL.
+//
+// Every statement below stands on its own, so they run at READ COMMITTED:
+// a lookup asks whether one row is there, a revocation writes one row, and
+// the sweep takes the rows which have expired. At SERIALIZABLE the sweep and
+// the lookups would be part of one another's read and write sets, which makes
+// the check on the per-request path fail and retry for a reason which has
+// nothing to do with the answer it is after.
 type revocationStore struct {
 	DBPool *pgxpool.Pool
 
@@ -133,7 +140,7 @@ func (s *revocationStore) IsRevoked(ctx context.Context, token string, tokenExp 
 
 	// Cold path: ask the database.
 	var revoked bool
-	errE := internalStore.RetryTransaction(ctx, s.DBPool, pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
+	errE := internalStore.RetryTransactionWithIsoLevel(ctx, s.DBPool, pgx.ReadCommitted, pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
 		// We do not filter by expiresAt because once a token is revoked it is revoked
 		// and it does not matter if it is still in a database not cleaned up.
 		row := tx.QueryRow(ctx, `
@@ -173,7 +180,7 @@ func (s *revocationStore) IsRevoked(ctx context.Context, token string, tokenExp 
 func (s *revocationStore) Revoke(ctx context.Context, token string, tokenExp time.Time) errors.E {
 	hash := hashToken(token)
 
-	errE := internalStore.RetryTransaction(ctx, s.DBPool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
+	errE := internalStore.RetryTransactionWithIsoLevel(ctx, s.DBPool, pgx.ReadCommitted, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
 		_, err := tx.Exec(ctx, `
 			INSERT INTO "RevokedTokens" ("tokenHash", "expiresAt")
 			VALUES ($1, $2)
@@ -195,7 +202,7 @@ func (s *revocationStore) Revoke(ctx context.Context, token string, tokenExp tim
 // cleanupExpired removes rows for tokens that have already expired. Safe
 // to call concurrently with Revoke/IsRevoked.
 func (s *revocationStore) cleanupExpired(ctx context.Context) errors.E {
-	return internalStore.RetryTransaction(ctx, s.DBPool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
+	return internalStore.RetryTransactionWithIsoLevel(ctx, s.DBPool, pgx.ReadCommitted, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
 		_, err := tx.Exec(ctx, `DELETE FROM "RevokedTokens" WHERE "expiresAt" <= now()`)
 		return internalStore.WithPgxError(err)
 	})
