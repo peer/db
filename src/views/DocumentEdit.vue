@@ -278,24 +278,34 @@ const sessionEnded = ref(false)
 // Potential-duplicates panel, only mounted for create sessions in field form mode.
 const duplicatesRef = useTemplateRef<{ refresh: () => Promise<void> }>("duplicatesRef")
 
-// Debounce the duplicate search so it runs once a field's blur has committed into the doc (a
-// blur fires a saveChange that the subscription applies into doc.claims shortly after), and so rapid
-// tabbing between fields does not fire a search per field.
+// How long the duplicate search waits for the document to stop changing. Tabbing through several fields
+// commits a change per field, and the search is about the document rather than about any one of them.
+const DUPLICATES_DEBOUNCE = 400
+
+// The duplicate search follows the document itself and not the blur which changed it. A blur posts a
+// saveChange, and the change reaches doc.claims only once the subscription applies it, which is a round
+// trip away: a search started by the blur can therefore ask about the document as it was before the field
+// was left, and what it answers then stands until the next blur, however wrong it has become. Watching the
+// document instead searches for what the document says, whenever that is what it comes to say.
 let duplicatesTimer: ReturnType<typeof setTimeout> | null = null
-function onFieldsBlur() {
-  if (!isCreating.value) {
-    return
-  }
-  if (duplicatesTimer !== null) {
-    clearTimeout(duplicatesTimer)
-  }
-  duplicatesTimer = setTimeout(() => {
-    duplicatesTimer = null
-    duplicatesRef.value?.refresh().catch((err: unknown) => {
-      console.error("DocumentEdit.onFieldsBlur", err)
-    })
-  }, 400)
-}
+watch(
+  doc,
+  () => {
+    if (!isCreating.value) {
+      return
+    }
+    if (duplicatesTimer !== null) {
+      clearTimeout(duplicatesTimer)
+    }
+    duplicatesTimer = setTimeout(() => {
+      duplicatesTimer = null
+      duplicatesRef.value?.refresh().catch((err: unknown) => {
+        console.error("DocumentEdit duplicates", err)
+      })
+    }, DUPLICATES_DEBOUNCE)
+  },
+  { deep: true },
+)
 
 onBeforeUnmount(() => {
   if (duplicatesTimer !== null) {
@@ -1765,17 +1775,15 @@ function canSave(): boolean {
             <TabPanels as="template">
               <!-- Class-specific tab. -->
               <TabPanel v-if="classTabId && mergedFieldsData" :key="classTabId" tabindex="-1" class="pd-documentedit-panel-fields outline-none">
-                <div @focusout="onFieldsBlur">
-                  <FieldsForm
-                    ref="fieldsFormRef"
-                    v-model:invalid="fieldsFormInvalid"
-                    :fields-data="mergedFieldsData"
-                    :claims="doc.claims"
-                    :initial-claims="initialDoc?.claims ?? doc.claims"
-                  />
-                  <!-- Potential duplicates of the document being created, refreshed on every field blur. -->
-                  <DocumentDuplicates v-if="isCreating" ref="duplicatesRef" :doc="doc" />
-                </div>
+                <FieldsForm
+                  ref="fieldsFormRef"
+                  v-model:invalid="fieldsFormInvalid"
+                  :fields-data="mergedFieldsData"
+                  :claims="doc.claims"
+                  :initial-claims="initialDoc?.claims ?? doc.claims"
+                />
+                <!-- Potential duplicates of the document being created, searched for again whenever the document changes. -->
+                <DocumentDuplicates v-if="isCreating" ref="duplicatesRef" :doc="doc" />
               </TabPanel>
               <!-- "All properties" tab panel. -->
               <TabPanel tabindex="-1" class="pd-documentedit-panel-allproperties outline-none">
