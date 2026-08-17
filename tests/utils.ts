@@ -1254,6 +1254,11 @@ export async function openDocumentTab(page: Page, tab: string): Promise<void> {
   await expect(tabButton).toBeVisible()
   await tabButton.click()
   await expect(page.locator(`.pd-documentget-panel-${tab}`)).toBeVisible()
+  // The tab brings rows of its own, and each of them asks for the labels it names things with, so the panel
+  // being there is not the same as the panel being readable. What stands in for a label while it is fetched
+  // is drawn without motion, so two captures of it in a row are identical and a capture concludes it is of a
+  // page at rest, which is how such a stand-in ends up stored as what the tab looks like.
+  await expectNothingLoading(page)
 }
 
 // Starts an edit session for the document currently shown and waits for the form.
