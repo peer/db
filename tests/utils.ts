@@ -1890,9 +1890,16 @@ export async function closeSortDialog(page: Page): Promise<void> {
 // arrived by then, which is not the same twice. Settling it is what fixes the list to every facet the search
 // has.
 export async function checkpointDialog(page: Page, name: string): Promise<void> {
-  await expect(page.locator(".pd-searchsortdialog-panel"), "the sort dialog").toBeVisible()
+  const panel = page.locator(".pd-searchsortdialog-panel")
+  await expect(panel, "the sort dialog").toBeVisible()
   await settleFilters(page)
   await expectNothingLoading(page)
+  // The dialog is taller than the window and scrolls inside itself, and reaching a control in it scrolls it
+  // there: adding a column which the list of them holds below the fold scrolls the dialog down, and ticking
+  // that column's checkbox afterwards scrolls back only as far as the row it is in. The dialog is then left
+  // standing wherever the columns the search had loaded by then happened to put those two, which is not the
+  // same twice. It is anchored at its top before the capture, the way a whole page capture anchors the page.
+  await panel.evaluate((element) => element.scrollTo({ top: 0, left: 0, behavior: "instant" }))
   await checkpoint(page, name, { mask: volatile(page), fullPage: false })
 }
 
