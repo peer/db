@@ -20,6 +20,11 @@ func Vocabularies() ([]any, errors.E) { //nolint:maintidx
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
+			}, {
+				Value: "inglês",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "pt-PT"},
+				}},
 			}},
 			Description: nil,
 			Code:        []Identifier{"en-GB"},
@@ -44,12 +49,46 @@ func Vocabularies() ([]any, errors.E) { //nolint:maintidx
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
+			}, {
+				Value: "esloveno",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "pt-PT"},
+				}},
 			}},
 			Description: nil,
 			Code:        []Identifier{"sl-SI"},
 		},
 		DocumentFields: DocumentFields{
 			ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+			InstanceOf: []Ref{{
+				ID: []string{Namespace, "LANGUAGE"},
+			}},
+		},
+	})
+
+	documents = append(documents, &Language{
+		VocabularyFields: VocabularyFields{
+			Name: []StringWithLanguage{{
+				Value: "Portuguese",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "en-GB"},
+				}},
+			}, {
+				Value: "portugalščina",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}, {
+				Value: "português",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "pt-PT"},
+				}},
+			}},
+			Description: nil,
+			Code:        []Identifier{"pt-PT"},
+		},
+		DocumentFields: DocumentFields{
+			ID: []string{Namespace, "LANGUAGE", "pt-PT"},
 			InstanceOf: []Ref{{
 				ID: []string{Namespace, "LANGUAGE"},
 			}},
@@ -68,6 +107,11 @@ func Vocabularies() ([]any, errors.E) { //nolint:maintidx
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
+			}, {
+				Value: "litro",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "pt-PT"},
+				}},
 			}},
 			Description: []RawHTMLWithLanguage{{
 				Value: "<p>The litre volume unit.</p>",
@@ -78,6 +122,11 @@ func Vocabularies() ([]any, errors.E) { //nolint:maintidx
 				Value: "<p>Enota liter za prostornino.</p>",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}, {
+				Value: "<p>A unidade de volume litro.</p>",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "pt-PT"},
 				}},
 			}},
 			Code: []Identifier{"l"},
@@ -102,6 +151,11 @@ func Vocabularies() ([]any, errors.E) { //nolint:maintidx
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
+			}, {
+				Value: "quilograma por quilograma",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "pt-PT"},
+				}},
 			}},
 			Description: []RawHTMLWithLanguage{{
 				Value: "<p>The kilogram per kilogram ratio unit.</p>",
@@ -112,6 +166,11 @@ func Vocabularies() ([]any, errors.E) { //nolint:maintidx
 				Value: "<p>Enota kilogram na kilogram za razmerje.</p>",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}, {
+				Value: "<p>A unidade de razão quilograma por quilograma.</p>",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "pt-PT"},
 				}},
 			}},
 			Code: []Identifier{"kg/kg"},
@@ -136,6 +195,11 @@ func Vocabularies() ([]any, errors.E) { //nolint:maintidx
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
+			}, {
+				Value: "quilograma",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "pt-PT"},
+				}},
 			}},
 			Description: []RawHTMLWithLanguage{{
 				Value: "<p>The kilogram mass unit.</p>",
@@ -146,6 +210,11 @@ func Vocabularies() ([]any, errors.E) { //nolint:maintidx
 				Value: "<p>Enota kilogram za maso.</p>",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}, {
+				Value: "<p>A unidade de massa quilograma.</p>",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "pt-PT"},
 				}},
 			}},
 			Code: []Identifier{"kg"},
@@ -170,6 +239,11 @@ func Vocabularies() ([]any, errors.E) { //nolint:maintidx
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
+			}, {
+				Value: "quilograma por metro cúbico",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "pt-PT"},
+				}},
 			}},
 			Description: []RawHTMLWithLanguage{{
 				Value: "<p>The kilogram per cubic metre density unit.</p>",
@@ -180,6 +254,11 @@ func Vocabularies() ([]any, errors.E) { //nolint:maintidx
 				Value: "<p>Enota kilogram na kubični meter za gostoto.</p>",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}, {
+				Value: "<p>A unidade de densidade quilograma por metro cúbico.</p>",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "pt-PT"},
 				}},
 			}},
 			Code: []Identifier{"kg/m³"},
@@ -204,6 +283,11 @@ func Vocabularies() ([]any, errors.E) { //nolint:maintidx
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
+			}, {
+				Value: "metro",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "pt-PT"},
+				}},
 			}},
 			Description: []RawHTMLWithLanguage{{
 				Value: "<p>The metre length unit.</p>",
@@ -214,6 +298,11 @@ func Vocabularies() ([]any, errors.E) { //nolint:maintidx
 				Value: "<p>Enota meter za dolžino.</p>",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}, {
+				Value: "<p>A unidade de comprimento metro.</p>",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "pt-PT"},
 				}},
 			}},
 			Code: []Identifier{"m"},
@@ -238,6 +327,11 @@ func Vocabularies() ([]any, errors.E) { //nolint:maintidx
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
+			}, {
+				Value: "metro quadrado",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "pt-PT"},
+				}},
 			}},
 			Description: []RawHTMLWithLanguage{{
 				Value: "<p>The square metre area unit.</p>",
@@ -248,6 +342,11 @@ func Vocabularies() ([]any, errors.E) { //nolint:maintidx
 				Value: "<p>Enota kvadratni meter za površino.</p>",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}, {
+				Value: "<p>A unidade de área metro quadrado.</p>",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "pt-PT"},
 				}},
 			}},
 			Code: []Identifier{"m²"},
@@ -272,6 +371,11 @@ func Vocabularies() ([]any, errors.E) { //nolint:maintidx
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
+			}, {
+				Value: "metro por segundo",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "pt-PT"},
+				}},
 			}},
 			Description: []RawHTMLWithLanguage{{
 				Value: "<p>The metre per second velocity unit.</p>",
@@ -282,6 +386,11 @@ func Vocabularies() ([]any, errors.E) { //nolint:maintidx
 				Value: "<p>Enota meter na sekundo za hitrost.</p>",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}, {
+				Value: "<p>A unidade de velocidade metro por segundo.</p>",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "pt-PT"},
 				}},
 			}},
 			Code: []Identifier{"m/s"},
@@ -306,6 +415,11 @@ func Vocabularies() ([]any, errors.E) { //nolint:maintidx
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
+			}, {
+				Value: "volt",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "pt-PT"},
+				}},
 			}},
 			Description: []RawHTMLWithLanguage{{
 				Value: "<p>The volt electric potential unit.</p>",
@@ -316,6 +430,11 @@ func Vocabularies() ([]any, errors.E) { //nolint:maintidx
 				Value: "<p>Enota volt za električno napetost.</p>",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}, {
+				Value: "<p>A unidade de potencial elétrico volt.</p>",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "pt-PT"},
 				}},
 			}},
 			Code: []Identifier{"V"},
@@ -340,6 +459,11 @@ func Vocabularies() ([]any, errors.E) { //nolint:maintidx
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
+			}, {
+				Value: "watt",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "pt-PT"},
+				}},
 			}},
 			Description: []RawHTMLWithLanguage{{
 				Value: "<p>The watt power unit.</p>",
@@ -350,6 +474,11 @@ func Vocabularies() ([]any, errors.E) { //nolint:maintidx
 				Value: "<p>Enota vat za moč.</p>",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}, {
+				Value: "<p>A unidade de potência watt.</p>",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "pt-PT"},
 				}},
 			}},
 			Code: []Identifier{"W"},
@@ -374,6 +503,11 @@ func Vocabularies() ([]any, errors.E) { //nolint:maintidx
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
+			}, {
+				Value: "pascal",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "pt-PT"},
+				}},
 			}},
 			Description: []RawHTMLWithLanguage{{
 				Value: "<p>The pascal pressure unit.</p>",
@@ -384,6 +518,11 @@ func Vocabularies() ([]any, errors.E) { //nolint:maintidx
 				Value: "<p>Enota pascal za tlak.</p>",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}, {
+				Value: "<p>A unidade de pressão pascal.</p>",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "pt-PT"},
 				}},
 			}},
 			Code: []Identifier{"Pa"},
@@ -408,6 +547,11 @@ func Vocabularies() ([]any, errors.E) { //nolint:maintidx
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
+			}, {
+				Value: "coulomb",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "pt-PT"},
+				}},
 			}},
 			Description: []RawHTMLWithLanguage{{
 				Value: "<p>The coulomb electric charge unit.</p>",
@@ -418,6 +562,11 @@ func Vocabularies() ([]any, errors.E) { //nolint:maintidx
 				Value: "<p>Enota coulomb za električni naboj.</p>",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}, {
+				Value: "<p>A unidade de carga elétrica coulomb.</p>",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "pt-PT"},
 				}},
 			}},
 			Code: []Identifier{"C"},
@@ -442,6 +591,11 @@ func Vocabularies() ([]any, errors.E) { //nolint:maintidx
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
+			}, {
+				Value: "joule",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "pt-PT"},
+				}},
 			}},
 			Description: []RawHTMLWithLanguage{{
 				Value: "<p>The joule energy unit.</p>",
@@ -452,6 +606,11 @@ func Vocabularies() ([]any, errors.E) { //nolint:maintidx
 				Value: "<p>Enota džul za energijo.</p>",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}, {
+				Value: "<p>A unidade de energia joule.</p>",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "pt-PT"},
 				}},
 			}},
 			Code: []Identifier{"J"},
@@ -476,6 +635,11 @@ func Vocabularies() ([]any, errors.E) { //nolint:maintidx
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
+			}, {
+				Value: "grau Celsius",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "pt-PT"},
+				}},
 			}},
 			Description: []RawHTMLWithLanguage{{
 				Value: "<p>The Celsius temperature unit.</p>",
@@ -486,6 +650,11 @@ func Vocabularies() ([]any, errors.E) { //nolint:maintidx
 				Value: "<p>Enota stopinja Celzija za temperaturo.</p>",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}, {
+				Value: "<p>A unidade de temperatura Celsius.</p>",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "pt-PT"},
 				}},
 			}},
 			Code: []Identifier{"°C"},
@@ -510,6 +679,11 @@ func Vocabularies() ([]any, errors.E) { //nolint:maintidx
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
+			}, {
+				Value: "radiano",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "pt-PT"},
+				}},
 			}},
 			Description: []RawHTMLWithLanguage{{
 				Value: "<p>The radian angle unit.</p>",
@@ -520,6 +694,11 @@ func Vocabularies() ([]any, errors.E) { //nolint:maintidx
 				Value: "<p>Enota radian za kot.</p>",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}, {
+				Value: "<p>A unidade de ângulo radiano.</p>",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "pt-PT"},
 				}},
 			}},
 			Code: []Identifier{"rad"},
@@ -544,6 +723,11 @@ func Vocabularies() ([]any, errors.E) { //nolint:maintidx
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
+			}, {
+				Value: "hertz",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "pt-PT"},
+				}},
 			}},
 			Description: []RawHTMLWithLanguage{{
 				Value: "<p>The hertz frequency unit.</p>",
@@ -554,6 +738,11 @@ func Vocabularies() ([]any, errors.E) { //nolint:maintidx
 				Value: "<p>Enota herc za frekvenco.</p>",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}, {
+				Value: "<p>A unidade de frequência hertz.</p>",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "pt-PT"},
 				}},
 			}},
 			Code: []Identifier{"Hz"},
@@ -578,6 +767,11 @@ func Vocabularies() ([]any, errors.E) { //nolint:maintidx
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
+			}, {
+				Value: "dólar",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "pt-PT"},
+				}},
 			}},
 			Description: []RawHTMLWithLanguage{{
 				Value: "<p>The dollar currency unit.</p>",
@@ -588,6 +782,11 @@ func Vocabularies() ([]any, errors.E) { //nolint:maintidx
 				Value: "<p>Enota dolar za valuto.</p>",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}, {
+				Value: "<p>A unidade monetária dólar.</p>",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "pt-PT"},
 				}},
 			}},
 			Code: []Identifier{"$"},
@@ -612,6 +811,11 @@ func Vocabularies() ([]any, errors.E) { //nolint:maintidx
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
+			}, {
+				Value: "byte",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "pt-PT"},
+				}},
 			}},
 			Description: []RawHTMLWithLanguage{{
 				Value: "<p>The byte data size unit.</p>",
@@ -622,6 +826,11 @@ func Vocabularies() ([]any, errors.E) { //nolint:maintidx
 				Value: "<p>Enota bajt za velikost podatkov.</p>",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}, {
+				Value: "<p>A unidade de tamanho de dados byte.</p>",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "pt-PT"},
 				}},
 			}},
 			Code: []Identifier{"B"},
@@ -646,6 +855,11 @@ func Vocabularies() ([]any, errors.E) { //nolint:maintidx
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
+			}, {
+				Value: "pixel",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "pt-PT"},
+				}},
 			}},
 			Description: []RawHTMLWithLanguage{{
 				Value: "<p>The pixel digital image measurement unit.</p>",
@@ -656,6 +870,11 @@ func Vocabularies() ([]any, errors.E) { //nolint:maintidx
 				Value: "<p>Enota piksel za merjenje digitalnih slik.</p>",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}, {
+				Value: "<p>A unidade de medição de imagem digital pixel.</p>",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "pt-PT"},
 				}},
 			}},
 			Code: []Identifier{"px"},
@@ -680,6 +899,11 @@ func Vocabularies() ([]any, errors.E) { //nolint:maintidx
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
+			}, {
+				Value: "segundo",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "pt-PT"},
+				}},
 			}},
 			Description: []RawHTMLWithLanguage{{
 				Value: "<p>The second time unit.</p>",
@@ -690,6 +914,11 @@ func Vocabularies() ([]any, errors.E) { //nolint:maintidx
 				Value: "<p>Enota sekunda za čas.</p>",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}, {
+				Value: "<p>A unidade de tempo segundo.</p>",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "pt-PT"},
 				}},
 			}},
 			Code: []Identifier{"s"},
@@ -714,6 +943,11 @@ func Vocabularies() ([]any, errors.E) { //nolint:maintidx
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
+			}, {
+				Value: "decibel",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "pt-PT"},
+				}},
 			}},
 			Description: []RawHTMLWithLanguage{{
 				Value: "<p>The decibel sound intensity unit.</p>",
@@ -724,6 +958,11 @@ func Vocabularies() ([]any, errors.E) { //nolint:maintidx
 				Value: "<p>Enota decibel za jakost zvoka.</p>",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}, {
+				Value: "<p>A unidade de intensidade sonora decibel.</p>",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "pt-PT"},
 				}},
 			}},
 			Code: []Identifier{"dB"},
@@ -747,6 +986,11 @@ func Vocabularies() ([]any, errors.E) { //nolint:maintidx
 				Value: "enostavno besedilo",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}, {
+				Value: "texto simples",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "pt-PT"},
 				}},
 			}},
 			Description: nil,
@@ -772,6 +1016,11 @@ func Vocabularies() ([]any, errors.E) { //nolint:maintidx
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
+			}, {
+				Value: "texto",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "pt-PT"},
+				}},
 			}},
 			Description: nil,
 			Code:        []Identifier{"HTML"},
@@ -795,6 +1044,11 @@ func Vocabularies() ([]any, errors.E) { //nolint:maintidx
 				Value: "identifikator",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}, {
+				Value: "identificador",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "pt-PT"},
 				}},
 			}},
 			Description: nil,
@@ -820,6 +1074,11 @@ func Vocabularies() ([]any, errors.E) { //nolint:maintidx
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
+			}, {
+				Value: "quantidade",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "pt-PT"},
+				}},
 			}},
 			Description: nil,
 			Code:        []Identifier{"AMOUNT"},
@@ -843,6 +1102,11 @@ func Vocabularies() ([]any, errors.E) { //nolint:maintidx
 				Value: "interval",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}, {
+				Value: "intervalo",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "pt-PT"},
 				}},
 			}},
 			Description: nil,
@@ -868,6 +1132,11 @@ func Vocabularies() ([]any, errors.E) { //nolint:maintidx
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
+			}, {
+				Value: "tempo",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "pt-PT"},
+				}},
 			}},
 			Description: nil,
 			Code:        []Identifier{"TIME"},
@@ -891,6 +1160,11 @@ func Vocabularies() ([]any, errors.E) { //nolint:maintidx
 				Value: "obdobje",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}, {
+				Value: "período",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "pt-PT"},
 				}},
 			}},
 			Description: nil,
@@ -916,6 +1190,11 @@ func Vocabularies() ([]any, errors.E) { //nolint:maintidx
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
+			}, {
+				Value: "ligação",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "pt-PT"},
+				}},
 			}},
 			Description: nil,
 			Code:        []Identifier{"LINK"},
@@ -939,6 +1218,11 @@ func Vocabularies() ([]any, errors.E) { //nolint:maintidx
 				Value: "datoteka",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}, {
+				Value: "ficheiro",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "pt-PT"},
 				}},
 			}},
 			Description: nil,
@@ -964,6 +1248,11 @@ func Vocabularies() ([]any, errors.E) { //nolint:maintidx
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
+			}, {
+				Value: "referência",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "pt-PT"},
+				}},
 			}},
 			Description: nil,
 			Code:        []Identifier{"REFERENCE"},
@@ -987,6 +1276,11 @@ func Vocabularies() ([]any, errors.E) { //nolint:maintidx
 				Value: "oznaka",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}, {
+				Value: "etiqueta",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "pt-PT"},
 				}},
 			}},
 			Description: nil,
@@ -1012,6 +1306,11 @@ func Vocabularies() ([]any, errors.E) { //nolint:maintidx
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
+			}, {
+				Value: "nenhum",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "pt-PT"},
+				}},
 			}},
 			Description: nil,
 			Code:        []Identifier{"NONE"},
@@ -1035,6 +1334,11 @@ func Vocabularies() ([]any, errors.E) { //nolint:maintidx
 				Value: "neznana vrednost",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}, {
+				Value: "desconhecido",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "pt-PT"},
 				}},
 			}},
 			Description: nil,
@@ -1060,6 +1364,11 @@ func Vocabularies() ([]any, errors.E) { //nolint:maintidx
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
+			}, {
+				Value: "criação",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "pt-PT"},
+				}},
 			}},
 			Description: nil,
 			Code:        []Identifier{"ACTION_CREATE"},
@@ -1083,6 +1392,11 @@ func Vocabularies() ([]any, errors.E) { //nolint:maintidx
 				Value: "branje",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}, {
+				Value: "leitura",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "pt-PT"},
 				}},
 			}},
 			Description: nil,
@@ -1108,6 +1422,11 @@ func Vocabularies() ([]any, errors.E) { //nolint:maintidx
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
+			}, {
+				Value: "atualização",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "pt-PT"},
+				}},
 			}},
 			Description: nil,
 			Code:        []Identifier{"ACTION_UPDATE"},
@@ -1131,6 +1450,11 @@ func Vocabularies() ([]any, errors.E) { //nolint:maintidx
 				Value: "brisanje",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}, {
+				Value: "eliminação",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "pt-PT"},
 				}},
 			}},
 			Description: nil,
@@ -1156,6 +1480,11 @@ func Vocabularies() ([]any, errors.E) { //nolint:maintidx
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
+			}, {
+				Value: "leitura histórica",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "pt-PT"},
+				}},
 			}},
 			Description: []RawHTMLWithLanguage{{
 				Value: "<p>Reading historical versions.</p>",
@@ -1166,6 +1495,11 @@ func Vocabularies() ([]any, errors.E) { //nolint:maintidx
 				Value: "<p>Branje zgodovinskih verzij.</p>",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}, {
+				Value: "<p>Leitura de versões históricas.</p>",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "pt-PT"},
 				}},
 			}},
 			Code: []Identifier{"ACTION_READ_HISTORIC"},
@@ -1190,6 +1524,11 @@ func Vocabularies() ([]any, errors.E) { //nolint:maintidx
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
+			}, {
+				Value: "atualização de permissões",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "pt-PT"},
+				}},
 			}},
 			Description: []RawHTMLWithLanguage{{
 				Value: "<p>Updating permissions.</p>",
@@ -1200,6 +1539,11 @@ func Vocabularies() ([]any, errors.E) { //nolint:maintidx
 				Value: "<p>Posodabljanje dovoljenj.</p>",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}, {
+				Value: "<p>Atualização de permissões.</p>",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "pt-PT"},
 				}},
 			}},
 			Code: []Identifier{"ACTION_UPDATE_PERMISSIONS"},
@@ -1223,6 +1567,11 @@ func Vocabularies() ([]any, errors.E) { //nolint:maintidx
 				Value: "množično branje",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}, {
+				Value: "leitura em massa",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "pt-PT"},
 				}},
 			}},
 			Description: nil,

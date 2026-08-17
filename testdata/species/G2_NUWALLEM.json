@@ -1,0 +1,61 @@
+{
+  "id": ["xeno.peerdb.org", "SPECIES", "G2_NUWALLEM"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SPECIES"] }],
+  "name": [{ "value": "Eclipse-Time Assembly", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Nuwallem", "gloss": "those who are one when the light goes" }],
+  "exonym": [{ "value": "Ammenuwe", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "taxonCode": "TX-4126-d",
+  "description": [
+    {
+      "value": "<p>For twenty-one days they are some four hundred separate foragers working the leeward gullies of the band; for the forty minutes that the moon Shutter covers the sun they are a single joined body, and memory crosses the boundary in both directions. Nothing about the separate phase makes sense on its own, which is why individuals are not the unit here: the foragers describe themselves in the plural even while apart, and treat a promise made by any of them as made by all. Cohorts pass together through four ranked grades at successive joinings, and a grade holds its duties for as long as the assembly says it does, which is not a fixed span and has twice been argued about mid-eclipse. Contact was suspended in 2287 after the ethics panel concluded that consent given by the separate phase cannot bind the joined phase, and that consent given by the joined phase cannot be obtained from anybody who will still exist in an hour. Fieldwork therefore stopped at the point where it had become interesting, which is the usual position, and a consent procedure has been in drafting for twenty-five years.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Enaindvajset dni so ločeni nabiralci, med mrkom pa eno samo telo. Stiki so od leta 2287 prekinjeni.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Durante vinte e um dias são cerca de quatrocentos recoletores separados a trabalhar os barrancos de sotavento da faixa; durante os quarenta minutos em que a lua Shutter tapa o sol são um único corpo unido, e a memória atravessa a fronteira nos dois sentidos. Nada na fase separada faz sentido por si só, e é por isso que o indivíduo não é aqui a unidade: os recoletores falam de si no plural mesmo quando estão separados e tratam uma promessa feita por um deles como feita por todos. As coortes passam juntas por quatro graus hierarquizados em uniões sucessivas, e um grau mantém os seus deveres enquanto a assembleia disser que os mantém, o que não é um prazo fixo e já foi por duas vezes discutido a meio de um eclipse. O contacto foi suspenso em 2287, depois de a comissão de ética ter concluído que o consentimento dado pela fase separada não pode vincular a fase unida e que o consentimento dado pela fase unida não pode ser obtido de ninguém que ainda exista dali a uma hora. O trabalho de campo parou, portanto, no ponto em que se tornara interessante, o que é a situação habitual, e há vinte e cinco anos que se redige um procedimento de consentimento.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "homeworld": { "id": ["xeno.peerdb.org", "PLANET", "G2_HALF_LIGHT"] },
+  "bodyPlan": [
+    {
+      "value": "<p>In the separate phase the body is a soft-walled sac about knee height, moving on a ring of twelve short legs, with the upper surface studded in short violet-sensitive eyespots. The whole rim is a joining surface: on contact the walls open, fuse and pool, and four hundred bodies become one low sheet perhaps ninety metres across, kept off the ground on the same legs. Separation reverses the process in about four minutes and leaves a visible seam that takes a day to fade.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "typicalHeight": { "value": { "amount": 0.8, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+  "typicalMass": { "value": { "amount": 21.0, "precision": 0.1 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "kg"] }] },
+  "lifespan": {
+    "value": { "from": { "amount": 15, "precision": 1 }, "to": { "amount": 40, "precision": 1 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_YEAR"] }]
+  },
+  "sensoryModality": [
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "ULTRAVIOLET_VISION"] },
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "THERMAL_RADIANCE"] },
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "SUBSTRATE_VIBRATION"] }
+  ],
+  "subsistence": [
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "OPPORTUNISTIC_FORAGING"] },
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "MANAGED_DECAY"] }
+  ],
+  "individuality": { "id": ["xeno.peerdb.org", "INDIVIDUALITY_MODE", "SEASONAL_COLLECTIVE"] },
+  "socialOrganisation": { "id": ["xeno.peerdb.org", "SOCIAL_ORGANISATION", "AGE_GRADE_POLITY"] },
+  "kinshipSystem": { "id": ["xeno.peerdb.org", "KINSHIP_SYSTEM", "NOT_RECKONED"] },
+  "population": {
+    "value": { "from": { "amount": 20000, "precision": 1000 }, "to": { "amount": 45000, "precision": 1000 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "contactStatus": { "id": ["xeno.peerdb.org", "CONTACT_STATUS", "SUSPENDED"] },
+  "firstContact": { "time": "2255-01-01T00:00:00Z", "precision": "y" },
+  "image": [
+    {
+      "value": "/f/VyiJ3xHaVyuFaZZqbUhhmP",
+      "name": "G2_NUWALLEM.jpg",
+      "caption": "Field plate",
+      "source": "Drawn in the field; Consortium collection"
+    }
+  ]
+}

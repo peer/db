@@ -1,0 +1,24 @@
+{
+  "id": ["xeno.peerdb.org", "UNIT", "EARTH_MASS"],
+  "instanceOf": [{ "id": ["core.peerdb.org", "UNIT"] }],
+  "name": [
+    { "value": "Earth mass", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "Zemljina masa", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }] },
+    { "value": "massa terrestre", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>Mass expressed as a multiple of Earth&#39;s, the standard measure for terrestrial and intermediate bodies. Giants are also given in Earth masses to keep one scale across the catalogue.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Masa, izražena kot večkratnik Zemljine, standardna mera za kamnita in vmesna telesa. Tudi velikani so podani v Zemljinih masah, da je merilo v katalogu enotno.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Massa expressa como múltiplo da massa da Terra, a medida corrente para corpos telúricos e intermédios. Os gigantes também se dão em massas terrestres, para manter uma só escala em todo o catálogo.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "code": ["M⊕"]
+}

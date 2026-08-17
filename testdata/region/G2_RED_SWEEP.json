@@ -1,0 +1,19 @@
+{
+  "id": ["xeno.peerdb.org", "REGION", "G2_RED_SWEEP"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "REGION"] }],
+  "name": [{ "value": "Red Sweep", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "description": [
+    {
+      "value": "<p>A dune sea the size of a small continent, moving north-east at about a metre a year and, as far as the dating can tell, doing so for the last three hundred million. The interdune floors are damp at forty centimetres and carry the densest endolithic communities on the planet. Crossing it on foot is possible and has been done once.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "PLANET", "G2_RUST_FLAT"] },
+  "biome": [{ "id": ["xeno.peerdb.org", "BIOME", "REGOLITH_DUNE"] }, { "id": ["xeno.peerdb.org", "BIOME", "ENDOLITH_ZONE"] }],
+  "area": { "value": { "amount": 1860000, "precision": 100 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "SQUARE_KILOMETRE"] }] },
+  "elevationRange": {
+    "value": { "from": { "amount": 210, "precision": 10 }, "to": { "amount": 1470, "precision": 10 } },
+    "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }]
+  },
+  "image": [{ "value": "/f/APFxog8SoZmMkwVQPf4mtT", "name": "G2_RED_SWEEP.jpg", "caption": "Regional view", "source": "Consortium survey archive" }]
+}

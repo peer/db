@@ -1,0 +1,38 @@
+{
+  "id": ["xeno.peerdb.org", "PLANET", "G3_QUERNSTONE_B"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PLANET"] }],
+  "name": [{ "value": "Quernstone b", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "catalogueCode": "HB-1/021-b",
+  "description": [
+    {
+      "value": "<p>An iron-heavy world close in to its star, with a bulk density near eight grams per cubic centimetre and a surface of dark cracked plains. Two landings, both brief, both of which returned rock and nothing else. It is lifeless, and it is also, by the common agreement of everyone who has been down, extremely dull.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Um mundo rico em ferro, próximo da sua estrela, com uma densidade média perto de oito gramas por centímetro cúbico e uma superfície de planícies escuras e fendidas. Duas aterragens, ambas breves, ambas as quais trouxeram rocha e mais nada. É um mundo sem vida e é também, por acordo unânime de todos os que lá desceram, extremamente enfadonho.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "STAR_SYSTEM", "G3_QUERNSTONE"] },
+  "planetType": { "id": ["xeno.peerdb.org", "PLANET_TYPE", "DENSE_SILICATE"] },
+  "radius": { "value": { "amount": 1.31, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_RADIUS"] }] },
+  "mass": { "value": { "amount": 3.4, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_MASS"] }] },
+  "surfaceGravity": { "value": { "amount": 1.98, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "STANDARD_GRAVITY"] }] },
+  "dayLength": { "value": { "amount": 88.2, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "HOUR"] }] },
+  "orbitalPeriod": { "value": { "amount": 21.7, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_DAY"] }] },
+  "meanTemperature": { "value": { "amount": 341.0, "precision": 0.1 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "°C"] }] },
+  "hydrosphere": { "value": { "amount": 0, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "PERCENT"] }] },
+  "atmosphere": [
+    {
+      "value": "<p>Effectively none: a sodium and oxygen exosphere raised off the rock by the star, at two millionths of a bar, varying with the stellar wind rather than with anything on the ground.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "biosphereNone": true,
+  "contactStatus": { "id": ["xeno.peerdb.org", "CONTACT_STATUS", "NO_CONTACT"] },
+  "firstSurveyed": { "time": "2264-01-01T00:00:00Z", "precision": "y" },
+  "surveyPeriod": { "from": { "time": "2264-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true },
+  "image": [
+    { "value": "/f/1qGpjiyJhMSiQm2VuczizE", "name": "G3_QUERNSTONE_B.jpg", "caption": "Approach view", "source": "Consortium survey archive" }
+  ]
+}

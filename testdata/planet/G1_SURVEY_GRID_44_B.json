@@ -1,0 +1,64 @@
+{
+  "id": ["xeno.peerdb.org", "PLANET", "G1_SURVEY_GRID_44_B"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PLANET"] }],
+  "name": [{ "value": "Survey Grid 44-b", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "[the ground that holds]", "gloss": "a substrate sign, glossed as the ground that holds and never spoken" }],
+  "catalogueCode": "SG-44/b",
+  "description": [
+    {
+      "value": "<p>A locked world whose habitable ground is a ring perhaps four hundred kilometres wide along the day-night boundary, with scorched rock inward and a frozen hemisphere outward. Meltwater from the dayside runs through the ring in braided channels that rearrange themselves every few years, so nothing here is built where the water was last time. The inhabitants live along the channels and dig into the nightside slope for storage. Contact was suspended in 2271 and reopened in 2306, and the register still carries both files.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Vklenjen svet, kjer je znosno le v somračnem obroču. Stik je bil obnovljen leta 2306.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Um mundo preso por maré cujo terreno habitável é um anel com talvez quatrocentos quilómetros de largura ao longo da fronteira entre o dia e a noite, com rocha calcinada para dentro e um hemisfério gelado para fora. A água de degelo do lado diurno atravessa o anel em canais entrançados que se reorganizam de poucos em poucos anos, pelo que aqui nada se constrói onde a água esteve da última vez. Os habitantes vivem ao longo dos canais e escavam a encosta do lado noturno para armazenamento. O contacto foi suspenso em 2271 e reaberto em 2306, e o registo mantém ainda os dois processos.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "STAR_SYSTEM", "G1_SURVEY_GRID_44"] },
+  "planetType": { "id": ["xeno.peerdb.org", "PLANET_TYPE", "EYEBALL"] },
+  "biome": [
+    { "id": ["xeno.peerdb.org", "BIOME", "DUSK_BELT"] },
+    { "id": ["xeno.peerdb.org", "BIOME", "BRAIDED_MELT"] },
+    { "id": ["xeno.peerdb.org", "BIOME", "NIGHTSIDE_TRAP"] },
+    { "id": ["xeno.peerdb.org", "BIOME", "ENDOLITH_ZONE"] }
+  ],
+  "radius": { "value": { "amount": 1.02, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_RADIUS"] }] },
+  "mass": { "value": { "amount": 1.06, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_MASS"] }] },
+  "surfaceGravity": { "value": { "amount": 1.02, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "STANDARD_GRAVITY"] }] },
+  "dayLength": { "value": { "amount": 820.8, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "HOUR"] }] },
+  "orbitalPeriod": { "value": { "amount": 34.2, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_DAY"] }] },
+  "meanTemperature": { "value": { "amount": -21.4, "precision": 0.1 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "°C"] }] },
+  "hydrosphere": { "value": { "amount": 12.6, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "PERCENT"] }] },
+  "atmosphere": [
+    {
+      "value": "<p>Nitrogen and carbon dioxide at 0.9 bar with enough oxygen in the dusk band to breathe unassisted, and not enough anywhere else. The wind blows from day to night and has done since the crust cooled.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "biosphere": [
+    {
+      "value": "<p>Life is present: 1 catalogued species (Dusk Band Signers) and 1 recorded non-sapient organism. The survey is not claimed to be complete.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "contactStatus": { "id": ["xeno.peerdb.org", "CONTACT_STATUS", "LIMITED"] },
+  "firstSurveyed": { "time": "2233-01-01T00:00:00Z", "precision": "y" },
+  "surveyPeriod": { "from": { "time": "2233-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true },
+  "populationEstimate": {
+    "value": { "from": { "amount": 8000, "precision": 100 }, "to": { "amount": 15000, "precision": 100 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "image": [
+    { "value": "/f/QMtPYJ2tv4SSo3WPkSVD8p", "name": "G1_SURVEY_GRID_44_B.jpg", "caption": "Surface view", "source": "Consortium survey archive" }
+  ],
+  "notes": [
+    {
+      "value": "<p>The 2271 suspension followed a mistranslated greeting that cost the third expedition its entire second year. The correction is one line long and is now read aloud at every departure briefing for the system.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

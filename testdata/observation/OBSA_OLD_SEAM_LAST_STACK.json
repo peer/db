@@ -1,0 +1,39 @@
+{
+  "id": ["xeno.peerdb.org", "OBSERVATION", "OBSA_OLD_SEAM_LAST_STACK"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "OBSERVATION"] }],
+  "title": [
+    { "value": "The last stack at the Old Seam, measured and left where it is", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>Three days on an abandoned cutting floor eight years after the chimney failed. The unfinished crust is stacked where it was left and nothing has been taken from it.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "content": [
+    {
+      "value": "<p>Three days on the cutting floor, eight years after the chimney failed and seven after the last household went. The site matches the 2277 photographs face for face.</p><p>Recorded: fourteen cut faces, two hundred and sixty-one discarded blanks lying where they fell, and the stack, which is one hundred and nine unfinished pieces in eleven courses and has not been disturbed.</p><p>Two accounts were given for why the stack is still there. One household said the crust is no good now that it has cooled and been wet. Another said the stack belongs to the rota that cut it, and the rota has not met since the vent failed, so there is nobody who could take it. We cannot reconcile these and are not certain they are meant to be reconciled.</p><p>Sampling was confined to loose material on the floor. Nothing was taken from the stack, which was the condition on which we were shown it.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "expedition": { "id": ["xeno.peerdb.org", "EXPEDITION", "EXP_LONG_LID_SEASON"] },
+  "observedBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_SUBRAMANIAN"] }, { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_MOKOENA"] }],
+  "observedAt": { "id": ["xeno.peerdb.org", "SITE", "G2_OLD_SEAM"] },
+  "observedOn": { "time": "2284-02-08T00:00:00Z", "precision": "d" },
+  "about": [{ "id": ["xeno.peerdb.org", "CULTURE", "G2_CUT_CRUST"] }, { "id": ["xeno.peerdb.org", "SPECIES", "G2_NURRUMALI"] }],
+  "method": [
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "PHOTOGRAMMETRY"] },
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "MATERIAL_SAMPLING"] },
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "ARCHIVAL_COMPARISON"] }
+  ],
+  "fieldConditions": "Cold water and no vent glow at all, so the floor was worked under our own lamps for the first time in its history. Two members of a hearth household came out with us on the second day and did not stay.",
+  "image": [
+    { "value": "/f/1YTBdPQa29oWomLmZdEb32", "name": "OBSA_OLD_SEAM_LAST_STACK.jpg", "caption": "Taken at the time", "source": "Field record" }
+  ],
+  "notes": [
+    {
+      "value": "<p>The eleven courses are counted off the photographs; the stack was not approached closer than two metres. A course count from the 2277 material also gives eleven, which is the only continuity check available to us.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

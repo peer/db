@@ -1,0 +1,39 @@
+{
+  "id": ["xeno.peerdb.org", "NARRATIVE", "G3_THE_LOAD_THAT_CAME"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "NARRATIVE"] }],
+  "title": [{ "value": "The Load That Came and Did Not Go", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [
+    {
+      "value": "[what was tipped out]",
+      "gloss": "a compound figure; the heaps use the same element for a delivery and for the party that made it",
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G3_FACE_TAP"] }]
+    }
+  ],
+  "description": [
+    {
+      "value": "<p>The heaps&#39; own account of the Consortium camp, struck through the ground at intervals since 2283 and consistent across every recording made since. It is delivered slowly, over about eleven hours, and the version below is compressed by omitting repetitions.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "genre": { "id": ["xeno.peerdb.org", "NARRATIVE_GENRE", "CONTACT_ACCOUNT"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G3_RUBBLE_LEDGER"] }],
+  "recordedBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_DEMIR"] }, { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_BAUTISTA"] }],
+  "recordedAt": { "id": ["xeno.peerdb.org", "SITE", "G3_ICEFRONT_CAMP"] },
+  "recordedOn": { "time": "2286-01-01T00:00:00Z", "precision": "y" },
+  "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G3_FACE_TAP"] }],
+  "content": [
+    {
+      "value": "<p>Something came to the rubble and tipped out a load and took nothing back. It was not asked to. It has not been asked since.</p><p>The load was entered. It is a debt outward. It stands at one load, less what the heaps downwind have taken out of it, which is most of it, and the remainder is being renewed by us because it is ours to renew.</p><p>The thing that tipped it out is a debtor in good standing and has been told so eleven times. It replies about the weather.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "recording": [
+    {
+      "value": "/f/MPxjhfgxhZZb7nxYYPfmik",
+      "name": "narrative-G3_THE_LOAD_THAT_CAME.mp3",
+      "caption": "Performance, recorded on site",
+      "duration": { "value": { "amount": 8, "precision": 1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "MINUTE"] }] },
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G3_FACE_TAP"] }]
+    }
+  ]
+}

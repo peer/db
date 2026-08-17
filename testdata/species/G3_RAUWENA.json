@@ -1,0 +1,68 @@
+{
+  "id": ["xeno.peerdb.org", "SPECIES", "G3_RAUWENA"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SPECIES"] }],
+  "name": [{ "value": "Great Waders of the Sweep Flats", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [
+    {
+      "value": "Rauwena",
+      "gloss": "the tall ones, or the far ones; the two words differ only in vowel length",
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G3_SWEEP_CALL"] }]
+    }
+  ],
+  "exonym": [
+    { "value": "Ummira, in the Maunuwa mouth: the ones who see the water first", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }
+  ],
+  "taxonCode": "TX-4413-a",
+  "description": [
+    {
+      "value": "<p>Rauwena stand four metres and more at the shoulder and walk the draining flats in single file, taking what strands in the last channels as the horizon empties. A house holds a named channel and the ground either side of it, passes it through one parental line, and outlives every member by centuries. The Maunuwa hold that a channel cannot be owned because the water rearranges it twice a cycle, and this has been the polite quarrel of the coast for as long as there has been a record of it. They eat little for their size and spend most of a day standing still, which the survey mistook for ill health during the first two visits. They also cannot swim, and will not enter water above the second joint of the leg.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "homeworld": { "id": ["xeno.peerdb.org", "PLANET", "G3_OUMARA"] },
+  "bodyPlan": [
+    {
+      "value": "<p>An enormous bilateral wader on four column limbs, with the body carried high and level and the neck folded back on itself at rest. The integument is thick, grey and cracked into plates at the joints, and sheds in sheets after a covered phase. Feeding is by a long jointed proboscis that works the bottom of a channel while the body stays out of the water entirely.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "typicalHeight": { "value": { "amount": 4.4, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+  "typicalMass": { "value": { "amount": 780.0, "precision": 0.1 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "kg"] }] },
+  "lifespan": {
+    "value": { "from": { "amount": 90, "precision": 1 }, "to": { "amount": 165, "precision": 1 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_YEAR"] }]
+  },
+  "sensoryModality": [
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "PRESSURE_GRADIENT"] },
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "GRAVICEPTION"] },
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "ACOUSTIC_RANGING"] }
+  ],
+  "subsistence": [
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "DRIFT_HARVESTING"] },
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "OPPORTUNISTIC_FORAGING"] }
+  ],
+  "individuality": { "id": ["xeno.peerdb.org", "INDIVIDUALITY_MODE", "BOUNDED"] },
+  "socialOrganisation": { "id": ["xeno.peerdb.org", "SOCIAL_ORGANISATION", "LINEAGE_HOUSES"] },
+  "kinshipSystem": { "id": ["xeno.peerdb.org", "KINSHIP_SYSTEM", "UNILINEAL_DESCENT"] },
+  "communication": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G3_SWEEP_CALL"] }],
+  "population": {
+    "value": { "from": { "amount": 9000, "precision": 1000 }, "to": { "amount": 30000, "precision": 1000 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "contactStatus": { "id": ["xeno.peerdb.org", "CONTACT_STATUS", "LIMITED"] },
+  "firstContact": { "time": "2269-01-01T00:00:00Z", "precision": "y" },
+  "image": [
+    {
+      "value": "/f/PUenCLR1sj4PQmfA4FMyY6",
+      "name": "G3_RAUWENA.jpg",
+      "caption": "Field plate",
+      "source": "Drawn in the field; Consortium collection"
+    }
+  ],
+  "notes": [
+    {
+      "value": "<p>They cannot swim. On a world that is nine parts water this was recorded as a probable translation error and left uncorrected for four years.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

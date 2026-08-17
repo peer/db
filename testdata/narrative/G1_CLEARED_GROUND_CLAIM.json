@@ -1,0 +1,39 @@
+{
+  "id": ["xeno.peerdb.org", "NARRATIVE", "G1_CLEARED_GROUND_CLAIM"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "NARRATIVE"] }],
+  "title": [{ "value": "The Cleared Ground, Entered", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [
+    {
+      "value": "Fenkhev Nith",
+      "gloss": "what is owed on the ground",
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G1_COLUMN_PERCUSSION"] }]
+    }
+  ],
+  "description": [
+    {
+      "value": "<p>A boundary record drummed by a shelf colony across roughly two hectares of plateau floor, in the item-by-item form the colonies use for anything that may be answered. It is repeated at intervals and is admissible, in the shelf sense, at any later drumming.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "genre": { "id": ["xeno.peerdb.org", "NARRATIVE_GENRE", "BOUNDARY_RECORD"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G1_SHELF_LEDGER"] }],
+  "recordedBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_SEO"] }],
+  "recordedAt": { "id": ["xeno.peerdb.org", "SITE", "G1_CANOPY_TETHER"] },
+  "recordedOn": { "time": "2301-01-01T00:00:00Z", "precision": "y" },
+  "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G1_COLUMN_PERCUSSION"] }],
+  "content": [
+    {
+      "value": "<p>Item: the ground was cleared and not by us. Item: eleven kilometres of it, and nothing standing. Item: we came onto it in the year after and we were first.</p><p>Item: nothing was owed on that ground when we came. Item: we have held it eleven years and entered every year of it. Item: the forest returns at the eastern edge, four hundred metres in eleven years.</p><p>Item: what returns takes ground from us. Item: the debt for that ground stands against the forest and is entered here. Item: the forest does not answer.</p><p>Item: an account that is not answered is not closed. Item: we will drum this again in forty days.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "recording": [
+    {
+      "value": "/f/LJzQ3L89ofwnjnApCLxtkc",
+      "name": "narrative-G1_CLEARED_GROUND_CLAIM.mp3",
+      "caption": "Performance, recorded on site",
+      "duration": { "value": { "amount": 2, "precision": 1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "MINUTE"] }] },
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G1_COLUMN_PERCUSSION"] }]
+    }
+  ]
+}

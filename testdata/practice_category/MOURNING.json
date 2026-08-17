@@ -1,0 +1,24 @@
+{
+  "id": ["xeno.peerdb.org", "PRACTICE_CATEGORY", "MOURNING"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PRACTICE_CATEGORY"] }],
+  "name": [
+    { "value": "Mourning", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "Žalovanje", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }] },
+    { "value": "Luto", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>Prescribed conduct of the bereaved, including restriction of speech, diet, movement and appearance for a set term. Excludes handling of the body.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Predpisano vedenje žalujočih, z omejitvami govora, hrane, gibanja in videza za določen čas.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Conduta prescrita para os enlutados, com restrição da fala, da dieta, do movimento e da aparência durante um prazo fixado. Exclui o manuseamento do corpo.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "code": ["mourning"]
+}

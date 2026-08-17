@@ -1,0 +1,31 @@
+{
+  "id": ["xeno.peerdb.org", "GALAXY", "G4_SPILLWORK"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "GALAXY"] }],
+  "name": [
+    { "value": "The Spillwork", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "Razsutje", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }] }
+  ],
+  "catalogueCode": "CCX-0004-SPW",
+  "description": [
+    {
+      "value": "<p>An irregular galaxy pulled out of shape by a close pass some two hundred million years ago, so that what were once arms are now streams, shells and a few tidal knots still holding together. Star formation runs in patches along the streams, leaving crowded pockets beside volumes with nothing in them at all. Orbits inside its systems are eccentric and inclined far more often than the catalogue average, and the register carries more captured and unbound bodies here than in the rest of the CCX holdings combined. Survey coverage is correspondingly uneven and is expected to stay that way.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Nepravilna galaksija, ki jo je bližnje srečanje razpotegnilo v tokove in lupine.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Uma galáxia irregular deformada por uma passagem próxima há uns duzentos milhões de anos, de tal modo que o que outrora foram braços são agora correntes, conchas e alguns nós de maré que ainda se aguentam. A formação estelar corre por manchas ao longo das correntes, deixando bolsas apinhadas ao lado de volumes sem absolutamente nada dentro. As órbitas dentro dos seus sistemas são excêntricas e inclinadas muito mais vezes do que a média do catálogo, e o registo contém aqui mais corpos capturados e não ligados do que em todo o resto do acervo CCX junto. A cobertura do levantamento é correspondentemente desigual e prevê-se que assim continue.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "diameter": { "value": { "amount": 8600, "precision": 100 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "PARSEC"] }] },
+  "surveyPeriod": { "from": { "time": "2196-01-01T00:00:00Z", "precision": "y" }, "to": { "time": "2312-01-01T00:00:00Z", "precision": "y" } },
+  "notes": [
+    {
+      "value": "<p>Distances in this galaxy are measured from the catalogue origin at the centre of the tidal knot rather than from Ceres, on the grounds that the Ceres figure would agree to four significant figures for every entry and would therefore tell nobody anything.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

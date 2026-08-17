@@ -1,0 +1,18 @@
+{
+  "id": ["xeno.peerdb.org", "STAR_SYSTEM", "G3_QUERNSTONE"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "STAR_SYSTEM"] }],
+  "name": [{ "value": "Quernstone", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "catalogueCode": "HB-1/021",
+  "description": [
+    {
+      "value": "<p>A quiet dwarf with three planets, entered late because the early plates put it in the wrong sector. Two have been worked from orbit and one has been landed on repeatedly.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "SECTOR", "G3_BELLWETHER"] },
+  "spectralClass": "K7V",
+  "starCount": { "amount": 1, "precision": 1 },
+  "planetCount": { "amount": 3, "precision": 1 },
+  "distanceFromSol": { "value": { "amount": 233.9, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "PARSEC"] }] },
+  "firstSurveyed": { "time": "2263-01-01T00:00:00Z", "precision": "y" }
+}

@@ -1,0 +1,37 @@
+{
+  "id": ["xeno.peerdb.org", "MOON", "G1_FOOTNOTE"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "MOON"] }],
+  "name": [{ "value": "Footnote", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "catalogueCode": "SXH-0716-e/1",
+  "description": [
+    {
+      "value": "<p>A small dry moon of the carbon world, dun-coloured, airless enough to need a suit and dusty enough to need it cleaned afterwards. Its only interest is a sparse endolithic community in the fractured basalt and the single installation on the plain. Nobody has ever been stationed here for longer than a rotation.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "PLANET", "G1_SIXTEEN_HUNDRED_V"] },
+  "planetType": { "id": ["xeno.peerdb.org", "PLANET_TYPE", "DESICCATED"] },
+  "biome": [{ "id": ["xeno.peerdb.org", "BIOME", "ENDOLITH_ZONE"] }],
+  "radius": { "value": { "amount": 0.17, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_RADIUS"] }] },
+  "mass": { "value": { "amount": 0.0035, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_MASS"] }] },
+  "surfaceGravity": { "value": { "amount": 0.12, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "STANDARD_GRAVITY"] }] },
+  "dayLength": { "value": { "amount": 283.2, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "HOUR"] }] },
+  "orbitalPeriod": { "value": { "amount": 11.8, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_DAY"] }] },
+  "tidallyLocked": true,
+  "meanTemperature": { "value": { "amount": -78.4, "precision": 0.1 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "°C"] }] },
+  "hydrosphere": { "value": { "amount": 0, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "PERCENT"] }] },
+  "atmosphere": [
+    {
+      "value": "<p>Carbon dioxide at two millibars, which the register records as an atmosphere for administrative purposes and the staff record as none.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "biosphereUnknown": true,
+  "contactStatus": { "id": ["xeno.peerdb.org", "CONTACT_STATUS", "NO_CONTACT"] },
+  "firstSurveyed": { "time": "2248-01-01T00:00:00Z", "precision": "y" },
+  "populationEstimate": {
+    "value": { "from": { "amount": 12, "precision": 100 }, "to": { "amount": 40, "precision": 100 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "image": [{ "value": "/f/LUQq85CReGc45S9Fe6a4Sb", "name": "G1_FOOTNOTE.jpg", "caption": "Surface view", "source": "Consortium survey archive" }]
+}

@@ -1,0 +1,26 @@
+{
+  "id": ["xeno.peerdb.org", "ORGANISM", "G2_LASHING_WEED"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "ORGANISM"] }],
+  "name": [{ "value": "Arc Lashing Weed", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Nesshume" }],
+  "taxonCode": "TX-1126-b",
+  "description": [
+    {
+      "value": "<p>A tough strap-bladed photosynthesiser anchored in the outer flats, which survives eighteen metres of tidal range by lying flat and holding on. Its split blades are the cordage used to tie the weir stones, being the only local material that does not rot in salt within a season. Beds are cut in rotation and a cut bed is left three cycles.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "category": { "id": ["xeno.peerdb.org", "ORGANISM_CATEGORY", "PHOTO_SESSILE"] },
+  "foundOn": [{ "id": ["xeno.peerdb.org", "PLANET", "G2_NINE_TERRACE"] }],
+  "biome": [{ "id": ["xeno.peerdb.org", "BIOME", "SWEEP_FLAT"] }],
+  "typicalSize": { "value": { "amount": 1.1, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+  "typicalMass": { "value": { "amount": 0.6, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "kg"] }] },
+  "image": [
+    {
+      "value": "/f/3856G3jdo59rwcRzkkBujT",
+      "name": "G2_LASHING_WEED.jpg",
+      "caption": "Field plate",
+      "source": "Drawn in the field; Consortium collection"
+    }
+  ]
+}

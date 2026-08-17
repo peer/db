@@ -1,0 +1,29 @@
+{
+  "id": ["xeno.peerdb.org", "PRACTICE", "G4_PR_FOSTER_PLACING"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PRACTICE"] }],
+  "name": [{ "value": "Placing Out", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "wenehuana", "gloss": "the child is carried across" }],
+  "description": [
+    {
+      "value": "<p>A child is placed with a household of a corporation other than either parent&#39;s before it can walk, and the placing is done in the open, on whichever terrace the two corporations share water on. Both corporations state what they will teach the child and what they will not, and the bearing household states nothing at all, that silence being the transfer. The fosterer&#39;s own fosterer stands as second party to the agreement, so every placement extends a chain rather than beginning one, and it is the chains that held the federation together across eleven corporations which agreed on very little else. A placement is recorded in knotted cord held in duplicate, and the two cords are brought out and compared at every subsequent placement in the same chain. What became of the chains after the works closed in 2297 cannot be established from orbit.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G4_CU_TETHER_GUILDS"] }],
+  "category": { "id": ["xeno.peerdb.org", "PRACTICE_CATEGORY", "RITE_OF_PASSAGE"] },
+  "periodicity": "once for each child, before it can walk",
+  "participants": {
+    "value": { "from": { "amount": 8, "precision": 1 }, "to": { "amount": 30, "precision": 1 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "firstDocumented": { "time": "2251-01-01T00:00:00Z", "precision": "y" },
+  "image": [
+    { "value": "/f/9hh9GXSr4gddYWGCgLKzZS", "name": "G4_PR_FOSTER_PLACING.jpg", "caption": "In progress", "source": "Consortium survey archive" }
+  ],
+  "notes": [
+    {
+      "value": "<p>The suspension file treats fosterage as unaffected by the ruling on the tether. The eleven corporations were dissolved along with the works; the chains crossed all of them and are not, on the face of it, the kind of thing that can be dissolved.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "id": ["xeno.peerdb.org", "PRACTICE_CATEGORY", "RITE_OF_PASSAGE"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PRACTICE_CATEGORY"] }],
+  "name": [
+    { "value": "Rite of passage", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "Prehodni obred", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }] },
+    { "value": "Rito de passagem", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>Marked transition of a person or cohort from one recognised status to another, usually irreversible. Excludes annual observances that change nobody&#39;s standing.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Zaznamovan prehod osebe ali skupine iz enega priznanega položaja v drugega.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Transição assinalada de uma pessoa ou coorte de um estatuto reconhecido para outro, em geral irreversível. Exclui observâncias anuais que não alteram a posição de ninguém.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "code": ["passage"]
+}

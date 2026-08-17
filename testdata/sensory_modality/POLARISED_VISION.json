@@ -1,0 +1,24 @@
+{
+  "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "POLARISED_VISION"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SENSORY_MODALITY"] }],
+  "name": [
+    { "value": "Polarised-light vision", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "Vid za polarizirano svetlobo", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }] },
+    { "value": "Visão de luz polarizada", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>Discrimination of the polarisation angle of light, typically for sky compass work or for seeing through scattering haze. Excludes plain intensity or colour vision.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Razločevanje kota polarizacije svetlobe, običajno za orientacijo po nebu ali vid skozi meglo.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Discriminação do ângulo de polarização da luz, tipicamente para orientação pela bússola celeste ou para ver através de névoa difusora. Exclui a simples visão de intensidade ou de cor.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "code": ["polar-vis"]
+}

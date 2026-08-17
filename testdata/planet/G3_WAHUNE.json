@@ -1,0 +1,46 @@
+{
+  "id": ["xeno.peerdb.org", "PLANET", "G3_WAHUNE"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PLANET"] }],
+  "name": [{ "value": "Trestle b", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Wahune", "gloss": "where the wind stops" }],
+  "catalogueCode": "HB-2/003-b",
+  "description": [
+    {
+      "value": "<p>A small locked world around a dim dwarf, with a habitable ring so narrow that the whole of it could be walked in a season. Terraced ground shows along the inner edge of the band, and there is smoke, in the same six places on every pass. The survey has been in the system three times and has never had permission to descend. The population figure was made from eight hundred kilometres up, and the terracing is the only reason anyone believes there is a population at all.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Majhen vklenjen svet s terasami, vidnimi iz orbite; pristanka še ni bilo.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Um pequeno mundo em rotação síncrona em torno de uma anã pouco luminosa, com um anel habitável tão estreito que se poderia percorrer inteiro numa estação. Vê-se terreno em terraços ao longo da orla interior da faixa, e há fumo, sempre nos mesmos seis sítios em cada passagem. O levantamento esteve três vezes no sistema e nunca obteve autorização para descer. O número da população foi estimado a oitocentos quilómetros de altitude, e os terraços são a única razão pela qual alguém acredita que exista sequer uma população.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "STAR_SYSTEM", "G3_TRESTLE"] },
+  "planetType": { "id": ["xeno.peerdb.org", "PLANET_TYPE", "EYEBALL"] },
+  "biome": [{ "id": ["xeno.peerdb.org", "BIOME", "DUSK_BELT"] }],
+  "radius": { "value": { "amount": 0.69, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_RADIUS"] }] },
+  "mass": { "value": { "amount": 0.37, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_MASS"] }] },
+  "surfaceGravity": { "value": { "amount": 0.78, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "STANDARD_GRAVITY"] }] },
+  "dayLength": { "value": { "amount": 297.6, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "HOUR"] }] },
+  "orbitalPeriod": { "value": { "amount": 12.4, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_DAY"] }] },
+  "meanTemperature": { "value": { "amount": -44.0, "precision": 0.1 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "°C"] }] },
+  "hydrosphere": { "value": { "amount": 8.0, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "PERCENT"] }] },
+  "atmosphere": [
+    {
+      "value": "<p>Nitrogen with methane and a trace of oxygen at 0.6 bar. Probably breathable at the terminator for short periods; nobody has been down to find out, and the estimate has been sitting unchallenged since 2281.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "biosphereUnknown": true,
+  "contactStatus": { "id": ["xeno.peerdb.org", "CONTACT_STATUS", "REMOTE_OBSERVATION"] },
+  "firstSurveyed": { "time": "2281-01-01T00:00:00Z", "precision": "y" },
+  "surveyPeriod": { "from": { "time": "2281-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true },
+  "populationEstimate": {
+    "value": { "from": { "amount": 800, "precision": 100 }, "to": { "amount": 5000, "precision": 100 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "image": [{ "value": "/f/DgvgnQQTwrsQTwAhk3AijE", "name": "G3_WAHUNE.jpg", "caption": "Approach view", "source": "Consortium survey archive" }]
+}

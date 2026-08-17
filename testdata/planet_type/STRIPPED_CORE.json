@@ -1,0 +1,24 @@
+{
+  "id": ["xeno.peerdb.org", "PLANET_TYPE", "STRIPPED_CORE"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PLANET_TYPE"] }],
+  "name": [
+    { "value": "Stripped core", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "Oluščeno jedro", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }] },
+    { "value": "Núcleo desnudado", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>The exposed metallic core of a body whose mantle was removed by giant impact or by stellar stripping. Excludes small iron bodies that never had a mantle, which are catalogued as minor bodies.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Izpostavljeno kovinsko jedro telesa, ki je izgubilo plašč ob velikem trku ali zaradi zvezde.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Núcleo metálico exposto de um corpo cujo manto foi removido por um impacto gigante ou por erosão estelar. Exclui pequenos corpos de ferro que nunca tiveram manto, catalogados como corpos menores.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "code": ["strip-core"]
+}

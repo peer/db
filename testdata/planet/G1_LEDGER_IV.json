@@ -1,0 +1,55 @@
+{
+  "id": ["xeno.peerdb.org", "PLANET", "G1_LEDGER_IV"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PLANET"] }],
+  "name": [{ "value": "Ledger Star IV", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Aoleiaru", "gloss": "those who stayed, applied to the world as well as to the people" }],
+  "catalogueCode": "CCX-2228-LDG4",
+  "description": [
+    {
+      "value": "<p>A hot, bright, largely dry world of evaporite basins and drifting ochre dust, the largest inhabited world in the sector by population. The star is fierce enough that most outdoor work happens in the four hours either side of dawn, and the settlements are built low and thick-walled with their backs to the light. There is standing water in a few deep basins and it is the most closely governed resource on the planet. Sulphurous haze pools in the deepest lowlands and is avoided by everyone.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Vroč in suh svet z obsežnimi evaporitnimi kotanjami in nizkimi, debelostenskimi naselji.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Um mundo quente, luminoso e quase todo seco, de bacias de evaporitos e poeira ocre em deriva, o mundo habitado mais populoso do setor. A estrela é bastante violenta para que quase todo o trabalho ao ar livre decorra nas quatro horas antes e depois do amanhecer, e os povoados são baixos, de paredes grossas e de costas voltadas para a luz. Há água parada em algumas bacias profundas e é o recurso mais estritamente regulado do planeta. A bruma sulfurosa acumula-se nas terras mais baixas e toda a gente a evita.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "STAR_SYSTEM", "G1_LEDGER_STAR"] },
+  "planetType": { "id": ["xeno.peerdb.org", "PLANET_TYPE", "DESICCATED"] },
+  "biome": [
+    { "id": ["xeno.peerdb.org", "BIOME", "EVAPORITE_PAN"] },
+    { "id": ["xeno.peerdb.org", "BIOME", "REGOLITH_DUNE"] },
+    { "id": ["xeno.peerdb.org", "BIOME", "HAZE_LOWLAND"] }
+  ],
+  "radius": { "value": { "amount": 1.21, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_RADIUS"] }] },
+  "mass": { "value": { "amount": 1.63, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_MASS"] }] },
+  "surfaceGravity": { "value": { "amount": 1.11, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "STANDARD_GRAVITY"] }] },
+  "dayLength": { "value": { "amount": 19.8, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "HOUR"] }] },
+  "orbitalPeriod": { "value": { "amount": 604.2, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_DAY"] }] },
+  "meanTemperature": { "value": { "amount": 34.8, "precision": 0.1 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "°C"] }] },
+  "hydrosphere": { "value": { "amount": 3.1, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "PERCENT"] }] },
+  "atmosphere": [
+    {
+      "value": "<p>Nitrogen and carbon dioxide at 1.4 bar with seventeen per cent oxygen and a permanent fine dust load. Breathable, hot, and drying: the standing rule for visitors is three litres of water before noon.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "biosphere": [
+    {
+      "value": "<p>Life is present: 4 catalogued species (Ledger Dune Walkers, Ledger Haze Population, Long Evaporite People) and 2 recorded non-sapient organisms. The survey is not claimed to be complete.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "contactStatus": { "id": ["xeno.peerdb.org", "CONTACT_STATUS", "SUSTAINED"] },
+  "firstSurveyed": { "time": "2228-01-01T00:00:00Z", "precision": "y" },
+  "surveyPeriod": { "from": { "time": "2228-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true },
+  "populationEstimate": {
+    "value": { "from": { "amount": 1200000, "precision": 100 }, "to": { "amount": 1900000, "precision": 100 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "image": [{ "value": "/f/DRk23zXbT1X7M3zRxzz7TD", "name": "G1_LEDGER_IV.jpg", "caption": "Surface view", "source": "Consortium survey archive" }]
+}

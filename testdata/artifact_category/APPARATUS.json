@@ -1,0 +1,24 @@
+{
+  "id": ["xeno.peerdb.org", "ARTIFACT_CATEGORY", "APPARATUS"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "ARTIFACT_CATEGORY"] }],
+  "name": [
+    { "value": "Apparatus", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "Naprava", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }] },
+    { "value": "Aparelho", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>Devices that carry out a process or a measurement, with moving, heated or contained working parts. Excludes simple hand tools.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Priprave za izvedbo postopka ali meritve, z gibljivimi, grelnimi ali zaprtimi deli.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Dispositivos que executam um processo ou uma medição, com partes operativas móveis, aquecidas ou confinadas. Exclui ferramentas manuais simples.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "code": ["apparatus"]
+}

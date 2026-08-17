@@ -1,0 +1,19 @@
+{
+  "id": ["xeno.peerdb.org", "REGION", "G4_WARM_POOL"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "REGION"] }],
+  "name": [{ "value": "The Warm Pool", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Omango" }],
+  "description": [
+    {
+      "value": "<p>The substellar sea, three thousand kilometres across, warm at the surface and cooling steeply with depth. The star sits at the zenith and never moves, so light and temperature are the same at every hour of the tide, which turns every four days. Everything here floats, including the settlements, and station-keeping is a civic obligation rather than a private one.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "PLANET", "G4_HALFLIGHT"] },
+  "biome": [{ "id": ["xeno.peerdb.org", "BIOME", "SWEEP_FLAT"] }, { "id": ["xeno.peerdb.org", "BIOME", "VENT_FIELD"] }],
+  "area": { "value": { "amount": 7100000, "precision": 100 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "SQUARE_KILOMETRE"] }] },
+  "elevationRange": {
+    "value": { "from": { "amount": -4200, "precision": 10 }, "to": { "amount": 0, "precision": 10 } },
+    "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }]
+  }
+}

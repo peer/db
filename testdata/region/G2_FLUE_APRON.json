@@ -1,0 +1,19 @@
+{
+  "id": ["xeno.peerdb.org", "REGION", "G2_FLUE_APRON"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "REGION"] }],
+  "name": [{ "value": "Flue Apron", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "description": [
+    {
+      "value": "<p>A cryovolcanic apron covering most of the trailing hemisphere in overlapping slush flows, the youngest about four hundred years old and the oldest beyond dating. Flow fronts stand two to nine metres high and are soft enough to walk into by mistake. Nothing has been recovered alive from any of them.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "MOON", "G2_FLUE"] },
+  "biome": [{ "id": ["xeno.peerdb.org", "BIOME", "CRYO_PLAIN"] }],
+  "area": { "value": { "amount": 61000, "precision": 100 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "SQUARE_KILOMETRE"] }] },
+  "elevationRange": {
+    "value": { "from": { "amount": -120, "precision": 10 }, "to": { "amount": 940, "precision": 10 } },
+    "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }]
+  },
+  "image": [{ "value": "/f/T9xm9EPaAkmAMEVNhH9ipy", "name": "G2_FLUE_APRON.jpg", "caption": "Regional view", "source": "Consortium survey archive" }]
+}

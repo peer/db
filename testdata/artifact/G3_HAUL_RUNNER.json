@@ -1,0 +1,28 @@
+{
+  "id": ["xeno.peerdb.org", "ARTIFACT", "G3_HAUL_RUNNER"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "ARTIFACT"] }],
+  "name": [{ "value": "Sledge Runner with Metal Shoe", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "accessionCode": "CCX-A-31007",
+  "description": [
+    {
+      "value": "<p>A laminated runner of split bone bound with sinew, faced along its whole bearing surface with a strip of struck iron obtained through the lodges in the 2270s. The wear on the shoe is even for two metres and then abruptly deeper at the heel, which is where a loaded sledge rides when it is being turned. It was discarded after the bone cracked at the third binding and was recovered from a fire pit surround, where it had been doing duty as a kerb. Both technologies are visible in one object, which is why it was collected and why it has been reproduced in more publications than anything else in this galaxy.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "category": { "id": ["xeno.peerdb.org", "ARTIFACT_CATEGORY", "STRUCTURAL_ELEMENT"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G3_ICE_LODGES"] }],
+  "foundAt": { "id": ["xeno.peerdb.org", "SITE", "G3_UPPER_HEARTHS"] },
+  "material": [
+    { "value": "split bone", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "struck iron", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "sinew binding", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }
+  ],
+  "dimension": [
+    { "value": { "amount": 2.42, "precision": 0.001 }, "axis": "length", "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+    { "value": { "amount": 0.086, "precision": 0.001 }, "axis": "width", "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+    { "value": { "amount": 0.031, "precision": 0.001 }, "axis": "thickness", "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] }
+  ],
+  "dateMade": { "time": "2278-01-01T00:00:00Z", "precision": "y" },
+  "collectedBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_ARAI"] }, { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_PETROVA"] }],
+  "image": [{ "value": "/f/7ioXcr8sMBwbUTAJv8wQgV", "name": "G3_HAUL_RUNNER.jpg", "caption": "Object drawing", "source": "Consortium collection" }]
+}

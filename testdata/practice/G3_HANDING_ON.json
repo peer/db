@@ -1,0 +1,29 @@
+{
+  "id": ["xeno.peerdb.org", "PRACTICE", "G3_HANDING_ON"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PRACTICE"] }],
+  "name": [{ "value": "Handing On the Ground", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Sethenna", "gloss": "the giving of the turn" }],
+  "description": [
+    {
+      "value": "<p>At the end of a holding term the hearth that has worked a stretch of the band banks its fire, walks coldward to the next hearth in the order, and stands outside the door until it is noticed. Nothing is said about the ground itself; the outgoing holder states only the number of sleeps the ice front is away and the number of bodies its household can still feed. The incoming holder answers with the same two numbers and then goes back inside, and the transfer is complete. No thanks are given, no gift changes hands, and the order is never recited, because everybody on the strip already knows who is next and treats a question about it as a question about whether they are unwell. The outgoing hearth may not work the stretch again until the order has come round, which is roughly once in an adult life.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Ognjišče preda odsek pasu naslednjemu po ustaljenem vrstnem redu, brez daril in zahval.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>No fim de um período de posse, a lareira que trabalhou um troço da faixa abafa o seu lume, caminha na direção do frio até à lareira seguinte na ordem e fica à porta até dar nas vistas. Nada se diz sobre o próprio terreno; quem sai declara apenas a quantos sonos está a frente de gelo e quantos corpos a sua casa ainda consegue alimentar. Quem entra responde com os mesmos dois números e volta para dentro, e a transferência está feita. Não há agradecimentos, não muda de mãos nenhuma prenda e a ordem nunca é recitada, porque toda a gente na faixa já sabe quem vem a seguir e toma uma pergunta sobre isso como uma pergunta sobre se está doente. A lareira que sai não pode voltar a trabalhar aquele troço até a ordem dar a volta, o que acontece cerca de uma vez na vida adulta.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G3_STRIP_STEWARDSHIP"] }],
+  "category": { "id": ["xeno.peerdb.org", "PRACTICE_CATEGORY", "RITE_OF_PASSAGE"] },
+  "periodicity": "at the end of every holding term, about once in a hundred and forty days",
+  "participants": {
+    "value": { "from": { "amount": 4, "precision": 1 }, "to": { "amount": 22, "precision": 1 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "firstDocumented": { "time": "2262-01-01T00:00:00Z", "precision": "y" },
+  "relatedPractice": [{ "id": ["xeno.peerdb.org", "PRACTICE", "G3_COLD_WALL"] }]
+}

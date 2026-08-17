@@ -1,0 +1,43 @@
+{
+  "id": ["xeno.peerdb.org", "CULTURE", "G1_CUT_WATER_COMPANIES"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "CULTURE"] }],
+  "name": [{ "value": "The Cut Water Companies", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [
+    { "value": "Rau Oaeni", "gloss": "cut-water work", "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G1_BASIN_SPEECH"] }] }
+  ],
+  "catalogueCode": "CU-2262-18",
+  "description": [
+    {
+      "value": "<p>Working companies that cut and held twelve kilometres of brine channel in the salt crust between 2258 and 2295, organised as trained corporations rather than as households and paid in draw rights rather than in goods. Membership carried an open account with the company, and two parties counted as kin exactly as long as an obligation between them stood, which meant that settling up at the end of a season ended a relationship as well as a debt. The companies drew seasonal labour from the dune bands, who came in with the herds, worked the cuts and left, and who are the reason the register lists two peoples against this entry at all. Around a thousand people worked the channel at its height, and the toppled boundary markers along the eastern side remain the best-dated objects on the planet. The crust failed in a series of collapses in 2295, the companies dissolved into their component ferments within two seasons, and nothing has been cut there since.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Družbe, ki so od leta 2258 do 2295 rezale slanične kanale v solni skorji, dokler se skorja ni udrla.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Companhias de trabalho que abriram e mantiveram doze quilómetros de canal de salmoura na crosta de sal entre 2258 e 2295, organizadas como corporações de ofício e não como casas, e pagas em direitos de tiragem de água e não em bens. Pertencer a uma delas implicava ter uma conta aberta com a companhia, e duas partes contavam como parentes exatamente enquanto uma obrigação entre elas se mantivesse, o que significava que acertar contas no fim de uma época punha fim tanto a uma relação como a uma dívida. As companhias recrutavam mão de obra sazonal junto dos bandos das dunas, que chegavam com as manadas, trabalhavam nos cortes e partiam, e que são a única razão pela qual o registo associa dois povos a esta entrada. No seu auge trabalhavam no canal cerca de mil pessoas, e os marcos de fronteira tombados ao longo do lado oriental continuam a ser os objetos mais bem datados do planeta. A crosta cedeu numa série de abatimentos em 2295, as companhias dissolveram-se nos fermentos que as compunham em duas épocas e desde então nada mais ali foi cortado.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "practisedBy": [{ "id": ["xeno.peerdb.org", "SPECIES", "G1_AOLEIARU"] }, { "id": ["xeno.peerdb.org", "SPECIES", "G1_AULEIRA"] }],
+  "presentAt": [{ "id": ["xeno.peerdb.org", "SITE", "G1_EVAPORITE_WORKINGS"] }],
+  "kinshipSystem": { "id": ["xeno.peerdb.org", "KINSHIP_SYSTEM", "DEBT_KINSHIP"] },
+  "socialOrganisation": { "id": ["xeno.peerdb.org", "SOCIAL_ORGANISATION", "GUILD_FEDERATION"] },
+  "subsistence": [
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "TRADE_DEPENDENCY"] },
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "SILT_GARDENING"] }
+  ],
+  "communication": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G1_BASIN_SPEECH"] }],
+  "population": {
+    "value": { "from": { "amount": 400, "precision": 100 }, "to": { "amount": 1100, "precision": 100 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "period": { "from": { "time": "2258-01-01T00:00:00Z", "precision": "y" }, "to": { "time": "2295-01-01T00:00:00Z", "precision": "y" } },
+  "notes": [
+    {
+      "value": "<p>The company accounts were kept on salt and were left in the cuts when they closed. Roughly two thirds are still legible, which is two thirds more than the shipping records of the concession that employed them.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

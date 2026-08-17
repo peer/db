@@ -18,9 +18,12 @@ import (
 	internalCore "gitlab.com/peerdb/peerdb/internal/core"
 )
 
-// sortByConfidence sorts claims in decreasing confidence order.
+// sortByConfidence sorts claims in decreasing confidence order. The sort is stable, so claims of equal
+// confidence stay in the order the document has them in: nothing else says which of them comes first (a
+// claim's identifier is assigned and says nothing about what the claim is worth), and the first of them is
+// what the best claim of a property is, so the document is what decides it.
 func sortByConfidence(claims []Claim) {
-	slices.SortFunc(claims, func(a, b Claim) int {
+	slices.SortStableFunc(claims, func(a, b Claim) int {
 		// Reverse order: higher confidence first.
 		return cmp.Compare(b.GetConfidence(), a.GetConfidence())
 	})
@@ -183,7 +186,9 @@ func getAllClaimsOfType[T any, PT interface {
 			result = append(result, typed)
 		}
 	}
-	slices.SortFunc(result, func(a, b PT) int {
+	// Stable for the same reason sortByConfidence is: claims of equal confidence stay in the order the
+	// document has them in.
+	slices.SortStableFunc(result, func(a, b PT) int {
 		// Reverse order: higher confidence first.
 		return cmp.Compare(b.GetConfidence(), a.GetConfidence())
 	})
@@ -314,7 +319,7 @@ func GetClaimsAndLanguageOfTypeWithConfidence[T any, PT interface {
 	}
 	for lang, entries := range grouped {
 		// Sort by decreasing confidence.
-		slices.SortFunc(entries, func(a, b PT) int {
+		slices.SortStableFunc(entries, func(a, b PT) int {
 			return cmp.Compare(b.GetConfidence(), a.GetConfidence())
 		})
 		// Store it back.
@@ -372,9 +377,32 @@ func SelectClaimsByLanguage[T any, PT interface {
 	return nil
 }
 
+// ClaimOrderInList is where a claim states it belongs among the claims it is listed with, read from its
+// ORDER_IN_LIST sub-claim. A claim which states no order, or states one which is not a number, is placed
+// after every claim which states one, so that a claim nobody has placed never comes ahead of the placed
+// ones. An order of zero is an order like any other and is kept as one.
+func ClaimOrderInList(claims Claims) float64 {
+	orderClaim := GetBestClaimOfType[AmountClaim](claims, internalCore.OrderInListPropID)
+	if orderClaim == nil {
+		return math.MaxFloat64
+	}
+	order, errE := orderClaim.Amount.Float64(0)
+	if errE != nil {
+		return math.MaxFloat64
+	}
+	return order
+}
+
 // GetClaimsListsOfType groups claims of the concrete type T matching the given property ID
 // by their LIST sub-claim and sorts within each list by the ORDER_IN_LIST sub-claim.
 // Returns a slice of lists, where each list is a slice of claims sorted by order.
+//
+// A claim which states no order is placed after every claim which states one, and claims which
+// share an order (those without one among them) keep the order they are in on the document. The
+// lists come back in the order their first claim is in on the document. Neither the claims nor the
+// lists are ordered by anything of their own (their identifiers are assigned and say nothing about
+// where a claim belongs), so what the document says is what decides, and the same document is
+// always answered the same way.
 //
 // Claim has to have at least LowConfidence confidence.
 //
@@ -397,24 +425,25 @@ func GetClaimsListsOfType[T any, PT interface {
 	}
 
 	claimsPerList := map[string][]entry{}
+	// The lists in the order their first claim was seen in, so that ranging over the map does not decide it.
+	listIDs := []string{}
 	for _, c := range all {
 		listID := "none"
 		if listClaim := GetBestClaimOfType[IdentifierClaim](Claim(c), internalCore.ListPropID); listClaim != nil {
 			listID = listClaim.Value
 		}
-		order := math.MaxFloat64
-		if orderClaim := GetBestClaimOfType[AmountClaim](Claim(c), internalCore.OrderInListPropID); orderClaim != nil {
-			f, errE := orderClaim.Amount.Float64(0)
-			if errE == nil {
-				order = f
-			}
+		order := ClaimOrderInList(Claim(c))
+		if _, ok := claimsPerList[listID]; !ok {
+			listIDs = append(listIDs, listID)
 		}
 		claimsPerList[listID] = append(claimsPerList[listID], entry{claim: c, order: order})
 	}
 
 	result := make([][]PT, 0, len(claimsPerList))
-	for _, entries := range claimsPerList {
-		slices.SortFunc(entries, func(a, b entry) int {
+	for _, listID := range listIDs {
+		entries := claimsPerList[listID]
+		// The sort is stable so that claims which share an order stay in the order the document has them in.
+		slices.SortStableFunc(entries, func(a, b entry) int {
 			return cmp.Compare(a.order, b.order)
 		})
 		list := make([]PT, 0, len(entries))

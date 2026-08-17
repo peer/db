@@ -1,0 +1,40 @@
+{
+  "id": ["xeno.peerdb.org", "PLANET", "G1_TWELVE_BELLS_VII"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PLANET"] }],
+  "name": [{ "value": "Twelve Bells VII", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "catalogueCode": "TWB-0118-g",
+  "description": [
+    {
+      "value": "<p>The outer giant of the system, banded cream and slate, with a thin ring and three catalogued moons. Its upper cloud decks carry free-floating photosynthetic mats that complete their whole life cycle without touching anything solid, which is fortunate, because there is nothing solid to touch. Fieldwork here means the moons, or a long unpleasant descent that has been authorised four times and flown twice.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>O gigante exterior do sistema, listado de creme e ardósia, com um anel ténue e três luas catalogadas. As suas camadas superiores de nuvens transportam tapetes fotossintéticos flutuantes que cumprem todo o seu ciclo de vida sem tocar em nada sólido, o que é uma sorte, porque não há nada sólido em que tocar. Trabalho de campo aqui significa as luas, ou uma descida longa e desagradável que foi autorizada quatro vezes e realizada duas.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "STAR_SYSTEM", "G1_TWELVE_BELLS"] },
+  "planetType": { "id": ["xeno.peerdb.org", "PLANET_TYPE", "VOLATILE_GIANT"] },
+  "biome": [{ "id": ["xeno.peerdb.org", "BIOME", "AERIAL_MAT"] }],
+  "radius": { "value": { "amount": 9.8, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_RADIUS"] }] },
+  "mass": { "value": { "amount": 214.0, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_MASS"] }] },
+  "surfaceGravity": { "value": { "amount": 2.23, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "STANDARD_GRAVITY"] }] },
+  "dayLength": { "value": { "amount": 11.4, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "HOUR"] }] },
+  "orbitalPeriod": { "value": { "amount": 4210.6, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_DAY"] }] },
+  "ringSystem": true,
+  "meanTemperature": { "value": { "amount": -142.0, "precision": 0.1 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "°C"] }] },
+  "hydrosphere": { "value": { "amount": 0, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "PERCENT"] }] },
+  "atmosphere": [
+    {
+      "value": "<p>Hydrogen and helium with methane, ammonia and water cloud decks in order of depth. There is no surface to stand on; the mat layer sits at about half a bar, in light the colour of weak tea.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "biosphereUnknown": true,
+  "contactStatus": { "id": ["xeno.peerdb.org", "CONTACT_STATUS", "NO_CONTACT"] },
+  "firstSurveyed": { "time": "2224-01-01T00:00:00Z", "precision": "y" },
+  "surveyPeriod": { "from": { "time": "2224-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true },
+  "image": [
+    { "value": "/f/LZyyd7HsNW2cBRBePWaXyq", "name": "G1_TWELVE_BELLS_VII.jpg", "caption": "Surface view", "source": "Consortium survey archive" }
+  ]
+}

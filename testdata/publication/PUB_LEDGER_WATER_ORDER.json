@@ -1,0 +1,35 @@
+{
+  "id": ["xeno.peerdb.org", "PUBLICATION", "PUB_LEDGER_WATER_ORDER"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PUBLICATION"] }],
+  "title": [
+    {
+      "value": "Priority, Not Property: The Dawn Draw, the Cut Water Companies and the Administration of Scarcity in the Long Evaporite of Ledger Star IV",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "doi": "10.5281/xeno.2283.0021",
+  "abstract": [
+    {
+      "value": "<p>The water order of the Long Evaporite allocates position in a drawing sequence rather than volume, and a position may be sold, pledged, lent and inherited while the water itself remains unowned throughout. We reconstruct the sequence for the second basin across six years and show that the companies operating the cuts hold no water rights at all, only the right to be early. Prices for early positions track evaporation rates with a lag of about eleven days, which is roughly the interval at which the clerks recompute the roll. The system is not a market in water and should not be described as one.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "author": [
+    { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_NOWAK"] },
+    { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_OKONKWO"] },
+    { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_HADDAD"] }
+  ],
+  "journal": "Studies in Non-Terrestrial Exchange",
+  "publishedOn": { "time": "2283-02-01T00:00:00Z", "precision": "m" },
+  "about": [
+    { "id": ["xeno.peerdb.org", "SPECIES", "G1_AOLEIARU"] },
+    { "id": ["xeno.peerdb.org", "CULTURE", "G1_BASIN_WATER_ORDER"] },
+    { "id": ["xeno.peerdb.org", "CULTURE", "G1_CUT_WATER_COMPANIES"] }
+  ],
+  "cites": [
+    { "id": ["xeno.peerdb.org", "PUBLICATION", "PUB_WEIR_ALLOCATION"] },
+    { "id": ["xeno.peerdb.org", "PUBLICATION", "PUB_STANDING_CROP"] },
+    { "id": ["xeno.peerdb.org", "PUBLICATION", "PUB_STRIP_STEWARDSHIP"] }
+  ],
+  "document": [{ "value": "/f/YMDyzHuxA2peteE6dWcpW7", "name": "PUB_LEDGER_WATER_ORDER.pdf", "caption": "Author's accepted manuscript" }]
+}

@@ -1,0 +1,42 @@
+{
+  "id": ["xeno.peerdb.org", "CULTURE", "G1_NAME_ASSEMBLY"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "CULTURE"] }],
+  "name": [{ "value": "The Kutak Name Assembly", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [
+    {
+      "value": "Qatpe Tukun",
+      "gloss": "the standing-together that holds the names",
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G1_BELLS_SPEECH"] }]
+    }
+  ],
+  "catalogueCode": "CU-2231-05",
+  "description": [
+    {
+      "value": "<p>A polity that exists only while the brine pool is full and dissolves entirely when it drains, leaving no office, no standing claim and nobody to appeal to for most of the year. Its whole business is the register of names: a fixed and finite set held in trust between households, into which people are placed and from which they are removed, kinship being reckoned between the names rather than between the bodies holding them. Divisions are settled here, since an adult who has become two people needs a second name and cannot simply take one. Between assemblies the households live scattered along the pans and the interdune hollows, keeping their buried jars alive and trading for what the world does not provide. The gathering is called on a schedule everybody but the survey can predict, and the survey has stopped saying so out loud.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Zbor ob polnjenju slanice, kjer se dodeljujejo imena iz stalnega nabora. Med letom osrednje oblasti ni.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Uma entidade política que só existe enquanto a poça de salmoura está cheia e se dissolve por inteiro quando ela seca, não deixando cargo nenhum, nenhuma reivindicação permanente e ninguém a quem recorrer durante quase todo o ano. Todo o seu ofício é o registo dos nomes: um conjunto fixo e finito mantido em confiança entre os agregados, no qual as pessoas são colocadas e do qual são retiradas, sendo o parentesco calculado entre os nomes e não entre os corpos que os detêm. As divisões resolvem-se aqui, já que um adulto que se tornou duas pessoas precisa de um segundo nome e não pode simplesmente pegar num. Entre assembleias, os agregados vivem espalhados pelas salinas e pelas depressões interdunares, mantendo vivos os seus jarros enterrados e trocando pelo que o mundo não dá. A reunião é convocada segundo um calendário que toda a gente menos o levantamento consegue prever, e o levantamento deixou de o dizer em voz alta.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "practisedBy": [{ "id": ["xeno.peerdb.org", "SPECIES", "G1_TAQPEKUN"] }],
+  "presentAt": [{ "id": ["xeno.peerdb.org", "SITE", "G1_KUTAK_MEET"] }, { "id": ["xeno.peerdb.org", "SITE", "G1_QUARTER_HEARTHS"] }],
+  "kinshipSystem": { "id": ["xeno.peerdb.org", "KINSHIP_SYSTEM", "NAME_INHERITANCE"] },
+  "socialOrganisation": { "id": ["xeno.peerdb.org", "SOCIAL_ORGANISATION", "FESTIVAL_STATE"] },
+  "subsistence": [
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "MANAGED_DECAY"] },
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "OPPORTUNISTIC_FORAGING"] },
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "TRADE_DEPENDENCY"] }
+  ],
+  "communication": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G1_BELLS_SPEECH"] }],
+  "population": {
+    "value": { "from": { "amount": 40000, "precision": 100 }, "to": { "amount": 90000, "precision": 100 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "period": { "from": { "time": "2229-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true }
+}

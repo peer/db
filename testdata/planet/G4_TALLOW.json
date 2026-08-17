@@ -1,0 +1,42 @@
+{
+  "id": ["xeno.peerdb.org", "PLANET", "G4_TALLOW"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PLANET"] }],
+  "name": [{ "value": "Tallow", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "catalogueCode": "SPW-A/140-b",
+  "description": [
+    {
+      "value": "<p>One of the four confirmed carbon worlds in the register, and the only one anybody has landed on. The crust is graphite over a silicon carbide mantle, black and slick underfoot, and the highlands are veined with material the assay reports describe as diamond, structural. Surface temperature holds near 96 degrees under a dense carbon monoxide atmosphere. There is no life on it at any depth sampled, which has not slowed the flow of proposals to go back.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Um dos quatro mundos de carbono confirmados no registo e o único onde alguém aterrou. A crosta é de grafite sobre um manto de carboneto de silício, negra e escorregadia sob os pés, e as terras altas são atravessadas por veios de um material que os relatórios de análise descrevem como diamante, estrutural. A temperatura à superfície mantém-se perto dos 96 graus sob uma atmosfera densa de monóxido de carbono. Não há vida nele a nenhuma das profundidades amostradas, o que não travou o fluxo de propostas para lá voltar.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "STAR_SYSTEM", "G4_HEDDLE"] },
+  "planetType": { "id": ["xeno.peerdb.org", "PLANET_TYPE", "CARBON_WORLD"] },
+  "radius": { "value": { "amount": 1.34, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_RADIUS"] }] },
+  "mass": { "value": { "amount": 2.11, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_MASS"] }] },
+  "surfaceGravity": { "value": { "amount": 1.18, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "STANDARD_GRAVITY"] }] },
+  "dayLength": { "value": { "amount": 88.4, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "HOUR"] }] },
+  "orbitalPeriod": { "value": { "amount": 96.0, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_DAY"] }] },
+  "meanTemperature": { "value": { "amount": 96.0, "precision": 0.1 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "°C"] }] },
+  "hydrosphere": { "value": { "amount": 0, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "PERCENT"] }] },
+  "atmosphere": [
+    {
+      "value": "<p>Carbon monoxide and methane at 6.2 bar with a permanent soot haze. Opaque, hot and chemically hostile; the 2271 landing party never once saw their own lander from two hundred metres away.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "biosphereNone": true,
+  "contactStatus": { "id": ["xeno.peerdb.org", "CONTACT_STATUS", "NO_CONTACT"] },
+  "firstSurveyed": { "time": "2247-01-01T00:00:00Z", "precision": "y" },
+  "surveyPeriod": { "from": { "time": "2249-01-01T00:00:00Z", "precision": "y" }, "to": { "time": "2271-01-01T00:00:00Z", "precision": "y" } },
+  "image": [{ "value": "/f/K3PffkbjB459ZCBZgUff1a", "name": "G4_TALLOW.jpg", "caption": "Approach view", "source": "Consortium survey archive" }],
+  "notes": [
+    {
+      "value": "<p>Confirmed as a carbon world in 2271, after a fourteen-year argument in which both sides were, at different times, working from the same spectra.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

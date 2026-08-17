@@ -1,0 +1,27 @@
+{
+  "id": ["xeno.peerdb.org", "ARTIFACT", "G3_MIDDEN_LOT"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "ARTIFACT"] }],
+  "name": [{ "value": "Midden Column, Lot 14", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "accessionCode": "CCX-A-31055",
+  "description": [
+    {
+      "value": "<p>A cut column through the shell bank, taken as a single block and studied as one lot: shell, crawler carapace, broken line, ash, and eleven separate discard episodes readable as layers. The upper third is loose and wet and the lower two thirds are cemented by lime leaching down through it, so the block had to be cased before it could be lifted. It is the only stratified sequence anybody has from this coast and it covers about ninety years. It is also, taken piece by piece, entirely unremarkable, which is the usual position with a midden.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "category": { "id": ["xeno.peerdb.org", "ARTIFACT_CATEGORY", "REFUSE_ASSEMBLAGE"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G3_WEIR_GRADES"] }, { "id": ["xeno.peerdb.org", "CULTURE", "G3_CHANNEL_HOUSES"] }],
+  "foundAt": { "id": ["xeno.peerdb.org", "SITE", "G3_LOWER_MIDDEN"] },
+  "material": [
+    { "value": "shell", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "carapace fragments", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "ash and lime cement", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }
+  ],
+  "dimension": [
+    { "value": { "amount": 0.95, "precision": 0.001 }, "axis": "height", "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+    { "value": { "amount": 0.5, "precision": 0.001 }, "axis": "width", "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+    { "value": { "amount": 0.5, "precision": 0.001 }, "axis": "length", "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] }
+  ],
+  "dateMade": { "time": "2210-01-01T00:00:00Z", "precision": "100y" },
+  "collectedBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_HALVORSEN"] }]
+}

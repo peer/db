@@ -1,0 +1,69 @@
+{
+  "id": ["xeno.peerdb.org", "SPECIES", "G1_GRID44_HOLDERS"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SPECIES"] }],
+  "name": [{ "value": "Dusk Band Signers", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [
+    {
+      "value": "[those who keep hold]",
+      "gloss": "a two-limb sign pressed flat to the ground; the species has no spoken name for itself and no spoken anything else",
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G1_GROUND_SIGN"] }]
+    }
+  ],
+  "taxonCode": "TX-1601-h",
+  "description": [
+    {
+      "value": "<p>The people of the four-hundred-kilometre habitable ring of a locked world, living along meltwater channels that rearrange themselves every few years and digging into the night slope for anything that has to stay put. All language is conducted through the ground: a sign is a pressure pattern made with the forelimbs and felt by everyone standing on the same gravel, so a conversation has a radius rather than a set of participants. Children are reared by whoever holds the channel reach they were born on, and a person&#39;s kin are their fosterers and their fosterers&#39; fosterers, back as far as anybody troubles to count. Contact was suspended in 2271 and reopened in 2306, and the two files are still being reconciled line by line. The live argument is whether the signing is one language or several, since ice, gravel and worked stone carry a sign different distances and the reaches disagree about what counts as an accent.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Ljudstvo somračnega pasu, ki se sporazumeva izključno s tresljaji podlage.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    }
+  ],
+  "homeworld": { "id": ["xeno.peerdb.org", "PLANET", "G1_SURVEY_GRID_44_B"] },
+  "bodyPlan": [
+    {
+      "value": "<p>Squat, wide and low-slung, with four heavy walking limbs and a pair of broad flat forelimbs held clear of the ground except when speaking. The hide is thick, dark and nearly hairless, insulated underneath by a fat layer that thickens on the night side of a person&#39;s usual range. There are eyes, small and adapted to permanent twilight, but the working senses are in the forelimb pads and in the jaw, which is pressed to the ground to listen at distance.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "typicalHeight": { "value": { "amount": 1.18, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+  "typicalMass": { "value": { "amount": 61.0, "precision": 0.1 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "kg"] }] },
+  "lifespan": {
+    "value": { "from": { "amount": 35, "precision": 1 }, "to": { "amount": 75, "precision": 1 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_YEAR"] }]
+  },
+  "sensoryModality": [
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "SUBSTRATE_VIBRATION"] },
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "THERMAL_RADIANCE"] },
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "HYGRORECEPTION"] }
+  ],
+  "subsistence": [
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "SILT_GARDENING"] },
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "MANAGED_DECAY"] }
+  ],
+  "individuality": { "id": ["xeno.peerdb.org", "INDIVIDUALITY_MODE", "BOUNDED"] },
+  "socialOrganisation": { "id": ["xeno.peerdb.org", "SOCIAL_ORGANISATION", "CONSENSUS_ASSEMBLY"] },
+  "kinshipSystem": { "id": ["xeno.peerdb.org", "KINSHIP_SYSTEM", "FOSTERAGE_CHAIN"] },
+  "communication": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G1_GROUND_SIGN"] }],
+  "population": {
+    "value": { "from": { "amount": 8000, "precision": 1000 }, "to": { "amount": 15000, "precision": 1000 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "contactStatus": { "id": ["xeno.peerdb.org", "CONTACT_STATUS", "LIMITED"] },
+  "firstContact": { "time": "2237-01-01T00:00:00Z", "precision": "y" },
+  "image": [
+    {
+      "value": "/f/JNei28K4ziYjet5KHjNc6r",
+      "name": "G1_GRID44_HOLDERS.jpg",
+      "caption": "Field plate",
+      "source": "Drawn in the field; Consortium collection"
+    }
+  ],
+  "notes": [
+    {
+      "value": "<p>The greeting that cost the third expedition its second year was the sign for wait, made with the wrong forelimb, which is the sign for begin. The correction is now read aloud at every departure briefing, in a medium the hosts cannot hear.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

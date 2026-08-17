@@ -1,0 +1,24 @@
+{
+  "id": ["xeno.peerdb.org", "INDIVIDUALITY_MODE", "DISTRIBUTED_SELF"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "INDIVIDUALITY_MODE"] }],
+  "name": [
+    { "value": "Distributed self", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "Porazdeljeni jaz", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }] },
+    { "value": "Eu distribuído", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>A single self spread across physically separate bodies with no fixed centre, held together by continuous signalling. Excludes networked but separately willed individuals.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>En sam jaz, razpršen po fizično ločenih telesih brez središča, povezan z nenehnim signaliziranjem.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Um único eu espalhado por corpos fisicamente separados, sem centro fixo, mantido coeso por sinalização contínua. Exclui indivíduos ligados em rede mas de vontade própria.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "code": ["distributed"]
+}

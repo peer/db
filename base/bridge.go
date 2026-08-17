@@ -18,6 +18,12 @@ func (b *B) LanguageCodes() map[identifier.Identifier]string {
 	return b.languageCodes
 }
 
+// NamingProperties returns the properties a display label is picked from, in the order they are
+// considered: the first one a document has a claim for is the one its label is taken from.
+func (b *B) NamingProperties() []identifier.Identifier {
+	return b.namingProperties
+}
+
 // IndexedDocument returns the search document for the given document and metadata.
 //
 // dataJSON is expected to be the raw stored document: indexing does not run the read-path document hooks.

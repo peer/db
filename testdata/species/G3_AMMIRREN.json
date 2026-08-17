@@ -1,0 +1,67 @@
+{
+  "id": ["xeno.peerdb.org", "SPECIES", "G3_AMMIRREN"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SPECIES"] }],
+  "name": [{ "value": "Saltmarch Pan Workers", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [
+    { "value": "Ammirren", "gloss": "the ones who work the white", "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G3_PAN_CUT"] }] }
+  ],
+  "taxonCode": "TX-4451-c",
+  "description": [
+    {
+      "value": "<p>The Ammirren work the largest evaporite pan on the world in a manner the survey documented at very great length and did not understand. The crust is cut, stacked, wetted and recut on a schedule tied to the twice-yearly flood, and the product is not eaten, traded, built with or moved off the pan. Contact ran from 2281 to 2298 and was suspended under an ethics ruling that has not since been revisited, so the literature has been arguing for fourteen years with no new evidence arriving. Whether the pan work is subsistence, observance or a form of record is the substance of that argument, and the same argument covers whether the workers are individuals in the register&#39;s sense at all. The register keeps individual records, under written protest from one side.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Delavci na veliki solni kotanji, katerih dela nihče ni razumel. Stik je prekinjen od leta 2298.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    }
+  ],
+  "homeworld": { "id": ["xeno.peerdb.org", "PLANET", "G3_RIMMENA"] },
+  "bodyPlan": [
+    {
+      "value": "<p>Tall, narrow and bilateral, on four limbs, with a pale reflective integument that cracks and is repaired rather than shed. The head is little more than a joint carrying a ring of chemical pits, and the working forelimbs end in flat blades of hardened tissue that are used on the crust and are resharpened against it. They lose almost no water, and can stand in the open pan through a full day without shelter.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "typicalHeight": { "value": { "amount": 1.9, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+  "typicalMass": { "value": { "amount": 62.0, "precision": 0.1 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "kg"] }] },
+  "lifespan": {
+    "value": { "from": { "amount": 45, "precision": 1 }, "to": { "amount": 100, "precision": 1 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_YEAR"] }]
+  },
+  "sensoryModality": [
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "HYGRORECEPTION"] },
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "ULTRAVIOLET_VISION"] },
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "CONTACT_CHEMO"] }
+  ],
+  "subsistence": [
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "SILT_GARDENING"] },
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "OPPORTUNISTIC_FORAGING"] },
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "TRADE_DEPENDENCY"] }
+  ],
+  "individuality": { "id": ["xeno.peerdb.org", "INDIVIDUALITY_MODE", "CONTESTED"] },
+  "contestedIndividuality": { "id": ["xeno.peerdb.org", "INDIVIDUALITY_MODE", "FISSIONING"] },
+  "socialOrganisation": { "id": ["xeno.peerdb.org", "SOCIAL_ORGANISATION", "TRIBUTARY_CENTRE"] },
+  "kinshipSystem": { "id": ["xeno.peerdb.org", "KINSHIP_SYSTEM", "UNILINEAL_DESCENT"] },
+  "communication": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G3_PAN_CUT"] }],
+  "population": {
+    "value": { "from": { "amount": 55000, "precision": 1000 }, "to": { "amount": 190000, "precision": 1000 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "contactStatus": { "id": ["xeno.peerdb.org", "CONTACT_STATUS", "SUSPENDED"] },
+  "firstContact": { "time": "2281-01-01T00:00:00Z", "precision": "y" },
+  "image": [
+    {
+      "value": "/f/FfKgQGdBYgCRUVUaQfwKW5",
+      "name": "G3_AMMIRREN.jpg",
+      "caption": "Field plate",
+      "source": "Drawn in the field; Consortium collection"
+    }
+  ],
+  "notes": [
+    {
+      "value": "<p>Seventeen years of interview material sits under restriction while the ruling stands. Three of the four researchers who collected it have since retired.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

@@ -1,0 +1,44 @@
+{
+  "id": ["xeno.peerdb.org", "CULTURE", "G1_WEIR_ROTA"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "CULTURE"] }],
+  "name": [{ "value": "The Weir Rota", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [
+    {
+      "value": "Ulunashe",
+      "gloss": "the walls and the water, used for the arrangement and not for the people",
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G1_FLATS_SPEECH"] }]
+    }
+  ],
+  "catalogueCode": "CU-2219-03",
+  "description": [
+    {
+      "value": "<p>The whole social order of the tidal flats expressed as a duty roster: several thousand kilometres of low stacked weir, divided into turns, each turn held by a hearth for a fixed span and then passed on in an order nobody can remember agreeing to. A turn confers the obligation to keep a stretch of wall standing and no claim whatever on what the wall catches, which is why the discipline has spent sixty years failing to decide whether it is property. Kin are those taking heat and food at the same hearth this season, so the roster and the family reshuffle together and neither is felt to be the more fundamental. Work is scheduled against nineteen metres of water rather than against light, and the day accordingly starts at a different hour every day. Since sustained contact in 2218 the only visible change is that four incompatible tide tables now circulate where there were none, all of them supplied by the Consortium and each correct where it was made.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Delo na plimskih pregradah, kjer skrb za vsak zid kroži od ognjišča do ognjišča po ustaljenem redu. Dan meri voda in ne svetloba.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    }
+  ],
+  "practisedBy": [{ "id": ["xeno.peerdb.org", "SPECIES", "G1_SUNARELI"] }],
+  "presentAt": [{ "id": ["xeno.peerdb.org", "SITE", "G1_LOWER_MIDDEN"] }, { "id": ["xeno.peerdb.org", "SITE", "G1_SHALLOWS_MEET"] }],
+  "kinshipSystem": { "id": ["xeno.peerdb.org", "KINSHIP_SYSTEM", "HEARTH_AFFILIATION"] },
+  "socialOrganisation": { "id": ["xeno.peerdb.org", "SOCIAL_ORGANISATION", "ROTATING_STEWARDSHIP"] },
+  "subsistence": [
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "TIDAL_TRAPPING"] },
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "SILT_GARDENING"] }
+  ],
+  "communication": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G1_FLATS_SPEECH"] }],
+  "population": {
+    "value": { "from": { "amount": 1400000, "precision": 100 }, "to": { "amount": 2200000, "precision": 100 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "period": { "from": { "time": "2190-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true },
+  "image": [{ "value": "/f/2m5QQRLrB5TZB9ix63Shs7", "name": "G1_WEIR_ROTA.jpg", "caption": "Gathering", "source": "Consortium survey archive" }],
+  "notes": [
+    {
+      "value": "<p>The starting year is the earliest the register will accept and not the earliest anybody worked a wall. Several stretches are older than any account of who laid them, which the recording officer has noted on the entry every time it has been revised.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "id": ["xeno.peerdb.org", "STAR_SYSTEM", "G4_HEDDLE"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "STAR_SYSTEM"] }],
+  "name": [{ "value": "Heddle", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "catalogueCode": "SPW-A/140",
+  "description": [
+    {
+      "value": "<p>A hierarchical triple: an orange primary with a second orange dwarf at two hundred and ten astronomical units and a red dwarf at four thousand. Four planets orbit the primary. Illumination at the inhabited world varies by a fifth over the companion&#39;s cycle, which is nineteen hundred years long and therefore of no practical concern to anyone.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "SECTOR", "G4_LONG_STREAM"] },
+  "spectralClass": "K1V+K5V+M4V",
+  "starCount": { "amount": 3, "precision": 1 },
+  "planetCount": { "amount": 4, "precision": 1 },
+  "distanceFromSol": { "value": { "amount": 803.5, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "PARSEC"] }] },
+  "firstSurveyed": { "time": "2244-01-01T00:00:00Z", "precision": "y" }
+}

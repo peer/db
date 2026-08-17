@@ -1,0 +1,24 @@
+{
+  "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "DRIFT_HARVESTING"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE"] }],
+  "name": [
+    { "value": "Drift harvesting", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "Nabiranje naplavin", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }] },
+    { "value": "Colheita de deriva", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>Living off material delivered by current, wind or fall, using fixed nets, weirs and collection surfaces. Excludes active pursuit of the same material.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Preživljanje z gradivom, ki ga prinesejo tok, veter ali padanje, z mrežami in lovilnimi površinami.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Viver do material trazido pela corrente, pelo vento ou pela queda, com redes fixas, açudes e superfícies de recolha. Exclui a busca ativa do mesmo material.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "code": ["drift"]
+}

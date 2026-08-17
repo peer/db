@@ -1,0 +1,24 @@
+{
+  "id": ["xeno.peerdb.org", "INDIVIDUAL", "G3_THEMMIS"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "INDIVIDUAL"] }],
+  "name": [{ "value": "Themmis" }],
+  "lineageName": [{ "value": "Semelith" }],
+  "description": [
+    {
+      "value": "<p>Held the stewardship of a stretch of the leading band from 2288 to 2291 and has been the survey&#39;s principal interlocutor since 2279, on the grounds that she was the only person at the hearths willing to say a thing twice. She regards this as a chore that fell to her in the ordinary rotation and has expected it to pass to somebody else for thirty-three years. Her account of the walking order is the basis of most of what the register holds about stewardship, and she has asked, twice, that it be checked against somebody else&#39;s.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "species": { "id": ["xeno.peerdb.org", "SPECIES", "G3_ILSETH"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G3_STRIP_STEWARDSHIP"] }],
+  "role": [
+    { "value": "stretch steward", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "interlocutor for the survey", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }
+  ],
+  "formOfAddress": "by name with the hearth name after it, never the other way round",
+  "born": { "time": "2249-01-01T00:00:00Z", "precision": "y" },
+  "birthplace": { "id": ["xeno.peerdb.org", "SITE", "G3_UPPER_HEARTHS"] },
+  "image": [
+    { "value": "/f/9ZEfWpEKcf9Mx1ARB9tn6k", "name": "G3_THEMMIS.jpg", "caption": "Portrait", "source": "Made with consent; Consortium collection" }
+  ]
+}

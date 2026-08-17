@@ -1,0 +1,18 @@
+{
+  "id": ["xeno.peerdb.org", "INDIVIDUAL", "G2_WELUNNA"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "INDIVIDUAL"] }],
+  "name": [{ "value": "Welunna" }],
+  "lineageName": [{ "value": "Fourth Drop Below the Turn" }],
+  "description": [
+    {
+      "value": "<p>Holds the record of which drops were open in which cycle, going back further than the survey does, and is the person the station goes to when its own figures disagree. In 2288 a field party walked a terrace out of sequence and the correction took four cycles of assembly time, which they have raised at every meeting since. They have not been photographed and have said they will consider it when the sequence is straight.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "species": { "id": ["xeno.peerdb.org", "SPECIES", "G2_ANUWELME"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G2_EVENING_ROWS"] }, { "id": ["xeno.peerdb.org", "CULTURE", "G2_SWITCHING_ASSEMBLY"] }],
+  "role": [{ "value": "sequence keeper", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "formOfAddress": "by the holding name",
+  "born": { "time": "2255-01-01T00:00:00Z", "precision": "y" },
+  "birthplace": { "id": ["xeno.peerdb.org", "SITE", "G2_LONG_EVENING_ROWS"] }
+}

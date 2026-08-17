@@ -1,0 +1,28 @@
+{
+  "id": ["xeno.peerdb.org", "ARTIFACT", "G4_AR_MIDDEN_BLOCK"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "ARTIFACT"] }],
+  "name": [{ "value": "Excavated Block, Upper Midden Seaward Face", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "accessionCode": "CCX-A-20423",
+  "description": [
+    {
+      "value": "<p>A consolidated block cut from the eroding seaward face of the midden ring, holding flat runner shell, cut horn, broken cord and ash in eleven distinguishable working episodes. The face is being cut back faster than the ring accumulates, so the block was taken as rescue rather than as sampling, with the outer half already in the water at every spring tide. Shell alone dates the working to about 2100 with a spread of roughly a century. Nothing in it is remarkable and the assemblage is the most informative object recovered in the sector.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "category": { "id": ["xeno.peerdb.org", "ARTIFACT_CATEGORY", "REFUSE_ASSEMBLAGE"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G4_CU_WEIR_ORDER"] }],
+  "foundAt": { "id": ["xeno.peerdb.org", "SITE", "G4_UPPER_MIDDEN"] },
+  "material": [
+    { "value": "shell", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "cut horn", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "ash", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }
+  ],
+  "dimension": [
+    { "value": { "amount": 0.62, "precision": 0.001 }, "axis": "length", "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+    { "value": { "amount": 0.41, "precision": 0.001 }, "axis": "width", "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+    { "value": { "amount": 0.38, "precision": 0.001 }, "axis": "height", "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] }
+  ],
+  "dateMade": { "time": "2100-01-01T00:00:00Z", "precision": "100y" },
+  "collectedBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_DOYLE"] }, { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_TRAN"] }],
+  "document": [{ "value": "/f/GXmxeHTPyJKTg5MhfM9jfC", "name": "G4_AR_MIDDEN_BLOCK.txt", "caption": "Accession record" }]
+}

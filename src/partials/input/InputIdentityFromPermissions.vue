@@ -30,7 +30,7 @@ import { ACTION_READ } from "@/core"
 import { documentClaimsKey, takenValuesKey } from "@/fields"
 import IdentityInline from "@/partials/IdentityInline.vue"
 import { usersWithDocumentPermission } from "@/permissions"
-import { useLock } from "@/progress"
+import { useInactivated, useLock } from "@/progress"
 import { useValidation } from "@/validation"
 
 const props = withDefaults(
@@ -66,7 +66,8 @@ watch(errors, (v) => emit("errors", v), { flush: "sync" })
 // Data modification and controls; useValidation writes to this lock during validation. An active
 // enclosing lock behaves like a soft readonly: the options stay focusable but cannot be changed.
 const lock = useLock()
-const inactive = computed(() => lock.value > 0 || props.readonly)
+const inactivated = useInactivated()
+const inactive = computed(() => lock.value > 0 || inactivated.value || props.readonly)
 
 const baseId = useId()
 const fieldsetRef = useTemplateRef<HTMLElement>("fieldsetRef")
@@ -212,12 +213,14 @@ function onFocusout(event: FocusEvent) {
 </script>
 
 <template>
-  <fieldset ref="fieldsetRef" class="pd-inputidentityfrompermissions" :class="{ 'pd-locked': lock > 0 }" @focusout="onFocusout">
-    <ul v-if="options.length > 0" class="grid grid-cols-[max-content_auto] gap-x-1">
-      <li v-for="user of options" :key="user" class="contents">
+  <fieldset ref="fieldsetRef" class="pd-inputidentityfrompermissions" :class="{ 'pd-locked': lock > 0, 'pd-inactive': inactivated || readonly }" @focusout="onFocusout">
+    <ul v-if="options.length > 0" class="pd-inputidentityfrompermissions-list grid grid-cols-[max-content_auto] gap-x-1">
+      <li v-for="user of options" :key="user" class="pd-inputidentityfrompermissions-item contents" :class="`pd-inputidentityfrompermissions-item-${user}`">
         <RadioButton
           :id="`${baseId}-${user}`"
           v-model="selected"
+          class="pd-inputidentityfrompermissions-radio"
+          :class="`pd-inputidentityfrompermissions-radio-${user}`"
           :name="baseId"
           :value="user"
           :disabled="inactive"
@@ -225,13 +228,18 @@ function onFocusout(event: FocusEvent) {
           @mousedown.prevent
           @click="focusOption(user)"
         />
-        <label :for="`${baseId}-${user}`" :class="inactive ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'" @mousedown.prevent @click="focusOption(user)"
+        <label
+          :for="`${baseId}-${user}`"
+          class="pd-inputidentityfrompermissions-label"
+          :class="inactive ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
+          @mousedown.prevent
+          @click="focusOption(user)"
           ><IdentityInline :subject="user"
         /></label>
       </li>
     </ul>
-    <i v-else-if="loading" class="text-gray-500">{{ t("common.status.loading") }}</i>
-    <i v-else-if="allTaken" class="text-gray-500">{{ t("partials.input.InputIdentityFromPermissions.noMoreUsers") }}</i>
-    <i v-else class="text-gray-500">{{ t("partials.input.InputIdentityFromPermissions.noUsers") }}</i>
+    <i v-else-if="loading" class="pd-inputidentityfrompermissions-loading text-gray-500">{{ t("common.status.loading") }}</i>
+    <i v-else-if="allTaken" class="pd-inputidentityfrompermissions-empty-alltaken text-gray-500">{{ t("partials.input.InputIdentityFromPermissions.noMoreUsers") }}</i>
+    <i v-else class="pd-inputidentityfrompermissions-empty text-gray-500">{{ t("partials.input.InputIdentityFromPermissions.noUsers") }}</i>
   </fieldset>
 </template>

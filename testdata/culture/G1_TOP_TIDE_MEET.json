@@ -1,0 +1,48 @@
+{
+  "id": ["xeno.peerdb.org", "CULTURE", "G1_TOP_TIDE_MEET"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "CULTURE"] }],
+  "name": [{ "value": "The Top-Tide Meeting", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [
+    {
+      "value": "Wanashe Nera",
+      "gloss": "the water that comes all the way up",
+      "inSystem": [
+        { "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G1_LONG_CALL"] },
+        { "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G1_FLATS_SPEECH"] }
+      ]
+    }
+  ],
+  "catalogueCode": "CU-2253-11",
+  "description": [
+    {
+      "value": "<p>A meeting held between the flats people and the deep-channel grazers at the four or five highest tides of the year, when the sweep channels reached the inner weirs and the working ground inside the midden ring flooded to the depth both parties could use. Business was exchange, notice of where the grazing circuits would run, and the settlement of anything either side had allowed to accumulate, all of it conducted with one party standing chest-deep and the other nowhere near the bottom. Decisions required the assent of everyone present and were therefore made slowly, in two languages, over about nine hours. The meetings ran from 2251, when the survey first recorded one, until 2294, when the outer channel silted past the depth the grazers would enter and the meeting was not called. Both parties agree that the meetings ended; neither accepts the other&#39;s account of why, and the flats people have kept the ground clear anyway.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Srečanja ob najvišji plimi med ljudmi z blatišč in pašniki iz globokih kanalov. Zadnje je bilo leta 2294.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Um encontro entre o povo dos baixios e os pastadores dos canais profundos nas quatro ou cinco marés mais altas do ano, quando os canais de varredura chegavam aos açudes interiores e o terreno de trabalho dentro do anel de concheiro se inundava até à profundidade que ambas as partes podiam usar. Tratava-se de trocas, do aviso sobre por onde correriam os circuitos de pastoreio e do acerto de tudo o que qualquer dos lados tivesse deixado acumular, e tudo isso decorria com uma das partes com água pelo peito e a outra sem chegar sequer perto do fundo. As decisões exigiam o assentimento de todos os presentes e eram por isso tomadas devagar, em duas línguas, ao longo de umas nove horas. Os encontros realizaram-se de 2251, quando o levantamento registou o primeiro, até 2294, altura em que o canal exterior assoreou para além da profundidade em que os pastadores entram e o encontro não foi convocado. Ambas as partes concordam que os encontros acabaram; nenhuma aceita a explicação da outra sobre o porquê, e o povo dos baixios continua, ainda assim, a manter o terreno desimpedido.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "practisedBy": [{ "id": ["xeno.peerdb.org", "SPECIES", "G1_WANASELU"] }, { "id": ["xeno.peerdb.org", "SPECIES", "G1_SUNARELI"] }],
+  "presentAt": [{ "id": ["xeno.peerdb.org", "SITE", "G1_LOWER_MIDDEN"] }],
+  "kinshipSystem": { "id": ["xeno.peerdb.org", "KINSHIP_SYSTEM", "BILATERAL_KINDRED"] },
+  "socialOrganisation": { "id": ["xeno.peerdb.org", "SOCIAL_ORGANISATION", "CONSENSUS_ASSEMBLY"] },
+  "subsistence": [
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "COLONY_GRAZING"] },
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "DRIFT_HARVESTING"] }
+  ],
+  "communication": [
+    { "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G1_LONG_CALL"] },
+    { "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G1_FLATS_SPEECH"] }
+  ],
+  "population": {
+    "value": { "from": { "amount": 90000, "precision": 100 }, "to": { "amount": 165000, "precision": 100 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "period": { "from": { "time": "2251-01-01T00:00:00Z", "precision": "y" }, "to": { "time": "2294-01-01T00:00:00Z", "precision": "y" } },
+  "image": [{ "value": "/f/UtZjs7NNaHiLpRm7jPr5vc", "name": "G1_TOP_TIDE_MEET.jpg", "caption": "Gathering", "source": "Consortium survey archive" }]
+}

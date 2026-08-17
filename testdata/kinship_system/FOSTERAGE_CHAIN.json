@@ -1,0 +1,24 @@
+{
+  "id": ["xeno.peerdb.org", "KINSHIP_SYSTEM", "FOSTERAGE_CHAIN"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "KINSHIP_SYSTEM"] }],
+  "name": [
+    { "value": "Fosterage chain", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "Rejniška veriga", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }] },
+    { "value": "Cadeia de acolhimento", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>Primary kinship runs through those who reared a person rather than those who bore them, and chains through the fosterers of fosterers. Excludes adoption into an existing descent line.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Osnovno sorodstvo teče prek tistih, ki so nekoga vzgojili, in naprej prek njihovih rejnikov.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>O parentesco primário passa por quem criou a pessoa e não por quem a gerou, encadeando-se pelos acolhedores dos acolhedores. Exclui a adoção numa linha de descendência já existente.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "code": ["fosterage"]
+}

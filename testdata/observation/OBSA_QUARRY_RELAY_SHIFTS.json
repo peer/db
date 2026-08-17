@@ -1,0 +1,43 @@
+{
+  "id": ["xeno.peerdb.org", "OBSERVATION", "OBSA_QUARRY_RELAY_SHIFTS"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "OBSERVATION"] }],
+  "title": [
+    {
+      "value": "Three relays at the glass face and the carriers who took the blanks",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "description": [
+    {
+      "value": "<p>A shift-by-shift count at the quarry, with blanks out and parties dissolved at the end of each shift. How a party is assembled we could not work out.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "content": [
+    {
+      "value": "<p>Three relays at the western face, each under four hours because the ground reaches ninety-six degrees and nothing about that is open to discussion.</p><p>Blanks out: 31, 27 and 33. Each party was assembled for one shift, worked it and was dissolved, and no two of the three had the same composition. Asking how a party is put together produced the names of the people in that party, which is a true answer to a different question.</p><p>The blanks go onto carriers who hold no position in any terrace sequence and are fed at each stretch out of the position below the drop, which is a duty of the position and not of the household in it. A full circuit of the habitable ring takes something over four years, and the carriers keep no account of what they are owed.</p><p>One carrier on her fourth circuit maintains a correspondence with a sibling in the warren at the rate of one message per switching. She asked how long our own letters take to reach Ceres. We told her, and she was polite about it.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "expedition": { "id": ["xeno.peerdb.org", "EXPEDITION", "EXP_EVENING_TERRACES"] },
+  "observedBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_MOLNAR"] }, { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_SEO"] }],
+  "observedAt": { "id": ["xeno.peerdb.org", "SITE", "G2_GLASS_QUARRY"] },
+  "observedOn": { "time": "2291-01-15T00:00:00Z", "precision": "d" },
+  "about": [
+    { "id": ["xeno.peerdb.org", "PRACTICE", "G2_CIRCUIT_WALK"] },
+    { "id": ["xeno.peerdb.org", "CULTURE", "G2_GLASS_RELAY"] },
+    { "id": ["xeno.peerdb.org", "SPECIES", "G2_ANUWELME"] }
+  ],
+  "method": [
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "PARTICIPANT_OBSERVATION"] },
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "MATERIAL_SAMPLING"] }
+  ],
+  "fieldConditions": "Substellar, glaring, the spoil too hot to kneel on and shade sheets up over both working parties. Between fourteen and twenty-two people at the face on each relay.",
+  "image": [
+    { "value": "/f/WKbMzSRfL8r7bDqjbKjWdJ", "name": "OBSA_QUARRY_RELAY_SHIFTS.jpg", "caption": "Taken at the time", "source": "Field record" }
+  ],
+  "permission": [
+    { "action": { "id": ["core.peerdb.org", "PERMISSION_ACTIONS", "ACTION_UPDATE"] }, "user": ["mock-user-researcher@localhost"], "scope": ["self"] },
+    { "action": { "id": ["core.peerdb.org", "PERMISSION_ACTIONS", "ACTION_DELETE"] }, "user": ["mock-user-curator@localhost"], "scope": ["self"] }
+  ]
+}

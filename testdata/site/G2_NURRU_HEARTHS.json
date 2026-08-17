@@ -1,0 +1,19 @@
+{
+  "id": ["xeno.peerdb.org", "SITE", "G2_NURRU_HEARTHS"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SITE"] }],
+  "name": [{ "value": "Nurru Hearths", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "localName": [{ "value": "Nurrumane", "gloss": "the warm places, used both of the vents and of the households on them" }],
+  "description": [
+    {
+      "value": "<p>Eleven household heat sites spaced along two kilometres of the vent chain, each tapping a single fissure and each within sight of the next by the light the vents themselves give off. Households move when their vent cools, which since 2224 has happened five times. Abandoned sites are left standing and are not reoccupied.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "REGION", "G2_WARM_SEAM"] },
+  "siteType": { "id": ["xeno.peerdb.org", "SITE_TYPE", "HEARTH_CLUSTER"] },
+  "gridReference": "LL-06.9/-14.2",
+  "population": {
+    "value": { "from": { "amount": 90, "precision": 10 }, "to": { "amount": 310, "precision": 10 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  }
+}

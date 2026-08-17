@@ -9,5 +9,7 @@ defineProps<{
 </script>
 
 <template>
-  <template v-if="claim">{{ claim.string }}</template>
+  <template v-if="claim"
+    ><span class="pd-claimvaluestring">{{ claim.string }}</span></template
+  >
 </template>

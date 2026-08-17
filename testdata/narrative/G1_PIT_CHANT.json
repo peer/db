@@ -1,0 +1,35 @@
+{
+  "id": ["xeno.peerdb.org", "NARRATIVE", "G1_PIT_CHANT"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "NARRATIVE"] }],
+  "title": [{ "value": "Nine and Nine and Do Not Stir It", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [
+    { "value": "Elmashen Nau", "gloss": "the house counting", "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G1_FLATS_SPEECH"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>The pit sequence carried in metre so that the order of steps cannot be got wrong, taught to children at the beds and recited under the breath by adults doing the work. It is the only text of the terrace houses that anybody outside a house is permitted to hear in full.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "genre": { "id": ["xeno.peerdb.org", "NARRATIVE_GENRE", "INSTRUCTION_CHANT"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G1_ANCHOR_HOUSES"] }],
+  "recordedBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_BRANDT"] }],
+  "recordedAt": { "id": ["xeno.peerdb.org", "SITE", "G1_ANCHOR_STEPS"] },
+  "recordedOn": { "time": "2277-01-01T00:00:00Z", "precision": "y" },
+  "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G1_FLATS_SPEECH"] }],
+  "content": [
+    {
+      "value": "<blockquote><p>Top of the tide and let it stand. Count nine.</p><p>Upper bed and let it stand. Count nine.</p><p>Do not stir it. Do not smell it. Count nine.</p><p>Second bed and the water goes down slower than you want it to. Count nine.</p><p>If it is grey, count nine again. If it is grey the second time, it is grey and that is the house&#39;s business.</p><p>Third bed, and now smell it, and now you may say something.</p><p>Pit, and shut it, and go up, and do not come back until the ninth day.</p></blockquote>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "recording": [
+    {
+      "value": "/f/VXR6CFxf4xpnG7fsEawBko",
+      "name": "narrative-G1_PIT_CHANT.mp3",
+      "caption": "Performance, recorded on site",
+      "duration": { "value": { "amount": 16, "precision": 1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "MINUTE"] }] },
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G1_FLATS_SPEECH"] }]
+    }
+  ]
+}

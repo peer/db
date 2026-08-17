@@ -1,0 +1,21 @@
+{
+  "id": ["xeno.peerdb.org", "PRACTICE", "G2_WALK_ON_AHEAD"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PRACTICE"] }],
+  "name": [{ "value": "Walking On Ahead", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Lemmenu", "gloss": "going in front, which is also the word for the end of an argument" }],
+  "description": [
+    {
+      "value": "<p>When a band cannot agree, whoever is prepared to act simply acts, and whoever is not walks out to the front of the line and keeps walking until the matter has been overtaken. There is no vote, no speech for and against, and nothing that could be called a hearing; the disagreement ends when the ground the argument was about is behind everybody. A walker who has gone ahead is not shunned and is not owed an apology, and rejoins the line whenever they choose, usually within the day. The one thing that is not done is to walk ahead and then come back to the same question, which is regarded as walking twice. Two Consortium interviewers have had this done to them mid-question, and both wrote it up as a refusal, which the band would not recognise as a description of anything.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G2_LEEWARD_BANDS"] }],
+  "category": { "id": ["xeno.peerdb.org", "PRACTICE_CATEGORY", "DISPUTE_RESOLUTION"] },
+  "periodicity": "whenever a band cannot agree",
+  "participants": {
+    "value": { "from": { "amount": 2, "precision": 1 }, "to": { "amount": 11, "precision": 1 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "firstDocumented": { "time": "2269-01-01T00:00:00Z", "precision": "y" },
+  "relatedPractice": [{ "id": ["xeno.peerdb.org", "PRACTICE", "G2_LEAN_GREETING"] }]
+}

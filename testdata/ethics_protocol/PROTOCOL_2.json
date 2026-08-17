@@ -1,0 +1,24 @@
+{
+  "id": ["xeno.peerdb.org", "ETHICS_PROTOCOL", "PROTOCOL_2"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "ETHICS_PROTOCOL"] }],
+  "name": [
+    { "value": "Protocol 2 (attributed cultural material)", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "Protokol 2 (pripisano kulturno gradivo)", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }] },
+    { "value": "Protocolo 2 (material cultural atribuído)", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>Requires named consent from the recognised holder of a form before recording or publication, and attribution in every reuse. Forbids derivative performance without a further grant.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Zahteva privolitev priznanega nosilca oblike in navedbo vira ob vsaki uporabi.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Exige o consentimento nominal do detentor reconhecido de uma forma antes do registo ou da publicação, e a atribuição em cada reutilização. Proíbe a execução derivada sem nova autorização.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "code": ["eth-2"]
+}

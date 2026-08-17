@@ -1,0 +1,24 @@
+{
+  "id": ["xeno.peerdb.org", "SITE", "G3_ICEFRONT_CAMP"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SITE"] }],
+  "name": [{ "value": "Icefront Camp", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "localName": [{}],
+  "description": [
+    {
+      "value": "<p>The Consortium&#39;s working base in the band: six pressurised huts, a mast, a sample freezer and a garage, sited eleven kilometres coldward of the nearest hearths and moved twice as the front advanced. Crewed during expeditions and left sealed between them, which is most of the time.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "REGION", "G3_MORNING_STRIP"] },
+  "siteType": { "id": ["xeno.peerdb.org", "SITE_TYPE", "FIELD_CAMP"] },
+  "gridReference": "LT-043.9/+11.4",
+  "population": {
+    "value": { "from": { "amount": 0, "precision": 10 }, "to": { "amount": 22, "precision": 10 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "founded": { "time": "2259-01-01T00:00:00Z", "precision": "y" },
+  "occupation": { "from": { "time": "2259-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true },
+  "image": [
+    { "value": "/f/Mu5zVevjRhJT9RiLaJppE9", "name": "G3_ICEFRONT_CAMP.jpg", "caption": "General view", "source": "Consortium survey archive" }
+  ]
+}

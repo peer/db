@@ -1,0 +1,29 @@
+{
+  "id": ["xeno.peerdb.org", "SITE", "G3_BOREHOLE_NINE"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SITE"] }],
+  "name": [{ "value": "Borehole Nine", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "description": [
+    {
+      "value": "<p>A surface camp on the ice above the vent chain, built around the ninth and only successful bore, through which every instrument that has ever met the inhabitants of this world was lowered. It ran for fifteen years and was closed in 2281 when the bore refroze beyond the reach of the heaters. The mast, the winch house and about four kilometres of cable are still there.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "REGION", "G3_VENT_CHAIN"] },
+  "siteType": { "id": ["xeno.peerdb.org", "SITE_TYPE", "FIELD_CAMP"] },
+  "gridReference": "CS-006.5/-31.8",
+  "population": {
+    "value": { "from": { "amount": 0, "precision": 10 }, "to": { "amount": 14, "precision": 10 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "founded": { "time": "2266-01-01T00:00:00Z", "precision": "y" },
+  "occupation": { "from": { "time": "2266-01-01T00:00:00Z", "precision": "y" }, "to": { "time": "2281-01-01T00:00:00Z", "precision": "y" } },
+  "image": [
+    { "value": "/f/Kd1vp9Axwkbs9sCpwz9it4", "name": "G3_BOREHOLE_NINE.jpg", "caption": "General view", "source": "Consortium survey archive" }
+  ],
+  "notes": [
+    {
+      "value": "<p>Boreholes one to eight are also still there, and are the reason the camp was named after the ninth.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

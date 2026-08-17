@@ -1,0 +1,34 @@
+{
+  "id": ["xeno.peerdb.org", "NARRATIVE", "G1_DRAW_TRICKSTER"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "NARRATIVE"] }],
+  "title": [{ "value": "Ieroa at the Basin", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [
+    { "value": "Ieroa Nau", "gloss": "Ieroa drawing", "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G1_BASIN_SPEECH"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>Linked episodes about a figure who draws water out of turn and is never quite caught, told in the afternoon indoors and mostly to adults. Each episode ends with something about the world being explained in passing, which is the part children are told to listen for and the part adults enjoy.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "genre": { "id": ["xeno.peerdb.org", "NARRATIVE_GENRE", "TRICKSTER_CYCLE"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G1_BASIN_WATER_ORDER"] }],
+  "recordedBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_HADDAD"] }, { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_NOWAK"] }],
+  "recordedOn": { "time": "2285-01-01T00:00:00Z", "precision": "y" },
+  "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G1_BASIN_SPEECH"] }],
+  "content": [
+    {
+      "value": "<p>Ieroa came to the second basin in the hour before the clerk and drank until his neck would not fold. Then he lay in the cover&#39;s shadow and let the sun take what he had drunk, and when the clerk read the tablet Ieroa&#39;s household was still full, and the clerk found nothing missing because nothing was.</p><p>That is why the second basin loses more to the air than any other, and why the cover is weighted at four corners now and not at two.</p><p>The next season Ieroa cut his own scratch on a tablet, one day further out, and the clerk read it as it was cut, because a clerk reads what is on the salt. When the day came Ieroa was three basins away and the household he had lent the day to was drawing on it.</p><p>They asked him afterwards whether that was theft. He said he had not drawn a drop. They said that was not the question. He said it was the only one on the tablet.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "recording": [
+    {
+      "value": "/f/Fqhnk5h62e167N1oRHCtjv",
+      "name": "narrative-G1_DRAW_TRICKSTER.mp3",
+      "caption": "Performance, recorded on site",
+      "duration": { "value": { "amount": 21, "precision": 1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "MINUTE"] }] },
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G1_BASIN_SPEECH"] }]
+    }
+  ]
+}

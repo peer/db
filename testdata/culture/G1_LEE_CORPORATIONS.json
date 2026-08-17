@@ -1,0 +1,37 @@
+{
+  "id": ["xeno.peerdb.org", "CULTURE", "G1_LEE_CORPORATIONS"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "CULTURE"] }],
+  "name": [{ "value": "The Lee Corporations", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [
+    {
+      "value": "Muqqatep",
+      "gloss": "those who hold the stop",
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G1_BELLS_SPEECH"] }]
+    }
+  ],
+  "catalogueCode": "CU-2227-02",
+  "description": [
+    {
+      "value": "<p>Craft corporations of the calm flanks either side of the storm belt, holding between them the trap lines, the vent plumbing, the weather watch and the right to call a stop that ends all work on the coast within the hour. Membership is by training rather than by birth, and a person&#39;s kin and a person&#39;s corporation are deliberately different sets, so that no household can be ruined by a single bad season on one flank. Every structure is built to shed a wind that never drops, which gives four hundred kilometres of coast one architectural grain and gives visitors an odd sense of having already been here. This is one of two entries in the register listed as reciprocal exchange: the corporations set the research programme for three of the last four seasons and decline questions as readily as they answer them. Whether the parties that work the belt edge are a guild function or a rite has been argued in print for thirty years, and the corporations have said, more than once, that the argument is the Consortium&#39;s to have.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Corporações de ofício dos flancos calmos de um e outro lado da faixa de tempestades, que detêm entre si as linhas de armadilhas, a canalização das fontes, a vigia do tempo e o direito de declarar uma paragem que, dentro de uma hora, põe fim a todo o trabalho na costa. Pertence-se a elas por aprendizagem e não por nascimento, e os parentes de uma pessoa e a corporação de uma pessoa são deliberadamente conjuntos diferentes, para que nenhuma casa possa ser arruinada por uma única má época num dos flancos. Todas as estruturas são construídas para desviar um vento que nunca abranda, o que dá a quatrocentos quilómetros de costa um mesmo grão arquitetónico e dá aos visitantes a estranha sensação de já ali terem estado. Esta é uma de duas entradas do registo classificadas como troca recíproca: as corporações definiram o programa de investigação em três das últimas quatro épocas e recusam perguntas com a mesma facilidade com que lhes respondem. Se os grupos que trabalham a orla da faixa são uma função de grémio ou um rito discute-se por escrito há trinta anos, e as corporações já disseram, mais de uma vez, que a discussão é do Consórcio.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "practisedBy": [{ "id": ["xeno.peerdb.org", "SPECIES", "G1_PETQAMU"] }],
+  "presentAt": [{ "id": ["xeno.peerdb.org", "SITE", "G1_WINDWARD_RING"] }],
+  "kinshipSystem": { "id": ["xeno.peerdb.org", "KINSHIP_SYSTEM", "BILATERAL_KINDRED"] },
+  "socialOrganisation": { "id": ["xeno.peerdb.org", "SOCIAL_ORGANISATION", "GUILD_FEDERATION"] },
+  "subsistence": [
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "TIDAL_TRAPPING"] },
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "CHEMO_TENDING"] }
+  ],
+  "communication": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G1_BELLS_SPEECH"] }],
+  "population": {
+    "value": { "from": { "amount": 300000, "precision": 100 }, "to": { "amount": 480000, "precision": 100 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "period": { "from": { "time": "2225-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true }
+}

@@ -1,0 +1,33 @@
+{
+  "id": ["xeno.peerdb.org", "MOON", "G3_WHETSTONE"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "MOON"] }],
+  "name": [{ "value": "Whetstone", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "catalogueCode": "HB-1/030-f-I",
+  "description": [
+    {
+      "value": "<p>A cryovolcanic moon repaved within the last few million years, with lobate flows of water and ammonia slush covering most of the leading hemisphere. Warm pockets persist at the vents for decades and hold a chemistry that has not been resolved either into life or out of it. The Consortium&#39;s only permanent installation in the sector sits on a flow margin here, for reasons of convenience rather than of science.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "PLANET", "G3_WINDLASS_F"] },
+  "planetType": { "id": ["xeno.peerdb.org", "PLANET_TYPE", "ICE_SHELL"] },
+  "biome": [{ "id": ["xeno.peerdb.org", "BIOME", "CRYO_PLAIN"] }],
+  "radius": { "value": { "amount": 0.31, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_RADIUS"] }] },
+  "mass": { "value": { "amount": 0.0095, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_MASS"] }] },
+  "surfaceGravity": { "value": { "amount": 0.1, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "STANDARD_GRAVITY"] }] },
+  "dayLength": { "value": { "amount": 304.8, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "HOUR"] }] },
+  "orbitalPeriod": { "value": { "amount": 12.7, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_DAY"] }] },
+  "tidallyLocked": true,
+  "meanTemperature": { "value": { "amount": -173.0, "precision": 0.1 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "°C"] }] },
+  "hydrosphere": { "value": { "amount": 96.0, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "PERCENT"] }] },
+  "atmosphere": [
+    {
+      "value": "<p>Nitrogen and methane at about 12 millibar, thick enough to raise a haze at the horizon and to make a dropped object fall visibly slowly.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "biosphereUnknown": true,
+  "contactStatus": { "id": ["xeno.peerdb.org", "CONTACT_STATUS", "NO_CONTACT"] },
+  "firstSurveyed": { "time": "2267-01-01T00:00:00Z", "precision": "y" },
+  "image": [{ "value": "/f/Ng3nq7ENDMQVRBUg8ebpTU", "name": "G3_WHETSTONE.jpg", "caption": "Surface view", "source": "Consortium survey archive" }]
+}

@@ -1,0 +1,31 @@
+{
+  "id": ["xeno.peerdb.org", "PRACTICE", "G2_CARRY_ACROSS"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PRACTICE"] }],
+  "name": [{ "value": "Carrying Across the Ice Line", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Ammenulle", "gloss": "the carrying out, a verb used of nothing else" }],
+  "description": [
+    {
+      "value": "<p>The household holding the position wraps its dead in a sheet of plate fibre, ties it at the ankles and the shoulders, and gives it to one carrier, who takes it on one shoulder across the ice line to the walled channel on the night side. Only one person carries and only one may; a second walker is not a help but a second funeral. Nothing is said on the way out and nothing on the way back, and the carrier is not addressed while carrying, which in plate speech is done by facing away and holding the plates flat. At the wall the body is laid in the channel with the head to the night, the wrap left on it, and the carrier turns and walks back without waiting. The position name does not go into the channel: it stays on the terrace, and whoever takes the ground next takes the name, everything owed to it and everything owed by it. Nobody returns to the channel afterwards, and the Consortium has recorded it only from the wall.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Mrtve odnese en sam nosilec čez ledeno mejo v obzidan kanal in se vrne brez besed.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    }
+  ],
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G2_EVENING_ROWS"] }],
+  "category": { "id": ["xeno.peerdb.org", "PRACTICE_CATEGORY", "MORTUARY"] },
+  "periodicity": "about four times a cycle on any given stretch of the rows",
+  "participants": {
+    "value": { "from": { "amount": 1, "precision": 1 }, "to": { "amount": 3, "precision": 1 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "firstDocumented": { "time": "2274-01-01T00:00:00Z", "precision": "y" },
+  "image": [{ "value": "/f/JeiFnD58H97BvM3SFhXTvH", "name": "G2_CARRY_ACROSS.jpg", "caption": "In progress", "source": "Consortium survey archive" }],
+  "notes": [
+    {
+      "value": "<p>The request to record inside the channel has been made in every decade since 2274 and refused every time. The panel has ruled that a fifth refusal need not be sought, which leaves the survey with an excellent set of photographs of a wall.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

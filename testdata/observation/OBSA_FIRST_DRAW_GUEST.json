@@ -1,0 +1,33 @@
+{
+  "id": ["xeno.peerdb.org", "OBSERVATION", "OBSA_FIRST_DRAW_GUEST"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "OBSERVATION"] }],
+  "title": [
+    { "value": "Given a portion at the ninth-day draw, eleventh basin house", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>The first draw at a terrace house, eaten standing at the pit edge as guests. The portion passed on the first tasting and we were watched while we ate it.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "content": [
+    {
+      "value": "<p>Present at the ninth-day opening of the pit of the eleventh basin house, as guests of the pit keeper. The first portion was lifted with the shell scoop, tasted and passed, and the house ate at the pit edge in the usual order.</p><p>We were each handed a portion at the same moment as everybody else and were watched while we ate. Two of us managed it. The third was fed separately about an hour later, without any comment being made then or since, and we now understand that the watching is for exactly this and not for entertainment.</p><p>Nothing was seasoned and nothing was cooked afterwards. The texture is close to a soft cheese; the taste will not go into words that are of any use to somebody who has not had it.</p><p>The order in which the house eats is the order in which its members kneel at the beds. It is not the order of seniority. We put the question to Sherenu directly and were told that it is the order in which people kneel. We do not think we were being put off, and we still cannot predict it.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "expedition": { "id": ["xeno.peerdb.org", "EXPEDITION", "EXP_THREADBARE_FOURTH"] },
+  "observedBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_SUBRAMANIAN"] }, { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_REYES"] }],
+  "observedAt": { "id": ["xeno.peerdb.org", "SITE", "G1_ANCHOR_STEPS"] },
+  "observedOn": { "time": "2268-01-19T00:00:00Z", "precision": "d" },
+  "about": [
+    { "id": ["xeno.peerdb.org", "PRACTICE", "G1_FIRST_DRAW_MEAL"] },
+    { "id": ["xeno.peerdb.org", "CULTURE", "G1_ANCHOR_HOUSES"] },
+    { "id": ["xeno.peerdb.org", "SPECIES", "G1_ELMASHELU"] }
+  ],
+  "method": [
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "PARTICIPANT_OBSERVATION"] },
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "AUTOETHNOGRAPHY"] }
+  ],
+  "fieldConditions": "Mid-morning, clear, a steady wind up the slope off the flats. Nineteen of the house present and two visitors from a house four basins up."
+}

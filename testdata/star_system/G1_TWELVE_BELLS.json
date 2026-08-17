@@ -1,0 +1,18 @@
+{
+  "id": ["xeno.peerdb.org", "STAR_SYSTEM", "G1_TWELVE_BELLS"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "STAR_SYSTEM"] }],
+  "name": [{ "value": "Twelve Bells", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "catalogueCode": "MW-0118-TWB",
+  "description": [
+    {
+      "value": "<p>A close pair of an ageing yellow primary and a red dwarf companion, with seven planets divided unevenly between them. The name records the number of times the discovery signal repeated before anybody thought to count.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "SECTOR", "G1_THREADBARE"] },
+  "spectralClass": "G8V+M4V",
+  "starCount": { "amount": 2, "precision": 1 },
+  "planetCount": { "amount": 7, "precision": 1 },
+  "distanceFromSol": { "value": { "amount": 388.2, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "PARSEC"] }] },
+  "firstSurveyed": { "time": "2219-01-01T00:00:00Z", "precision": "y" }
+}

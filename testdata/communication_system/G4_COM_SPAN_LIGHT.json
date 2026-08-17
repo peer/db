@@ -1,0 +1,42 @@
+{
+  "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G4_COM_SPAN_LIGHT"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM"] }],
+  "name": [{ "value": "Span Marking", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Aunelirami", "gloss": "bract-light speech" }],
+  "description": [
+    {
+      "value": "<p>Live exchange is by patterned fluorescence of the cuticle under the primary, at a rate of some six figures a second, and durable claims are laid down in ground bract dye on the bark of a held span. The two halves are one system: a mark is read as a frozen utterance and is answered in flare, not in more marking. It carries ownership, rank and the terms of a dispute precisely, and has no way to state a past condition, so a scraped mark is simply a thing that was never true. The first survey spent four years recording the whole of it as decoration, which is what it looks like without a filter and, for that matter, with one.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "modality": [
+    { "id": ["xeno.peerdb.org", "COMMUNICATION_MODALITY", "COLOUR_CHANGE"] },
+    { "id": ["xeno.peerdb.org", "COMMUNICATION_MODALITY", "WRITTEN_NOTATION"] }
+  ],
+  "users": {
+    "value": { "from": { "amount": 500000, "precision": 100 }, "to": { "amount": 950000, "precision": 100 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "notation": true,
+  "sampleGloss": [
+    {
+      "value": "<p><i>(three bars along the span, the outer bar broken)</i> - span held, break at edge - this length is spoken for by the house, and the claim runs to the break and no further.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "recording": [
+    {
+      "value": "/f/FvSMPncwYtUjQ2AfbMheS4",
+      "name": "system-G4_COM_SPAN_LIGHT.mp3",
+      "caption": "Elicitation sample",
+      "duration": { "value": { "amount": 2, "precision": 1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "MINUTE"] }] },
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G4_COM_SPAN_LIGHT"] }],
+      "note": [
+        {
+          "value": "<p>Recorded during elicitation and kept as the reference sample for this system.</p>",
+          "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+        }
+      ]
+    }
+  ]
+}

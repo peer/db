@@ -1,0 +1,23 @@
+{
+  "id": ["xeno.peerdb.org", "INDIVIDUAL", "G1_MMEREL"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "INDIVIDUAL"] }],
+  "name": [{ "value": "Mmerel" }],
+  "lineageName": [{ "value": "Nnaseh" }],
+  "description": [
+    {
+      "value": "<p>Gave consent for the symbiont strain assays of 2294 on behalf of eleven households, on the understanding, which the consent form did not contradict, that the results would come back to the households first. They did not, and the ethics ruling of 2298 that suspended all contact with the world rests on her complaint. Nobody has spoken to her since, which is what the ruling requires.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "species": { "id": ["xeno.peerdb.org", "SPECIES", "G1_MERENAU"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G1_VENT_STEWARDSHIP"] }],
+  "role": [{ "value": "household speaker", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "formOfAddress": "strain first, then name",
+  "born": { "time": "2255-01-01T00:00:00Z", "precision": "y" },
+  "notes": [
+    {
+      "value": "<p>Her file is closed to everyone but the ethics panel. This entry was written from the panel&#39;s public summary and has been checked against nothing.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

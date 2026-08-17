@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import ButtonStyled from "@/components/ButtonStyled.vue"
 import ProgressBar from "@/components/ProgressBar.vue"
-import { useLocked } from "@/progress"
+import { useInactivated, useLocked } from "@/progress"
 
 const props = withDefaults(
   defineProps<{
@@ -28,7 +28,8 @@ const props = withDefaults(
 )
 
 const locked = useLocked()
-const inactive = () => locked.value || props.disabled
+const inactivated = useInactivated()
+const inactive = () => locked.value || inactivated.value || props.disabled
 </script>
 
 <template>
@@ -40,7 +41,7 @@ const inactive = () => locked.value || props.disabled
     :invalid="invalid"
     :disabled="inactive()"
     class="pd-button"
-    :class="{ 'pd-locked': locked }"
+    :class="{ 'pd-locked': locked, 'pd-inactive': inactivated || disabled }"
   >
     <slot />
     <ProgressBar :progress="progress" :total="total" class="pd-button-loading absolute inset-x-0 bottom-0 rounded-b" />

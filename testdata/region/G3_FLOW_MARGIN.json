@@ -1,0 +1,24 @@
+{
+  "id": ["xeno.peerdb.org", "REGION", "G3_FLOW_MARGIN"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "REGION"] }],
+  "name": [{ "value": "The Flow Margin", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "description": [
+    {
+      "value": "<p>The frozen front of the youngest cryovolcanic flow, a lobe eighty kilometres wide that stopped moving about four thousand years ago and is still warm at depth. Vent pockets along it hold liquid for decades at a time. The station sits on the margin because the margin is flat, not because anybody chose it on the science.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "MOON", "G3_WHETSTONE"] },
+  "biome": [{ "id": ["xeno.peerdb.org", "BIOME", "CRYO_PLAIN"] }],
+  "area": { "value": { "amount": 74000, "precision": 100 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "SQUARE_KILOMETRE"] }] },
+  "elevationRange": {
+    "value": { "from": { "amount": -80, "precision": 10 }, "to": { "amount": 640, "precision": 10 } },
+    "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }]
+  },
+  "notes": [
+    {
+      "value": "<p>The flat ground was chosen by a pilot with fuel for one approach, and the science has been fitting itself around that decision for forty years.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

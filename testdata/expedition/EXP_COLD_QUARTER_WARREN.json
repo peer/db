@@ -1,0 +1,29 @@
+{
+  "id": ["xeno.peerdb.org", "EXPEDITION", "EXP_COLD_QUARTER_WARREN"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "EXPEDITION"] }],
+  "name": [{ "value": "Cold Quarter Warren Study", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "catalogueCode": "EXP-2307-05",
+  "description": [
+    {
+      "value": "<p>Still in the field, in the tunnels dug into the night side where the band&#39;s households retreat when the cold quarter comes round. The study is meant to establish whether the warren is a refuge, a store or a second settlement, and the answer so far appears to be that the question belongs to the survey rather than to anybody living there. It has produced a full plan of seven entrances and a household-by-household record of who goes down and when. Its two senior members have shared postings since 2264 and have filed separate progress reports for every year of this one.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "destination": [{ "id": ["xeno.peerdb.org", "PLANET", "G2_HALF_LIGHT"] }, { "id": ["xeno.peerdb.org", "REGION", "G2_COLD_QUARTER"] }],
+  "period": { "from": { "time": "2307-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true },
+  "ledBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_SUBRAMANIAN"] }],
+  "teamMember": [
+    { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_WEN"] },
+    { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_BONETTI"] },
+    { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_MOLNAR"] },
+    { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_OKONKWO"] }
+  ],
+  "organisedBy": [{ "id": ["xeno.peerdb.org", "INSTITUTE", "INST_EVENING"] }, { "id": ["xeno.peerdb.org", "INSTITUTE", "INST_BEACON"] }],
+  "method": [
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "PARTICIPANT_OBSERVATION"] },
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "NETWORK_MAPPING"] },
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "OPEN_INTERVIEW"] }
+  ],
+  "ethics": { "id": ["xeno.peerdb.org", "ETHICS_PROTOCOL", "PROTOCOL_3"] },
+  "budget": { "value": { "amount": 2600000, "precision": 1000 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "$"] }] }
+}

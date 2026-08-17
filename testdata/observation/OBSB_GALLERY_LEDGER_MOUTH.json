@@ -1,0 +1,42 @@
+{
+  "id": ["xeno.peerdb.org", "OBSERVATION", "OBSB_GALLERY_LEDGER_MOUTH"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "OBSERVATION"] }],
+  "title": [
+    {
+      "value": "Opening and closing of a position at a gallery mouth below the drum plain",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "description": [
+    {
+      "value": "<p>A dealing with a gallery chorus, opened and closed by struck ledger position, in which the survey was told that a question it had asked has no answer.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "content": [
+    {
+      "value": "<p>11.ix.2304. At the mouth three hundred metres downwind of the mortuary floor edge, which is as close as anything is struck to that rock. Cut tallies hang at the mouth in eleven runs, none of them closed.</p><p>The chorus opened by striking a position of nothing owed in either direction. This is not a greeting; it is a statement that the relation does not yet exist. We struck it back, badly, and were corrected once by repetition at half strength.</p><p>The dealing itself was small: access to two lower galleries in exchange for a mat sluice repair we could actually perform. It closed with the position restated as it now stands, which is that we owe and have not discharged, and there is no procedure by which we could discharge it, since a settled ledger would end the relation and there is no other kind.</p><p>We asked which gallery we had been speaking to. The answer, given twice and then not given again, is that the question does not arrange itself: the self occupies bodies in eleven rooms, the furthest pair forty kilometres apart, and the discipline records it as one body on its own insistence. We have recorded it that way too, and we are aware that recording it that way and understanding it are not the same act.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "expedition": { "id": ["xeno.peerdb.org", "EXPEDITION", "EXP_SOUNDING_FLOOR"] },
+  "observedBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_PETROVA"] }, { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_PRASETYO"] }],
+  "observedAt": { "id": ["xeno.peerdb.org", "SITE", "G4_QUIET_FLOOR"] },
+  "observedOn": { "time": "2304-09-11T00:00:00Z", "precision": "d" },
+  "about": [
+    { "id": ["xeno.peerdb.org", "SPECIES", "G4_DEEP_CHORUS"] },
+    { "id": ["xeno.peerdb.org", "PRACTICE", "G4_PR_LEDGER_OPENING"] },
+    { "id": ["xeno.peerdb.org", "COLLECTIVE", "G4_CO_LOW_GALLERY_CHORUS"] }
+  ],
+  "method": [
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "ACOUSTIC_RECORDING"] },
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "COLLABORATIVE_ANNOTATION"] }
+  ],
+  "fieldConditions": "At the gallery mouth, warm air venting, wind across the plain above. Two of us and a floor keeper who came as far as the mouth and no further.",
+  "notes": [
+    {
+      "value": "<p>The obligation opened here is carried in the expedition file and has been restated at every subsequent dealing. Deposit has asked twice how it should be entered in the accounts and has not been given an answer either.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

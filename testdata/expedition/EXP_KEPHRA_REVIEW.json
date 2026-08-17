@@ -1,0 +1,35 @@
+{
+  "id": ["xeno.peerdb.org", "EXPEDITION", "EXP_KEPHRA_REVIEW"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "EXPEDITION"] }],
+  "name": [{ "value": "Kephra March Register Review", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "catalogueCode": "EXP-2301-02",
+  "description": [
+    {
+      "value": "<p>A desk and orbit review of the sector&#39;s register, in preparation for the resumption of fieldwork in 2306, conducted almost entirely from deposited notes and old plates. It found the boundary with the neighbouring sector recorded in two places, a world catalogued twice from two uncorrected baselines, and a merge request deferred at eleven consecutive sittings. It is the cheapest entry in this register and has generated more correspondence than any other. Two of the entries it identified cannot now be closed, because one of the institutes whose assent is required no longer exists.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "destination": [
+    { "id": ["xeno.peerdb.org", "PLANET", "G1_KEPHRA_TWO"] },
+    { "id": ["xeno.peerdb.org", "PLANET", "G1_KEPHRA_FOUR"] },
+    { "id": ["xeno.peerdb.org", "PLANET", "G1_ADJUNCT_ONE"] }
+  ],
+  "period": { "from": { "time": "2301-01-01T00:00:00Z", "precision": "y" }, "to": { "time": "2306-01-01T00:00:00Z", "precision": "y" } },
+  "ledBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_WEN"] }],
+  "teamMember": [
+    { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_SUBRAMANIAN"] },
+    { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_REYES"] },
+    { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_BONETTI"] }
+  ],
+  "organisedBy": [{ "id": ["xeno.peerdb.org", "INSTITUTE", "INST_BEACON"] }, { "id": ["xeno.peerdb.org", "INSTITUTE", "INST_LEDGER"] }],
+  "method": [{ "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "ARCHIVAL_COMPARISON"] }],
+  "ethics": { "id": ["xeno.peerdb.org", "ETHICS_PROTOCOL", "PROTOCOL_1"] },
+  "budget": { "value": { "amount": 210000, "precision": 1000 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "$"] }] },
+  "report": [{ "value": "/f/Jp8yQSX2vDSGQezUx2y5bu", "name": "EXP_KEPHRA_REVIEW.pdf", "caption": "Final report" }],
+  "notes": [
+    {
+      "value": "<p>Reviewers are reminded that the review&#39;s own findings are themselves catalogue entries and are subject to the same merge procedure.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

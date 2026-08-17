@@ -1,0 +1,24 @@
+{
+  "id": ["xeno.peerdb.org", "PRACTICE", "G2_SHADOW_MEETING"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PRACTICE"] }],
+  "name": [{ "value": "Meeting at Full Shadow", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Wellamunne", "gloss": "the forty minutes, named for their length and not for the dark" }],
+  "description": [
+    {
+      "value": "<p>Terrace parties used to walk out to the edge of the leeward gullies before an eclipse, set down what they had brought and stand back from it, and wait for the light to go. As the shadow crossed, four hundred foragers came together into one low sheet perhaps ninety metres across, and for about forty minutes there was a party on that ground that could agree something and be held to it. Goods were left, undertakings were given, and for twenty-six years the undertakings held. In 2281 the joined phase repudiated a promise given by the separate phase, on the ground that the separate phase is not competent to promise, and the terrace households stopped walking out and have not resumed. The goods left that day were still there on the next visit. The Consortium suspended its own contact six years later on almost exactly the same reasoning, which two review articles have called an expensive way of learning something the Anuwelme could have said.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G2_SHUTTER_MEETINGS"] }],
+  "category": { "id": ["xeno.peerdb.org", "PRACTICE_CATEGORY", "CALENDRICAL"] },
+  "periodicity": "every twenty-one days, for about forty minutes",
+  "participants": {
+    "value": { "from": { "amount": 300, "precision": 1 }, "to": { "amount": 1800, "precision": 1 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "firstDocumented": { "time": "2255-01-01T00:00:00Z", "precision": "y" },
+  "relatedPractice": [{ "id": ["xeno.peerdb.org", "PRACTICE", "G2_ELEVEN_DAYS"] }],
+  "image": [
+    { "value": "/f/6hEJUF22DttotQvvf7XUPS", "name": "G2_SHADOW_MEETING.jpg", "caption": "In progress", "source": "Consortium survey archive" }
+  ]
+}

@@ -1,0 +1,45 @@
+{
+  "id": ["xeno.peerdb.org", "CULTURE", "G3_PAN_WORK"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "CULTURE"] }],
+  "name": [{ "value": "The Pan Work", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [
+    { "value": "Ammirre-varre", "gloss": "working the white", "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G3_PAN_CUT"] }] }
+  ],
+  "catalogueCode": "CU-2281-12",
+  "description": [
+    {
+      "value": "<p>The largest evaporite pan on the world is cut, stacked, wetted and recut on a schedule tied to the twice-yearly flood, in some eleven thousand shallow blocks worked in a rotation of years. The product is not eaten, traded, built with or moved off the pan, and whether the work is subsistence, observance or a form of record is the substance of a fourteen-year argument conducted entirely without new evidence. Authority sits with the blocks nearest the channel mouths, which draw labour from the outer blocks under a standing claim and do not administer them in any other respect. Contact ran from 2281 to 2298 and was suspended under an ethics ruling that has not since been revisited, so everything here is described as it stood in 2298. The workings were photographed from orbit in 2306 and the rotation was still running.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Delavci režejo, zlagajo in znova režejo solno skorjo po urniku, vezanem na dve letni poplavi. Izdelka ne jedo in ne prodajo.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>A maior salina de evaporitos do mundo é cortada, empilhada, molhada e novamente cortada segundo um calendário ligado à cheia semestral, em cerca de onze mil blocos pouco profundos trabalhados numa rotação de anos. O produto não é comido, nem trocado, nem serve para construir, nem sai da salina, e saber se o trabalho é subsistência, observância ou uma forma de registo é a matéria de uma discussão de catorze anos conduzida inteiramente sem provas novas. A autoridade cabe aos blocos mais próximos das bocas dos canais, que atraem mão de obra dos blocos exteriores ao abrigo de um direito permanente e que não os administram em mais nenhum aspeto. O contacto durou de 2281 a 2298 e foi suspenso ao abrigo de uma decisão de ética que desde então não foi reapreciada, pelo que tudo aqui é descrito tal como estava em 2298. As explorações foram fotografadas da órbita em 2306 e a rotação continuava a decorrer.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "practisedBy": [{ "id": ["xeno.peerdb.org", "SPECIES", "G3_AMMIRREN"] }],
+  "presentAt": [{ "id": ["xeno.peerdb.org", "SITE", "G3_PAN_WORKINGS"] }],
+  "kinshipSystem": { "id": ["xeno.peerdb.org", "KINSHIP_SYSTEM", "UNILINEAL_DESCENT"] },
+  "socialOrganisation": { "id": ["xeno.peerdb.org", "SOCIAL_ORGANISATION", "TRIBUTARY_CENTRE"] },
+  "subsistence": [
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "SILT_GARDENING"] },
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "OPPORTUNISTIC_FORAGING"] },
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "TRADE_DEPENDENCY"] }
+  ],
+  "communication": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G3_PAN_CUT"] }],
+  "population": {
+    "value": { "from": { "amount": 50000, "precision": 100 }, "to": { "amount": 180000, "precision": 100 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "period": { "from": { "time": "2281-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true },
+  "image": [{ "value": "/f/ScjWuzYm9h4NqnjPTQ5xQd", "name": "G3_PAN_WORK.jpg", "caption": "Gathering", "source": "Consortium survey archive" }],
+  "notes": [
+    {
+      "value": "<p>Seventeen years of interview material sits under restriction while the ruling stands, and three of the four researchers who collected it have retired.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

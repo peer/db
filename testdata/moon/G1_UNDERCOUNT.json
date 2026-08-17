@@ -1,0 +1,43 @@
+{
+  "id": ["xeno.peerdb.org", "MOON", "G1_UNDERCOUNT"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "MOON"] }],
+  "name": [{ "value": "Undercount", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Ieluaro" }],
+  "catalogueCode": "LDG-0126-d/1",
+  "description": [
+    {
+      "value": "<p>A dusty tan moon with a very thin atmosphere and a resident population living in sealed structures under drifted regolith. Everything grown here is grown indoors and everything else arrives from the planet below. The moon takes its name from the discovery survey, which reported the system as having five planets and no moons at all.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "PLANET", "G1_LEDGER_IV"] },
+  "planetType": { "id": ["xeno.peerdb.org", "PLANET_TYPE", "DESICCATED"] },
+  "biome": [{ "id": ["xeno.peerdb.org", "BIOME", "ENDOLITH_ZONE"] }],
+  "radius": { "value": { "amount": 0.28, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_RADIUS"] }] },
+  "mass": { "value": { "amount": 0.019, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_MASS"] }] },
+  "surfaceGravity": { "value": { "amount": 0.24, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "STANDARD_GRAVITY"] }] },
+  "dayLength": { "value": { "amount": 225.6, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "HOUR"] }] },
+  "orbitalPeriod": { "value": { "amount": 9.4, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_DAY"] }] },
+  "tidallyLocked": true,
+  "meanTemperature": { "value": { "amount": -12.0, "precision": 0.1 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "°C"] }] },
+  "hydrosphere": { "value": { "amount": 0, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "PERCENT"] }] },
+  "atmosphere": [
+    {
+      "value": "<p>Argon and carbon dioxide at nine millibars, enough to raise dust and nothing more. A hard suit is required and the light is fierce: the star is close, the sky is black, and the shadows have edges.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "biosphere": [
+    {
+      "value": "<p>Life is present: 2 catalogued species (Long Evaporite People, Undercount Households). The survey is not claimed to be complete.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "contactStatus": { "id": ["xeno.peerdb.org", "CONTACT_STATUS", "SUSTAINED"] },
+  "firstSurveyed": { "time": "2237-01-01T00:00:00Z", "precision": "y" },
+  "populationEstimate": {
+    "value": { "from": { "amount": 900, "precision": 100 }, "to": { "amount": 2100, "precision": 100 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "image": [{ "value": "/f/53RhePeQRvZupDXCva7s16", "name": "G1_UNDERCOUNT.jpg", "caption": "Approach view", "source": "Consortium survey archive" }]
+}

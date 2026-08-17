@@ -1,0 +1,30 @@
+{
+  "id": ["xeno.peerdb.org", "ARTIFACT", "G4_AR_FIRST_HEAT_BOWL"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "ARTIFACT"] }],
+  "name": [{ "value": "Coal Bowl", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "sesshavathon", "gloss": "the carried fire" }],
+  "accessionCode": "CCX-A-20488",
+  "description": [
+    {
+      "value": "<p>A shallow stone bowl with a lipped rim and no base, made to be carried between the palms and used for nothing except bringing the last coals of an abandoned hearth to the first fire of a new one. It cannot stand up, holds about a handful and is useless for cooking, which is how the category was assigned. The interior is glazed with soot to a depth suggesting some fifteen refoundings, and the rim is chipped where it has been rested against stone. It was lent to the survey in 2266 and formally transferred in 2281 by the household that used it last.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "category": { "id": ["xeno.peerdb.org", "ARTIFACT_CATEGORY", "VESSEL_CEREMONIAL"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G4_CU_HEARTH_CIRCUIT"] }],
+  "foundAt": { "id": ["xeno.peerdb.org", "SITE", "G4_WALKING_HEARTHS"] },
+  "material": [
+    { "value": "basalt", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "soot glaze", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }
+  ],
+  "dimension": [
+    { "value": { "amount": 0.19, "precision": 0.001 }, "axis": "diameter", "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+    { "value": { "amount": 0.07, "precision": 0.001 }, "axis": "height", "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] }
+  ],
+  "dateMade": { "time": "2050-01-01T00:00:00Z", "precision": "100y" },
+  "collectedBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_ZUPAN"] }],
+  "image": [
+    { "value": "/f/XToMfy5H1c6b7iDzE6ctcc", "name": "G4_AR_FIRST_HEAT_BOWL.jpg", "caption": "Object drawing", "source": "Consortium collection" }
+  ],
+  "document": [{ "value": "/f/Eiu9cf1HFLzZiByqNKV3Ga", "name": "G4_AR_FIRST_HEAT_BOWL.txt", "caption": "Accession record" }]
+}

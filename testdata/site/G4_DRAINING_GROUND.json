@@ -1,0 +1,23 @@
+{
+  "id": ["xeno.peerdb.org", "SITE", "G4_DRAINING_GROUND"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SITE"] }],
+  "name": [{ "value": "Draining Ground", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "localName": [{ "value": "Leimaora", "gloss": "where the water goes out" }],
+  "description": [
+    {
+      "value": "<p>A flat of firm sand at the outer edge of the shoals, dry for roughly ninety minutes at the lowest tides of the year and under six metres of water at every other hour. On those tides it carries several thousand visitors, temporary structures and an amount of shouting that the acoustic record does not adequately convey. For the rest of the year it is neither empty nor occupied, only underwater.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "REGION", "G4_TALL_SHOALS"] },
+  "siteType": { "id": ["xeno.peerdb.org", "SITE_TYPE", "AGGREGATION_GROUND"] },
+  "gridReference": "TS-121.9/-41.7",
+  "population": {
+    "value": { "from": { "amount": 0, "precision": 10 }, "to": { "amount": 5200, "precision": 10 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "occupation": { "from": { "time": "2222-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true },
+  "image": [
+    { "value": "/f/7Gua8Vtgon8on13N21aMq7", "name": "G4_DRAINING_GROUND.jpg", "caption": "General view", "source": "Consortium survey archive" }
+  ]
+}

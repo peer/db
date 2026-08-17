@@ -1,0 +1,29 @@
+{
+  "id": ["xeno.peerdb.org", "RESEARCHER", "RES_HALVORSEN"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "RESEARCHER"] }],
+  "name": [{ "value": "Ingrid" }],
+  "familyName": [{ "value": "Halvorsen" }],
+  "researcherCode": "CCX-P-01023",
+  "description": [
+    {
+      "value": "<p>Worked the flats for forty years and wrote the third tide table in deliberate and itemised disagreement with the second. She is the only person to have been both on the residency that lost a year to a mistranslated greeting and on the expedition sent afterwards to establish how. Colleagues describe her as impossible to hurry and impossible to move once she has arrived.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "affiliatedWith": [{ "id": ["xeno.peerdb.org", "INSTITUTE", "INST_ANCHOR"] }, { "id": ["xeno.peerdb.org", "INSTITUTE", "INST_CANOPY"] }],
+  "specialisesIn": [
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "PARTICIPANT_OBSERVATION"] },
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "ARCHIVAL_COMPARISON"] }
+  ],
+  "activePeriod": { "from": { "time": "2256-01-01T00:00:00Z", "precision": "y" }, "to": { "time": "2302-01-01T00:00:00Z", "precision": "y" } },
+  "born": { "time": "2231-01-01T00:00:00Z", "precision": "y" },
+  "image": [
+    { "value": "/f/WQjaRjYsKimTBfcj2Y1iRD", "name": "RES_HALVORSEN.jpg", "caption": "Staff photograph", "source": "Consortium personnel record" }
+  ],
+  "notes": [
+    {
+      "value": "<p>She has declined to lead the reconciliation of the tide tables three times, on the stated ground that two of them are not hers to reconcile.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

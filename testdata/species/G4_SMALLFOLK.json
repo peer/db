@@ -1,0 +1,69 @@
+{
+  "id": ["xeno.peerdb.org", "SPECIES", "G4_SMALLFOLK"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SPECIES"] }],
+  "name": [{ "value": "Standing Wood Canopy Smallfolk", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [
+    {
+      "value": "Ilaunemi",
+      "gloss": "the ones in the standing wood",
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G4_COM_SPAN_LIGHT"] }]
+    }
+  ],
+  "exonym": [{ "value": "Meirauna", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "taxonCode": "TX-4108-c",
+  "description": [
+    {
+      "value": "<p>A very small people of the closed canopy inland of the shoals, who complete a life without descending below about forty metres and treat the forest floor as a hazard rather than a place. Households are corporate and long-lived, holding a named span of branch, a stock of grazing colonies and a rank in the settlement of disputes between spans; the house survives every member and is spoken of as the party to any agreement. What a visitor notices first is that nothing is built downward, only outward: floors, walkways and store bladders all hang, and a structure that touches a trunk on two sides is considered badly made. Their ultraviolet signalling is dense enough that the first survey spent four years recording what it took to be decoration. The open question is why body size has stayed so small in a canopy with no obvious constraint on it, and the two standing answers, thermal and structural, have both been in print unchanged since 2258.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Drobno ljudstvo, ki vse življenje preživi v krošnjah in nikoli ne stopi na tla. Rodovne hiše preživijo vsakega člana.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Um povo muito pequeno do dossel fechado para o interior dos baixios, que cumpre uma vida inteira sem descer abaixo dos quarenta metros e trata o chão da floresta como um perigo e não como um lugar. As casas são corporativas e de vida longa, detendo um troço de ramo com nome próprio, um plantel de colónias de pasto e uma posição na resolução de disputas entre troços; a casa sobrevive a todos os seus membros e é dela que se fala como parte de qualquer acordo. O que um visitante nota primeiro é que nada se constrói para baixo, apenas para fora: pisos, passadiços e bexigas de armazenamento estão todos suspensos, e uma estrutura que toca um tronco de dois lados é tida como mal feita. A sua sinalização ultravioleta é tão densa que o primeiro levantamento passou quatro anos a registar aquilo que tomava por decoração. A questão em aberto é por que motivo o tamanho do corpo se manteve tão pequeno num dossel sem qualquer constrangimento evidente, e as duas respostas correntes, a térmica e a estrutural, estão ambas publicadas sem alteração desde 2258.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "homeworld": { "id": ["xeno.peerdb.org", "PLANET", "G4_LONG_WATER"] },
+  "bodyPlan": [
+    {
+      "value": "<p>Six-limbed and radially flattened, with the front pair reduced to fine graspers and the rear four hooked for hanging. The integument is a dry banded cuticle that fluoresces strongly under the primary and is renewed in strips rather than shed whole. Feeding is by scraping growth from colonial mats with a toothed underplate, and the gut carries a fermentation chamber larger than the head.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "typicalHeight": { "value": { "amount": 0.115, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+  "typicalMass": { "value": { "amount": 0.085, "precision": 0.1 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "kg"] }] },
+  "lifespan": {
+    "value": { "from": { "amount": 11, "precision": 1 }, "to": { "amount": 24, "precision": 1 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_YEAR"] }]
+  },
+  "sensoryModality": [
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "ULTRAVIOLET_VISION"] },
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "CHEMICAL_PLUME"] },
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "SUBSTRATE_VIBRATION"] }
+  ],
+  "subsistence": [
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "COLONY_GRAZING"] },
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "OPPORTUNISTIC_FORAGING"] },
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "MANAGED_DECAY"] }
+  ],
+  "individuality": { "id": ["xeno.peerdb.org", "INDIVIDUALITY_MODE", "BOUNDED"] },
+  "socialOrganisation": { "id": ["xeno.peerdb.org", "SOCIAL_ORGANISATION", "LINEAGE_HOUSES"] },
+  "kinshipSystem": { "id": ["xeno.peerdb.org", "KINSHIP_SYSTEM", "UNILINEAL_DESCENT"] },
+  "communication": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G4_COM_SPAN_LIGHT"] }],
+  "population": {
+    "value": { "from": { "amount": 600000, "precision": 1000 }, "to": { "amount": 1100000, "precision": 1000 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "contactStatus": { "id": ["xeno.peerdb.org", "CONTACT_STATUS", "SUSTAINED"] },
+  "firstContact": { "time": "2226-01-01T00:00:00Z", "precision": "y" },
+  "image": [
+    {
+      "value": "/f/1PnWRgTgori88tVQPWUuAQ",
+      "name": "G4_SMALLFOLK.jpg",
+      "caption": "Field plate",
+      "source": "Drawn in the field; Consortium collection"
+    }
+  ]
+}

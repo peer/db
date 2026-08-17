@@ -1,0 +1,24 @@
+{
+  "id": ["xeno.peerdb.org", "NARRATIVE_GENRE", "INSTRUCTION_CHANT"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "NARRATIVE_GENRE"] }],
+  "name": [
+    { "value": "Instruction chant", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "Poučna spevanka", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }] },
+    { "value": "Canto instrutivo", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>Technical procedure encoded in metered performance so that the order of steps cannot be forgotten. Excludes prose teaching.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Tehnični postopek, ujet v ritmično izvedbo, da se vrstni red korakov ne pozabi.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Procedimento técnico codificado numa execução metrificada para que a ordem dos passos não se possa esquecer. Exclui o ensino em prosa.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "code": ["instruction"]
+}

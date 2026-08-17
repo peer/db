@@ -1,0 +1,33 @@
+{
+  "id": ["xeno.peerdb.org", "CULTURE", "G4_CU_COLD_STORE"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "CULTURE"] }],
+  "name": [{ "value": "Cold Locker Culture Keeping", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [
+    {
+      "value": "Thissovassa",
+      "gloss": "the keeping of the cultures",
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G4_COM_MARCH_SPEECH"] }]
+    }
+  ],
+  "catalogueCode": "CU-2261-05",
+  "description": [
+    {
+      "value": "<p>The practice of the thin population nightward of the dusk band, who live off chemosynthetic cultures carried in body-warm internal chambers and off whatever the wind pushes over the margin. Groups form and dissolve around whichever cultures are producing, and there is no office, no term and nobody who can speak for anyone absent. Relatedness runs through strains of an inherited symbiont, which can be assayed, and on three occasions the assay has contradicted the local account without anybody involved finding this interesting. The cut warren at the closest point of the march is used for storage and for staging ice cutting, and the local account insists that people stay in it and do not live in it, a distinction that has survived four attempts to record it more loosely. Whether the sharing of cultures between bodies makes them a collective is under review, and the review has never had both submitting parties in the same decade.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "practisedBy": [{ "id": ["xeno.peerdb.org", "SPECIES", "G4_TRAP_KEEPERS"] }],
+  "presentAt": [{ "id": ["xeno.peerdb.org", "SITE", "G4_FROST_HOUSE"] }],
+  "kinshipSystem": { "id": ["xeno.peerdb.org", "KINSHIP_SYSTEM", "SYMBIONT_SHARING"] },
+  "socialOrganisation": { "id": ["xeno.peerdb.org", "SOCIAL_ORGANISATION", "ACEPHALOUS_BANDS"] },
+  "subsistence": [
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "CHEMO_TENDING"] },
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "DRIFT_HARVESTING"] }
+  ],
+  "communication": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G4_COM_MARCH_SPEECH"] }],
+  "population": {
+    "value": { "from": { "amount": 8000, "precision": 100 }, "to": { "amount": 25000, "precision": 100 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "period": { "from": { "time": "2261-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true }
+}

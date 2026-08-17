@@ -1,0 +1,19 @@
+{
+  "id": ["xeno.peerdb.org", "INDIVIDUAL", "G2_WEMMELU"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "INDIVIDUAL"] }],
+  "name": [{ "value": "Wemmelu" }],
+  "description": [
+    {
+      "value": "<p>Gave the greeting, in 2263, that the first season took to mean you are welcome to walk with us and which in fact means you are walking with us, and is a statement about who is now answerable for the herd. They have since given it deliberately to two further field parties and watched what happened. They consented to a photograph in 2281 and asked why it had taken eighteen years.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "species": { "id": ["xeno.peerdb.org", "SPECIES", "G2_WEMMALU"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G2_LEEWARD_BANDS"] }],
+  "role": [{ "value": "band walker", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "formOfAddress": "by personal name, from downwind",
+  "born": { "time": "2244-01-01T00:00:00Z", "precision": "y" },
+  "image": [
+    { "value": "/f/DKqTf14kG3qHf2Q11rLpnA", "name": "G2_WEMMELU.jpg", "caption": "Portrait", "source": "Made with consent; Consortium collection" }
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "id": ["xeno.peerdb.org", "BIOME", "SWEEP_FLAT"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "BIOME"] }],
+  "name": [
+    { "value": "Macrotidal sweep flat", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "Obsežno plimsko blatišče", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }] },
+    { "value": "Planura macromareal", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>Low-gradient coastal flat worked by a tidal range above about fifteen metres, flooded and drained twice a cycle. Excludes ordinary tidal flats, where the range is measured in single metres.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Položno obalno blatišče s plimskim razponom nad približno petnajstimi metri.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Planura costeira de baixo declive trabalhada por uma amplitude de maré acima de cerca de quinze metros, inundada e drenada duas vezes por ciclo. Exclui as planuras de maré comuns, onde a amplitude se mede em poucos metros.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "code": ["sweep-flat"]
+}

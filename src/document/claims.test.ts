@@ -337,6 +337,64 @@ describe("GetClaimsOfTypeWithConfidence", () => {
   })
 })
 
+describe("claims of equal confidence", () => {
+  // Sorting a short array is stable whether or not the sort says it is, so there are enough claims here to
+  // be sorted the way a longer one is.
+  const EQUAL_CONFIDENCE_CLAIM_COUNT = 40
+
+  // A document saying the same property many times over: mostly at one confidence, with one more confident
+  // claim in the middle and one less confident one, so that the equally confident ones are neither first nor
+  // last and an order which keeps them where the document has them cannot be mistaken for one which sorted
+  // them by anything they carry. The expected order comes back with it.
+  function equalConfidenceDocument(prop: string): { ct: ClaimTypes; expected: string[] } {
+    const claims = []
+    const expected = ["high"]
+    for (let i = 0; i < EQUAL_CONFIDENCE_CLAIM_COUNT; i++) {
+      if (i === EQUAL_CONFIDENCE_CLAIM_COUNT / 2) {
+        claims.push({ id: Identifier.new().toString(), confidence: 1.0, prop: { id: prop }, string: "high" })
+      }
+      const string = `medium ${String(i).padStart(2, "0")}`
+      claims.push({ id: Identifier.new().toString(), confidence: 0.75, prop: { id: prop }, string })
+      expected.push(string)
+    }
+    claims.push({ id: Identifier.new().toString(), confidence: 0.5, prop: { id: prop }, string: "low" })
+    expected.push("low")
+    return { ct: new ClaimTypes({ string: claims }), expected }
+  }
+
+  test("come back in the order the document has them in", () => {
+    const prop = Identifier.new().toString()
+    const { ct, expected } = equalConfidenceDocument(prop)
+
+    // Get sorts the claims it collects, and is what the typed getters below are built on.
+    assert.deepEqual(
+      ct.Get(prop).map((c) => (c as StringClaim).string),
+      expected,
+    )
+    assert.deepEqual(
+      getClaimsOfTypeWithConfidence(ct, "string", prop, LowConfidence).map((c) => c.string),
+      expected,
+    )
+    // getAllClaimsOfTypeWithConfidence sorts a collection of its own, so it is pinned separately.
+    assert.deepEqual(
+      getAllClaimsOfTypeWithConfidence(ct, "string", LowConfidence).map((c) => c.string),
+      expected,
+    )
+  })
+
+  test("the best claim is the first of the most confident ones", () => {
+    const prop = Identifier.new().toString()
+    const ct = new ClaimTypes({
+      string: [
+        { id: Identifier.new().toString(), confidence: 1.0, prop: { id: prop }, string: "first" },
+        { id: Identifier.new().toString(), confidence: 1.0, prop: { id: prop }, string: "second" },
+      ],
+    })
+
+    assert.equal(getBestClaimOfType(ct, "string", prop)?.string, "first")
+  })
+})
+
 describe("GetClaimsListsOfType", () => {
   test("groups by LIST and sorts by ORDER_IN_LIST", () => {
     const prop = Identifier.new().toString()
@@ -381,13 +439,40 @@ describe("GetClaimsListsOfType", () => {
     const lists = getClaimsListsOfType(ct, "string", prop)
     assert.equal(lists.length, 2)
 
-    // Find list A (2 items) and list B (1 item).
-    const listAClaims = lists.find((l) => l.length === 2)!
-    const listBClaims = lists.find((l) => l.length === 1)!
+    // The lists come back in the order their first claim is in on the document, so list A comes first: its
+    // "a2" is the first claim of the document, while list B is not reached until "b1".
+    const [listAClaims, listBClaims] = lists
 
     assert.equal(listAClaims[0].string, "a1") // Order 1.
     assert.equal(listAClaims[1].string, "a2") // Order 2.
     assert.equal(listBClaims[0].string, "b1")
+  })
+
+  test("an order of zero is an order, no order sorts last, and equal orders keep document order", () => {
+    const prop = Identifier.new().toString()
+    const list = Identifier.new().toString()
+
+    const claim = (value: string, order?: string) => ({
+      id: Identifier.new().toString(),
+      confidence: 1.0,
+      prop: { id: prop },
+      string: value,
+      sub: {
+        id: [{ id: Identifier.new().toString(), confidence: 1.0, prop: { id: LIST }, value: list }],
+        ...(order === undefined ? {} : { amount: [{ id: Identifier.new().toString(), confidence: 1.0, prop: { id: ORDER_IN_LIST }, amount: order, precision: 1 }] }),
+      },
+    })
+
+    const ct = new ClaimTypes({
+      string: [claim("unplaced first on the document"), claim("second", "1"), claim("unplaced second on the document"), claim("first", "0"), claim("third", "2")],
+    })
+
+    const lists = getClaimsListsOfType(ct, "string", prop)
+    assert.equal(lists.length, 1)
+    assert.deepEqual(
+      lists[0].map((c) => c.string),
+      ["first", "second", "third", "unplaced first on the document", "unplaced second on the document"],
+    )
   })
 
   test("claims without LIST go into one group", () => {

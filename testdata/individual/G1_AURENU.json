@@ -1,0 +1,17 @@
+{
+  "id": ["xeno.peerdb.org", "INDIVIDUAL", "G1_AURENU"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "INDIVIDUAL"] }],
+  "name": [{ "value": "Aurenu" }],
+  "lineageName": [{ "value": "Seiroa" }],
+  "description": [
+    {
+      "value": "<p>Cut brine channel for the companies from 2274 until the crust went in 2295, and was two hundred metres from the third collapse. He gives the clearest account anybody holds of how the cuts were laid out, and it is the only account in which the collapses are described as predictable. He is the last of the four company foremen still living and says so at the start of every interview, without any apparent self-pity.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "species": { "id": ["xeno.peerdb.org", "SPECIES", "G1_AOLEIARU"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G1_BASIN_WATER_ORDER"] }, { "id": ["xeno.peerdb.org", "CULTURE", "G1_CUT_WATER_COMPANIES"] }],
+  "role": [{ "value": "company foreman, retired", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "formOfAddress": "ferment first, then name",
+  "born": { "time": "2251-01-01T00:00:00Z", "precision": "y" }
+}

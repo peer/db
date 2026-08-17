@@ -1,0 +1,23 @@
+{
+  "id": ["xeno.peerdb.org", "PRACTICE", "G1_WORKING_FRONT"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PRACTICE"] }],
+  "name": [{ "value": "The Working Front", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "description": [
+    {
+      "value": "<p>Over about nine days the bodies of a valley work along one head of the lowland, cropping and turning the vent crust in a band roughly two hundred metres deep, and then move to the next head. In sixty-eight years of observation no head has been taken out of order and no ground has been worked twice in a cycle. The plume composition changes about four hours before the bodies do, which is the only notice anybody gets and is not addressed to anybody. A descent into a head that is being worked is answered inside the hour by a shift in the signature that the instruments read as a wall and the descent teams have learned to read as one: it has happened three times, and on the third occasion the probe was recovered upslope of where it had been left. Nothing is retrieved from the front, including a body separated from it.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Telesa doline devet dni obdelujejo eno glavo nižavja in nato v ustaljenem redu preidejo na naslednjo.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    }
+  ],
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G1_HAZE_VALLEY_ORDER"] }],
+  "category": { "id": ["xeno.peerdb.org", "PRACTICE_CATEGORY", "SEASONAL_MIGRATION"] },
+  "periodicity": "one head every nine days, without a break",
+  "participants": {
+    "value": { "from": { "amount": 2000, "precision": 1 }, "to": { "amount": 400000, "precision": 1 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "firstDocumented": { "time": "2251-01-01T00:00:00Z", "precision": "y" }
+}

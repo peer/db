@@ -1,0 +1,35 @@
+{
+  "id": ["xeno.peerdb.org", "PUBLICATION", "PUB_TETHER_WITHDRAWN"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PUBLICATION"] }],
+  "title": [
+    {
+      "value": "Withdrawing the Objection: Consensus Repair in the Overfall Canopy Weave, and an Account of the Suspension of the Tether Guild Inquiry",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "doi": "10.5281/xeno.2300.0190",
+  "abstract": [
+    {
+      "value": "<p>Assemblies of the Overfall canopy weave reach decisions by the withdrawal of objections rather than the accumulation of assent, so that a decision has no moment of adoption and can be unmade by a single objection restated. We describe the repair procedure, the register in which withdrawals are marked, and the position of the burnt half, whose objections have been outstanding since the fire. In the fifth year of the inquiry the tether guilds ceased communication with the survey, and we set out what we know of why, which is less than we would like. The species entry has been marked suspended at our own request.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "author": [
+    { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_SUBRAMANIAN"] },
+    { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_WEN"] },
+    { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_DOYLE"] }
+  ],
+  "journal": "Contact Ethics and Protocol",
+  "publishedOn": { "time": "2300-11-01T00:00:00Z", "precision": "m" },
+  "about": [
+    { "id": ["xeno.peerdb.org", "SPECIES", "G4_CANOPY_WEAVE"] },
+    { "id": ["xeno.peerdb.org", "CULTURE", "G4_CU_WEAVE_ASSEMBLIES"] },
+    { "id": ["xeno.peerdb.org", "PRACTICE", "G4_PR_WITHDRAWN_OBJECTION"] }
+  ],
+  "cites": [
+    { "id": ["xeno.peerdb.org", "PUBLICATION", "PUB_GREETING_ERROR"] },
+    { "id": ["xeno.peerdb.org", "PUBLICATION", "PUB_HEARTH_REFOUNDING"] },
+    { "id": ["xeno.peerdb.org", "PUBLICATION", "PUB_MARGIN_SUSPENSION"] }
+  ],
+  "document": [{ "value": "/f/AbcnWyKkNmENJXA6mkccfh", "name": "PUB_TETHER_WITHDRAWN.pdf", "caption": "Author's accepted manuscript" }]
+}

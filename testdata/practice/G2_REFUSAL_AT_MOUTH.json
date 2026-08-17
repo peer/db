@@ -1,0 +1,29 @@
+{
+  "id": ["xeno.peerdb.org", "PRACTICE", "G2_REFUSAL_AT_MOUTH"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PRACTICE"] }],
+  "name": [{ "value": "Refusal at the Mouth", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Munnakalle", "gloss": "the closing, and also the answer that closes" }],
+  "description": [
+    {
+      "value": "<p>A traveller arriving at a sealed mouth strikes twice on the ice plug, waits four beats and strikes once, which says that one is coming in. The tally keeper reads the cord for the position the traveller claims and for what the warren can carry, and either cuts the plug or does not. A refusal is one strike returned through the plug and nothing else: no reason, no name and no second exchange, since the knock language has no way of putting a hypothetical and so cannot say what would have been enough. The plug stays shut, and food and a heat brick are passed out through a bored hole the width of an arm, which is a duty and not a kindness and is entered on the cord as such. A refused traveller may knock again at another mouth the same day and often does. In sixty-eight recorded refusals the warren has never once refused the food.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Zavrnitev je en sam udarec skozi ledeni čep; hrano vseeno podajo skozi izvrtano luknjo.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Um viajante que chega a uma boca selada bate duas vezes no tampão de gelo, espera quatro tempos e bate uma vez, o que quer dizer que vem alguém para dentro. O guardião da conta lê a corda quanto à posição que o viajante reclama e quanto ao que a toca pode suportar, e ou corta o tampão ou não. Uma recusa é uma pancada devolvida através do tampão e mais nada: sem razão, sem nome e sem segunda troca, já que a língua das pancadas não tem forma de exprimir uma hipótese e por isso não pode dizer o que teria bastado. O tampão fica fechado, e passa-se comida e um tijolo de calor por um furo da largura de um braço, o que é um dever e não uma gentileza e é lançado na corda como tal. Um viajante recusado pode bater a outra boca no mesmo dia e muitas vezes bate. Em sessenta e oito recusas registadas, a toca nunca recusou a comida uma única vez.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G2_WARREN_TALLY"] }],
+  "category": { "id": ["xeno.peerdb.org", "PRACTICE_CATEGORY", "HOSPITALITY"] },
+  "periodicity": "whenever somebody knocks and the account will not carry them",
+  "participants": {
+    "value": { "from": { "amount": 2, "precision": 1 }, "to": { "amount": 9, "precision": 1 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "firstDocumented": { "time": "2261-01-01T00:00:00Z", "precision": "y" },
+  "relatedPractice": [{ "id": ["xeno.peerdb.org", "PRACTICE", "G2_WAKING_COUNT"] }]
+}

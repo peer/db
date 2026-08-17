@@ -1,0 +1,20 @@
+{
+  "id": ["xeno.peerdb.org", "COLLECTIVE", "G1_FOURTH_COUNT"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "COLLECTIVE"] }],
+  "name": [{ "value": "Fourth Standing Count", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "description": [
+    {
+      "value": "<p>A colony of some forty thousand bodies holding about two and a half hectares of shelf near the cleared edge, and the first that answered a drummed enquiry instead of falling silent when one arrived. What acts is the colony: it holds obligations, keeps a running account of them and replaces its bodies without noticing, which is why the discipline records it as one person rather than as a population. It is not a settlement, a swarm or a household, and it has said so at length, twice.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "species": { "id": ["xeno.peerdb.org", "SPECIES", "G1_KHEVNITH"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G1_SHELF_LEDGER"] }],
+  "role": [{ "value": "drum correspondent", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "memberCount": {
+    "value": { "from": { "amount": 30000, "precision": 10 }, "to": { "amount": 52000, "precision": 10 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "activePeriod": { "from": { "time": "2268-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true },
+  "seat": { "id": ["xeno.peerdb.org", "SITE", "G1_CANOPY_TETHER"] }
+}

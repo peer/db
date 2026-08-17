@@ -1,0 +1,35 @@
+{
+  "id": ["xeno.peerdb.org", "ORGANISM", "G2_TRANSECT_MAT"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "ORGANISM"] }],
+  "name": [{ "value": "Transect Laminating Mat", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "taxonCode": "TX-1164-a",
+  "description": [
+    {
+      "value": "<p>A slow mat on the floor of a small sealed sea, laying down one thin lamina per year with a composition that follows the ice cover above it. The forty laminae between the 2258 and 2298 visits match across every station on the transect to the year. It is the only clock in this half of the galaxy and everything in the tail is dated against it.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Um tapete lento no fundo de um pequeno mar selado, que deposita uma lâmina fina por ano com uma composição que acompanha a cobertura de gelo acima dele. As quarenta lâminas entre as visitas de 2258 e de 2298 coincidem, ano a ano, em todas as estações do transecto. É o único relógio desta metade da galáxia e tudo o que está na cauda é datado por ele.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "category": { "id": ["xeno.peerdb.org", "ORGANISM_CATEGORY", "CHEMOLITHO_MAT"] },
+  "foundOn": [{ "id": ["xeno.peerdb.org", "PLANET", "G2_SUMP"] }],
+  "biome": [{ "id": ["xeno.peerdb.org", "BIOME", "BRINE_SEA"] }],
+  "typicalSize": { "value": { "amount": 0.9, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+  "typicalMass": { "value": { "amount": 12.0, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "kg"] }] },
+  "image": [
+    {
+      "value": "/f/99Vr7iZdCXS3umPxnMmbnq",
+      "name": "G2_TRANSECT_MAT.jpg",
+      "caption": "Field plate",
+      "source": "Drawn in the field; Consortium collection"
+    }
+  ],
+  "notes": [
+    {
+      "value": "<p>It is the only organism in this register that the Consortium relies on to tell the time, which several people have pointed out is an unusual thing for a catalogue of cultures to depend on.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

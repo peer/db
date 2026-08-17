@@ -1,0 +1,23 @@
+{
+  "id": ["xeno.peerdb.org", "COLLECTIVE", "G1_CUT_VALLEY"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "COLLECTIVE"] }],
+  "name": [{ "value": "The Cut Valley", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "description": [
+    {
+      "value": "<p>The haze body that has occupied the southern brine cuts since the collapses of 2295 opened them to the lowland, and the only one of these entities anybody has watched arrive somewhere. Its plume composition held steady throughout the move, which is the strongest single piece of evidence that the chemistry is managed rather than merely produced. It is seated, in the register&#39;s phrasing, at a site built by somebody else and now full of it.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "species": { "id": ["xeno.peerdb.org", "SPECIES", "G1_UERANAIL"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G1_HAZE_VALLEY_ORDER"] }],
+  "role": [
+    { "value": "chemical participant", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "unasked", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }
+  ],
+  "memberCount": {
+    "value": { "from": { "amount": 4000, "precision": 10 }, "to": { "amount": 120000, "precision": 10 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "activePeriod": { "from": { "time": "2296-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true },
+  "seat": { "id": ["xeno.peerdb.org", "SITE", "G1_EVAPORITE_WORKINGS"] }
+}

@@ -1,0 +1,36 @@
+{
+  "id": ["xeno.peerdb.org", "PUBLICATION", "PUB_REACH_FOSTERAGE"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PUBLICATION"] }],
+  "title": [
+    {
+      "value": "Handing to the Reach: Fosterage Chains, Channel Tenure and the Timing of Transfers Among the Dusk Band Signers of Survey Grid 44-b",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "doi": "10.5281/xeno.2275.0203",
+  "abstract": [
+    {
+      "value": "<p>Dusk Band households do not raise the young they bear. Each is handed along a chain of reaches at the first walking of new water, and the chain is the same chain along which channel maintenance obligations run. We trace fifty-eight transfers recorded over four residency years and show that the fosterage order and the water order are not analogous systems but one system, stated twice. Where a reach falls out of the chain, both the child and the channel are reassigned in the same sitting, and no separate word exists for either event.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "author": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_NOWAK"] }, { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_HALVORSEN"] }],
+  "journal": "Comparative Kinship and Descent",
+  "publishedOn": { "time": "2275-06-01T00:00:00Z", "precision": "m" },
+  "about": [
+    { "id": ["xeno.peerdb.org", "SPECIES", "G1_GRID44_HOLDERS"] },
+    { "id": ["xeno.peerdb.org", "CULTURE", "G1_REACH_FOSTERAGE"] },
+    { "id": ["xeno.peerdb.org", "PRACTICE", "G1_REACH_HANDING"] }
+  ],
+  "cites": [
+    { "id": ["xeno.peerdb.org", "PUBLICATION", "PUB_WEIR_ALLOCATION"] },
+    { "id": ["xeno.peerdb.org", "PUBLICATION", "PUB_FERMENT_LINEAGE"] },
+    { "id": ["xeno.peerdb.org", "PUBLICATION", "PUB_GREETING_ERROR"] }
+  ],
+  "notes": [
+    {
+      "value": "<p>Lindqvist, who led the residency and collected most of the transfer records, declined authorship on the ground that she had not written any of it. The material comes from her last field season.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "id": ["xeno.peerdb.org", "INDIVIDUAL", "G2_MAKKUNE"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "INDIVIDUAL"] }],
+  "name": [{ "value": "Makkune" }],
+  "lineageName": [{ "value": "Ninth Position, Second Gallery" }],
+  "description": [
+    {
+      "value": "<p>Holds the station&#39;s reserve rations in cold store and enters the open position on the cord every year without being asked. They are entirely clear that this is a debt, that the debt is the Consortium&#39;s, and that nobody has ever proposed a way of closing it. They have not been photographed, the mouth chamber being unlit and the alternative being to go outside.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "species": { "id": ["xeno.peerdb.org", "SPECIES", "G2_MUNNAKULE"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G2_WARREN_TALLY"] }, { "id": ["xeno.peerdb.org", "CULTURE", "G2_SWITCHING_ASSEMBLY"] }],
+  "role": [
+    { "value": "store holder", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "trader at the switching", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }
+  ],
+  "formOfAddress": "by position on the cord",
+  "born": { "time": "2270-01-01T00:00:00Z", "precision": "y" },
+  "birthplace": { "id": ["xeno.peerdb.org", "SITE", "G2_FROST_WARREN"] }
+}

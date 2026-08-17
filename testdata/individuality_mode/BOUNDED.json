@@ -1,0 +1,24 @@
+{
+  "id": ["xeno.peerdb.org", "INDIVIDUALITY_MODE", "BOUNDED"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "INDIVIDUALITY_MODE"] }],
+  "name": [
+    { "value": "Bounded individual", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "Zamejen posameznik", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }] },
+    { "value": "Indivíduo delimitado", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>One body, one continuous self, persisting from formation to death with no routine merging or splitting. The baseline against which the other terms are defined.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Eno telo in en neprekinjen jaz, brez rednega združevanja ali cepitve.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Um corpo, um eu contínuo, que persiste da formação até à morte sem fusões nem cisões de rotina. A referência a partir da qual se definem os outros termos.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "code": ["bounded"]
+}

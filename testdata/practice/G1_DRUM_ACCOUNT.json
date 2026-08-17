@@ -1,0 +1,20 @@
+{
+  "id": ["xeno.peerdb.org", "PRACTICE", "G1_DRUM_ACCOUNT"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PRACTICE"] }],
+  "name": [{ "value": "Drumming the Account", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Fenkhevnith", "gloss": "the owing said out" }],
+  "description": [
+    {
+      "value": "<p>At intervals of about forty days a colony drums its whole open account across the shelf floor: every obligation, in the order incurred, with the amount and the party. Neighbouring colonies answer only the parts that concern them, and silence stands for assent, which makes an unanswered item the loudest thing in the recital. Nothing is ever closed, because a closed account would end the relation it records, so the drumming is not a report of the relationship but the relationship itself. A full recital by a large colony runs about nine hours at a rate no single body could sustain, and is audible through the boots at two kilometres. A colony that stops drumming its account is recorded as dispersed rather than as settled, and the discipline has never been comfortable with that phrasing.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G1_SHELF_LEDGER"] }],
+  "category": { "id": ["xeno.peerdb.org", "PRACTICE_CATEGORY", "EXCHANGE_CYCLE"] },
+  "periodicity": "about every forty days",
+  "participants": {
+    "value": { "from": { "amount": 12000, "precision": 1 }, "to": { "amount": 90000, "precision": 1 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "firstDocumented": { "time": "2272-01-01T00:00:00Z", "precision": "y" }
+}

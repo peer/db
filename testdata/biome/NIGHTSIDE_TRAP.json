@@ -1,0 +1,24 @@
+{
+  "id": ["xeno.peerdb.org", "BIOME", "NIGHTSIDE_TRAP"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "BIOME"] }],
+  "name": [
+    { "value": "Nightside cold trap", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "Nočna hladna past", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }] },
+    { "value": "Armadilha fria do lado noturno", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>The permanently dark hemisphere of a locked world, where volatiles migrate in and freeze out for good. Life here is imported, dormant or chemotrophic, and rarely all three at once.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Trajno temna polobla vklenjenega sveta, kjer se hlapne snovi naberejo in zmrznejo.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>O hemisfério permanentemente escuro de um mundo aprisionado, onde os voláteis migram para dentro e congelam de vez. A vida aqui é importada, dormente ou quimiotrófica, e raramente as três coisas ao mesmo tempo.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "code": ["night-trap"]
+}

@@ -1,0 +1,20 @@
+{
+  "id": ["xeno.peerdb.org", "INDIVIDUAL", "G3_TERRONNI"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "INDIVIDUAL"] }],
+  "name": [{ "value": "Terronni" }],
+  "description": [
+    {
+      "value": "<p>Holds an open debt against the Consortium, a stake taken from his household&#39;s line in 2306 and not replaced, and is therefore kin to the Consortium for as long as it stands open. He has been entirely clear about what this means and the ethics office has been entirely clear that it has no procedure for it. He asks after his relatives at each meeting, by which he means the expedition, and is told that they are well.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "species": { "id": ["xeno.peerdb.org", "SPECIES", "G3_TEKKONNO"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G3_TIDE_LINES"] }],
+  "role": [
+    { "value": "debt holder", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "stake cutter", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }
+  ],
+  "formOfAddress": "by name, and then by whatever debt stands between you",
+  "born": { "time": "2291-01-01T00:00:00Z", "precision": "y" },
+  "birthplace": { "id": ["xeno.peerdb.org", "SITE", "G3_OUTER_STAKES"] }
+}

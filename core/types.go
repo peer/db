@@ -126,6 +126,14 @@ type SearchShortcut struct {
 	CreateShortcut string               `cardinality:"0..1" json:"createShortcut,omitempty" property:"CREATE_SHORTCUT"`
 }
 
+// RefWithOrder is a reference which also states where what makes it belongs among the things making the
+// same reference. A reference which states no order comes after every reference which states one.
+type RefWithOrder struct {
+	Value Ref `json:"value" value:""`
+
+	OrderInList *Amount[float64] `cardinality:"0..1" json:"orderInList,omitempty" property:"ORDER_IN_LIST"`
+}
+
 // PropertyFields contains fields specific to properties.
 //
 //nolint:lll
@@ -137,7 +145,7 @@ type PropertyFields struct {
 	Description            []RawHTMLWithLanguage `cardinality:"0.."                  json:"description,omitempty"            property:"DESCRIPTION"`
 	IdentifierLinkTemplate string                `cardinality:"0..1"                 json:"identifierLinkTemplate,omitempty" property:"IDENTIFIER_LINK_TEMPLATE"`
 	ExcludeFromTextSearch  bool                  `cardinality:"0..1"                 json:"excludeFromTextSearch,omitempty"  property:"EXCLUDE_FROM_TEXT_SEARCH"`
-	SubpropertyOf          []Ref                 `cardinality:"0.."  duplicate:"top" json:"subpropertyOf,omitempty"          property:"SUBPROPERTY_OF"           values:"core.peerdb.org,INSTANCE_OF=core.peerdb.org,PROPERTY"`
+	SubpropertyOf          []RefWithOrder        `cardinality:"0.."  duplicate:"top" json:"subpropertyOf,omitempty"          property:"SUBPROPERTY_OF"           values:"core.peerdb.org,INSTANCE_OF=core.peerdb.org,PROPERTY"`
 	InversePropertyOf      *Ref                  `cardinality:"0..1"                 json:"inversePropertyOf,omitempty"      property:"INVERSE_PROPERTY_OF"      values:"core.peerdb.org,INSTANCE_OF=core.peerdb.org,PROPERTY"`
 }
 

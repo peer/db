@@ -1,0 +1,67 @@
+{
+  "id": ["xeno.peerdb.org", "SPECIES", "G4_TRAP_KEEPERS"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SPECIES"] }],
+  "name": [{ "value": "Cold Locker Trap Keepers", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [
+    {
+      "value": "Thissovith",
+      "gloss": "those who live where the air comes down",
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G4_COM_MARCH_SPEECH"] }]
+    }
+  ],
+  "exonym": [{ "value": "Sesshovan", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "taxonCode": "TX-4408-a",
+  "description": [
+    {
+      "value": "<p>A thin, dispersed population living nightward of the dusk band, in warrens cut into the frost where the atmosphere snows out and can be collected. They live off chemosynthetic cultures kept in body-warm chambers and off whatever the wind delivers over the nightward margin, and they have no standing office of any kind, groups forming and dissolving around whichever cultures are producing. Relatedness is traced through strains of an inherited internal symbiont, which can be assayed, and the assay has on three occasions contradicted the local account in ways nobody involved found interesting. A visitor notices that they are warm to the touch and that their warrens are not, and that a conversation stops the moment either party begins to cool. Whether the culture-sharing between bodies makes them a collective is genuinely open, and the register carries the case as contested rather than as decided.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "homeworld": { "id": ["xeno.peerdb.org", "PLANET", "G4_FETCH"] },
+  "bodyPlan": [
+    {
+      "value": "<p>A squat radial animal with six short limbs arranged around a low central trunk, able to walk in any direction without turning. The integument is a thick waxy rind, cream to grey, pitted with pores that open onto the internal culture chambers and close hard in cold. There is no distinct head: the mouth is a ring on the underside and the sense organs are distributed around the rim of the trunk.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "typicalHeight": { "value": { "amount": 1.25, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+  "typicalMass": { "value": { "amount": 48.0, "precision": 0.1 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "kg"] }] },
+  "lifespan": {
+    "value": { "from": { "amount": 25, "precision": 1 }, "to": { "amount": 60, "precision": 1 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_YEAR"] }]
+  },
+  "sensoryModality": [
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "THERMAL_RADIANCE"] },
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "PRESSURE_GRADIENT"] },
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "CONTACT_CHEMO"] }
+  ],
+  "subsistence": [
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "CHEMO_TENDING"] },
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "DRIFT_HARVESTING"] }
+  ],
+  "individuality": { "id": ["xeno.peerdb.org", "INDIVIDUALITY_MODE", "CONTESTED"] },
+  "contestedIndividuality": { "id": ["xeno.peerdb.org", "INDIVIDUALITY_MODE", "FISSIONING"] },
+  "socialOrganisation": { "id": ["xeno.peerdb.org", "SOCIAL_ORGANISATION", "ACEPHALOUS_BANDS"] },
+  "kinshipSystem": { "id": ["xeno.peerdb.org", "KINSHIP_SYSTEM", "SYMBIONT_SHARING"] },
+  "communication": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G4_COM_MARCH_SPEECH"] }],
+  "population": {
+    "value": { "from": { "amount": 8000, "precision": 1000 }, "to": { "amount": 25000, "precision": 1000 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "contactStatus": { "id": ["xeno.peerdb.org", "CONTACT_STATUS", "LIMITED"] },
+  "firstContact": { "time": "2261-01-01T00:00:00Z", "precision": "y" },
+  "image": [
+    {
+      "value": "/f/38VpjE7hQhtfSbQtooVETS",
+      "name": "G4_TRAP_KEEPERS.jpg",
+      "caption": "Field plate",
+      "source": "Drawn in the field; Consortium collection"
+    }
+  ],
+  "notes": [
+    {
+      "value": "<p>The individuality entry has been under review since 2284. Both submissions to the review were written by people who had left the world before the other arrived, and the review has never had them in the same room, or the same decade.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

@@ -31,6 +31,7 @@ import { useVisibilityTracking } from "@/visibility"
 const props = defineProps<{
   // Search props.
   searchResults: DeepReadonly<Result[]>
+  searchResultsUrl: string | null
   searchTotal: number | null
   searchMoreThanTotal: boolean
   searchSession: DeepReadonly<SearchSession>
@@ -69,7 +70,7 @@ const {
   results: filtersResults,
   total: filtersTotal,
   error: filtersError,
-  url: filtersURL,
+  loadedURL: filtersURL,
 } = useFilters(
   toRef(() => props.searchSession),
   // The table view lists filter columns for the whole table and has no filter-pane search box, so the
@@ -256,7 +257,7 @@ const WithDocumentD = WithDocument<D>
   -->
   <component :is="component" v-for="(component, i) in getSearchHeaderComponents().value" :key="i" :search-session="searchSession" />
 
-  <div class="pd-searchresultstable-header sticky left-0 z-20 w-0">
+  <div class="pd-searchresultstable pd-searchresultstable-header sticky left-0 z-20 w-0">
     <SearchResultsHeader
       class="w-container p-1 sm:p-4"
       :search-session="searchSession"
@@ -275,15 +276,15 @@ const WithDocumentD = WithDocument<D>
   <template v-else-if="searchTotal !== null && searchTotal > 0">
     <div class="pd-searchresultstable flex flex-row gap-x-1 px-1 sm:gap-x-4 sm:px-4">
       <!-- TODO: Make table have rounded corners. -->
-      <table ref="tableEl" class="border border-gray-200 shadow-sm">
+      <table ref="tableEl" class="pd-searchresultstable-table border border-gray-200 shadow-sm">
         <!-- Headers -->
         <!--
           We use -top-px because we have a 1px border on the table which we want to offset. Otherwise there
           is a 1px gap between the top edge of the window and where the header gets stuck.
         -->
-        <thead class="sticky -top-px z-10 bg-slate-300" v-bind="headerAttrs">
-          <tr :data-url="filtersURL">
-            <th class="p-2 text-start">#</th>
+        <thead class="pd-searchresultstable-head sticky -top-px z-10 bg-slate-300" v-bind="headerAttrs">
+          <tr class="pd-searchresultstable-row-header" :data-url="filtersURL">
+            <th class="pd-searchresultstable-column-index p-2 text-start">#</th>
             <th v-if="filtersTotal === null" class="p-2 text-start">
               <div
                 class="pd-searchresultstable-loading inline-block h-2 rounded-sm bg-slate-200 motion-safe:animate-pulse"
@@ -292,7 +293,11 @@ const WithDocumentD = WithDocument<D>
               />
             </th>
             <template v-for="filter in limitedFiltersResults" v-else :key="filter.filterId ?? filterResultKey(filter)">
-              <th v-if="supportedFilter(filter)" class="text-start">
+              <th
+                v-if="supportedFilter(filter)"
+                class="pd-searchresultstable-column-filter text-start"
+                :class="`pd-searchresultstable-column-filter-${filter.props?.[0] ?? ''}`"
+              >
                 <!-- <div class="flex flex-row items-center justify-between"> -->
                 <WithDocumentD :id="filter.props?.[0] ?? ''" name="DocumentGet">
                   <template #default="{ doc, url }">
@@ -320,7 +325,7 @@ const WithDocumentD = WithDocument<D>
         </thead>
 
         <!-- Results -->
-        <tbody class="pd-searchresultstable-list-results divide-y divide-gray-200">
+        <tbody :data-url="searchResultsUrl" class="pd-searchresultstable-list-results divide-y divide-gray-200">
           <template v-for="(result, index) in limitedSearchResults" :key="result.id">
             <WithDocumentD :id="result.id" name="DocumentGet">
               <template #default="{ doc, url }">
@@ -330,7 +335,7 @@ const WithDocumentD = WithDocument<D>
                   class="pd-searchresultstable-row-result odd:bg-white even:bg-slate-100 hover:bg-slate-200"
                   :data-url="url"
                 >
-                  <td class="flex items-center justify-between gap-1 p-2">
+                  <td class="pd-searchresultstable-cell-index flex items-center justify-between gap-1 p-2">
                     <RouterLink
                       :to="{ name: 'DocumentGet', params: { id: result.id }, query: encodeQuery({ s: searchSession.id }) }"
                       class="pd-searchresultstable-link-document link"
@@ -355,7 +360,7 @@ const WithDocumentD = WithDocument<D>
                     />
                   </td>
                   <template v-for="filter in limitedFiltersResults" v-else :key="filter.filterId ?? filterResultKey(filter)">
-                    <td v-if="supportedFilter(filter)" class="pd-searchresultstable-value align-top">
+                    <td v-if="supportedFilter(filter)" class="pd-searchresultstable-cell-value pd-searchresultstable-value align-top">
                       <LocalScope
                         v-slot="{ rowExpanded, cellTruncated, cellExpanded }"
                         :row-expanded="isRowExpanded(result.id)"
@@ -371,7 +376,10 @@ const WithDocumentD = WithDocument<D>
                           class="min-h-[calc(1lh+var(--spacing)*2)] max-w-100 overscroll-contain p-2"
                           :class="[rowExpanded ? 'max-h-75 overflow-auto' : 'max-h-[calc(1lh+var(--spacing)*2)] truncate overflow-clip']"
                         >
-                          <div v-if="(cellTruncated && rowExpanded) || cellExpanded || cellTruncated" class="float-right mt-[calc((1lh-var(--spacing)*5)/2)] flex gap-1">
+                          <div
+                            v-if="(cellTruncated && rowExpanded) || cellExpanded || cellTruncated"
+                            class="pd-searchresultstable-actions-cell float-right mt-[calc((1lh-var(--spacing)*5)/2)] flex gap-1"
+                          >
                             <RouterLink
                               v-if="cellTruncated && rowExpanded"
                               :to="{ name: 'DocumentGet', params: { id: result.id }, query: encodeQuery({ s: searchSession.id }) }"
@@ -408,7 +416,7 @@ const WithDocumentD = WithDocument<D>
                   URL query parameter is set to the first ID for final <tr>s, the same one which was the first ID for loading <tr>s. To prevent this "flicker"
                   of "at" URL query parameter we do not track loading and error <tr>s.
                 -->
-                <tr class="pd-withdocument-loading-wrapper odd:bg-white even:bg-slate-100 hover:bg-slate-200" :data-url="url">
+                <tr class="pd-searchresultstable-row-loading pd-withdocument-loading-wrapper odd:bg-white even:bg-slate-100 hover:bg-slate-200" :data-url="url">
                   <td class="p-2">
                     <RouterLink
                       :to="{ name: 'DocumentGet', params: { id: result.id }, query: encodeQuery({ s: searchSession.id }) }"
@@ -427,7 +435,7 @@ const WithDocumentD = WithDocument<D>
               </template>
               <!-- We do not track(result.id) <tr> here. See explanation above. -->
               <template #error="{ message, accessDenied, url }">
-                <tr class="pd-withdocument-error-wrapper odd:bg-white even:bg-slate-100 hover:bg-slate-200" :data-url="url">
+                <tr class="pd-searchresultstable-row-error pd-withdocument-error-wrapper odd:bg-white even:bg-slate-100 hover:bg-slate-200" :data-url="url">
                   <td class="p-2">
                     <RouterLink
                       :to="{ name: 'DocumentGet', params: { id: result.id }, query: encodeQuery({ s: searchSession.id }) }"
@@ -445,7 +453,7 @@ const WithDocumentD = WithDocument<D>
         </tbody>
       </table>
 
-      <div v-if="filtersHasMore" class="sticky top-[37.5%] z-20 h-full">
+      <div v-if="filtersHasMore" class="pd-searchresultstable-actions-columns sticky top-[37.5%] z-20 h-full">
         <Button
           ref="filtersMoreButton"
           primary
@@ -461,7 +469,7 @@ const WithDocumentD = WithDocument<D>
             One would assume that w-full is needed to make the container div as wide as the
             body inside which then the footer horizontally shifts.
     -->
-    <div class="sticky left-0 z-20 w-0">
+    <div class="pd-searchresultstable-footer sticky left-0 z-20 w-0">
       <div class="w-container flex justify-center p-1 sm:p-4">
         <Button v-if="searchHasMore" id="searchresultstable-button-loadmore" ref="searchMoreButton" primary class="w-1/4 min-w-fit" @click.prevent="searchLoadMore">{{
           t("common.buttons.loadMore")
@@ -492,7 +500,7 @@ const WithDocumentD = WithDocument<D>
   -->
   <Dialog as="div" class="pd-searchresultstable-dialog relative z-50" :open="activeFilter !== null && searchTotal !== null" @close="onCloseFilterModal">
     <!-- Backdrop. -->
-    <div class="fixed inset-0 bg-black/30" aria-hidden="true" />
+    <div class="pd-searchresultstable-backdrop fixed inset-0 bg-black/30" aria-hidden="true" />
 
     <!-- Full-screen container to center the panel. -->
     <div class="fixed inset-0 flex items-center justify-center">

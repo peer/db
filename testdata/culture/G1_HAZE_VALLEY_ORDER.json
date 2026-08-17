@@ -1,0 +1,39 @@
+{
+  "id": ["xeno.peerdb.org", "CULTURE", "G1_HAZE_VALLEY_ORDER"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "CULTURE"] }],
+  "name": [{ "value": "Haze Valley Management", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "catalogueCode": "CU-2247-13",
+  "description": [
+    {
+      "value": "<p>Catalogued as a culture on the strength of one observation: the plume chemistry of an inhabited lowland holds its composition across a temperature swing that ought to wreck it, and therefore something is being managed rather than merely inhabited. Everything else in this entry is inference from the rim. Bodies are separate and numerous but in continuous chemical contact across the whole width of a valley, so there is no participant smaller than a valley and no way to put a question to one. Duties are evidently allocated, since the working front moves in an order and does not double back, and relatedness is not reckoned at all: enquiry has been made through eleven descents and the answer has been consistent. The southern brine cuts, opened to the lowland by the collapses of 2295, have held a haze body since 2296 and are the only place where this population can be observed from ground level rather than from a rim.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Catalogada como cultura com base numa única observação: a química da pluma de uma terra baixa habitada mantém a sua composição ao longo de uma variação de temperatura que a devia destruir e, portanto, alguma coisa está a ser gerida e não apenas habitada. Todo o resto desta entrada é inferência feita a partir da borda. Os corpos são separados e numerosos mas estão em contacto químico contínuo por toda a largura de um vale, pelo que não há participante mais pequeno do que um vale nem maneira de pôr uma pergunta a um deles. As tarefas são evidentemente distribuídas, já que a frente de trabalho se move por uma ordem e não volta atrás, e o aparentamento não é contabilizado de todo: a pergunta foi feita ao longo de onze descidas e a resposta tem sido consistente. Os cortes de salmoura do sul, abertos à terra baixa pelos desabamentos de 2295, albergam um corpo de bruma desde 2296 e são o único sítio onde esta população pode ser observada ao nível do solo e não a partir de uma borda.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "practisedBy": [{ "id": ["xeno.peerdb.org", "SPECIES", "G1_UERANAIL"] }],
+  "presentAt": [{ "id": ["xeno.peerdb.org", "SITE", "G1_EVAPORITE_WORKINGS"] }],
+  "kinshipSystem": { "id": ["xeno.peerdb.org", "KINSHIP_SYSTEM", "NOT_RECKONED"] },
+  "socialOrganisation": { "id": ["xeno.peerdb.org", "SOCIAL_ORGANISATION", "CONSENSUS_ASSEMBLY"] },
+  "subsistence": [
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "CHEMO_TENDING"] },
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "DRIFT_HARVESTING"] }
+  ],
+  "communication": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G1_HAZE_SIGNATURE"] }],
+  "population": {
+    "value": { "from": { "amount": 20000, "precision": 100 }, "to": { "amount": 2000000, "precision": 100 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "period": { "from": { "time": "2244-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true },
+  "image": [
+    { "value": "/f/NxKueEYUx1dYgyhuXS9dcw", "name": "G1_HAZE_VALLEY_ORDER.jpg", "caption": "Gathering", "source": "Consortium survey archive" }
+  ],
+  "notes": [
+    {
+      "value": "<p>The ethics file treats each valley as a single participant who has not been asked, and has done so since 2251. No procedure exists for asking, and the panel has declined three times to invent one on the grounds that inventing it would constitute the approach.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

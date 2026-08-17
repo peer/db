@@ -1,0 +1,24 @@
+{
+  "id": ["xeno.peerdb.org", "KINSHIP_SYSTEM", "HEARTH_AFFILIATION"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "KINSHIP_SYSTEM"] }],
+  "name": [
+    { "value": "Hearth affiliation", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "Pripadnost ognjišču", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }] },
+    { "value": "Filiação de lareira", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>Kin are those who take heat and food from the same hearth this season, regardless of birth. Excludes neighbourhood ties that carry no obligation.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Sorodniki so tisti, ki to sezono jedo pri istem ognjišču, ne glede na rojstvo.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>São parentes os que nesta estação tiram calor e comida da mesma lareira, independentemente do nascimento. Exclui laços de vizinhança que não acarretam obrigação.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "code": ["hearth-affil"]
+}

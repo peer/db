@@ -1,0 +1,24 @@
+{
+  "id": ["xeno.peerdb.org", "COMMUNICATION_MODALITY", "COLOUR_CHANGE"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_MODALITY"] }],
+  "name": [
+    { "value": "Colour change", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "Sprememba barve", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }] },
+    { "value": "Mudança de cor", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>Controlled alteration of surface colour or pattern carrying meaning, distinct from slow seasonal change. Excludes involuntary flushing recorded as a state, not a message.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Nadzorovano spreminjanje barve ali vzorca na površini, ki nosi pomen.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Alteração controlada da cor ou do padrão da superfície com sentido próprio, distinta da mudança sazonal lenta. Exclui o rubor involuntário, registado como estado e não como mensagem.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "code": ["colour"]
+}

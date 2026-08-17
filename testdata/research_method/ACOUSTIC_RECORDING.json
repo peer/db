@@ -1,0 +1,24 @@
+{
+  "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "ACOUSTIC_RECORDING"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "RESEARCH_METHOD"] }],
+  "name": [
+    { "value": "Acoustic recording", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "Zvočno snemanje", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }] },
+    { "value": "Gravação acústica", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>Capture of sound and substrate vibration with calibrated equipment and a documented recording position. Excludes reconstruction from notation.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Zajem zvoka in tresljajev podlage z umerjeno opremo in zabeleženim položajem snemanja.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Captação de som e de vibração do substrato com equipamento calibrado e posição de gravação documentada. Exclui a reconstituição a partir de notação.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "code": ["acoustic"]
+}

@@ -1,0 +1,18 @@
+{
+  "id": ["xeno.peerdb.org", "STAR_SYSTEM", "G4_SCUTCH"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "STAR_SYSTEM"] }],
+  "name": [{ "value": "Scutch", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "catalogueCode": "SPW-B/031",
+  "description": [
+    {
+      "value": "<p>A bright white star in the inner part of the Seventh Shell, with five planets and, around the outer giant, eleven moons of at least three different origins. It is the best-studied system in the shell and the source of most of its anomalies.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "SECTOR", "G4_SHELL_SEVEN"] },
+  "spectralClass": "F5V",
+  "starCount": { "amount": 1, "precision": 1 },
+  "planetCount": { "amount": 5, "precision": 1 },
+  "distanceFromSol": { "value": { "amount": 2410.8, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "PARSEC"] }] },
+  "firstSurveyed": { "time": "2231-01-01T00:00:00Z", "precision": "y" }
+}

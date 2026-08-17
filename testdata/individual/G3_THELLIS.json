@@ -1,0 +1,24 @@
+{
+  "id": ["xeno.peerdb.org", "INDIVIDUAL", "G3_THELLIS"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "INDIVIDUAL"] }],
+  "name": [{ "value": "Thellis" }],
+  "lineageName": [{ "value": "Annuth" }],
+  "description": [
+    {
+      "value": "<p>The last master of a far route, who ran his lodge&#39;s final haul into the night side in 2299 and handed its cord to a near lodge that had no use for it and kept it anyway. He spent his last four years in the band, was interviewed six times, and was the source of most of what is known about how the deep ice was cut. He consented to a photograph in 2297 and asked that it be taken at the harness rather than at the hearth. He died in 2303.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "species": { "id": ["xeno.peerdb.org", "SPECIES", "G3_SHELLUTHE"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G3_DEEP_HAUL"] }, { "id": ["xeno.peerdb.org", "CULTURE", "G3_ICE_LODGES"] }],
+  "role": [
+    { "value": "lodge master", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "far route holder", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }
+  ],
+  "formOfAddress": "by lodge first and then name",
+  "born": { "time": "2245-01-01T00:00:00Z", "precision": "y" },
+  "died": { "time": "2303-01-01T00:00:00Z", "precision": "y" },
+  "image": [
+    { "value": "/f/H7Ka2fLxKnXjYMXMjyJnzE", "name": "G3_THELLIS.jpg", "caption": "Portrait", "source": "Made with consent; Consortium collection" }
+  ]
+}

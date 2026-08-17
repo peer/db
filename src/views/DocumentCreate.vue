@@ -225,7 +225,7 @@ async function onCreate(classId: string, replace = false) {
     <NavBar />
   </Teleport>
   <div class="pd-documentcreate mt-[var(--pd-navbar-offset)] flex w-full flex-col p-1 sm:p-4 xl:px-16">
-    <div class="flex flex-col rounded-sm border border-gray-200 bg-white p-4 shadow-sm">
+    <div class="pd-documentcreate-card flex flex-col rounded-sm border border-gray-200 bg-white p-4 shadow-sm">
       <div v-if="!loaded" id="documentcreate-loading" class="my-1 sm:my-4">{{ t("common.status.loading") }}</div>
       <div v-else-if="tree.length === 0" id="documentcreate-empty" class="my-1 sm:my-4">{{ t("views.DocumentCreate.noClasses") }}</div>
       <div v-else class="flex w-full flex-col gap-y-2 sm:gap-y-4">

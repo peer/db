@@ -1,0 +1,17 @@
+{
+  "id": ["xeno.peerdb.org", "INDIVIDUAL", "G4_IN_HEAVY_REST_HEAVY"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "INDIVIDUAL"] }],
+  "name": [{ "value": "[heavy, rest, heavy]", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "description": [
+    {
+      "value": "<p>A cutter in the salt workings of the western pan, in the grade that has just handed over its duties and therefore holds the deaf basin. She has spent four years in a place where nobody can be called and nothing can be heard, and reports that the first year is unbearable and the fourth is not. She has asked, through the grade speaker, whether the Consortium has any world where this is the normal condition, and was told, accurately, that it has several.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "species": { "id": ["xeno.peerdb.org", "SPECIES", "G4_FLOOR_KEEPERS"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G4_CU_FLOOR_GRADES"] }],
+  "role": [{ "value": "salt cutter", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "formOfAddress": "by striking the name figure",
+  "born": { "time": "2288-01-01T00:00:00Z", "precision": "y" },
+  "birthplace": { "id": ["xeno.peerdb.org", "SITE", "G4_PAN_WORKINGS"] }
+}

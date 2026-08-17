@@ -1,0 +1,32 @@
+{
+  "id": ["xeno.peerdb.org", "ORGANISM", "G4_THAW_BLOOM"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "ORGANISM"] }],
+  "name": [{ "value": "Thaw Bloom", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Tokkunpa" }],
+  "taxonCode": "TX-1402-b",
+  "description": [
+    {
+      "value": "<p>A photosynthetic sessile of Marrow&#39;s braided meltwater plain, which spends two centuries as a dormant tuber under frost and completes an entire life in the few decades of the thaw. Growth is violent by any standard: a bloom goes from tuber to full height in nineteen days and sets seed twice before the channels shift under it. The plain turns green over about a year and stays that way until the frost returns.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "category": { "id": ["xeno.peerdb.org", "ORGANISM_CATEGORY", "PHOTO_SESSILE"] },
+  "foundOn": [{ "id": ["xeno.peerdb.org", "PLANET", "G4_MARROW"] }],
+  "biome": [{ "id": ["xeno.peerdb.org", "BIOME", "BRAIDED_MELT"] }],
+  "typicalSize": { "value": { "amount": 0.55, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+  "typicalMass": { "value": { "amount": 2.2, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "kg"] }] },
+  "image": [
+    {
+      "value": "/f/E22AL6XST1zbHz99YFxPvN",
+      "name": "G4_THAW_BLOOM.jpg",
+      "caption": "Field plate",
+      "source": "Drawn in the field; Consortium collection"
+    }
+  ],
+  "notes": [
+    {
+      "value": "<p>The only observed flowering ran from 2243 to 2249. Every photograph of it in the literature is one of eleven, and four of the eleven are of the same plant from different angles.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

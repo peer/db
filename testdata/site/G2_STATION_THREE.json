@@ -1,0 +1,20 @@
+{
+  "id": ["xeno.peerdb.org", "SITE", "G2_STATION_THREE"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SITE"] }],
+  "name": [{ "value": "Station Three", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "description": [
+    {
+      "value": "<p>A moored raft of four linked pontoons on the substellar sea, the Consortium&#39;s third and last permanent presence in this galaxy, holding three people and a great deal of water-sampling equipment. It has drifted eleven kilometres from its 2253 position and is re-anchored about once a decade. It is warm, which makes it popular.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "REGION", "G2_WARM_POOL"] },
+  "siteType": { "id": ["xeno.peerdb.org", "SITE_TYPE", "FIELD_CAMP"] },
+  "gridReference": "NT-00.3/-01.1",
+  "population": {
+    "value": { "from": { "amount": 3, "precision": 10 }, "to": { "amount": 8, "precision": 10 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "founded": { "time": "2253-01-01T00:00:00Z", "precision": "y" },
+  "occupation": { "from": { "time": "2253-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true }
+}

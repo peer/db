@@ -1,0 +1,24 @@
+{
+  "id": ["xeno.peerdb.org", "UNIT", "EARTH_RADIUS"],
+  "instanceOf": [{ "id": ["core.peerdb.org", "UNIT"] }],
+  "name": [
+    { "value": "Earth radius", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "Zemljin polmer", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }] },
+    { "value": "raio terrestre", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>Mean radius as a multiple of Earth&#39;s. Reported as the solid surface radius where one exists, otherwise at the one bar level.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Povprečni polmer kot večkratnik Zemljinega. Naveden je polmer trdnega površja, kadar to obstaja, sicer polmer na ravni enega bara.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Raio médio como múltiplo do raio da Terra. Indica-se o raio da superfície sólida quando existe e, caso contrário, o do nível de um bar.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "code": ["R⊕"]
+}

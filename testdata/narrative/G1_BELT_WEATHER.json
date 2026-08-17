@@ -1,0 +1,39 @@
+{
+  "id": ["xeno.peerdb.org", "NARRATIVE", "G1_BELT_WEATHER"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "NARRATIVE"] }],
+  "title": [{ "value": "What the Pits Say Before the Belt Does", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [
+    {
+      "value": "Muqqatep Pekun",
+      "gloss": "the stop-holders' talk about weather",
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G1_BELLS_SPEECH"] }]
+    }
+  ],
+  "description": [
+    {
+      "value": "<p>Fixed forecasting phrases held by the weather watch and taught in the same words to every trainee, each tied to a reading of the flank pits and to a stretch of coast. They are recited rather than reasoned about, and a watch who paraphrases them is corrected.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "genre": { "id": ["xeno.peerdb.org", "NARRATIVE_GENRE", "WEATHER_LORE"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G1_LEE_CORPORATIONS"] }],
+  "recordedBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_LINDQVIST"] }],
+  "recordedAt": { "id": ["xeno.peerdb.org", "SITE", "G1_WINDWARD_RING"] },
+  "recordedOn": { "time": "2299-01-01T00:00:00Z", "precision": "y" },
+  "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G1_BELLS_SPEECH"] }],
+  "content": [
+    {
+      "value": "<p>Left flank and not the right: it is coming north, and you have six hours, and the racks come down first.</p><p>Both flanks together and slow: it is standing where it is. Work, but work inside the second line.</p><p>Both flanks together and fast: it is not standing anywhere. Call it.</p><p>Nothing in the pits and the water gone flat: it is behind you. That one is not a warning, it is a description.</p><p>And when the sky opens at the belt edge on a still night, that is not weather, that is the skimmers coming down, and the calendar is named for them and not the other way round.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "recording": [
+    {
+      "value": "/f/1Bs6YBtwd941UMfJkGVUGZ",
+      "name": "narrative-G1_BELT_WEATHER.mp3",
+      "caption": "Performance, recorded on site",
+      "duration": { "value": { "amount": 11, "precision": 1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "MINUTE"] }] },
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G1_BELLS_SPEECH"] }]
+    }
+  ]
+}

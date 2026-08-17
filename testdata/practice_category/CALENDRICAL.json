@@ -1,0 +1,24 @@
+{
+  "id": ["xeno.peerdb.org", "PRACTICE_CATEGORY", "CALENDRICAL"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PRACTICE_CATEGORY"] }],
+  "name": [
+    { "value": "Calendrical observance", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "Koledarski obred", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }] },
+    { "value": "Observância calendárica", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>Practice fixed to an astronomical, tidal or climatic cycle and repeated on schedule. Excludes practices triggered by events.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Praksa, vezana na astronomski, plimski ali podnebni cikel in ponovljena po urniku.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Prática fixada a um ciclo astronómico, de maré ou climático e repetida em data marcada. Exclui práticas desencadeadas por acontecimentos.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "code": ["calendrical"]
+}

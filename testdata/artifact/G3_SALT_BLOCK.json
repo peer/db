@@ -1,0 +1,35 @@
+{
+  "id": ["xeno.peerdb.org", "ARTIFACT", "G3_SALT_BLOCK"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "ARTIFACT"] }],
+  "name": [{ "value": "Cut Block, Lifted Before Flood", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Varremmen", "gloss": "the keeping" }],
+  "accessionCode": "CCX-A-31079",
+  "description": [
+    {
+      "value": "<p>A block of pan crust, cut on three faces and lifted whole from the outer edge of the workings four days before a flood, with the cutting still unfinished at one corner. The upper surface carries nine cuts at four depths, made over about a week by one worker who was observed throughout and who neither objected to nor acknowledged the observation. It has been kept dry since 2294 and is the only block of its kind not to have been flooded, which means it is the only statement of this kind still standing. What it says is recorded in the field notes as not established.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "category": { "id": ["xeno.peerdb.org", "ARTIFACT_CATEGORY", "NOTATION_OBJECT"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G3_PAN_WORK"] }],
+  "foundAt": { "id": ["xeno.peerdb.org", "SITE", "G3_PAN_WORKINGS"] },
+  "material": [
+    { "value": "evaporite crust", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "gypsum consolidant", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }
+  ],
+  "dimension": [
+    { "value": { "amount": 0.38, "precision": 0.001 }, "axis": "length", "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+    { "value": { "amount": 0.38, "precision": 0.001 }, "axis": "width", "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+    { "value": { "amount": 0.09, "precision": 0.001 }, "axis": "thickness", "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] }
+  ],
+  "dateMade": { "time": "2294-01-01T00:00:00Z", "precision": "d" },
+  "collectedBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_BEKELE"] }, { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_LINDQVIST"] }],
+  "image": [{ "value": "/f/CmJHSnBmZWsv2VHaJYgDdh", "name": "G3_SALT_BLOCK.jpg", "caption": "Object drawing", "source": "Consortium collection" }],
+  "document": [{ "value": "/f/3LF4ppe7cfobx6M54ic6aE", "name": "G3_SALT_BLOCK.txt", "caption": "Accession record" }],
+  "notes": [
+    {
+      "value": "<p>Removal of the block was authorised four years before the suspension and would not be authorised now. The accompanying document is the original authorisation, which is two lines long.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

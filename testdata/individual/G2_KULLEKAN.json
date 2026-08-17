@@ -1,0 +1,21 @@
+{
+  "id": ["xeno.peerdb.org", "INDIVIDUAL", "G2_KULLEKAN"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "INDIVIDUAL"] }],
+  "name": [{ "value": "Kullekan" }],
+  "lineageName": [{ "value": "Third Position, Mouth Chamber" }],
+  "description": [
+    {
+      "value": "<p>Keeps the tally at the warren mouth and has kept it since 2284, which makes them the longest-serving holder of that position on the cord. They can read a section of cord laid down before their own birth and say what was owed, to which position, and in what. They agreed to a photograph in 2296 and asked for a copy, which took eleven years to arrive and is now on the chamber wall.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "species": { "id": ["xeno.peerdb.org", "SPECIES", "G2_MUNNAKULE"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G2_WARREN_TALLY"] }],
+  "role": [{ "value": "tally keeper", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "formOfAddress": "by position on the cord",
+  "born": { "time": "2258-01-01T00:00:00Z", "precision": "y" },
+  "birthplace": { "id": ["xeno.peerdb.org", "SITE", "G2_FROST_WARREN"] },
+  "image": [
+    { "value": "/f/7HHr4mLr3ANvg5sDvamJkW", "name": "G2_KULLEKAN.jpg", "caption": "Portrait", "source": "Made with consent; Consortium collection" }
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "id": ["xeno.peerdb.org", "CONTACT_STATUS", "SUSTAINED"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "CONTACT_STATUS"] }],
+  "name": [
+    { "value": "Sustained contact", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "Trajni stik", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }] },
+    { "value": "Contacto continuado", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>Continuous or near-continuous presence with working communication in at least one direction. Excludes relationships in which the other party sets the terms of exchange.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Neprekinjena ali skoraj neprekinjena prisotnost z delujočim sporazumevanjem vsaj v eno smer.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Presença contínua ou quase contínua, com comunicação funcional em pelo menos um sentido. Exclui as relações em que a outra parte define os termos da troca.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "code": ["sustained"]
+}

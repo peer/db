@@ -1,0 +1,51 @@
+{
+  "id": ["xeno.peerdb.org", "INTERVIEW", "INTA_UMERESH_CORD_AND_RUMOUR"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "INTERVIEW"] }],
+  "title": [
+    {
+      "value": "Umeresh on reading the rota cord and on why it may not be photographed",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "description": [
+    {
+      "value": "<p>A long session with the cord reader of the lower ring, taken down by hand. He explains a refusal that has held for a decade and then discloses a correction he made without telling the ring.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "interviewee": [{ "id": ["xeno.peerdb.org", "INDIVIDUAL", "G1_UMERESH"] }],
+  "interviewer": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_HALVORSEN"] }, { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_LINDQVIST"] }],
+  "recordedAt": { "id": ["xeno.peerdb.org", "SITE", "G1_SHALLOWS_MEET"] },
+  "recordedOn": { "time": "2268-10-02T00:00:00Z", "precision": "d" },
+  "expedition": { "id": ["xeno.peerdb.org", "EXPEDITION", "EXP_THREADBARE_FOURTH"] },
+  "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G1_FLATS_SPEECH"] }],
+  "duration": { "value": { "amount": 118, "precision": 1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "MINUTE"] }] },
+  "content": [
+    {
+      "value": "<p><b>Q.</b> Would you allow us to photograph the cord, so that it is preserved?</p><p><b>A.</b> Preserved from what? It is not dying. You want a picture so that somebody who was not here can read it.</p><p><b>Q.</b> That is roughly the intention, yes.</p><p><b>A.</b> Then no. A cord read by somebody who was not present is not a cord. It is a rumour with knots in it. The reading is the standing there, in the order, with the people whose turns they are.</p><p><b>Q.</b> But if the cord were lost, would a picture not be better than nothing?</p><p><b>A.</b> If the cord is lost the ring sits down and makes another one out of what everybody remembers, and it comes out different, and the difference is the argument they were going to have anyway. Your picture would settle the argument. Nobody asked you to settle it.</p><p><b>Q.</b> Has the cord ever been wrong?</p><p><b>A.</b> Yes.</p><p><b>Q.</b> Can you say when?</p><p><b>A.</b> Four years ago. Two turns at the outer wall had been reversed, I think for eleven years, I could not tell you by whom. I re-knotted them one evening and said nothing. The ring has worked from that correction since and there is not a person on it who knows a correction was made.</p><p><b>Q.</b> Why did you not say so?</p><p><b>A.</b> Because then the question would be what else I have corrected, and the answer would be nothing, and nobody would believe it. This is exactly what a picture is for, and it is why you are not having one.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "ethics": { "id": ["xeno.peerdb.org", "ETHICS_PROTOCOL", "PROTOCOL_4"] },
+  "consentNote": [
+    {
+      "value": "<p>Umeresh agreed to be written down and not recorded, and to the record being held by the Consortium and not read on the flats. He restated the refusal of photography as covering any image of the cord, in use or otherwise, and it has been observed since.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "clearedReader": ["mock-user-curator@localhost"],
+  "permission": [
+    { "action": { "id": ["core.peerdb.org", "PERMISSION_ACTIONS", "ACTION_READ"] }, "user": ["mock-user-curator@localhost"], "scope": ["self"] },
+    {
+      "action": { "id": ["core.peerdb.org", "PERMISSION_ACTIONS", "ACTION_READ_HISTORIC"] },
+      "user": ["mock-user-curator@localhost"],
+      "scope": ["self"]
+    },
+    { "action": { "id": ["core.peerdb.org", "PERMISSION_ACTIONS", "ACTION_UPDATE"] }, "user": ["mock-user-curator@localhost"], "scope": ["self"] },
+    {
+      "action": { "id": ["core.peerdb.org", "PERMISSION_ACTIONS", "ACTION_UPDATE_PERMISSIONS"] },
+      "user": ["mock-user-curator@localhost"],
+      "scope": ["self"]
+    }
+  ]
+}

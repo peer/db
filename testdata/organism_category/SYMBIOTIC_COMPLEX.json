@@ -1,0 +1,24 @@
+{
+  "id": ["xeno.peerdb.org", "ORGANISM_CATEGORY", "SYMBIOTIC_COMPLEX"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "ORGANISM_CATEGORY"] }],
+  "name": [
+    { "value": "Symbiotic complex", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "Simbiotski sklop", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }] },
+    { "value": "Complexo simbiótico", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>An obligate association of two or more lineages that cannot be reared apart and is catalogued as one organism. Excludes facultative partnerships.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Obvezna združba dveh ali več rodov, ki je ni mogoče gojiti ločeno in se popisuje kot en organizem.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Associação obrigatória de duas ou mais linhagens que não podem ser criadas em separado e é catalogada como um só organismo. Exclui parcerias facultativas.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "code": ["symb-complex"]
+}

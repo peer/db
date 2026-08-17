@@ -1,0 +1,31 @@
+{
+  "id": ["xeno.peerdb.org", "PRACTICE", "G1_CHANNEL_WALKING"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PRACTICE"] }],
+  "name": [{ "value": "Walking the New Water", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [
+    { "value": "[walk the water's new line]", "gloss": "made with both forelimbs moving forward together, which is also the sign for a day's march" }
+  ],
+  "description": [
+    {
+      "value": "<p>When a channel moves, the holders of every reach it has touched walk the new line together, from the ice wall down to where the water sinks, in one shift. At each place where the water has taken ground from one reach and given it to another they stop, stand together on the disputed gravel, and sign until nobody is objecting, which on a bad stretch takes hours. Nothing is written and no marker is set, on the plain ground that the water will do this again. A holder who will not stand on the gravel under discussion is understood to have withdrawn the claim, and this is the only formal concession the language allows. The 2306 team walked one of these end to end and filed nine days of notes, most of which record the length of the silences.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Ko se struga premakne, skrbniki odsekov skupaj prehodijo novo črto in se dogovorijo, stoje na spornem produ.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Quando um canal se desloca, os detentores de todos os troços por ele tocados percorrem juntos a nova linha, do muro de gelo até onde a água se infiltra, num único turno. Em cada ponto em que a água tirou terreno a um troço e o deu a outro, param, ficam juntos sobre o cascalho em disputa e falam por sinais até ninguém estar a objetar, o que num troço mau leva horas. Nada é escrito e nenhum marco é colocado, pela simples razão de que a água voltará a fazer isto. Um detentor que não se ponha de pé sobre o cascalho em discussão entende-se ter retirado a reivindicação, e esta é a única concessão formal que a língua permite. A equipa de 2306 percorreu uma destas caminhadas de ponta a ponta e arquivou nove dias de notas, a maior parte das quais regista a duração dos silêncios.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G1_REACH_FOSTERAGE"] }],
+  "category": { "id": ["xeno.peerdb.org", "PRACTICE_CATEGORY", "DISPUTE_RESOLUTION"] },
+  "periodicity": "whenever the water moves, every three to six years",
+  "participants": {
+    "value": { "from": { "amount": 8, "precision": 1 }, "to": { "amount": 60, "precision": 1 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "firstDocumented": { "time": "2247-01-01T00:00:00Z", "precision": "y" },
+  "relatedPractice": [{ "id": ["xeno.peerdb.org", "PRACTICE", "G1_REACH_HANDING"] }]
+}

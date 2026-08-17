@@ -38,7 +38,7 @@ require (
 	gitlab.com/tozd/identifier v0.8.2
 	gitlab.com/tozd/waf v0.24.1-0.20260706220440-2f388181964d
 	golang.org/x/oauth2 v0.28.0
-	golang.org/x/text v0.40.0
+	golang.org/x/text v0.41.0
 	riverqueue.com/riverui v0.15.0
 )
 
@@ -116,9 +116,9 @@ require (
 	github.com/spf13/cast v1.10.0 // indirect
 	github.com/xanzy/ssh-agent v0.3.3 // indirect
 	gitlab.com/tozd/go/errors v0.11.1
-	golang.org/x/crypto v0.53.0 // indirect
-	golang.org/x/net v0.56.0 // indirect
+	golang.org/x/crypto v0.55.0 // indirect
+	golang.org/x/net v0.58.0 // indirect
 	golang.org/x/sync v0.22.0
-	golang.org/x/sys v0.46.0 // indirect
+	golang.org/x/sys v0.47.0 // indirect
 	gopkg.in/warnings.v0 v0.1.2 // indirect
 )

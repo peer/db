@@ -1,0 +1,18 @@
+{
+  "id": ["xeno.peerdb.org", "INDIVIDUAL", "G2_ISHENESH"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "INDIVIDUAL"] }],
+  "name": [{ "value": "Ishenesh" }],
+  "lineageName": [{ "value": "House of the Fourth Anchorage" }],
+  "description": [
+    {
+      "value": "<p>Keeps the house&#39;s dyed cord and ties most of what it says to the weir builders, which over eighty years amounts to the whole of the relationship between two species with no sense in common. They can date a cord by the dye and have corrected the survey&#39;s chronology twice. They have not been asked to be photographed, the house holding that an image of a member is an image of the house and that the house has not been introduced.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "species": { "id": ["xeno.peerdb.org", "SPECIES", "G2_USSENESH"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G2_NET_HOUSES"] }],
+  "role": [{ "value": "cord knotter", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "formOfAddress": "by house",
+  "born": { "time": "2231-01-01T00:00:00Z", "precision": "y" },
+  "birthplace": { "id": ["xeno.peerdb.org", "SITE", "G2_HIGH_WEIR"] }
+}

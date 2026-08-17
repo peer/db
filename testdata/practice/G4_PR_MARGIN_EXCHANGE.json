@@ -1,0 +1,32 @@
+{
+  "id": ["xeno.peerdb.org", "PRACTICE", "G4_PR_MARGIN_EXCHANGE"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PRACTICE"] }],
+  "name": [{ "value": "The Nightward Margin Exchange", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "sesshavath thissova", "gloss": "the fire side and the cold side, meeting" }],
+  "description": [
+    {
+      "value": "<p>Glass blanks, dried herd meat and cordage go nightward; chemosynthetic starter and collected frost-fall come back. The exchange is held at a marked stone on the nightward edge of the wind shadow and stops the moment the air falls below about four degrees, since a cooling trap keeper cannot release a compound and a cooling hearth walker cannot smell one. Half of every exchange is therefore spoken and half is scent, and the archive tapes have been catalogued as monologues since 2263. Nothing is ever settled: each side takes what it needs and states what it has taken, and the difference is carried forward to the next meeting and has never in the record been brought to zero. Both sides describe an exact settlement as a way of ending the relation, and neither has been able to say what would follow, having never tried it.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Steklene polizdelke menjajo za kemosintetske kulture; pol izmenjave je govor, pol vonj, razlika pa se nikoli ne poravna.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Esboços de vidro, carne seca de manada e cordame seguem para o lado da noite; cultura de arranque quimiossintética e geada recolhida vêm no sentido inverso. A troca faz-se junto a uma pedra marcada, na orla noturna da sombra de vento, e para no instante em que o ar desce abaixo dos quatro graus, pois um guardião de armadilhas que arrefece não consegue libertar um composto e um caminhante de lareira que arrefece não consegue cheirá-lo. Metade de cada troca é, portanto, falada e metade é odor, e as fitas do arquivo estão catalogadas como monólogos desde 2263. Nunca nada fica saldado: cada lado leva o que precisa e declara o que levou, e a diferença transita para o encontro seguinte, sem que alguma vez, no registo, tenha sido reduzida a zero. Ambos os lados descrevem um acerto exato como uma forma de terminar a relação, e nenhum soube dizer o que se seguiria, por nunca o terem experimentado.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G4_CU_HEARTH_CIRCUIT"] }, { "id": ["xeno.peerdb.org", "CULTURE", "G4_CU_COLD_STORE"] }],
+  "category": { "id": ["xeno.peerdb.org", "PRACTICE_CATEGORY", "EXCHANGE_CYCLE"] },
+  "periodicity": "whenever the cultures are producing and the air stands above four degrees",
+  "participants": {
+    "value": { "from": { "amount": 6, "precision": 1 }, "to": { "amount": 30, "precision": 1 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "firstDocumented": { "time": "2263-01-01T00:00:00Z", "precision": "y" },
+  "relatedPractice": [{ "id": ["xeno.peerdb.org", "PRACTICE", "G4_PR_NOT_LIVING_IN"] }],
+  "image": [
+    { "value": "/f/JpENBf68k6QubwsTxnaSZ7", "name": "G4_PR_MARGIN_EXCHANGE.jpg", "caption": "In progress", "source": "Consortium survey archive" }
+  ]
+}

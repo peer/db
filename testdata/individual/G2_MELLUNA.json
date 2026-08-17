@@ -1,0 +1,22 @@
+{
+  "id": ["xeno.peerdb.org", "INDIVIDUAL", "G2_MELLUNA"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "INDIVIDUAL"] }],
+  "name": [{ "value": "Melluna" }],
+  "lineageName": [{ "value": "The Long Gap" }],
+  "description": [
+    {
+      "value": "<p>Agreed the siting of Station One in 2246 at a distance of eleven kilometres downwind, a figure they proposed and the Consortium accepted without understanding what it was measured from. It was the distance at which the station&#39;s waste heat stops registering on a terrace, and it has held. They were never photographed, the station having owned one camera in 2246 and not been willing to point it at anybody.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "species": { "id": ["xeno.peerdb.org", "SPECIES", "G2_ANUWELME"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G2_EVENING_ROWS"] }],
+  "role": [
+    { "value": "terrace holder", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "first negotiator", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }
+  ],
+  "formOfAddress": "by the holding name",
+  "born": { "time": "2210-01-01T00:00:00Z", "precision": "y" },
+  "died": { "time": "2276-01-01T00:00:00Z", "precision": "y" },
+  "birthplace": { "id": ["xeno.peerdb.org", "SITE", "G2_LONG_EVENING_ROWS"] }
+}

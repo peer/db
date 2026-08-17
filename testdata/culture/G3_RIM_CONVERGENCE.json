@@ -1,0 +1,33 @@
+{
+  "id": ["xeno.peerdb.org", "CULTURE", "G3_RIM_CONVERGENCE"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "CULTURE"] }],
+  "name": [{ "value": "The Rim Convergences", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [
+    {
+      "value": "[when the floor is struck together]",
+      "gloss": "a gloss of a drummed figure; the rhythm does not survive being written down",
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G3_FLOOR_ANSWER"] }]
+    }
+  ],
+  "catalogueCode": "CU-2272-11",
+  "description": [
+    {
+      "value": "<p>Selves spread along forty or fifty kilometres of basin rim converge on a ring of forty ringing slabs at intervals nobody has yet worked out, strike together for something under a day, and disperse. Between convergences a self is held together only by continuous drumming through warm rock, and if the drumming stops for more than about six hours the self has ended and its bodies are taken up by neighbours within a season. They live on organic material falling out of the haze and on rot staged in warm hollows, and they trade the rot, at intervals, for nothing the survey has identified. Four descents in forty-seven years have never seen more than a dozen bodies at once, which is arithmetic rather than shyness. What changed after contact is that the convergences now include a figure the survey is fairly confident refers to the survey, and rather less confident about the rest of.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "practisedBy": [{ "id": ["xeno.peerdb.org", "SPECIES", "G3_RIM_DRUMMERS"] }],
+  "presentAt": [{ "id": ["xeno.peerdb.org", "SITE", "G3_RIM_DRUM_GROUND"] }, { "id": ["xeno.peerdb.org", "SITE", "G3_BLACK_QUARRY"] }],
+  "kinshipSystem": { "id": ["xeno.peerdb.org", "KINSHIP_SYSTEM", "DEBT_KINSHIP"] },
+  "socialOrganisation": { "id": ["xeno.peerdb.org", "SOCIAL_ORGANISATION", "CONSENSUS_ASSEMBLY"] },
+  "subsistence": [
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "DRIFT_HARVESTING"] },
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "MANAGED_DECAY"] }
+  ],
+  "communication": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G3_FLOOR_ANSWER"] }],
+  "population": {
+    "value": { "from": { "amount": 1500, "precision": 100 }, "to": { "amount": 6000, "precision": 100 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "period": { "from": { "time": "2272-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true }
+}

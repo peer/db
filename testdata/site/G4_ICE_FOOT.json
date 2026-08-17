@@ -1,0 +1,22 @@
+{
+  "id": ["xeno.peerdb.org", "SITE", "G4_ICE_FOOT"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SITE"] }],
+  "name": [{ "value": "Ice Foot", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "localName": [{}],
+  "description": [
+    {
+      "value": "<p>A Consortium camp on a grounded ice tongue at the calving front, occupied continuously since 2266 by a crew of six to fourteen. It monitors the front, the return flow and the vent chain below it. The camp has been moved twice, on both occasions because the ice it was standing on left.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "REGION", "G4_LEE_ICE"] },
+  "siteType": { "id": ["xeno.peerdb.org", "SITE_TYPE", "FIELD_CAMP"] },
+  "gridReference": "LI-062.9/-71.4",
+  "population": {
+    "value": { "from": { "amount": 6, "precision": 10 }, "to": { "amount": 14, "precision": 10 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "founded": { "time": "2266-01-01T00:00:00Z", "precision": "y" },
+  "occupation": { "from": { "time": "2266-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true },
+  "image": [{ "value": "/f/Bukp7JV3dEbYs95QM7SnEE", "name": "G4_ICE_FOOT.jpg", "caption": "General view", "source": "Consortium survey archive" }]
+}

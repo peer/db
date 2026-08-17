@@ -1,0 +1,24 @@
+{
+  "id": ["xeno.peerdb.org", "SITE_TYPE", "EXTRACTION_SITE"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SITE_TYPE"] }],
+  "name": [
+    { "value": "Extraction site", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "Odkopno najdišče", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }] },
+    { "value": "Sítio de extração", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>Quarry, mine, evaporation pan or harvesting ground worked for raw material, with associated working floors. Excludes workshops away from the source, which are craft sites.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Kamnolom, rudnik ali odkop surovine z bližnjimi delovnimi površinami.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Pedreira, mina, salina de evaporação ou terreno de colheita explorado para matéria-prima, com as superfícies de trabalho associadas. Exclui oficinas afastadas da fonte, que são sítios de ofício.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "code": ["extraction"]
+}

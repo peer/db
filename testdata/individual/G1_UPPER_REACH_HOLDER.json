@@ -1,0 +1,21 @@
+{
+  "id": ["xeno.peerdb.org", "INDIVIDUAL", "G1_UPPER_REACH_HOLDER"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "INDIVIDUAL"] }],
+  "name": [{ "value": "[holds the upper reach]", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "lineageName": [{ "value": "[fostered on the fourth reach]", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "description": [
+    {
+      "value": "<p>Holds the reach above the terraces and has reared nineteen children not born to her, which is unremarkable there and is the reason she is in the register at all: the 2306 team reconstructed forty years of fosterage chain from her account in nine days. She signs slowly for visitors and has been told by another reach that this is condescending. Photography has never been raised with her, there being no way to put the question in a medium she can feel.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "species": { "id": ["xeno.peerdb.org", "SPECIES", "G1_GRID44_HOLDERS"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G1_REACH_FOSTERAGE"] }],
+  "role": [
+    { "value": "reach holder", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "fosterage informant", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }
+  ],
+  "formOfAddress": "the sign for her reach, made once and flat",
+  "born": { "time": "2258-01-01T00:00:00Z", "precision": "y" },
+  "birthplace": { "id": ["xeno.peerdb.org", "SITE", "G1_DUSK_TERRACES"] }
+}

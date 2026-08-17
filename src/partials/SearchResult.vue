@@ -43,7 +43,7 @@ const withDocument = useTemplateRef<ComponentExposed<typeof WithDocumentD>>("wit
 
 <template>
   <div
-    :id="`result-${result.id}`"
+    :id="duplicate ? undefined : `result-${result.id}`"
     class="pd-searchresult flex flex-col gap-y-2"
     :class="flat ? 'pd-searchresult-flat' : 'rounded-sm border border-gray-200 bg-white p-4 shadow-sm'"
     :data-url="withDocument?.url"

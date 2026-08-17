@@ -1,0 +1,22 @@
+{
+  "id": ["xeno.peerdb.org", "REGION", "G4_WEATHER_COAST"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "REGION"] }],
+  "name": [{ "value": "Weather Coast", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Houwea" }],
+  "description": [
+    {
+      "value": "<p>The northern shore, taken by the storm belt for a hundred and sixty days of the year and merely wet for the rest. Beaches of black sand alternate with cliff, and the whole coast is worked at low water for shellfish. Nothing permanent is built within two kilometres of the tideline, a rule that predates the survey by a long way.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "PLANET", "G4_OVERFALL"] },
+  "biome": [{ "id": ["xeno.peerdb.org", "BIOME", "STORM_BELT"] }, { "id": ["xeno.peerdb.org", "BIOME", "SWEEP_FLAT"] }],
+  "area": { "value": { "amount": 240000, "precision": 100 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "SQUARE_KILOMETRE"] }] },
+  "elevationRange": {
+    "value": { "from": { "amount": -12, "precision": 10 }, "to": { "amount": 620, "precision": 10 } },
+    "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }]
+  },
+  "image": [
+    { "value": "/f/5uRorhyt78VaEgQJYnUWGE", "name": "G4_WEATHER_COAST.jpg", "caption": "Regional view", "source": "Consortium survey archive" }
+  ]
+}

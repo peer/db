@@ -1,0 +1,39 @@
+{
+  "id": ["xeno.peerdb.org", "OBSERVATION", "OBSA_CLOSING_ACCOUNT_LEFTOVER"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "OBSERVATION"] }],
+  "title": [
+    { "value": "Forty-one accounts read across the eastern cut at season end", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>An end-of-season settlement, with the tallies broken into the brine. Two workers left small amounts outstanding on purpose and said why when asked.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "content": [
+    {
+      "value": "<p>End of the cutting season on the eastern cut. Accounts were read across the open channel, clerk on one side and worker on the other, the obligations in the order incurred and each line repeated back.</p><p>Forty-one accounts in the afternoon. Thirty-nine were settled in draw rights and the salt tallies broken in half and dropped into the brine. Two were left with small amounts outstanding, at the workers&#39; request and with the clerk&#39;s agreement, and were entered nowhere.</p><p>We asked both. One said that a settled account is not a record of anything, which we had in the file already. The other, who is of a dune band and works the cut only in season, said that she did not want to stop being kin to the foreman, who is her brother&#39;s fosterer and would otherwise be nobody to her by the spring.</p><p>The breaking of the tallies is quick and unceremonious and there is a great deal of talk over it. We had expected the reverse and had set up for the reverse, so most of what we recorded is people discussing the walk home.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "expedition": { "id": ["xeno.peerdb.org", "EXPEDITION", "EXP_LEDGER_ALLOCATION"] },
+  "observedBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_FERREIRA"] }, { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_NOWAK"] }],
+  "observedAt": { "id": ["xeno.peerdb.org", "SITE", "G1_EVAPORITE_WORKINGS"] },
+  "observedOn": { "time": "2282-02-13T00:00:00Z", "precision": "d" },
+  "about": [
+    { "id": ["xeno.peerdb.org", "PRACTICE", "G1_CLOSING_ACCOUNT"] },
+    { "id": ["xeno.peerdb.org", "CULTURE", "G1_CUT_WATER_COMPANIES"] },
+    { "id": ["xeno.peerdb.org", "SPECIES", "G1_AULEIRA"] }
+  ],
+  "method": [
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "PARTICIPANT_OBSERVATION"] },
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "OPEN_INTERVIEW"] }
+  ],
+  "fieldConditions": "Late afternoon, still hot, the cut in shadow on the workers' side and not on the clerk's. About sixty people along the channel, including families waiting to walk back.",
+  "notes": [
+    {
+      "value": "<p>Catalogued 2299. This is the last full settlement in the file. The crust began to fail in 2295 with about four hundred accounts open and none of them have been closed since, which the surviving foremen raise unprompted as the only good thing to come out of it.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

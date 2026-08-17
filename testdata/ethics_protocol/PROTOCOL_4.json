@@ -1,0 +1,24 @@
+{
+  "id": ["xeno.peerdb.org", "ETHICS_PROTOCOL", "PROTOCOL_4"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "ETHICS_PROTOCOL"] }],
+  "name": [
+    { "value": "Protocol 4 (restricted knowledge)", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "Protokol 4 (zaprto znanje)", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }] },
+    { "value": "Protocolo 4 (conhecimento restrito)", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>Covers material the community holds as closed, whether by rank, initiation or season, and keeps it under community-set embargo. Forbids deposit in any open index, including the catalogue&#39;s own search layer.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Velja za gradivo, ki ga skupnost šteje za zaprto, in prepoveduje vpis v odprte iskalnike.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Abrange material que a comunidade tem por fechado, seja por posição, iniciação ou época, e mantém-no sob embargo definido pela comunidade. Proíbe o depósito em qualquer índice aberto, incluindo a camada de pesquisa do próprio catálogo.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "code": ["eth-4"]
+}

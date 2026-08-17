@@ -1,0 +1,36 @@
+{
+  "id": ["xeno.peerdb.org", "OBSERVATION", "OBSA_BED_LEFT_TO_FAIL"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "OBSERVATION"] }],
+  "title": [{ "value": "A mat bed allowed to fail on the eastern shallows", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "description": [
+    {
+      "value": "<p>Two hundred metres of bed died over eleven weeks because the half entitled to tend it was short of tenders. The other half worked forty metres away throughout.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "content": [
+    {
+      "value": "<p>Watched from the raft over eleven weeks. Two hundred metres of bed on the eastern shallows, grown by one half and therefore tendable only by the other, and the other short of tenders since the spring.</p><p>The bed was not crossed. It thinned from the head down, went patchy at about the seventh week and was gone by the eleventh. Tenders of the growing half worked a bed forty metres away for the whole period and did not go near it.</p><p>This is the second failure we have watched from this position. It is not carelessness and there is no shortage anybody is concealing. The rule cannot be waived by agreement, because the language marks the second person for moiety and there is no way to propose the thing without everybody present hearing what is being proposed.</p><p>Asked what would follow a breach, one tender took some hours to reply and then said that the food would be the wrong way round. We waited for more and there was no more. We have recorded it as the complete answer, because that is what it was.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "expedition": { "id": ["xeno.peerdb.org", "EXPEDITION", "EXP_NINE_TERRACE_TIDE"] },
+  "observedBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_DE_VRIES"] }, { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_FERREIRA"] }],
+  "observedAt": { "id": ["xeno.peerdb.org", "SITE", "G2_STATION_THREE"] },
+  "observedOn": { "time": "2302-09-11T00:00:00Z", "precision": "d" },
+  "about": [
+    { "id": ["xeno.peerdb.org", "PRACTICE", "G2_BED_CROSSING"] },
+    { "id": ["xeno.peerdb.org", "CULTURE", "G2_BED_HALVES"] },
+    { "id": ["xeno.peerdb.org", "SPECIES", "G2_SHESUMME"] }
+  ],
+  "method": [
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "REMOTE_SENSING"] },
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "PARTICIPANT_OBSERVATION"] }
+  ],
+  "fieldConditions": "Substellar sea, warm, flat water, the raft holding position all eleven weeks. Three of us aboard and tenders of both halves in the water on most days.",
+  "image": [{ "value": "/f/LteexARsXLbdxka51UknAC", "name": "OBSA_BED_LEFT_TO_FAIL.jpg", "caption": "Taken at the time", "source": "Field record" }],
+  "permission": [
+    { "action": { "id": ["core.peerdb.org", "PERMISSION_ACTIONS", "ACTION_UPDATE"] }, "user": ["mock-user-researcher@localhost"], "scope": ["self"] },
+    { "action": { "id": ["core.peerdb.org", "PERMISSION_ACTIONS", "ACTION_DELETE"] }, "user": ["mock-user-curator@localhost"], "scope": ["self"] }
+  ]
+}

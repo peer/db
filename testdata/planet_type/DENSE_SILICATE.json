@@ -1,0 +1,24 @@
+{
+  "id": ["xeno.peerdb.org", "PLANET_TYPE", "DENSE_SILICATE"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PLANET_TYPE"] }],
+  "name": [
+    { "value": "Dense silicate world", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "Gosti silikatni svet", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }] },
+    { "value": "Mundo silicatado denso", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>A rocky world with an oversized iron core and a bulk density above roughly 6 g/cm3, usually formed close in to its star. Classed on bulk composition alone, never on surface conditions, which are recorded separately.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Kamnit svet z velikim železovim jedrom in gostoto nad približno 6 g/cm3, razvrščen le po sestavi in ne po stanju površja.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Mundo rochoso com um núcleo de ferro sobredimensionado e uma densidade global acima de cerca de 6 g/cm3, normalmente formado perto da sua estrela. Classificado apenas pela composição global, nunca pelas condições de superfície, que se registam à parte.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "code": ["dense-sil"]
+}

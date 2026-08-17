@@ -1,0 +1,32 @@
+{
+  "id": ["xeno.peerdb.org", "ORGANISM", "G1_BASIN_LACE"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "ORGANISM"] }],
+  "name": [{ "value": "Basin lace", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "iarelu" }],
+  "taxonCode": "TX-2208-a",
+  "description": [
+    {
+      "value": "<p>A fine crystalline-looking growth that lives in the brine film of the evaporite pans and turns from colourless to deep red over the four days after a flood. Harvested at the red stage and ground, it gives the only fast dye on the planet, which is used on cloth, on the dead and on the boundary stones of a water claim. Left past the fifth day it whitens again and is worthless, which sets the working week of an entire industry.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "category": { "id": ["xeno.peerdb.org", "ORGANISM_CATEGORY", "PHOTO_SESSILE"] },
+  "foundOn": [{ "id": ["xeno.peerdb.org", "PLANET", "G1_LEDGER_IV"] }],
+  "biome": [{ "id": ["xeno.peerdb.org", "BIOME", "EVAPORITE_PAN"] }],
+  "typicalSize": { "value": { "amount": 0.05, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+  "typicalMass": { "value": { "amount": 0.02, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "kg"] }] },
+  "image": [
+    {
+      "value": "/f/3Yn9JLJNWytYsXfUyfCPvZ",
+      "name": "G1_BASIN_LACE.jpg",
+      "caption": "Field plate",
+      "source": "Drawn in the field; Consortium collection"
+    }
+  ],
+  "notes": [
+    {
+      "value": "<p>The dye is fugitive in ultraviolet and holds for about a season outdoors. Nobody on the planet regards this as a defect, and one field report has been quietly withdrawn for saying so.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

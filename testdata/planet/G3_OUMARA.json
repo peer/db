@@ -1,0 +1,51 @@
+{
+  "id": ["xeno.peerdb.org", "PLANET", "G3_OUMARA"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PLANET"] }],
+  "name": [{ "value": "Sweepwater", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Oumara", "gloss": "the water that comes back" }],
+  "catalogueCode": "HB-1/007-b",
+  "description": [
+    {
+      "value": "<p>A locked ocean world with a warm pool under the primary, an ice cap on the far side, and between them a tidal range that the secondary star drags up to nearly thirty metres. Twice a cycle the flats between the archipelagos drain to the horizon and then fill again in under four hours. All the settled ground is coastal and all of it is built to be flooded. First landing 2263; no visit has yet managed a complete tidal year in one stay.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Oceanski svet z ogromnim plimskim razponom; vsa naselja so obalna in zgrajena za poplave.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "STAR_SYSTEM", "G3_BELLOWS"] },
+  "planetType": { "id": ["xeno.peerdb.org", "PLANET_TYPE", "TIDAL_OCEAN"] },
+  "biome": [
+    { "id": ["xeno.peerdb.org", "BIOME", "SWEEP_FLAT"] },
+    { "id": ["xeno.peerdb.org", "BIOME", "DUSK_BELT"] },
+    { "id": ["xeno.peerdb.org", "BIOME", "VENT_FIELD"] }
+  ],
+  "radius": { "value": { "amount": 1.12, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_RADIUS"] }] },
+  "mass": { "value": { "amount": 1.31, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_MASS"] }] },
+  "surfaceGravity": { "value": { "amount": 1.04, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "STANDARD_GRAVITY"] }] },
+  "dayLength": { "value": { "amount": 1471.2, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "HOUR"] }] },
+  "orbitalPeriod": { "value": { "amount": 61.3, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_DAY"] }] },
+  "meanTemperature": { "value": { "amount": 6.2, "precision": 0.1 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "°C"] }] },
+  "hydrosphere": { "value": { "amount": 88.0, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "PERCENT"] }] },
+  "atmosphere": [
+    {
+      "value": "<p>Nitrogen and oxygen at 1.3 bar, wet through, with a standing salt haze. Breathable without equipment, and the first air in this galaxy anyone was permitted to breathe unfiltered, which took the ethics apparatus four years to allow.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "biosphere": [
+    {
+      "value": "<p>Life is present: 3 catalogued species (Great Waders of the Sweep Flats, Sweepwater Weir Keepers, Warm Pool Ferment Households) and 2 recorded non-sapient organisms. The survey is not claimed to be complete.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "contactStatus": { "id": ["xeno.peerdb.org", "CONTACT_STATUS", "LIMITED"] },
+  "firstSurveyed": { "time": "2262-01-01T00:00:00Z", "precision": "y" },
+  "surveyPeriod": { "from": { "time": "2263-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true },
+  "populationEstimate": {
+    "value": { "from": { "amount": 400000, "precision": 100 }, "to": { "amount": 900000, "precision": 100 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "image": [{ "value": "/f/SugRf91bLGfDr4xu49stZg", "name": "G3_OUMARA.jpg", "caption": "Surface view", "source": "Consortium survey archive" }]
+}

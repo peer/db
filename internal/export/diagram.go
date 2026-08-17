@@ -1,11 +1,11 @@
 package export
 
 import (
+	"cmp"
 	"fmt"
 	"io"
 	"reflect"
 	"slices"
-	"sort"
 	"strconv"
 	"strings"
 
@@ -313,8 +313,13 @@ func collectDiagramEntities(
 		entities = append(entities, e)
 		idToName[e.id] = e.name
 	}
-	sort.Slice(entities, func(i, j int) bool {
-		return entities[i].name < entities[j].name
+	// Two entities can share a name, so the identifier decides between them and the diagram comes out the
+	// same way twice.
+	slices.SortFunc(entities, func(a, b diagramEntity) int {
+		if c := cmp.Compare(a.name, b.name); c != 0 {
+			return c
+		}
+		return internalCore.CompareIdentifiers(a.id, b.id)
 	})
 
 	return entities, idToName, nil
@@ -778,7 +783,14 @@ func diagramValuesTag(field reflect.StructField) (string, bool) {
 	if internalCore.UnwrapSliceAndPointer(field.Type) == internalCore.RefType {
 		return field.Tag.Get("values"), true
 	}
-	return diagramStructValuesTag(field.Type)
+	tag, isRef := diagramStructValuesTag(field.Type)
+	// A struct which wraps a reference (core.RefWithOrder) can carry the tag on the field instead of on the
+	// reference inside it, which is where transform reads it from as well (see parseValuesTag): what the tag
+	// says is which documents the field may point at, and that is the field's own business.
+	if isRef && tag == "" {
+		return field.Tag.Get("values"), true
+	}
+	return tag, isRef
 }
 
 // diagramStructValuesTag walks into a struct type and returns the "values" tag

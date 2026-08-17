@@ -1,0 +1,38 @@
+{
+  "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G3_FLOOR_ANSWER"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM"] }],
+  "name": [{ "value": "Floor Answer", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "[the floor answers]", "gloss": "the same drummed figure the basin rim speakers use for themselves" }],
+  "description": [
+    {
+      "value": "<p>Continuous drumming through warm graphite, in which a self keeps its own bodies in contact across forty or fifty kilometres of basin rim and, incidentally, talks to its neighbours. The channel is slow and enormously redundant, carries identity and standing obligation well, and carries nothing whatever about anything that is not touching the rock. Silence is not a pause in the system but the end of a self, which makes ordinary conversational turn-taking impossible and gives the register its only communication entry with a mortality rate. The first survey recorded the air for eleven days before anyone put a geophone on the ground, and the resulting report is still cited for its account of the wind.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "modality": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_MODALITY", "SUBSTRATE_PERCUSSION"] }],
+  "users": {
+    "value": { "from": { "amount": 1500, "precision": 100 }, "to": { "amount": 6000, "precision": 100 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "sampleGloss": [
+    {
+      "value": "<p><i>a running figure of three, a doubled beat, the running figure again</i>. Element by element: here, still here, here. Freely: I am carrying on, and this is what carrying on sounds like.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "recording": [
+    {
+      "value": "/f/AY5P1QQxK3zf5xvwx848h8",
+      "name": "system-G3_FLOOR_ANSWER.mp3",
+      "caption": "Elicitation sample",
+      "duration": { "value": { "amount": 3, "precision": 1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "MINUTE"] }] },
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G3_FLOOR_ANSWER"] }],
+      "note": [
+        {
+          "value": "<p>Recorded during elicitation and kept as the reference sample for this system.</p>",
+          "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+        }
+      ]
+    }
+  ]
+}

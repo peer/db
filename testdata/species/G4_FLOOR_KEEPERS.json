@@ -1,0 +1,64 @@
+{
+  "id": ["xeno.peerdb.org", "SPECIES", "G4_FLOOR_KEEPERS"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SPECIES"] }],
+  "name": [{ "value": "Sounding Floor Keepers", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [
+    {
+      "value": "[those who keep the floors]",
+      "gloss": "a standing translation of a four-beat figure struck on rock, not a transcription",
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G4_COM_STRUCK_FLOOR"] }]
+    }
+  ],
+  "exonym": [{ "value": "[the ones on top]", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "taxonCode": "TX-4304-a",
+  "description": [
+    {
+      "value": "<p>The surface people of Sounding, who have no vocal apparatus and conduct all public life by striking prepared stone floors whose ring carries for tens of kilometres through the bedrock. A floor is a polished, tuned and jealously maintained instrument, and the settlement pattern follows the geology that carries sound rather than the geology that holds water. Whole cohorts move together through ranked grades, each grade holding defined duties for its span, and a person struck into a grade takes over the previous holder&#39;s name, and with it the previous holder&#39;s debts, in-laws and unfinished quarrels. A visitor notices that nobody speaks and that the ground does, and that conversation at a distance of thirty kilometres is normal, unhurried and audible through the soles of the feet. Survey protocol forbids ground vehicles within thirty kilometres of an occupied floor, a rule written after the 2251 season, when a tracked lander spent six days shouting nonsense across four settlements.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Nimajo glasu; sporazumevajo se z udarci po tlakovanih tleh, ki zvenijo desetine kilometrov daleč.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    }
+  ],
+  "homeworld": { "id": ["xeno.peerdb.org", "PLANET", "G4_SOUNDING"] },
+  "bodyPlan": [
+    {
+      "value": "<p>A broad low quadruped with a fifth median limb under the chest ending in a dense mineralised knob, which is the striking organ and is dressed and shaped throughout life. The integument is a fine grey pelt over armoured dermal plate, matted with dust that is groomed off before working a floor and not otherwise. There is no external ear: sound enters through the feet and through a plate of bone under the throat.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "typicalHeight": { "value": { "amount": 2.35, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+  "typicalMass": { "value": { "amount": 190.0, "precision": 0.1 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "kg"] }] },
+  "lifespan": {
+    "value": { "from": { "amount": 55, "precision": 1 }, "to": { "amount": 110, "precision": 1 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_YEAR"] }]
+  },
+  "sensoryModality": [
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "SUBSTRATE_VIBRATION"] },
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "GRAVICEPTION"] },
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "CONTACT_CHEMO"] }
+  ],
+  "subsistence": [
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "HERD_FOLLOWING"] },
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "MANAGED_DECAY"] }
+  ],
+  "individuality": { "id": ["xeno.peerdb.org", "INDIVIDUALITY_MODE", "BOUNDED"] },
+  "socialOrganisation": { "id": ["xeno.peerdb.org", "SOCIAL_ORGANISATION", "AGE_GRADE_POLITY"] },
+  "kinshipSystem": { "id": ["xeno.peerdb.org", "KINSHIP_SYSTEM", "NAME_INHERITANCE"] },
+  "communication": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G4_COM_STRUCK_FLOOR"] }],
+  "population": {
+    "value": { "from": { "amount": 150000, "precision": 1000 }, "to": { "amount": 260000, "precision": 1000 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "contactStatus": { "id": ["xeno.peerdb.org", "CONTACT_STATUS", "LIMITED"] },
+  "firstContact": { "time": "2249-01-01T00:00:00Z", "precision": "y" },
+  "image": [
+    {
+      "value": "/f/EK8wFsoN98Qn6hj6i36S3K",
+      "name": "G4_FLOOR_KEEPERS.jpg",
+      "caption": "Field plate",
+      "source": "Drawn in the field; Consortium collection"
+    }
+  ]
+}

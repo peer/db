@@ -1,0 +1,49 @@
+{
+  "id": ["xeno.peerdb.org", "INTERVIEW", "INTA_ASELUNE_FOUR_TABLES"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "INTERVIEW"] }],
+  "title": [{ "value": "Aselune on why there are four tide tables and not one", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "description": [
+    {
+      "value": "<p>The survey&#39;s first tide informant, interviewed on the outer wall at the lower ring, explaining her refusal to correct her table against the one made up the coast. She gives her reason, which is not about tides.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "interviewee": [{ "id": ["xeno.peerdb.org", "INDIVIDUAL", "G1_ASELUNE"] }],
+  "interviewer": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_REYES"] }],
+  "recordedAt": { "id": ["xeno.peerdb.org", "SITE", "G1_LOWER_MIDDEN"] },
+  "recordedOn": { "time": "2267-05-09T00:00:00Z", "precision": "d" },
+  "expedition": { "id": ["xeno.peerdb.org", "EXPEDITION", "EXP_THREADBARE_FOURTH"] },
+  "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G1_FLATS_SPEECH"] }],
+  "duration": { "value": { "amount": 74, "precision": 1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "MINUTE"] }] },
+  "content": [
+    {
+      "value": "<p><b>Q.</b> We now hold four tables for this coast. Which of them is the correct one?</p><p><b>A.</b> All four. That is a strange question. Mine is right here, at this wall. The one from up the coast is right there. Take mine there and it will be wrong by half an hour by the third turn, and you will have made a table that is right nowhere.</p><p><b>Q.</b> We had assumed a single table would be an improvement.</p><p><b>A.</b> It would be an improvement for you. You carry a table from place to place. I stand on one wall.</p><p><b>Q.</b> Would you agree the tables ought at least to be compared?</p><p><b>A.</b> Compare them. Do not average them. If you average them you will drown somebody at the ninth wall and it will not be a difficult inquiry.</p><p><b>Q.</b> Is there a reason you decline the up-coast table in particular?</p><p><b>A.</b> There is, and you should turn that off. No, leave it on and keep it away from the flats.</p><p><b>Q.</b> Go on.</p><p><b>A.</b> The man who made it stood the eleventh wall for two seasons on a turn that was not his, because the rota cord there was read wrong and nobody would say so. A table is a record of where you stood. His is a record of where he should not have been. It may still be right about the water. I am not going to correct mine against it.</p><p><b>Q.</b> Have you said this to anybody at that ring?</p><p><b>A.</b> No. And I have now said it to somebody who leaves in a year and does not come back for eleven, which is why I said it.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "recording": [
+    {
+      "value": "/f/WkNoqGgAc8zNfRkgSy4jtC",
+      "name": "interview-INTA_ASELUNE_FOUR_TABLES.mp3",
+      "caption": "Session recording",
+      "duration": { "value": { "amount": 74, "precision": 1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "MINUTE"] }] },
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G1_FLATS_SPEECH"] }]
+    }
+  ],
+  "ethics": { "id": ["xeno.peerdb.org", "ETHICS_PROTOCOL", "PROTOCOL_3"] },
+  "consentNote": [
+    {
+      "value": "<p>Aselune agreed to the whole of it being kept, on the understanding that nothing said about the eleventh wall goes back onto the flats in her lifetime. She has asked for a copy of the table as we hold it, which took four years to reach her.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "clearedReader": ["mock-user-researcher@localhost"],
+  "permission": [
+    { "action": { "id": ["core.peerdb.org", "PERMISSION_ACTIONS", "ACTION_READ"] }, "user": ["mock-user-researcher@localhost"], "scope": ["self"] },
+    {
+      "action": { "id": ["core.peerdb.org", "PERMISSION_ACTIONS", "ACTION_READ_HISTORIC"] },
+      "user": ["mock-user-researcher@localhost"],
+      "scope": ["self"]
+    }
+  ]
+}

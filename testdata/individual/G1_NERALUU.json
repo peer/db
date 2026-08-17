@@ -1,0 +1,16 @@
+{
+  "id": ["xeno.peerdb.org", "INDIVIDUAL", "G1_NERALUU"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "INDIVIDUAL"] }],
+  "name": [{ "value": "Neraluu" }],
+  "description": [
+    {
+      "value": "<p>The grazer whose call series, recorded over four days in 2271 and running to nineteen hours, is the entire evidentiary basis of the argument about whether the calls carry syntax. He was recorded once, by accident, while circling a boat that had anchored in the wrong channel, and he never came near a boat again. He died in 2303 at an age the register gives as a hundred and thirteen and the flats people give as considerably more.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "species": { "id": ["xeno.peerdb.org", "SPECIES", "G1_WANASELU"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G1_TOP_TIDE_MEET"] }],
+  "role": [{ "value": "circuit grazer", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "born": { "time": "2190-01-01T00:00:00Z", "precision": "y" },
+  "died": { "time": "2303-01-01T00:00:00Z", "precision": "y" }
+}

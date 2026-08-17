@@ -1,0 +1,27 @@
+{
+  "id": ["xeno.peerdb.org", "REGION", "G2_FORTY_YEAR_TRANSECT"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "REGION"] }],
+  "name": [{ "value": "Forty-Year Transect", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "description": [
+    {
+      "value": "<p>A single line of sampling stations across the sealed sea, occupied in 2258, revisited in 2298 and untouched in between. The mats along it laid down forty annual laminae and the two sets of cores match to the year. It is the sector&#39;s only long baseline, and everything else in the tail is dated against it.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "PLANET", "G2_SUMP"] },
+  "biome": [{ "id": ["xeno.peerdb.org", "BIOME", "BRINE_SEA"] }],
+  "area": { "value": { "amount": 88000, "precision": 100 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "SQUARE_KILOMETRE"] }] },
+  "elevationRange": {
+    "value": { "from": { "amount": -1200, "precision": 10 }, "to": { "amount": -640, "precision": 10 } },
+    "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }]
+  },
+  "image": [
+    { "value": "/f/1a4ci3tGU9dSBCusnxikcY", "name": "G2_FORTY_YEAR_TRANSECT.jpg", "caption": "Regional view", "source": "Consortium survey archive" }
+  ],
+  "notes": [
+    {
+      "value": "<p>The forty-year gap was not a design. It was the interval between the two occasions on which a ship could be got to the tail, and the fact that it produced the best-dated sequence in the galaxy is treated throughout the literature as a result rather than as an accident, which is what it was.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

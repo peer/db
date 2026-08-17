@@ -1,0 +1,38 @@
+{
+  "id": ["xeno.peerdb.org", "PUBLICATION", "PUB_TRANSECT_FORTY"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PUBLICATION"] }],
+  "title": [
+    {
+      "value": "Forty Years and Four Metres: Re-occupying the Sump Basin Transect, With a Correction to the Standing-Crop Conversion for Laminating Mats",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "doi": "10.5281/xeno.2309.0059",
+  "abstract": [
+    {
+      "value": "<p>The Sump basin transect was laid out in 2264, sampled twice, and left; we report its re-occupation and the recovery of four metres of laminated mat deposited in the interval. Lamination is not annual, as has been assumed since the transect was established, but tracks the interval between overturn events, which in this basin has ranged from eleven months to nine years. The standing-crop conversion of Halvorsen&#39;s estimation method therefore requires a correction factor for laminating forms, which we derive and tabulate; the method itself survives the correction intact. Comparative material from the Grey Rind vent collective is included to show that the correction is not local.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "author": [
+    { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_FERREIRA"] },
+    { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_TRAN"] },
+    { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_DE_VRIES"] },
+    { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_FARAHANI"] }
+  ],
+  "journal": "Xenoecology and Subsistence",
+  "publishedOn": { "time": "2309-01-01T00:00:00Z", "precision": "m" },
+  "about": [{ "id": ["xeno.peerdb.org", "ORGANISM", "G2_TRANSECT_MAT"] }, { "id": ["xeno.peerdb.org", "SPECIES", "G2_UPPER_SEA_MATS"] }],
+  "cites": [
+    { "id": ["xeno.peerdb.org", "PUBLICATION", "PUB_STANDING_CROP"] },
+    { "id": ["xeno.peerdb.org", "PUBLICATION", "PUB_WEIR_GRADES_QUIET"] },
+    { "id": ["xeno.peerdb.org", "PUBLICATION", "PUB_ARC_LODGE_WEIRS"] }
+  ],
+  "document": [{ "value": "/f/CirHsB9kYhVrDwY2FYwkqs", "name": "PUB_TRANSECT_FORTY.pdf", "caption": "Author's accepted manuscript" }],
+  "notes": [
+    {
+      "value": "<p>The 2264 transect pegs were all recovered, still legible, which the field party reported with more emotion than is usual in a coring log.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

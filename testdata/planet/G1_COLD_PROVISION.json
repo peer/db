@@ -1,0 +1,47 @@
+{
+  "id": ["xeno.peerdb.org", "PLANET", "G1_COLD_PROVISION"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PLANET"] }],
+  "name": [{ "value": "Cold Provision", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "catalogueCode": "CCX-2221-HOL4",
+  "description": [
+    {
+      "value": "<p>A dry outer terrestrial of closed basins and wind-worked regolith, holding a thin atmosphere and no free water at all. Life here is entirely inside the rock, in pore space a few metres down, and it grows so slowly that the standing experiment on its growth rate is now in its third generation of investigators. The surface itself is quiet, cold and extremely bright. There are no inhabitants and no evidence that there ever were.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Suh svet solnih kotanj, kjer življenje živi le v razpokah kamnin.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Um planeta telúrico exterior e seco, de bacias fechadas e regolito trabalhado pelo vento, com uma atmosfera ténue e nenhuma água livre. A vida existe aqui inteiramente dentro da rocha, no espaço poroso a poucos metros de profundidade, e cresce tão devagar que a experiência em curso sobre a sua taxa de crescimento vai já na terceira geração de investigadores. A superfície é silenciosa, fria e extremamente brilhante. Não há habitantes nem indício de que alguma vez os tenha havido.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "STAR_SYSTEM", "G1_HOLLIS_ANCHOR"] },
+  "planetType": { "id": ["xeno.peerdb.org", "PLANET_TYPE", "DESICCATED"] },
+  "biome": [{ "id": ["xeno.peerdb.org", "BIOME", "EVAPORITE_PAN"] }, { "id": ["xeno.peerdb.org", "BIOME", "ENDOLITH_ZONE"] }],
+  "radius": { "value": { "amount": 0.87, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_RADIUS"] }] },
+  "mass": { "value": { "amount": 0.66, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_MASS"] }] },
+  "surfaceGravity": { "value": { "amount": 0.87, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "STANDARD_GRAVITY"] }] },
+  "dayLength": { "value": { "amount": 27.4, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "HOUR"] }] },
+  "orbitalPeriod": { "value": { "amount": 214.9, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_DAY"] }] },
+  "meanTemperature": { "value": { "amount": -38.2, "precision": 0.1 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "°C"] }] },
+  "hydrosphere": { "value": { "amount": 0.4, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "PERCENT"] }] },
+  "atmosphere": [
+    {
+      "value": "<p>Carbon dioxide and nitrogen at about a tenth of a bar, dust-loaded after any wind. Not breathable, but a soft suit is enough, and the pans are firm underfoot except where the crust has been walked on before.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "biosphereUnknown": true,
+  "contactStatus": { "id": ["xeno.peerdb.org", "CONTACT_STATUS", "NO_CONTACT"] },
+  "firstSurveyed": { "time": "2221-01-01T00:00:00Z", "precision": "y" },
+  "surveyPeriod": { "from": { "time": "2221-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true },
+  "populationEstimate": {
+    "value": { "from": { "amount": 20, "precision": 100 }, "to": { "amount": 60, "precision": 100 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "image": [
+    { "value": "/f/VakhKdMpNCiY5pWRWxZF3q", "name": "G1_COLD_PROVISION.jpg", "caption": "Surface view", "source": "Consortium survey archive" }
+  ]
+}

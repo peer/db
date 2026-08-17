@@ -1,0 +1,22 @@
+{
+  "id": ["xeno.peerdb.org", "COLLECTIVE", "G2_ECLIPSE_ASSEMBLY"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "COLLECTIVE"] }],
+  "name": [{ "value": "The Assembly at Full Shadow", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "description": [
+    {
+      "value": "<p>For forty minutes in every twenty-one days some four hundred foragers join into one low sheet on the leeward gullies, and for those forty minutes there is a party that can be asked things. It is not an aggregation and not a council: memory crosses the boundary in both directions, and the separate phase describes itself in the plural even while apart. The discipline records it as one body because the joined phase repudiates undertakings given by the separate phase and has never once been contradicted by the separate phase afterwards.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "species": { "id": ["xeno.peerdb.org", "SPECIES", "G2_NUWALLEM"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G2_SHUTTER_MEETINGS"] }],
+  "role": [
+    { "value": "counterparty at eclipse", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "holder of grade duties", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }
+  ],
+  "memberCount": {
+    "value": { "from": { "amount": 20000, "precision": 10 }, "to": { "amount": 45000, "precision": 10 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "activePeriod": { "from": { "time": "2255-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true }
+}

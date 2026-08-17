@@ -271,6 +271,10 @@ type B struct {
 	// languageCodes maps a language document ID to its primary language subtag (e.g., "en").
 	// It is captured from the converter in Start and surfaced via LanguageCodes.
 	languageCodes map[identifier.Identifier]string
+
+	// namingProperties are the properties a display label is picked from, in the order they are
+	// considered. It is captured from the converter in Start and surfaced via NamingProperties.
+	namingProperties []identifier.Identifier
 }
 
 // Init initializes the base.
@@ -420,6 +424,9 @@ func (b *B) Start(ctx context.Context, documents []StartDocument) (func(), error
 			// The highest (last) level is the unfiltered superset, so its converter has the complete set.
 			// We capture them so the site can surface them via LanguageCodes.
 			b.languageCodes = converter.LanguageCodes
+			// The same for the properties a display label is picked from, which the converter ordered
+			// while being built, so that the frontend picks a label the way the indexing did.
+			b.namingProperties = converter.NamingProperties
 		}
 		targets = append(targets, internalSearch.Target{Level: level, Index: index, Converter: converter})
 	}

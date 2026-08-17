@@ -1,0 +1,26 @@
+{
+  "id": ["xeno.peerdb.org", "COLLECTIVE", "G3_JOINED_SHEET"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "COLLECTIVE"] }],
+  "name": [{ "value": "The Joined Sheet at the Fourth Ground", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "description": [
+    {
+      "value": "<p>At flood the scattered bodies on this stretch of flat gather in the shallows and join edge to edge into a single sheet, which decides everything that needs deciding and remembers what the separate bodies did while apart. It is not an assembly of individuals: a body alone has no name, will not answer, and is treated by the sheet the way a hand is treated by a person. The discipline records it as one body because, asked directly at the fourth meeting whether it was one thing or many, it said one.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "species": { "id": ["xeno.peerdb.org", "SPECIES", "G3_ORRENKO"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G3_TIDE_LINES"] }],
+  "role": [{ "value": "flood-phase authority over the stake lines", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "memberCount": {
+    "value": { "from": { "amount": 4000, "precision": 10 }, "to": { "amount": 40000, "precision": 10 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "activePeriod": { "from": { "time": "2296-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true },
+  "seat": { "id": ["xeno.peerdb.org", "SITE", "G3_FOURTH_MEETING"] },
+  "notes": [
+    {
+      "value": "<p>The active dates record when the register first met it. It exists for about four hours at a time, which the field for active years has no way of saying.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

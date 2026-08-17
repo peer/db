@@ -1,0 +1,16 @@
+{
+  "id": ["xeno.peerdb.org", "INDIVIDUAL", "G1_WANELAA"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "INDIVIDUAL"] }],
+  "name": [{ "value": "Wanelaa" }],
+  "description": [
+    {
+      "value": "<p>Attended nine top-tide meetings between 2264 and 2294 and none since, the circuit having taken her elsewhere and then, by her own account, not brought her back. She refused acoustic recording at every meeting after the first, having heard the first played back to her, and the survey&#39;s material on her is thirty years of notes written by hand in cold water at chest height. Everyone agrees the notes are inadequate and nobody has improved on them.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "species": { "id": ["xeno.peerdb.org", "SPECIES", "G1_WANASELU"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G1_TOP_TIDE_MEET"] }],
+  "role": [{ "value": "circuit elder", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "formOfAddress": "the opening of her own call, repeated back",
+  "born": { "time": "2190-01-01T00:00:00Z", "precision": "y" }
+}

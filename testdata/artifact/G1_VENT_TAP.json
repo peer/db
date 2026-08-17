@@ -1,0 +1,27 @@
+{
+  "id": ["xeno.peerdb.org", "ARTIFACT", "G1_VENT_TAP"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "ARTIFACT"] }],
+  "name": [{ "value": "Vent tap and reducer", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Nnaumtel", "gloss": "the tap one answers" }],
+  "accessionCode": "CCX-A-13239",
+  "description": [
+    {
+      "value": "<p>A cast and hammered tap with a stepped reducer, cut to fit the standard branch of settlement vent plumbing, with a flat tapping face on the body worn into a shallow dish. The plumbing on that world is the water supply and the telephone exchange at once, so the tap is a fitting and a speaking surface in the same object and is described locally in one word. It was collected in 2294 during the strain assay season, from a household that has not been contacted since. No drawing has been made and none will be made while the file is closed; the document filed with it is the consent form, which is why the two are kept together.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "category": { "id": ["xeno.peerdb.org", "ARTIFACT_CATEGORY", "APPARATUS"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G1_VENT_STEWARDSHIP"] }],
+  "material": [
+    { "value": "cast metal", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "worked ice seal", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "gut washer", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }
+  ],
+  "dimension": [
+    { "value": { "amount": 0.34, "precision": 0.001 }, "axis": "length", "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+    { "value": { "amount": 0.09, "precision": 0.001 }, "axis": "diameter", "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] }
+  ],
+  "dateMade": { "time": "2294-01-01T00:00:00Z", "precision": "y" },
+  "collectedBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_VIRTANEN"] }],
+  "document": [{ "value": "/f/QtPvSSmFs3hmrPF5eAhnFW", "name": "G1_VENT_TAP.txt", "caption": "Accession record" }]
+}

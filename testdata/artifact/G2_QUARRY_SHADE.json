@@ -1,0 +1,25 @@
+{
+  "id": ["xeno.peerdb.org", "ARTIFACT", "G2_QUARRY_SHADE"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "ARTIFACT"] }],
+  "name": [{ "value": "Quarry Shade Sheet", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "accessionCode": "CCX-A-14858",
+  "description": [
+    {
+      "value": "<p>A coarse sheet of plaited plate strip, three metres by two and a bit, slung on a leaning frame to give a working party something to stand under while the ground is at ninety-six degrees. Sheets are made thick and are still burnt through within a season, and this one is burnt through in eleven places and patched in seven. It came off the frame in 2284 and was replaced the same shift. The underside is stained pale where salt has crept up the plait.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "category": { "id": ["xeno.peerdb.org", "ARTIFACT_CATEGORY", "TEXTILE"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G2_GLASS_RELAY"] }],
+  "foundAt": { "id": ["xeno.peerdb.org", "SITE", "G2_GLASS_QUARRY"] },
+  "material": [
+    { "value": "plaited plate strip", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "salt crust", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }
+  ],
+  "dimension": [
+    { "value": { "amount": 3.2, "precision": 0.001 }, "axis": "length", "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+    { "value": { "amount": 2.35, "precision": 0.001 }, "axis": "width", "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] }
+  ],
+  "dateMade": { "time": "2283-01-01T00:00:00Z", "precision": "y" },
+  "collectedBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_BONETTI"] }, { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_TRAN"] }]
+}

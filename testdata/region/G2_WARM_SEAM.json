@@ -1,0 +1,26 @@
+{
+  "id": ["xeno.peerdb.org", "REGION", "G2_WARM_SEAM"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "REGION"] }],
+  "name": [{ "value": "Warm Seam", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Nurruli" }],
+  "description": [
+    {
+      "value": "<p>A vent chain about nine hundred kilometres long on the ocean floor, the only substantial heat source on the world and the reason there is anybody here at all. Six vents are currently active, down from eleven when the survey began. Mineral chimneys stand up to sixty metres and come down without warning.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "PLANET", "G2_LONG_LID"] },
+  "biome": [{ "id": ["xeno.peerdb.org", "BIOME", "VENT_FIELD"] }, { "id": ["xeno.peerdb.org", "BIOME", "BRINE_SEA"] }],
+  "area": { "value": { "amount": 118000, "precision": 100 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "SQUARE_KILOMETRE"] }] },
+  "elevationRange": {
+    "value": { "from": { "amount": -4380, "precision": 10 }, "to": { "amount": -3720, "precision": 10 } },
+    "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }]
+  },
+  "image": [{ "value": "/f/EZzFc1yF3c4KbjTY2Xs7vL", "name": "G2_WARM_SEAM.jpg", "caption": "Regional view", "source": "Consortium survey archive" }],
+  "notes": [
+    {
+      "value": "<p>Five vents have gone cold since 2224 and none has opened. Nobody has yet written the sentence that follows from this, although the sample logs have been quietly arranged so that it will be easy to write when somebody does.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

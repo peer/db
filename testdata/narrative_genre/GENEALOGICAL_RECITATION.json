@@ -1,0 +1,24 @@
+{
+  "id": ["xeno.peerdb.org", "NARRATIVE_GENRE", "GENEALOGICAL_RECITATION"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "NARRATIVE_GENRE"] }],
+  "name": [
+    { "value": "Genealogical recitation", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "Rodovniško naštevanje", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }] },
+    { "value": "Recitação genealógica", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>Ordered performance of descent or succession, often the legal basis of a claim. Excludes narrative episodes about ancestors.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Urejeno naštevanje rodu ali nasledstva, pogosto pravna podlaga zahtevka.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Execução ordenada da descendência ou da sucessão, muitas vezes a base legal de uma reivindicação. Exclui episódios narrativos sobre antepassados.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "code": ["genealogy"]
+}

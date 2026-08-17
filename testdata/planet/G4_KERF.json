@@ -1,0 +1,57 @@
+{
+  "id": ["xeno.peerdb.org", "PLANET", "G4_KERF"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PLANET"] }],
+  "name": [{ "value": "Kerf", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Vaizumme", "gloss": "the lakes, used for the whole world" }],
+  "catalogueCode": "SPW-C/009-c",
+  "description": [
+    {
+      "value": "<p>A cold rock world with a thick nitrogen atmosphere and hydrocarbon lakes across its northern third, fed by a methane cycle that includes weather, rivers and a slow organic drizzle. Cryovolcanic plains cover the south. It sits on the returning limb of the Backswing, in a region the encounter swept nearly clean, so its night sky is close to empty. What is known of its inhabitants comes from material traded through the outer station; nobody has met them.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Mrzel svet z jezeri tekočega metana in skoraj praznim nočnim nebom.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Um mundo rochoso e frio, de atmosfera densa de azoto e lagos de hidrocarbonetos por todo o seu terço norte, alimentados por um ciclo do metano que inclui meteorologia, rios e um lento chuvisco orgânico. Planícies criovulcânicas cobrem o sul. Situa-se no braço de retorno do Backswing, numa região que o encontro varreu quase por completo, pelo que o seu céu noturno é quase vazio. O que se sabe dos seus habitantes vem de material trocado através da estação exterior; ninguém se encontrou com eles.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "STAR_SYSTEM", "G4_HANK"] },
+  "planetType": { "id": ["xeno.peerdb.org", "PLANET_TYPE", "DENSE_SILICATE"] },
+  "biome": [{ "id": ["xeno.peerdb.org", "BIOME", "HYDRO_LAKE"] }, { "id": ["xeno.peerdb.org", "BIOME", "CRYO_PLAIN"] }],
+  "radius": { "value": { "amount": 1.03, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_RADIUS"] }] },
+  "mass": { "value": { "amount": 1.12, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_MASS"] }] },
+  "surfaceGravity": { "value": { "amount": 1.06, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "STANDARD_GRAVITY"] }] },
+  "dayLength": { "value": { "amount": 26.1, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "HOUR"] }] },
+  "orbitalPeriod": { "value": { "amount": 1980.0, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_DAY"] }] },
+  "meanTemperature": { "value": { "amount": -176.0, "precision": 0.1 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "°C"] }] },
+  "hydrosphere": { "value": { "amount": 18.0, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "PERCENT"] }] },
+  "atmosphere": [
+    {
+      "value": "<p>Nitrogen with four per cent methane at 1.7 bar, orange with photochemical haze. Cold enough to ruin an unprotected hand in seconds; the pressure, on its own, is almost hospitable.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "biosphere": [
+    {
+      "value": "<p>Life is present: 1 catalogued species (Kerf Lake Dwellers) and 1 recorded non-sapient organism. The survey is not claimed to be complete.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "contactStatus": { "id": ["xeno.peerdb.org", "CONTACT_STATUS", "INDIRECT"] },
+  "firstSurveyed": { "time": "2273-01-01T00:00:00Z", "precision": "y" },
+  "surveyPeriod": { "from": { "time": "2273-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true },
+  "populationEstimate": {
+    "value": { "from": { "amount": 3000, "precision": 100 }, "to": { "amount": 9000, "precision": 100 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "image": [{ "value": "/f/HFRnzY5WSEWArJEDF9MwZe", "name": "G4_KERF.jpg", "caption": "Surface view", "source": "Consortium survey archive" }],
+  "notes": [
+    {
+      "value": "<p>The night sky here holds fourteen naked-eye stars. The photometric standard field had to be re-selected twice before one could be found with enough stars in it to be a field.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

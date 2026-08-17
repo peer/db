@@ -1,0 +1,64 @@
+{
+  "id": ["xeno.peerdb.org", "SPECIES", "G2_SESSHUNE"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SPECIES"] }],
+  "name": [{ "value": "Sweep Margin Weir Builders", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [
+    {
+      "value": "Sesshune",
+      "gloss": "the ones who keep the arcs",
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G2_FLAT_CORD"] }]
+    }
+  ],
+  "exonym": [{ "value": "Nesshamu", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "taxonCode": "TX-4133-a",
+  "description": [
+    {
+      "value": "<p>They live on the nine stone benches above the flats and work sixty kilometres of exposed ground twice in every tidal cycle, driving stranded burrowers into three concentric arcs of stone weir. The arcs are held in turn: a lodge takes responsibility for a named arc for one long cycle, rebuilds whatever the storms took, and hands it to the next lodge in a fixed order that no living person has seen deviated from. Children are reared by the lodge holding the arc at their birth and then by its successor, so a person&#39;s principal kin are their rearers and their rearers&#39; rearers, and birth parents hold no particular standing. A visitor is struck by the silence of the work, which is done to the timing of the water rather than to instruction, and by the fact that all contact with the Consortium in eighty years has happened on the flats at low water and nowhere else. The open question is whether an arc is property at all, since it can be neither sold nor kept, and two decades of interview material on the point remains restricted.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Gradijo kamnite pasti za plimo na širokih blatnih ravnicah. Vsi stiki s Konzorcijem potekajo tam in samo ob oseki.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    }
+  ],
+  "homeworld": { "id": ["xeno.peerdb.org", "PLANET", "G2_NINE_TERRACE"] },
+  "bodyPlan": [
+    {
+      "value": "<p>Bilateral, upright and long in the trunk, moving on two heavy legs with wide splayed feet that do not sink in soft mud. The skin is smooth, dark and permanently wet, kept so by a mucus that also carries the animal&#39;s own scent trail across the flats. Three pairs of arms descend the front of the trunk, the upper pair long and fine for handling, the lower two short and thick for lifting stone. There are no external ears; sound is taken in through a resonant plate under the throat.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "typicalHeight": { "value": { "amount": 2.1, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+  "typicalMass": { "value": { "amount": 95.0, "precision": 0.1 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "kg"] }] },
+  "lifespan": {
+    "value": { "from": { "amount": 40, "precision": 1 }, "to": { "amount": 90, "precision": 1 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_YEAR"] }]
+  },
+  "sensoryModality": [
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "PRESSURE_GRADIENT"] },
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "ACOUSTIC_RANGING"] },
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "CHEMICAL_PLUME"] }
+  ],
+  "subsistence": [
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "TIDAL_TRAPPING"] },
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "SILT_GARDENING"] }
+  ],
+  "individuality": { "id": ["xeno.peerdb.org", "INDIVIDUALITY_MODE", "BOUNDED"] },
+  "socialOrganisation": { "id": ["xeno.peerdb.org", "SOCIAL_ORGANISATION", "ROTATING_STEWARDSHIP"] },
+  "kinshipSystem": { "id": ["xeno.peerdb.org", "KINSHIP_SYSTEM", "FOSTERAGE_CHAIN"] },
+  "communication": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G2_FLAT_CORD"] }],
+  "population": {
+    "value": { "from": { "amount": 14000, "precision": 1000 }, "to": { "amount": 30000, "precision": 1000 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "contactStatus": { "id": ["xeno.peerdb.org", "CONTACT_STATUS", "LIMITED"] },
+  "firstContact": { "time": "2253-01-01T00:00:00Z", "precision": "y" },
+  "image": [
+    {
+      "value": "/f/H1fWw2uTkpNZ8yxW5jTwB9",
+      "name": "G2_SESSHUNE.jpg",
+      "caption": "Field plate",
+      "source": "Drawn in the field; Consortium collection"
+    }
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "id": ["xeno.peerdb.org", "RESEARCHER", "RES_MOKOENA"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "RESEARCHER"] }],
+  "name": [{ "value": "Thabo" }],
+  "familyName": [{ "value": "Mokoena" }],
+  "researcherCode": "CCX-P-03042",
+  "description": [
+    {
+      "value": "<p>Came to the discipline at thirty-two from seismology and has never quite left it: he is happier with a geophone than a notebook and does not pretend otherwise. He led the programme that finally recorded a conversation which had been going on in the ground throughout the eleven days the first survey spent listening to the air.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "affiliatedWith": [{ "id": ["xeno.peerdb.org", "INSTITUTE", "INST_SUBSTRATE"] }],
+  "specialisesIn": [
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "ACOUSTIC_RECORDING"] },
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "PARTICIPANT_OBSERVATION"] }
+  ],
+  "activePeriod": { "from": { "time": "2278-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true },
+  "born": { "time": "2246-01-01T00:00:00Z", "precision": "y" }
+}

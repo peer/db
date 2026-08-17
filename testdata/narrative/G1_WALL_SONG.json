@@ -1,0 +1,39 @@
+{
+  "id": ["xeno.peerdb.org", "NARRATIVE", "G1_WALL_SONG"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "NARRATIVE"] }],
+  "title": [{ "value": "Stone To Me", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [
+    {
+      "value": "Ulun Esh Nera",
+      "gloss": "wall, yours, turning",
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G1_FLATS_SPEECH"] }]
+    }
+  ],
+  "description": [
+    {
+      "value": "<p>A stacking song sung on the wall at the bottom of the tide, in the low register that carries across open water, with one voice calling and everybody within reach answering on the lift. It sets the pace of the work and, more usefully, keeps a count of where the water is while nobody is looking at it.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "genre": { "id": ["xeno.peerdb.org", "NARRATIVE_GENRE", "WORK_SONG"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G1_WEIR_ROTA"] }],
+  "recordedBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_HALVORSEN"] }, { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_BONETTI"] }],
+  "recordedAt": { "id": ["xeno.peerdb.org", "SITE", "G1_LOWER_MIDDEN"] },
+  "recordedOn": { "time": "2262-01-01T00:00:00Z", "precision": "y" },
+  "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G1_FLATS_SPEECH"] }],
+  "content": [
+    {
+      "value": "<p>Stone to me. Stone to me. The flat one, the one with the green side down.</p><p>Not that one. That one is the wall already.</p><p>Water at the ninth. Water at the eighth. Water where your feet are and you have not moved.</p><p>Stone to me. Stone to me. Twice more and we go up dry.</p><p>Twice more. Twice more. And the ninth is not ours until the water says so.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "recording": [
+    {
+      "value": "/f/MGXrFNrzygyL6r4ZJvEWbk",
+      "name": "narrative-G1_WALL_SONG.mp3",
+      "caption": "Performance, recorded on site",
+      "duration": { "value": { "amount": 17, "precision": 1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "MINUTE"] }] },
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G1_FLATS_SPEECH"] }]
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "id": ["xeno.peerdb.org", "INDIVIDUAL", "G1_SHERENU"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "INDIVIDUAL"] }],
+  "name": [{ "value": "Sherenu" }],
+  "lineageName": [{ "value": "Ulusheren" }],
+  "description": [
+    {
+      "value": "<p>Head of a terrace house of forty-one members and keeper of a pit culture that the house&#39;s own account puts at nine hundred years old. She has given the survey a standing invitation to the terraces and a standing silence on the descent of the culture, which she regards as a question about the house&#39;s kin rather than about its food. She sat for a photograph in 2301 on the condition that the pit did not appear in it, and the result is mostly wall.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "species": { "id": ["xeno.peerdb.org", "SPECIES", "G1_ELMASHELU"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G1_ANCHOR_HOUSES"] }],
+  "role": [
+    { "value": "house head", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "pit keeper", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }
+  ],
+  "formOfAddress": "house first, then name",
+  "born": { "time": "2244-01-01T00:00:00Z", "precision": "y" },
+  "diedNone": true,
+  "birthplace": { "id": ["xeno.peerdb.org", "SITE", "G1_ANCHOR_STEPS"] },
+  "image": [
+    { "value": "/f/4ieKezxMh9qskWVwacAMom", "name": "G1_SHERENU.jpg", "caption": "Portrait", "source": "Made with consent; Consortium collection" }
+  ]
+}

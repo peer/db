@@ -1,0 +1,24 @@
+{
+  "id": ["xeno.peerdb.org", "SOCIAL_ORGANISATION", "LINEAGE_HOUSES"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SOCIAL_ORGANISATION"] }],
+  "name": [
+    { "value": "Lineage houses", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "Rodovne hiše", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }] },
+    { "value": "Casas de linhagem", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>Corporate descent groups holding estate, name and rank as a unit, with the house outliving any member. Excludes households defined only by co-residence.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Rodovne skupine, ki kot celota hranijo posest, ime in položaj, in preživijo vsakega člana.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Grupos de descendência corporados que detêm bens, nome e posição como unidade, sobrevivendo a casa a qualquer membro. Exclui agregados definidos apenas pela coabitação.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "code": ["lineage-house"]
+}

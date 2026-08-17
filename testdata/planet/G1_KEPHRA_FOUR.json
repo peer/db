@@ -1,0 +1,47 @@
+{
+  "id": ["xeno.peerdb.org", "PLANET", "G1_KEPHRA_FOUR"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PLANET"] }],
+  "name": [{ "value": "Kephra IV", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Tahruneh", "gloss": "the dry hearth" }],
+  "catalogueCode": "CCX-2259-KEP4",
+  "description": [
+    {
+      "value": "<p>A small cold desert world outward of the ocean planet, red with iron dust and cut across by fissures that hold what little moisture the surface has. A very small resident population works the fissures seasonally and is otherwise elsewhere. The survey has never been on the ground for a full year. This is the primary entry for the world.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Um pequeno mundo desértico e frio, para lá do planeta oceânico, vermelho de poeira de ferro e sulcado por fissuras que retêm a pouca humidade que a superfície tem. Uma população residente muito reduzida trabalha as fissuras sazonalmente e no resto do tempo está noutro sítio. O levantamento nunca esteve no terreno um ano inteiro. Esta é a entrada principal do mundo.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "STAR_SYSTEM", "G1_KEPHRA"] },
+  "planetType": { "id": ["xeno.peerdb.org", "PLANET_TYPE", "DESICCATED"] },
+  "biome": [{ "id": ["xeno.peerdb.org", "BIOME", "REGOLITH_DUNE"] }, { "id": ["xeno.peerdb.org", "BIOME", "ENDOLITH_ZONE"] }],
+  "radius": { "value": { "amount": 0.79, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_RADIUS"] }] },
+  "mass": { "value": { "amount": 0.54, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_MASS"] }] },
+  "surfaceGravity": { "value": { "amount": 0.87, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "STANDARD_GRAVITY"] }] },
+  "dayLength": { "value": { "amount": 34.8, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "HOUR"] }] },
+  "orbitalPeriod": { "value": { "amount": 148.2, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_DAY"] }] },
+  "meanTemperature": { "value": { "amount": -46.8, "precision": 0.1 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "°C"] }] },
+  "hydrosphere": { "value": { "amount": 0.4, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "PERCENT"] }] },
+  "atmosphere": [
+    {
+      "value": "<p>Carbon dioxide and nitrogen at 0.2 bar with a fine suspended dust that never fully settles. Not breathable; a light suit and a filter are sufficient, and the dust gets into the filter regardless.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "biosphere": [
+    {
+      "value": "<p>Life is present: 1 catalogued species (Warm Pool People). The survey is not claimed to be complete.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "contactStatus": { "id": ["xeno.peerdb.org", "CONTACT_STATUS", "INDIRECT"] },
+  "firstSurveyed": { "time": "2259-01-01T00:00:00Z", "precision": "y" },
+  "surveyPeriod": { "from": { "time": "2259-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true },
+  "populationEstimate": {
+    "value": { "from": { "amount": 3000, "precision": 100 }, "to": { "amount": 7000, "precision": 100 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "image": [{ "value": "/f/QQfmK1N3pv4rWxotahG9v1", "name": "G1_KEPHRA_FOUR.jpg", "caption": "Surface view", "source": "Consortium survey archive" }]
+}

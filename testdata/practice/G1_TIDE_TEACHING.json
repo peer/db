@@ -1,0 +1,29 @@
+{
+  "id": ["xeno.peerdb.org", "PRACTICE", "G1_TIDE_TEACHING"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PRACTICE"] }],
+  "name": [{ "value": "Being Left to the Turn", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Asheneru", "gloss": "taught by the water" }],
+  "description": [
+    {
+      "value": "<p>A child of about four is walked out at half ebb, set on a bank with an adult in sight but not within reach, and told to say when the water turns. The first three times the child is wrong and is not corrected, only walked back in. From the fourth attempt the adult begins to name what the child should have felt, always afterwards and never before, and the naming is done in the low register that carries across open water. Nobody shows a child a tide table, and the households that have seen the Consortium&#39;s four tables regard them as a curiosity belonging to people who cannot feel the ground. A child who calls the turn correctly three times running is given the shortest working stretch on the outer wall and is thereafter counted on the rota.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Otroka postavijo na plitvino in mu ne povedo ničesar, dokler sam ne ugotovi, kdaj se voda obrne.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Uma criança de uns quatro anos é levada a pé até à água a meia vazante, colocada num banco de areia com um adulto à vista mas fora do alcance, e mandada dizer quando a água virar. Das três primeiras vezes a criança engana-se e não é corrigida, apenas trazida de volta. A partir da quarta tentativa o adulto começa a nomear o que a criança devia ter sentido, sempre depois e nunca antes, e a nomeação faz-se no registo grave que se ouve ao longe sobre a água aberta. Ninguém mostra uma tabela de marés a uma criança, e os agregados que viram as quatro tabelas do Consórcio consideram-nas uma curiosidade própria de gente que não sente o chão. Uma criança que acerte na viragem três vezes seguidas recebe o troço de trabalho mais curto no muro exterior e passa a contar na escala.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G1_WEIR_ROTA"] }],
+  "category": { "id": ["xeno.peerdb.org", "PRACTICE_CATEGORY", "CRAFT_TRANSMISSION"] },
+  "periodicity": "from about the fourth year to the ninth, at every third low water",
+  "participants": {
+    "value": { "from": { "amount": 2, "precision": 1 }, "to": { "amount": 9, "precision": 1 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "firstDocumented": { "time": "2252-01-01T00:00:00Z", "precision": "y" },
+  "relatedPractice": [{ "id": ["xeno.peerdb.org", "PRACTICE", "G1_WALL_HANDOVER"] }]
+}

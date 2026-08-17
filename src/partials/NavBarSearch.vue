@@ -155,7 +155,7 @@ async function onSubmit() {
     @focusout="onFocusOut"
   >
     <InputText id="search-input-text" v-model="searchQuery" class="pd-searchinput max-w-xl min-w-0 grow" />
-    <Button type="submit" primary class="pd-navbarsearch-button" @click="onButtonClick">
+    <Button id="navbarsearch-button-search" type="submit" primary class="pd-navbarsearch-button" @click="onButtonClick">
       <MagnifyingGlassIcon class="size-5 min-[56rem]:hidden" :alt="t('common.buttons.search')" />
       <span class="hidden min-[56rem]:inline">{{ t("common.buttons.search") }}</span>
     </Button>

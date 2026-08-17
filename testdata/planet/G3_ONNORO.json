@@ -1,0 +1,55 @@
+{
+  "id": ["xeno.peerdb.org", "PLANET", "G3_ONNORO"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PLANET"] }],
+  "name": [{ "value": "Kiln b", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Onnoro", "gloss": "the second one, counting from the sea" }],
+  "catalogueCode": "HB-2/016-b",
+  "description": [
+    {
+      "value": "<p>A locked ocean world with a substellar warm pool the size of a small sea and a wide belt of tidal flats around the archipelagos. There are people on the flats; there are weirs, stone traps, and lines of stakes that have been replaced between every visit. Contact has been made four times, always on the flats, always at the turn of the tide, and always ending when the water came back. The population estimate spans a factor of ten and the survey is not embarrassed about it.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Vklenjen oceanski svet s širokimi plimskimi blatišči; doslej štiri srečanja.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Um mundo oceânico preso por maré, com uma piscina quente subestelar do tamanho de um mar pequeno e um largo cinturão de planícies de maré em redor dos arquipélagos. Há gente nas planícies; há açudes, armadilhas de pedra e fileiras de estacas que foram substituídas entre todas as visitas. O contacto foi estabelecido quatro vezes, sempre nas planícies, sempre na viragem da maré, e sempre a terminar quando a água voltou. A estimativa da população abrange um fator de dez e o levantamento não tem vergonha disso.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "STAR_SYSTEM", "G3_KILN"] },
+  "planetType": { "id": ["xeno.peerdb.org", "PLANET_TYPE", "TIDAL_OCEAN"] },
+  "biome": [
+    { "id": ["xeno.peerdb.org", "BIOME", "SWEEP_FLAT"] },
+    { "id": ["xeno.peerdb.org", "BIOME", "DUSK_BELT"] },
+    { "id": ["xeno.peerdb.org", "BIOME", "VENT_FIELD"] }
+  ],
+  "radius": { "value": { "amount": 1.18, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_RADIUS"] }] },
+  "mass": { "value": { "amount": 1.52, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_MASS"] }] },
+  "surfaceGravity": { "value": { "amount": 1.09, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "STANDARD_GRAVITY"] }] },
+  "dayLength": { "value": { "amount": 2116.8, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "HOUR"] }] },
+  "orbitalPeriod": { "value": { "amount": 88.2, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_DAY"] }] },
+  "meanTemperature": { "value": { "amount": 4.1, "precision": 0.1 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "°C"] }] },
+  "hydrosphere": { "value": { "amount": 71.0, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "PERCENT"] }] },
+  "atmosphere": [
+    {
+      "value": "<p>Nitrogen and oxygen at 1.1 bar with a standing sea fog on the night side of the terminator. Breathable, cold, and wet enough that sample bags have to be dried before they will close.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "biosphere": [
+    {
+      "value": "<p>Life is present: 2 catalogued species (Flood-Phase Collectives of Kiln b, Kiln b Stake Setters) and 1 recorded non-sapient organism. The survey is not claimed to be complete.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "contactStatus": { "id": ["xeno.peerdb.org", "CONTACT_STATUS", "LIMITED"] },
+  "firstSurveyed": { "time": "2289-01-01T00:00:00Z", "precision": "y" },
+  "surveyPeriod": { "from": { "time": "2289-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true },
+  "populationEstimate": {
+    "value": { "from": { "amount": 200000, "precision": 100 }, "to": { "amount": 2000000, "precision": 100 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "image": [{ "value": "/f/VXxNzS4gpuVgxb3FRB7Wre", "name": "G3_ONNORO.jpg", "caption": "Approach view", "source": "Consortium survey archive" }]
+}

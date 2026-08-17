@@ -1,0 +1,24 @@
+{
+  "id": ["xeno.peerdb.org", "BIOME", "VENT_FIELD"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "BIOME"] }],
+  "name": [
+    { "value": "Hydrothermal vent field", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "Hidrotermalno polje", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }] },
+    { "value": "Campo hidrotermal", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>Chemosynthetic communities packed around hot mineral-laden discharge on a sea floor. Excludes cold seeps and their much slower communities, which are catalogued separately.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Kemosintetske združbe okoli vročih mineralnih izvirov na morskem dnu.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Comunidades quimiossintéticas apinhadas em torno de descargas quentes e carregadas de minerais no fundo do mar. Exclui as exsudações frias e as suas comunidades muito mais lentas, catalogadas em separado.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "code": ["vent-field"]
+}

@@ -1,0 +1,35 @@
+{
+  "id": ["xeno.peerdb.org", "ARTIFACT", "G3_SEEDING_TUBE"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "ARTIFACT"] }],
+  "name": [{ "value": "Borer Seeding Tube", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Tessen-summe", "gloss": "the thing that puts the opening to work" }],
+  "accessionCode": "CCX-A-31027",
+  "description": [
+    {
+      "value": "<p>A tube of rolled bark-like rind bound with fibre, with a sprung inner sleeve that meters paste along a seam at a constant rate as the tube is drawn sideways. The culture is loaded warm at one end and the sleeve is set by turning the collar to one of four stops, which correspond to seam widths rather than to quantities. This example was made in front of the fieldworker over about three hours in 2279 and handed over at the end of it, which is why it is one of the few objects in this pack dated to the day. It has never been used and the inner sleeve is still bright.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "category": { "id": ["xeno.peerdb.org", "ARTIFACT_CATEGORY", "APPARATUS"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G3_FACE_TENDING"] }],
+  "foundAt": { "id": ["xeno.peerdb.org", "SITE", "G3_SHELF_WARREN"] },
+  "material": [
+    { "value": "rolled rind", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "fibre binding", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "polished horn sleeve", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }
+  ],
+  "dimension": [
+    { "value": { "amount": 0.71, "precision": 0.001 }, "axis": "length", "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+    { "value": { "amount": 0.028, "precision": 0.001 }, "axis": "diameter", "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] }
+  ],
+  "dateMade": { "time": "2279-01-01T00:00:00Z", "precision": "d" },
+  "collectedBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_WEN"] }, { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_VIRTANEN"] }],
+  "image": [{ "value": "/f/8CeJri8NhnkzEoV6TzAPqL", "name": "G3_SEEDING_TUBE.jpg", "caption": "Object drawing", "source": "Consortium collection" }],
+  "document": [{ "value": "/f/KU7CPFCTN8qhotSzdqoncn", "name": "G3_SEEDING_TUBE.txt", "caption": "Accession record" }],
+  "notes": [
+    {
+      "value": "<p>The accompanying document is the maker&#39;s own tally of the four collar stops, laid out as marks on a scrap of rind, and is the only piece of Tessilen notation in the collection that was made for an outsider to keep.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

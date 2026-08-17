@@ -1,0 +1,24 @@
+{
+  "id": ["xeno.peerdb.org", "SOCIAL_ORGANISATION", "MATRILINEAL_MOIETIES"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SOCIAL_ORGANISATION"] }],
+  "name": [
+    { "value": "Matrilineal moieties", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "Matrilinearne polovice", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }] },
+    { "value": "Metades matrilineares", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>Society divided into two exogamous halves inherited through the mother, with obligations running across the divide. Excludes three-part or larger section systems.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Družba, razdeljena na dve eksogamni polovici, ki se dedujeta po materi.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Sociedade dividida em duas metades exógamas herdadas por via materna, com obrigações que atravessam a divisão. Exclui sistemas de secções com três ou mais partes.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "code": ["matri-moiety"]
+}

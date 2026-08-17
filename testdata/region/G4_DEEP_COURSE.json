@@ -1,0 +1,20 @@
+{
+  "id": ["xeno.peerdb.org", "REGION", "G4_DEEP_COURSE"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "REGION"] }],
+  "name": [{ "value": "Deep Course", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Pirrukka" }],
+  "description": [
+    {
+      "value": "<p>The fractured basalt uplands south of the meadow, where the wintering warrens are cut. Rock temperature holds near minus four degrees at three hundred metres depth for the whole orbit, which is what makes the world habitable at all. Endolithic growth on the fracture surfaces is harvested off the warren walls.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "PLANET", "G4_MARROW"] },
+  "biome": [{ "id": ["xeno.peerdb.org", "BIOME", "ENDOLITH_ZONE"] }],
+  "area": { "value": { "amount": 940000, "precision": 100 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "SQUARE_KILOMETRE"] }] },
+  "elevationRange": {
+    "value": { "from": { "amount": 1100, "precision": 10 }, "to": { "amount": 4260, "precision": 10 } },
+    "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }]
+  },
+  "image": [{ "value": "/f/4eUyi3cWPDEgssA6ZanoUQ", "name": "G4_DEEP_COURSE.jpg", "caption": "Regional view", "source": "Consortium survey archive" }]
+}

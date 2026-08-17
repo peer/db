@@ -1,0 +1,24 @@
+{
+  "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "ULTRAVIOLET_VISION"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SENSORY_MODALITY"] }],
+  "name": [
+    { "value": "Ultraviolet vision", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "Ultravijolični vid", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }] },
+    { "value": "Visão ultravioleta", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>Photoreception extending below about 400 nm, common on worlds with a thin ozone equivalent and used heavily in signalling. Excludes species that merely tolerate ultraviolet.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Vid pod približno 400 nm, pogost na svetovih s tanko ozonsko plastjo in veliko uporabljen za sporazumevanje.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Fotorreceção que se estende abaixo de cerca de 400 nm, comum em mundos com um equivalente de ozono ténue e muito usada na sinalização. Exclui espécies que apenas toleram o ultravioleta.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "code": ["uv-vis"]
+}

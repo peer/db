@@ -1,0 +1,26 @@
+{
+  "id": ["xeno.peerdb.org", "ORGANISM", "G2_CEILING_TUBES"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "ORGANISM"] }],
+  "name": [{ "value": "Ceiling Tube Complex", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Ollume" }],
+  "taxonCode": "TX-1138-a",
+  "description": [
+    {
+      "value": "<p>Two lineages that cannot be reared apart and are catalogued as one organism: a stiff mineral tube secreted by the outer partner, and a filter-feeding inner partner that supplies it. The complexes hang in stands from the fluted underside of the ice, thickest where the warm plume off the vent chain runs strongest. They are grazed rather than cut, the holdfast being left to regrow, and a stand cropped this way has been in continuous use for four thousand years.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "category": { "id": ["xeno.peerdb.org", "ORGANISM_CATEGORY", "SYMBIOTIC_COMPLEX"] },
+  "foundOn": [{ "id": ["xeno.peerdb.org", "PLANET", "G2_LONG_LID"] }],
+  "biome": [{ "id": ["xeno.peerdb.org", "BIOME", "BRINE_SEA"] }],
+  "typicalSize": { "value": { "amount": 0.7, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+  "typicalMass": { "value": { "amount": 2.1, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "kg"] }] },
+  "image": [
+    {
+      "value": "/f/1i2SGN4VwCtUr51kb5YuzF",
+      "name": "G2_CEILING_TUBES.jpg",
+      "caption": "Field plate",
+      "source": "Drawn in the field; Consortium collection"
+    }
+  ]
+}

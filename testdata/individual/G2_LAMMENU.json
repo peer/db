@@ -1,0 +1,16 @@
+{
+  "id": ["xeno.peerdb.org", "INDIVIDUAL", "G2_LAMMENU"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "INDIVIDUAL"] }],
+  "name": [{ "value": "Lammenu" }],
+  "description": [
+    {
+      "value": "<p>Asked in 2290 whether the grazers are followed or herded, and declined to answer, on the ground that the question is about the terrace agreements and that they are not a party to those. Pressed twice more, they walked on ahead, which in their own system settles the matter. They declined a photograph in the same conversation, remarking that a picture of somebody standing still is a picture of nobody they know.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "species": { "id": ["xeno.peerdb.org", "SPECIES", "G2_WEMMALU"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G2_LEEWARD_BANDS"] }],
+  "role": [{ "value": "band walker", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "formOfAddress": "by personal name, from downwind",
+  "born": { "time": "2256-01-01T00:00:00Z", "precision": "y" }
+}

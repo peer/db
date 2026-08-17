@@ -1,0 +1,42 @@
+{
+  "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G3_PIT_LEDGER"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM"] }],
+  "name": [{ "value": "Pit Marks", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Oarimau", "gloss": "what the lid says" }],
+  "description": [
+    {
+      "value": "<p>Compound marks laid on the lids and rims of fermentation pits, read by contact and stable for the several years a pit may stand unopened. The system encodes the culture a pit holds, the stage it has reached, who may open it and what is owed to whom on opening, and it cannot express anything about a pit that does not exist. It is the only durable record these households keep, and it is kept on the object it describes, so a pit and its documentation cannot be separated even in principle. The mistake made by every survey so far is to sample the mark, which reads to the household as opening the pit.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "modality": [
+    { "id": ["xeno.peerdb.org", "COMMUNICATION_MODALITY", "CHEMICAL_SIGNATURE"] },
+    { "id": ["xeno.peerdb.org", "COMMUNICATION_MODALITY", "WRITTEN_NOTATION"] }
+  ],
+  "users": {
+    "value": { "from": { "amount": 90000, "precision": 100 }, "to": { "amount": 260000, "precision": 100 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "notation": true,
+  "sampleGloss": [
+    {
+      "value": "<p><i>sharp, then sweet, then a flat band across the rim</i>. Element by element: opened once, third stage, not yours. Freely: this pit has been opened once, it stands at the third stage, and it is not yours to open.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "recording": [
+    {
+      "value": "/f/XNw7doe7wP2u657rHFW1mE",
+      "name": "system-G3_PIT_LEDGER.mp3",
+      "caption": "Elicitation sample",
+      "duration": { "value": { "amount": 2, "precision": 1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "MINUTE"] }] },
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G3_PIT_LEDGER"] }],
+      "note": [
+        {
+          "value": "<p>Recorded during elicitation and kept as the reference sample for this system.</p>",
+          "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+        }
+      ]
+    }
+  ]
+}

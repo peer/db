@@ -1,0 +1,47 @@
+{
+  "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G1_LONG_CALL"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM"] }],
+  "name": [{ "value": "Sweep Channel Calling", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Wanaluu", "gloss": "wide-talk, the same root as the name the speakers use for themselves" }],
+  "description": [
+    {
+      "value": "<p>Long low calls made in deep water, audible to a listener four kilometres down a channel and to an instrument considerably further, with a second layer of patterned electrical pulses that carries at conversational range only. The audible layer holds place, movement and weather; the electrical layer holds who is present, which is why a recording of the sound alone is a message with the participants removed. Calls are slow, and a full exchange between two grazers can take most of an hour without either party treating that as a delay. The standing error is to record in the audible band, publish the transcript, and then argue about whether it has syntax.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "modality": [
+    { "id": ["xeno.peerdb.org", "COMMUNICATION_MODALITY", "VOCALISATION"] },
+    { "id": ["xeno.peerdb.org", "COMMUNICATION_MODALITY", "ELECTRICAL_DISCHARGE"] }
+  ],
+  "users": {
+    "value": { "from": { "amount": 90000, "precision": 100 }, "to": { "amount": 160000, "precision": 100 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "sampleGloss": [
+    {
+      "value": "<p><i>Uu-waa-nel, uu-uu.</i> long-low-here / who-is-with-me. Free translation: I am on the third vent apron and these four are with me. The four are in the electrical layer and are not in the audio file.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "recording": [
+    {
+      "value": "/f/9aLMEQAFdCFdx8BDrEkcE5",
+      "name": "system-G1_LONG_CALL.mp3",
+      "caption": "Elicitation sample",
+      "duration": { "value": { "amount": 1, "precision": 1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "MINUTE"] }] },
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G1_LONG_CALL"] }],
+      "note": [
+        {
+          "value": "<p>Recorded during elicitation and kept as the reference sample for this system.</p>",
+          "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+        }
+      ]
+    }
+  ],
+  "notes": [
+    {
+      "value": "<p>The syntax question has been argued since 2271 on the basis of one nineteen-hour recording. Both principal proponents have changed sides, on different occasions, and neither has withdrawn anything published before the change.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

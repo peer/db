@@ -18,7 +18,6 @@ import {
   HAS_PROPERTY,
   HAS_VALUE_TYPE,
   NAME,
-  ORDER_IN_LIST,
   SECTION,
   SUB_FIELD,
   VT_AMOUNT,
@@ -39,6 +38,7 @@ import { ABSTRACT_CLASS } from "@/core/properties"
 import {
   AmountClaim,
   AmountIntervalClaim,
+  claimOrderInList,
   ClaimTypes,
   getBestClaimOfType,
   getClaimsOfTypeWithConfidence,
@@ -62,7 +62,8 @@ export interface FieldData {
   propertyId: string
   // Value type document ID (determines claim type).
   valueType: string
-  // Numeric order for sorting.
+  // Where the field states it belongs among the fields it is listed with. A field which states no
+  // order sorts after every field which states one (see claimOrderInList).
   orderInList: number
   // Minimum number of values (0 means optional).
   minCardinality: number
@@ -216,7 +217,8 @@ export interface SectionData {
   // The section claim's sub-claims, holding the NAME string claims (with IN_LANGUAGE
   // sub-claims) the display name is picked from by language (see getSectionName).
   claims?: DeepReadonly<ClaimTypes>
-  // Numeric order for sorting.
+  // Where the section states it belongs among the sections it is listed with. A section which states
+  // no order sorts after every section which states one (see claimOrderInList).
   orderInList: number
   // Fields within this section.
   fields: readonly FieldData[]
@@ -284,7 +286,6 @@ function extractFieldData(claimsTypes: DeepReadonly<ClaimTypes> | undefined, par
 
   const propRef = getBestClaimOfType(claimsTypes, "ref", HAS_PROPERTY)
   const valueTypeRef = getBestClaimOfType(claimsTypes, "ref", HAS_VALUE_TYPE)
-  const orderClaim = getBestClaimOfType(claimsTypes, "amount", ORDER_IN_LIST)
   const cardinalityClaim = getBestClaimOfType(claimsTypes, "amountInterval", CARDINALITY)
 
   if (!propRef || !valueTypeRef) {
@@ -344,7 +345,7 @@ function extractFieldData(claimsTypes: DeepReadonly<ClaimTypes> | undefined, par
   return {
     propertyId: propRef.to.id,
     valueType: valueTypeRef.to.id,
-    orderInList: orderClaim ? parseFloat(orderClaim.amount) || 0 : 0,
+    orderInList: claimOrderInList(claimsTypes),
     minCardinality,
     maxCardinality,
     subFields,
@@ -386,7 +387,6 @@ export function extractFieldsFromClaims(claims: DeepReadonly<ClaimTypes> | undef
   const sectionClaims = getClaimsOfTypeWithConfidence(fieldsClaim.sub, "has", SECTION)
   for (const sectionClaim of sectionClaims) {
     const idClaim = getBestClaimOfType(sectionClaim.sub, "id", NAME)
-    const orderClaim = getBestClaimOfType(sectionClaim.sub, "amount", ORDER_IN_LIST)
 
     const sectionFields: FieldData[] = []
     const fieldClaims = getClaimsOfTypeWithConfidence(sectionClaim.sub, "has", FIELD)
@@ -402,7 +402,7 @@ export function extractFieldsFromClaims(claims: DeepReadonly<ClaimTypes> | undef
     sections.push({
       id: idClaim ? idClaim.value : "",
       claims: sectionClaim.sub,
-      orderInList: orderClaim ? parseFloat(orderClaim.amount) || 0 : 0,
+      orderInList: claimOrderInList(sectionClaim.sub),
       fields: sectionFields,
     })
   }

@@ -1,0 +1,49 @@
+{
+  "id": ["xeno.peerdb.org", "INTERVIEW", "INTB_TIDE_CALLED"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "INTERVIEW"] }],
+  "title": [{ "value": "Naulei on calling a tide twice that he had seen once", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "description": [
+    {
+      "value": "<p>Interview with a tide crier of the weir order on the grammar of the flat call and the working of walls. Naulei describes asserting a tide as fact at a length holder&#39;s request.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "interviewee": [{ "id": ["xeno.peerdb.org", "INDIVIDUAL", "G4_IN_NAULEI"] }],
+  "interviewer": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_HALVORSEN"] }],
+  "recordedAt": { "id": ["xeno.peerdb.org", "SITE", "G4_UPPER_MIDDEN"] },
+  "recordedOn": { "time": "2278-11-13T00:00:00Z", "precision": "d" },
+  "expedition": { "id": ["xeno.peerdb.org", "EXPEDITION", "EXP_LONG_WATER_SHELF"] },
+  "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G4_COM_FLAT_CALL"] }],
+  "duration": { "value": { "amount": 58, "precision": 1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "MINUTE"] }] },
+  "content": [
+    {
+      "value": "<p><b>Q.</b> If the tide were to come early, what would you call?</p><p><b>A.</b> [calls] There. You have made me say it. I have now called an early water once, which is a proposal, and four people down the wall have stopped what they were doing. Do not do that again.</p><p><b>Q.</b> We are sorry. There is no way to ask it?</p><p><b>A.</b> Not in the call. Put your hand out like this and turn it and I will understand you and your recorder will get nothing, which is the arrangement.</p><p><b>Q.</b> What is the difference between one call and two?</p><p><b>A.</b> One is a proposal, two is a fact, three is a wall worked now, tools down, everybody. Three is not louder. Three is just three.</p><p><b>Q.</b> Have you ever called two when you had one?</p><p><b>A.</b> Once, in the season the forty-first length was slipping. The holder wanted the wall worked and would not have got it on a proposal.</p><p><b>Q.</b> And the tide?</p><p><b>A.</b> Came four days later than I said it. The wall got worked, which was the point, and the joint at forty-one to forty-two got closed in a hurry by people who were angry, and it has been the worst joint on the outer wall ever since. I have walked it every year and said nothing.</p><p><b>Q.</b> Would you call it again?</p><p><b>A.</b> I would call it three times and take what came, and that is a different answer from the one you asked for.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "recording": [
+    {
+      "value": "/f/13Tbz8Rb5keoWcmGuifYqT",
+      "name": "interview-INTB_TIDE_CALLED.mp3",
+      "caption": "Session recording",
+      "duration": { "value": { "amount": 58, "precision": 1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "MINUTE"] }] },
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G4_COM_FLAT_CALL"] }]
+    }
+  ],
+  "ethics": { "id": ["xeno.peerdb.org", "ETHICS_PROTOCOL", "PROTOCOL_2"] },
+  "consentNote": [
+    {
+      "value": "<p>Naulei gave named consent as the holder of the call, for the material on the grammar and for the account of the forty-first length, and asked that the survey never again put a conditional to a crier on a working wall. The point was taken.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "clearedReader": ["mock-user-researcher@localhost"],
+  "permission": [
+    { "action": { "id": ["core.peerdb.org", "PERMISSION_ACTIONS", "ACTION_READ"] }, "user": ["mock-user-researcher@localhost"], "scope": ["self"] },
+    {
+      "action": { "id": ["core.peerdb.org", "PERMISSION_ACTIONS", "ACTION_READ_HISTORIC"] },
+      "user": ["mock-user-researcher@localhost"],
+      "scope": ["self"]
+    }
+  ]
+}

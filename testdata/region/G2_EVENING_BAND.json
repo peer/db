@@ -1,0 +1,19 @@
+{
+  "id": ["xeno.peerdb.org", "REGION", "G2_EVENING_BAND"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "REGION"] }],
+  "name": [{ "value": "Evening Band", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Anuwel" }],
+  "description": [
+    {
+      "value": "<p>The habitable ring, four hundred kilometres wide at its broadest and under ninety at the two places where high ground pinches it. The wind is constant, the light never changes, and the ground is terraced along the contour for most of the band&#39;s length. Almost everything in this galaxy&#39;s cultural register was recorded inside it.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "PLANET", "G2_HALF_LIGHT"] },
+  "biome": [{ "id": ["xeno.peerdb.org", "BIOME", "DUSK_BELT"] }],
+  "area": { "value": { "amount": 1240000, "precision": 100 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "SQUARE_KILOMETRE"] }] },
+  "elevationRange": {
+    "value": { "from": { "amount": -60, "precision": 10 }, "to": { "amount": 2890, "precision": 10 } },
+    "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }]
+  }
+}

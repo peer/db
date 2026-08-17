@@ -1,0 +1,25 @@
+{
+  "id": ["xeno.peerdb.org", "ARTIFACT", "G2_PLATE_CORD"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "ARTIFACT"] }],
+  "name": [{ "value": "Band Cordage, Eleven Metres", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Wemmenu shellu", "gloss": "the walking rope" }],
+  "accessionCode": "CCX-A-14928",
+  "description": [
+    {
+      "value": "<p>Eleven metres of three-strand cord twisted from the annual plates a grazer sheds, split, soaked for four days and laid up wet so that it tightens as it dries. It is the cordage used the whole length of the band and is the only thing a following band produces that terrace households want, which is the reason the herds are tolerated on cut ground at all. This length was made on the move, in the ordinary way, and shows the slight irregularity in the lay that comes of twisting while walking. It was traded rather than given and the survey paid in glass.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "category": { "id": ["xeno.peerdb.org", "ARTIFACT_CATEGORY", "CORDAGE"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G2_LEEWARD_BANDS"] }],
+  "material": [
+    { "value": "band grazer plate", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "led mat starch", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }
+  ],
+  "dimension": [
+    { "value": { "amount": 11.0, "precision": 0.001 }, "axis": "length", "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+    { "value": { "amount": 0.019, "precision": 0.001 }, "axis": "diameter", "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] }
+  ],
+  "dateMade": { "time": "2290-01-01T00:00:00Z", "precision": "y" },
+  "collectedBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_MOKOENA"] }]
+}

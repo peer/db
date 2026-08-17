@@ -1,0 +1,23 @@
+{
+  "id": ["xeno.peerdb.org", "INDIVIDUAL", "G1_SENNAREL"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "INDIVIDUAL"] }],
+  "name": [{ "value": "Sennarel" }],
+  "description": [
+    {
+      "value": "<p>Walked the outer flats for sixty years and was the only person the survey ever met who claimed to have walked the entire shoreline, a claim she declined to elaborate and nobody has been able to check. She led the parties that met the grazers at the top of the tide from 2262 until she stopped going in 2291, and the meetings were not called again after 2294. She was never photographed, having been asked twice and having on both occasions been elsewhere by the time the request was translated.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "species": { "id": ["xeno.peerdb.org", "SPECIES", "G1_SUNARELI"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G1_WEIR_ROTA"] }, { "id": ["xeno.peerdb.org", "CULTURE", "G1_TOP_TIDE_MEET"] }],
+  "role": [{ "value": "walking party leader", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "born": { "time": "2216-01-01T00:00:00Z", "precision": "y" },
+  "died": { "time": "2301-01-01T00:00:00Z", "precision": "y" },
+  "birthplace": { "id": ["xeno.peerdb.org", "SITE", "G1_LOWER_MIDDEN"] },
+  "notes": [
+    {
+      "value": "<p>Her birth year is recorded as 2216 because that is what she gave. The ring itself is entered as occupied from 2218, which is when the survey arrived, and the two dates have never been reconciled.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

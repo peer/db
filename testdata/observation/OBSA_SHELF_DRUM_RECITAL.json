@@ -1,0 +1,31 @@
+{
+  "id": ["xeno.peerdb.org", "OBSERVATION", "OBSA_SHELF_DRUM_RECITAL"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "OBSERVATION"] }],
+  "title": [{ "value": "A full account recital recorded from the shelf edge", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "description": [
+    {
+      "value": "<p>Nine hours and forty minutes of drumming taken on geophones at two hundred metres, with eleven items answered by neighbouring colonies. Our reading of one answer is disputed.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "content": [
+    {
+      "value": "<p>Recorded a full recital from the shelf edge, geophones at two hundred metres. Nine hours and forty minutes, at a rate no single body could hold for more than a few minutes at a time.</p><p>Obligations came in the order incurred, with the amount and the party. Neighbouring colonies answered eleven items and left the rest, and since silence stands for assent the eleven answers are the whole of the day&#39;s news.</p><p>One item drew an answer that cut across the recital instead of waiting for the end of the line. The tape is clean and our reading of the amount does not agree with the reading returned by the Deposit Office, which has it nine times larger. Both readings are in the file until somebody settles it.</p><p>Nothing here is ever closed, because a closed account would end the relation it records. We follow the reason and we do not follow the practice: there is no cord, no lattice and no plate on that shelf, the recital does not repeat, and a colony is carrying the whole of it forward across what must be centuries.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "expedition": { "id": ["xeno.peerdb.org", "EXPEDITION", "EXP_CANOPY_FIRST"] },
+  "observedBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_BRANDT"] }, { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_TRAN"] }],
+  "observedAt": { "id": ["xeno.peerdb.org", "SITE", "G1_CANOPY_TETHER"] },
+  "observedOn": { "time": "2287-03-05T00:00:00Z", "precision": "d" },
+  "about": [
+    { "id": ["xeno.peerdb.org", "PRACTICE", "G1_DRUM_ACCOUNT"] },
+    { "id": ["xeno.peerdb.org", "SPECIES", "G1_KHEVNITH"] },
+    { "id": ["xeno.peerdb.org", "CULTURE", "G1_SHELF_LEDGER"] }
+  ],
+  "method": [
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "ACOUSTIC_RECORDING"] },
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "ARCHIVAL_COMPARISON"] }
+  ],
+  "fieldConditions": "Dry, hot and bright on the open shelf above the forest, with soot blowing off the cleared ground all day. Two of us and a technician, nobody else within four kilometres who is a person in our sense."
+}

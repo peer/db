@@ -1,0 +1,20 @@
+{
+  "id": ["xeno.peerdb.org", "SITE", "G3_SHELF_WARREN"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SITE"] }],
+  "name": [{ "value": "Shelf Warren", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "description": [
+    {
+      "value": "<p>A cut tunnel system in the lower terraces, with nine entrances and at least four hundred metres of surveyed passage, used for dwelling and for storage. It was occupied when recorded in 2259 and stood empty on the visit of 2288. The band had moved; the passages had not, and the doorways have been silting up ever since.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "REGION", "G3_SHELF_TERRACES"] },
+  "siteType": { "id": ["xeno.peerdb.org", "SITE_TYPE", "SUBSURFACE_WARREN"] },
+  "gridReference": "LT-047.1/+09.2",
+  "population": {
+    "value": { "from": { "amount": 0, "precision": 10 }, "to": { "amount": 300, "precision": 10 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "occupation": { "from": { "time": "2259-01-01T00:00:00Z", "precision": "y" }, "to": { "time": "2288-01-01T00:00:00Z", "precision": "y" } },
+  "image": [{ "value": "/f/Sfb9YxKNtper7tEKDyWDYf", "name": "G3_SHELF_WARREN.jpg", "caption": "General view", "source": "Consortium survey archive" }]
+}

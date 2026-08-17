@@ -1,0 +1,31 @@
+{
+  "id": ["xeno.peerdb.org", "ORGANISM", "G1_PROVISION_ENDOLITH"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "ORGANISM"] }],
+  "name": [{ "value": "Provision endolith", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "taxonCode": "TX-2501-a",
+  "description": [
+    {
+      "value": "<p>A microbial endolith living in pore space a few metres down in the rock of a dry outer world, dividing perhaps once a century and drawing what it needs from mineral chemistry and trace frost. It is the entire biosphere of that planet as far as anyone has established. The standing experiment on its growth rate began in 2229 and is now supervised by the third generation of investigators, none of whom expect to see the result.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "category": { "id": ["xeno.peerdb.org", "ORGANISM_CATEGORY", "ENDOLITH"] },
+  "foundOn": [{ "id": ["xeno.peerdb.org", "PLANET", "G1_COLD_PROVISION"] }],
+  "biome": [{ "id": ["xeno.peerdb.org", "BIOME", "ENDOLITH_ZONE"] }],
+  "typicalSize": { "value": { "amount": 4e-06, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+  "typicalMass": { "value": { "amount": 1e-10, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "kg"] }] },
+  "image": [
+    {
+      "value": "/f/Mmz3Y5QLaHHZkaSzNJMtPU",
+      "name": "G1_PROVISION_ENDOLITH.jpg",
+      "caption": "Field plate",
+      "source": "Drawn in the field; Consortium collection"
+    }
+  ],
+  "notes": [
+    {
+      "value": "<p>The experiment has outlived two institutes, one funding instrument and the original rock. The replacement rock was cut from the same outcrop, which the protocol permits and the second generation minuted at length.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

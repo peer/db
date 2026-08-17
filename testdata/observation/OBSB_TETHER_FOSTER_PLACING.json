@@ -1,0 +1,36 @@
+{
+  "id": ["xeno.peerdb.org", "OBSERVATION", "OBSB_TETHER_FOSTER_PLACING"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "OBSERVATION"] }],
+  "title": [
+    {
+      "value": "A child placed out on the terrace where two corporations share water",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "description": [
+    {
+      "value": "<p>Note on a placing out at the tether works, in which two corporations spoke and the bearing household did not.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "content": [
+    {
+      "value": "<p>8.iii.2296. On the terrace where the water corporation and the cable corporation share flow, in the open, in the middle of the afternoon, with perhaps sixty people standing about and none of them arranged.</p><p>Huenewa spoke for the receiving household and Wehuene for the corporation taking the child. Each stated what the child would be taught and, at greater length, what it would not. The two statements together ran nineteen minutes. The bearing household stated nothing at all, and that silence is the transfer; there is no other act.</p><p>The child was carried across before it could walk, which is the rule, and the fosterer&#39;s own foster obligations were restated in the same breath, which we had not expected and had to reconstruct afterwards from the recording.</p><p>We have not worked out why the receiving corporation speaks second. It is not seniority, since the pairing varies; it is not the direction of the water; and asked directly, Wehuene said that the one who is going to teach speaks after the one who is going to keep, which restates the order without explaining it.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "expedition": { "id": ["xeno.peerdb.org", "EXPEDITION", "EXP_OVERFALL_TETHER"] },
+  "observedBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_SUBRAMANIAN"] }, { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_WEN"] }],
+  "observedAt": { "id": ["xeno.peerdb.org", "SITE", "G4_TETHER_STUMP"] },
+  "observedOn": { "time": "2296-03-08T00:00:00Z", "precision": "d" },
+  "about": [
+    { "id": ["xeno.peerdb.org", "SPECIES", "G4_TERRACE_BUILDERS"] },
+    { "id": ["xeno.peerdb.org", "PRACTICE", "G4_PR_FOSTER_PLACING"] },
+    { "id": ["xeno.peerdb.org", "CULTURE", "G4_CU_TETHER_GUILDS"] }
+  ],
+  "method": [
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "PARTICIPANT_OBSERVATION"] },
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "LINGUISTIC_ELICITATION"] }
+  ],
+  "fieldConditions": "Bright, cold, wind up the benches; the anchor works running normally and the terrace wet from the flow above."
+}

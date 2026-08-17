@@ -43,10 +43,20 @@ useValidationRegistry()
     <div
       id="navbar"
       ref="navbar"
-      class="pd-navbar w-container left-0 flex min-h-[var(--pd-navbar-height)] grow items-center gap-x-1 border-b border-slate-400 bg-slate-300 p-1 shadow-md will-change-transform sm:gap-x-4 sm:p-4"
+      class="pd-navbar w-container left-0 flex min-h-[var(--pd-navbar-min-height)] grow items-center gap-x-1 border-b border-slate-400 bg-slate-300 p-1 shadow-md will-change-transform sm:gap-x-4 sm:p-4"
       v-bind="navbarAttrs"
     >
-      <RouterLink id="navbar-link-home" :to="{ name: 'Home' }" class="group shrink-0 rounded-sm outline-none hover:bg-slate-400 active:bg-slate-200">
+      <!--
+        A configured logo is an image of a fixed size, so its link never shrinks. A title standing in for one
+        is text and gives way instead: the link may shrink so that a long title does not take the room the
+        search box needs, which would otherwise collapse the search to its button on a wide screen.
+      -->
+      <RouterLink
+        id="navbar-link-home"
+        :to="{ name: 'Home' }"
+        class="pd-navbar-link-home group rounded-sm outline-none hover:bg-slate-400 active:bg-slate-200"
+        :class="logos.length ? 'shrink-0' : 'min-w-0 shrink'"
+      >
         <!--
           The logo is chosen from the configured min-width variants: each larger variant is a source that
           takes over from its width up (largest listed first so the first match wins), and the smallest is
@@ -63,14 +73,16 @@ useValidationRegistry()
         </picture>
         <!--
           Without a configured logo the title stands in for it. On small screens only its first letter is shown
-          (a compact monogram) so the navbar fits narrow viewports; the full title returns from sm up. The full
-          title stays the accessible name at every width through aria-label, so the shortened form is not read
-          out on its own.
+          (a compact monogram) so the navbar fits narrow viewports; the full title returns from sm up, cut off
+          with an ellipsis when it is too long for the room left rather than pushing the search box out, and
+          carrying the whole of itself as its tooltip. The full title stays the accessible name at every width
+          through aria-label, so neither shortened form is read out on its own.
         -->
         <h1
           v-else
           :aria-label="siteContext.title"
-          class="pd-navbar-logo text-4xl font-bold drop-shadow-xs group-focus:ring-2 group-focus:ring-primary-500 group-focus:ring-offset-1"
+          :title="siteContext.title"
+          class="pd-navbar-logo text-4xl font-bold drop-shadow-xs group-focus:ring-2 group-focus:ring-primary-500 group-focus:ring-offset-1 sm:truncate"
         >
           <span aria-hidden="true" class="sm:hidden">{{ siteContext.title?.slice(0, 1) }}</span>
           <span aria-hidden="true" class="hidden sm:inline">{{ siteContext.title }}</span>

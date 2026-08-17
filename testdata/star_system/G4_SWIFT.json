@@ -1,0 +1,18 @@
+{
+  "id": ["xeno.peerdb.org", "STAR_SYSTEM", "G4_SWIFT"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "STAR_SYSTEM"] }],
+  "name": [{ "value": "Swift", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "catalogueCode": "SPW-C/017",
+  "description": [
+    {
+      "value": "<p>A small red dwarf with a single planet, visited once. It is moving at a hundred and ninety kilometres a second relative to the galactic frame, which is unremarkable in this sector and would be extraordinary anywhere else.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "SECTOR", "G4_BACKSWING"] },
+  "spectralClass": "M5V",
+  "starCount": { "amount": 1, "precision": 1 },
+  "planetCount": { "amount": 1, "precision": 1 },
+  "distanceFromSol": { "value": { "amount": 3902.7, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "PARSEC"] }] },
+  "firstSurveyed": { "time": "2277-01-01T00:00:00Z", "precision": "y" }
+}

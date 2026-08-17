@@ -1,0 +1,23 @@
+{
+  "id": ["xeno.peerdb.org", "COLLECTIVE", "G3_LONG_SELF"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "COLLECTIVE"] }],
+  "name": [{ "value": "The Self Along the Long Rim", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "description": [
+    {
+      "value": "<p>A self carried by forty to a hundred bodies spread over some fifty kilometres of basin rim, never gathered, and held together by continuous drumming through warm rock. It is not a community and not a lineage: the bodies have no names, no obligations and no account of themselves, and none has ever responded to anything addressed to it alone. It has been in the exchange at the signal ground since the first descent and has given the same self-figure at every convergence since.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "species": { "id": ["xeno.peerdb.org", "SPECIES", "G3_RIM_DRUMMERS"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G3_RIM_CONVERGENCE"] }],
+  "role": [
+    { "value": "party to the convergences", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "holder of the eastern rim", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }
+  ],
+  "memberCount": {
+    "value": { "from": { "amount": 40, "precision": 10 }, "to": { "amount": 120, "precision": 10 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "activePeriod": { "from": { "time": "2272-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true },
+  "seat": { "id": ["xeno.peerdb.org", "SITE", "G3_RIM_DRUM_GROUND"] }
+}

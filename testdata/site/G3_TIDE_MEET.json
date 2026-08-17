@@ -1,0 +1,21 @@
+{
+  "id": ["xeno.peerdb.org", "SITE", "G3_TIDE_MEET"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SITE"] }],
+  "name": [{ "value": "Tide Meet", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "localName": [{ "value": "Uareimo", "gloss": "the place that fills" }],
+  "description": [
+    {
+      "value": "<p>A worn stone circle on a low island, empty for most of the cycle and crowded for two days of it, when parties arrive from across the warm pool. Seats are cut into the rock and are polished to a shine. Nothing is stored here between gatherings and nothing is left behind, which the survey finds admirable and inconvenient.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "REGION", "G3_WARMPOOL_ISLES"] },
+  "siteType": { "id": ["xeno.peerdb.org", "SITE_TYPE", "AGGREGATION_GROUND"] },
+  "gridReference": "SW-098.2/+01.7",
+  "population": {
+    "value": { "from": { "amount": 0, "precision": 10 }, "to": { "amount": 3000, "precision": 10 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "occupation": { "from": { "time": "2266-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true },
+  "image": [{ "value": "/f/XfN1yvqjuNSfTdu2B4annY", "name": "G3_TIDE_MEET.jpg", "caption": "General view", "source": "Consortium survey archive" }]
+}

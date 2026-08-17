@@ -1,0 +1,71 @@
+{
+  "id": ["xeno.peerdb.org", "SPECIES", "G1_IELUARO"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SPECIES"] }],
+  "name": [{ "value": "Undercount Households", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [
+    { "value": "Ieluaro", "gloss": "those who went up", "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G1_BASIN_SPEECH"] }] }
+  ],
+  "exonym": [{ "value": "Naoleira, the basin word, meaning the ones who left", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "taxonCode": "TX-1344-d",
+  "description": [
+    {
+      "value": "<p>Two thousand people at most, living on a dusty moon in sealed structures under drifted regolith, growing every calorie they eat indoors and importing everything else from the planet below. Membership of a household is by training rather than birth: air, water and the seed store are held by three separate guilds, and a person belongs to whichever taught them. Debts between guilds are the whole of the political system, and two parties remain kin precisely as long as an obligation between them stands open, which makes the settling of an account a small bereavement. They are taller and thinner than their planet-side relatives, they know it, and they mention it. The register lists them as a distinct people because they insist on it, and lists the objection of the planet-side houses in the same entry.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Majhna skupnost na luni, ki živi v zaprtih prostorih in je odvisna od trgovine s planetom pod seboj.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>No máximo duas mil pessoas, a viver numa lua poeirenta em estruturas seladas sob regolito acumulado, produzindo dentro de portas cada caloria que comem e importando tudo o resto do planeta em baixo. Pertence-se a uma casa por aprendizagem e não por nascimento: o ar, a água e o depósito de sementes estão nas mãos de três grémios distintos, e cada pessoa pertence àquele que a ensinou. As dívidas entre grémios são todo o sistema político, e duas partes continuam parentes exatamente enquanto uma obrigação entre elas estiver em aberto, o que faz do encerramento de uma conta um pequeno luto. São mais altos e mais magros do que os seus parentes do planeta, sabem-no e não deixam de o dizer. O registo lista-os como um povo distinto porque eles insistem nisso, e regista na mesma entrada a objeção das casas do planeta.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "homeworld": { "id": ["xeno.peerdb.org", "MOON", "G1_UNDERCOUNT"] },
+  "alsoFoundOn": [{ "id": ["xeno.peerdb.org", "PLANET", "G1_LEDGER_IV"] }],
+  "bodyPlan": [
+    {
+      "value": "<p>The basin plan again, drawn out by four generations of low gravity: the neck longer, the limbs thinner, the chest deeper for the thin recycled air inside the domes. The scale has lost most of its reflective quality, having no glare to work against, and is a dull cream. Grip is the strongest thing about them, and handholds run along every corridor ceiling in the settlement for reasons a visitor works out within an hour of arriving.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "typicalHeight": { "value": { "amount": 1.91, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+  "typicalMass": { "value": { "amount": 52.0, "precision": 0.1 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "kg"] }] },
+  "lifespan": {
+    "value": { "from": { "amount": 55, "precision": 1 }, "to": { "amount": 110, "precision": 1 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_YEAR"] }]
+  },
+  "sensoryModality": [
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "CONTACT_CHEMO"] },
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "PRESSURE_GRADIENT"] },
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "GRAVICEPTION"] }
+  ],
+  "subsistence": [
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "SEALED_CULTIVATION"] },
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "TRADE_DEPENDENCY"] }
+  ],
+  "individuality": { "id": ["xeno.peerdb.org", "INDIVIDUALITY_MODE", "BOUNDED"] },
+  "socialOrganisation": { "id": ["xeno.peerdb.org", "SOCIAL_ORGANISATION", "GUILD_FEDERATION"] },
+  "kinshipSystem": { "id": ["xeno.peerdb.org", "KINSHIP_SYSTEM", "DEBT_KINSHIP"] },
+  "communication": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G1_BASIN_SPEECH"] }],
+  "population": {
+    "value": { "from": { "amount": 900, "precision": 1000 }, "to": { "amount": 2100, "precision": 1000 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "contactStatus": { "id": ["xeno.peerdb.org", "CONTACT_STATUS", "SUSTAINED"] },
+  "firstContact": { "time": "2239-01-01T00:00:00Z", "precision": "y" },
+  "image": [
+    {
+      "value": "/f/RNmn7TCbY7eKxgyThyCh4k",
+      "name": "G1_IELUARO.jpg",
+      "caption": "Field plate",
+      "source": "Drawn in the field; Consortium collection"
+    }
+  ],
+  "notes": [
+    {
+      "value": "<p>By charter the three guilds may not hold members in common. The charter was drafted immediately after the year in which they did.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

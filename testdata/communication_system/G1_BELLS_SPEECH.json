@@ -1,0 +1,47 @@
+{
+  "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G1_BELLS_SPEECH"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM"] }],
+  "name": [{ "value": "Bells Speech", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Qatpekun", "gloss": "the talk of the standing-together, used on both worlds with the same meaning" }],
+  "description": [
+    {
+      "value": "<p>One language spoken on two worlds of the same system, by the basin people of the dune world and by the corporations of the storm world, with a dialect boundary that runs between planets rather than across either of them. It is exact about quantity, schedule and weather, and its tense system distinguishes what will happen from what has been arranged to happen, which is not a distinction either population regards as subtle. On the storm world it is also piped: a wind surrogate reproduces the prosody with the vowels stripped out and is understood at four kilometres, in weather that makes the mouth useless. Whether the two worlds share the language by contact or by descent is the sector&#39;s oldest open question and has an entire funding line attached to it.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "modality": [
+    { "id": ["xeno.peerdb.org", "COMMUNICATION_MODALITY", "VOCALISATION"] },
+    { "id": ["xeno.peerdb.org", "COMMUNICATION_MODALITY", "WIND_SURROGATE"] }
+  ],
+  "users": {
+    "value": { "from": { "amount": 340000, "precision": 100 }, "to": { "amount": 570000, "precision": 100 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "sampleGloss": [
+    {
+      "value": "<p><i>Qatpe tuk, muq-nat pekun.</i> name stands, brine two-fillings. Free translation: the name stands until the pool has filled twice. Piped across the flats the same sentence arrives with the vowels gone and is understood anyway.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "recording": [
+    {
+      "value": "/f/VhqH8uxuN6KjCDHJhMFV95",
+      "name": "system-G1_BELLS_SPEECH.mp3",
+      "caption": "Elicitation sample",
+      "duration": { "value": { "amount": 4, "precision": 1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "MINUTE"] }] },
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G1_BELLS_SPEECH"] }],
+      "note": [
+        {
+          "value": "<p>Recorded during elicitation and kept as the reference sample for this system.</p>",
+          "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+        }
+      ]
+    }
+  ],
+  "notes": [
+    {
+      "value": "<p>The funding line was opened in 2259 to settle the question within a decade. It is renewed annually and has outlived four of the principal investigators named in the original application.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

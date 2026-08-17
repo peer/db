@@ -99,7 +99,7 @@ import {
   triggerUndo,
 } from "@/partials/input/InputHTML.view"
 import InputLink from "@/partials/input/InputLink.vue"
-import { useLock } from "@/progress"
+import { useInactivated, useLock } from "@/progress"
 import { uploadFile } from "@/upload"
 import { useValidation, useValidationRegistry } from "@/validation"
 
@@ -138,6 +138,7 @@ watch(errors, (v) => emit("errors", v), { flush: "sync" })
 // signal avoids that flicker without changing what the toolbar / parent
 // forms see as locked.
 const lock = useLock()
+const inactivated = useInactivated()
 const validationLock = ref(0)
 
 const { t } = useI18n({ useScope: "global" })
@@ -238,6 +239,15 @@ const canOutdent = ref(false)
 // that already disable themselves when no textblock in the range
 // accepts marks - so we only need this flag to gate the block-type buttons.
 const isTextblockSelection = ref(true)
+
+// True when the editor's selection spans a range rather than sitting at
+// a caret. It drives the pd-inputhtml-selection-range class on the
+// wrapper, which is how the editor publishes which of the two it is
+// working with: the toolbar looks the same either way (a link can be
+// made at a caret as well as out of a selection), while the two produce
+// different results, and the selection the editor has is the one it
+// read from the DOM rather than the one the DOM currently holds.
+const hasRangeSelection = ref(false)
 
 // True when the cursor's textblock accepts inline marks. Drives the
 // disabled state for the inline mark buttons (bold / italic / etc.).
@@ -376,7 +386,7 @@ const validator: ValidatorFn<string> = async function (_value, options) {
   return isStructurallyEmpty.value ? [{ code: "required" }] : []
 }
 
-const isInactive = computed(() => lock.value > 0 || props.readonly)
+const isInactive = computed(() => lock.value > 0 || inactivated.value || props.readonly)
 const invalid = computed(() => props.invalid || errors.value.length > 0)
 
 const { runValidation, validatedInput } = useValidation(
@@ -546,6 +556,7 @@ function updateActiveState(state: EditorState) {
   marksAllowedHere.value = toggleMark(schema.marks.bold)(state)
   italicAllowedHere.value = toggleMark(schema.marks.italic)(state)
   isTextblockSelection.value = !(state.selection instanceof NodeSelection)
+  hasRangeSelection.value = !state.selection.empty
 }
 
 // Click handler for the top toolbar's Link button. The button is gated
@@ -1535,7 +1546,7 @@ watch(
     focus-within
     :aria-readonly="isInactive || undefined"
     class="pd-inputhtml p-0 contain-inline-size"
-    :class="{ 'pd-locked': lock > 0 }"
+    :class="{ 'pd-locked': lock > 0, 'pd-inactive': inactivated || readonly, 'pd-inputhtml-selection-range': hasRangeSelection }"
     @dragenter="onWrapperDragEnter"
     @dragover="onWrapperDragOver"
     @dragleave="onWrapperDragLeave"
@@ -1565,7 +1576,7 @@ watch(
       <!--
         History pill.
       -->
-      <span class="mx-0.5 rounded-sm bg-slate-200 box-decoration-clone py-[18px]">
+      <span class="pd-inputhtml-group-history mx-0.5 rounded-sm bg-slate-200 box-decoration-clone py-[18px]">
         <button
           type="button"
           class="pd-inputhtml-button-undo m-0.5 rounded-sm px-2 py-0.5 align-middle outline-none first:ml-1 last:mr-1 hover:bg-slate-100 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 disabled:cursor-not-allowed disabled:text-gray-500 disabled:hover:bg-transparent"
@@ -1591,7 +1602,7 @@ watch(
       <!--
         Block type pill.
       -->
-      <span class="mx-0.5 rounded-sm bg-slate-200 box-decoration-clone py-[18px]">
+      <span class="pd-inputhtml-group-blocktype mx-0.5 rounded-sm bg-slate-200 box-decoration-clone py-[18px]">
         <button
           type="button"
           class="pd-inputhtml-button-paragraph m-0.5 rounded-sm px-2 py-0.5 align-middle outline-none first:ml-1 last:mr-1 not-aria-pressed:hover:bg-slate-100 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 disabled:cursor-not-allowed disabled:text-gray-500 disabled:not-aria-pressed:hover:bg-transparent aria-pressed:bg-white aria-pressed:shadow-xs disabled:aria-pressed:bg-slate-100"
@@ -1694,7 +1705,7 @@ watch(
       </span>
 
       <!-- Formatting pill. -->
-      <span class="mx-0.5 rounded-sm bg-slate-200 box-decoration-clone py-[18px]">
+      <span class="pd-inputhtml-group-formatting mx-0.5 rounded-sm bg-slate-200 box-decoration-clone py-[18px]">
         <button
           type="button"
           class="pd-inputhtml-button-bold m-0.5 rounded-sm px-2 py-0.5 align-middle outline-none first:ml-1 last:mr-1 not-aria-pressed:hover:bg-slate-100 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 disabled:cursor-not-allowed disabled:text-gray-500 disabled:not-aria-pressed:hover:bg-transparent aria-pressed:bg-white aria-pressed:shadow-xs disabled:aria-pressed:bg-slate-100"
@@ -1755,7 +1766,7 @@ watch(
       <!--
         Indent / outdent pill.
       -->
-      <span class="mx-0.5 rounded-sm bg-slate-200 box-decoration-clone py-[18px]">
+      <span class="pd-inputhtml-group-indent mx-0.5 rounded-sm bg-slate-200 box-decoration-clone py-[18px]">
         <button
           type="button"
           class="pd-inputhtml-button-outdent m-0.5 rounded-sm px-2 py-0.5 align-middle outline-none first:ml-1 last:mr-1 hover:bg-slate-100 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 disabled:cursor-not-allowed disabled:text-gray-500 disabled:hover:bg-transparent"
@@ -1781,7 +1792,7 @@ watch(
       <!--
         Inserts pill.
       -->
-      <span class="mx-0.5 rounded-sm bg-slate-200 box-decoration-clone py-[18px]">
+      <span class="pd-inputhtml-group-inserts mx-0.5 rounded-sm bg-slate-200 box-decoration-clone py-[18px]">
         <button
           type="button"
           class="pd-inputhtml-button-link m-0.5 rounded-sm px-2 py-0.5 align-middle outline-none first:ml-1 last:mr-1 hover:bg-slate-100 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 disabled:cursor-not-allowed disabled:text-gray-500 disabled:hover:bg-transparent"
@@ -1940,7 +1951,7 @@ watch(
         <!--
           Label column.
         -->
-        <div class="flex shrink-0 cursor-pointer flex-col items-start gap-1 pt-0.5" @click="onLabelClick">
+        <div class="pd-inputhtml-column-label flex shrink-0 cursor-pointer flex-col items-start gap-1 pt-0.5" @click="onLabelClick">
           <span class="pd-inputhtml-label-link leading-none text-gray-700">{{ bottomLabel }}</span>
           <div class="flex flex-row flex-wrap gap-1">
             <InputBadges :changed="isLinkInputDirty" @revert="onRevertLinkInput" />

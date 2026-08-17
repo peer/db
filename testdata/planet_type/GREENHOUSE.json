@@ -1,0 +1,24 @@
+{
+  "id": ["xeno.peerdb.org", "PLANET_TYPE", "GREENHOUSE"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PLANET_TYPE"] }],
+  "name": [
+    { "value": "High-pressure greenhouse", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "Visokotlačna topla greda", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }] },
+    { "value": "Estufa de alta pressão", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>A rocky world with a surface pressure above about 20 bar and a surface far hotter than its insolation alone would produce. Requires a solid surface; hot volatile giants are excluded.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Kamnit svet s tlakom nad približno 20 bari in površjem, veliko bolj vročim, kot bi ga povzročilo obsevanje.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Mundo rochoso com pressão à superfície acima de cerca de 20 bar e uma superfície muito mais quente do que a insolação por si só produziria. Exige superfície sólida; os gigantes voláteis quentes ficam excluídos.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "code": ["greenhouse"]
+}

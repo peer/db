@@ -1,0 +1,45 @@
+{
+  "id": ["xeno.peerdb.org", "NARRATIVE", "G4_NA_TWO_HALVES"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "NARRATIVE"] }],
+  "title": [{ "value": "Why the Sea Goes Round in Two Halves", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [
+    {
+      "value": "ngomunuma",
+      "gloss": "the going round, told",
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G4_COM_RING_PULSE"] }]
+    }
+  ],
+  "description": [
+    {
+      "value": "<p>An origin account called at a vent gathering, holding that the halves are a property of the sea rather than of the swimmers, and that anybody who tries to feed their own half will find the water arranged against it. It is called in overlap by both halves at once, and no recording of it contains a single silence.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "genre": { "id": ["xeno.peerdb.org", "NARRATIVE_GENRE", "ORIGIN_ACCOUNT"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G4_CU_RING_MOIETIES"] }],
+  "recordedBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_PRASETYO"] }],
+  "recordedAt": { "id": ["xeno.peerdb.org", "SITE", "G4_SUNK_RELAY"] },
+  "recordedOn": { "time": "2268-01-01T00:00:00Z", "precision": "y" },
+  "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G4_COM_RING_PULSE"] }],
+  "content": [
+    {
+      "value": "<p>The water leaves the warm place, goes under the ice and comes back along the floor. It has gone that way since before anything went round with it. It does not go the other way for anybody.</p><p>So there is a half that meets the water going out and a half that meets it coming back, and they are not the same half, and the clumps do not care which of us crops them but the water does.</p><p>Feed your own and you will be at the wrong vent on the wrong tide with your mouth full and nobody to give it to. This is not a rule. Go and try it. The sea will do it to you.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "recording": [
+    {
+      "value": "/f/4DzwWad4B1qrTi1ULq8V3k",
+      "name": "narrative-G4_NA_TWO_HALVES.mp3",
+      "caption": "Performance, recorded on site",
+      "duration": { "value": { "amount": 9, "precision": 1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "MINUTE"] }] },
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G4_COM_RING_PULSE"] }]
+    }
+  ],
+  "notes": [
+    {
+      "value": "<p>Forty years of oceanography has failed to find anything in the circulation that the division corresponds to. The account is nonetheless the most stable text in the corpus and the only one every recording agrees on.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

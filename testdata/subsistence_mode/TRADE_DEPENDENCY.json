@@ -1,0 +1,24 @@
+{
+  "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "TRADE_DEPENDENCY"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE"] }],
+  "name": [
+    { "value": "Trade dependency", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "Odvisnost od trgovine", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }] },
+    { "value": "Dependência do comércio", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>A community that cannot feed itself from its own territory and covers the shortfall by exchange, usually paying in craft or in access. Excludes groups that trade only for luxuries.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Skupnost, ki se ne more prehraniti z lastnega ozemlja in primanjkljaj pokrije z izmenjavo.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Comunidade que não consegue alimentar-se do próprio território e cobre a falta por troca, pagando em geral com artesanato ou com acesso. Exclui grupos que comerciam apenas por artigos de luxo.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "code": ["trade-dep"]
+}

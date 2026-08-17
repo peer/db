@@ -1,0 +1,30 @@
+{
+  "id": ["xeno.peerdb.org", "OBSERVATION", "OBSA_CARRY_ACROSS_FROM_WALL"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "OBSERVATION"] }],
+  "title": [
+    { "value": "One carrier across the ice line, watched from the channel wall", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>A funeral carry recorded from the only permitted position. One person carried, as the rule requires, and was not addressed on the way out or the way back.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "content": [
+    {
+      "value": "<p>Recorded from the permitted position on the channel wall, which is the only position there is. The household holding the eighth row wrapped its dead in a sheet of plate fibre and tied it at the ankles and the shoulders.</p><p>One carrier, on one shoulder, across the line and down the walled channel to the position with the head to the night. The walk out took thirty-four minutes in a wind that made our footing poor and did not appear to affect hers. She laid the body down, turned and walked back without waiting.</p><p>Nothing was said on the way out and nothing on the way back. Two people passing on the row faced away and held their plates flat, which is how somebody who is carrying is not addressed. A second walker would not be help; it would be a second funeral.</p><p>The name of the position did not go into the channel. It stays on the terrace, and whoever takes the ground next takes the name and everything owed to it and by it. We have now watched that happen and we still cannot hold it in the head at the same time as the funeral.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "expedition": { "id": ["xeno.peerdb.org", "EXPEDITION", "EXP_EVENING_TERRACES"] },
+  "observedBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_SEO"] }, { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_MOKOENA"] }],
+  "observedAt": { "id": ["xeno.peerdb.org", "SITE", "G2_QUIET_FURROW"] },
+  "observedOn": { "time": "2290-10-27T00:00:00Z", "precision": "d" },
+  "about": [
+    { "id": ["xeno.peerdb.org", "PRACTICE", "G2_CARRY_ACROSS"] },
+    { "id": ["xeno.peerdb.org", "CULTURE", "G2_EVENING_ROWS"] },
+    { "id": ["xeno.peerdb.org", "SPECIES", "G2_ANUWELME"] }
+  ],
+  "method": [{ "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "PARTICIPANT_OBSERVATION"] }],
+  "fieldConditions": "Night side of the terraces, the light failing across the ice line, wind hard enough to lean on. Two of us at the wall and nobody else at all after the carrier passed."
+}

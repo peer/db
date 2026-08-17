@@ -1,0 +1,24 @@
+{
+  "id": ["xeno.peerdb.org", "ARTIFACT_CATEGORY", "VESSEL_CEREMONIAL"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "ARTIFACT_CATEGORY"] }],
+  "name": [
+    { "value": "Ceremonial vessel", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "Obredna posoda", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }] },
+    { "value": "Vaso cerimonial", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>Containers made for ritual use, identified by context, restricted material or a form unusable for daily work. Excludes ordinary containers reused in ritual.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Posode za obredno rabo, prepoznane po kontekstu, gradivu ali obliki, neuporabni za vsakdanje delo.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Recipientes feitos para uso ritual, identificados pelo contexto, por matéria restrita ou por uma forma inutilizável no trabalho diário. Exclui recipientes comuns reaproveitados em ritual.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "code": ["cer-vessel"]
+}

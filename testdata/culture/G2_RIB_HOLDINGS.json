@@ -1,0 +1,43 @@
+{
+  "id": ["xeno.peerdb.org", "CULTURE", "G2_RIB_HOLDINGS"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "CULTURE"] }],
+  "name": [{ "value": "Rib Holdings", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [
+    {
+      "value": "Marrollume",
+      "gloss": "those who hold to a rib",
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G2_CEILING_CALL"] }]
+    }
+  ],
+  "catalogueCode": "CU-2231-03",
+  "description": [
+    {
+      "value": "<p>Households live upside down, lashed to the fluted ribs on the underside of a thirty-kilometre ice shell, with four kilometres of black water below them and a floor they have no reason to visit. There has never been light here, so there is no such thing as an appearance: a household is known by the shape of its hull, the pitch of its wake and the taste of the water leaving it. Houses are corporate, hold their stretch of rib across generations and reckon kin through fermentation cultures kept in slung bladders, which are divided when a household divides and can be traced back further than anybody&#39;s account of their own ancestors. Nets hang below and take what rises on the slow warm plume off the vent chain, so a good rib is always a matter of somebody else&#39;s plume and that is what the arguments are about. Waste dropped from the ribs is answered from the floor with sorted material, an exchange the households describe as a debt that is never settled and was never meant to be.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Gospodinjstva visijo z ledenega stropa in držijo svoj rebrast pas skozi rodove. Svetlobe ni, zato se hiša prepozna po obliki trupa in okusu vode.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>As casas vivem de cabeça para baixo, amarradas às nervuras caneladas da face inferior de um invólucro de gelo com trinta quilómetros de espessura, com quatro quilómetros de água negra por baixo e um fundo que não têm razão nenhuma para visitar. Nunca aqui houve luz, pelo que não existe tal coisa como a aparência: uma casa reconhece-se pela forma do seu casco, pelo tom da sua esteira e pelo sabor da água que dela sai. As casas são corporativas, mantêm o seu troço de nervura ao longo de gerações e contam o parentesco através de culturas de fermentação guardadas em bexigas suspensas, que se dividem quando uma casa se divide e cuja ascendência se consegue seguir mais para trás do que a que qualquer um consegue dar dos seus próprios antepassados. As redes pendem em baixo e apanham o que sobe na pluma morna e lenta que se ergue da cadeia de fontes, pelo que uma boa nervura é sempre uma questão da pluma de outrem, e é disso que tratam as discussões. Os detritos largados das nervuras são retribuídos, a partir do fundo, com material separado, troca que as casas descrevem como uma dívida que nunca se salda nem foi feita para isso.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "practisedBy": [{ "id": ["xeno.peerdb.org", "SPECIES", "G2_OLLUMARU"] }, { "id": ["xeno.peerdb.org", "SPECIES", "G2_ULLOMARRE"] }],
+  "presentAt": [{ "id": ["xeno.peerdb.org", "SITE", "G2_LOWER_MIDDEN"] }],
+  "kinshipSystem": { "id": ["xeno.peerdb.org", "KINSHIP_SYSTEM", "FERMENT_LINEAGE"] },
+  "socialOrganisation": { "id": ["xeno.peerdb.org", "SOCIAL_ORGANISATION", "LINEAGE_HOUSES"] },
+  "subsistence": [
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "COLONY_GRAZING"] },
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "DRIFT_HARVESTING"] },
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "MANAGED_DECAY"] }
+  ],
+  "communication": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G2_CEILING_CALL"] }],
+  "population": {
+    "value": { "from": { "amount": 5000, "precision": 100 }, "to": { "amount": 13000, "precision": 100 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "period": { "from": { "time": "2231-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true },
+  "image": [{ "value": "/f/HB2pTuCse2GQosTLVUXdkg", "name": "G2_RIB_HOLDINGS.jpg", "caption": "Gathering", "source": "Consortium survey archive" }]
+}

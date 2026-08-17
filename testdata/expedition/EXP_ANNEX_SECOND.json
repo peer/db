@@ -1,0 +1,29 @@
+{
+  "id": ["xeno.peerdb.org", "EXPEDITION", "EXP_ANNEX_SECOND"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "EXPEDITION"] }],
+  "name": [{ "value": "Second Quiet Annex Approach", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "catalogueCode": "EXP-2303-01",
+  "description": [
+    {
+      "value": "<p>Much the same team, the same sector and, at a little over a quarter of the cost, the world itself. Six years produced the nitrogen crust profile, a thermal history consistent with an ocean beneath it, and plume chemistry that is suggestive of life without being evidence of it. No landing was made and none was authorised. The expedition&#39;s chief practical finding is that the drive fault which stopped the first approach lay in a component since replaced on both ships for entirely unrelated reasons.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "destination": [{ "id": ["xeno.peerdb.org", "PLANET", "G1_QUIET_ANNEX_STRAY"] }],
+  "period": { "from": { "time": "2303-01-01T00:00:00Z", "precision": "y" }, "to": { "time": "2309-01-01T00:00:00Z", "precision": "y" } },
+  "ledBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_BRANDT"] }],
+  "teamMember": [
+    { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_ARAI"] },
+    { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_BEKELE"] },
+    { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_BAUTISTA"] },
+    { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_QUISPE"] }
+  ],
+  "organisedBy": [{ "id": ["xeno.peerdb.org", "INSTITUTE", "INST_FARSIGHT"] }],
+  "method": [
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "REMOTE_SENSING"] },
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "MATERIAL_SAMPLING"] }
+  ],
+  "ethics": { "id": ["xeno.peerdb.org", "ETHICS_PROTOCOL", "PROTOCOL_5"] },
+  "budget": { "value": { "amount": 11200000, "precision": 1000 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "$"] }] },
+  "report": [{ "value": "/f/X77kSAkoSAxNvwfFDU33vf", "name": "EXP_ANNEX_SECOND.pdf", "caption": "Final report" }]
+}

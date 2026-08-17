@@ -1,0 +1,18 @@
+{
+  "id": ["xeno.peerdb.org", "STAR_SYSTEM", "G3_AWL"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "STAR_SYSTEM"] }],
+  "name": [{ "value": "Awl", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "catalogueCode": "HB-4/001",
+  "description": [
+    {
+      "value": "<p>The only system in the sector that has been entered at all, by an unstaffed probe that passed through in 2307 and returned eleven hours of usable data. Four planets are inferred from occultation timing, none of them catalogued individually, because the probe did not slow down and nobody has been back.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "SECTOR", "G3_BLANK_MARCHES"] },
+  "spectralClass": "M3V",
+  "starCount": { "amount": 1, "precision": 1 },
+  "planetCount": { "amount": 4, "precision": 1 },
+  "distanceFromSol": { "value": { "amount": 743.2, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "PARSEC"] }] },
+  "firstSurveyed": { "time": "2307-01-01T00:00:00Z", "precision": "y" }
+}

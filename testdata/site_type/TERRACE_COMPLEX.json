@@ -1,0 +1,24 @@
+{
+  "id": ["xeno.peerdb.org", "SITE_TYPE", "TERRACE_COMPLEX"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SITE_TYPE"] }],
+  "name": [
+    { "value": "Cultivated terrace complex", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "Terasni kompleks", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }] },
+    { "value": "Complexo de socalcos cultivados", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>Engineered stepped surfaces for growing, settling or fermenting, with retaining works and controlled flow between levels. Excludes natural benches used opportunistically without construction.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Zgrajene stopničaste površine za gojenje ali vrenje, z opornimi zidovi in nadzorovanim pretokom.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Superfícies escalonadas construídas para cultivar, decantar ou fermentar, com obras de suporte e escoamento controlado entre níveis. Exclui patamares naturais aproveitados sem obra.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "code": ["terrace"]
+}

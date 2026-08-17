@@ -1,0 +1,38 @@
+{
+  "id": ["xeno.peerdb.org", "PLANET", "G3_WINDLASS_F"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PLANET"] }],
+  "name": [{ "value": "Windlass f", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "catalogueCode": "HB-1/030-f",
+  "description": [
+    {
+      "value": "<p>A mid-sized giant with a thin bright ring and six confirmed moons, two of which have been landed on. A single atmospheric probe returned one spectrum carrying a feature that has never been reproduced and has never been explained. The entry accordingly records the world as not demonstrated lifeless rather than as inhabited by anything, a distinction that matters a great deal to the committee and to nobody else.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Um gigante de tamanho médio com um anel fino e brilhante e seis luas confirmadas, em duas das quais já se aterrou. Uma única sonda atmosférica devolveu um espectro com uma assinatura que nunca foi reproduzida nem explicada. A entrada regista por isso o mundo como não demonstrado sem vida, e não como habitado por alguma coisa, distinção que importa imenso ao comité e a mais ninguém.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "STAR_SYSTEM", "G3_WINDLASS"] },
+  "planetType": { "id": ["xeno.peerdb.org", "PLANET_TYPE", "VOLATILE_GIANT"] },
+  "biome": [{ "id": ["xeno.peerdb.org", "BIOME", "AERIAL_MAT"] }],
+  "radius": { "value": { "amount": 6.2, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_RADIUS"] }] },
+  "mass": { "value": { "amount": 61.0, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_MASS"] }] },
+  "surfaceGravity": { "value": { "amount": 1.59, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "STANDARD_GRAVITY"] }] },
+  "dayLength": { "value": { "amount": 14.1, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "HOUR"] }] },
+  "orbitalPeriod": { "value": { "amount": 2988.0, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_DAY"] }] },
+  "ringSystem": true,
+  "meanTemperature": { "value": { "amount": -168.0, "precision": 0.1 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "°C"] }] },
+  "hydrosphere": { "value": { "amount": 0, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "PERCENT"] }] },
+  "atmosphere": [
+    {
+      "value": "<p>Hydrogen, helium and methane in flat bands, with ammonia ice above. The probe survived to nine bar and then stopped reporting, at which point it was still falling.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "biosphereUnknown": true,
+  "contactStatus": { "id": ["xeno.peerdb.org", "CONTACT_STATUS", "NO_CONTACT"] },
+  "firstSurveyed": { "time": "2267-01-01T00:00:00Z", "precision": "y" },
+  "surveyPeriod": { "from": { "time": "2267-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true },
+  "image": [{ "value": "/f/FoJTUpi4cys1g9rKdKi5bG", "name": "G3_WINDLASS_F.jpg", "caption": "Surface view", "source": "Consortium survey archive" }]
+}

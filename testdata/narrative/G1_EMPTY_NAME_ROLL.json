@@ -1,0 +1,39 @@
+{
+  "id": ["xeno.peerdb.org", "NARRATIVE", "G1_EMPTY_NAME_ROLL"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "NARRATIVE"] }],
+  "title": [{ "value": "The Roll, With the Empty Name Last", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [
+    {
+      "value": "Qatpe Tukun",
+      "gloss": "the standing-together that holds the names",
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G1_BELLS_SPEECH"] }]
+    }
+  ],
+  "description": [
+    {
+      "value": "<p>The recitation of the name set, read out on the basin floor while the pool stands, name by name with the holder and the relation each name carries. It is the legal basis of every claim in the assembly and it ends, as it has ended since 2244, with a name and no holder.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "genre": { "id": ["xeno.peerdb.org", "NARRATIVE_GENRE", "GENEALOGICAL_RECITATION"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G1_NAME_ASSEMBLY"] }],
+  "recordedBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_DOYLE"] }, { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_WEN"] }],
+  "recordedAt": { "id": ["xeno.peerdb.org", "SITE", "G1_KUTAK_MEET"] },
+  "recordedOn": { "time": "2281-01-01T00:00:00Z", "precision": "y" },
+  "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G1_BELLS_SPEECH"] }],
+  "content": [
+    {
+      "value": "<p>Qatpe stands, and holds to Nataq, and holds to Tuqpe, and owes the jars of the eastern hollow two fillings.</p><p>Nataq stands, and holds to Qatpe, and holds to Pekun, and owes nothing, and is owed the second draw.</p><p>Pekun stands, and holds to Nataq, and to Muqte, and to the hollow that has moved twice and is still the same hollow.</p><p>Muqte stands, and came empty to the name in the year of the division, and took what the name was carrying, and has paid four of it.</p><p>And Qamuq. Qamuq holds to Pekun and to Tuqpe and to the western jars. Qamuq is owed the fourth draw and the loan of two frames. Qamuq is not held by anybody.</p><p>Qamuq stands empty and is read in its place.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "recording": [
+    {
+      "value": "/f/MDEAMGMPL8yFECasWgGNPd",
+      "name": "narrative-G1_EMPTY_NAME_ROLL.mp3",
+      "caption": "Performance, recorded on site",
+      "duration": { "value": { "amount": 7, "precision": 1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "MINUTE"] }] },
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G1_BELLS_SPEECH"] }]
+    }
+  ]
+}

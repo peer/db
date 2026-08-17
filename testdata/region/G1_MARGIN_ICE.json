@@ -1,0 +1,19 @@
+{
+  "id": ["xeno.peerdb.org", "REGION", "G1_MARGIN_ICE"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "REGION"] }],
+  "name": [{ "value": "The Margin Ice", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Mmelien" }],
+  "description": [
+    {
+      "value": "<p>A cryovolcanic plain the size of a small continent, resurfaced in overlapping lobes of refrozen slush, with active fissures moving across it on a decadal cycle. Settlement follows the warmth and abandons ground as it cools, so the region contains a great many recently occupied places and very few currently occupied ones. Instruments left in 2298 still report from six of them.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "PLANET", "G1_MARGIN_NOTE_III"] },
+  "biome": [{ "id": ["xeno.peerdb.org", "BIOME", "CRYO_PLAIN"] }, { "id": ["xeno.peerdb.org", "BIOME", "BRINE_SEA"] }],
+  "area": { "value": { "amount": 2900000, "precision": 100 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "SQUARE_KILOMETRE"] }] },
+  "elevationRange": {
+    "value": { "from": { "amount": -60, "precision": 10 }, "to": { "amount": 1400, "precision": 10 } },
+    "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }]
+  }
+}

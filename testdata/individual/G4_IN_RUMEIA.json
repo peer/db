@@ -1,0 +1,17 @@
+{
+  "id": ["xeno.peerdb.org", "INDIVIDUAL", "G4_IN_RUMEIA"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "INDIVIDUAL"] }],
+  "name": [{ "value": "Rumeia" }],
+  "description": [
+    {
+      "value": "<p>The other person from the same division, who continued eastward and has been recorded four times since. She asked in 2304 that she and Rumeio be entered as one record, since the past the entries describe is one past and neither of them is the elder. The register cannot do this, the request is filed with both entries, and the ethics committee has ruled that the objection must be reproduced wherever either entry is published, which is what this sentence is.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "species": { "id": ["xeno.peerdb.org", "SPECIES", "G4_RIDGE_DWELLERS"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G4_CU_RACK_BANDS"] }],
+  "role": [{ "value": "band member", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "formOfAddress": "by crest, not by name",
+  "born": { "time": "2277-01-01T00:00:00Z", "precision": "y" },
+  "birthplace": { "id": ["xeno.peerdb.org", "SITE", "G4_RACK_CAMP"] }
+}

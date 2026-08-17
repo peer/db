@@ -1,0 +1,41 @@
+{
+  "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G4_COM_THAW_TONGUE"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM"] }],
+  "name": [{ "value": "Thaw Tongue", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Ekkuttanka", "gloss": "what is said while awake" }],
+  "description": [
+    {
+      "value": "<p>Struck through warren walls and floors for distance, and conducted at close quarters by pressing a fusion pad to a wall or to another speaker, which puts chemistry and vibration into the same utterance. It exists only in the decades of the thaw and has no speakers whatever for the two centuries between, when the parties to it are one body and have nothing to send. It carries names, cohort membership and the terms of the coming dormancy, and it has no past tense, since everything before the last waking is held in common and telling it would be an insult. The one recorded corpus is eleven years long, and every grammar written from it has been written by people who will not hear it spoken.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "modality": [
+    { "id": ["xeno.peerdb.org", "COMMUNICATION_MODALITY", "SUBSTRATE_PERCUSSION"] },
+    { "id": ["xeno.peerdb.org", "COMMUNICATION_MODALITY", "CHEMICAL_SIGNATURE"] }
+  ],
+  "users": {
+    "value": { "from": { "amount": 12000, "precision": 100 }, "to": { "amount": 30000, "precision": 100 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "sampleGloss": [
+    {
+      "value": "<p><i>(four struck on the wall, then a pad set against the wall and held)</i> - I-am-up, with-you-last - I am awake, and I was in your sleep, so you already know what I know.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "recording": [
+    {
+      "value": "/f/PvYgMnJ9cDMT28F1ASMw13",
+      "name": "system-G4_COM_THAW_TONGUE.mp3",
+      "caption": "Elicitation sample",
+      "duration": { "value": { "amount": 3, "precision": 1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "MINUTE"] }] },
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G4_COM_THAW_TONGUE"] }],
+      "note": [
+        {
+          "value": "<p>Recorded during elicitation and kept as the reference sample for this system.</p>",
+          "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+        }
+      ]
+    }
+  ]
+}

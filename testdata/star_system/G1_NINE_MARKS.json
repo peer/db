@@ -1,0 +1,18 @@
+{
+  "id": ["xeno.peerdb.org", "STAR_SYSTEM", "G1_NINE_MARKS"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "STAR_SYSTEM"] }],
+  "name": [{ "value": "Nine Marks", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "catalogueCode": "MW-1188-NMK",
+  "description": [
+    {
+      "value": "<p>A yellow star with seven planets, none of them approachable and one of them interesting from a distance. The name is the number of tally marks on the original plate.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "SECTOR", "G1_KEPHRA_MARCH"] },
+  "spectralClass": "G4V",
+  "starCount": { "amount": 1, "precision": 1 },
+  "planetCount": { "amount": 7, "precision": 1 },
+  "distanceFromSol": { "value": { "amount": 1188.0, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "PARSEC"] }] },
+  "firstSurveyed": { "time": "2268-01-01T00:00:00Z", "precision": "y" }
+}

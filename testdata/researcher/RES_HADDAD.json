@@ -1,0 +1,21 @@
+{
+  "id": ["xeno.peerdb.org", "RESEARCHER", "RES_HADDAD"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "RESEARCHER"] }],
+  "name": [{ "value": "Noor" }],
+  "familyName": [{ "value": "Haddad" }],
+  "researcherCode": "CCX-P-02888",
+  "description": [
+    {
+      "value": "<p>Works with communities who hold a veto over what she publishes and has had that veto exercised on her behalf four times without complaint. She argues, at length and in print, that the annotation is the finding and the paper is the residue. She has spent far more of the last thirty-six years in the field than out of it, and describes the years out as the difficult ones.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "affiliatedWith": [{ "id": ["xeno.peerdb.org", "INSTITUTE", "INST_LEDGER"] }, { "id": ["xeno.peerdb.org", "INSTITUTE", "INST_SUBSTRATE"] }],
+  "specialisesIn": [
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "OPEN_INTERVIEW"] },
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "COLLABORATIVE_ANNOTATION"] }
+  ],
+  "activePeriod": { "from": { "time": "2276-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true },
+  "born": { "time": "2251-01-01T00:00:00Z", "precision": "y" },
+  "website": ["https://substrate.ccx.example/people/haddad"]
+}

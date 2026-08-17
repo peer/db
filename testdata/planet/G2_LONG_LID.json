@@ -1,0 +1,57 @@
+{
+  "id": ["xeno.peerdb.org", "PLANET", "G2_LONG_LID"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PLANET"] }],
+  "name": [{ "value": "Long Lid", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Ollumei", "gloss": "the ceiling, the word for the underside of the ice being also the word for the world" }],
+  "catalogueCode": "GA-0221-d",
+  "description": [
+    {
+      "value": "<p>A water world sealed under thirty kilometres of ice, with a harder ice shell below the ocean and a rock floor below that. The ocean is cold, saline and almost still, turning over perhaps once in eleven thousand years. Heat arrives from a single chain of long-lived vents along a seam in the floor, and everything that lives here lives within reach of one of them. Its inhabitants are few, widely dispersed and slow, and none of them has ever seen a sky.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Svet, kjer je vse življenje pod ledom in nihče še ni videl neba.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Um mundo de água selado sob trinta quilómetros de gelo, com um invólucro de gelo mais duro abaixo do oceano e um fundo rochoso abaixo desse. O oceano é frio, salgado e quase imóvel, renovando-se talvez uma vez em cada onze mil anos. O calor chega de uma única cadeia de fontes de vida longa ao longo de uma fenda no fundo, e tudo o que aqui vive vive ao alcance de uma delas. Os seus habitantes são poucos, muito dispersos e lentos, e nenhum deles alguma vez viu um céu.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "STAR_SYSTEM", "G2_GREY_ANCHOR"] },
+  "planetType": { "id": ["xeno.peerdb.org", "PLANET_TYPE", "ICE_SHELL"] },
+  "biome": [{ "id": ["xeno.peerdb.org", "BIOME", "BRINE_SEA"] }, { "id": ["xeno.peerdb.org", "BIOME", "VENT_FIELD"] }],
+  "radius": { "value": { "amount": 0.88, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_RADIUS"] }] },
+  "mass": { "value": { "amount": 0.25, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_MASS"] }] },
+  "surfaceGravity": { "value": { "amount": 0.32, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "STANDARD_GRAVITY"] }] },
+  "dayLength": { "value": { "amount": 55.8, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "HOUR"] }] },
+  "orbitalPeriod": { "value": { "amount": 1623.4, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_DAY"] }] },
+  "meanTemperature": { "value": { "amount": -169.0, "precision": 0.1 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "°C"] }] },
+  "hydrosphere": { "value": { "amount": 100, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "PERCENT"] }] },
+  "atmosphere": [
+    {
+      "value": "<p>Above the ice, a residual nitrogen and methane haze at 0.02 bar, cold enough to fall out as a dry frost. Below the ice there is no atmosphere at all: the working environment is water at 340 bar and about minus two degrees, which is why every visit needs a hull.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "biosphere": [
+    {
+      "value": "<p>Life is present: 3 catalogued species (Ice Ceiling Dwellers, Long Lid Floor Signallers, Warm Seam Hearth Folk) and 2 recorded non-sapient organisms. The survey is not claimed to be complete.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "contactStatus": { "id": ["xeno.peerdb.org", "CONTACT_STATUS", "LIMITED"] },
+  "firstSurveyed": { "time": "2224-01-01T00:00:00Z", "precision": "y" },
+  "surveyPeriod": { "from": { "time": "2224-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true },
+  "populationEstimate": {
+    "value": { "from": { "amount": 9000, "precision": 100 }, "to": { "amount": 24000, "precision": 100 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "image": [{ "value": "/f/CRgTjxn2ShnKaat6f1fEDN", "name": "G2_LONG_LID.jpg", "caption": "Surface view", "source": "Consortium survey archive" }],
+  "notes": [
+    {
+      "value": "<p>The ethics panel spent four years deciding whether a working lamp counts as a first-contact signal on a world where nothing has ever produced light. It ruled that it does. Station Two now works in the dark, and says so in every quarterly return.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

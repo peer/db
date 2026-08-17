@@ -1,0 +1,18 @@
+{
+  "id": ["xeno.peerdb.org", "STAR_SYSTEM", "G3_WINDLASS"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "STAR_SYSTEM"] }],
+  "name": [{ "value": "Windlass", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "catalogueCode": "HB-1/030",
+  "description": [
+    {
+      "value": "<p>A wide binary holding the largest confirmed planet count in the galaxy, most of it small and cold. Only two of the seven have had more than a single pass.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "SECTOR", "G3_BELLWETHER"] },
+  "spectralClass": "G7V",
+  "starCount": { "amount": 2, "precision": 1 },
+  "planetCount": { "amount": 7, "precision": 1 },
+  "distanceFromSol": { "value": { "amount": 276.5, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "PARSEC"] }] },
+  "firstSurveyed": { "time": "2266-01-01T00:00:00Z", "precision": "y" }
+}

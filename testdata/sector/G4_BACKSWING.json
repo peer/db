@@ -1,0 +1,14 @@
+{
+  "id": ["xeno.peerdb.org", "SECTOR", "G4_BACKSWING"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SECTOR"] }],
+  "name": [{ "value": "Backswing Sector", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "catalogueCode": "CCX-2269-BSW",
+  "description": [
+    {
+      "value": "<p>The returning limb of the near stream, where material thrown out by the encounter is now falling back through the galaxy&#39;s original plane. Two systems are catalogued and a third is disputed. Nothing here has been visited twice, and the whole sector record rests on four expeditions.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "GALAXY", "G4_SPILLWORK"] },
+  "surveyPeriod": { "from": { "time": "2269-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true }
+}

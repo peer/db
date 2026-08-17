@@ -1,0 +1,44 @@
+{
+  "id": ["xeno.peerdb.org", "PLANET", "G3_BELLOWS_E"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PLANET"] }],
+  "name": [{ "value": "Bellows e", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "catalogueCode": "HB-1/007-e",
+  "description": [
+    {
+      "value": "<p>A cold giant with a ring system of three broad divisions and a moon count that has been revised upwards at nearly every visit. At the top of the cloud deck there are mats, dark against the haze, that hold station against the zonal winds and are almost certainly alive. Two probes have gone in: one returned spectra, the other returned nothing at all. Nobody has yet been able to say what the mats do for a living.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Um gigante frio com um sistema de anéis de três divisões largas e um número de luas que foi revisto em alta em quase todas as visitas. No topo da camada de nuvens há tapetes, escuros contra a bruma, que se mantêm em posição contra os ventos zonais e são quase de certeza seres vivos. Entraram duas sondas: uma devolveu espectros, a outra não devolveu absolutamente nada. Ninguém conseguiu ainda dizer de que vivem os tapetes.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "STAR_SYSTEM", "G3_BELLOWS"] },
+  "planetType": { "id": ["xeno.peerdb.org", "PLANET_TYPE", "VOLATILE_GIANT"] },
+  "biome": [{ "id": ["xeno.peerdb.org", "BIOME", "AERIAL_MAT"] }],
+  "radius": { "value": { "amount": 8.9, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_RADIUS"] }] },
+  "mass": { "value": { "amount": 141.0, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_MASS"] }] },
+  "surfaceGravity": { "value": { "amount": 1.78, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "STANDARD_GRAVITY"] }] },
+  "dayLength": { "value": { "amount": 11.4, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "HOUR"] }] },
+  "orbitalPeriod": { "value": { "amount": 4180.5, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_DAY"] }] },
+  "ringSystem": true,
+  "meanTemperature": { "value": { "amount": -142.0, "precision": 0.1 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "°C"] }] },
+  "hydrosphere": { "value": { "amount": 0, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "PERCENT"] }] },
+  "atmosphere": [
+    {
+      "value": "<p>Hydrogen and helium with methane and ammonia cloud decks, and no surface at any depth a vehicle survives. Everything in this entry was measured from above.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "biosphereUnknown": true,
+  "contactStatus": { "id": ["xeno.peerdb.org", "CONTACT_STATUS", "NO_CONTACT"] },
+  "firstSurveyed": { "time": "2262-01-01T00:00:00Z", "precision": "y" },
+  "surveyPeriod": { "from": { "time": "2262-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true },
+  "image": [{ "value": "/f/Hx5GmJM6j558iPWb2fw5Jz", "name": "G3_BELLOWS_E.jpg", "caption": "Surface view", "source": "Consortium survey archive" }],
+  "notes": [
+    {
+      "value": "<p>The moon count stands at fourteen. It stood at nine in 2261, at eleven in 2270, and at nineteen for one embarrassing month in 2288.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

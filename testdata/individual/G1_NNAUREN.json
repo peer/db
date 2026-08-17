@@ -1,0 +1,17 @@
+{
+  "id": ["xeno.peerdb.org", "INDIVIDUAL", "G1_NNAUREN"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "INDIVIDUAL"] }],
+  "name": [{ "value": "Nnauren" }],
+  "lineageName": [{ "value": "Mmeru" }],
+  "description": [
+    {
+      "value": "<p>Took the stewardship of a vent in 2291 in the ordinary rotation and found within a season that it was cooling, which under a rule that cannot be refused made him responsible for moving four hundred people onto ground nobody had walked. He did it, and he has never said whether he thinks the rule ought to have applied. The survey&#39;s last direct contact with him was in 2297; the instruments left behind still report the settlement&#39;s position, which has moved twice since.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "species": { "id": ["xeno.peerdb.org", "SPECIES", "G1_MERENAU"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G1_VENT_STEWARDSHIP"] }],
+  "role": [{ "value": "vent steward", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "formOfAddress": "strain first, then name",
+  "born": { "time": "2259-01-01T00:00:00Z", "precision": "y" }
+}

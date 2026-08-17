@@ -1,0 +1,26 @@
+{
+  "id": ["xeno.peerdb.org", "INDIVIDUAL", "G4_IN_VESSATHA"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "INDIVIDUAL"] }],
+  "name": [{ "value": "Vessatha" }],
+  "lineageName": [{ "value": "Sixth Hearth" }],
+  "description": [
+    {
+      "value": "<p>Held the term for the walking hearths from 2299 to 2305 and has complained about her successor steadily since, in the form and at the intervals the handover requires. She oversaw the last refounding of the cluster, three hundred and forty metres nightward, and insisted that the abandoned screens be left standing so the line could still be counted. She consented to a photograph on condition that the older hearth positions were in it.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "species": { "id": ["xeno.peerdb.org", "SPECIES", "G4_HEARTH_WALKERS"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G4_CU_HEARTH_CIRCUIT"] }],
+  "role": [{ "value": "former term holder", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "formOfAddress": "by hearth and season",
+  "born": { "time": "2258-01-01T00:00:00Z", "precision": "y" },
+  "birthplace": { "id": ["xeno.peerdb.org", "SITE", "G4_WALKING_HEARTHS"] },
+  "image": [
+    {
+      "value": "/f/YSGkRjvrBvRjxS1BjdJLsh",
+      "name": "G4_IN_VESSATHA.jpg",
+      "caption": "Portrait",
+      "source": "Made with consent; Consortium collection"
+    }
+  ]
+}

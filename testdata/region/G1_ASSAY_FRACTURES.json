@@ -1,0 +1,18 @@
+{
+  "id": ["xeno.peerdb.org", "REGION", "G1_ASSAY_FRACTURES"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "REGION"] }],
+  "name": [{ "value": "The Assay Fractures", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "description": [
+    {
+      "value": "<p>A field of parallel ice ridges and open cracks running most of the way around the moon, stained orange along their lips by material from below. Instruments go down the cracks on cable and come back up coated. There is no installation here and everything is done from orbit or from a lander that does not stay.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "MOON", "G1_ASSAY"] },
+  "biome": [{ "id": ["xeno.peerdb.org", "BIOME", "BRINE_SEA"] }],
+  "area": { "value": { "amount": 148000, "precision": 100 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "SQUARE_KILOMETRE"] }] },
+  "elevationRange": {
+    "value": { "from": { "amount": -220, "precision": 10 }, "to": { "amount": 480, "precision": 10 } },
+    "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }]
+  }
+}

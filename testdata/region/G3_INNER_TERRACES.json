@@ -1,0 +1,27 @@
+{
+  "id": ["xeno.peerdb.org", "REGION", "G3_INNER_TERRACES"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "REGION"] }],
+  "name": [{ "value": "The Inner Terraces", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "description": [
+    {
+      "value": "<p>A stepped slope on the warm edge of the habitable ring, cut into at least two hundred visible terraces with retaining walls that hold their line over kilometres. Smoke rises from six points along it and has done so on all three visits. Nothing here has been catalogued as a site, because nothing here has been approached closer than eight hundred kilometres.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "PLANET", "G3_WAHUNE"] },
+  "biome": [{ "id": ["xeno.peerdb.org", "BIOME", "DUSK_BELT"] }],
+  "area": { "value": { "amount": 96000, "precision": 100 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "SQUARE_KILOMETRE"] }] },
+  "elevationRange": {
+    "value": { "from": { "amount": 300, "precision": 10 }, "to": { "amount": 2100, "precision": 10 } },
+    "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }]
+  },
+  "image": [
+    { "value": "/f/Jthrwo7ouUnhMwLCUswEL4", "name": "G3_INNER_TERRACES.jpg", "caption": "Regional view", "source": "Consortium survey archive" }
+  ],
+  "notes": [
+    {
+      "value": "<p>The terrace count has been disputed at every seminar it has ever been presented at, by people working from the same eleven photographs.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

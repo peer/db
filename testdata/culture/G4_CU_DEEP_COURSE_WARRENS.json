@@ -1,0 +1,41 @@
+{
+  "id": ["xeno.peerdb.org", "CULTURE", "G4_CU_DEEP_COURSE_WARRENS"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "CULTURE"] }],
+  "name": [{ "value": "Deep Course Warren Keeping", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [
+    {
+      "value": "Pirrukkava",
+      "gloss": "the keeping of the deep rooms",
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G4_COM_THAW_TONGUE"] }]
+    }
+  ],
+  "catalogueCode": "CU-2238-07",
+  "description": [
+    {
+      "value": "<p>The practice of cutting, provisioning and sealing a warren so that it will hold several thousand fused bodies at a stable rock temperature for two centuries, and of opening it again on time. Fusion surfaces are prepared years in advance, side chambers are stocked with rot cultures that must survive without tending, and the last work before the freeze is the placing of the cohort, which determines who will be related to whom on waking. For the long part of the orbit the culture does nothing that can be observed, and the register nonetheless carries it as ongoing, since the warren is being held rather than merely sitting there. Survey access is by agreement and covers four passages, none of them the ones anybody has asked for. The decade before a freeze is, per year, the busiest interval in the catalogue, and the two centuries after it are the quietest.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>A prática de talhar, aprovisionar e selar uma toca de modo a que aguente vários milhares de corpos fundidos a uma temperatura de rocha estável durante dois séculos, e de a voltar a abrir à hora certa. As superfícies de fusão são preparadas com anos de antecedência, as câmaras laterais são abastecidas com culturas de podridão que têm de sobreviver sem tratamento, e o último trabalho antes da congelação é a colocação da coorte, que determina quem será parente de quem ao acordar. Durante a parte longa da órbita a cultura não faz nada que se possa observar, e ainda assim o registo mantém-na como em curso, uma vez que a toca está a ser mantida e não apenas parada ali. O acesso do levantamento é por acordo e abrange quatro passagens, nenhuma delas das que alguém pediu. A década anterior a uma congelação é, por ano, o intervalo mais movimentado do catálogo, e os dois séculos seguintes são os mais calmos.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "practisedBy": [{ "id": ["xeno.peerdb.org", "SPECIES", "G4_WARREN_SLEEPERS"] }],
+  "presentAt": [{ "id": ["xeno.peerdb.org", "SITE", "G4_LONG_WARREN"] }],
+  "kinshipSystem": { "id": ["xeno.peerdb.org", "KINSHIP_SYSTEM", "COHIBERNATION_COHORT"] },
+  "socialOrganisation": { "id": ["xeno.peerdb.org", "SOCIAL_ORGANISATION", "ACEPHALOUS_BANDS"] },
+  "subsistence": [
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "SEALED_CULTIVATION"] },
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "MANAGED_DECAY"] },
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "CHEMO_TENDING"] }
+  ],
+  "communication": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G4_COM_THAW_TONGUE"] }],
+  "population": {
+    "value": { "from": { "amount": 9000, "precision": 100 }, "to": { "amount": 21000, "precision": 100 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "period": { "from": { "time": "2238-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true },
+  "image": [
+    { "value": "/f/Vnc9ugXNjRcC6WvDK6YxmQ", "name": "G4_CU_DEEP_COURSE_WARRENS.jpg", "caption": "Gathering", "source": "Consortium survey archive" }
+  ]
+}

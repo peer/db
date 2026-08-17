@@ -1,0 +1,24 @@
+{
+  "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "AUTOETHNOGRAPHY"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "RESEARCH_METHOD"] }],
+  "name": [
+    { "value": "Autoethnography", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "Avtoetnografija", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }] },
+    { "value": "Autoetnografia", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>Systematic study of the researcher&#39;s own conduct and reactions in the field, deposited as data. Falls under the researcher-records protocol and, by long custom, is embargoed until the writer is dead or retired.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Sistematično preučevanje lastnega ravnanja raziskovalca na terenu, oddano kot podatek.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Estudo sistemático da conduta e das reações do próprio investigador no terreno, depositado como dado. Cai sob o protocolo dos registos dos investigadores e, por longo costume, fica embargado até o autor estar morto ou reformado.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "code": ["autoethno"]
+}

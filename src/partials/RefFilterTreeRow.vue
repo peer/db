@@ -42,7 +42,7 @@ const WithDocumentD = WithDocument<D>
 
 <template>
   <li class="pd-reffiltertreerow">
-    <div class="flex items-baseline gap-x-1">
+    <div class="pd-reffiltertreerow-row flex items-baseline gap-x-1">
       <!--
         A "values not shown" marker is non-interactive: it has no checkbox and is not a selectable value. It
         marks a parent whose children were truncated by the server cap and shows the document gap in parens.
@@ -79,7 +79,7 @@ const WithDocumentD = WithDocument<D>
             </template>
             <template #loading="{ url }">
               <div
-                class="pd-withdocument-loading h-2 rounded-sm bg-slate-200 motion-safe:animate-pulse"
+                class="pd-reffiltertreerow-loading pd-withdocument-loading h-2 rounded-sm bg-slate-200 motion-safe:animate-pulse"
                 :data-url="url"
                 :class="[loadingWidth(node.res.id)]"
                 aria-hidden="true"

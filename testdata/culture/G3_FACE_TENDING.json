@@ -1,0 +1,48 @@
+{
+  "id": ["xeno.peerdb.org", "CULTURE", "G3_FACE_TENDING"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "CULTURE"] }],
+  "name": [{ "value": "Face Tending", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [
+    {
+      "value": "Tessen",
+      "gloss": "the opening, meaning both the work and the thing worked",
+      "inSystem": [
+        { "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G3_FACE_TAP"] },
+        { "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G3_STRIP_SPEECH"] }
+      ]
+    }
+  ],
+  "catalogueCode": "CU-2274-05",
+  "description": [
+    {
+      "value": "<p>Rock is split along its bedding planes, the opened faces are seeded with borer cultures and closed again, and the tenders return after a decade for a paste that is most of what they eat. A face is worked by a name-slot rather than by a body, and since a slot outlasts every holder, the working of a particular face can be traced back further than anyone alive can account for. Decisions about a face require the assent of everyone with a claim on it, so they take a season and are then not reopened. Contact has changed the timetable of nothing, but it has added a fourth party to several long-running disputes, since the survey is now on the list of those whose assent is sought and whose absence therefore holds matters up. The tenders have not commented on this; the expedition has, at length, in writing.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Skrbniki ploskev odpirajo kamnite sloje, jih zasejejo z vrtalnimi kulturami in se vrnejo čez desetletje. Ploskev pripada imenskemu mestu, ne telesu.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>A rocha é fendida ao longo dos seus planos de estratificação, as faces abertas são semeadas com culturas de perfuradores e voltam a ser fechadas, e os tratadores regressam ao fim de uma década para colher uma pasta que é quase tudo o que comem. Uma face é trabalhada por um posto de nome e não por um corpo e, uma vez que um posto sobrevive a todos os seus ocupantes, a exploração de uma face pode ser seguida para trás mais longe do que qualquer vivo consegue explicar. As decisões sobre uma face exigem o assentimento de todos os que têm direitos sobre ela, pelo que demoram uma estação e depois não voltam a ser abertas. O contacto não alterou o calendário de coisa nenhuma, mas acrescentou uma quarta parte a várias disputas antigas, já que o levantamento consta agora da lista daqueles cujo assentimento se pede e cuja ausência, por isso, atrasa os assuntos. Os tratadores não comentaram isto; a expedição comentou, longamente e por escrito.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "practisedBy": [{ "id": ["xeno.peerdb.org", "SPECIES", "G3_TESSILEN"] }],
+  "presentAt": [{ "id": ["xeno.peerdb.org", "SITE", "G3_SHELF_WARREN"] }],
+  "kinshipSystem": { "id": ["xeno.peerdb.org", "KINSHIP_SYSTEM", "NAME_INHERITANCE"] },
+  "socialOrganisation": { "id": ["xeno.peerdb.org", "SOCIAL_ORGANISATION", "CONSENSUS_ASSEMBLY"] },
+  "subsistence": [
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "CHEMO_TENDING"] },
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "MANAGED_DECAY"] }
+  ],
+  "communication": [
+    { "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G3_FACE_TAP"] },
+    { "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G3_STRIP_SPEECH"] }
+  ],
+  "population": {
+    "value": { "from": { "amount": 6000, "precision": 100 }, "to": { "amount": 25000, "precision": 100 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "period": { "from": { "time": "2274-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true },
+  "image": [{ "value": "/f/JRvt5e7ybVSUQVPPKuHjWM", "name": "G3_FACE_TENDING.jpg", "caption": "Gathering", "source": "Consortium survey archive" }]
+}

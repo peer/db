@@ -1,0 +1,37 @@
+{
+  "id": ["xeno.peerdb.org", "PLANET", "G4_SUMP"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PLANET"] }],
+  "name": [{ "value": "Sump", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "catalogueCode": "SPW-A/117-c",
+  "description": [
+    {
+      "value": "<p>A small ice world with a brine ocean some forty kilometres down, kept liquid by radiogenic heat and by an eccentric orbit that flexes it twice a year. The crust is a chaos of refrozen rafts, and where the rafts meet, warm water reaches to within two kilometres of the surface. Vent chemistry supports a dense chemosynthetic community, sampled twice, both times through a bore that took a season to drill.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Um pequeno mundo de gelo com um oceano de salmoura a uns quarenta quilómetros de profundidade, mantido líquido pelo calor radiogénico e por uma órbita excêntrica que o flete duas vezes por ano. A crosta é um caos de jangadas recongeladas e, onde as jangadas se encontram, a água quente chega a dois quilómetros da superfície. A química das fontes sustenta uma comunidade quimiossintética densa, amostrada duas vezes, ambas através de uma sondagem que levou uma estação a perfurar.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "STAR_SYSTEM", "G4_NOIL"] },
+  "planetType": { "id": ["xeno.peerdb.org", "PLANET_TYPE", "ICE_SHELL"] },
+  "biome": [{ "id": ["xeno.peerdb.org", "BIOME", "BRINE_SEA"] }, { "id": ["xeno.peerdb.org", "BIOME", "VENT_FIELD"] }],
+  "radius": { "value": { "amount": 0.79, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_RADIUS"] }] },
+  "mass": { "value": { "amount": 0.52, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_MASS"] }] },
+  "surfaceGravity": { "value": { "amount": 0.83, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "STANDARD_GRAVITY"] }] },
+  "dayLength": { "value": { "amount": 19.4, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "HOUR"] }] },
+  "orbitalPeriod": { "value": { "amount": 210.0, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_DAY"] }] },
+  "meanTemperature": { "value": { "amount": -149.0, "precision": 0.1 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "°C"] }] },
+  "hydrosphere": { "value": { "amount": 91.0, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "PERCENT"] }] },
+  "atmosphere": [
+    {
+      "value": "<p>A trace nitrogen and methane envelope under 0.02 bar, which counts as an atmosphere only in the sense that the instruments can find it.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "biosphereUnknown": true,
+  "contactStatus": { "id": ["xeno.peerdb.org", "CONTACT_STATUS", "NO_CONTACT"] },
+  "firstSurveyed": { "time": "2232-01-01T00:00:00Z", "precision": "y" },
+  "surveyPeriod": { "from": { "time": "2232-01-01T00:00:00Z", "precision": "y" }, "to": { "time": "2247-01-01T00:00:00Z", "precision": "y" } },
+  "image": [{ "value": "/f/6QzU38f2sUPSMxqqa4RYUS", "name": "G4_SUMP.jpg", "caption": "Approach view", "source": "Consortium survey archive" }]
+}

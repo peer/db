@@ -1,0 +1,37 @@
+{
+  "id": ["xeno.peerdb.org", "PLANET", "G2_RUST_FLAT"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PLANET"] }],
+  "name": [{ "value": "Rust Flat", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "catalogueCode": "LM-0234-c",
+  "description": [
+    {
+      "value": "<p>An oxidised world of iron-rich sand, most of its surface given over to a dune sea that has been migrating in one direction for longer than the survey can date. The dunes are slow: a crest moves about a metre a year, and the interdune floors have not seen direct light in millennia. Endolithic communities live in the damp layer under the slip faces and in the fractured bedrock beneath. Nobody lives here, but something does.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Um mundo oxidado de areia rica em ferro, com quase toda a superfície entregue a um mar de dunas que migra numa só direção há mais tempo do que o levantamento consegue datar. As dunas são lentas: uma crista avança cerca de um metro por ano e os fundos interdunares não veem luz direta há milénios. Comunidades endolíticas vivem na camada húmida sob as faces de deslizamento e no substrato rochoso fraturado por baixo. Ninguém vive aqui, mas alguma coisa vive.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "STAR_SYSTEM", "G2_LOW_METAL"] },
+  "planetType": { "id": ["xeno.peerdb.org", "PLANET_TYPE", "DESICCATED"] },
+  "biome": [{ "id": ["xeno.peerdb.org", "BIOME", "REGOLITH_DUNE"] }, { "id": ["xeno.peerdb.org", "BIOME", "ENDOLITH_ZONE"] }],
+  "radius": { "value": { "amount": 1.06, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_RADIUS"] }] },
+  "mass": { "value": { "amount": 1.18, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_MASS"] }] },
+  "surfaceGravity": { "value": { "amount": 1.05, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "STANDARD_GRAVITY"] }] },
+  "dayLength": { "value": { "amount": 44.8, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "HOUR"] }] },
+  "orbitalPeriod": { "value": { "amount": 348.7, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_DAY"] }] },
+  "meanTemperature": { "value": { "amount": -53.0, "precision": 0.1 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "°C"] }] },
+  "hydrosphere": { "value": { "amount": 0.4, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "PERCENT"] }] },
+  "atmosphere": [
+    {
+      "value": "<p>0.31 bar of carbon dioxide and nitrogen with a permanent load of fine red dust. Ground-level visibility is about eight kilometres on a good day and the light coming through is the colour of weak tea.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "biosphereUnknown": true,
+  "contactStatus": { "id": ["xeno.peerdb.org", "CONTACT_STATUS", "NO_CONTACT"] },
+  "firstSurveyed": { "time": "2236-01-01T00:00:00Z", "precision": "y" },
+  "surveyPeriod": { "from": { "time": "2236-01-01T00:00:00Z", "precision": "y" }, "to": { "time": "2276-01-01T00:00:00Z", "precision": "y" } },
+  "image": [{ "value": "/f/Nv88sEhv3FYNmaYjK97d5o", "name": "G2_RUST_FLAT.jpg", "caption": "Surface view", "source": "Consortium survey archive" }]
+}

@@ -1,0 +1,21 @@
+{
+  "id": ["xeno.peerdb.org", "INDIVIDUAL", "G3_KORRENNA"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "INDIVIDUAL"] }],
+  "name": [{ "value": "Korrenna" }],
+  "lineageName": [{ "value": "Rennako" }],
+  "description": [
+    {
+      "value": "<p>Sets and replaces stake lines and is the only person present at all four recorded meetings, which she has pointed out at three of them. Her household has held six different stretches of coast in her lifetime and she can give the order of them without pausing. She consented to a photograph at the fourth meeting on the condition that it was taken while the water was coming in, which it was, and which is why the photograph is mostly water.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "species": { "id": ["xeno.peerdb.org", "SPECIES", "G3_TEKKONNO"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G3_TIDE_LINES"] }],
+  "role": [{ "value": "line setter", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "formOfAddress": "by name, and then by whatever debt stands between you",
+  "born": { "time": "2263-01-01T00:00:00Z", "precision": "y" },
+  "birthplace": { "id": ["xeno.peerdb.org", "SITE", "G3_FOURTH_MEETING"] },
+  "image": [
+    { "value": "/f/6RWgk4tRuszGHPD5XRYhe7", "name": "G3_KORRENNA.jpg", "caption": "Portrait", "source": "Made with consent; Consortium collection" }
+  ]
+}

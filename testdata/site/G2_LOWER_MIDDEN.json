@@ -1,0 +1,19 @@
+{
+  "id": ["xeno.peerdb.org", "SITE", "G2_LOWER_MIDDEN"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SITE"] }],
+  "name": [{ "value": "Lower Midden", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "localName": [{ "value": "Ollumanu", "gloss": "the heap underneath, naming the debris cone rather than the settlement above it" }],
+  "description": [
+    {
+      "value": "<p>A debris cone on the ocean floor beneath a long-occupied stretch of ceiling, built from perhaps four thousand years of shell, tube fragment and processing waste dropped from above. The living settlement hangs from the ice directly over it. Excavation is limited by ethics ruling to two one-metre columns, which is why the site is dated well and understood badly.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "REGION", "G2_UPPER_CEILING"] },
+  "siteType": { "id": ["xeno.peerdb.org", "SITE_TYPE", "MIDDEN_RING"] },
+  "gridReference": "LL-04.2/-11.7",
+  "population": {
+    "value": { "from": { "amount": 260, "precision": 10 }, "to": { "amount": 780, "precision": 10 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  }
+}

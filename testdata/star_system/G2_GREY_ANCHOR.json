@@ -1,0 +1,18 @@
+{
+  "id": ["xeno.peerdb.org", "STAR_SYSTEM", "G2_GREY_ANCHOR"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "STAR_SYSTEM"] }],
+  "name": [{ "value": "Grey Anchor", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "catalogueCode": "GA-0221",
+  "description": [
+    {
+      "value": "<p>A single K4 dwarf with three catalogued worlds, and the nearest thing the Undercount has to a hub. It has been visited nine times, which is more than the rest of the galaxy put together.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "SECTOR", "G2_LONG_BASELINE"] },
+  "spectralClass": "K4V",
+  "starCount": { "amount": 1, "precision": 1 },
+  "planetCount": { "amount": 3, "precision": 1 },
+  "distanceFromSol": { "value": { "amount": 23140.2, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "PARSEC"] }] },
+  "firstSurveyed": { "time": "2221-01-01T00:00:00Z", "precision": "y" }
+}

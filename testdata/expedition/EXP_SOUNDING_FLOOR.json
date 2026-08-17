@@ -1,0 +1,35 @@
+{
+  "id": ["xeno.peerdb.org", "EXPEDITION", "EXP_SOUNDING_FLOOR"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "EXPEDITION"] }],
+  "name": [{ "value": "Sounding Floor Acoustic Survey", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "catalogueCode": "EXP-2300-05",
+  "description": [
+    {
+      "value": "<p>Five years on plains whose bedrock carries sound a great deal better than the air does, mapping which settlements can hear which and how far a struck floor reaches. The survey produced the reference network of substrate ranges and established that two groups nine hundred kilometres apart are in routine contact and have never met. Survey protocol forbids ground vehicles, so all of it was walked, which is why the budget is what it is and why the posting took five years rather than two.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "destination": [
+    { "id": ["xeno.peerdb.org", "PLANET", "G4_SOUNDING"] },
+    { "id": ["xeno.peerdb.org", "REGION", "G4_DRUM_PLAIN"] },
+    { "id": ["xeno.peerdb.org", "REGION", "G4_WHITE_PAN"] }
+  ],
+  "period": { "from": { "time": "2300-01-01T00:00:00Z", "precision": "y" }, "to": { "time": "2305-01-01T00:00:00Z", "precision": "y" } },
+  "ledBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_OKONKWO"] }],
+  "teamMember": [
+    { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_NOWAK"] },
+    { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_PETROVA"] },
+    { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_VIRTANEN"] },
+    { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_SEO"] },
+    { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_PRASETYO"] }
+  ],
+  "organisedBy": [{ "id": ["xeno.peerdb.org", "INSTITUTE", "INST_SUBSTRATE"] }],
+  "method": [
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "ACOUSTIC_RECORDING"] },
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "NETWORK_MAPPING"] },
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "PARTICIPANT_OBSERVATION"] }
+  ],
+  "ethics": { "id": ["xeno.peerdb.org", "ETHICS_PROTOCOL", "PROTOCOL_1"] },
+  "budget": { "value": { "amount": 640000, "precision": 1000 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "$"] }] },
+  "report": [{ "value": "/f/MFLsHqdNhMwG8DB1dvjSBG", "name": "EXP_SOUNDING_FLOOR.pdf", "caption": "Final report" }]
+}

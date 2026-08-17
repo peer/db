@@ -1,0 +1,28 @@
+{
+  "id": ["xeno.peerdb.org", "ARTIFACT", "G4_AR_JOINT_CORD"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "ARTIFACT"] }],
+  "name": [{ "value": "Joint Cord from Lengths Forty-One and Forty-Two", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "meirauoti", "gloss": "cord for the place where two walls meet" }],
+  "accessionCode": "CCX-A-20411",
+  "description": [
+    {
+      "value": "<p>Fourteen metres of three-strand cord laid from retted weir-rope strap, recovered from the joint between lengths forty-one and forty-two after it was replaced in the ordinary course of work. Strap is cut at low water, retted in a pit for nine days, beaten and laid wet, so that the finished cord tightens as it dries into the stonework and cannot afterwards be re-tensioned. This example carries the double turn used only at a joint, where the cord has to be worked by two households without either of them being able to take it apart. It is sound over eleven metres and rotten at both ends, which is where it was doing its work.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "category": { "id": ["xeno.peerdb.org", "ARTIFACT_CATEGORY", "CORDAGE"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G4_CU_WEIR_ORDER"] }],
+  "foundAt": { "id": ["xeno.peerdb.org", "SITE", "G4_UPPER_MIDDEN"] },
+  "material": [
+    { "value": "retted weir-rope strap", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "horn plate collar", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "mud pitch", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }
+  ],
+  "dimension": [
+    { "value": { "amount": 14.2, "precision": 0.001 }, "axis": "length", "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+    { "value": { "amount": 0.038, "precision": 0.001 }, "axis": "diameter", "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] }
+  ],
+  "dateMade": { "time": "2251-01-01T00:00:00Z", "precision": "y" },
+  "collectedBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_PETROVA"] }],
+  "image": [{ "value": "/f/CtE6cxEsNYBa2WgTtA8pJm", "name": "G4_AR_JOINT_CORD.jpg", "caption": "Object drawing", "source": "Consortium collection" }]
+}

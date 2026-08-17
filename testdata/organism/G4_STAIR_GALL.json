@@ -1,0 +1,26 @@
+{
+  "id": ["xeno.peerdb.org", "ORGANISM", "G4_STAIR_GALL"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "ORGANISM"] }],
+  "name": [{ "value": "Stair Gall", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Wehinua" }],
+  "taxonCode": "TX-1204-a",
+  "description": [
+    {
+      "value": "<p>An obligate association of a boring larva and a sheath-forming fungus-analogue, catalogued as one organism because neither has ever been reared without the other. It forms hard knuckled galls on the trunks of the terrace forest, and the fluid drawn from a mature gall is the standard local treatment for the eye damage the primary inflicts on anyone who works outdoors. Galls are cut on a rotation and the trunk is never ringed.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "category": { "id": ["xeno.peerdb.org", "ORGANISM_CATEGORY", "SYMBIOTIC_COMPLEX"] },
+  "foundOn": [{ "id": ["xeno.peerdb.org", "PLANET", "G4_OVERFALL"] }],
+  "biome": [{ "id": ["xeno.peerdb.org", "BIOME", "HIGH_CANOPY"] }],
+  "typicalSize": { "value": { "amount": 0.18, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+  "typicalMass": { "value": { "amount": 0.9, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "kg"] }] },
+  "image": [
+    {
+      "value": "/f/17K6wRUKFP97UewLW1u7Fx",
+      "name": "G4_STAIR_GALL.jpg",
+      "caption": "Field plate",
+      "source": "Drawn in the field; Consortium collection"
+    }
+  ]
+}

@@ -1,0 +1,42 @@
+{
+  "id": ["xeno.peerdb.org", "PLANET", "G1_QUIET_ANNEX_STRAY"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PLANET"] }],
+  "name": [{ "value": "Annex Stray", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "catalogueCode": "QA-0001-x",
+  "description": [
+    {
+      "value": "<p>A world bound to no star, drifting through the outward margin and warmed only from inside, with an atmosphere thick enough to keep the heat and a crust of nitrogen ice over what is probably a deep ocean. It is catalogued against One Entry because the register has no field for a planet without a primary and the entry would not otherwise save. Life has not been confirmed, though the fracture chemistry is suggestive and the file is deliberately open. There is no sunrise on it and never has been.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    { "value": "<p>Svet brez zvezde, ki ga greje le notranja toplota.</p>", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }] }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "STAR_SYSTEM", "G1_ONE_ENTRY"] },
+  "planetType": { "id": ["xeno.peerdb.org", "PLANET_TYPE", "UNBOUND"] },
+  "biome": [{ "id": ["xeno.peerdb.org", "BIOME", "ENDOLITH_ZONE"] }],
+  "radius": { "value": { "amount": 1.31, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_RADIUS"] }] },
+  "mass": { "value": { "amount": 2.02, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_MASS"] }] },
+  "surfaceGravity": { "value": { "amount": 1.18, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "STANDARD_GRAVITY"] }] },
+  "dayLength": { "value": { "amount": 18.6, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "HOUR"] }] },
+  "orbitalPeriod": { "value": { "amount": 0, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_DAY"] }] },
+  "meanTemperature": { "value": { "amount": -218.4, "precision": 0.1 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "°C"] }] },
+  "hydrosphere": { "value": { "amount": 0, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "PERCENT"] }] },
+  "atmosphere": [
+    {
+      "value": "<p>Hydrogen and helium retained since formation, about four bar at the ice, with methane haze above. Dark, dense and still: the wind speed record for the whole survey is under two metres per second.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "biosphereUnknown": true,
+  "contactStatus": { "id": ["xeno.peerdb.org", "CONTACT_STATUS", "REMOTE_OBSERVATION"] },
+  "firstSurveyed": { "time": "2294-01-01T00:00:00Z", "precision": "y" },
+  "surveyPeriod": { "from": { "time": "2294-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true },
+  "image": [
+    { "value": "/f/5tNjTQiaKVqtXBpnjyJYWN", "name": "G1_QUIET_ANNEX_STRAY.jpg", "caption": "Approach view", "source": "Consortium survey archive" }
+  ],
+  "notes": [
+    {
+      "value": "<p>The orbital period field is mandatory and does not accept a null. It is filled here with a zero, under written protest from the recording officer, which is attached to the entry and runs to two pages.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

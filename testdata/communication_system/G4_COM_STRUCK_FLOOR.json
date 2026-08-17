@@ -1,0 +1,46 @@
+{
+  "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G4_COM_STRUCK_FLOOR"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM"] }],
+  "name": [{ "value": "Floor Speech", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [
+    { "value": "[struck on the floor]", "gloss": "a gloss of a four-beat figure; the system has no vocal name and no speaker has ever attempted one" }
+  ],
+  "description": [
+    {
+      "value": "<p>A complete language struck on polished and tuned rock floors, carried through the basement sheet for tens of kilometres with very little loss, and used by the surface people and the deep chorus alike at registers about two octaves apart. It carries everything an ordinary spoken language does and adds range, and it cannot be lowered: there is no private speech anywhere within sixty kilometres of a worked floor, and no grammatical device for saying a thing to one party only. Turn-taking is by strength rather than by silence, so two parties routinely strike at once and the louder is understood to be repeating. Newcomers set instruments on the rock, which is the acoustic equivalent of standing in a doorway and humming.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "modality": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_MODALITY", "SUBSTRATE_PERCUSSION"] }],
+  "users": {
+    "value": { "from": { "amount": 220000, "precision": 100 }, "to": { "amount": 410000, "precision": 100 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "sampleGloss": [
+    {
+      "value": "<p><i>(long, long, short, and the same figure returned at half strength)</i> - name, name, heard - your name given back to you, which is the whole of a greeting and also a receipt.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "recording": [
+    {
+      "value": "/f/T1eTsB14E6GfL5PVS7mcnN",
+      "name": "system-G4_COM_STRUCK_FLOOR.mp3",
+      "caption": "Elicitation sample",
+      "duration": { "value": { "amount": 4, "precision": 1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "MINUTE"] }] },
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G4_COM_STRUCK_FLOOR"] }],
+      "note": [
+        {
+          "value": "<p>Recorded during elicitation and kept as the reference sample for this system.</p>",
+          "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+        }
+      ]
+    }
+  ],
+  "notes": [
+    {
+      "value": "<p>Every survey party is audible on the floors from the moment it lands. The 2251 report describes the field team, accurately, as a speaker with a poor accent and nothing whatever to say.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

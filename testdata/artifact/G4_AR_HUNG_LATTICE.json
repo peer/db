@@ -1,0 +1,31 @@
+{
+  "id": ["xeno.peerdb.org", "ARTIFACT", "G4_AR_HUNG_LATTICE"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "ARTIFACT"] }],
+  "name": [{ "value": "House Lattice of Span Holdings", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "aunelirami", "gloss": "the marks, hung where they can be reached" }],
+  "accessionCode": "CCX-A-20452",
+  "description": [
+    {
+      "value": "<p>A hung frame of fine fibre and dyed rod, fourteen centimetres across, recording the spans a canopy house holds and the order in which it took them. It is read by running the graspers over the rods from the outside inward, and it is answered in flare rather than by addition: a lattice is not amended but replaced, and the replaced one is left hanging beside its successor. This example is the fourth of six still hanging at the same house edge, which makes it the only object in the collection with a legible position in a sequence that is still running. It was recorded in place by photogrammetry and acquired later, once the house had built its seventh.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "category": { "id": ["xeno.peerdb.org", "ARTIFACT_CATEGORY", "RECORDING_LATTICE"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G4_CU_LADDER_GORGE"] }],
+  "foundAt": { "id": ["xeno.peerdb.org", "SITE", "G4_LADDER_TERRACES"] },
+  "material": [
+    { "value": "canopy fibre", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "dyed rod", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "bract dye", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }
+  ],
+  "dimension": [
+    { "value": { "amount": 0.14, "precision": 0.001 }, "axis": "width", "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+    { "value": { "amount": 0.09, "precision": 0.001 }, "axis": "height", "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+    { "value": { "amount": 0.03, "precision": 0.001 }, "axis": "thickness", "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] }
+  ],
+  "dateMade": { "time": "2240-01-01T00:00:00Z", "precision": "10y" },
+  "collectedBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_MOKOENA"] }, { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_FARAHANI"] }],
+  "image": [
+    { "value": "/f/CtiwAigcFDRr6ZXB1nqgKu", "name": "G4_AR_HUNG_LATTICE.jpg", "caption": "Object drawing", "source": "Consortium collection" }
+  ]
+}

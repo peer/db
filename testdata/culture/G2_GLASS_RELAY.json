@@ -1,0 +1,33 @@
+{
+  "id": ["xeno.peerdb.org", "CULTURE", "G2_GLASS_RELAY"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "CULTURE"] }],
+  "name": [{ "value": "Bright Pan Relay", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [
+    {
+      "value": "Ammelu",
+      "gloss": "the short work, from the length of a shift rather than of the walk",
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G2_PLATE_LIGHT"] }]
+    }
+  ],
+  "catalogueCode": "CU-2251-06",
+  "description": [
+    {
+      "value": "<p>Volcanic glass is cut at the western edge of the substellar pan in relays of under four hours, because the ground there reaches ninety-six degrees and nobody can stay longer. A working party is assembled for a single shift and dissolved at the end of it, and no party has any standing over the next, so the quarry has been worked continuously by a body that never exists twice. The material travels the whole way round the band by carriers who hold no position in any terrace sequence and are therefore, in local terms, nobody at all, a status they treat as a trade rather than a misfortune. The spoil is at least nine metres deep and the practice has no recorded beginning. It is the best evidence anyone has that exchange operates at the scale of the whole habitable ring.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "practisedBy": [{ "id": ["xeno.peerdb.org", "SPECIES", "G2_ANUWELME"] }],
+  "presentAt": [{ "id": ["xeno.peerdb.org", "SITE", "G2_GLASS_QUARRY"] }, { "id": ["xeno.peerdb.org", "SITE", "G2_LONG_EVENING_ROWS"] }],
+  "kinshipSystem": { "id": ["xeno.peerdb.org", "KINSHIP_SYSTEM", "NAME_INHERITANCE"] },
+  "socialOrganisation": { "id": ["xeno.peerdb.org", "SOCIAL_ORGANISATION", "GUILD_FEDERATION"] },
+  "subsistence": [
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "TRADE_DEPENDENCY"] },
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "COLONY_GRAZING"] }
+  ],
+  "communication": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G2_PLATE_LIGHT"] }],
+  "population": {
+    "value": { "from": { "amount": 400, "precision": 100 }, "to": { "amount": 2600, "precision": 100 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "period": { "from": { "time": "2251-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true }
+}

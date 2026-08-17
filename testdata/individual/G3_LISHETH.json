@@ -1,0 +1,17 @@
+{
+  "id": ["xeno.peerdb.org", "INDIVIDUAL", "G3_LISHETH"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "INDIVIDUAL"] }],
+  "name": [{ "value": "Lisheth" }],
+  "lineageName": [{ "value": "Semelith" }],
+  "description": [
+    {
+      "value": "<p>A herd walker who argued at length in 2304 that the hearths should meet the survey coldward of the camp rather than at it, and lost, and has walked the extra eleven kilometres to every meeting since without further comment. She was born between hearth sites during a move and has no birthplace in the sense the register wants. No photograph was requested of her, which she has since described as an oversight rather than a courtesy.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "species": { "id": ["xeno.peerdb.org", "SPECIES", "G3_ILSETH"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G3_STRIP_STEWARDSHIP"] }],
+  "role": [{ "value": "herd walker", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "formOfAddress": "by name alone",
+  "born": { "time": "2274-01-01T00:00:00Z", "precision": "y" }
+}

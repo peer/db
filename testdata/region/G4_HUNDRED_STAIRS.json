@@ -1,0 +1,22 @@
+{
+  "id": ["xeno.peerdb.org", "REGION", "G4_HUNDRED_STAIRS"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "REGION"] }],
+  "name": [{ "value": "Hundred Stairs", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Weuhene" }],
+  "description": [
+    {
+      "value": "<p>A staircase of uplifted marine terraces on the southern continent, each riser between twenty and sixty metres, running three hundred kilometres inland. The treads carry high canopy forest and cut cultivation; the risers carry scrub and falling water and nothing else. It was the most intensively studied landscape in the Seventh Shell until 2298.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "PLANET", "G4_OVERFALL"] },
+  "biome": [{ "id": ["xeno.peerdb.org", "BIOME", "HIGH_CANOPY"] }],
+  "area": { "value": { "amount": 186000, "precision": 100 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "SQUARE_KILOMETRE"] }] },
+  "elevationRange": {
+    "value": { "from": { "amount": 30, "precision": 10 }, "to": { "amount": 2180, "precision": 10 } },
+    "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }]
+  },
+  "image": [
+    { "value": "/f/NwzfmxeJW5tBvo4m4Kkv8n", "name": "G4_HUNDRED_STAIRS.jpg", "caption": "Regional view", "source": "Consortium survey archive" }
+  ]
+}

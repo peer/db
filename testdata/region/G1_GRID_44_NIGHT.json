@@ -1,0 +1,19 @@
+{
+  "id": ["xeno.peerdb.org", "REGION", "G1_GRID_44_NIGHT"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "REGION"] }],
+  "name": [{ "value": "Night Register", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "[dug against the dark]" }],
+  "description": [
+    {
+      "value": "<p>The frozen hemisphere outward of the dusk band, where every volatile the planet has ever lost has come to rest and stayed. Surface temperatures run below minus a hundred and forty and the ground is a metre of frost over rock. It is used, sparingly, for storage, and the tunnels that reach into it are the only permanent construction on the planet.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "PLANET", "G1_SURVEY_GRID_44_B"] },
+  "biome": [{ "id": ["xeno.peerdb.org", "BIOME", "NIGHTSIDE_TRAP"] }],
+  "area": { "value": { "amount": 4100000, "precision": 100 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "SQUARE_KILOMETRE"] }] },
+  "elevationRange": {
+    "value": { "from": { "amount": -900, "precision": 10 }, "to": { "amount": 3200, "precision": 10 } },
+    "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }]
+  }
+}

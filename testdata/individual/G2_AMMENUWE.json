@@ -1,0 +1,24 @@
+{
+  "id": ["xeno.peerdb.org", "INDIVIDUAL", "G2_AMMENUWE"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "INDIVIDUAL"] }],
+  "name": [{ "value": "Ammenuwe" }],
+  "description": [
+    {
+      "value": "<p>A glass carrier, holding no position in any terrace sequence and therefore, in local terms, nobody, which they describe as the advantage of the trade. They walk the material from the quarry towards the night side and back, and have made the full circuit of the band four times. A sibling of theirs keeps an account at the warren eleven years&#39; walk away, and the two exchange one message per switching, which is as often as the trip allows. They consented to a photograph in 2299 on condition that the quarry was not in it.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "species": { "id": ["xeno.peerdb.org", "SPECIES", "G2_ANUWELME"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G2_GLASS_RELAY"] }],
+  "role": [
+    { "value": "glass carrier", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "quarry relay worker", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }
+  ],
+  "formOfAddress": "by personal name, having no other",
+  "born": { "time": "2267-01-01T00:00:00Z", "precision": "y" },
+  "diedNone": true,
+  "birthplace": { "id": ["xeno.peerdb.org", "SITE", "G2_LONG_EVENING_ROWS"] },
+  "image": [
+    { "value": "/f/U42aijZmveGmLUN7jJcEXg", "name": "G2_AMMENUWE.jpg", "caption": "Portrait", "source": "Made with consent; Consortium collection" }
+  ]
+}

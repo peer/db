@@ -1,0 +1,41 @@
+{
+  "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G3_STRIP_SPEECH"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM"] }],
+  "name": [{ "value": "Strip Speech", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Sethen", "gloss": "talk on the strip" }],
+  "description": [
+    {
+      "value": "<p>The spoken language of the dusk band, shared with small local differences by everyone who works it, and the only language in this galaxy a fieldworker has ever learned by ear. Meaning sits in vowel length and in the order of the last two words; the consonants carry almost nothing and are slurred away in ordinary speech without loss. It is exact about direction, distance and time remaining before the ice front arrives, and it has no comparative at all, so nothing is colder, larger or better than anything else, only near it or far from it. What a fieldworker gets wrong first is politeness: a request cannot be softened, and every attempt to soften one is heard as a second, separate request.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "modality": [
+    { "id": ["xeno.peerdb.org", "COMMUNICATION_MODALITY", "VOCALISATION"] },
+    { "id": ["xeno.peerdb.org", "COMMUNICATION_MODALITY", "GESTURE"] }
+  ],
+  "users": {
+    "value": { "from": { "amount": 28000, "precision": 100 }, "to": { "amount": 89000, "precision": 100 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "sampleGloss": [
+    {
+      "value": "<p><i>ussel neth thammis, seleth ne</i>. Word by word: front, two-sleeps, hearth, not. Freely: the ice front is two sleeps away, so this hearth will not be here.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "recording": [
+    {
+      "value": "/f/4u5mG7nGKp2ZzJN51JtP6c",
+      "name": "system-G3_STRIP_SPEECH.mp3",
+      "caption": "Elicitation sample",
+      "duration": { "value": { "amount": 3, "precision": 1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "MINUTE"] }] },
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G3_STRIP_SPEECH"] }],
+      "note": [
+        {
+          "value": "<p>Recorded during elicitation and kept as the reference sample for this system.</p>",
+          "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+        }
+      ]
+    }
+  ]
+}

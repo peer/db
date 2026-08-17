@@ -1,4 +1,5 @@
 import type { DeepReadonly } from "vue"
+import type { ComposerTranslation } from "vue-i18n"
 
 import type { ClaimTypes } from "@/document"
 
@@ -13,8 +14,8 @@ import { getBestClaimOfType } from "@/document"
 // finds where it is used.
 export interface PermissionAction {
   id: string
-  label: (t: (key: string) => string) => string
-  hint: (t: (key: string) => string) => string
+  label: (t: ComposerTranslation) => string
+  hint: (t: ComposerTranslation) => string
   requires: string[]
 }
 
@@ -152,14 +153,14 @@ export function permissionRequests(claims: DeepReadonly<ClaimTypes>): Permission
 // permissionActionLabel returns an action's label, or null for an action which is not one of
 // permissionActions (nothing stops a client from requesting any action), which the caller then shows
 // by its identifier instead.
-export function permissionActionLabel(action: string, t: (key: string) => string): string | null {
+export function permissionActionLabel(action: string, t: ComposerTranslation): string | null {
   const found = permissionActions.find((a) => a.id === action)
   return found ? found.label(t) : null
 }
 
 // permissionActionHint returns the hint describing what an action allows, or null for an action which
 // is not one of permissionActions, which has no description to show.
-export function permissionActionHint(action: string, t: (key: string) => string): string | null {
+export function permissionActionHint(action: string, t: ComposerTranslation): string | null {
   const found = permissionActions.find((a) => a.id === action)
   return found ? found.hint(t) : null
 }

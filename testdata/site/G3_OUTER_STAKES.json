@@ -1,0 +1,20 @@
+{
+  "id": ["xeno.peerdb.org", "SITE", "G3_OUTER_STAKES"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SITE"] }],
+  "name": [{ "value": "Outer Stakes", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "localName": [{}],
+  "description": [
+    {
+      "value": "<p>Tall platform frames standing in shallow water off the seaward shore of the two outermost islands, forty-one of them at the last count, each carrying a wrapped burden. The frames are maintained and the burdens are not disturbed. This entry was compiled from photographs taken at two kilometres and is deliberately thin.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "REGION", "G3_STAKE_ISLANDS"] },
+  "siteType": { "id": ["xeno.peerdb.org", "SITE_TYPE", "MORTUARY_GROUND"] },
+  "gridReference": "KB-081.9/-05.3",
+  "population": {
+    "value": { "from": { "amount": 0, "precision": 10 }, "to": { "amount": 0, "precision": 10 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "occupation": { "from": { "time": "2291-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true }
+}

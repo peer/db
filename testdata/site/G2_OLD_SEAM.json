@@ -1,0 +1,26 @@
+{
+  "id": ["xeno.peerdb.org", "SITE", "G2_OLD_SEAM"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SITE"] }],
+  "name": [{ "value": "Old Seam", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "description": [
+    {
+      "value": "<p>A working floor around a mineral chimney where sulphide crusts were cut for tools and for exchange for as long as the vent ran. The vent failed in 2276 and the site was abandoned within a year. Cut faces, discarded blanks and a stacked pile of unfinished crust remain exactly where they were left.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "REGION", "G2_WARM_SEAM"] },
+  "siteType": { "id": ["xeno.peerdb.org", "SITE_TYPE", "EXTRACTION_SITE"] },
+  "gridReference": "LL-07.6/-14.8",
+  "population": {
+    "value": { "from": { "amount": 0, "precision": 10 }, "to": { "amount": 0, "precision": 10 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "occupation": { "fromIsUnknown": true, "to": { "time": "2276-01-01T00:00:00Z", "precision": "y" } },
+  "image": [{ "value": "/f/U4YAVkZ6JcWyKg9LX8aFpN", "name": "G2_OLD_SEAM.jpg", "caption": "General view", "source": "Consortium survey archive" }],
+  "notes": [
+    {
+      "value": "<p>The survey watched the vent die across three visits and recorded the abandonment in full. Nobody involved has been willing to describe the resulting file as a good outcome, though it is the best-documented abandonment in the register.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

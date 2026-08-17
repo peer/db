@@ -1,0 +1,28 @@
+{
+  "id": ["xeno.peerdb.org", "MOON", "G1_ASSAY"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "MOON"] }],
+  "name": [{ "value": "Assay", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "catalogueCode": "SXH-0716-h/1",
+  "description": [
+    {
+      "value": "<p>An ice moon cut by long parallel fractures stained rust-orange by whatever comes up through them, with a brine ocean below. The staining is the reason the moon has a name rather than a number. Sampling is done by lowering instruments into the open cracks, which is slow and has produced eight hundred kilograms of material and no consensus.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "PLANET", "G1_SIXTEEN_HUNDRED_VIII"] },
+  "planetType": { "id": ["xeno.peerdb.org", "PLANET_TYPE", "ICE_SHELL"] },
+  "biome": [{ "id": ["xeno.peerdb.org", "BIOME", "BRINE_SEA"] }],
+  "radius": { "value": { "amount": 0.24, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_RADIUS"] }] },
+  "mass": { "value": { "amount": 0.0088, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_MASS"] }] },
+  "surfaceGravity": { "value": { "amount": 0.15, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "STANDARD_GRAVITY"] }] },
+  "dayLength": { "value": { "amount": 148.8, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "HOUR"] }] },
+  "orbitalPeriod": { "value": { "amount": 6.2, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_DAY"] }] },
+  "tidallyLocked": true,
+  "meanTemperature": { "value": { "amount": -138.4, "precision": 0.1 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "°C"] }] },
+  "hydrosphere": { "value": { "amount": 0, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "PERCENT"] }] },
+  "biosphereUnknown": true,
+  "contactStatus": { "id": ["xeno.peerdb.org", "CONTACT_STATUS", "NO_CONTACT"] },
+  "firstSurveyed": { "time": "2249-01-01T00:00:00Z", "precision": "y" },
+  "populationEstimateUnknown": true,
+  "image": [{ "value": "/f/9tVbh88Bezp45GPikJGqRF", "name": "G1_ASSAY.jpg", "caption": "Surface view", "source": "Consortium survey archive" }]
+}

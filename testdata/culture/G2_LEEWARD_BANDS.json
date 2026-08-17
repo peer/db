@@ -1,0 +1,34 @@
+{
+  "id": ["xeno.peerdb.org", "CULTURE", "G2_LEEWARD_BANDS"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "CULTURE"] }],
+  "name": [{ "value": "Windward Bands", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [
+    { "value": "Wemmenu", "gloss": "the walking into it", "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G2_PLATE_LIGHT"] }] }
+  ],
+  "catalogueCode": "CU-2263-11",
+  "description": [
+    {
+      "value": "<p>Bands of eleven to forty move with the grazers on their circuit of the habitable ring and arrive at any given stretch of terrace about once in nine years. They own nothing that cannot be carried into the wind and hold no office at all: a decision is made by whoever is prepared to act on it, and anybody who disagrees walks on ahead until the matter is moot. Terrace households treat their arrival as weather, which is to say as something to be prepared for rather than negotiated with, and the two arrangements have coexisted without a settlement for as long as either can account for. Nobody in a band ever stands facing downwind, and the youngest are carried on the lee side of an adult until they are old enough to lean. Whether the grazers are followed or herded is the standing question, and it matters, because the legal standing of every terrace agreement rests on the answer.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Bandos de onze a quarenta pessoas deslocam-se com os pastadores no seu circuito pelo anel habitável e chegam a um dado troço de terraços cerca de uma vez em cada nove anos. Não possuem nada que não possa ser transportado contra o vento e não têm cargo nenhum: uma decisão é tomada por quem estiver disposto a agir em conformidade, e quem discorda segue em frente até o assunto deixar de ter importância. As casas dos terraços tratam a sua chegada como se fosse tempo meteorológico, ou seja, como algo para o qual nos preparamos e com o qual não se negoceia, e os dois arranjos coexistem sem acerto desde tempos que nenhum dos lados consegue precisar. Ninguém num bando fica alguma vez de frente para sotavento, e os mais novos são transportados do lado abrigado de um adulto até terem idade para se inclinar contra o vento. Se os pastadores são seguidos ou pastoreados é a questão permanente, e importa, porque a validade jurídica de todos os acordos dos terraços depende da resposta.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "practisedBy": [{ "id": ["xeno.peerdb.org", "SPECIES", "G2_WEMMALU"] }],
+  "presentAt": [{ "id": ["xeno.peerdb.org", "SITE", "G2_LONG_EVENING_ROWS"] }, { "id": ["xeno.peerdb.org", "SITE", "G2_TURNING_GROUND"] }],
+  "kinshipSystem": { "id": ["xeno.peerdb.org", "KINSHIP_SYSTEM", "BILATERAL_KINDRED"] },
+  "socialOrganisation": { "id": ["xeno.peerdb.org", "SOCIAL_ORGANISATION", "ACEPHALOUS_BANDS"] },
+  "subsistence": [
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "HERD_FOLLOWING"] },
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "OPPORTUNISTIC_FORAGING"] }
+  ],
+  "communication": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G2_PLATE_LIGHT"] }],
+  "population": {
+    "value": { "from": { "amount": 6000, "precision": 100 }, "to": { "amount": 12000, "precision": 100 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "period": { "from": { "time": "2263-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true },
+  "image": [{ "value": "/f/Hoy6wGH6upbcRyQPDd71B2", "name": "G2_LEEWARD_BANDS.jpg", "caption": "Gathering", "source": "Consortium survey archive" }]
+}

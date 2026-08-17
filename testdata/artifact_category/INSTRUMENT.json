@@ -1,0 +1,24 @@
+{
+  "id": ["xeno.peerdb.org", "ARTIFACT_CATEGORY", "INSTRUMENT"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "ARTIFACT_CATEGORY"] }],
+  "name": [
+    { "value": "Instrument", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "Glasbilo", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }] },
+    { "value": "Instrumento", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>Objects made to produce sound or vibration, whether for music, signalling or speech surrogacy. Excludes measuring and process devices, which are apparatus.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Predmeti za ustvarjanje zvoka ali tresljajev, za glasbo, signaliziranje ali nadomeščanje govora.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Objetos feitos para produzir som ou vibração, seja para música, sinalização ou substituição da fala. Exclui dispositivos de medição e de processo, que são aparelhos.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "code": ["instrument"]
+}

@@ -1,0 +1,24 @@
+{
+  "id": ["xeno.peerdb.org", "ORGANISM_CATEGORY", "DECOMPOSER_NETWORK"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "ORGANISM_CATEGORY"] }],
+  "name": [
+    { "value": "Decomposer network", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "Razkrojevalska mreža", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }] },
+    { "value": "Rede de decompositores", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>Spreading filamentous or colonial organisms that break down dead matter and transport nutrients across distance. Excludes single-point scavengers.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Razraščajoči se nitasti ali kolonijski organizmi, ki razgrajujejo odmrlo snov in prenašajo hranila.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Organismos filamentosos ou coloniais em expansão que decompõem matéria morta e transportam nutrientes à distância. Exclui necrófagos de ponto único.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "code": ["decomposer"]
+}

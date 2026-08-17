@@ -1,0 +1,37 @@
+{
+  "id": ["xeno.peerdb.org", "OBSERVATION", "OBSA_DOWNWIND_GREETING_CORRECTED"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "OBSERVATION"] }],
+  "title": [{ "value": "What was accepted at the downwind greeting of 2287", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "description": [
+    {
+      "value": "<p>A note written after a band walker corrected our account of a greeting received five years earlier. We had filed it as a welcome.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "content": [
+    {
+      "value": "<p>A band came through the station stretch on the ninth. One walker came out to our downwind side, stopped at about thirty paces, ran a single wave through the dorsal plates from fore to aft and held them flat. We leaned. This is the third time this has been done to a party of ours.</p><p>Afterwards, and unprompted, she corrected our account of the first occasion. We had filed the 2287 greeting as a welcome. It is not a welcome. It states that we are now walking with the band, and therefore answerable for the herd, for whatever it eats and whatever it walks over.</p><p>She was clear that nobody gives it twice to the same party. Since it has now been given three times, the Consortium is either one party or three, depending on a question about us that nobody here has any reason to answer and that we cannot answer either.</p><p>The year the second field season spent establishing what had been accepted was not wasted, exactly. The herd route through this stretch is the best-mapped thing in the region and we can now say to the hectare what we are answerable for.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "expedition": { "id": ["xeno.peerdb.org", "EXPEDITION", "EXP_EVENING_TERRACES"] },
+  "observedBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_WEN"] }, { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_MOKOENA"] }],
+  "observedAt": { "id": ["xeno.peerdb.org", "SITE", "G2_STATION_ONE"] },
+  "observedOn": { "time": "2292-05-09T00:00:00Z", "precision": "d" },
+  "about": [
+    { "id": ["xeno.peerdb.org", "PRACTICE", "G2_LEAN_GREETING"] },
+    { "id": ["xeno.peerdb.org", "CULTURE", "G2_LEEWARD_BANDS"] },
+    { "id": ["xeno.peerdb.org", "SPECIES", "G2_WEMMALU"] }
+  ],
+  "method": [
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "LINGUISTIC_ELICITATION"] },
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "PARTICIPANT_OBSERVATION"] }
+  ],
+  "fieldConditions": "Standing wind, evening light, grazers on the terrace edge for most of the afternoon. A band of about twenty-six, and four terrace householders who kept well upwind of the whole business.",
+  "notes": [
+    {
+      "value": "<p>The expedition ethics file has been amended to record that acceptance of the greeting binds the accepting party and not the Consortium. That is our ruling and not theirs, and nobody in the band has been asked to agree to it.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

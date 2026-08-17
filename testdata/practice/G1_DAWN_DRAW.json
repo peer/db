@@ -1,0 +1,25 @@
+{
+  "id": ["xeno.peerdb.org", "PRACTICE", "G1_DAWN_DRAW"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PRACTICE"] }],
+  "name": [{ "value": "The Dawn Draw", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Naurau", "gloss": "the drawing opened" }],
+  "description": [
+    {
+      "value": "<p>In the hour before dawn the clerk stands at the head of the deep basin and reads the day&#39;s tablet aloud, including the expiry scratch, whether or not anybody is listening. Households come forward in the order read, bring their own vessels, and take the stated quantity while the clerk watches and says nothing. Nobody argues at the basin: an objection is made in the afternoon, indoors, to the clerk, and is either accepted onto the next tablet or is not. The last household in the order takes whatever is left, which is sometimes a great deal and sometimes nothing, and this is not held to be unfair by anybody including them. By the time the star is a hand above the horizon the basin is covered and weighted and the day&#39;s outdoor work is over.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Pred zoro pisar prebere solno ploščico in gospodinjstva zajemajo vodo po zapisanem vrstnem redu.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    }
+  ],
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G1_BASIN_WATER_ORDER"] }],
+  "category": { "id": ["xeno.peerdb.org", "PRACTICE_CATEGORY", "CALENDRICAL"] },
+  "periodicity": "every dawn",
+  "participants": {
+    "value": { "from": { "amount": 20, "precision": 1 }, "to": { "amount": 4000, "precision": 1 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "firstDocumented": { "time": "2235-01-01T00:00:00Z", "precision": "y" },
+  "relatedPractice": [{ "id": ["xeno.peerdb.org", "PRACTICE", "G1_CLOSING_ACCOUNT"] }]
+}

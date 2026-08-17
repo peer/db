@@ -1,0 +1,23 @@
+{
+  "id": ["xeno.peerdb.org", "COLLECTIVE", "G3_FRONT_HEAP"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "COLLECTIVE"] }],
+  "name": [{ "value": "The Heap at the Front", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "description": [
+    {
+      "value": "<p>A colony of some tens of thousands of small bodies packed into the rubble immediately at the ice front, which speaks, decides and remembers as one thing and has no word that picks out any of its bodies. It is not a swarm and not a settlement: bodies are grown, spent and replaced continuously, and a body removed stops mattering to the colony within a day. The discipline records it as one body because it answers as one, consistently, across a century of visits, and because every attempt to address a part of it has failed.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "species": { "id": ["xeno.peerdb.org", "SPECIES", "G3_NITHESH"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G3_RUBBLE_LEDGER"] }],
+  "role": [
+    { "value": "party to the rubble exchange", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "principal respondent at the ice front", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }
+  ],
+  "memberCount": {
+    "value": { "from": { "amount": 30000, "precision": 10 }, "to": { "amount": 90000, "precision": 10 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "activePeriod": { "from": { "time": "2283-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true },
+  "seat": { "id": ["xeno.peerdb.org", "SITE", "G3_ICEFRONT_CAMP"] }
+}

@@ -1,0 +1,18 @@
+{
+  "id": ["xeno.peerdb.org", "STAR_SYSTEM", "G4_FID"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "STAR_SYSTEM"] }],
+  "name": [{ "value": "Fid", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "catalogueCode": "SPW-B/046",
+  "description": [
+    {
+      "value": "<p>A dim red dwarf with two bodies: an ice world and an uncatalogued companion that plainly perturbs it and has never been resolved. Surveyed once, from a distance, over eleven months.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "SECTOR", "G4_SHELL_SEVEN"] },
+  "spectralClass": "M4V",
+  "starCount": { "amount": 1, "precision": 1 },
+  "planetCount": { "amount": 2, "precision": 1 },
+  "distanceFromSol": { "value": { "amount": 2688.3, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "PARSEC"] }] },
+  "firstSurveyed": { "time": "2258-01-01T00:00:00Z", "precision": "y" }
+}

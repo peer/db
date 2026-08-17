@@ -1,4 +1,5 @@
 import type { ComputedRef, InjectionKey, Ref } from "vue"
+import type { ComposerTranslation } from "vue-i18n"
 
 import type { ValidatedInput, ValidateFn, ValidationError, ValidatorFn } from "@/types"
 
@@ -74,7 +75,7 @@ export function allErrors(inputs: Iterable<ValidatedInput>): ComputedRef<Validat
 //
 // The codeMap values are t() call results (not just keys) so static analysis
 // can pick the translation keys up. Shared by InputErrors and InputField.
-export function pickErrorMessage(errors: ValidationError[], t: (key: string) => string): string | null {
+export function pickErrorMessage(errors: ValidationError[], t: ComposerTranslation): string | null {
   if (errors.length === 0) {
     return null
   }

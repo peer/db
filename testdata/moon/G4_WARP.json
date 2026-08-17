@@ -1,0 +1,27 @@
+{
+  "id": ["xeno.peerdb.org", "MOON", "G4_WARP"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "MOON"] }],
+  "name": [{ "value": "Warp", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Roamei" }],
+  "catalogueCode": "SPW-A/104-c-i",
+  "description": [
+    {
+      "value": "<p>Long Water&#39;s single large moon, a dark silicate body a third of Earth&#39;s radius, locked and airless. It is responsible for the twenty-six metre tides on the northern shelf and for the calendar that everyone on the world below shares. Its surface is heavily cratered and dusted with iron-rich fines, and it has been landed on four times, all by the Consortium.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "PLANET", "G4_LONG_WATER"] },
+  "planetType": { "id": ["xeno.peerdb.org", "PLANET_TYPE", "DENSE_SILICATE"] },
+  "radius": { "value": { "amount": 0.38, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_RADIUS"] }] },
+  "mass": { "value": { "amount": 0.058, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_MASS"] }] },
+  "surfaceGravity": { "value": { "amount": 0.4, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "STANDARD_GRAVITY"] }] },
+  "dayLength": { "value": { "amount": 998.4, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "HOUR"] }] },
+  "orbitalPeriod": { "value": { "amount": 41.6, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_DAY"] }] },
+  "tidallyLocked": true,
+  "meanTemperature": { "value": { "amount": -22.0, "precision": 0.1 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "°C"] }] },
+  "hydrosphere": { "value": { "amount": 0, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "PERCENT"] }] },
+  "biosphereNone": true,
+  "contactStatus": { "id": ["xeno.peerdb.org", "CONTACT_STATUS", "NO_CONTACT"] },
+  "firstSurveyed": { "time": "2219-01-01T00:00:00Z", "precision": "y" },
+  "image": [{ "value": "/f/LcaYN3vNCJL1nGKbMvz2MH", "name": "G4_WARP.jpg", "caption": "Approach view", "source": "Consortium survey archive" }]
+}

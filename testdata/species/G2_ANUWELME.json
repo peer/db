@@ -1,0 +1,72 @@
+{
+  "id": ["xeno.peerdb.org", "SPECIES", "G2_ANUWELME"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SPECIES"] }],
+  "name": [{ "value": "Evening Band Terrace Householders", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [
+    {
+      "value": "Anuwelme",
+      "gloss": "the ones who stayed in the evening",
+      "inSystem": [
+        { "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G2_PLATE_LIGHT"] },
+        { "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G2_MOUTH_TALLY"] },
+        { "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G2_RISER_TAP"] }
+      ]
+    }
+  ],
+  "exonym": [{ "value": "Wellamme", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "taxonCode": "TX-4102-a",
+  "description": [
+    {
+      "value": "<p>The largest population in the Undercount, and the only one the Consortium deals with on terms it did not set. They hold contour terraces along eleven hundred kilometres of the windward band, growing led mat in silt carried down from the night side through drops that are opened and closed by agreement rather than by ownership. A visitor notices the light first, which has not changed in the lifetime of anything alive, and then that everyone walks at the same slight lean, because the wind has come from one quarter since before the terraces were cut. A holding is described by its position in the sequence, and a household takes the name of the position rather than the position taking the name of the household, so a name outlives its holders and inherits their obligations along with their ground. The standing argument is whether the eleven-day switching gathering at the Turning Ground is a government or a market. The literature has been split on this since 2263 and the Anuwelme have declined three separate invitations to settle it.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Največja skupnost v Podštetju, ki obdeluje terase v pasu trajnega mraka. Gospodinjstvo nosi ime svojega mesta v zaporedju teras.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    }
+  ],
+  "homeworld": { "id": ["xeno.peerdb.org", "PLANET", "G2_HALF_LIGHT"] },
+  "bodyPlan": [
+    {
+      "value": "<p>Bilateral and four-limbed, with a low broad trunk carried close to the ground and a hind pair much heavier than the fore. The integument is a mail of overlapping waxy plates that sheds wind-borne grit and is itself shed twice a year, in sheets, at a time of year everyone else finds inconvenient. The forelimbs end in three opposed working digits with a chemosensitive pad on the inner face, so that tasting a thing and handling it are the same act. Feeding is by scraping and grinding, through a gut long enough to show as a bulge in profile.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "typicalHeight": { "value": { "amount": 1.5, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+  "typicalMass": { "value": { "amount": 48.0, "precision": 0.1 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "kg"] }] },
+  "lifespan": {
+    "value": { "from": { "amount": 30, "precision": 1 }, "to": { "amount": 70, "precision": 1 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_YEAR"] }]
+  },
+  "sensoryModality": [
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "POLARISED_VISION"] },
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "HYGRORECEPTION"] },
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "CONTACT_CHEMO"] }
+  ],
+  "subsistence": [
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "SILT_GARDENING"] },
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "COLONY_GRAZING"] }
+  ],
+  "individuality": { "id": ["xeno.peerdb.org", "INDIVIDUALITY_MODE", "BOUNDED"] },
+  "socialOrganisation": { "id": ["xeno.peerdb.org", "SOCIAL_ORGANISATION", "FESTIVAL_STATE"] },
+  "kinshipSystem": { "id": ["xeno.peerdb.org", "KINSHIP_SYSTEM", "NAME_INHERITANCE"] },
+  "communication": [
+    { "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G2_PLATE_LIGHT"] },
+    { "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G2_MOUTH_TALLY"] },
+    { "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G2_RISER_TAP"] }
+  ],
+  "population": {
+    "value": { "from": { "amount": 90000, "precision": 1000 }, "to": { "amount": 160000, "precision": 1000 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "contactStatus": { "id": ["xeno.peerdb.org", "CONTACT_STATUS", "RECIPROCAL"] },
+  "firstContact": { "time": "2244-01-01T00:00:00Z", "precision": "y" },
+  "image": [
+    {
+      "value": "/f/Caq9AxymvL32y68KWMU5ge",
+      "name": "G2_ANUWELME.jpg",
+      "caption": "Field plate",
+      "source": "Drawn in the field; Consortium collection"
+    }
+  ]
+}

@@ -211,7 +211,7 @@ const hasContent = computed(() => hasAnyFieldValues.value || (props.sections && 
     the sub-field indent cell are dropped below sm so a stacked value does not sit under a blank line.
   -->
   <table v-if="hasContent" class="pd-fieldsview flex w-full flex-col">
-    <tbody class="grid grid-cols-1 sm:grid-cols-[20%_1fr] sm:gap-x-3">
+    <tbody class="pd-fieldsview-body grid grid-cols-1 sm:grid-cols-[20%_1fr] sm:gap-x-3">
       <!-- Top-level fields first (sorted by orderInList). -->
       <template v-for="field in sortedByOrder(fieldsData.fields)" :key="fieldKey(field)">
         <template v-if="shown(field)">
@@ -236,7 +236,11 @@ const hasContent = computed(() => hasAnyFieldValues.value || (props.sections && 
               indents one step (pl-2) below sm so it sits under the label. In a nested instance the value column is left
               empty and the sub-fields stair-step in the sub-row below (the value branch), so a deep HAS chain does not march.
             -->
-            <tr v-else-if="claimTypeName(claim) === 'has' && !nested && field.subFields.length > 0 && claim.sub" class="pd-fieldsview-row contents">
+            <tr
+              v-else-if="claimTypeName(claim) === 'has' && !nested && field.subFields.length > 0 && claim.sub"
+              class="pd-fieldsview-row contents"
+              :class="`pd-fieldsview-row-${field.propertyId}`"
+            >
               <td v-if="cIndex === 0" class="pd-fieldsview-label px-2 py-1 align-top font-medium text-gray-700">
                 <DocumentRefInline :id="field.propertyId" :link="false" />
               </td>
@@ -246,7 +250,7 @@ const hasContent = computed(() => hasAnyFieldValues.value || (props.sections && 
               </td>
             </tr>
             <template v-else>
-              <tr class="pd-fieldsview-row contents">
+              <tr class="pd-fieldsview-row contents" :class="`pd-fieldsview-row-${field.propertyId}`">
                 <td v-if="cIndex === 0" class="pd-fieldsview-label px-2 py-1 align-top font-medium text-gray-700">
                   <DocumentRefInline :id="field.propertyId" :link="false" />
                 </td>
@@ -265,7 +269,7 @@ const hasContent = computed(() => hasAnyFieldValues.value || (props.sections && 
                 value column (under the value). A nested value, and any nested value-less HAS field, spans both columns
                 (sm:col-span-2) and indents by this cell's px-2 under the label, so deeper sub-fields stair-step down per level.
               -->
-              <tr v-if="field.subFields.length > 0 && claim.sub" class="contents">
+              <tr v-if="field.subFields.length > 0 && claim.sub" class="pd-fieldsview-row-sub contents">
                 <td v-if="!nested" class="hidden sm:block"></td>
                 <td class="px-2 py-0 align-top" :class="{ 'sm:col-span-2': nested }">
                   <FieldsView :fields-data="{ sections: [], fields: field.subFields }" :claims="getSubClaims(claim.GetID())" :limited="limited" nested />
@@ -273,7 +277,7 @@ const hasContent = computed(() => hasAnyFieldValues.value || (props.sections && 
               </tr>
             </template>
           </template>
-          <tr v-if="hiddenClaimsCount(field) > 0" class="contents">
+          <tr v-if="hiddenClaimsCount(field) > 0" class="pd-fieldsview-row-showall contents">
             <td class="hidden sm:block"></td>
             <td class="px-2 py-1">
               <Button type="button" class="pd-fieldsview-button-showall px-2.5 py-1" @click.prevent="expandField(field)">{{ t("common.buttons.showAll") }}</Button>
@@ -286,7 +290,7 @@ const hasContent = computed(() => hasAnyFieldValues.value || (props.sections && 
       <template v-if="sections">
         <template v-for="section in sortedByOrder(fieldsData.sections)" :key="'section-' + section.id">
           <template v-if="section.fields.some(shown)">
-            <tr class="contents">
+            <tr class="pd-fieldsview-row-section contents">
               <!--
                 The heading role (replacing the cell's columnheader role, which this
                 section separator is not anyway) lets assistive technology jump
@@ -296,6 +300,7 @@ const hasContent = computed(() => hasAnyFieldValues.value || (props.sections && 
                 role="heading"
                 aria-level="2"
                 class="pd-fieldsview-header-section border-b border-slate-200 px-2 pt-4 pb-1 text-left text-lg font-semibold sm:col-span-2"
+                :class="`pd-fieldsview-header-section-${section.id}`"
               >
                 {{ getSectionName(section as SectionData, locale) }}
               </th>
@@ -314,7 +319,11 @@ const hasContent = computed(() => hasAnyFieldValues.value || (props.sections && 
                     </td>
                   </tr>
                   <!-- A top-level value-less HAS claim's sub-fields sit in the label row's value cell (first sub-field to the right), see above. -->
-                  <tr v-else-if="claimTypeName(claim) === 'has' && !nested && field.subFields.length > 0 && claim.sub" class="pd-fieldsview-row contents">
+                  <tr
+                    v-else-if="claimTypeName(claim) === 'has' && !nested && field.subFields.length > 0 && claim.sub"
+                    class="pd-fieldsview-row contents"
+                    :class="`pd-fieldsview-row-${field.propertyId}`"
+                  >
                     <td v-if="cIndex === 0" class="pd-fieldsview-label px-2 py-1 align-top font-medium text-gray-700">
                       <DocumentRefInline :id="field.propertyId" :link="false" />
                     </td>
@@ -324,7 +333,7 @@ const hasContent = computed(() => hasAnyFieldValues.value || (props.sections && 
                     </td>
                   </tr>
                   <template v-else>
-                    <tr class="pd-fieldsview-row contents">
+                    <tr class="pd-fieldsview-row contents" :class="`pd-fieldsview-row-${field.propertyId}`">
                       <td v-if="cIndex === 0" class="pd-fieldsview-label px-2 py-1 align-top font-medium text-gray-700">
                         <DocumentRefInline :id="field.propertyId" :link="false" />
                       </td>
@@ -336,7 +345,7 @@ const hasContent = computed(() => hasAnyFieldValues.value || (props.sections && 
                       </td>
                     </tr>
                     <!-- Sub-fields for this claim value (recursive), see above. -->
-                    <tr v-if="field.subFields.length > 0 && claim.sub" class="contents">
+                    <tr v-if="field.subFields.length > 0 && claim.sub" class="pd-fieldsview-row-sub contents">
                       <td v-if="!nested" class="hidden sm:block"></td>
                       <td class="px-2 py-0 align-top" :class="{ 'sm:col-span-2': nested }">
                         <FieldsView :fields-data="{ sections: [], fields: field.subFields }" :claims="getSubClaims(claim.GetID())" :limited="limited" nested />
@@ -344,7 +353,7 @@ const hasContent = computed(() => hasAnyFieldValues.value || (props.sections && 
                     </tr>
                   </template>
                 </template>
-                <tr v-if="hiddenClaimsCount(field) > 0" class="contents">
+                <tr v-if="hiddenClaimsCount(field) > 0" class="pd-fieldsview-row-showall contents">
                   <td class="hidden sm:block"></td>
                   <td class="px-2 py-1">
                     <Button type="button" class="pd-fieldsview-button-showall px-2.5 py-1" @click.prevent="expandField(field)">{{ t("common.buttons.showAll") }}</Button>

@@ -1,0 +1,24 @@
+{
+  "id": ["xeno.peerdb.org", "NARRATIVE_GENRE", "CONTACT_ACCOUNT"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "NARRATIVE_GENRE"] }],
+  "name": [
+    { "value": "Contact account", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "Pripoved o stiku", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }] },
+    { "value": "Relato de contacto", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>Local narrative of meeting outsiders, including the Consortium itself. Read alongside the corresponding survey report, which rarely agrees with it.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Domača pripoved o srečanju s tujci, tudi s samim Konzorcijem.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Narrativa local do encontro com estranhos, incluindo o próprio Consórcio. Lê-se a par do respetivo relatório de levantamento, que raramente coincide com ela.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "code": ["contact-acc"]
+}

@@ -1,0 +1,18 @@
+{
+  "id": ["xeno.peerdb.org", "STAR_SYSTEM", "G1_LEDGER_STAR"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "STAR_SYSTEM"] }],
+  "name": [{ "value": "Ledger Star", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "catalogueCode": "MW-0126-LDG",
+  "description": [
+    {
+      "value": "<p>A bright yellow-white star with six planets, hot for its class and hard on instruments. Fieldwork here is scheduled around the star rather than around the worlds.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "SECTOR", "G1_THREADBARE"] },
+  "spectralClass": "F9V",
+  "starCount": { "amount": 1, "precision": 1 },
+  "planetCount": { "amount": 6, "precision": 1 },
+  "distanceFromSol": { "value": { "amount": 455.3, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "PARSEC"] }] },
+  "firstSurveyed": { "time": "2222-01-01T00:00:00Z", "precision": "y" }
+}

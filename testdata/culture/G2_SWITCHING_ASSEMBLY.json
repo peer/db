@@ -1,0 +1,50 @@
+{
+  "id": ["xeno.peerdb.org", "CULTURE", "G2_SWITCHING_ASSEMBLY"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "CULTURE"] }],
+  "name": [{ "value": "Turning Assembly", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [
+    {
+      "value": "Menulanne",
+      "gloss": "the turning that is done together",
+      "inSystem": [
+        { "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G2_PLATE_LIGHT"] },
+        { "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G2_MOUTH_TALLY"] }
+      ]
+    }
+  ],
+  "catalogueCode": "CU-2244-05",
+  "description": [
+    {
+      "value": "<p>For eleven days in every cycle a large part of the band&#39;s population converges on two hundred hectares of flat stony ground to switch the meltwater flow between catchments, and for those eleven days there is an authority that can bind every holding in the sequence. Between times there is no such authority anywhere and no building to house one, only stone markers and a set of anchor sockets cut into bedrock. Obligations agreed at the switching are entered against positions rather than persons and are carried on knotted cord by the households who trade with the night-side warren, which is the only durable record of anything the assembly does. Whether this is a government or a market has been argued in the literature since 2263, and the Anuwelme have now declined three separate invitations to settle it. Everything else arrives and leaves.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Enajst dni na cikel se skupnost zbere, da preusmeri vodo. Vmes te oblasti ni nikjer.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Durante onze dias de cada ciclo, grande parte da população da faixa converge em duzentos hectares de terreno pedregoso e plano para desviar o caudal de degelo entre bacias, e durante esses onze dias existe uma autoridade capaz de vincular todas as posses da sequência. No resto do tempo não há autoridade dessas em parte alguma, nem edifício que a albergue, apenas marcos de pedra e um conjunto de encaixes de ancoragem abertos na rocha. As obrigações acordadas no desvio das águas são lançadas contra posições e não contra pessoas, e são levadas em cordel de nós pelas casas que comerciam com a toca do lado noturno, o que constitui o único registo duradouro de tudo aquilo que a assembleia faz. Se isto é um governo ou um mercado discute-se na literatura desde 2263, e os Anuwelme recusaram já três convites distintos para o esclarecer. Tudo o resto chega e parte.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "practisedBy": [{ "id": ["xeno.peerdb.org", "SPECIES", "G2_ANUWELME"] }, { "id": ["xeno.peerdb.org", "SPECIES", "G2_MUNNAKULE"] }],
+  "presentAt": [{ "id": ["xeno.peerdb.org", "SITE", "G2_TURNING_GROUND"] }],
+  "kinshipSystem": { "id": ["xeno.peerdb.org", "KINSHIP_SYSTEM", "NAME_INHERITANCE"] },
+  "socialOrganisation": { "id": ["xeno.peerdb.org", "SOCIAL_ORGANISATION", "FESTIVAL_STATE"] },
+  "subsistence": [
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "SILT_GARDENING"] },
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "TRADE_DEPENDENCY"] }
+  ],
+  "communication": [
+    { "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G2_PLATE_LIGHT"] },
+    { "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G2_MOUTH_TALLY"] }
+  ],
+  "population": {
+    "value": { "from": { "amount": 6000, "precision": 100 }, "to": { "amount": 19000, "precision": 100 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "period": { "from": { "time": "2244-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true },
+  "image": [
+    { "value": "/f/GABTDGgHtuDAUPZvFkDDwu", "name": "G2_SWITCHING_ASSEMBLY.jpg", "caption": "Gathering", "source": "Consortium survey archive" }
+  ]
+}

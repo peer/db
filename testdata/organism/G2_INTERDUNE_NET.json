@@ -1,0 +1,25 @@
+{
+  "id": ["xeno.peerdb.org", "ORGANISM", "G2_INTERDUNE_NET"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "ORGANISM"] }],
+  "name": [{ "value": "Interdune Net", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "taxonCode": "TX-1153-a",
+  "description": [
+    {
+      "value": "<p>A filamentous network living in the damp layer under the slip faces, carrying water and nutrient between interdune hollows across distances of ten to twenty metres. Because the dunes migrate about a metre a year, the network has to abandon its trailing ends and extend at the leading edge continuously, and it does. Dead trailing filament is preserved in the dune and gives the only usable record of where the sand has been.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "category": { "id": ["xeno.peerdb.org", "ORGANISM_CATEGORY", "DECOMPOSER_NETWORK"] },
+  "foundOn": [{ "id": ["xeno.peerdb.org", "PLANET", "G2_RUST_FLAT"] }],
+  "biome": [{ "id": ["xeno.peerdb.org", "BIOME", "REGOLITH_DUNE"] }, { "id": ["xeno.peerdb.org", "BIOME", "ENDOLITH_ZONE"] }],
+  "typicalSize": { "value": { "amount": 14.0, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+  "typicalMass": { "value": { "amount": 0.8, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "kg"] }] },
+  "image": [
+    {
+      "value": "/f/Pqf13GuuknZhruq6ikBMgs",
+      "name": "G2_INTERDUNE_NET.jpg",
+      "caption": "Field plate",
+      "source": "Drawn in the field; Consortium collection"
+    }
+  ]
+}

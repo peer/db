@@ -1,0 +1,50 @@
+{
+  "id": ["xeno.peerdb.org", "PLANET", "G1_TWELVE_BELLS_II"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PLANET"] }],
+  "name": [{ "value": "Twelve Bells II", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Kutakpek", "gloss": "the two-light ground" }],
+  "catalogueCode": "CCX-2219-TWB2",
+  "description": [
+    {
+      "value": "<p>A dry, sandy world of long dune ridges and closed white basins, lit by two suns of different colour so that everything on it casts a doubled shadow. Settlement follows the basins, where the brine is shallow enough to work and the wind drops below the dune crest. The dunes themselves move a few metres a year, which is slow enough to build on and fast enough to lose things in. Rainfall is measured in events rather than in millimetres.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    { "value": "<p>Peščen svet z redkimi naselji ob solnih kotanjah.</p>", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }] },
+    {
+      "value": "<p>Um mundo seco e arenoso, de longas cristas dunares e bacias brancas fechadas, iluminado por dois sóis de cores diferentes, de modo que tudo nele projeta uma sombra dupla. O povoamento segue as bacias, onde a salmoura é bastante baixa para se trabalhar e o vento se aquieta abaixo da crista das dunas. As dunas deslocam-se alguns metros por ano, o que é lento que chegue para se construir sobre elas e rápido que chegue para nelas se perderem coisas. A chuva mede-se em ocorrências e não em milímetros.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "STAR_SYSTEM", "G1_TWELVE_BELLS"] },
+  "planetType": { "id": ["xeno.peerdb.org", "PLANET_TYPE", "DESICCATED"] },
+  "biome": [{ "id": ["xeno.peerdb.org", "BIOME", "REGOLITH_DUNE"] }, { "id": ["xeno.peerdb.org", "BIOME", "EVAPORITE_PAN"] }],
+  "radius": { "value": { "amount": 0.94, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_RADIUS"] }] },
+  "mass": { "value": { "amount": 0.81, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_MASS"] }] },
+  "surfaceGravity": { "value": { "amount": 0.92, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "STANDARD_GRAVITY"] }] },
+  "dayLength": { "value": { "amount": 31.2, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "HOUR"] }] },
+  "orbitalPeriod": { "value": { "amount": 402.7, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_DAY"] }] },
+  "meanTemperature": { "value": { "amount": 11.2, "precision": 0.1 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "°C"] }] },
+  "hydrosphere": { "value": { "amount": 8.4, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "PERCENT"] }] },
+  "atmosphere": [
+    {
+      "value": "<p>Nitrogen and argon at 0.6 bar with fourteen per cent oxygen. Breathable with effort, and the standing advice is to keep the mouth shut when walking upslope of a crest.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "biosphere": [
+    {
+      "value": "<p>Life is present: 1 catalogued species (Kutak Basin People). The survey is not claimed to be complete.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "contactStatus": { "id": ["xeno.peerdb.org", "CONTACT_STATUS", "LIMITED"] },
+  "firstSurveyed": { "time": "2219-01-01T00:00:00Z", "precision": "y" },
+  "surveyPeriod": { "from": { "time": "2219-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true },
+  "populationEstimate": {
+    "value": { "from": { "amount": 40000, "precision": 100 }, "to": { "amount": 90000, "precision": 100 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "image": [
+    { "value": "/f/Q9af8VjMvcGxgxJGbYSMuj", "name": "G1_TWELVE_BELLS_II.jpg", "caption": "Surface view", "source": "Consortium survey archive" }
+  ]
+}

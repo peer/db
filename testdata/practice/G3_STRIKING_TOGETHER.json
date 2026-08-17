@@ -1,0 +1,25 @@
+{
+  "id": ["xeno.peerdb.org", "PRACTICE", "G3_STRIKING_TOGETHER"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PRACTICE"] }],
+  "name": [{ "value": "The Convergence at the Ring", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [
+    {
+      "value": "[forty slabs answering]",
+      "gloss": "a drummed figure, rendered here by its count because the rhythm does not survive being written down"
+    }
+  ],
+  "description": [
+    {
+      "value": "<p>Bodies belonging to selves spread along forty or fifty kilometres of rim arrive at the ring of slabs over about half a day, take a slab each, and strike together in a single figure that builds for some hours and then thins out and stops. Nothing is carried to the ring and nothing is left on it; bodies arrive with the drumming already running through the ground ahead of them and depart still drumming, so there is no moment at which the ring is silent and occupied. What is decided there, if anything is decided, has not been established in four descents. The survey&#39;s contribution has been to establish that the interval between convergences is not tied to the day, the year, the moon, or the temperature of the rock, which took thirty years and is regarded internally as a result. Since 2273 the figure has included an element the survey is fairly confident refers to the survey.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G3_RIM_CONVERGENCE"] }],
+  "category": { "id": ["xeno.peerdb.org", "PRACTICE_CATEGORY", "CALENDRICAL"] },
+  "periodicity": "at intervals not yet established, apparently several times a local year",
+  "participants": {
+    "value": { "from": { "amount": 8, "precision": 1 }, "to": { "amount": 40, "precision": 1 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "firstDocumented": { "time": "2273-01-01T00:00:00Z", "precision": "y" }
+}

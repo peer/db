@@ -1,0 +1,24 @@
+{
+  "id": ["xeno.peerdb.org", "SITE_TYPE", "AGGREGATION_GROUND"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SITE_TYPE"] }],
+  "name": [
+    { "value": "Seasonal aggregation ground", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "Sezonsko zbirališče", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }] },
+    { "value": "Terreno de agregação sazonal", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>Place where dispersed groups converge on a predictable schedule for exchange, mating, judgement or feasting, and which stands empty between times. Excludes permanent centres that merely hold a fair.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Kraj, kjer se razpršene skupine ob predvidljivem času zberejo, vmes pa je prazen.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Lugar onde grupos dispersos convergem em datas previsíveis para troca, acasalamento, julgamento ou festim, e que fica vazio nos intervalos. Exclui centros permanentes que apenas acolhem uma feira.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "code": ["aggregation"]
+}

@@ -1,0 +1,36 @@
+{
+  "id": ["xeno.peerdb.org", "OBSERVATION", "OBSB_HEARTH_REFOUNDING_ORDER"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "OBSERVATION"] }],
+  "title": [
+    { "value": "Refounding of the cluster a few hundred metres nightward", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>The generational move of the walking hearths, taken down and rebuilt in the order of authority, with a count of the abandoned positions behind it.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "content": [
+    {
+      "value": "<p>12.x.2290. Eleven hearths taken down over five days and rebuilt three hundred and forty metres nightward, in the order in which the households hold authority. The household holding the term laid its stones last and slept cold, which is the point of the order and was stated to us as such by Vessatha without any suggestion that it was a hardship.</p><p>Nothing was carried that four adults could not lift. The stone screens of the abandoned hearths were left standing exactly where they were, unrobbed, although good screen stone is not easy to come by here and the new positions took two days of cutting.</p><p>The abandoned positions run back from the cluster in a line and can be counted. We counted nineteen with confidence and a probable twentieth under drift. The line is straight for the first fourteen and then bends about twenty degrees dayward.</p><p>Nobody could tell us about the bend, and we do not think this is reticence. The bend is roughly six hundred years old on our reckoning of the band&#39;s drift, and the households keep no account of the past that is not the present arrangement of who takes heat from which fire.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "expedition": { "id": ["xeno.peerdb.org", "EXPEDITION", "EXP_FETCH_BAND"] },
+  "observedBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_FERREIRA"] }, { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_FARAHANI"] }],
+  "observedAt": { "id": ["xeno.peerdb.org", "SITE", "G4_WALKING_HEARTHS"] },
+  "observedOn": { "time": "2290-10-12T00:00:00Z", "precision": "d" },
+  "about": [
+    { "id": ["xeno.peerdb.org", "SPECIES", "G4_HEARTH_WALKERS"] },
+    { "id": ["xeno.peerdb.org", "PRACTICE", "G4_PR_REFOUNDING"] },
+    { "id": ["xeno.peerdb.org", "CULTURE", "G4_CU_HEARTH_CIRCUIT"] }
+  ],
+  "method": [
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "PARTICIPANT_OBSERVATION"] },
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "PHOTOGRAMMETRY"] }
+  ],
+  "fieldConditions": "Wind shadow behind the ridge, still and cold, light unchanging as always. All eleven households present and working.",
+  "image": [
+    { "value": "/f/1TVwmskQrATVMmoBZfsL94", "name": "OBSB_HEARTH_REFOUNDING_ORDER.jpg", "caption": "Taken at the time", "source": "Field record" }
+  ]
+}

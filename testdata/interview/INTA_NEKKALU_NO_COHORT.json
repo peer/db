@@ -1,0 +1,50 @@
+{
+  "id": ["xeno.peerdb.org", "INTERVIEW", "INTA_NEKKALU_NO_COHORT"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "INTERVIEW"] }],
+  "title": [{ "value": "Nekkalu on waking into a chamber that had been moved", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "description": [
+    {
+      "value": "<p>A personal account from the only recorded case of a sleeper waking with no cohort at all, four years after the waking. Consent for this record was given by somebody else.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "interviewee": [{ "id": ["xeno.peerdb.org", "INDIVIDUAL", "G2_NEKKALU"] }],
+  "interviewer": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_WEN"] }, { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_MOLNAR"] }],
+  "recordedAt": { "id": ["xeno.peerdb.org", "SITE", "G2_FROST_WARREN"] },
+  "recordedOn": { "time": "2287-04-09T00:00:00Z", "precision": "d" },
+  "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G2_WARREN_KNOCK"] }],
+  "duration": { "value": { "amount": 96, "precision": 1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "MINUTE"] }] },
+  "content": [
+    {
+      "value": "<p><b>Q.</b> Who were you closest to, before?</p><p><b>A.</b> That question needs a cohort and I have not got one. You are asking me to name a person out of a group and the group is the unit. I woke and there was nobody I had gone down with.</p><p><b>Q.</b> How was that handled?</p><p><b>A.</b> It was not handled. There is a word for it, which I will not give you, and there is no procedure attached to the word. Nine chambers fed me. Every one of them entered a position and not one of them has a closing knot, because a closing knot needs somebody on my side and there is nobody on my side.</p><p><b>Q.</b> Is that a hardship?</p><p><b>A.</b> It is nine open positions. Ask the tally keeper what nine open positions look like on a cord and she will tell you it looks like an error.</p><p><b>Q.</b> What do you think the warren should have done?</p><p><b>A.</b> Moved me with them, or woken me and told me. They did neither, and they did neither because there was no rule requiring it, and there was no rule because it had not happened. I will say that to you. I will not say it in the warren, and I would ask you not to.</p><p><b>Q.</b> Would you want the record read here?</p><p><b>A.</b> No. Take it wherever you take things. In a hundred years somebody will wake up the same way and it will be a case and not a curiosity, and that is worth more to me than being agreed with now.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "recording": [
+    {
+      "value": "/f/DfSnmyQKAFmmRo16m1YgG1",
+      "name": "interview-INTA_NEKKALU_NO_COHORT.mp3",
+      "caption": "Session recording",
+      "duration": { "value": { "amount": 96, "precision": 1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "MINUTE"] }] },
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G2_WARREN_KNOCK"] }]
+    }
+  ],
+  "ethics": { "id": ["xeno.peerdb.org", "ETHICS_PROTOCOL", "PROTOCOL_3"] },
+  "consentNote": [
+    {
+      "value": "<p>Nekkalu asked that the record be held away from the warren and that nothing in it be read at the mouth. The formal consent on file was given by the holder of the chamber that fed them that season, in the ordinary way, and not by Nekkalu.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "clearedReader": ["mock-user@localhost"],
+  "permission": [
+    { "action": { "id": ["core.peerdb.org", "PERMISSION_ACTIONS", "ACTION_READ"] }, "user": ["mock-user@localhost"], "scope": ["self"] },
+    { "action": { "id": ["core.peerdb.org", "PERMISSION_ACTIONS", "ACTION_READ_HISTORIC"] }, "user": ["mock-user@localhost"], "scope": ["self"] }
+  ],
+  "notes": [
+    {
+      "value": "<p>The consent difficulty here is not incidental. A person with no cohort has nobody who may answer for them, and the warren&#39;s own arrangement supplies an answer from the chamber instead, which is precisely the arrangement the account is about.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

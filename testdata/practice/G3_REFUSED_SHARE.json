@@ -1,0 +1,26 @@
+{
+  "id": ["xeno.peerdb.org", "PRACTICE", "G3_REFUSED_SHARE"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PRACTICE"] }],
+  "name": [{ "value": "Refusing a Share", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Oarima ne", "gloss": "the share, not" }],
+  "description": [
+    {
+      "value": "<p>A quarrel that has outlasted two floods is ended by one household bringing its culture to the other in a shallow bowl and having the bowl handed back untouched. The refusal is done in the open, by daylight, in front of the moiety that both households belong to through their mothers, and it is done once; there is no second offering and no procedure for reversing one. Afterwards the two households are not kin, their pits may not be opened by each other, and their silt plots are worked with a gap of one bed between them, which is visible from the air and is how the survey first identified the practice. What is not refused is help: a refused household is still pulled out of a flooded bed by the household that refused it, and both sides describe this as unrelated. Eleven refusals were recorded between 2281 and 2298, of which four were between households the register had listed as one.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Uma zanga que sobreviveu a duas cheias termina quando uma casa leva a sua cultura à outra numa taça baixa e a taça lhe é devolvida intacta. A recusa faz-se ao ar livre, à luz do dia, perante a metade a que ambas as casas pertencem por via materna, e faz-se uma só vez; não há segunda oferta nem procedimento para a reverter. Depois disso as duas casas deixam de ser parentes, nenhuma pode abrir as covas da outra e os seus canteiros de lodo são trabalhados com um canteiro de intervalo entre eles, o que se vê do ar e foi assim que o levantamento identificou a prática pela primeira vez. O que não se recusa é a ajuda: uma casa recusada continua a ser puxada para fora de um canteiro alagado pela casa que a recusou, e ambos os lados descrevem as duas coisas como não relacionadas. Registaram-se onze recusas entre 2281 e 2298, quatro delas entre casas que o registo listava como uma só.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G3_FERMENT_HOUSEHOLDS"] }],
+  "category": { "id": ["xeno.peerdb.org", "PRACTICE_CATEGORY", "DISPUTE_RESOLUTION"] },
+  "periodicity": "whenever a quarrel has outlasted two floods",
+  "participants": {
+    "value": { "from": { "amount": 10, "precision": 1 }, "to": { "amount": 70, "precision": 1 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "firstDocumented": { "time": "2281-01-01T00:00:00Z", "precision": "y" },
+  "relatedPractice": [{ "id": ["xeno.peerdb.org", "PRACTICE", "G3_PIT_OPENING"] }],
+  "image": [{ "value": "/f/TP2JMDfUThxcXbfWsHrzn2", "name": "G3_REFUSED_SHARE.jpg", "caption": "In progress", "source": "Consortium survey archive" }]
+}

@@ -1,0 +1,18 @@
+{
+  "id": ["xeno.peerdb.org", "STAR_SYSTEM", "G2_QUIET_IRON"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "STAR_SYSTEM"] }],
+  "name": [{ "value": "Quiet Iron", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "catalogueCode": "QI-0251",
+  "description": [
+    {
+      "value": "<p>A metal-poor K2 subdwarf with a locked ocean world and a sealed ice body, holding the second largest catalogued population in the galaxy. Its magnetic field is strong for a star of its age, which is the only thing about it that anyone argues over.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "SECTOR", "G2_COLD_MARGIN"] },
+  "spectralClass": "K2VI",
+  "starCount": { "amount": 1, "precision": 1 },
+  "planetCount": { "amount": 2, "precision": 1 },
+  "distanceFromSol": { "value": { "amount": 23287.3, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "PARSEC"] }] },
+  "firstSurveyed": { "time": "2251-01-01T00:00:00Z", "precision": "y" }
+}

@@ -1,0 +1,18 @@
+{
+  "id": ["xeno.peerdb.org", "STAR_SYSTEM", "G1_SURVEY_GRID_44"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "STAR_SYSTEM"] }],
+  "name": [{ "value": "Survey Grid 44", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "catalogueCode": "MW-0144-SGR",
+  "description": [
+    {
+      "value": "<p>A red dwarf catalogued as a grid reference before it was catalogued as a star, and it kept the reference. Four planets, one of them of considerable interest and three of them not.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "SECTOR", "G1_THREADBARE"] },
+  "spectralClass": "M1V",
+  "starCount": { "amount": 1, "precision": 1 },
+  "planetCount": { "amount": 4, "precision": 1 },
+  "distanceFromSol": { "value": { "amount": 401.9, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "PARSEC"] }] },
+  "firstSurveyed": { "time": "2231-01-01T00:00:00Z", "precision": "y" }
+}

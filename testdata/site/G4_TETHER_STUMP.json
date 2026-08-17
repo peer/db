@@ -1,0 +1,21 @@
+{
+  "id": ["xeno.peerdb.org", "SITE", "G4_TETHER_STUMP"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SITE"] }],
+  "name": [{ "value": "Tether Stump", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "localName": [{ "value": "Wehiuna", "gloss": "the base of the long rope" }],
+  "description": [
+    {
+      "value": "<p>The ground anchor and service works of a surface-to-orbit tether begun in 2246 on the highest terrace, of local construction and local design, using material and methods that became the subject of the 2298 ethics ruling. The ribbon was never carried above forty kilometres. The site was cleared and closed in 2297 and is now watched from orbit along with everything else on the world.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "REGION", "G4_HUNDRED_STAIRS"] },
+  "siteType": { "id": ["xeno.peerdb.org", "SITE_TYPE", "TETHER_FOOT"] },
+  "gridReference": "HS-140.5/-33.8",
+  "population": {
+    "value": { "from": { "amount": 0, "precision": 10 }, "to": { "amount": 4100, "precision": 10 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "founded": { "time": "2246-01-01T00:00:00Z", "precision": "y" },
+  "occupation": { "from": { "time": "2246-01-01T00:00:00Z", "precision": "y" }, "to": { "time": "2297-01-01T00:00:00Z", "precision": "y" } }
+}

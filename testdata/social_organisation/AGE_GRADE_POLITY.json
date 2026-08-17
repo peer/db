@@ -1,0 +1,24 @@
+{
+  "id": ["xeno.peerdb.org", "SOCIAL_ORGANISATION", "AGE_GRADE_POLITY"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SOCIAL_ORGANISATION"] }],
+  "name": [
+    { "value": "Age-grade polity", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "Ureditev starostnih razredov", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }] },
+    { "value": "Ordem de classes etárias", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>Whole cohorts move together through ranked grades, each grade holding defined duties for its span. Excludes seniority systems where individuals advance separately.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Cele generacije skupaj prehajajo skozi stopnje, od katerih ima vsaka svoje dolžnosti.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Coortes inteiras avançam juntas por classes hierarquizadas, cada uma com deveres definidos durante o seu período. Exclui sistemas de senioridade em que os indivíduos progridem em separado.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "code": ["age-grade"]
+}

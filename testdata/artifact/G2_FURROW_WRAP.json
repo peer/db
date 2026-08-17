@@ -1,0 +1,26 @@
+{
+  "id": ["xeno.peerdb.org", "ARTIFACT", "G2_FURROW_WRAP"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "ARTIFACT"] }],
+  "name": [{ "value": "Carrying Sheet", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Ammenulle wellu", "gloss": "the sheet of the carrying out" }],
+  "accessionCode": "CCX-A-14823",
+  "description": [
+    {
+      "value": "<p>A close-woven sheet of split plate fibre, two metres by nine tenths, with cord loops worked into the weave at the ankles and the shoulders. Sheets are woven for the purpose and are not used for anything else, and this one was never used: it was woven for a holder who was still alive when the survey left and was given over as a spare. The weave is even and slightly loose at one end where the weaver ran short. It is the only object from this practice in any collection, and it will be the only one.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "category": { "id": ["xeno.peerdb.org", "ARTIFACT_CATEGORY", "TEXTILE"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G2_EVENING_ROWS"] }],
+  "foundAt": { "id": ["xeno.peerdb.org", "SITE", "G2_LONG_EVENING_ROWS"] },
+  "material": [
+    { "value": "split plate fibre", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "cord", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }
+  ],
+  "dimension": [
+    { "value": { "amount": 2.08, "precision": 0.001 }, "axis": "length", "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+    { "value": { "amount": 0.91, "precision": 0.001 }, "axis": "width", "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] }
+  ],
+  "dateMade": { "time": "2293-01-01T00:00:00Z", "precision": "y" },
+  "collectedBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_SUBRAMANIAN"] }, { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_MOLNAR"] }]
+}

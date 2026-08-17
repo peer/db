@@ -1,0 +1,18 @@
+{
+  "id": ["xeno.peerdb.org", "STAR_SYSTEM", "G3_LATHE"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "STAR_SYSTEM"] }],
+  "name": [{ "value": "Lathe", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "catalogueCode": "HB-3/002",
+  "description": [
+    {
+      "value": "<p>Entered once, for nine days, before the sector survey was suspended. The planet count comes from four transits and one of those may be an instrument artefact.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "SECTOR", "G3_TALLOW"] },
+  "spectralClass": "M5V",
+  "starCount": { "amount": 1, "precision": 1 },
+  "planetCount": { "amount": 4, "precision": 1 },
+  "distanceFromSol": { "value": { "amount": 511.4, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "PARSEC"] }] },
+  "firstSurveyed": { "time": "2295-01-01T00:00:00Z", "precision": "y" }
+}

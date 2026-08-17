@@ -1,0 +1,27 @@
+{
+  "id": ["xeno.peerdb.org", "ARTIFACT", "G1_FLATS_REFUSE"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "ARTIFACT"] }],
+  "name": [{ "value": "Sorting-floor assemblage, outer ring", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "accessionCode": "CCX-A-13128",
+  "description": [
+    {
+      "value": "<p>Two hundred and eleven kilograms of shell, cropping plate, spent cordage and broken trap stone, lifted as a single block from the inner face of the midden bank and kept together. The material is dominated by weir crawler shell in three size classes, of which the smallest is almost absent, which is either selection at the trap or a bad forty years and the argument is unresolved. Nothing in it is individually remarkable. Collectively it is the only continuous record of what the flats have eaten, and it is the most consulted object in the sector holdings.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "category": { "id": ["xeno.peerdb.org", "ARTIFACT_CATEGORY", "REFUSE_ASSEMBLAGE"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G1_WEIR_ROTA"] }],
+  "foundAt": { "id": ["xeno.peerdb.org", "SITE", "G1_LOWER_MIDDEN"] },
+  "material": [
+    { "value": "crawler shell", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "trap stone", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "spent cordage", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }
+  ],
+  "dimension": [
+    { "value": { "amount": 1.2, "precision": 0.001 }, "axis": "length", "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+    { "value": { "amount": 0.8, "precision": 0.001 }, "axis": "width", "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+    { "value": { "amount": 0.45, "precision": 0.001 }, "axis": "thickness", "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] }
+  ],
+  "dateMade": { "time": "2250-01-01T00:00:00Z", "precision": "100y" },
+  "collectedBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_DEMIR"] }, { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_ARAI"] }]
+}

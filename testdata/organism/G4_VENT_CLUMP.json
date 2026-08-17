@@ -1,0 +1,30 @@
+{
+  "id": ["xeno.peerdb.org", "ORGANISM", "G4_VENT_CLUMP"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "ORGANISM"] }],
+  "name": [{ "value": "Vent Clump", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Nganguma" }],
+  "taxonCode": "TX-1702-d",
+  "description": [
+    {
+      "value": "<p>An obligate association of a chemosynthetic mat and a hard tube-building animal, growing in dense clumps along the vent chain on the floor of Halflight&#39;s return current. The clumps are the base of the food web for the entire ring sea and are cropped and left to regrow by the swimmers on a fixed rotation. A clump cut to the base does not recover, and the rotation appears designed around that fact.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Uma associação obrigatória entre um tapete quimiossintético e um animal que constrói tubos duros, crescendo em tufos densos ao longo da cadeia de fontes no fundo da corrente de retorno de Halflight. Os tufos são a base da teia alimentar de todo o mar em anel e são colhidos e deixados a recrescer pelos nadadores segundo uma rotação fixa. Um tufo cortado até à base não recupera, e a rotação parece concebida em torno desse facto.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "category": { "id": ["xeno.peerdb.org", "ORGANISM_CATEGORY", "SYMBIOTIC_COMPLEX"] },
+  "foundOn": [{ "id": ["xeno.peerdb.org", "PLANET", "G4_HALFLIGHT"] }],
+  "biome": [{ "id": ["xeno.peerdb.org", "BIOME", "VENT_FIELD"] }],
+  "typicalSize": { "value": { "amount": 1.4, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+  "typicalMass": { "value": { "amount": 60.0, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "kg"] }] },
+  "image": [
+    {
+      "value": "/f/Rt6MVLzFrV6AJi76yeBQ28",
+      "name": "G4_VENT_CLUMP.jpg",
+      "caption": "Field plate",
+      "source": "Drawn in the field; Consortium collection"
+    }
+  ]
+}

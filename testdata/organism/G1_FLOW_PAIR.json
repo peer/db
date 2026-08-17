@@ -1,0 +1,32 @@
+{
+  "id": ["xeno.peerdb.org", "ORGANISM", "G1_FLOW_PAIR"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "ORGANISM"] }],
+  "name": [{ "value": "Flow pair", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "nnaureh" }],
+  "taxonCode": "TX-2601-s",
+  "description": [
+    {
+      "value": "<p>An obligate association of a small vent grazer and the chemosynthetic culture in its gut, neither of which can be reared without the other and which are catalogued together as one organism. The culture is the same lineage that the vent-following people carry, transferred deliberately at weaning and traceable by strain, so the animal is at once a food source, a medicine and a genealogical record. It survives about four days on a dead flow and then moves or does not.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "category": { "id": ["xeno.peerdb.org", "ORGANISM_CATEGORY", "SYMBIOTIC_COMPLEX"] },
+  "foundOn": [{ "id": ["xeno.peerdb.org", "PLANET", "G1_MARGIN_NOTE_III"] }],
+  "biome": [{ "id": ["xeno.peerdb.org", "BIOME", "VENT_FIELD"] }, { "id": ["xeno.peerdb.org", "BIOME", "CRYO_PLAIN"] }],
+  "typicalSize": { "value": { "amount": 0.24, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+  "typicalMass": { "value": { "amount": 1.1, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "kg"] }] },
+  "image": [
+    {
+      "value": "/f/8z3igaGCbKPZqwcG7AdTkx",
+      "name": "G1_FLOW_PAIR.jpg",
+      "caption": "Field plate",
+      "source": "Drawn in the field; Consortium collection"
+    }
+  ],
+  "notes": [
+    {
+      "value": "<p>The strain assays that ended contact with that world were run on this animal and not on anybody. The distinction did not survive the ethics review, and the review was right.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

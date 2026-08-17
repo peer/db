@@ -1,0 +1,33 @@
+{
+  "id": ["xeno.peerdb.org", "INSTITUTE", "INST_ANCHOR"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "INSTITUTE"] }],
+  "name": [
+    { "value": "Anchor Institute for Coastal Xenoanthropology", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "Obalni institut za ksenoantropologijo", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }] }
+  ],
+  "shortName": [{ "value": "Anchor", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "description": [
+    {
+      "value": "<p>The oldest of the member institutes and the one most of the others were founded to get away from. It exists to study settlement on macrotidal coasts, and its comparative sequence of flat-working economies is the standard against which every later one is measured. It is quietly hopeless at closing anything: four of its tide tables are in print, none of them agree, and the reconciliation has been promised in each of the last nine annual reports.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Najstarejsi clan konzorcija, znan po preucevanju obalnih naselij na svetovih z velikim plimovanjem.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>O mais antigo dos institutos membros e aquele de que a maioria dos outros foi fundada para se afastar. Existe para estudar o povoamento de costas macromareais, e a sua sequência comparativa das economias de baixio é o padrão pelo qual todas as posteriores são medidas. É discretamente incapaz de fechar seja o que for: tem quatro tabelas de marés publicadas, nenhuma delas concorda com as outras, e a conciliação foi prometida em cada um dos últimos nove relatórios anuais.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "founded": { "time": "2231-01-01T00:00:00Z", "precision": "y" },
+  "locatedAt": { "id": ["xeno.peerdb.org", "PLANET", "G1_HOLLIS_III"] },
+  "staffCount": { "amount": 384, "precision": 1 },
+  "website": ["https://anchor.ccx.example/"],
+  "notes": [
+    {
+      "value": "<p>Each of the four tide tables is correct on the stretch of coast where it was made. A fifth, intended to reconcile them, was begun in 2288 and is described in the annual report as advancing.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

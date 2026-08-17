@@ -1,0 +1,37 @@
+{
+  "id": ["xeno.peerdb.org", "PUBLICATION", "PUB_COLLECTIVE_INTERVIEW_METHOD"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PUBLICATION"] }],
+  "title": [
+    {
+      "value": "Interviewing Without a Second Person: Twenty Years of Transcripts With Collectives Across Four Galaxies, and a Revised Consent Procedure",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "doi": "10.5281/xeno.2308.0018",
+  "abstract": [
+    {
+      "value": "<p>Interview method in this discipline assumes an interlocutor who can be addressed, can decline, and remains the same party for the duration of the exchange, and none of these holds for collectives. We analyse two hundred and eleven transcripts recorded with four collective populations and classify the recurring failures, of which the commonest by a wide margin is the interviewer slipping into the singular and being corrected. Consent obtained from a collective that subsequently divides is examined at length; we recommend that it be treated as lapsed rather than inherited, which will restrict a good deal of existing material. A revised schedule and a set of worked corrections are appended.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "author": [
+    { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_DEMIR"] },
+    { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_FARAHANI"] },
+    { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_DE_VRIES"] }
+  ],
+  "journal": "Journal of Xenoanthropological Method",
+  "publishedOn": { "time": "2308-02-01T00:00:00Z", "precision": "m" },
+  "about": [
+    { "id": ["xeno.peerdb.org", "SPECIES", "G1_UERANAIL"] },
+    { "id": ["xeno.peerdb.org", "SPECIES", "G2_NUWALLEM"] },
+    { "id": ["xeno.peerdb.org", "SPECIES", "G3_ORRENKO"] },
+    { "id": ["xeno.peerdb.org", "SPECIES", "G4_DEEP_CHORUS"] }
+  ],
+  "cites": [
+    { "id": ["xeno.peerdb.org", "PUBLICATION", "PUB_GREETING_ERROR"] },
+    { "id": ["xeno.peerdb.org", "PUBLICATION", "PUB_DRUM_ACCOUNT"] },
+    { "id": ["xeno.peerdb.org", "PUBLICATION", "PUB_HAZE_COLLECTIVE_LABOUR"] },
+    { "id": ["xeno.peerdb.org", "PUBLICATION", "PUB_RIM_FLOOR_ANSWER"] }
+  ],
+  "document": [{ "value": "/f/Uh67ktwffXcfy8K5G65bDM", "name": "PUB_COLLECTIVE_INTERVIEW_METHOD.pdf", "caption": "Author's accepted manuscript" }]
+}

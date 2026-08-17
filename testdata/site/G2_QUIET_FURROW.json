@@ -1,0 +1,19 @@
+{
+  "id": ["xeno.peerdb.org", "SITE", "G2_QUIET_FURROW"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SITE"] }],
+  "name": [{ "value": "Quiet Furrow", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "localName": [{ "value": "Nuwamme", "gloss": "the still place, built on the root used for water that has stopped moving" }],
+  "description": [
+    {
+      "value": "<p>A dry channel on the night side of the terraces, walled at both ends, into which the dead are carried across the ice line and left. The cold does the rest, and does it slowly. Access is restricted by the inhabitants and the Consortium has recorded the site only from the wall.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "REGION", "G2_EVENING_BAND"] },
+  "siteType": { "id": ["xeno.peerdb.org", "SITE_TYPE", "MORTUARY_GROUND"] },
+  "gridReference": "HL-00.6/-93.1",
+  "population": {
+    "value": { "from": { "amount": 0, "precision": 10 }, "to": { "amount": 20, "precision": 10 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  }
+}

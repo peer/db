@@ -1,0 +1,24 @@
+{
+  "id": ["xeno.peerdb.org", "ORGANISM_CATEGORY", "CHEMOLITHO_MAT"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "ORGANISM_CATEGORY"] }],
+  "name": [
+    { "value": "Chemolithotroph mat", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "Kemolitotrofna preproga", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }] },
+    { "value": "Tapete quimiolitotrófico", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>Layered communities living on mineral redox chemistry rather than light, typically at vents, seeps and rock interfaces. Excludes decomposers working on organic matter.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Plastovite združbe, ki živijo od mineralne kemije in ne od svetlobe.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Comunidades estratificadas que vivem da química redox mineral e não da luz, tipicamente em fontes, exsudações e interfaces rochosas. Exclui decompositores que trabalham matéria orgânica.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "code": ["chemo-mat"]
+}

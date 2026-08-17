@@ -1,0 +1,41 @@
+{
+  "id": ["xeno.peerdb.org", "CULTURE", "G4_CU_WEIR_ORDER"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "CULTURE"] }],
+  "name": [{ "value": "Tall Shoals Weir Order", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [
+    {
+      "value": "Naumeirau",
+      "gloss": "the standing order of the wall",
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G4_COM_FLAT_CALL"] }]
+    }
+  ],
+  "catalogueCode": "CU-2221-01",
+  "description": [
+    {
+      "value": "<p>The working culture of the northern shelf, in which every household holds a numbered length of stone weir, is answerable for it for a fixed term, and hands it on in an order nobody may alter or decline. Life runs on the tide rather than on the day: two working periods in every twenty-six hours, sleep taken in pieces, and a midden ring that has been built up by return to the same shore for at least six centuries. Obligation attaches to the length and not to the person, so a household that quarrels with its neighbours still repairs the joint between their walls, and does so first. What has changed since contact is mostly bookkeeping: the Consortium&#39;s request for a map of the order in 2244 produced a fifty-year argument about whether a drawing that outlasts a term can be truthful. The order itself has absorbed the survey without visible strain, and treats visiting researchers as a length that produces nothing and must be worked anyway.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Vsako gospodinjstvo skrbi za svoj oštevilčeni del kamnitega zidu, skrbništvo pa kroži po ustaljenem vrstnem redu. Vse življenje teče po plimi in ne po dnevu.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>A cultura de trabalho da plataforma norte, em que cada agregado detém um troço numerado de açude de pedra, responde por ele durante um mandato fixo e o entrega numa ordem que ninguém pode alterar nem recusar. A vida corre pela maré e não pelo dia: dois períodos de trabalho em cada vinte e seis horas, o sono tirado aos bocados, e um anel de concheiro que se foi acumulando pelo regresso à mesma praia durante pelo menos seis séculos. A obrigação prende-se ao troço e não à pessoa, pelo que um agregado que esteja zangado com os vizinhos repara na mesma a junta entre os muros de ambos, e repara-a primeiro. O que mudou desde o contacto é sobretudo escrituração: o pedido do Consórcio de um mapa da ordem, em 2244, produziu uma discussão de cinquenta anos sobre se um desenho que dura mais do que um mandato pode ser verdadeiro. A própria ordem absorveu o levantamento sem esforço visível, e trata os investigadores em visita como um troço que não produz nada e que tem de ser trabalhado à mesma.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "practisedBy": [{ "id": ["xeno.peerdb.org", "SPECIES", "G4_WEIRFOLK"] }],
+  "presentAt": [{ "id": ["xeno.peerdb.org", "SITE", "G4_UPPER_MIDDEN"] }, { "id": ["xeno.peerdb.org", "SITE", "G4_DRAINING_GROUND"] }],
+  "kinshipSystem": { "id": ["xeno.peerdb.org", "KINSHIP_SYSTEM", "HEARTH_AFFILIATION"] },
+  "socialOrganisation": { "id": ["xeno.peerdb.org", "SOCIAL_ORGANISATION", "ROTATING_STEWARDSHIP"] },
+  "subsistence": [
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "TIDAL_TRAPPING"] },
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "DRIFT_HARVESTING"] }
+  ],
+  "communication": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G4_COM_FLAT_CALL"] }],
+  "population": {
+    "value": { "from": { "amount": 90000, "precision": 100 }, "to": { "amount": 180000, "precision": 100 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "period": { "from": { "time": "2221-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true }
+}

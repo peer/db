@@ -1,0 +1,61 @@
+{
+  "id": ["xeno.peerdb.org", "SPECIES", "G2_SLOW_DWELLERS"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SPECIES"] }],
+  "name": [{ "value": "Deep Reckoning Slow Dwellers", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "taxonCode": "TX-4188-d",
+  "description": [
+    {
+      "value": "<p>The 2255 and 2295 cores from this ocean are indistinguishable, and the reason is not that the samples were mixed up, which was checked twice; it is that forty years is not enough time for anything here to happen. Growth, response and what appears to be conversation all run on a chemical exchange with a cycle of roughly nine years, and a single completed exchange between two bodies takes something over a century. Cohorts of bodies laid down in the same period pass together through what look like ranked conditions, each lasting several centuries, distinguishable in the trace metals and in nothing else. Individuals cannot be separated from the sheet they sit in and the sheet cannot be separated from the basin, so the entry is carried as unsettled and will remain so, since resolving it would take a research programme longer than the Consortium has existed. The debt reading, in which any two bodies with an unfinished exchange are treated as kin, fits the chemistry and is disputed by everybody who has not personally worked on it. The population figure is a guess from basin area and nobody should use it for anything.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Izjemno počasna vrsta; med vzorcema iz let 2255 in 2295 ni razlike.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    }
+  ],
+  "homeworld": { "id": ["xeno.peerdb.org", "PLANET", "G2_DEEP_RECKONING"] },
+  "bodyPlan": [
+    {
+      "value": "<p>Each body is a low domed disc about thirty centimetres across, mineral above and soft below, sitting in a continuous sheet with its neighbours and joined to them by narrow tubes. There is no motility beyond a slow lean towards richer water, measured at under a centimetre a year. The whole structure is brittle when raised and has never been recovered intact.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "typicalHeight": { "value": { "amount": 0.3, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+  "typicalMass": { "value": { "amount": 2.1, "precision": 0.1 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "kg"] }] },
+  "lifespan": {
+    "value": { "from": { "amount": 4000, "precision": 1 }, "to": { "amount": 30000, "precision": 1 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_YEAR"] }]
+  },
+  "sensoryModality": [
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "CONTACT_CHEMO"] },
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "HYGRORECEPTION"] },
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "PRESSURE_GRADIENT"] }
+  ],
+  "subsistence": [
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "CHEMO_TENDING"] },
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "DRIFT_HARVESTING"] }
+  ],
+  "individuality": { "id": ["xeno.peerdb.org", "INDIVIDUALITY_MODE", "CONTESTED"] },
+  "contestedIndividuality": { "id": ["xeno.peerdb.org", "INDIVIDUALITY_MODE", "FISSIONING"] },
+  "socialOrganisation": { "id": ["xeno.peerdb.org", "SOCIAL_ORGANISATION", "AGE_GRADE_POLITY"] },
+  "kinshipSystem": { "id": ["xeno.peerdb.org", "KINSHIP_SYSTEM", "DEBT_KINSHIP"] },
+  "population": {
+    "value": { "from": { "amount": 1000, "precision": 1000 }, "to": { "amount": 900000, "precision": 1000 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "contactStatus": { "id": ["xeno.peerdb.org", "CONTACT_STATUS", "REMOTE_OBSERVATION"] },
+  "image": [
+    {
+      "value": "/f/4EpV8HK5Q3AHZrs5J8VdMN",
+      "name": "G2_SLOW_DWELLERS.jpg",
+      "caption": "Field plate",
+      "source": "Drawn in the field; Consortium collection"
+    }
+  ],
+  "notes": [
+    {
+      "value": "<p>The instrument left on the floor in 2255 has recorded four complete exchanges. Its first report was filed by a researcher who was already dead when the second exchange began.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

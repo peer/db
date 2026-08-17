@@ -1,0 +1,24 @@
+{
+  "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "ELECTRORECEPTION"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SENSORY_MODALITY"] }],
+  "name": [
+    { "value": "Electroreception", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "Elektrorecepcija", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }] },
+    { "value": "Eletrorreceção", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>Detection of ambient or induced electric fields, used for prey location, navigation and, in several species, conversation. Excludes sensitivity to discharge felt as heat or sound.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Zaznavanje električnih polj za iskanje plena, orientacijo in pri nekaterih vrstah tudi sporazumevanje.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Deteção de campos elétricos ambientais ou induzidos, usada para localizar presas, para navegar e, em várias espécies, para conversar. Exclui a sensibilidade a descargas sentidas como calor ou som.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "code": ["electro"]
+}

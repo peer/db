@@ -1,0 +1,26 @@
+{
+  "id": ["xeno.peerdb.org", "ORGANISM", "G4_FLAT_RUNNER"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "ORGANISM"] }],
+  "name": [{ "value": "Flat Runner", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Meiroa" }],
+  "taxonCode": "TX-1109-b",
+  "description": [
+    {
+      "value": "<p>A fast, low-bodied heterotroph of the sweep flats, which follows the retreating edge of the water and turns over surface mud for buried prey. It is the animal the stone weirs are built to strand, and a good tide takes several thousand of them across a single wall. Between tides it lies buried to the eyes in a shallow scrape, which is why the flats look empty for six hours out of twelve.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "category": { "id": ["xeno.peerdb.org", "ORGANISM_CATEGORY", "MOTILE_HETEROTROPH"] },
+  "foundOn": [{ "id": ["xeno.peerdb.org", "PLANET", "G4_LONG_WATER"] }],
+  "biome": [{ "id": ["xeno.peerdb.org", "BIOME", "SWEEP_FLAT"] }],
+  "typicalSize": { "value": { "amount": 0.42, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+  "typicalMass": { "value": { "amount": 1.6, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "kg"] }] },
+  "image": [
+    {
+      "value": "/f/RK7uxcS9YFaYttd2uzGtsi",
+      "name": "G4_FLAT_RUNNER.jpg",
+      "caption": "Field plate",
+      "source": "Drawn in the field; Consortium collection"
+    }
+  ]
+}

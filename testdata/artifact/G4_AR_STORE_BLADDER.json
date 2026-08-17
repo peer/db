@@ -1,0 +1,25 @@
+{
+  "id": ["xeno.peerdb.org", "ARTIFACT", "G4_AR_STORE_BLADDER"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "ARTIFACT"] }],
+  "name": [{ "value": "Hanging Store Bladder", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "accessionCode": "CCX-A-20458",
+  "description": [
+    {
+      "value": "<p>A pear-shaped hanging bladder of stitched membrane, eight centimetres tall, used above the branch for dried mat. It hangs from a single plaited loop, because a store touching the branch on two sides counts as a floor and belongs to the house rather than to the household, a distinction the smallfolk consider too obvious to state. The neck closure is a spiral of stiffened fibre that opens on a quarter turn and holds against the wind. It arrived crushed and is now supported internally; the closure still works.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "category": { "id": ["xeno.peerdb.org", "ARTIFACT_CATEGORY", "CONTAINER"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G4_CU_LADDER_GORGE"] }],
+  "foundAt": { "id": ["xeno.peerdb.org", "SITE", "G4_LADDER_TERRACES"] },
+  "material": [
+    { "value": "stitched membrane", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "plaited canopy fibre", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }
+  ],
+  "dimension": [
+    { "value": { "amount": 0.081, "precision": 0.001 }, "axis": "height", "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+    { "value": { "amount": 0.052, "precision": 0.001 }, "axis": "diameter", "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] }
+  ],
+  "dateMade": { "time": "2266-01-01T00:00:00Z", "precision": "y" },
+  "collectedBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_BRANDT"] }, { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_MOKOENA"] }]
+}

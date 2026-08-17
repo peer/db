@@ -1,0 +1,45 @@
+{
+  "id": ["xeno.peerdb.org", "INTERVIEW", "INTB_FOSTER_CHAIN"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "INTERVIEW"] }],
+  "title": [{ "value": "Huenewa on placing out: the opening exchange", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "description": [
+    {
+      "value": "<p>Second sitting with the fosterage keeper of the tether foot guilds, granted after the one hour she allowed in 2294. She recited the chain and then withdrew everything but the opening.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "interviewee": [{ "id": ["xeno.peerdb.org", "INDIVIDUAL", "G4_IN_HUENEWA"] }],
+  "interviewer": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_DOYLE"] }],
+  "recordedAt": { "id": ["xeno.peerdb.org", "SITE", "G4_TETHER_STUMP"] },
+  "recordedOn": { "time": "2298-02-25T00:00:00Z", "precision": "d" },
+  "expedition": { "id": ["xeno.peerdb.org", "EXPEDITION", "EXP_OVERFALL_TETHER"] },
+  "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G4_COM_TERRACE_REGISTER"] }],
+  "duration": { "value": { "amount": 108, "precision": 1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "MINUTE"] }] },
+  "content": [
+    {
+      "value": "<p><b>Q.</b> Thank you for the second sitting. May we begin where we stopped in 2294?</p><p><b>A.</b> You may begin where I stopped. Those are different places and you have been given the wrong one three times by three teams.</p><p><b>Q.</b> Where did you stop?</p><p><b>A.</b> At who holds the chain. I hold it. It is recited and it is checked against nobody, and if you want to know why it is checked against nobody you will have to sit through the rest of it.</p><p><i>[The remaining ninety-six minutes were withdrawn by the interviewee at the close of the sitting. Nothing after the third exchange is held in any form the survey may read.]</i></p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "ethics": { "id": ["xeno.peerdb.org", "ETHICS_PROTOCOL", "PROTOCOL_4"] },
+  "consentNote": [
+    {
+      "value": "<p>Huenewa agreed to a full sitting and recited some four hundred placements of the chain, then said at the close that the chain is held and not given, that she had given it, and that she wished the giving undone. She asked for everything after the opening to be withheld, and the knotted cord of the sitting is held by both parties, so the survey may neither publish its half nor destroy it.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "clearedReader": ["mock-user@localhost"],
+  "permission": [
+    { "action": { "id": ["core.peerdb.org", "PERMISSION_ACTIONS", "ACTION_READ"] }, "user": ["mock-user@localhost"], "scope": ["self"] },
+    { "action": { "id": ["core.peerdb.org", "PERMISSION_ACTIONS", "ACTION_READ_HISTORIC"] }, "user": ["mock-user@localhost"], "scope": ["self"] }
+  ],
+  "requestedPermission": [
+    { "action": { "id": ["core.peerdb.org", "PERMISSION_ACTIONS", "ACTION_READ"] }, "user": ["mock-user@localhost"], "scope": ["self"] }
+  ],
+  "notes": [
+    {
+      "value": "<p>The withheld portion sits with the Deposit and Clearance Office under seal. One request for access is open, from an institute that has undertaken to ask her again in person and has been trying to reach the world for two years.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

@@ -1,0 +1,26 @@
+{
+  "id": ["xeno.peerdb.org", "MOON", "G2_HAMMER"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "MOON"] }],
+  "name": [{ "value": "Hammer", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "catalogueCode": "QI-0251-b/i",
+  "description": [
+    {
+      "value": "<p>A large, dense, locked moon close in to its planet, and the reason the tidal range on the world below is eighteen metres rather than one. It is airless, heavily cratered and unvisited except for a single orbital pass in 2257. Everything the inhabitants of the world below do on a schedule, they do on this one.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "PLANET", "G2_NINE_TERRACE"] },
+  "planetType": { "id": ["xeno.peerdb.org", "PLANET_TYPE", "DENSE_SILICATE"] },
+  "radius": { "value": { "amount": 0.31, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_RADIUS"] }] },
+  "mass": { "value": { "amount": 0.019, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_MASS"] }] },
+  "surfaceGravity": { "value": { "amount": 0.2, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "STANDARD_GRAVITY"] }] },
+  "dayLength": { "value": { "amount": 218.4, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "HOUR"] }] },
+  "orbitalPeriod": { "value": { "amount": 9.1, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_DAY"] }] },
+  "tidallyLocked": true,
+  "meanTemperature": { "value": { "amount": -44.0, "precision": 0.1 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "°C"] }] },
+  "hydrosphere": { "value": { "amount": 0, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "PERCENT"] }] },
+  "biosphereNone": true,
+  "contactStatus": { "id": ["xeno.peerdb.org", "CONTACT_STATUS", "NO_CONTACT"] },
+  "firstSurveyed": { "time": "2257-01-01T00:00:00Z", "precision": "y" },
+  "image": [{ "value": "/f/3ASSEKN8is2K7DhzSVd7UF", "name": "G2_HAMMER.jpg", "caption": "Approach view", "source": "Consortium survey archive" }]
+}

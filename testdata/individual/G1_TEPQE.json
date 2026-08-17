@@ -1,0 +1,17 @@
+{
+  "id": ["xeno.peerdb.org", "INDIVIDUAL", "G1_TEPQE"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "INDIVIDUAL"] }],
+  "name": [{ "value": "Tepqe" }],
+  "description": [
+    {
+      "value": "<p>Speaks for the trap-line corporations in all dealings with the Consortium and has set the research programme for three of the last four seasons, on the reasonable ground that the corporations know which questions are worth a season. He is the author, in the sense that matters, of the 2308 work on vent plumbing, which the sector office lists under two staff names and one footnote. He asked once for the footnote to be moved and has not asked again.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "species": { "id": ["xeno.peerdb.org", "SPECIES", "G1_PETQAMU"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G1_LEE_CORPORATIONS"] }],
+  "role": [{ "value": "corporation speaker", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "formOfAddress": "corporation first, then name",
+  "born": { "time": "2255-01-01T00:00:00Z", "precision": "y" },
+  "birthplace": { "id": ["xeno.peerdb.org", "SITE", "G1_WINDWARD_RING"] }
+}

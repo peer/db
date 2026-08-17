@@ -1,0 +1,27 @@
+{
+  "id": ["xeno.peerdb.org", "GALAXY", "G2_UNDERCOUNT"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "GALAXY"] }],
+  "name": [
+    { "value": "The Undercount", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "Podštetje", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }] }
+  ],
+  "catalogueCode": "CCX-DWF-0416",
+  "description": [
+    {
+      "value": "<p>A dwarf spheroidal satellite of the Milky Way, some twenty-three thousand parsecs out and falling slowly inward on an orbit that will not close for another two billion years. Its stars are old, metal-poor and almost uniformly cool; star formation here stopped before Earth had a crust, and nothing bright has appeared since. The Consortium works it in four sectors and keeps three stations, all of them small, all of them relieved on intervals set by shipping rather than by science. Nothing in the register from this galaxy is young.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Stara, kovinsko revna pritlikava galaksija, satelitka Rimske ceste, s hladnimi zvezdami in redkimi obiski.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    }
+  ],
+  "diameter": { "value": { "amount": 1180, "precision": 100 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "PARSEC"] }] },
+  "surveyPeriod": { "from": { "time": "2214-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true },
+  "notes": [
+    {
+      "value": "<p>The name is an accident of procedure. The first three photometric passes each returned fewer member stars than the one before, and the field was logged as <i>undercount, resubmit</i> three times running before anybody noticed that the instruction had become the name.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

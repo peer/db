@@ -1,0 +1,18 @@
+{
+  "id": ["xeno.peerdb.org", "STAR_SYSTEM", "G2_OLD_EMBER"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "STAR_SYSTEM"] }],
+  "name": [{ "value": "Old Ember", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "catalogueCode": "OE-0247",
+  "description": [
+    {
+      "value": "<p>A cooling white dwarf with a distant M5 companion and two worlds that were both inside the primary when it was a giant. Nothing here has been warm for a billion years.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "SECTOR", "G2_COLD_MARGIN"] },
+  "spectralClass": "DA4",
+  "starCount": { "amount": 2, "precision": 1 },
+  "planetCount": { "amount": 2, "precision": 1 },
+  "distanceFromSol": { "value": { "amount": 23310.6, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "PARSEC"] }] },
+  "firstSurveyed": { "time": "2247-01-01T00:00:00Z", "precision": "y" }
+}

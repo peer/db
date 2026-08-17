@@ -1,0 +1,24 @@
+{
+  "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "ACOUSTIC_RANGING"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SENSORY_MODALITY"] }],
+  "name": [
+    { "value": "Acoustic ranging", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "Eholokacija", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }] },
+    { "value": "Telemetria acústica", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>Active emission of sound and interpretation of its return for shape, distance and material. Excludes passive listening, however acute.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Aktivno oddajanje zvoka in branje odboja za obliko, razdaljo in snov.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Emissão ativa de som e interpretação do seu retorno quanto a forma, distância e matéria. Exclui a escuta passiva, por mais apurada que seja.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "code": ["echo"]
+}

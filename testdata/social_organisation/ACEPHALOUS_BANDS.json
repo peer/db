@@ -1,0 +1,24 @@
+{
+  "id": ["xeno.peerdb.org", "SOCIAL_ORGANISATION", "ACEPHALOUS_BANDS"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SOCIAL_ORGANISATION"] }],
+  "name": [
+    { "value": "Acephalous bands", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "Brezglavarske skupine", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }] },
+    { "value": "Bandos acéfalos", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>Small mobile groups with no standing office at all, where decisions are reached in the moment and dissenters simply leave. Excludes groups with an informal but persistent leader.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Majhne gibljive skupine brez stalnih funkcij, kjer se odločitve sprejemajo sproti.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Grupos pequenos e móveis sem qualquer cargo permanente, onde as decisões se tomam no momento e os discordantes simplesmente partem. Exclui grupos com um líder informal mas persistente.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "code": ["acephalous"]
+}

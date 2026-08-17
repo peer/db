@@ -1,0 +1,20 @@
+{
+  "id": ["xeno.peerdb.org", "REGION", "G4_DRUM_PLAIN"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "REGION"] }],
+  "name": [{ "value": "Drum Plain", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "[wide struck floor]" }],
+  "description": [
+    {
+      "value": "<p>A regolith plain of 1.9 million square kilometres lying over a single sheet of dense basement rock, which is why a signal struck at one end of it can be read at the other. The grain is well sorted and moves in slow dunes that never exceed four metres. There are no landmarks, and the survey&#39;s positioning beacons were removed at local request in 2261.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "PLANET", "G4_SOUNDING"] },
+  "biome": [{ "id": ["xeno.peerdb.org", "BIOME", "REGOLITH_DUNE"] }],
+  "area": { "value": { "amount": 1900000, "precision": 100 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "SQUARE_KILOMETRE"] }] },
+  "elevationRange": {
+    "value": { "from": { "amount": 210, "precision": 10 }, "to": { "amount": 380, "precision": 10 } },
+    "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }]
+  },
+  "image": [{ "value": "/f/1KvLEDSdwRfc1u9ebX7yw4", "name": "G4_DRUM_PLAIN.jpg", "caption": "Regional view", "source": "Consortium survey archive" }]
+}

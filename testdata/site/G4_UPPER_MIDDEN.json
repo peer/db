@@ -1,0 +1,21 @@
+{
+  "id": ["xeno.peerdb.org", "SITE", "G4_UPPER_MIDDEN"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SITE"] }],
+  "name": [{ "value": "Upper Midden", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "localName": [{ "value": "Naumeri", "gloss": "the high heap" }],
+  "description": [
+    {
+      "value": "<p>A ring of shell and processing debris 1.4 kilometres across and up to nine metres high, enclosing a flat working ground that stays above the spring tide. It has been built up by return to the same shore over at least six centuries, and the seaward face is now being cut back faster than it accumulates. Between four hundred and thirteen hundred people are on it at the working tides.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "REGION", "G4_TALL_SHOALS"] },
+  "siteType": { "id": ["xeno.peerdb.org", "SITE_TYPE", "MIDDEN_RING"] },
+  "gridReference": "TS-114.6/-38.2",
+  "population": {
+    "value": { "from": { "amount": 400, "precision": 10 }, "to": { "amount": 1300, "precision": 10 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "occupation": { "from": { "time": "2219-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true },
+  "image": [{ "value": "/f/QBuW7YCgmFsKwHH7VxjEeL", "name": "G4_UPPER_MIDDEN.jpg", "caption": "General view", "source": "Consortium survey archive" }]
+}

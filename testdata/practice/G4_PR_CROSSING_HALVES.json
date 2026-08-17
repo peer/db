@@ -1,0 +1,28 @@
+{
+  "id": ["xeno.peerdb.org", "PRACTICE", "G4_PR_CROSSING_HALVES"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PRACTICE"] }],
+  "name": [{ "value": "Carrying Across", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "ngomunanu", "gloss": "the other half takes it round" }],
+  "description": [
+    {
+      "value": "<p>A swimmer of one half is carried by swimmers of the other, on the return current, to a named vent that is not the vent the dead swimmer used, and is released to the clumps there. The carrying party calls continuously for the whole passage, which takes between nine and twenty days, and states the dead swimmer&#39;s half and vent schedule but never their name, since the name belongs to the mother&#39;s half and travels the other way. The dead swimmer&#39;s own half does not attend and is not told which vent was used, and asking is the one refusal the moieties recognise in each other. Cropping at that vent is suspended for a full growth rotation, which is the only interruption the vent chain gets and is still measurable from a submersible sixty years later. The 2274 request to observe a carrying was granted on condition that the observers swim the whole distance, and was declined.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Mrtvega odnese nasprotna polovica do izvira, katerega imena njegovi nikoli ne izvedo.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Um nadador de uma das metades é levado por nadadores da outra, pela corrente de retorno, até uma fonte nomeada que não é a fonte que o nadador morto usava, e é entregue aos tufos que ali crescem. O grupo que o leva chama continuamente durante toda a travessia, que demora entre nove e vinte dias, e declara a metade e o calendário de fontes do morto mas nunca o seu nome, já que o nome pertence à metade da mãe e viaja no outro sentido. A metade do próprio morto não comparece nem fica a saber que fonte foi usada, e perguntar é a única recusa que as metades reconhecem uma à outra. A colheita nessa fonte fica suspensa por uma rotação de crescimento inteira, que é a única interrupção que a cadeia de fontes tem e que ainda é mensurável a partir de um submersível sessenta anos depois. O pedido de 2274 para observar um transporte foi deferido na condição de os observadores nadarem a distância toda, e foi declinado.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G4_CU_RING_MOIETIES"] }],
+  "category": { "id": ["xeno.peerdb.org", "PRACTICE_CATEGORY", "MORTUARY"] },
+  "periodicity": "whenever somebody dies, on the next return current",
+  "participants": {
+    "value": { "from": { "amount": 4, "precision": 1 }, "to": { "amount": 20, "precision": 1 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "firstDocumented": { "time": "2266-01-01T00:00:00Z", "precision": "y" }
+}

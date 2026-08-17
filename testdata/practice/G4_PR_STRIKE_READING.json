@@ -1,0 +1,20 @@
+{
+  "id": ["xeno.peerdb.org", "PRACTICE", "G4_PR_STRIKE_READING"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PRACTICE"] }],
+  "name": [{ "value": "Reading the Struck Crest", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "onarukeiwa", "gloss": "asking the rock which crest was hit" }],
+  "description": [
+    {
+      "value": "<p>Where a band goes next is settled by lightning: the crest most recently struck within sight is the crest not to take, and the crest struck longest ago is taken first. Somebody knocks the question against wet rock and the band waits out the next storm, which on these ridges is a wait of hours and not of days. The answer belongs to the crest and not to a speaker, so a band that moves badly has nobody to hold responsible and does not appear to look for anybody. The station meteorologists kept a strike register for thirty-one years and worked out in 2258 that the bands had been using their own version of it, in reverse, for at least as long.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G4_CU_RACK_BANDS"] }],
+  "category": { "id": ["xeno.peerdb.org", "PRACTICE_CATEGORY", "DIVINATION"] },
+  "periodicity": "before every move, which is most weeks",
+  "participants": {
+    "value": { "from": { "amount": 3, "precision": 1 }, "to": { "amount": 12, "precision": 1 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "firstDocumented": { "time": "2249-01-01T00:00:00Z", "precision": "y" }
+}

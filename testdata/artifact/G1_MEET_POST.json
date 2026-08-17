@@ -1,0 +1,28 @@
+{
+  "id": ["xeno.peerdb.org", "ARTIFACT", "G1_MEET_POST"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "ARTIFACT"] }],
+  "name": [{ "value": "The Shallows Meet post", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Sennaresh Ulun", "gloss": "the standing thing at the place where the water lets everyone stand" }],
+  "accessionCode": "CCX-A-13140",
+  "description": [
+    {
+      "value": "<p>A dressed post of salt-hardened timber standing four metres out of the mud at the centre of the aggregation ground, with eleven shallow notches cut around it at ankle height. The notches record the directions parties come from and are recut whenever a party arrives from somewhere new, so the post is a census of approaches rather than a claim on the ground. It has been replaced at least three times in the record and probably many more, always in the same socket and always at the deepest low water of the year. The 2280 replacement was measured, drawn and photographed from the felling of the timber onward, which is why this entry carries a document.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "category": { "id": ["xeno.peerdb.org", "ARTIFACT_CATEGORY", "STRUCTURAL_ELEMENT"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G1_WEIR_ROTA"] }, { "id": ["xeno.peerdb.org", "CULTURE", "G1_TOP_TIDE_MEET"] }],
+  "foundAt": { "id": ["xeno.peerdb.org", "SITE", "G1_SHALLOWS_MEET"] },
+  "material": [
+    { "value": "salt-hardened timber", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "ribbon cord", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }
+  ],
+  "dimension": [
+    { "value": { "amount": 4.1, "precision": 0.001 }, "axis": "height", "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+    { "value": { "amount": 0.22, "precision": 0.001 }, "axis": "diameter", "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] }
+  ],
+  "dateMade": { "time": "2280-01-01T00:00:00Z", "precision": "y" },
+  "collectedBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_MOLNAR"] }],
+  "image": [{ "value": "/f/1fgVkhWsz9dE6LCXGn1ihi", "name": "G1_MEET_POST.jpg", "caption": "Object drawing", "source": "Consortium collection" }],
+  "document": [{ "value": "/f/XLhrGHBVCqr5WqNnRBmJdv", "name": "G1_MEET_POST.txt", "caption": "Accession record" }]
+}

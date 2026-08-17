@@ -1,0 +1,24 @@
+{
+  "id": ["xeno.peerdb.org", "UNIT", "STANDARD_GRAVITY"],
+  "instanceOf": [{ "id": ["core.peerdb.org", "UNIT"] }],
+  "name": [
+    { "value": "standard gravity", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "standardni težni pospešek", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }] },
+    { "value": "gravidade padrão", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>Acceleration relative to 9.80665 m/s2 at Earth&#39;s surface. Quoted at the reference surface and uncorrected for rotation.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Pospešek glede na 9,80665 m/s2 na Zemljinem površju. Naveden je na referenčnem površju in ni popravljen za vrtenje.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Aceleração relativa a 9,80665 m/s2 à superfície da Terra. Indicada na superfície de referência e sem correção para a rotação.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "code": ["g"]
+}

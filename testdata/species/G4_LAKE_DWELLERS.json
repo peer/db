@@ -1,0 +1,66 @@
+{
+  "id": ["xeno.peerdb.org", "SPECIES", "G4_LAKE_DWELLERS"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SPECIES"] }],
+  "name": [{ "value": "Kerf Lake Dwellers", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Vaizumei", "gloss": "the lake people, from the word they use for the whole world" }],
+  "taxonCode": "TX-4803-c",
+  "description": [
+    {
+      "value": "<p>The people of the hydrocarbon lakes of the Backswing, known entirely from material traded through the outer station and never once met. Their solvent chemistry is methane-based and their food is made by staging controlled rot in submerged bladders, the culture divided and carried whenever a household divides, so that kin are precisely those who share a living ferment. A self routinely splits into two continuing selves, each of which takes half the culture, and the traded objects come marked in pairs that the analysts take to record exactly this. Population is guessed from the number of distinct makers&#39; marks in eleven consignments and should be read as an order of magnitude and not as a count. Everything else in this entry, including the ferment kinship, is inference from objects, and the file says so at the top of every page.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Živijo v metanskih jezerih; nihče se še ni srečal z njimi. Vse, kar vemo, izhaja iz zamenjanih predmetov.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>O povo dos lagos de hidrocarbonetos do Backswing, conhecido inteiramente a partir de material transacionado através da estação exterior e nunca uma única vez encontrado. A sua química de solventes é à base de metano e a comida faz-se encenando podridão controlada em bexigas submersas, dividindo-se e levando-se a cultura sempre que um agregado se divide, de modo que os parentes são exatamente aqueles que partilham um fermento vivo. Um eu divide-se rotineiramente em dois eus que continuam, cada um levando metade da cultura, e os objetos trocados vêm marcados aos pares, o que os analistas entendem como o registo exato disso. A população é adivinhada a partir do número de marcas de fabrico distintas em onze remessas e deve ser lida como uma ordem de grandeza e não como uma contagem. Todo o resto desta entrada, incluindo o parentesco por fermento, é inferência a partir de objetos, e o processo di-lo no topo de todas as páginas.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "homeworld": { "id": ["xeno.peerdb.org", "PLANET", "G4_KERF"] },
+  "bodyPlan": [
+    {
+      "value": "<p>Reconstructed from garment and tool geometry rather than from a body: a low eight-limbed form, broader than tall, with the limbs arranged in two ranks of four and no evidence of a fixed front. The surface appears to have been a soft pelt or fibre coat, since every recovered fastening is designed to grip something compressible. No sense organ can be located from the material, which is why the sensory entry carries the widest error bars in the sector.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "typicalHeight": { "value": { "amount": 0.9, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+  "typicalMass": { "value": { "amount": 33.0, "precision": 0.1 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "kg"] }] },
+  "lifespan": {
+    "value": { "from": { "amount": 15, "precision": 1 }, "to": { "amount": 40, "precision": 1 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_YEAR"] }]
+  },
+  "sensoryModality": [
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "ELECTRORECEPTION"] },
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "CHEMICAL_PLUME"] },
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "HYGRORECEPTION"] }
+  ],
+  "subsistence": [
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "DRIFT_HARVESTING"] },
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "MANAGED_DECAY"] }
+  ],
+  "individuality": { "id": ["xeno.peerdb.org", "INDIVIDUALITY_MODE", "FISSIONING"] },
+  "contestedIndividuality": { "id": ["xeno.peerdb.org", "INDIVIDUALITY_MODE", "SEASONAL_COLLECTIVE"] },
+  "socialOrganisation": { "id": ["xeno.peerdb.org", "SOCIAL_ORGANISATION", "LINEAGE_HOUSES"] },
+  "kinshipSystem": { "id": ["xeno.peerdb.org", "KINSHIP_SYSTEM", "FERMENT_LINEAGE"] },
+  "population": {
+    "value": { "from": { "amount": 3000, "precision": 1000 }, "to": { "amount": 12000, "precision": 1000 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "contactStatus": { "id": ["xeno.peerdb.org", "CONTACT_STATUS", "INDIRECT"] },
+  "image": [
+    {
+      "value": "/f/4ysUwwFZEmPAMYr4tQdfhX",
+      "name": "G4_LAKE_DWELLERS.jpg",
+      "caption": "Field plate",
+      "source": "Drawn in the field; Consortium collection"
+    }
+  ],
+  "notes": [
+    {
+      "value": "<p>This is the only species entry in the galaxy reconstructed wholly from trade goods. The illustration brief was written by three people who disagreed about the limb count and settled on eight because the fastenings come in eights.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

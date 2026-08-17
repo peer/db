@@ -1,0 +1,33 @@
+{
+  "id": ["xeno.peerdb.org", "PLANET", "G4_PLEDGE"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PLANET"] }],
+  "name": [{ "value": "Pledge", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "catalogueCode": "SPW-B/046-b",
+  "description": [
+    {
+      "value": "<p>An ice world with a shallow brine ocean under a crust of only nine kilometres, warmed by tides raised by an uncatalogued companion in a two-to-one resonance. The surface is scored by parallel ridges that run three quarters of the way round the world without deviating by more than a degree. Chemosynthetic material has been recovered from a vent plume without landing, and that recovery is the entire basis of the biological entry.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "STAR_SYSTEM", "G4_FID"] },
+  "planetType": { "id": ["xeno.peerdb.org", "PLANET_TYPE", "ICE_SHELL"] },
+  "biome": [{ "id": ["xeno.peerdb.org", "BIOME", "BRINE_SEA"] }],
+  "radius": { "value": { "amount": 0.72, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_RADIUS"] }] },
+  "mass": { "value": { "amount": 0.44, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_MASS"] }] },
+  "surfaceGravity": { "value": { "amount": 0.85, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "STANDARD_GRAVITY"] }] },
+  "dayLength": { "value": { "amount": 62.4, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "HOUR"] }] },
+  "orbitalPeriod": { "value": { "amount": 96.4, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_DAY"] }] },
+  "meanTemperature": { "value": { "amount": -124.0, "precision": 0.1 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "°C"] }] },
+  "hydrosphere": { "value": { "amount": 79.0, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "PERCENT"] }] },
+  "atmosphere": [
+    {
+      "value": "<p>A tenuous water vapour and oxygen exosphere sustained by plume activity, at pressures too low to measure reliably from orbit.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "biosphereUnknown": true,
+  "contactStatus": { "id": ["xeno.peerdb.org", "CONTACT_STATUS", "REMOTE_OBSERVATION"] },
+  "firstSurveyed": { "time": "2259-01-01T00:00:00Z", "precision": "y" },
+  "surveyPeriod": { "from": { "time": "2259-01-01T00:00:00Z", "precision": "y" }, "to": { "time": "2270-01-01T00:00:00Z", "precision": "y" } },
+  "image": [{ "value": "/f/6FLbj3skbFUNw2pAoGo1Mc", "name": "G4_PLEDGE.jpg", "caption": "Surface view", "source": "Consortium survey archive" }]
+}

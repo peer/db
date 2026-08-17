@@ -1,0 +1,26 @@
+{
+  "id": ["xeno.peerdb.org", "ARTIFACT", "G3_WEIR_LINE"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "ARTIFACT"] }],
+  "name": [{ "value": "Weir Sounding Line", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "accessionCode": "CCX-A-31043",
+  "description": [
+    {
+      "value": "<p>Twenty-four metres of two-strand line with a stone at one end and knots at intervals of one pace, used to check the set of a wall against the fall of the ground rather than against the eye. The knots are not evenly spaced and are not meant to be: the spacing is the pace of the grade that made it, and a line is useless to anybody else. It was recovered from the midden with the stone still attached and the fibre stiff with salt. Lines are discarded when the grade that owns them goes quiet, which is what happened to this one.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "category": { "id": ["xeno.peerdb.org", "ARTIFACT_CATEGORY", "CORDAGE"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G3_WEIR_GRADES"] }],
+  "foundAt": { "id": ["xeno.peerdb.org", "SITE", "G3_LOWER_MIDDEN"] },
+  "material": [
+    { "value": "two-strand plant fibre", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "drilled beach stone", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }
+  ],
+  "dimension": [
+    { "value": { "amount": 24.0, "precision": 0.001 }, "axis": "length", "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+    { "value": { "amount": 0.012, "precision": 0.001 }, "axis": "thickness", "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] }
+  ],
+  "dateMade": { "time": "2285-01-01T00:00:00Z", "precision": "y" },
+  "collectedBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_REYES"] }, { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_MOLNAR"] }],
+  "image": [{ "value": "/f/9PXA6AXf1AjDZkEKy1XeZ4", "name": "G3_WEIR_LINE.jpg", "caption": "Object drawing", "source": "Consortium collection" }]
+}

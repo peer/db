@@ -1,0 +1,24 @@
+{
+  "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "MANAGED_DECAY"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE"] }],
+  "name": [
+    { "value": "Managed decay", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "Vodeno razkrajanje", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }] },
+    { "value": "Decomposição controlada", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>Food produced by staging rot and fermentation in built pits, bladders or pools, with the culture curated across generations. Excludes incidental use of spoiled food.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Hrana, pridobljena z vodenim gnitjem in vrenjem v jamah ali bazenih, s kulturo, ki se prenaša med rodovi.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Alimento produzido encenando a putrefação e a fermentação em fossas, bexigas ou tanques construídos, com a cultura mantida ao longo de gerações. Exclui o uso ocasional de comida estragada.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "code": ["decay"]
+}

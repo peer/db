@@ -1,0 +1,31 @@
+{
+  "id": ["xeno.peerdb.org", "ARTIFACT", "G1_LEDGER_PLATE"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "ARTIFACT"] }],
+  "name": [{ "value": "Drumming plate", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "accessionCode": "CCX-A-13284",
+  "description": [
+    {
+      "value": "<p>A slab of fractured shelf graphite a little over a metre across, worked flat on the underside and rested on three small packing stones so that it rings rather than thuds. Plates are laid where the shelf floor is too soft or too broken to carry an account, and the colony drums on the plate instead. The upper face carries several thousand shallow pits at the density of the bodies that made them, thinning to nothing at the rim. It was lifted with the colony&#39;s assent, drummed once after lifting, and has been silent since, which the accession record states as a fact and not as a regret.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "category": { "id": ["xeno.peerdb.org", "ARTIFACT_CATEGORY", "INSTRUMENT"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G1_SHELF_LEDGER"] }],
+  "foundAt": { "id": ["xeno.peerdb.org", "SITE", "G1_CANOPY_TETHER"] },
+  "material": [
+    { "value": "shelf graphite", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "packing stone", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }
+  ],
+  "dimension": [
+    { "value": { "amount": 1.05, "precision": 0.001 }, "axis": "diameter", "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+    { "value": { "amount": 0.04, "precision": 0.001 }, "axis": "thickness", "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] }
+  ],
+  "dateMade": { "time": "2280-01-01T00:00:00Z", "precision": "10y" },
+  "collectedBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_SEO"] }],
+  "notes": [
+    {
+      "value": "<p>The assent was drummed by the colony and is transcribed in the file as one line. The ethics panel has been asked twice whether a colony can consent to the removal of a thing it speaks on, and has both times referred the question back to the colony, which repeated the line.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

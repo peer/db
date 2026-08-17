@@ -1,0 +1,30 @@
+{
+  "id": ["xeno.peerdb.org", "ORGANISM", "G4_LANTERN_BRACT"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "ORGANISM"] }],
+  "name": [{ "value": "Lantern Bract", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Aunelira" }],
+  "taxonCode": "TX-1116-d",
+  "description": [
+    {
+      "value": "<p>A canopy epiphyte of the Standing Wood, anchored on high branches and carrying a cup of overlapping bracts that fluoresce sharply under the primary. The bracts are collected, dried and ground for the ultraviolet-bright dye the canopy houses use to mark ownership of a branch span, which is invisible to human eyes without a filter and blindingly obvious with one. It is common, slow and shows no sign of being depleted by four centuries of harvesting.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Uma epífita de dossel da Standing Wood, ancorada nos ramos altos e com uma taça de brácteas sobrepostas que fluorescem intensamente sob a primária. As brácteas são recolhidas, secas e moídas para o corante ultravioleta com que as casas do dossel marcam a posse de um troço de ramo, invisível a olhos humanos sem filtro e ofuscantemente óbvio com um. É comum, lenta e não dá sinais de estar a esgotar-se ao fim de quatro séculos de colheita.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "category": { "id": ["xeno.peerdb.org", "ORGANISM_CATEGORY", "PHOTO_SESSILE"] },
+  "foundOn": [{ "id": ["xeno.peerdb.org", "PLANET", "G4_LONG_WATER"] }],
+  "biome": [{ "id": ["xeno.peerdb.org", "BIOME", "HIGH_CANOPY"] }],
+  "typicalSize": { "value": { "amount": 0.26, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+  "typicalMass": { "value": { "amount": 0.4, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "kg"] }] },
+  "image": [
+    {
+      "value": "/f/Uxx6i9MKMBUBJNPgBGATJy",
+      "name": "G4_LANTERN_BRACT.jpg",
+      "caption": "Field plate",
+      "source": "Drawn in the field; Consortium collection"
+    }
+  ]
+}

@@ -1,7 +1,7 @@
 <!--
 WithLock is a thin template wrapper that provides a caller-supplied lock
 ref to its slot subtree. It does not create the lock, the caller owns
-the ref (typically via lockScope at script level) and decides what
+the ref (typically via counterScope at script level) and decides what
 parent to chain on. WithLock only calls setParentLock so descendants
 inside the slot inject this ref via useLocked / getParentLock.
 

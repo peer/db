@@ -1,0 +1,38 @@
+{
+  "id": ["xeno.peerdb.org", "NARRATIVE", "G2_WALKING_WITH_US"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "NARRATIVE"] }],
+  "title": [{ "value": "The Ones Who Leaned", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [
+    {
+      "value": "Wemmenu nuwemme",
+      "gloss": "the walking-with of the ones who walk into it",
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G2_PLATE_LIGHT"] }]
+    }
+  ],
+  "description": [
+    {
+      "value": "<p>The bands&#39; own account of the first field season, told from the point at which the greeting was given and accepted. It is given at the front of the line, walking, and takes about as long as it takes to lose sight of a terrace.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "genre": { "id": ["xeno.peerdb.org", "NARRATIVE_GENRE", "CONTACT_ACCOUNT"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G2_LEEWARD_BANDS"] }],
+  "recordedBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_REYES"] }],
+  "recordedOn": { "time": "2281-01-01T00:00:00Z", "precision": "y" },
+  "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G2_PLATE_LIGHT"] }],
+  "content": [
+    {
+      "value": "<p>They came from the low side, which nobody does, and they stood facing us with the wind behind them, which nobody does either. So we sent one out downwind and gave it properly, and they leaned.</p><p>Then they wrote something down. Then they walked with us for a year and were answerable for the herd for a year, and did not know it, and nothing happened that they had to answer for, which was luck and not care.</p><p>At the end of it they asked what the greeting had meant and we told them, and they wrote that down as well, and one of them sat on the ground for a while.</p><p>We have given it twice more since, on purpose, and watched. They lean every time.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "recording": [
+    {
+      "value": "/f/NsthyFpu32mUcp3z8ricb9",
+      "name": "narrative-G2_WALKING_WITH_US.mp3",
+      "caption": "Performance, recorded on site",
+      "duration": { "value": { "amount": 8, "precision": 1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "MINUTE"] }] },
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G2_PLATE_LIGHT"] }]
+    }
+  ]
+}

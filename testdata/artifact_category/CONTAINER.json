@@ -1,0 +1,21 @@
+{
+  "id": ["xeno.peerdb.org", "ARTIFACT_CATEGORY", "CONTAINER"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "ARTIFACT_CATEGORY"] }],
+  "name": [
+    { "value": "Container", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "Posoda za shranjevanje", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }] },
+    { "value": "Recipiente", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>Everyday vessels and closures for holding, carrying or storing. Excludes ceremonial vessels and apparatus with a working chamber.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    { "value": "<p>Vsakdanje posode in zapirala za hrambo in prenašanje.</p>", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }] },
+    {
+      "value": "<p>Vasilhas e fechos de uso quotidiano para conter, transportar ou armazenar. Exclui vasos cerimoniais e aparelhos com câmara operativa.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "code": ["container"]
+}

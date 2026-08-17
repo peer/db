@@ -1,0 +1,31 @@
+{
+  "id": ["xeno.peerdb.org", "MOON", "G4_FOUNDLING"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "MOON"] }],
+  "name": [{ "value": "Foundling", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "catalogueCode": "SPW-B/031-d-iv",
+  "description": [
+    {
+      "value": "<p>A rocky moon on a steeply inclined retrograde orbit, whose oxygen isotope ratios match nothing else in the system and do match a class of body common around the older stars of the Seventh Shell. It was captured, and not recently: the orbit has had time to circularise part of the way. It is airless, cratered and, for a body of no economic interest whatever, generously funded.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "PLANET", "G4_SCUTCH_D"] },
+  "planetType": { "id": ["xeno.peerdb.org", "PLANET_TYPE", "DENSE_SILICATE"] },
+  "radius": { "value": { "amount": 0.33, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_RADIUS"] }] },
+  "mass": { "value": { "amount": 0.041, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_MASS"] }] },
+  "surfaceGravity": { "value": { "amount": 0.38, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "STANDARD_GRAVITY"] }] },
+  "dayLength": { "value": { "amount": 19.2, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "HOUR"] }] },
+  "orbitalPeriod": { "value": { "amount": 88.6, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_DAY"] }] },
+  "meanTemperature": { "value": { "amount": -149.0, "precision": 0.1 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "°C"] }] },
+  "hydrosphere": { "value": { "amount": 0, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "PERCENT"] }] },
+  "biosphereNone": true,
+  "contactStatus": { "id": ["xeno.peerdb.org", "CONTACT_STATUS", "NO_CONTACT"] },
+  "firstSurveyed": { "time": "2236-01-01T00:00:00Z", "precision": "y" },
+  "image": [{ "value": "/f/P5e3LZVkXD6GWBzae3RZJk", "name": "G4_FOUNDLING.jpg", "caption": "Approach view", "source": "Consortium survey archive" }],
+  "notes": [
+    {
+      "value": "<p>Six papers have been written on where it came from. Four of them agree, which in this sector counts as a settled question.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

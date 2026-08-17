@@ -1,0 +1,68 @@
+{
+  "id": ["xeno.peerdb.org", "SPECIES", "G4_DEEP_CHORUS"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SPECIES"] }],
+  "name": [{ "value": "Sounding Deep Chorus", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [
+    {
+      "value": "[one note, many places]",
+      "gloss": "the same figure struck in several rooms at once, which is also what it describes",
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G4_COM_STRUCK_FLOOR"] }]
+    }
+  ],
+  "exonym": [{ "value": "[the ones underneath]", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "taxonCode": "TX-4309-e",
+  "description": [
+    {
+      "value": "<p>A self spread through the fracture galleries beneath the Drum Plain, occupying bodies in rooms that may be forty kilometres apart and held together by a struck signal the bedrock carries almost without loss. Individuals are not a category here: a chorus has no centre, its bodies are grown and retired as the galleries change, and the question of which room the self is in has no more content than asking which finger a hand is in. Choruses deal with one another and with the surface people entirely in tracked obligations, and a chorus will state its ledger position before it states anything else. Their tending of chemosynthetic mats in the warm lower galleries is the only agriculture on the world that does not depend on the weather. The literature is still divided over whether the surface people and the chorus are the same lineage at different depths, and the two sides have now been arguing for longer than contact has existed.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>En jaz, razpršen po podzemnih dvoranah in povezan z udarci skozi skalo. Posamezniki tu ne obstajajo.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Um eu espalhado pelas galerias de fratura sob a Drum Plain, ocupando corpos em salas que podem distar quarenta quilómetros umas das outras e mantido coeso por um sinal de percussão que a rocha de base transporta quase sem perdas. O indivíduo não é aqui uma categoria: um coro não tem centro, os seus corpos são gerados e retirados à medida que as galerias mudam, e perguntar em que sala está o eu tem tanto conteúdo como perguntar em que dedo está a mão. Os coros lidam uns com os outros e com o povo da superfície exclusivamente por obrigações registadas, e um coro declara a sua posição no livro de contas antes de declarar seja o que for. O cuidado que dão aos tapetes quimiossintéticos das galerias inferiores quentes é a única agricultura do mundo que não depende do tempo. A literatura continua dividida quanto a saber se o povo da superfície e o coro são a mesma linhagem a profundidades diferentes, e os dois lados discutem já há mais tempo do que existe contacto.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "homeworld": { "id": ["xeno.peerdb.org", "PLANET", "G4_SOUNDING"] },
+  "bodyPlan": [
+    {
+      "value": "<p>Each body is a pale eyeless quadruped rather under a metre at the shoulder, with the forelimbs fused into a single broad striking mass and the hind limbs splayed for bracing against a gallery wall. The integument is unpigmented, soft and constantly damp, torn easily and healed slowly. Feeding is by rasping mat growth directly off wet rock, and a body that cannot reach a mat is simply left where it is.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "typicalHeight": { "value": { "amount": 0.8, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+  "typicalMass": { "value": { "amount": 41.0, "precision": 0.1 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "kg"] }] },
+  "lifespan": {
+    "value": { "from": { "amount": 400, "precision": 1 }, "to": { "amount": 1200, "precision": 1 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_YEAR"] }]
+  },
+  "sensoryModality": [
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "SUBSTRATE_VIBRATION"] },
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "THERMAL_RADIANCE"] },
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "CONTACT_CHEMO"] }
+  ],
+  "subsistence": [
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "CHEMO_TENDING"] },
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "MANAGED_DECAY"] }
+  ],
+  "individuality": { "id": ["xeno.peerdb.org", "INDIVIDUALITY_MODE", "DISTRIBUTED_SELF"] },
+  "socialOrganisation": { "id": ["xeno.peerdb.org", "SOCIAL_ORGANISATION", "OBLIGATION_NETWORK"] },
+  "kinshipSystem": { "id": ["xeno.peerdb.org", "KINSHIP_SYSTEM", "NOT_RECKONED"] },
+  "communication": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G4_COM_STRUCK_FLOOR"] }],
+  "population": {
+    "value": { "from": { "amount": 70000, "precision": 1000 }, "to": { "amount": 150000, "precision": 1000 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "contactStatus": { "id": ["xeno.peerdb.org", "CONTACT_STATUS", "LIMITED"] },
+  "firstContact": { "time": "2277-01-01T00:00:00Z", "precision": "y" },
+  "image": [
+    {
+      "value": "/f/XEsuQ8pX8f2t4ZGpFyTWbW",
+      "name": "G4_DEEP_CHORUS.jpg",
+      "caption": "Field plate",
+      "source": "Drawn in the field; Consortium collection"
+    }
+  ]
+}

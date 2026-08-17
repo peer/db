@@ -1,0 +1,21 @@
+{
+  "id": ["xeno.peerdb.org", "REGION", "G2_GRATE_FRACTURES"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "REGION"] }],
+  "name": [{ "value": "Grate Fractures", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "description": [
+    {
+      "value": "<p>A belt of parallel fractures across the leading hemisphere, held open by tidal flexing and leaking brine at intervals of a few decades. Between eruptions the belt is quiet enough that the seismometers pick up the parent planet&#39;s ring passing overhead. Sampling here has recovered material found on no other moon in the system.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "MOON", "G2_GRATE"] },
+  "biome": [{ "id": ["xeno.peerdb.org", "BIOME", "BRINE_SEA"] }],
+  "area": { "value": { "amount": 84000, "precision": 100 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "SQUARE_KILOMETRE"] }] },
+  "elevationRange": {
+    "value": { "from": { "amount": -400, "precision": 10 }, "to": { "amount": 720, "precision": 10 } },
+    "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }]
+  },
+  "image": [
+    { "value": "/f/1oxsZiiUoWtqRcU1tKHW6T", "name": "G2_GRATE_FRACTURES.jpg", "caption": "Regional view", "source": "Consortium survey archive" }
+  ]
+}

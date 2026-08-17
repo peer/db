@@ -1,0 +1,24 @@
+{
+  "id": ["xeno.peerdb.org", "INDIVIDUALITY_MODE", "SEASONAL_COLLECTIVE"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "INDIVIDUALITY_MODE"] }],
+  "name": [
+    { "value": "Seasonal collective", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "Sezonski kolektiv", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }] },
+    { "value": "Coletivo sazonal", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>Separate individuals for part of the cycle and a single integrated entity for the rest, with memory carried across both phases. Excludes mere seasonal aggregation without integration.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Del leta ločeni posamezniki, del leta enotno bitje, s spominom, ki teče skozi obe fazi.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Indivíduos separados durante parte do ciclo e uma entidade única e integrada no resto, com a memória a atravessar ambas as fases. Exclui a mera agregação sazonal sem integração.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "code": ["seasonal-col"]
+}

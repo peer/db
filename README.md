@@ -222,7 +222,8 @@ is left to you. We do suggest that you first populate the database using core Pe
 properties and classes. You can do that by running:
 
 ```sh
-./peerdb populate
+./peerdb populate -S .storage
+./peerdb db reindex -S .storage
 ```
 
 On first run PeerDB creates the PostgreSQL schemas and the ElasticSearch indices if they do
@@ -536,6 +537,22 @@ post into the following two PeerDB documents:
 
 </details>
 
+### Test data
+
+The repository ships a made-up data set which exercises every part of PeerDB. It is the catalogue
+of a fictional xenoanthropology research consortium: a few thousand years of surveyed space, the
+species and cultures found in it, and the field records the researchers wrote about them.
+
+It is opt-in. Pointing `populate` at the test data directory populates the data together with
+the schema it needs; without the flag only core documents are populated:
+
+```sh
+./peerdb populate -S .storage -c config.yml --test-data testdata
+./peerdb db reindex -S .storage -c config.yml
+```
+
+The development site with test data is further configured through [`config.yml`](./config.yml) file.
+
 ## Configuration
 
 PeerDB can be configured through CLI arguments and a config file. CLI arguments have precedence
@@ -624,11 +641,14 @@ Frontend tests use [Vitest](https://vitest.dev/):
 npm run test-ci
 ```
 
-We use [Playwright](https://playwright.dev/) for end-to-end testing. Run tests with:
+We use [Playwright](https://playwright.dev/) for end-to-end testing. The tests run against an instance
+populated with [the test data set](#test-data), so populate and reindex with it before running them, and
+serve the instance with `config.yml` so that the sites, roles and languages the tests expect are configured.
+Point the tests at the instance with `PEERDB_URL` (it defaults to `https://localhost:8080`):
 
 ```sh
 npm run test-e2e-install
-npm run test-e2e
+PEERDB_URL=https://localhost:8080 npm run test-e2e
 ```
 
 ## GitHub mirror

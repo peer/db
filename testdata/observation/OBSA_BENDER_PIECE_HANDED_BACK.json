@@ -1,0 +1,34 @@
+{
+  "id": ["xeno.peerdb.org", "OBSERVATION", "OBSA_BENDER_PIECE_HANDED_BACK"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "OBSERVATION"] }],
+  "title": [{ "value": "A ninth blank offered to the benders and handed back", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "description": [
+    {
+      "value": "<p>A candidacy watched from the standing distance at the fifth fissure, ending with the piece returned and reworked within the hour. Nobody spoke during the working or after it.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "content": [
+    {
+      "value": "<p>Watched a candidacy at the fifth fissure from the standing distance, which is about four metres and is not marked in any way we can see.</p><p>The candidate was given a rough blank and left at the fissure. Nobody taught, nobody spoke, and the working ran from the middle of one rest period to the end of the next. Watching is how the whole trade is learned, so nine others stood about, also not talking.</p><p>The piece went round the corporation at the warmest fissure and was handed back. It was reworked within the hour and will be offered again. This was the ninth offering, which for the benders is unremarkable and for the cutters would not be.</p><p>We cannot see what distinguishes an accepted piece from this one. We asked twice, the second time of a bystander who finished her own piece four years ago, and were handed a blank on both occasions. We have kept the blanks.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "expedition": { "id": ["xeno.peerdb.org", "EXPEDITION", "EXP_LONG_LID_SEASON"] },
+  "observedBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_WEN"] }, { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_MOLNAR"] }],
+  "observedAt": { "id": ["xeno.peerdb.org", "SITE", "G2_NURRU_HEARTHS"] },
+  "observedOn": { "time": "2283-06-14T00:00:00Z", "precision": "d" },
+  "about": [
+    { "id": ["xeno.peerdb.org", "PRACTICE", "G2_FINISHING_PIECE"] },
+    { "id": ["xeno.peerdb.org", "CULTURE", "G2_HEARTH_CORPORATIONS"] },
+    { "id": ["xeno.peerdb.org", "SPECIES", "G2_NURRUMALI"] }
+  ],
+  "method": [
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "PARTICIPANT_OBSERVATION"] },
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "PHOTOGRAMMETRY"] }
+  ],
+  "fieldConditions": "Working by the light the vents themselves throw, which is enough for photography at two metres and nothing beyond. Eleven of the corporation present at the passing round.",
+  "image": [
+    { "value": "/f/MKkrkobDhiRw4673VF9gES", "name": "OBSA_BENDER_PIECE_HANDED_BACK.jpg", "caption": "Taken at the time", "source": "Field record" }
+  ]
+}

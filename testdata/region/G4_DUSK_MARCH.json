@@ -1,0 +1,20 @@
+{
+  "id": ["xeno.peerdb.org", "REGION", "G4_DUSK_MARCH"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "REGION"] }],
+  "name": [{ "value": "Dusk March", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Sesshemi" }],
+  "description": [
+    {
+      "value": "<p>The habitable band, four hundred kilometres wide, running the whole way round the world in permanent orange twilight. The wind comes off the day side at a steady forty kilometres an hour and every structure in the march is built with its back to it. Vegetation, such as it is, grows in the wind shadow of ridges and of buildings.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "PLANET", "G4_FETCH"] },
+  "biome": [{ "id": ["xeno.peerdb.org", "BIOME", "DUSK_BELT"] }],
+  "area": { "value": { "amount": 1690000, "precision": 100 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "SQUARE_KILOMETRE"] }] },
+  "elevationRange": {
+    "value": { "from": { "amount": -60, "precision": 10 }, "to": { "amount": 2210, "precision": 10 } },
+    "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }]
+  },
+  "image": [{ "value": "/f/RqhY2VtWVuJYKXjhiR8qPz", "name": "G4_DUSK_MARCH.jpg", "caption": "Regional view", "source": "Consortium survey archive" }]
+}

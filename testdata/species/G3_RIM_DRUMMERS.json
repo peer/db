@@ -1,0 +1,69 @@
+{
+  "id": ["xeno.peerdb.org", "SPECIES", "G3_RIM_DRUMMERS"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SPECIES"] }],
+  "name": [{ "value": "Basin Rim Drummers", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [
+    {
+      "value": "[the ones the floor answers]",
+      "gloss": "a gloss of a drummed self-reference; the rhythm does not survive being written down",
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G3_FLOOR_ANSWER"] }]
+    }
+  ],
+  "taxonCode": "TX-4437-a",
+  "description": [
+    {
+      "value": "<p>A self is a set of bodies spread along forty or fifty kilometres of the basin rim, never gathered, and held together by continuous drumming through warm rock. If the drumming stops for more than about six hours the self is held to have ended, and the bodies that carried it are taken up by neighbouring selves within a season. Individuals do not apply: a body has no name, no obligations and no account of itself, and will not respond to anything addressed to it alone. They live on organic material falling out of the haze and on rot staged in warm hollows, and they trade the rot, at intervals, for nothing the survey has identified. Four descents in forty-seven years have never seen more than a dozen bodies at once, which is not shyness but arithmetic.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>En sam jaz, razpršen po robu kotline in povezan z nenehnim bobnanjem skozi toplo kamnino. Posamezno telo ni oseba.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    }
+  ],
+  "homeworld": { "id": ["xeno.peerdb.org", "PLANET", "G3_SUMP"] },
+  "bodyPlan": [
+    {
+      "value": "<p>A low broad body on eight short limbs, dense and heavy for its height, with a hardened ventral plate that is struck against the ground to speak. The dorsal surface carries a black film picked up from the haze within an hour of any cleaning, and is never clean. There are no eyes; the forward margin is a bank of vibration pits and thermal pores.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "typicalHeight": { "value": { "amount": 1.0, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+  "typicalMass": { "value": { "amount": 88.0, "precision": 0.1 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "kg"] }] },
+  "lifespan": {
+    "value": { "from": { "amount": 150, "precision": 1 }, "to": { "amount": 600, "precision": 1 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_YEAR"] }]
+  },
+  "sensoryModality": [
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "SUBSTRATE_VIBRATION"] },
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "THERMAL_RADIANCE"] },
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "CONTACT_CHEMO"] }
+  ],
+  "subsistence": [
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "DRIFT_HARVESTING"] },
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "MANAGED_DECAY"] }
+  ],
+  "individuality": { "id": ["xeno.peerdb.org", "INDIVIDUALITY_MODE", "DISTRIBUTED_SELF"] },
+  "socialOrganisation": { "id": ["xeno.peerdb.org", "SOCIAL_ORGANISATION", "CONSENSUS_ASSEMBLY"] },
+  "kinshipSystem": { "id": ["xeno.peerdb.org", "KINSHIP_SYSTEM", "DEBT_KINSHIP"] },
+  "communication": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G3_FLOOR_ANSWER"] }],
+  "population": {
+    "value": { "from": { "amount": 1500, "precision": 1000 }, "to": { "amount": 6000, "precision": 1000 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "contactStatus": { "id": ["xeno.peerdb.org", "CONTACT_STATUS", "INDIRECT"] },
+  "firstContact": { "time": "2272-01-01T00:00:00Z", "precision": "y" },
+  "image": [
+    {
+      "value": "/f/Gpbt6yoaUi3mvESkQ8Xp9g",
+      "name": "G3_RIM_DRUMMERS.jpg",
+      "caption": "Field plate",
+      "source": "Drawn in the field; Consortium collection"
+    }
+  ],
+  "notes": [
+    {
+      "value": "<p>The population figure counts bodies, because bodies can be seen. How many selves that is has been answered differently on each of the four descents.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

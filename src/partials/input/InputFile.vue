@@ -28,7 +28,7 @@ import WithLock from "@/components/WithLock.vue"
 import { HighConfidence, LinkClaim } from "@/document"
 import { classifyLink, LINK_CLASS_FILE } from "@/internal-links"
 import ClaimValue from "@/partials/ClaimValue.vue"
-import { getParentLock, useLock } from "@/progress"
+import { getParentLock, useInactivated, useLock } from "@/progress"
 import { uploadFile } from "@/upload"
 import { useValidation } from "@/validation"
 
@@ -82,7 +82,8 @@ const uploadError = ref<boolean>(false)
 // Data modification and controls; useValidation writes to this lock during
 // validation so the button locks itself while a validator is in flight.
 const lock = useLock()
-const inactive = computed(() => lock.value > 0 || props.readonly)
+const inactivated = useInactivated()
+const inactive = computed(() => lock.value > 0 || inactivated.value || props.readonly)
 
 // We re-provide that bare parentLock via WithLock around the cancel button
 // to keep the button interactive regardless of our own count.
@@ -366,7 +367,7 @@ async function onDrop(e: DragEvent) {
       :inactive="inactive"
       :invalid="invalid"
       class="pd-inputfile-value w-full truncate"
-      :class="[readonly ? '' : 'pr-23', { 'pd-locked': lock > 0 }]"
+      :class="[readonly ? '' : 'pr-23', { 'pd-locked': lock > 0, 'pd-inactive': inactivated || readonly }]"
     >
       <!--
         When the current value fails validation (e.g. it is not a route that

@@ -1,0 +1,37 @@
+{
+  "id": ["xeno.peerdb.org", "PLANET", "G2_ANVIL_REST"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PLANET"] }],
+  "name": [{ "value": "Anvil Rest", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "catalogueCode": "SW-0262-a",
+  "description": [
+    {
+      "value": "<p>A carbon world with a graphite crust, a silicon-carbide mantle and, at depth, a great deal of diamond that nobody has any prospect of reaching. Locked to a dim red star, its dayside is a black plain that reflects almost nothing and reads on approach as a hole in the sky. Endolithic communities occupy fracture space in the crust and run on carbide chemistry unlike anything else in the register. The survey closed in 2302 with the biochemistry still unresolved.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Um mundo de carbono com crosta de grafite, manto de carboneto de silício e, em profundidade, uma enorme quantidade de diamante que ninguém tem hipótese de alcançar. Preso por maré a uma estrela vermelha ténue, o seu lado diurno é uma planície negra que quase nada reflete e que, à aproximação, se lê como um buraco no céu. Comunidades endolíticas ocupam o espaço das fraturas na crosta e funcionam com uma química de carbonetos que não se parece com mais nada no registo. O levantamento encerrou em 2302 com a bioquímica ainda por resolver.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "STAR_SYSTEM", "G2_SLACK_WATER"] },
+  "planetType": { "id": ["xeno.peerdb.org", "PLANET_TYPE", "CARBON_WORLD"] },
+  "biome": [{ "id": ["xeno.peerdb.org", "BIOME", "ENDOLITH_ZONE"] }],
+  "radius": { "value": { "amount": 0.86, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_RADIUS"] }] },
+  "mass": { "value": { "amount": 0.52, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_MASS"] }] },
+  "surfaceGravity": { "value": { "amount": 0.7, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "STANDARD_GRAVITY"] }] },
+  "dayLength": { "value": { "amount": 639.6, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "HOUR"] }] },
+  "orbitalPeriod": { "value": { "amount": 26.65, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_DAY"] }] },
+  "meanTemperature": { "value": { "amount": -47.0, "precision": 0.1 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "°C"] }] },
+  "hydrosphere": { "value": { "amount": 0, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "PERCENT"] }] },
+  "atmosphere": [
+    {
+      "value": "<p>0.05 bar of carbon monoxide and methane under a persistent soot haze. It is dark even at the substellar point, and what light arrives is deep red; a hand held up at arm&#39;s length is a silhouette against a slightly less black sky.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "biosphereUnknown": true,
+  "contactStatus": { "id": ["xeno.peerdb.org", "CONTACT_STATUS", "NO_CONTACT"] },
+  "firstSurveyed": { "time": "2262-01-01T00:00:00Z", "precision": "y" },
+  "surveyPeriod": { "from": { "time": "2262-01-01T00:00:00Z", "precision": "y" }, "to": { "time": "2302-01-01T00:00:00Z", "precision": "y" } },
+  "image": [{ "value": "/f/QmiWN2WBf5F9kaEF4rvyJ6", "name": "G2_ANVIL_REST.jpg", "caption": "Approach view", "source": "Consortium survey archive" }]
+}

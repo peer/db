@@ -1,0 +1,25 @@
+{
+  "id": ["xeno.peerdb.org", "ORGANISM", "G1_ASSAY_FRAGMENT"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "ORGANISM"] }],
+  "name": [{ "value": "Assay fracture material", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "taxonCode": "TX-2508-x",
+  "description": [
+    {
+      "value": "<p>Fragmentary organic material recovered from the stained fractures of an ice moon, in pieces never larger than a hand and never whole. It is unmistakably biological and unmistakably part of something, and eight hundred kilograms of it have produced four reconstructions that share no features at all. The register lists it as unclassified pending a determination that has been imminent since 2276.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "category": { "id": ["xeno.peerdb.org", "ORGANISM_CATEGORY", "UNCLASSIFIED"] },
+  "foundOn": [{ "id": ["xeno.peerdb.org", "MOON", "G1_ASSAY"] }],
+  "biome": [{ "id": ["xeno.peerdb.org", "BIOME", "BRINE_SEA"] }],
+  "typicalSize": { "value": { "amount": 0.15, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+  "typicalMass": { "value": { "amount": 0.4, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "kg"] }] },
+  "image": [
+    {
+      "value": "/f/Gdi6ekzoiT7zjHfq5J8Qnn",
+      "name": "G1_ASSAY_FRAGMENT.jpg",
+      "caption": "Field plate",
+      "source": "Drawn in the field; Consortium collection"
+    }
+  ]
+}

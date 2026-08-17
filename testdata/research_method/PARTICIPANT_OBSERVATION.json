@@ -1,0 +1,24 @@
+{
+  "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "PARTICIPANT_OBSERVATION"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "RESEARCH_METHOD"] }],
+  "name": [
+    { "value": "Participant observation", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "Opazovanje z udeležbo", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }] },
+    { "value": "Observação participante", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>Extended co-residence and shared activity, with notes written up daily. Requires ethics clearance and a stated exit plan.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Dolgotrajno sobivanje in skupno delovanje z dnevnim zapisovanjem.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Coabitação prolongada e atividade partilhada, com notas redigidas diariamente. Exige aprovação ética e um plano de saída declarado.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "code": ["part-obs"]
+}

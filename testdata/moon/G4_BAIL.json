@@ -1,0 +1,27 @@
+{
+  "id": ["xeno.peerdb.org", "MOON", "G4_BAIL"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "MOON"] }],
+  "name": [{ "value": "Bail", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Ngomu" }],
+  "catalogueCode": "SPW-A/152-c-i",
+  "description": [
+    {
+      "value": "<p>A dense metallic shard in a close orbit, almost certainly a fragment of whatever event left the inner world bare. It is locked, airless and reflects badly, so from the ring sea below it shows as a moving gap in the stars rather than as an object. It raises the nineteen-metre tide that everything on the ring is arranged around, and its orbit is decaying slowly enough for the decay to be a research question rather than a problem.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "PLANET", "G4_HALFLIGHT"] },
+  "planetType": { "id": ["xeno.peerdb.org", "PLANET_TYPE", "STRIPPED_CORE"] },
+  "radius": { "value": { "amount": 0.14, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_RADIUS"] }] },
+  "mass": { "value": { "amount": 0.0064, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_MASS"] }] },
+  "surfaceGravity": { "value": { "amount": 0.33, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "STANDARD_GRAVITY"] }] },
+  "dayLength": { "value": { "amount": 201.6, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "HOUR"] }] },
+  "orbitalPeriod": { "value": { "amount": 8.4, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_DAY"] }] },
+  "tidallyLocked": true,
+  "meanTemperature": { "value": { "amount": -46.0, "precision": 0.1 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "°C"] }] },
+  "hydrosphere": { "value": { "amount": 0, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "PERCENT"] }] },
+  "biosphereNone": true,
+  "contactStatus": { "id": ["xeno.peerdb.org", "CONTACT_STATUS", "REMOTE_OBSERVATION"] },
+  "firstSurveyed": { "time": "2253-01-01T00:00:00Z", "precision": "y" },
+  "image": [{ "value": "/f/ARRWi6VUNqVZqtwqvBa2vZ", "name": "G4_BAIL.jpg", "caption": "Approach view", "source": "Consortium survey archive" }]
+}

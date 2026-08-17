@@ -1,0 +1,18 @@
+{
+  "id": ["xeno.peerdb.org", "COLLECTIVE", "G3_UVVEI_FRAME"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "COLLECTIVE"] }],
+  "name": [{ "value": "The Frame Under the Plume", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "description": [
+    {
+      "value": "<p>A colony of some thousands of small swimming bodies docked into a shared frame at the underside of the moon&#39;s ice, grazing the mineral knit that grows there and taking what the plume fractures deliver from below. It is not a shoal and not a settlement: the frame is what speaks, and it speaks continuously, in call sequences recorded by a hydrophone left at the edge of the plume deposit in 2270 and never retrieved. No culture record has been opened for it, because nobody has been down and the only questions anyone has asked it were asked by a machine that could not listen to the answers.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "species": { "id": ["xeno.peerdb.org", "SPECIES", "G3_UVVEI"] },
+  "role": [{ "value": "sole recorded respondent at the plume deposit", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "memberCount": {
+    "value": { "from": { "amount": 2000, "precision": 10 }, "to": { "amount": 9000, "precision": 10 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "activePeriod": { "from": { "time": "2270-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true }
+}

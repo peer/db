@@ -15,24 +15,26 @@ const WithDocumentD = WithDocument<D>
 </script>
 
 <template>
-  <ul class="pd-searchresult-list-badges flex flex-row flex-wrap content-start items-baseline gap-1 text-sm">
+  <ul class="pd-searchresulttags pd-searchresult-list-badges flex flex-row flex-wrap content-start items-baseline gap-1 text-sm">
     <template v-for="(tag, i) of tags" :key="tag.id ?? `label-${i}`">
       <WithDocumentD v-if="tag.id" :id="tag.id" name="DocumentGet">
         <template #default="{ doc, url }">
-          <li class="pd-searchresult-badge-type rounded-xs bg-slate-100 px-1.5 py-0.5 leading-none text-gray-600 shadow-xs" :data-url="url">
+          <li class="pd-searchresulttags-item pd-searchresult-badge-type rounded-xs bg-slate-100 px-1.5 py-0.5 leading-none text-gray-600 shadow-xs" :data-url="url">
             <DisplayLabel :doc="doc" />
           </li>
         </template>
         <template #loading="{ url }">
           <li
-            class="pd-withdocument-loading h-2 rounded-sm bg-slate-200 motion-safe:animate-pulse"
+            class="pd-searchresulttags-loading pd-withdocument-loading h-2 rounded-sm bg-slate-200 motion-safe:animate-pulse"
             :data-url="url"
             :class="[loadingWidth(tag.id)]"
             aria-hidden="true"
           ></li>
         </template>
       </WithDocumentD>
-      <li v-else class="pd-searchresult-badge-type rounded-xs bg-slate-100 px-1.5 py-0.5 leading-none text-gray-600 shadow-xs">{{ tag.label }}</li>
+      <li v-else class="pd-searchresulttags-item pd-searchresult-badge-type rounded-xs bg-slate-100 px-1.5 py-0.5 leading-none text-gray-600 shadow-xs">{{
+        tag.label
+      }}</li>
     </template>
   </ul>
 </template>

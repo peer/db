@@ -1,0 +1,24 @@
+{
+  "id": ["xeno.peerdb.org", "BIOME", "HYDRO_LAKE"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "BIOME"] }],
+  "name": [
+    { "value": "Hydrocarbon lake district", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "Ogljikovodikova jezera", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }] },
+    { "value": "Região de lagos de hidrocarbonetos", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>Cold lowland lakes of liquid methane and ethane fed by an organic haze cycle, with solvent chemistry unrelated to water life. Excludes tar pits and bitumen seeps on water worlds.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Mrzla nižinska jezera tekočega metana in etana, ki jih hrani kroženje organske megle.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Lagos frios de terras baixas, de metano e etano líquidos, alimentados por um ciclo de névoa orgânica, com uma química de solvente alheia à vida aquática. Exclui poços de alcatrão e exsudações de betume em mundos de água.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "code": ["hydro-lake"]
+}

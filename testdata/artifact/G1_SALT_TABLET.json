@@ -1,0 +1,35 @@
+{
+  "id": ["xeno.peerdb.org", "ARTIFACT", "G1_SALT_TABLET"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "ARTIFACT"] }],
+  "name": [{ "value": "Draw tablet, second basin", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Nau-eiro", "gloss": "the drawing order" }],
+  "accessionCode": "CCX-A-13246",
+  "description": [
+    {
+      "value": "<p>An incised slab of dense basin salt recording which households may draw from the second deep basin, in what quantity, and until when, rubbed with iron oxide to bring the marks up. Four marks and a scratch: the marks are the households and the quantity, and the scratch at the end is the expiry, which the first transcriptions cleaned off as damage and the second generation of transcribers spent four years putting back. Tablets are read aloud whether or not anybody is present to hear them. This one expired in the spring of 2287 and survives because the clerk who cut it asked that it be kept.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "category": { "id": ["xeno.peerdb.org", "ARTIFACT_CATEGORY", "NOTATION_OBJECT"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G1_BASIN_WATER_ORDER"] }],
+  "foundAt": { "id": ["xeno.peerdb.org", "SITE", "G1_EVAPORITE_WORKINGS"] },
+  "material": [
+    { "value": "basin salt", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "iron oxide rub", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }
+  ],
+  "dimension": [
+    { "value": { "amount": 0.31, "precision": 0.001 }, "axis": "length", "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+    { "value": { "amount": 0.19, "precision": 0.001 }, "axis": "width", "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+    { "value": { "amount": 0.024, "precision": 0.001 }, "axis": "thickness", "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] }
+  ],
+  "dateMade": { "time": "2287-01-01T00:00:00Z", "precision": "y" },
+  "collectedBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_BAUTISTA"] }],
+  "image": [{ "value": "/f/EeQk8t66o8k9smyv26d1yT", "name": "G1_SALT_TABLET.jpg", "caption": "Object drawing", "source": "Consortium collection" }],
+  "document": [{ "value": "/f/91Wv1vybGuayTnRUMcFYBk", "name": "G1_SALT_TABLET.txt", "caption": "Accession record" }],
+  "notes": [
+    {
+      "value": "<p>Salt tablets are the only durable writing in the sector and none of them is meant to outlast its expiry. The collection holds two hundred and six, every one of which is, in the terms of the people who cut them, waste.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "id": ["xeno.peerdb.org", "REGION", "G3_WARMPOOL_ISLES"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "REGION"] }],
+  "name": [{ "value": "Warmpool Isles", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Uarei" }],
+  "description": [
+    {
+      "value": "<p>A scatter of low islands in the substellar warm pool, where the water sits at twenty degrees and never moves much. They are the only ground on the world that stays dry through a full cycle, and they are crowded accordingly. Walled pools between the islands are kept stocked and are not, so far as the survey can tell, owned by anybody in particular.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "PLANET", "G3_OUMARA"] },
+  "biome": [{ "id": ["xeno.peerdb.org", "BIOME", "SWEEP_FLAT"] }, { "id": ["xeno.peerdb.org", "BIOME", "DUSK_BELT"] }],
+  "area": { "value": { "amount": 410000, "precision": 100 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "SQUARE_KILOMETRE"] }] },
+  "elevationRange": {
+    "value": { "from": { "amount": 0, "precision": 10 }, "to": { "amount": 340, "precision": 10 } },
+    "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }]
+  },
+  "image": [
+    { "value": "/f/2b6gZfPUuJhSg2ePQFAQ3R", "name": "G3_WARMPOOL_ISLES.jpg", "caption": "Regional view", "source": "Consortium survey archive" }
+  ]
+}

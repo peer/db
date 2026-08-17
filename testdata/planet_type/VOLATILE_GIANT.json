@@ -1,0 +1,24 @@
+{
+  "id": ["xeno.peerdb.org", "PLANET_TYPE", "VOLATILE_GIANT"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PLANET_TYPE"] }],
+  "name": [
+    { "value": "Volatile giant", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "Hlapni velikan", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }] },
+    { "value": "Gigante volátil", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>A giant planet dominated by hydrogen, helium and ices, with no reachable solid surface. Fieldwork on such a world means its moons or its atmosphere, never its ground.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Velikan iz vodika, helija in ledov, brez dosegljivega trdnega površja.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Planeta gigante dominado por hidrogénio, hélio e gelos, sem superfície sólida acessível. Trabalho de campo num mundo destes significa as suas luas ou a sua atmosfera, nunca o seu chão.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "code": ["vol-giant"]
+}

@@ -58,7 +58,13 @@ const {
   toRef(() => ({ id: props.id, version: searchSessionVersion.value })),
   busy,
 )
-const { results: searchResults, total: searchTotal, moreThanTotal: searchMoreThanTotal, error: searchResultsError } = useSearch(searchSession, searchEl, busy)
+const {
+  results: searchResults,
+  total: searchTotal,
+  moreThanTotal: searchMoreThanTotal,
+  error: searchResultsError,
+  loadedURL: searchResultsURL,
+} = useSearch(searchSession, searchEl, busy)
 
 const {
   downloadingPhase,
@@ -415,16 +421,17 @@ async function onDownloadFiles() {
       </template>
     </NavBar>
   </Teleport>
-  <div ref="searchEl" class="pd-searchget mt-[var(--pd-navbar-offset)] w-full border-t border-transparent" :data-url="searchURL">
-    <div v-if="searchSessionError || searchResultsError" class="my-1 text-center sm:my-4"
+  <div ref="searchEl" class="pd-searchget mt-[var(--pd-navbar-offset)] w-full" :data-url="searchURL">
+    <div v-if="searchSessionError || searchResultsError" class="py-1 text-center sm:py-4"
       ><i class="pd-searchget-error text-error-600">{{ t("common.status.loadingDataFailed") }}</i></div
     >
 
-    <div v-else-if="searchSession === null" class="pd-searchget-loading my-1 text-center sm:my-4">{{ t("common.status.loading") }}</div>
+    <div v-else-if="searchSession === null" class="pd-searchget-loading py-1 text-center sm:py-4">{{ t("common.status.loading") }}</div>
 
     <SearchResultsFeed
       v-else-if="searchSession.view === 'feed'"
       :search-results="searchResults"
+      :search-results-url="searchResultsURL"
       :search-total="searchTotal"
       :search-more-than-total="searchMoreThanTotal"
       :search-session="searchSession"
@@ -443,6 +450,7 @@ async function onDownloadFiles() {
     <SearchResultsTable
       v-else-if="searchSession.view === 'table'"
       :search-results="searchResults"
+      :search-results-url="searchResultsURL"
       :search-total="searchTotal"
       :search-more-than-total="searchMoreThanTotal"
       :search-session="searchSession"

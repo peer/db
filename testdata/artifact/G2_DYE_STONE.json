@@ -1,0 +1,28 @@
+{
+  "id": ["xeno.peerdb.org", "ARTIFACT", "G2_DYE_STONE"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "ARTIFACT"] }],
+  "name": [{ "value": "House Dye Stone and Residue", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Usshamesh nesse", "gloss": "the colour of the house" }],
+  "accessionCode": "CCX-A-14909",
+  "description": [
+    {
+      "value": "<p>A flat grinding stone with a worn central hollow, carrying dried residue of the iron sand dye a single house uses on its cords and nothing else. Each house grinds its own and the mix is not shared, so the stone is effectively the house signature in physical form, and it stays with the house rather than with any member. This one has been in use long enough for the hollow to be nine millimetres deep at the centre. It was recorded and sampled in place at the request of the house, which declined to let it leave the bench.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "category": { "id": ["xeno.peerdb.org", "ARTIFACT_CATEGORY", "PIGMENT"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G2_NET_HOUSES"] }],
+  "foundAt": { "id": ["xeno.peerdb.org", "SITE", "G2_HIGH_WEIR"] },
+  "material": [
+    { "value": "grinding stone", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "iron sand", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "burrower oil", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }
+  ],
+  "dimension": [
+    { "value": { "amount": 0.29, "precision": 0.001 }, "axis": "length", "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+    { "value": { "amount": 0.21, "precision": 0.001 }, "axis": "width", "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+    { "value": { "amount": 0.08, "precision": 0.001 }, "axis": "thickness", "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] }
+  ],
+  "dateMade": { "time": "2150-01-01T00:00:00Z", "precision": "100y" },
+  "collectedBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_FARAHANI"] }, { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_FERREIRA"] }]
+}

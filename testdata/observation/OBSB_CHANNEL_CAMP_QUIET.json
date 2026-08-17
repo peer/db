@@ -1,0 +1,33 @@
+{
+  "id": ["xeno.peerdb.org", "OBSERVATION", "OBSB_CHANNEL_CAMP_QUIET"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "OBSERVATION"] }],
+  "title": [
+    { "value": "Twenty minutes at the second channel, with nothing in them", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>A watch period in which nothing observable occurred, filed in full because the absence is itself the record we were asked to keep.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "content": [
+    {
+      "value": "<p>19.ix.2297. Watch from the camp roof, 11.40 to 12.00 local, instruments running, one observer.</p><p>A worker was visible on the pan at a range of about 1.2 kilometres for the whole of the period and did not move within the resolution of the glass. No other person was in view. Wind from the pan, steady, carrying salt; the acoustic channel recorded wind and the camp generator and nothing else. Air temperature rose two degrees. Nothing else is recorded because nothing else happened.</p><p>The survey has a standing habit of writing up only the periods that contain events, which flatters the pan work considerably: most of it consists of intervals like this one, and a schedule made of intervals like this one has run without interruption for as long as anybody has been watching.</p><p>Whether the worker was resting, working at a rate we cannot resolve, or waiting for us to go in, we cannot say. The third possibility is not paranoia; it has happened twice this season, both times confirmed afterwards.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "expedition": { "id": ["xeno.peerdb.org", "EXPEDITION", "EXP_SALTMARCH_CONTACT"] },
+  "observedBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_PRASETYO"] }],
+  "observedAt": { "id": ["xeno.peerdb.org", "SITE", "G3_CHANNEL_CAMP"] },
+  "observedOn": { "time": "2297-09-19T00:00:00Z", "precision": "d" },
+  "about": [{ "id": ["xeno.peerdb.org", "SPECIES", "G3_AMMIRREN"] }, { "id": ["xeno.peerdb.org", "CULTURE", "G3_PAN_WORK"] }],
+  "method": [
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "REMOTE_SENSING"] },
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "ACOUSTIC_RECORDING"] }
+  ],
+  "fieldConditions": "Clear, hot, wind off the pan. Camp otherwise empty, the rest of the party at the fourth channel.",
+  "permission": [
+    { "action": { "id": ["core.peerdb.org", "PERMISSION_ACTIONS", "ACTION_UPDATE"] }, "user": ["mock-user-researcher@localhost"], "scope": ["self"] },
+    { "action": { "id": ["core.peerdb.org", "PERMISSION_ACTIONS", "ACTION_DELETE"] }, "user": ["mock-user-curator@localhost"], "scope": ["self"] }
+  ]
+}

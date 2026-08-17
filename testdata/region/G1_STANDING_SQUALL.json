@@ -1,0 +1,24 @@
+{
+  "id": ["xeno.peerdb.org", "REGION", "G1_STANDING_SQUALL"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "REGION"] }],
+  "name": [{ "value": "The Standing Squall", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "description": [
+    {
+      "value": "<p>The permanent convective belt around the substellar point, a band of open ocean under continuous lightning and rain that has never been observed to abate. Nothing is built inside it and nothing stays inside it voluntarily. Two research seasons have been spent at its margin and both ended early.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "PLANET", "G1_BELLWETHER"] },
+  "biome": [{ "id": ["xeno.peerdb.org", "BIOME", "STORM_BELT"] }],
+  "area": { "value": { "amount": 3400000, "precision": 100 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "SQUARE_KILOMETRE"] }] },
+  "elevationRange": {
+    "value": { "from": { "amount": -4200, "precision": 10 }, "to": { "amount": 12, "precision": 10 } },
+    "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }]
+  },
+  "notes": [
+    {
+      "value": "<p>The belt is the only region in the register whose entry carries a standing safety annexe. The annexe is four pages long and the first three are about boats.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

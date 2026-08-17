@@ -1,0 +1,17 @@
+{
+  "id": ["xeno.peerdb.org", "REGION", "G2_COUNTED_PLAIN"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "REGION"] }],
+  "name": [{ "value": "Counted Plain", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "description": [
+    {
+      "value": "<p>A crater plain of about two million square kilometres on which every impact structure above forty metres across has been individually numbered. The counting took eighteen years and produced the surface age that the rest of the sector is dated against. Total relief across the whole plain is under six hundred metres.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "PLANET", "G2_SLATE_TABLE"] },
+  "area": { "value": { "amount": 2040000, "precision": 100 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "SQUARE_KILOMETRE"] }] },
+  "elevationRange": {
+    "value": { "from": { "amount": -180, "precision": 10 }, "to": { "amount": 610, "precision": 10 } },
+    "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }]
+  }
+}

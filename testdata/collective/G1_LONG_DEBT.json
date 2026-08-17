@@ -1,0 +1,19 @@
+{
+  "id": ["xeno.peerdb.org", "COLLECTIVE", "G1_LONG_DEBT"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "COLLECTIVE"] }],
+  "name": [{ "value": "The Long Debt", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "description": [
+    {
+      "value": "<p>A colony of the upper shelf that holds, by its own account and by everybody else&#39;s, the oldest open obligation on the plateau: a debt owed to a colony that has not answered since 2294. It has drummed the account at intervals of about forty days for eighteen years and shows no sign of stopping. Asked what happens if the debt is never discharged, it drummed the account again.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "species": { "id": ["xeno.peerdb.org", "SPECIES", "G1_KHEVNITH"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G1_SHELF_LEDGER"] }],
+  "role": [{ "value": "creditor", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "memberCount": {
+    "value": { "from": { "amount": 25000, "precision": 10 }, "to": { "amount": 44000, "precision": 10 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "activePeriod": { "from": { "time": "2255-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true }
+}

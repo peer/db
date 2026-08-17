@@ -1,0 +1,28 @@
+{
+  "id": ["xeno.peerdb.org", "INDIVIDUAL", "G3_SUNNITH"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "INDIVIDUAL"] }],
+  "name": [{ "value": "Sunnith" }],
+  "lineageName": [{ "value": "Ussen Face" }],
+  "description": [
+    {
+      "value": "<p>The other continuing self of the 2306 division, who took a name-slot that had stood vacant for eleven years and with it a face nobody had opened since. Recounts a childhood the survey recorded from a different name-slot in 2288 and treats it as its own, because it is. The register carries the same birth year for both halves, which is permitted and which the actuarial section has objected to in writing on four occasions.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "species": { "id": ["xeno.peerdb.org", "SPECIES", "G3_TESSILEN"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G3_FACE_TENDING"] }],
+  "role": [
+    { "value": "face tender", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "slot holder", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }
+  ],
+  "formOfAddress": "by the name-slot",
+  "born": { "time": "2266-01-01T00:00:00Z", "precision": "y" },
+  "diedUnknown": true,
+  "birthplace": { "id": ["xeno.peerdb.org", "SITE", "G3_SHELF_WARREN"] },
+  "notes": [
+    {
+      "value": "<p>Two records exist where the register would prefer one. Attempts to merge them have been resisted by the linguists and by nobody else.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

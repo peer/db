@@ -1,0 +1,25 @@
+{
+  "id": ["xeno.peerdb.org", "PRACTICE", "G2_WALL_ASKING"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PRACTICE"] }],
+  "name": [{ "value": "Asking the Riser", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Wallamenne", "gloss": "the asking of the wall, using the verb reserved for asking a household" }],
+  "description": [
+    {
+      "value": "<p>Nothing is cut into a terrace riser until the riser has been struck and has answered. The householder who means to cut goes to the place, strikes it three times with a short plate mallet, and then leaves and does other work for the rest of the shift. The answer comes back after about forty seconds, out of the order the strikes were made, and is read by whoever happens to be nearest rather than by whoever struck, since the riser is not answering a person. If the answer carries the sign for wet, the cut is not made that cycle, and no reason is asked for and none is offered. Striking a second time is forbidden outright, because a second strike is received as a second party, and every household on the rows can name the two seasons the Consortium spent courteously answering itself. Refusal is not appealed and there is no procedure by which it could be.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Preden kdo zareže v teraso, potrka po steni in počaka na odgovor; drugo trkanje je prepovedano.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    }
+  ],
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G2_EVENING_ROWS"] }],
+  "category": { "id": ["xeno.peerdb.org", "PRACTICE_CATEGORY", "PROHIBITION"] },
+  "periodicity": "before any cut into a riser, and at no other time",
+  "participants": {
+    "value": { "from": { "amount": 1, "precision": 1 }, "to": { "amount": 4, "precision": 1 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "firstDocumented": { "time": "2271-01-01T00:00:00Z", "precision": "y" },
+  "relatedPractice": [{ "id": ["xeno.peerdb.org", "PRACTICE", "G2_ELEVEN_DAYS"] }]
+}

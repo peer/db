@@ -1,0 +1,21 @@
+{
+  "id": ["xeno.peerdb.org", "SITE", "G3_PAN_WORKINGS"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SITE"] }],
+  "name": [{ "value": "Pan Workings", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "localName": [{ "value": "Rimmenaran", "gloss": "the cut places" }],
+  "description": [
+    {
+      "value": "<p>Some eleven thousand shallow rectangular cuts in the salt crust, arranged in blocks with walls of packed crust between them, each block worked and then left for a term of years. Brine is let in, taken out and let in again on a schedule that survived the suspension of contact and presumably still does. The last direct observation was in 2297.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "REGION", "G3_GREAT_PAN"] },
+  "siteType": { "id": ["xeno.peerdb.org", "SITE_TYPE", "EXTRACTION_SITE"] },
+  "gridReference": "SM-201.6/-08.4",
+  "population": {
+    "value": { "from": { "amount": 3000, "precision": 10 }, "to": { "amount": 20000, "precision": 10 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "occupation": { "from": { "time": "2281-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true },
+  "image": [{ "value": "/f/1wgeSQMToz7mvS4vMA3b9e", "name": "G3_PAN_WORKINGS.jpg", "caption": "General view", "source": "Consortium survey archive" }]
+}

@@ -1,0 +1,41 @@
+{
+  "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G2_CEILING_CALL"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM"] }],
+  "name": [{ "value": "Ceiling Call", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Ollumene", "gloss": "the calling under, from the word for the underside of the ice" }],
+  "description": [
+    {
+      "value": "<p>Whistled through water and answered with a released plume that carries the household&#39;s fermentation signature, so that every utterance has a spoken part and a tasted part and neither is complete alone. The spoken part does the work of syntax; the tasted part says who is speaking, and cannot be faked, which makes the language very poor at reported speech and very good at contracts. Range is several kilometres for the whistle and about ninety metres for the plume, so a distant speaker is heard but not identified, a condition the Ollumaru have a single word for. Recordings made from Station Two are half a language and have been catalogued as such since 2244.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "modality": [
+    { "id": ["xeno.peerdb.org", "COMMUNICATION_MODALITY", "VOCALISATION"] },
+    { "id": ["xeno.peerdb.org", "COMMUNICATION_MODALITY", "CHEMICAL_SIGNATURE"] }
+  ],
+  "users": {
+    "value": { "from": { "amount": 5000, "precision": 100 }, "to": { "amount": 13000, "precision": 100 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "sampleGloss": [
+    {
+      "value": "<p><i>[a rising two-note whistle, then a plume tasting of the household&#39;s ferment]</i> - <b>who-comes + OURS</b> - &#39;name yourself, you are over our rib.&#39;</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "recording": [
+    {
+      "value": "/f/SiXyGYscpo7AFCYw1EuQj7",
+      "name": "system-G2_CEILING_CALL.mp3",
+      "caption": "Elicitation sample",
+      "duration": { "value": { "amount": 4, "precision": 1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "MINUTE"] }] },
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G2_CEILING_CALL"] }],
+      "note": [
+        {
+          "value": "<p>Recorded during elicitation and kept as the reference sample for this system.</p>",
+          "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+        }
+      ]
+    }
+  ]
+}

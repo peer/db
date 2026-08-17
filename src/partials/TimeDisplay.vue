@@ -268,12 +268,17 @@ const tooltip = computed(() => {
 </script>
 
 <template>
-  <span :class="{ 'cursor-pointer': toggle }" :title="tooltip" @click="toggleFormat" @mouseenter="refreshNowForTooltip">
+  <span :class="['pd-timedisplay', { 'cursor-pointer': toggle }]" :title="tooltip" @click="toggleFormat" @mouseenter="refreshNowForTooltip">
     <template v-if="currentFormat === 'absolute'">
-      <span v-for="(part, index) in absoluteDisplay.parts" :key="index" :class="{ 'text-neutral-400': !part.precise }">{{ part.text }}</span>
+      <span
+        v-for="(part, index) in absoluteDisplay.parts"
+        :key="index"
+        :class="['pd-timedisplay-part', { 'pd-timedisplay-part-imprecise': !part.precise, 'text-neutral-400': !part.precise }]"
+        >{{ part.text }}</span
+      >
     </template>
     <template v-else>
-      {{ relativeDisplay.text }}
+      <span class="pd-timedisplay-relative">{{ relativeDisplay.text }}</span>
     </template>
   </span>
 </template>

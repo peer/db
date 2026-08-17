@@ -1,0 +1,57 @@
+{
+  "id": ["xeno.peerdb.org", "SPECIES", "G3_UVVEI"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SPECIES"] }],
+  "name": [{ "value": "Keel Ice-Interface Colonies", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Uvvei", "gloss": "the head element of every recorded call sequence, provisionally read as a self-name" }],
+  "taxonCode": "TX-4461-a",
+  "description": [
+    {
+      "value": "<p>A person here is a colony of some thousands of small swimming bodies docked into a shared frame at the underside of the ice, grazing the mineral knit that grows there and taking what the plume fractures deliver from below. Bodies are grown, spent and replaced, and are not persons to anyone, including themselves; the frame is what speaks, and it speaks continuously. Everything known comes from a hydrophone left at the edge of the plume deposit in 2270 and from worked material frozen into the deposit itself, which is why the entry is coded as indirect contact rather than as no contact. Colonies go dormant between plume seasons and re-form their relatedness on waking, so who is kin to whom is a different answer after every dormancy. Nobody has been down, and nothing is scheduled.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Aqui uma pessoa é uma colónia de alguns milhares de pequenos corpos nadadores acoplados a uma armação comum na face inferior do gelo, que pastam a malha mineral que ali cresce e recolhem o que as fraturas da pluma entregam vindo de baixo. Os corpos são gerados, gastos e substituídos, e não são pessoas para ninguém, nem para si próprios; quem fala é a armação, e fala sem parar. Tudo o que se sabe vem de um hidrofone deixado na orla do depósito da pluma em 2270 e de material trabalhado que ficou congelado no próprio depósito, razão pela qual a entrada está codificada como contacto indireto e não como ausência de contacto. As colónias entram em dormência entre estações de pluma e refazem o seu parentesco ao acordar, de modo que a resposta a quem é parente de quem é diferente depois de cada dormência. Ninguém desceu até lá e nada está previsto.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "homeworld": { "id": ["xeno.peerdb.org", "MOON", "G3_KEEL"] },
+  "bodyPlan": [
+    {
+      "value": "<p>A body is a finger-length swimmer with four beating vanes and a hooked dorsal clasp that locks it into the colony frame. Free bodies are almost transparent; docked ones thicken and pigment within a day. The frame itself is secreted, twelve to twenty metres across, and hangs from the ice like a shallow inverted basket.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "typicalHeight": { "value": { "amount": 0.45, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+  "typicalMass": { "value": { "amount": 7.5, "precision": 0.1 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "kg"] }] },
+  "lifespan": {
+    "value": { "from": { "amount": 40, "precision": 1 }, "to": { "amount": 160, "precision": 1 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_YEAR"] }]
+  },
+  "sensoryModality": [
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "PRESSURE_GRADIENT"] },
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "ACOUSTIC_RANGING"] },
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "CHEMICAL_PLUME"] }
+  ],
+  "subsistence": [
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "COLONY_GRAZING"] },
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "DRIFT_HARVESTING"] }
+  ],
+  "individuality": { "id": ["xeno.peerdb.org", "INDIVIDUALITY_MODE", "PERMANENT_COLLECTIVE"] },
+  "socialOrganisation": { "id": ["xeno.peerdb.org", "SOCIAL_ORGANISATION", "ACEPHALOUS_BANDS"] },
+  "kinshipSystem": { "id": ["xeno.peerdb.org", "KINSHIP_SYSTEM", "COHIBERNATION_COHORT"] },
+  "population": {
+    "value": { "from": { "amount": 200, "precision": 1000 }, "to": { "amount": 4000, "precision": 1000 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "contactStatus": { "id": ["xeno.peerdb.org", "CONTACT_STATUS", "INDIRECT"] },
+  "firstContact": { "time": "2270-01-01T00:00:00Z", "precision": "y" },
+  "image": [
+    { "value": "/f/Qgaf4hqaLU4vt2zfBDKvww", "name": "G3_UVVEI.jpg", "caption": "Field plate", "source": "Drawn in the field; Consortium collection" }
+  ],
+  "notes": [
+    {
+      "value": "<p>The moon is still catalogued as having a population of zero, on the grounds that the figure records people who have been counted, and nobody has counted these.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

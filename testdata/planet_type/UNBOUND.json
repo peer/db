@@ -1,0 +1,24 @@
+{
+  "id": ["xeno.peerdb.org", "PLANET_TYPE", "UNBOUND"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PLANET_TYPE"] }],
+  "name": [
+    { "value": "Unbound world", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "Nevezani svet", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }] },
+    { "value": "Mundo desvinculado", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>A planetary-mass body bound to no star, warmed only by internal heat and by whatever insulating atmosphere it has kept. Excludes bodies on very long but closed orbits.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Telo planetarne mase brez matične zvezde, ki ga greje le notranja toplota.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Corpo de massa planetária sem vínculo a estrela alguma, aquecido apenas pelo calor interno e pela atmosfera isolante que tenha conservado. Exclui corpos em órbitas muito longas mas fechadas.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "code": ["unbound"]
+}

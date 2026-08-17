@@ -128,6 +128,7 @@ func TestBasicAuthWithSiteContext(t *testing.T) {
 						LanguagePriority:     nil,
 						DefaultLanguage:      "",
 						LanguageCodes:        nil,
+						NamingProperties:     nil,
 						Features:             internalSite.SiteFeatures{},
 						Roles:                nil,
 						ScopeProperties:      nil,

@@ -1,0 +1,34 @@
+{
+  "id": ["xeno.peerdb.org", "ARTIFACT", "G4_AR_FUSION_SILL"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "ARTIFACT"] }],
+  "name": [{ "value": "Fusion Sill from the Long Warren", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "pirrukkat", "gloss": "the smoothed place a flank is laid against" }],
+  "accessionCode": "CCX-A-20511",
+  "description": [
+    {
+      "value": "<p>A dressed rock sill nearly two and a half metres long, cut into the wall of a side passage and ground smooth to take the flank pads of a fusing body. Sills are prepared years ahead of a freeze, checked by touch and re-ground until nobody objects to them, and a sill that is refused is left in place and never used. This one was refused in 2244, for reasons the survey was given at length and did not follow. It was lifted with permission in 2246 and the recess it came out of was left open at the warren&#39;s request.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "category": { "id": ["xeno.peerdb.org", "ARTIFACT_CATEGORY", "STRUCTURAL_ELEMENT"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G4_CU_DEEP_COURSE_WARRENS"] }],
+  "foundAt": { "id": ["xeno.peerdb.org", "SITE", "G4_LONG_WARREN"] },
+  "material": [
+    { "value": "dressed warren rock", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "grinding grit", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }
+  ],
+  "dimension": [
+    { "value": { "amount": 2.44, "precision": 0.001 }, "axis": "length", "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+    { "value": { "amount": 0.61, "precision": 0.001 }, "axis": "width", "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+    { "value": { "amount": 0.14, "precision": 0.001 }, "axis": "thickness", "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] }
+  ],
+  "dateMade": { "time": "2240-01-01T00:00:00Z", "precision": "10y" },
+  "collectedBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_VASILAKIS"] }, { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_TRAN"] }],
+  "image": [{ "value": "/f/W5CeXr6BLqk9oDNWpdYG8x", "name": "G4_AR_FUSION_SILL.jpg", "caption": "Object drawing", "source": "Consortium collection" }],
+  "notes": [
+    {
+      "value": "<p>The only structural element in the collection whose findspot inside the warren is deliberately unrecorded, at the warren&#39;s request and with the committee&#39;s agreement. The register carries the gap as a value.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

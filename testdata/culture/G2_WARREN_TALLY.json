@@ -1,0 +1,47 @@
+{
+  "id": ["xeno.peerdb.org", "CULTURE", "G2_WARREN_TALLY"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "CULTURE"] }],
+  "name": [{ "value": "Warren Ledger", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [
+    {
+      "value": "Kalanukkeni",
+      "gloss": "those who are on the count",
+      "inSystem": [
+        { "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G2_WARREN_KNOCK"] },
+        { "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G2_MOUTH_TALLY"] }
+      ]
+    }
+  ],
+  "catalogueCode": "CU-2258-09",
+  "description": [
+    {
+      "value": "<p>Nine kilometres of tunnel on the night hemisphere, sealed at every mouth with ice plugs cast in place, holding the band&#39;s cold stores and almost nothing it grows for itself. Membership of the community is a position on the knotted tally kept at the mouth chamber and nothing else, so a household that clears its account has to open a new one immediately or stop being a household. A chamber wakes together after each long dormancy and reckons kin by who was alongside, which redraws every relationship in the warren about once in four years and which nobody there finds worth remarking on. Payment comes in food, glass and passage, and the warren has never once been short, which is a strange thing to be able to say about the coldest inhabited place in the register.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Pripadnost skupnosti je mesto na vozlanem računu ob vhodu v rove. Sorodstvo se ob vsakem prebujenju sestavi na novo.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Nove quilómetros de túnel no hemisfério noturno, selados em todas as bocas com tampões de gelo moldados no lugar, que guardam as reservas frias de toda a faixa e quase nada do que a própria toca cultiva. A pertença à comunidade é uma posição na conta de nós guardada na câmara da boca e mais nada, pelo que um agregado que salda a sua conta tem de abrir outra imediatamente ou deixa de ser um agregado. Uma câmara acorda em conjunto depois de cada longa dormência e conta como parentes quem esteve ao seu lado, o que redesenha todas as relações da toca aproximadamente uma vez em cada quatro anos e o que ninguém ali acha digno de nota. O pagamento vem em comida, vidro e passagem, e a toca nunca teve falta de nada, o que é uma coisa estranha de se poder dizer do lugar habitado mais frio do registo.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "practisedBy": [{ "id": ["xeno.peerdb.org", "SPECIES", "G2_MUNNAKULE"] }],
+  "presentAt": [{ "id": ["xeno.peerdb.org", "SITE", "G2_FROST_WARREN"] }],
+  "kinshipSystem": { "id": ["xeno.peerdb.org", "KINSHIP_SYSTEM", "COHIBERNATION_COHORT"] },
+  "socialOrganisation": { "id": ["xeno.peerdb.org", "SOCIAL_ORGANISATION", "OBLIGATION_NETWORK"] },
+  "subsistence": [
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "SEALED_CULTIVATION"] },
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "TRADE_DEPENDENCY"] }
+  ],
+  "communication": [
+    { "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G2_WARREN_KNOCK"] },
+    { "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G2_MOUTH_TALLY"] }
+  ],
+  "population": {
+    "value": { "from": { "amount": 2000, "precision": 100 }, "to": { "amount": 5000, "precision": 100 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "period": { "from": { "time": "2258-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true }
+}

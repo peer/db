@@ -1,0 +1,23 @@
+{
+  "id": ["xeno.peerdb.org", "COLLECTIVE", "G4_CO_LONG_TERRACE_WEAVE"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "COLLECTIVE"] }],
+  "name": [{ "value": "Long Terrace Weave", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "description": [
+    {
+      "value": "<p>A single self distributed across some four hundred bodies in the forest of the fourth and fifth terraces, which attends assembly as one party, answers as one voice and cannot be met in part. It is not a group, a colony or a lineage: a visitor addressing twenty bodies in four trees is having one conversation and will be answered once. The discipline records it as one body because it holds one boundary, states one position and withdraws one objection.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "species": { "id": ["xeno.peerdb.org", "SPECIES", "G4_CANOPY_WEAVE"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G4_CU_WEAVE_ASSEMBLIES"] }],
+  "role": [
+    { "value": "assembly party", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "boundary holder", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }
+  ],
+  "memberCount": {
+    "value": { "from": { "amount": 300, "precision": 10 }, "to": { "amount": 620, "precision": 10 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "activePeriod": { "from": { "time": "2262-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true },
+  "seat": { "id": ["xeno.peerdb.org", "SITE", "G4_TETHER_STUMP"] }
+}

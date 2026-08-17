@@ -1,0 +1,22 @@
+{
+  "id": ["xeno.peerdb.org", "REGION", "G1_GRAPHITE_CANOPY"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "REGION"] }],
+  "name": [{ "value": "The Graphite Canopy", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Thevrin" }],
+  "description": [
+    {
+      "value": "<p>Closed forest of black columnar growth running to ninety metres, in four distinct layers, over a floor of damp charcoal that most of the population has never stood on. Light reaches the ground in shafts and not for long. Nearly everything built here is built at the third layer, roughly forty metres up, where the trunks are still thick and the wind is not yet a problem.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "PLANET", "G1_SIXTEEN_HUNDRED_V"] },
+  "biome": [{ "id": ["xeno.peerdb.org", "BIOME", "HIGH_CANOPY"] }],
+  "area": { "value": { "amount": 1600000, "precision": 100 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "SQUARE_KILOMETRE"] }] },
+  "elevationRange": {
+    "value": { "from": { "amount": 200, "precision": 10 }, "to": { "amount": 1900, "precision": 10 } },
+    "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }]
+  },
+  "image": [
+    { "value": "/f/YNC8kDroN1enbnA82c81N2", "name": "G1_GRAPHITE_CANOPY.jpg", "caption": "Regional view", "source": "Consortium survey archive" }
+  ]
+}

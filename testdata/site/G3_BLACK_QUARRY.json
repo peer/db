@@ -1,0 +1,21 @@
+{
+  "id": ["xeno.peerdb.org", "SITE", "G3_BLACK_QUARRY"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SITE"] }],
+  "name": [{ "value": "Black Quarry", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "localName": [{}],
+  "description": [
+    {
+      "value": "<p>Stepped cuttings in a graphite outcrop at the edge of the basin floor, with working floors and spoil heaps below them, all of it black and all of it glittering. Material is taken out in blocks and carried up to the rim. Nobody was present on any of the four visits, but the faces are fresh each time.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "REGION", "G3_TAR_PLAINS"] },
+  "siteType": { "id": ["xeno.peerdb.org", "SITE_TYPE", "EXTRACTION_SITE"] },
+  "gridReference": "SU-058.1/+14.9",
+  "population": {
+    "value": { "from": { "amount": 0, "precision": 10 }, "to": { "amount": 40, "precision": 10 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "occupation": { "from": { "time": "2272-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true },
+  "image": [{ "value": "/f/7EwWYgVT7aRFYXY5MUqgiG", "name": "G3_BLACK_QUARRY.jpg", "caption": "General view", "source": "Consortium survey archive" }]
+}

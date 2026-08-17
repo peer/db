@@ -1,0 +1,31 @@
+{
+  "id": ["xeno.peerdb.org", "PRACTICE", "G3_SLOT_PASSING"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PRACTICE"] }],
+  "name": [{ "value": "Keeping the Name at Division", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Tessen-lisse", "gloss": "the opening keeps its name" }],
+  "description": [
+    {
+      "value": "<p>When a self divides along the line it has carried since maturity, the two continuing selves sit at the working face for a day and the name-slot of that face goes to one of them, chosen by which is holding the wedge when the division finishes. The other takes no name at all until a slot falls vacant, which can be years, and in the meantime works faces belonging to others and is addressed by the face rather than by anything of its own. Both selves remember everything the undivided self did and both say so, and neither treats the other as a relative, since the slot and not the body is what carries a claim. The survey has recorded fourteen divisions and has been present for two. On both occasions the day passed in near silence and the paste was eaten as usual afterwards.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Ob delitvi jaza ime plasti prevzame le eden od obeh, drugi ostane brez imena, dokler se ne izprazni mesto.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    }
+  ],
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G3_FACE_TENDING"] }],
+  "category": { "id": ["xeno.peerdb.org", "PRACTICE_CATEGORY", "NAMING"] },
+  "periodicity": "once in a self, at about forty",
+  "participants": {
+    "value": { "from": { "amount": 2, "precision": 1 }, "to": { "amount": 8, "precision": 1 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "firstDocumented": { "time": "2279-01-01T00:00:00Z", "precision": "y" },
+  "relatedPractice": [{ "id": ["xeno.peerdb.org", "PRACTICE", "G3_FACE_ASSENT"] }],
+  "notes": [
+    {
+      "value": "<p>Material from the two divisions the survey attended is restricted at the request of neither party, the ethics office having decided on its own initiative that consent obtained from one self does not obviously extend to two.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

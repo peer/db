@@ -617,6 +617,17 @@ func TestRetryTransactionMaxRetries(t *testing.T) {
 	})
 	assert.ErrorIs(t, errE, internalStore.ErrMaxRetriesReached)
 	assert.Equal(t, internalStore.MaxRetries, attempts)
+
+	// The error which kept failing is carried as a detail, so that it is logged with the error while
+	// staying out of what the error is: the returned error says only that the retries ran out, and
+	// errors.Is and errors.As on it reach nothing else.
+	assert.EqualError(t, errE, "max retries reached")
+	lastError, ok := errors.Details(errE)["lastError"].(errors.Formatter)
+	if assert.True(t, ok, "the error of the last attempt is carried as a detail") {
+		assert.EqualError(t, lastError.Error, "always retry")
+	}
+	_, found := errors.AsType[*safeToRetryError](errE)
+	assert.False(t, found, "the error of the last attempt is not part of the returned error")
 }
 
 func TestRetryTransactionDeadlineExceeded(t *testing.T) {

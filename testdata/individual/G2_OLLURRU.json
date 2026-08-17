@@ -1,0 +1,25 @@
+{
+  "id": ["xeno.peerdb.org", "INDIVIDUAL", "G2_OLLURRU"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "INDIVIDUAL"] }],
+  "name": [{ "value": "Ollurru" }],
+  "lineageName": [{ "value": "House of the Ninth Rib" }],
+  "description": [
+    {
+      "value": "<p>Handles their house&#39;s side of the fall account with the floor, dropping sorted waste and receiving sorted material back on a delay of some weeks. In 2302 they argued that a sample line lost from Station Two counted as a fall and had entered the account, and the Consortium argued that it was equipment; they lost, in the sense that the station agreed and the debt stands against the station rather than against the house. They were not photographed, and remarked that nobody there has ever been.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "species": { "id": ["xeno.peerdb.org", "SPECIES", "G2_OLLUMARU"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G2_RIB_HOLDINGS"] }],
+  "role": [{ "value": "account holder", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "formOfAddress": "by house and rib",
+  "born": { "time": "2271-01-01T00:00:00Z", "precision": "y" },
+  "diedNone": true,
+  "birthplace": { "id": ["xeno.peerdb.org", "SITE", "G2_LOWER_MIDDEN"] },
+  "notes": [
+    {
+      "value": "<p>The lost line has since been returned, cut into eleven equal lengths and stacked. The station has not worked out whether this settles anything and has not asked.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

@@ -1,0 +1,66 @@
+{
+  "id": ["xeno.peerdb.org", "INTERVIEW", "INTB_WEAVE_OBJECTION"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "INTERVIEW"] }],
+  "title": [
+    {
+      "value": "Long Terrace Weave on the objection it withdrew and the half that still answers",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "description": [
+    {
+      "value": "<p>Joint sitting with the terrace forest weave on the withdrawal of its assembly objection. The weave gives a reason for the withdrawal that does not appear in the assembly record, and speaks about the Burnt Half.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "interviewee": [{ "id": ["xeno.peerdb.org", "COLLECTIVE", "G4_CO_LONG_TERRACE_WEAVE"] }],
+  "interviewer": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_SUBRAMANIAN"] }, { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_WEN"] }],
+  "recordedAt": { "id": ["xeno.peerdb.org", "SITE", "G4_TETHER_STUMP"] },
+  "recordedOn": { "time": "2297-06-13T00:00:00Z", "precision": "d" },
+  "expedition": { "id": ["xeno.peerdb.org", "EXPEDITION", "EXP_OVERFALL_TETHER"] },
+  "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G4_COM_TERRACE_REGISTER"] }],
+  "duration": { "value": { "amount": 410, "precision": 1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "MINUTE"] }] },
+  "content": [
+    {
+      "value": "<p><b>Q.</b> Do you speak for the others in the trees?</p><p><b>A.</b> There are no others in the trees. You have been talking to one party since the morning and you keep looking for its representative. There is nothing here to represent.</p><p><b>Q.</b> Then, when you personally withdrew the objection.</p><p><b>A.</b> When we withdrew it.</p><p><b>Q.</b> When you withdrew it, the record says you were satisfied.</p><p><b>A.</b> The record says what was said at the sitting. What was done before the sitting was that the water corporation closed the cascade above the fourth terrace for a season and gave a maintenance reason, and we grazed a dry canopy for eleven weeks, and then we were satisfied.</p><p><b>Q.</b> Was that stated at the time?</p><p><b>A.</b> There is no figure for it that does not also close the relation. We would have had to say it to people we will be next to for four hundred years.</p><p><b>Q.</b> May we ask about the Burnt Half?</p><p><b>A.</b> You may. It attends under the whole name. It has answered to the whole name for sixteen years, from the south side, and the assembly minutes carry one boundary where there are two.</p><p><b>Q.</b> You could correct it.</p><p><b>A.</b> Correcting it decides whether what is on the north side is a self or a bereavement, and we are not going to be the party that decides that at a sitting, in an afternoon, to tidy a record for you.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "recording": [
+    {
+      "value": "/f/64TxgGQebzCWxzJ8vwFKgX",
+      "name": "interview-INTB_WEAVE_OBJECTION.mp3",
+      "caption": "Session recording",
+      "duration": { "value": { "amount": 410, "precision": 1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "MINUTE"] }] },
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G4_COM_TERRACE_REGISTER"] }]
+    }
+  ],
+  "ethics": { "id": ["xeno.peerdb.org", "ETHICS_PROTOCOL", "PROTOCOL_4"] },
+  "consentNote": [
+    {
+      "value": "<p>The weave consented to the record as one party and asked that the passage on the cascade closure not be entered in any assembly-facing document, since a form of words in the register would function there as a statement made. It made no request about the Burnt Half material and pointedly said so.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "clearedReader": ["mock-user-curator@localhost"],
+  "permission": [
+    { "action": { "id": ["core.peerdb.org", "PERMISSION_ACTIONS", "ACTION_READ"] }, "user": ["mock-user-curator@localhost"], "scope": ["self"] },
+    {
+      "action": { "id": ["core.peerdb.org", "PERMISSION_ACTIONS", "ACTION_READ_HISTORIC"] },
+      "user": ["mock-user-curator@localhost"],
+      "scope": ["self"]
+    },
+    { "action": { "id": ["core.peerdb.org", "PERMISSION_ACTIONS", "ACTION_UPDATE"] }, "user": ["mock-user-curator@localhost"], "scope": ["self"] },
+    {
+      "action": { "id": ["core.peerdb.org", "PERMISSION_ACTIONS", "ACTION_UPDATE_PERMISSIONS"] },
+      "user": ["mock-user-curator@localhost"],
+      "scope": ["self"]
+    }
+  ],
+  "notes": [
+    {
+      "value": "<p>The sitting ran at roughly one exchange an hour and occupied four working days; the durations given are of the recorded channel only. It was the last sitting held before the assemblies suspended contact in 2299.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

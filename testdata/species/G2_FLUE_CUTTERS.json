@@ -1,0 +1,51 @@
+{
+  "id": ["xeno.peerdb.org", "SPECIES", "G2_FLUE_CUTTERS"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SPECIES"] }],
+  "name": [{ "value": "Flue Apron Cutters", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "taxonCode": "TX-4176-b",
+  "description": [
+    {
+      "value": "<p>Fresh slush flows on the apron cool over about four years, and while they are still soft something cuts channels into their fronts, in sets of five to nine, always leading downslope to the warmest part of the lobe. Nothing has ever been recovered alive, nothing has been seen, and every figure in this entry except the channel dimensions is inferred from the channel dimensions. The cutting stops within a few weeks of a lobe going hard, and begins again on the next lobe within a season of its emplacement, which is difficult to explain without something that waits. Whether the maker is one animal per lobe, a group, or a single spread thing that crosses the apron underneath is exactly the question, and the register carries the case as unsettled rather than pretending otherwise. The moon is closed to landing on planetary protection grounds and the case is likely to stay unsettled for a long while.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "homeworld": { "id": ["xeno.peerdb.org", "MOON", "G2_FLUE"] },
+  "bodyPlan": [
+    {
+      "value": "<p>Nothing of the body is known. The channels are twelve to twenty centimetres wide with a rounded floor and a slight consistent bias to one side, which suggests a bilateral cutter working with a single tool or limb rather than a paired one. Wall texture indicates the material was displaced rather than melted, and the working depth implies something able to bear on the slush at about half a bar.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "typicalHeight": { "value": { "amount": 0.6, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+  "typicalMass": { "value": { "amount": 12.0, "precision": 0.1 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "kg"] }] },
+  "lifespan": {
+    "value": { "from": { "amount": 5, "precision": 1 }, "to": { "amount": 200, "precision": 1 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_YEAR"] }]
+  },
+  "sensoryModality": [
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "THERMAL_RADIANCE"] },
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "HYGRORECEPTION"] },
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "GRAVICEPTION"] }
+  ],
+  "subsistence": [
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "CHEMO_TENDING"] },
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "OPPORTUNISTIC_FORAGING"] }
+  ],
+  "individuality": { "id": ["xeno.peerdb.org", "INDIVIDUALITY_MODE", "CONTESTED"] },
+  "contestedIndividuality": { "id": ["xeno.peerdb.org", "INDIVIDUALITY_MODE", "BOUNDED"] },
+  "socialOrganisation": { "id": ["xeno.peerdb.org", "SOCIAL_ORGANISATION", "ACEPHALOUS_BANDS"] },
+  "kinshipSystem": { "id": ["xeno.peerdb.org", "KINSHIP_SYSTEM", "COHIBERNATION_COHORT"] },
+  "population": {
+    "value": { "from": { "amount": 50, "precision": 1000 }, "to": { "amount": 20000, "precision": 1000 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "contactStatus": { "id": ["xeno.peerdb.org", "CONTACT_STATUS", "NO_CONTACT"] },
+  "image": [
+    {
+      "value": "/f/K7UPU8PLDAxyKBi9tnvXCF",
+      "name": "G2_FLUE_CUTTERS.jpg",
+      "caption": "Field plate",
+      "source": "Drawn in the field; Consortium collection"
+    }
+  ]
+}

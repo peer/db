@@ -1,0 +1,62 @@
+{
+  "id": ["xeno.peerdb.org", "SPECIES", "G1_PETQAMU"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SPECIES"] }],
+  "name": [{ "value": "Windward Flats People", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [
+    { "value": "Petqamu", "gloss": "the ones in the lee", "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G1_BELLS_SPEECH"] }] }
+  ],
+  "exonym": [
+    { "value": "Qatunbek, the dune-world word, meaning the wet-side kin", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }
+  ],
+  "taxonCode": "TX-1702-a",
+  "description": [
+    {
+      "value": "<p>The people of the calm flanks either side of a storm belt that has never once stopped, living behind low stone in the lee of ridges and working the flats when the belt lets them. Trapping is organised by craft corporations that also hold the weather watch, the vent plumbing and the right to call a stop, and a person joins the one that trained them rather than the one that bore them. Every structure on the coast is built to shed wind, which gives the settlements a uniform grain from horizon to horizon that visitors find restful and then, after a month, do not. This is one of two entries in the whole register listed as reciprocal: the Petqamu refuse research questions as freely as they answer them and have set the agenda for three of the last four seasons. The discipline argues about whether the storm-belt work parties are a guild function or a rite, and the Petqamu have said, more than once, that the distinction is the Consortium&#39;s problem.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Ljudstvo zavetrnih blatišč ob stalnem nevihtnem pasu; stik je vzajemen.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    }
+  ],
+  "homeworld": { "id": ["xeno.peerdb.org", "PLANET", "G1_BELLWETHER"] },
+  "bodyPlan": [
+    {
+      "value": "<p>Low, broad and heavily muscled at the hip, with four limbs, a wide stance and a body carried horizontally rather than upright in any wind above a light breeze. The skin is smooth, dark and constantly wet, and a row of shallow pits along each flank reads electrical activity in the belt hours before it arrives. The head is set forward and low, and the ears, if they are ears, are internal.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "typicalHeight": { "value": { "amount": 1.32, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+  "typicalMass": { "value": { "amount": 51.0, "precision": 0.1 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "kg"] }] },
+  "lifespan": {
+    "value": { "from": { "amount": 45, "precision": 1 }, "to": { "amount": 92, "precision": 1 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_YEAR"] }]
+  },
+  "sensoryModality": [
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "PRESSURE_GRADIENT"] },
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "ACOUSTIC_RANGING"] },
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "ELECTRORECEPTION"] }
+  ],
+  "subsistence": [
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "TIDAL_TRAPPING"] },
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "CHEMO_TENDING"] }
+  ],
+  "individuality": { "id": ["xeno.peerdb.org", "INDIVIDUALITY_MODE", "BOUNDED"] },
+  "socialOrganisation": { "id": ["xeno.peerdb.org", "SOCIAL_ORGANISATION", "GUILD_FEDERATION"] },
+  "kinshipSystem": { "id": ["xeno.peerdb.org", "KINSHIP_SYSTEM", "BILATERAL_KINDRED"] },
+  "communication": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G1_BELLS_SPEECH"] }],
+  "population": {
+    "value": { "from": { "amount": 300000, "precision": 1000 }, "to": { "amount": 480000, "precision": 1000 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "contactStatus": { "id": ["xeno.peerdb.org", "CONTACT_STATUS", "RECIPROCAL"] },
+  "firstContact": { "time": "2225-01-01T00:00:00Z", "precision": "y" },
+  "image": [
+    {
+      "value": "/f/LtfjyiWeiZh4wUSneNCxdE",
+      "name": "G1_PETQAMU.jpg",
+      "caption": "Field plate",
+      "source": "Drawn in the field; Consortium collection"
+    }
+  ]
+}

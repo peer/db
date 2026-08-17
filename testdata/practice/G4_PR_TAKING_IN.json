@@ -1,0 +1,25 @@
+{
+  "id": ["xeno.peerdb.org", "PRACTICE", "G4_PR_TAKING_IN"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PRACTICE"] }],
+  "name": [{ "value": "Taking In", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "aunelirau", "gloss": "the house that is not yours, opened" }],
+  "description": [
+    {
+      "value": "<p>Somebody who arrives at the gorge with nowhere to be is put in a house that is not the house they asked at, and is fed before anything is asked of them. Any attempt to pay is refused with the same phrase used to decline a batch of ferment, which is not a coincidence and is the first thing every visitor gets wrong. In place of payment the host house opens a holding against the visitor, entered on the hung lattice at the house edge, and the holding stays open. Three Consortium teams have been kept through failed harvests on this arrangement; the resulting obligations were entered in the 2268 file as unresolved and have been carried forward unchanged at every review since. The canopy houses take part by lowering dye and dried mat to whichever terrace house has taken somebody in, which is how the rest of the gorge finds out.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Quem chega à garganta sem sítio onde estar é instalado numa casa que não é aquela onde pediu, e é alimentado antes de lhe pedirem seja o que for. Qualquer tentativa de pagamento é recusada com a mesma frase que serve para declinar um lote de fermento, o que não é coincidência e é a primeira coisa que todos os visitantes percebem mal. Em vez do pagamento, a casa anfitriã abre um crédito sobre o visitante, lançado na grade suspensa à beira da casa, e esse crédito fica em aberto. Três equipas do Consórcio foram sustentadas ao longo de colheitas perdidas com este arranjo; as obrigações daí resultantes foram lançadas no processo de 2268 como não resolvidas e transitaram sem alteração em todas as revisões desde então. As casas do dossel participam fazendo descer tinta e tapete seco até à casa de terraço que acolheu alguém, e é assim que o resto da garganta fica a saber.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G4_CU_LADDER_GORGE"] }],
+  "category": { "id": ["xeno.peerdb.org", "PRACTICE_CATEGORY", "HOSPITALITY"] },
+  "periodicity": "whenever somebody arrives with nowhere to be",
+  "participants": {
+    "value": { "from": { "amount": 4, "precision": 1 }, "to": { "amount": 25, "precision": 1 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "firstDocumented": { "time": "2246-01-01T00:00:00Z", "precision": "y" },
+  "relatedPractice": [{ "id": ["xeno.peerdb.org", "PRACTICE", "G4_PR_CASCADE_TASTING"] }]
+}

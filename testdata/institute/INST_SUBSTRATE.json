@@ -1,0 +1,24 @@
+{
+  "id": ["xeno.peerdb.org", "INSTITUTE", "INST_SUBSTRATE"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "INSTITUTE"] }],
+  "name": [
+    { "value": "Spillwork Institute for Substrate Communication", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "Institut Razsutja za sporazumevanje po podlagi", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }] }
+  ],
+  "shortName": [{ "value": "Substrate", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "description": [
+    {
+      "value": "<p>Founded after a survey elsewhere spent eleven days recording the air on a world where the conversation was in the ground. It works on communication that is not carried by air at all: seismic, vibrational, contact and written-in-material, and it holds the reference corpus of geophone recordings for the whole register. It is famously poor at anything with a voice in it and refers such material out, sometimes before reading it.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    { "value": "<p>Institut za sporazumevanje, ki ne poteka po zraku.</p>", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }] },
+    {
+      "value": "<p>Fundado depois de um levantamento noutro sítio ter passado onze dias a gravar o ar num mundo em que a conversa estava no chão. Trabalha sobre a comunicação que não é transportada pelo ar: sísmica, vibratória, por contacto e escrita no material, e detém o corpus de referência de gravações de geofone de todo o registo. É notoriamente mau em tudo o que tenha voz e encaminha esse material para fora, por vezes antes de o ler.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "founded": { "time": "2281-01-01T00:00:00Z", "precision": "y" },
+  "locatedAt": { "id": ["xeno.peerdb.org", "PLANET", "G4_LONG_WATER"] },
+  "staffCount": { "amount": 98, "precision": 1 },
+  "website": ["https://substrate.ccx.example/"]
+}

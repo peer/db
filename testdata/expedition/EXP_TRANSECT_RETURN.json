@@ -1,0 +1,39 @@
+{
+  "id": ["xeno.peerdb.org", "EXPEDITION", "EXP_TRANSECT_RETURN"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "EXPEDITION"] }],
+  "name": [{ "value": "Forty-Year Transect Re-occupation", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "catalogueCode": "EXP-2304-04",
+  "description": [
+    {
+      "value": "<p>Still in the field. The expedition went out to re-occupy a transect laid in 2258 and to repeat its measurements exactly, which required finding a beacon that had been left running and, against all expectation, was still running. The team moved into it rather than deploy a shelter and has been there since. Its measurements so far agree with the originals to within instrument error, which is the most boring possible result and the one everybody wanted.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "destination": [
+    { "id": ["xeno.peerdb.org", "PLANET", "G2_SUMP"] },
+    { "id": ["xeno.peerdb.org", "REGION", "G2_FORTY_YEAR_TRANSECT"] },
+    { "id": ["xeno.peerdb.org", "PLANET", "G2_GREY_RIND"] }
+  ],
+  "period": { "from": { "time": "2304-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true },
+  "ledBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_FERREIRA"] }],
+  "teamMember": [
+    { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_DEMIR"] },
+    { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_FARAHANI"] },
+    { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_TRAN"] },
+    { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_DE_VRIES"] }
+  ],
+  "organisedBy": [{ "id": ["xeno.peerdb.org", "INSTITUTE", "INST_EVENING"] }, { "id": ["xeno.peerdb.org", "INSTITUTE", "INST_IELUARO"] }],
+  "method": [
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "ARCHIVAL_COMPARISON"] },
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "REMOTE_SENSING"] },
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "AUTOETHNOGRAPHY"] }
+  ],
+  "ethics": { "id": ["xeno.peerdb.org", "ETHICS_PROTOCOL", "PROTOCOL_6"] },
+  "budget": { "value": { "amount": 4800000, "precision": 1000 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "$"] }] },
+  "notes": [
+    {
+      "value": "<p>Resupply runs on the eleven-year cycle. The team&#39;s second resupply is scheduled for 2315.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

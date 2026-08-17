@@ -1,0 +1,29 @@
+{
+  "id": ["xeno.peerdb.org", "ORGANISM", "G2_DEEP_GRIT_ENDOLITH"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "ORGANISM"] }],
+  "name": [{ "value": "Deep Grit Endolith", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "taxonCode": "TX-1158-c",
+  "description": [
+    {
+      "value": "<p>Single-celled life occupying fracture surfaces in fractured basalt down to about nine hundred metres, running on iron and sulphur weathered from the rock itself. Cell densities are highest at four hundred metres and fall off sharply below eight hundred, which is where the rock stops fracturing rather than where it gets too warm. Doubling times are estimated in centuries and have never been measured directly.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Vida unicelular que ocupa as superfícies de fratura do basalto fraturado até cerca de novecentos metros, alimentando-se do ferro e do enxofre libertados pela alteração da própria rocha. As densidades celulares são máximas aos quatrocentos metros e caem abruptamente abaixo dos oitocentos, que é onde a rocha deixa de fraturar e não onde fica demasiado quente. Os tempos de duplicação estimam-se em séculos e nunca foram medidos diretamente.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "category": { "id": ["xeno.peerdb.org", "ORGANISM_CATEGORY", "ENDOLITH"] },
+  "foundOn": [{ "id": ["xeno.peerdb.org", "PLANET", "G2_WINTERBANK"] }],
+  "biome": [{ "id": ["xeno.peerdb.org", "BIOME", "ENDOLITH_ZONE"] }],
+  "typicalSize": { "value": { "amount": 1.2e-05, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+  "typicalMass": { "value": { "amount": 4e-12, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "kg"] }] },
+  "image": [
+    {
+      "value": "/f/Sta9mQB1YGVz3BSBTAm2S6",
+      "name": "G2_DEEP_GRIT_ENDOLITH.jpg",
+      "caption": "Field plate",
+      "source": "Drawn in the field; Consortium collection"
+    }
+  ]
+}

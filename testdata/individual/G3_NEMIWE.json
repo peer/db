@@ -1,0 +1,21 @@
+{
+  "id": ["xeno.peerdb.org", "INDIVIDUAL", "G3_NEMIWE"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "INDIVIDUAL"] }],
+  "name": [{ "value": "Nemiwe" }],
+  "lineageName": [{ "value": "Ounarei" }],
+  "description": [
+    {
+      "value": "<p>Gardens silt behind the walls and lost an argument with her own grade in 2298 about whether a failed section should be rebuilt in the same place, after which she rebuilt it in the same place, alone, over two tides. She describes the outcome as correct and the argument as also correct. She was not asked for a photograph, the tide being what it was.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "species": { "id": ["xeno.peerdb.org", "SPECIES", "G3_MAUNUWA"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G3_WEIR_GRADES"] }],
+  "role": [
+    { "value": "silt gardener", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "wall holder", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }
+  ],
+  "formOfAddress": "by grade and then name",
+  "born": { "time": "2272-01-01T00:00:00Z", "precision": "y" },
+  "birthplace": { "id": ["xeno.peerdb.org", "SITE", "G3_LOWER_MIDDEN"] }
+}

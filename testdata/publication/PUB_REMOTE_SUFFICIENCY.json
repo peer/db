@@ -1,0 +1,33 @@
+{
+  "id": ["xeno.peerdb.org", "PUBLICATION", "PUB_REMOTE_SUFFICIENCY"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PUBLICATION"] }],
+  "title": [
+    {
+      "value": "Sufficient at Distance: The Case Against Landing on Low Anvil and Trestle b, With Twelve Years of Orbital Structure Counts",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "doi": "10.5281/xeno.2293.0158",
+  "abstract": [
+    {
+      "value": "<p>We present twelve years of orbital observation of enclosure building on Low Anvil and terrace cutting on Trestle b, and argue that the resulting descriptions are adequate for comparative purposes without any landing at all. Structure counts, growth rates and abandonment sequences are recovered at resolutions sufficient to test every hypothesis the sustained-presence literature has actually advanced. We take direct issue with the claim, argued most forcefully by Reyes, Halvorsen and Tran in their canopy study, that certain relations are visible only to a researcher embedded in them; that claim, we suggest, confuses the difficulty of a method with its necessity. The ethical arithmetic also runs one way: nothing we did could have changed what we watched.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "author": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_VASILAKIS"] }, { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_BRANDT"] }],
+  "journal": "Annals of Remote Observation",
+  "publishedOn": { "time": "2293-06-01T00:00:00Z", "precision": "m" },
+  "about": [{ "id": ["xeno.peerdb.org", "SPECIES", "G3_TAKKUT"] }, { "id": ["xeno.peerdb.org", "SPECIES", "G3_WANUHE"] }],
+  "cites": [
+    { "id": ["xeno.peerdb.org", "PUBLICATION", "PUB_GREETING_ERROR"] },
+    { "id": ["xeno.peerdb.org", "PUBLICATION", "PUB_LODGE_CORD_READING"] },
+    { "id": ["xeno.peerdb.org", "PUBLICATION", "PUB_CANOPY_TETHER_HOUSES"] }
+  ],
+  "document": [{ "value": "/f/SKUB9R8fqm1ap7owj2Nxc3", "name": "PUB_REMOTE_SUFFICIENCY.pdf", "caption": "Author's accepted manuscript" }],
+  "notes": [
+    {
+      "value": "<p>Circulated in draft for two years before publication. The canopy authors were offered a reply in the same issue and declined it in a letter of one sentence.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

@@ -1,0 +1,51 @@
+{
+  "id": ["xeno.peerdb.org", "PLANET", "G3_THESSILA"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PLANET"] }],
+  "name": [{ "value": "Coldsheet", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Thessila", "gloss": "the lid, or what is under the lid; the two are the same word" }],
+  "catalogueCode": "HB-1/002-f",
+  "description": [
+    {
+      "value": "<p>Ice from pole to pole, ten to twenty kilometres of it, over a brine ocean kept liquid by tides from the inner worlds. The surface is a plain of pressure ridges and refrozen flood sheets with nothing whatever on it. Everything of interest is underneath, where vent fields run in chains along a spreading ridge and where a population of unknown size lives on and around them. All contact has been through instruments lowered down boreholes, which is not a satisfactory way to meet anyone.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Svet pod ledom; vse zanimivo je v slanem oceanu pod skorjo.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Gelo de polo a polo, dez a vinte quilómetros dele, sobre um oceano de salmoura mantido líquido pelas marés dos mundos interiores. A superfície é uma planície de cristas de pressão e mantos de inundação recongelados, sem absolutamente nada em cima. Tudo o que interessa está por baixo, onde campos de fontes hidrotermais correm em cadeia ao longo de uma dorsal em expansão e onde vive, sobre eles e à sua volta, uma população de dimensão desconhecida. Todo o contacto se fez através de instrumentos descidos por sondagens, o que não é uma maneira satisfatória de conhecer seja quem for.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "STAR_SYSTEM", "G3_HANDMILL"] },
+  "planetType": { "id": ["xeno.peerdb.org", "PLANET_TYPE", "ICE_SHELL"] },
+  "biome": [{ "id": ["xeno.peerdb.org", "BIOME", "BRINE_SEA"] }, { "id": ["xeno.peerdb.org", "BIOME", "VENT_FIELD"] }],
+  "radius": { "value": { "amount": 0.86, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_RADIUS"] }] },
+  "mass": { "value": { "amount": 0.62, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_MASS"] }] },
+  "surfaceGravity": { "value": { "amount": 0.84, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "STANDARD_GRAVITY"] }] },
+  "dayLength": { "value": { "amount": 31.5, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "HOUR"] }] },
+  "orbitalPeriod": { "value": { "amount": 611.2, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_DAY"] }] },
+  "meanTemperature": { "value": { "amount": -68.0, "precision": 0.1 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "°C"] }] },
+  "hydrosphere": { "value": { "amount": 100.0, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "PERCENT"] }] },
+  "atmosphere": [
+    {
+      "value": "<p>A trace atmosphere of water vapour and neon at under a millibar. Standing on the surface is standing in vacuum in every way that matters to a suit.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "biosphere": [
+    {
+      "value": "<p>Life is present: 1 catalogued species (Coldsheet Warm Seam Tenders) and 1 recorded non-sapient organism. The survey is not claimed to be complete.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "contactStatus": { "id": ["xeno.peerdb.org", "CONTACT_STATUS", "INDIRECT"] },
+  "firstSurveyed": { "time": "2264-01-01T00:00:00Z", "precision": "y" },
+  "surveyPeriod": { "from": { "time": "2264-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true },
+  "populationEstimate": {
+    "value": { "from": { "amount": 2000, "precision": 100 }, "to": { "amount": 40000, "precision": 100 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "image": [{ "value": "/f/EgbZkyg7ng2hkWr7sHqdwG", "name": "G3_THESSILA.jpg", "caption": "Approach view", "source": "Consortium survey archive" }]
+}

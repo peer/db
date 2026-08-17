@@ -1,0 +1,24 @@
+{
+  "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "PRESSURE_GRADIENT"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SENSORY_MODALITY"] }],
+  "name": [
+    { "value": "Pressure-gradient sensing", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "Zaznavanje tlačnih razlik", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }] },
+    { "value": "Deteção de gradientes de pressão", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>Reading of static or slowly varying pressure differences for depth, altitude and weather anticipation. Excludes rapid pressure waves, which count as hearing.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Branje počasnih tlačnih razlik za globino, višino in napoved vremena.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Leitura de diferenças de pressão estáticas ou de variação lenta para profundidade, altitude e antecipação do tempo. Exclui as ondas rápidas de pressão, que contam como audição.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "code": ["pressure"]
+}

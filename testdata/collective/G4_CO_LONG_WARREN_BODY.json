@@ -1,0 +1,26 @@
+{
+  "id": ["xeno.peerdb.org", "COLLECTIVE", "G4_CO_LONG_WARREN_BODY"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "COLLECTIVE"] }],
+  "name": [{ "value": "Long Warren Winter Body", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "description": [
+    {
+      "value": "<p>The fused body of the largest wintering warren, formed as the channels froze in 2252 and continuous since: several thousand individuals grown together along prepared pads, sharing a circulation and a nervous connection through the long cold. It is awake, extremely slow, and does not eat. It is recorded as one body because it is one, for another hundred and seven years.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "species": { "id": ["xeno.peerdb.org", "SPECIES", "G4_WARREN_SLEEPERS"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G4_CU_DEEP_COURSE_WARRENS"] }],
+  "role": [{ "value": "dormant body", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "memberCount": {
+    "value": { "from": { "amount": 9000, "precision": 10 }, "to": { "amount": 21000, "precision": 10 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "activePeriod": { "from": { "time": "2252-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true },
+  "seat": { "id": ["xeno.peerdb.org", "SITE", "G4_LONG_WARREN"] },
+  "notes": [
+    {
+      "value": "<p>Survey access covers four passages, none of which reach the fusion chambers. Everything in this entry after the word formed is inference from the eleven years before the freeze.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

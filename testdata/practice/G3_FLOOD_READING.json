@@ -1,0 +1,31 @@
+{
+  "id": ["xeno.peerdb.org", "PRACTICE", "G3_FLOOD_READING"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PRACTICE"] }],
+  "name": [{ "value": "Reading After the Water", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Immenvarre", "gloss": "the reading after the water" }],
+  "description": [
+    {
+      "value": "<p>In the days before a flood a worker cuts a question into a block at the outer edge of the pan, at a depth chosen so that the answer is not obvious, and then leaves it. The flood arrives down the four channels, stands for a few days and is gone within nine, and whatever remains legible in the crust afterwards is the answer, read by touch and by how the surface takes ultraviolet once it has dried. A block that comes through wholly legible and one that comes through blank are both answers and are treated differently; a block that has been walked on is not an answer and is recut. The workers gave consistent accounts of the procedure across seventeen years and never once described what sort of question is put this way. Contact was suspended in 2298 with that question outstanding, and the pan was photographed from orbit in 2306 with the outer blocks still being cut.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Vprašanje vrežejo v solno skorjo pred poplavo; kar po vodi ostane berljivo, velja za odgovor.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    }
+  ],
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G3_PAN_WORK"] }],
+  "category": { "id": ["xeno.peerdb.org", "PRACTICE_CATEGORY", "DIVINATION"] },
+  "periodicity": "twice a year, before each flood",
+  "participants": {
+    "value": { "from": { "amount": 1, "precision": 1 }, "to": { "amount": 5, "precision": 1 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "firstDocumented": { "time": "2287-01-01T00:00:00Z", "precision": "y" },
+  "image": [{ "value": "/f/FSPPXZN7HXZyu3kJgwVsjJ", "name": "G3_FLOOD_READING.jpg", "caption": "In progress", "source": "Consortium survey archive" }],
+  "notes": [
+    {
+      "value": "<p>Nine thousand photographs of cut blocks are held under the restriction that covers everything gathered before the suspension, so the account above rests on field notes rather than on the corpus.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

@@ -1,0 +1,41 @@
+{
+  "id": ["xeno.peerdb.org", "CULTURE", "G3_DEEP_HAUL"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "CULTURE"] }],
+  "name": [{ "value": "The Far Routes", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [
+    {
+      "value": "Thannulleth",
+      "gloss": "the far harness",
+      "inSystem": [
+        { "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G3_LODGE_CORD"] },
+        { "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G3_STRIP_SPEECH"] }
+      ]
+    }
+  ],
+  "catalogueCode": "CU-2273-04",
+  "description": [
+    {
+      "value": "<p>Four lodges once held routes that ran four hundred kilometres into the night side, well past the last ground anyone could see by, and returned with ice that was older and, they maintained, better. A far route took a third of a year and cost more in food than it brought back in water, and it was held to be worth keeping because the ice at that depth was worth having and because the routes were what the lodges were. They went one at a time: two folded into the near routes in the 2280s, one lost its harness and did not replace it, and the last ran its final haul in 2299 and gave its cord to a near lodge that had no use for it. Nothing dramatic ended them; the near ice got closer as the front advanced, and the arithmetic stopped working. The survey recorded four far routes in 2273 and has recorded none since 2300.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Quatro confrarias mantiveram outrora rotas que penetravam quatrocentos quilómetros no lado noturno, muito para lá do último terreno onde ainda se via, e regressavam com gelo mais antigo e, sustentavam elas, melhor. Uma rota longa levava um terço do ano e custava mais em comida do que trazia em água, e considerava-se que valia a pena mantê-la porque o gelo daquela profundidade valia a pena e porque as rotas eram aquilo que as confrarias eram. Foram desaparecendo uma a uma: duas fundiram-se nas rotas próximas na década de 2280, outra perdeu os arreios e não os substituiu, e a última fez o seu derradeiro transporte em 2299 e entregou a sua corda a uma confraria de rota próxima que não lhe deu uso. Nada de dramático lhes pôs fim; o gelo próximo aproximou-se à medida que a frente avançou, e as contas deixaram de dar. O levantamento registou quatro rotas longas em 2273 e não regista nenhuma desde 2300.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "practisedBy": [{ "id": ["xeno.peerdb.org", "SPECIES", "G3_SHELLUTHE"] }],
+  "presentAt": [{ "id": ["xeno.peerdb.org", "SITE", "G3_UPPER_HEARTHS"] }],
+  "kinshipSystem": { "id": ["xeno.peerdb.org", "KINSHIP_SYSTEM", "FOSTERAGE_CHAIN"] },
+  "socialOrganisation": { "id": ["xeno.peerdb.org", "SOCIAL_ORGANISATION", "GUILD_FEDERATION"] },
+  "subsistence": [{ "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "TRADE_DEPENDENCY"] }],
+  "communication": [
+    { "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G3_LODGE_CORD"] },
+    { "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G3_STRIP_SPEECH"] }
+  ],
+  "population": {
+    "value": { "from": { "amount": 200, "precision": 100 }, "to": { "amount": 900, "precision": 100 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "period": { "from": { "time": "2271-01-01T00:00:00Z", "precision": "y" }, "to": { "time": "2299-01-01T00:00:00Z", "precision": "y" } },
+  "image": [{ "value": "/f/DTeBcpRR9P7Xb4saFLkCeo", "name": "G3_DEEP_HAUL.jpg", "caption": "Gathering", "source": "Consortium survey archive" }]
+}

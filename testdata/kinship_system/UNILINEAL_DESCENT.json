@@ -1,0 +1,24 @@
+{
+  "id": ["xeno.peerdb.org", "KINSHIP_SYSTEM", "UNILINEAL_DESCENT"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "KINSHIP_SYSTEM"] }],
+  "name": [
+    { "value": "Unilineal descent", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "Enolinijsko sorodstvo", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }] },
+    { "value": "Descendência unilinear", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>Membership reckoned through one parental line only, either maternal or paternal, with the other line socially secondary. Excludes systems that count both lines equally.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Pripadnost se šteje le po eni starševski liniji, materini ali očetovi.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>A pertença conta-se apenas por uma linha parental, materna ou paterna, ficando a outra socialmente secundária. Exclui sistemas que contam as duas linhas por igual.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "code": ["unilineal"]
+}

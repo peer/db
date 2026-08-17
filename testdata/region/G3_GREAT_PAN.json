@@ -1,0 +1,20 @@
+{
+  "id": ["xeno.peerdb.org", "REGION", "G3_GREAT_PAN"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "REGION"] }],
+  "name": [{ "value": "The Great Pan", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Rimmenar" }],
+  "description": [
+    {
+      "value": "<p>A closed basin floored in salt to a depth of at least ninety metres, cracked into polygons that are metres across at the centre and hand-sized at the margins. It floods for nine days a year and is worked for the rest of them. The workings are laid out in a pattern the survey recorded in detail and never came back to interpret.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "PLANET", "G3_RIMMENA"] },
+  "biome": [{ "id": ["xeno.peerdb.org", "BIOME", "EVAPORITE_PAN"] }],
+  "area": { "value": { "amount": 380000, "precision": 100 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "SQUARE_KILOMETRE"] }] },
+  "elevationRange": {
+    "value": { "from": { "amount": -210, "precision": 10 }, "to": { "amount": -40, "precision": 10 } },
+    "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }]
+  },
+  "image": [{ "value": "/f/CCypHeHzsDCcsf3uaP3qpz", "name": "G3_GREAT_PAN.jpg", "caption": "Regional view", "source": "Consortium survey archive" }]
+}

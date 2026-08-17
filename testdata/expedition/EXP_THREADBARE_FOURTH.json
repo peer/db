@@ -1,0 +1,34 @@
+{
+  "id": ["xeno.peerdb.org", "EXPEDITION", "EXP_THREADBARE_FOURTH"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "EXPEDITION"] }],
+  "name": [{ "value": "Fourth Threadbare Traverse", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "catalogueCode": "EXP-2264-02",
+  "description": [
+    {
+      "value": "<p>Five years on the tidal flats and the terrace slope above them, sent to put the sector&#39;s oldest survey material on a common footing. It produced the working sequence of flat-working economies that later expeditions have amended rather than replaced, and the first complete map of exchange between the midden ring and the terraces. It also produced two tide tables, by two methods, in disagreement from the second week onward. The traverse is remembered for the quality of its notes and for the fact that nobody thought to compare the two survey baselines before departure.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "destination": [
+    { "id": ["xeno.peerdb.org", "PLANET", "G1_HOLLIS_III"] },
+    { "id": ["xeno.peerdb.org", "REGION", "G1_LOWER_SHALLOWS"] },
+    { "id": ["xeno.peerdb.org", "REGION", "G1_ANCHOR_TERRACES"] }
+  ],
+  "period": { "from": { "time": "2264-01-01T00:00:00Z", "precision": "y" }, "to": { "time": "2269-01-01T00:00:00Z", "precision": "y" } },
+  "ledBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_REYES"] }],
+  "teamMember": [
+    { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_HALVORSEN"] },
+    { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_SUBRAMANIAN"] },
+    { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_WEN"] },
+    { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_LINDQVIST"] }
+  ],
+  "organisedBy": [{ "id": ["xeno.peerdb.org", "INSTITUTE", "INST_ANCHOR"] }],
+  "method": [
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "PARTICIPANT_OBSERVATION"] },
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "NETWORK_MAPPING"] },
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "ARCHIVAL_COMPARISON"] }
+  ],
+  "ethics": { "id": ["xeno.peerdb.org", "ETHICS_PROTOCOL", "PROTOCOL_1"] },
+  "budget": { "value": { "amount": 1600000, "precision": 1000 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "$"] }] },
+  "report": [{ "value": "/f/3RnHbfEUvpn2hNhnccuTwh", "name": "EXP_THREADBARE_FOURTH.pdf", "caption": "Final report" }]
+}

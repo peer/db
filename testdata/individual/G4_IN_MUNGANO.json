@@ -1,0 +1,18 @@
+{
+  "id": ["xeno.peerdb.org", "INDIVIDUAL", "G4_IN_MUNGANO"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "INDIVIDUAL"] }],
+  "name": [{ "value": "Mungano" }],
+  "lineageName": [{ "value": "of the seaward half" }],
+  "description": [
+    {
+      "value": "<p>Learned to read the relay&#39;s transponder clock from a Consortium technician in 2296 and now calls the tide for four floating settlements downstream of the calving front. The technician was reassigned the following year and the two have exchanged eleven letters, of which six have arrived. He regards the arrangement as an obligation running from him to her, and has said he will consider it discharged when she comes back.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "species": { "id": ["xeno.peerdb.org", "SPECIES", "G4_RING_SWIMMERS"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G4_CU_RING_MOIETIES"] }],
+  "role": [{ "value": "tide caller", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "formOfAddress": "by half, then by name",
+  "born": { "time": "2268-01-01T00:00:00Z", "precision": "y" },
+  "birthplace": { "id": ["xeno.peerdb.org", "SITE", "G4_ICE_FOOT"] }
+}

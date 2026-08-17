@@ -318,6 +318,7 @@ export type SiteContext = {
   languageCodes?: {
     [documentId: string]: string
   }
+  namingProperties: string[]
   features: {
     searchResultsTable?: boolean
     downloadButtons?: boolean

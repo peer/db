@@ -1,0 +1,24 @@
+{
+  "id": ["xeno.peerdb.org", "SITE_TYPE", "MIDDEN_RING"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SITE_TYPE"] }],
+  "name": [
+    { "value": "Tidal midden ring", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "Plimski obroč odpadnih kupov", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }] },
+    { "value": "Anel de concheiro de maré", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>Annular accumulation of shell, bone and processing debris around a shore camp, built over many returns to the same spot. Excludes single-episode dumps, which are recorded as refuse scatters.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Obročast nasip lupin, kosti in odpadkov okoli obalnega tabora, nastal ob mnogih vrnitvah.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Acumulação anelar de conchas, ossos e restos de processamento em torno de um acampamento de praia, formada ao longo de muitos regressos ao mesmo ponto. Exclui despejos de um só episódio, registados como dispersões de detritos.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "code": ["midden-ring"]
+}

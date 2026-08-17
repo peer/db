@@ -1,0 +1,24 @@
+{
+  "id": ["xeno.peerdb.org", "SOCIAL_ORGANISATION", "ROTATING_STEWARDSHIP"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SOCIAL_ORGANISATION"] }],
+  "name": [
+    { "value": "Rotating stewardship", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "Krožno skrbništvo", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }] },
+    { "value": "Curadoria rotativa", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>Authority held for a fixed term by a household or lodge and then passed on in a set order, with no re-election. Excludes elective office, where the holder is chosen.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Oblast, ki jo za določen čas prevzame gospodinjstvo in jo nato po ustaljenem vrstnem redu preda naprej.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Autoridade exercida por prazo fixo por um agregado doméstico ou uma confraria e depois passada adiante numa ordem estabelecida, sem reeleição. Exclui o cargo eletivo, em que o titular é escolhido.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "code": ["rotate-stew"]
+}

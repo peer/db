@@ -1,0 +1,19 @@
+{
+  "id": ["xeno.peerdb.org", "REGION", "G4_SPLIT_SHELL"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "REGION"] }],
+  "name": [{ "value": "Split Shell", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "description": [
+    {
+      "value": "<p>The fracture field on the leading hemisphere, where the crust opens along the same twelve lines at every periastron pass and closes over the decades that follow. Brine reaches to within four hundred metres of the surface in the open phase. The station sits on the stable block between the two largest fractures, a siting decision that has now been reviewed four times.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "MOON", "G4_QUARTERLIGHT"] },
+  "biome": [{ "id": ["xeno.peerdb.org", "BIOME", "BRINE_SEA"] }],
+  "area": { "value": { "amount": 41000, "precision": 100 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "SQUARE_KILOMETRE"] }] },
+  "elevationRange": {
+    "value": { "from": { "amount": -120, "precision": 10 }, "to": { "amount": 460, "precision": 10 } },
+    "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }]
+  },
+  "image": [{ "value": "/f/Cyo6zG2WR7Cwbi1EqF43No", "name": "G4_SPLIT_SHELL.jpg", "caption": "Regional view", "source": "Consortium survey archive" }]
+}

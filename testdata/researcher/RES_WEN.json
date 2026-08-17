@@ -1,0 +1,21 @@
+{
+  "id": ["xeno.peerdb.org", "RESEARCHER", "RES_WEN"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "RESEARCHER"] }],
+  "name": [{ "value": "Jiaying" }],
+  "familyName": [{ "value": "Wen" }],
+  "researcherCode": "CCX-P-01402",
+  "description": [
+    {
+      "value": "<p>Trained as a phonetician and has spent most of her working life on worlds where the interesting signal is not in the air. She has shared every posting since 2264 with Ravi Subramanian, an arrangement neither of them has explained and neither will end. She is bored of elicitation and says so in every proposal she signs, including the ones that are for elicitation.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "affiliatedWith": [{ "id": ["xeno.peerdb.org", "INSTITUTE", "INST_EVENING"] }, { "id": ["xeno.peerdb.org", "INSTITUTE", "INST_ANCHOR"] }],
+  "specialisesIn": [
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "LINGUISTIC_ELICITATION"] },
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "ACOUSTIC_RECORDING"] }
+  ],
+  "activePeriod": { "from": { "time": "2261-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true },
+  "born": { "time": "2237-01-01T00:00:00Z", "precision": "y" },
+  "image": [{ "value": "/f/CSK14z6AzGUmD7TBK97i4g", "name": "RES_WEN.jpg", "caption": "Staff photograph", "source": "Consortium personnel record" }]
+}

@@ -1,0 +1,27 @@
+{
+  "id": ["xeno.peerdb.org", "INSTITUTE", "INST_FARSIGHT"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "INSTITUTE"] }],
+  "name": [
+    { "value": "Hollow Bar Remote Observation Group", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "Skupina za daljinsko opazovanje Votle precke", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }] }
+  ],
+  "shortName": [{ "value": "the Observation Group", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "description": [
+    {
+      "value": "<p>The Consortium&#39;s standing capability for worlds nobody is permitted to land on, run out of the only permanently crewed installation in its sector. It writes the non-interference procedure that everyone else has to satisfy, and its long-baseline photogrammetry of unapproached settlements is unmatched anywhere in the register. Its weakness is the obvious one: not one of its published figures has ever been checked against the ground.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Skupina za preucevanje svetov, na katerih pristanek ni dovoljen.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>A capacidade permanente do Consórcio para mundos onde ninguém está autorizado a aterrar, operada a partir da única instalação com tripulação permanente do seu setor. É quem redige o procedimento de não interferência que todos os outros têm de cumprir, e a sua fotogrametria de base longa de povoados nunca abordados não tem paralelo em todo o registo. A sua fraqueza é a óbvia: nem um único dos seus números publicados foi alguma vez confrontado com o terreno.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "founded": { "time": "2266-01-01T00:00:00Z", "precision": "y" },
+  "locatedAt": { "id": ["xeno.peerdb.org", "SITE", "G3_FLOW_MARGIN_STATION"] },
+  "staffCount": { "amount": 74, "precision": 1 },
+  "website": ["https://observation.ccx.example/"]
+}

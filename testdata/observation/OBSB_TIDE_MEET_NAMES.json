@@ -1,0 +1,42 @@
+{
+  "id": ["xeno.peerdb.org", "OBSERVATION", "OBSB_TIDE_MEET_NAMES"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "OBSERVATION"] }],
+  "title": [
+    {
+      "value": "A disagreement about a channel that had moved, overheard at Tide Meet",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "description": [
+    {
+      "value": "<p>Two channel houses in dispute over a named water whose course had shifted, with weir keepers listening and declining to be drawn.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "content": [
+    {
+      "value": "<p>24.x.2287. Second day of the gathering, the stone circle full, parties still arriving across the warm pool. We were seated on the outer ring and were not addressed at any point.</p><p>The dispute is between two houses whose channels have exchanged beds since the last walk. Meiroa held that the name is walked and therefore stays with the water; Neiwaro held that the name is walked and therefore stays with the ground, since the ground is what the house holds. Both cited the same practice and neither cited anything else.</p><p>Three weir keepers were sitting within easy earshot. Their position, given to us later and not at the time, is that a channel cannot be owned at all because the water rearranges it twice a cycle, and that the argument is therefore about nothing. They did not say this in the circle.</p><p>Nothing was settled. Both houses left on the third day, and both walked their channels the following month, and by the account we have they each spoke the disputed name at their own position. We do not know whether that is a resolution or the absence of one.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "expedition": { "id": ["xeno.peerdb.org", "EXPEDITION", "EXP_SWEEPWATER_YEAR"] },
+  "observedBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_NOWAK"] }, { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_VASILAKIS"] }],
+  "observedAt": { "id": ["xeno.peerdb.org", "SITE", "G3_TIDE_MEET"] },
+  "observedOn": { "time": "2287-10-24T00:00:00Z", "precision": "d" },
+  "about": [
+    { "id": ["xeno.peerdb.org", "SPECIES", "G3_RAUWENA"] },
+    { "id": ["xeno.peerdb.org", "PRACTICE", "G3_WALKING_THE_NAMES"] },
+    { "id": ["xeno.peerdb.org", "CULTURE", "G3_CHANNEL_HOUSES"] }
+  ],
+  "method": [
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "ACOUSTIC_RECORDING"] },
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "PARTICIPANT_OBSERVATION"] }
+  ],
+  "fieldConditions": "Bright and airless on the island, the cut seats hot by midday. Perhaps two hundred present at the peak, from at least nine houses.",
+  "notes": [
+    {
+      "value": "<p>The recording is complete but the overlapping registers of Sweep Call defeated our separation software, and the transcript below the fourth exchange is a reconstruction agreed with two speakers afterwards.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

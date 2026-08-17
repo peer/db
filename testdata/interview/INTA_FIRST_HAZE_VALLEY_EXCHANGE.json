@@ -1,0 +1,60 @@
+{
+  "id": ["xeno.peerdb.org", "INTERVIEW", "INTA_FIRST_HAZE_VALLEY_EXCHANGE"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "INTERVIEW"] }],
+  "title": [
+    {
+      "value": "First Haze Valley: a signature exchange conducted over four days at the lowland rim",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "description": [
+    {
+      "value": "<p>The nearest thing to an interview anybody has held with a haze body, conducted by shaped chemical release and answered in four-hour averages. Nobody consented and the releases themselves were not permitted.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "interviewee": [{ "id": ["xeno.peerdb.org", "COLLECTIVE", "G1_FIRST_HAZE_VALLEY"] }],
+  "interviewer": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_NOWAK"] }, { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_HADDAD"] }],
+  "recordedAt": { "id": ["xeno.peerdb.org", "SITE", "G1_EVAPORITE_WORKINGS"] },
+  "recordedOn": { "time": "2280-09-03T00:00:00Z", "precision": "d" },
+  "expedition": { "id": ["xeno.peerdb.org", "EXPEDITION", "EXP_LEDGER_ALLOCATION"] },
+  "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G1_HAZE_SIGNATURE"] }],
+  "duration": { "value": { "amount": 1440, "precision": 1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "MINUTE"] }] },
+  "content": [
+    {
+      "value": "<p>Questions are releases from the rim mast; answers are the valley average over the following four hours, glossed. Times are local.</p><p><b>Q.</b> (day one, 0610) Amine step of four minutes, then nothing. Intended sense: something is here and it is not working.</p><p><b>A.</b> Sulphide falling nine hours at the eastern head, thiol steady, trace amine rising at the head. Going down, holding, coming up at the east. There is no addressee in it.</p><p><b>Q.</b> (day one, 1450) Who is answering?</p><p><b>A.</b> The same ratios, held. The medium has no first person and no second, and this was known before the release was made. The question was put anyway and the record should say so.</p><p><b>Q.</b> (day two, 0900) Shaped release: sulphide falling for six hours against a rising thiol, which in the valley&#39;s own grammar reads as work beginning at a face.</p><p><b>A.</b> Within eleven hours the whole southern width shifted to the working ratio, and the eastern head came off it.</p><p><b>Q.</b> (day three, 0400) The same shape again, at a quarter of the strength.</p><p><b>A.</b> The same shift, at the same magnitude, on the same delay. Whatever it is, it is not proportionate to us.</p><p><b>Q.</b> (day four, 1120) Nothing released. Instrument left running.</p><p><b>A.</b> The working ratio held for thirty-one hours and then came off it without prompting, at the hour the shadow crosses the western lip, as it does in every ambient record we hold from this valley going back to 2244.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "recording": [
+    {
+      "value": "/f/Q8CNw285SKTVfdmQahHatQ",
+      "name": "interview-INTA_FIRST_HAZE_VALLEY_EXCHANGE.mp3",
+      "caption": "Session recording",
+      "duration": { "value": { "amount": 1440, "precision": 1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "MINUTE"] }] },
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G1_HAZE_SIGNATURE"] }]
+    }
+  ],
+  "ethics": { "id": ["xeno.peerdb.org", "ETHICS_PROTOCOL", "PROTOCOL_5"] },
+  "consentNote": [
+    {
+      "value": "<p>Nobody consented, because there is nobody here who can be asked and no medium in which the asking could be put. The ethics file has listed this valley as a participant who has not been asked since 2244, and the entry was not amended after these four days.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "clearedReader": ["mock-user-researcher@localhost"],
+  "permission": [
+    { "action": { "id": ["core.peerdb.org", "PERMISSION_ACTIONS", "ACTION_READ"] }, "user": ["mock-user-researcher@localhost"], "scope": ["self"] },
+    {
+      "action": { "id": ["core.peerdb.org", "PERMISSION_ACTIONS", "ACTION_READ_HISTORIC"] },
+      "user": ["mock-user-researcher@localhost"],
+      "scope": ["self"]
+    }
+  ],
+  "notes": [
+    {
+      "value": "<p>The protocol under which the expedition worked forbids transmission. The descent exhaust of 2277 had already been answered before anybody decided anything, which is the argument the team made afterwards and which the panel accepted for the exhaust and not for the mast.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

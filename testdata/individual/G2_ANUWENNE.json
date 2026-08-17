@@ -1,0 +1,24 @@
+{
+  "id": ["xeno.peerdb.org", "INDIVIDUAL", "G2_ANUWENNE"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "INDIVIDUAL"] }],
+  "name": [{ "value": "Anuwenne" }],
+  "lineageName": [{ "value": "Sixty-Two Below the Cut" }],
+  "description": [
+    {
+      "value": "<p>Keeps the order in which the drops are opened at each switching, entirely from memory, and has done so for nine cycles. In 2286 they refused a Consortium offer to record the order on cord, pointing out that a cord can be read by somebody who was not at the assembly and that this was the whole objection. They declined to be photographed on the same grounds and the request has not been repeated.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "species": { "id": ["xeno.peerdb.org", "SPECIES", "G2_ANUWELME"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G2_SWITCHING_ASSEMBLY"] }, { "id": ["xeno.peerdb.org", "CULTURE", "G2_EVENING_ROWS"] }],
+  "role": [{ "value": "switching recorder", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "formOfAddress": "by the holding name",
+  "born": { "time": "2263-01-01T00:00:00Z", "precision": "y" },
+  "birthplace": { "id": ["xeno.peerdb.org", "SITE", "G2_LONG_EVENING_ROWS"] },
+  "notes": [
+    {
+      "value": "<p>The offer was made three times by three different station heads, none of whom had read the previous refusal. The third refusal was noticeably shorter than the first.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

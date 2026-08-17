@@ -154,7 +154,12 @@ function onRevert(): void {
         container the badges collapse against when the column gets too narrow
         for the full badge (see InputBadges).
       -->
-      <div v-for="(col, i) in displayColumns" :key="i" class="mb-1 flex flex-row items-center gap-1" :class="{ '@container/labels': i === 0 }">
+      <div
+        v-for="(col, i) in displayColumns"
+        :key="i"
+        class="pd-inputfield-column-label mb-1 flex flex-row items-center gap-1"
+        :class="[{ '@container/labels': i === 0 }, `pd-inputfield-column-label-${i}`]"
+      >
         <span v-if="col.label" :id="i === 0 ? labelId : undefined" class="pd-inputfield-label cursor-pointer leading-none" @mousedown="onLabelMousedown($event, col)">{{
           col.label
         }}</span>
@@ -166,7 +171,7 @@ function onRevert(): void {
       width. Multiple columns: display:contents so the input's top-level
       elements become direct grid items of this fieldset, each in its column.
     -->
-    <div :class="columnCount > 1 ? 'contents' : 'grid grid-cols-[minmax(0,1fr)]'">
+    <div class="pd-inputfield-input" :class="columnCount > 1 ? 'contents' : 'grid grid-cols-[minmax(0,1fr)]'">
       <slot :ref="setInputRef" name="input" :required="required" :invalid="anyInvalid" :aria-describedby="errorMessage ? errorId : undefined" />
     </div>
     <p v-if="errorMessage" :id="errorId" class="pd-inputfield-error col-span-full mt-1 text-sm text-error-600">{{ errorMessage }}</p>

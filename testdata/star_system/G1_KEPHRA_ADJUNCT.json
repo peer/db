@@ -1,0 +1,18 @@
+{
+  "id": ["xeno.peerdb.org", "STAR_SYSTEM", "G1_KEPHRA_ADJUNCT"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "STAR_SYSTEM"] }],
+  "name": [{ "value": "Kephra Adjunct", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "catalogueCode": "MW-1109-KPA",
+  "description": [
+    {
+      "value": "<p>Entered in 2262 by a second team working from a different baseline, and shown in 2281 to be Kephra itself observed at another epoch. The entry remains open, with two of its planets measured and four never looked for.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "SECTOR", "G1_KEPHRA_MARCH"] },
+  "spectralClass": "M3V",
+  "starCount": { "amount": 1, "precision": 1 },
+  "planetCount": { "amount": 2, "precision": 1 },
+  "distanceFromSol": { "value": { "amount": 1109.2, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "PARSEC"] }] },
+  "firstSurveyed": { "time": "2262-01-01T00:00:00Z", "precision": "y" }
+}

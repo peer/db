@@ -1,0 +1,36 @@
+{
+  "id": ["xeno.peerdb.org", "ORGANISM", "G3_SWEEP_PURPLE"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "ORGANISM"] }],
+  "name": [{ "value": "Sweep Purple", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "nuwenna" }],
+  "taxonCode": "TX-1121-a",
+  "description": [
+    {
+      "value": "<p>A holdfast weed of the middle flats, exposed for four hours twice a cycle and spending that time shut, dark and rubbery. Cut and left in standing salt water it gives a deep violet that does not fade, and the Maunuwa dye harness webbing and boundary cloth with it. It is the only thing on the flats that is not grey, which is presumably why it marks everything they intend to find again.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Uma alga fixa por disco dos baixios médios, que fica exposta durante quatro horas duas vezes por ciclo e passa esse tempo fechada, escura e coriácea. Cortada e deixada em água salgada parada, dá um violeta profundo que não desbota, e os Maunuwa tingem com ele as fitas dos arreios e os panos de fronteira. É a única coisa nos baixios que não é cinzenta, o que será por certo a razão de marcar tudo aquilo que tencionam voltar a encontrar.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "category": { "id": ["xeno.peerdb.org", "ORGANISM_CATEGORY", "PHOTO_SESSILE"] },
+  "foundOn": [{ "id": ["xeno.peerdb.org", "PLANET", "G3_OUMARA"] }],
+  "biome": [{ "id": ["xeno.peerdb.org", "BIOME", "SWEEP_FLAT"] }],
+  "typicalSize": { "value": { "amount": 0.85, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+  "typicalMass": { "value": { "amount": 3.5, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "kg"] }] },
+  "image": [
+    {
+      "value": "/f/A1x92MSucXVioNRdwtUsMw",
+      "name": "G3_SWEEP_PURPLE.jpg",
+      "caption": "Field plate",
+      "source": "Drawn in the field; Consortium collection"
+    }
+  ],
+  "notes": [
+    {
+      "value": "<p>Four survey coats were dyed with it in 2274, without permission, and are still in service.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

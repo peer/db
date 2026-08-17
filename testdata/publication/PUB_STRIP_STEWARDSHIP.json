@@ -1,0 +1,31 @@
+{
+  "id": ["xeno.peerdb.org", "PUBLICATION", "PUB_STRIP_STEWARDSHIP"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PUBLICATION"] }],
+  "title": [
+    {
+      "value": "Handing On the Ground: Term Stewardship, the Raising of the Cold Wall, and the Limits of Consent Among the Long Tally Band Walkers",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "doi": "10.5281/xeno.2277.0142",
+  "abstract": [
+    {
+      "value": "<p>Stewardship of a stretch of the Morning Strip is held for a fixed term and handed on at the raising of the cold wall, an occasion that combines a boundary work party with a public accounting of the outgoing steward. We describe eleven handovers observed between 2271 and 2276 and show that the accounting is genuinely adversarial and that a steward may be refused a second term without any statement of fault. The stretch itself is never divided; what is divided is the order in which parties walk it. We note, without resolving it, that our own presence was accounted for at three handovers in the same terms as a grazing party.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "author": [
+    { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_WEN"] },
+    { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_SUBRAMANIAN"] },
+    { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_DEMIR"] }
+  ],
+  "journal": "Bulletin of Comparative Xenoanthropology",
+  "publishedOn": { "time": "2277-03-01T00:00:00Z", "precision": "m" },
+  "about": [
+    { "id": ["xeno.peerdb.org", "SPECIES", "G3_ILSETH"] },
+    { "id": ["xeno.peerdb.org", "CULTURE", "G3_STRIP_STEWARDSHIP"] },
+    { "id": ["xeno.peerdb.org", "PRACTICE", "G3_HANDING_ON"] }
+  ],
+  "cites": [{ "id": ["xeno.peerdb.org", "PUBLICATION", "PUB_WEIR_ALLOCATION"] }, { "id": ["xeno.peerdb.org", "PUBLICATION", "PUB_GREETING_ERROR"] }],
+  "document": [{ "value": "/f/2j3DwP9GDJmgFaXJR73Xex", "name": "PUB_STRIP_STEWARDSHIP.pdf", "caption": "Author's accepted manuscript" }]
+}

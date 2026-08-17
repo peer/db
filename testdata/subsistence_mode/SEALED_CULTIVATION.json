@@ -1,0 +1,24 @@
+{
+  "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "SEALED_CULTIVATION"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE"] }],
+  "name": [
+    { "value": "Sealed cultivation", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "Gojenje v zaprtih prostorih", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }] },
+    { "value": "Cultivo em ambiente selado", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>Growing inside pressure or thermal enclosures because the outside will not support the crop, with recycled atmosphere and water. Excludes open fields under mere windbreaks.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Gojenje v zaprtih tlačnih ali toplotnih prostorih, z zaprtim kroženjem zraka in vode.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Cultivo dentro de recintos pressurizados ou térmicos porque o exterior não sustenta a cultura, com atmosfera e água recicladas. Exclui campos abertos protegidos apenas por quebra-ventos.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "code": ["sealed-cult"]
+}

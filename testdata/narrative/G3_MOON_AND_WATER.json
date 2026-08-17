@@ -1,0 +1,39 @@
+{
+  "id": ["xeno.peerdb.org", "NARRATIVE", "G3_MOON_AND_WATER"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "NARRATIVE"] }],
+  "title": [{ "value": "Moon and Water", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [
+    {
+      "value": "Onnekki-ummoro",
+      "gloss": "the count and the outer islands",
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G3_STAKE_NOTATION"] }]
+    }
+  ],
+  "description": [
+    {
+      "value": "<p>Fixed forecasting phrases set out along a stake line and read by walking it in order, which is how this material is held and transmitted rather than in speech. The translation follows the stakes from the landward end outward.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "genre": { "id": ["xeno.peerdb.org", "NARRATIVE_GENRE", "WEATHER_LORE"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G3_TIDE_LINES"] }],
+  "recordedBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_VIRTANEN"] }, { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_BAUTISTA"] }],
+  "recordedAt": { "id": ["xeno.peerdb.org", "SITE", "G3_FOURTH_MEETING"] },
+  "recordedOn": { "time": "2296-01-01T00:00:00Z", "precision": "y" },
+  "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G3_STAKE_NOTATION"] }],
+  "content": [
+    {
+      "value": "<blockquote><p>Moon low and whole over the outer islands: the water comes back at a run.</p><p>Moon thin and high: walk out, and walk back at the same speed you went.</p><p>Moon not to be seen: do not pass the fourth line, whatever is stranded past it.</p><p>Fog on the flat and no wind: the moon is where it was yesterday, and so are you.</p></blockquote>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "recording": [
+    {
+      "value": "/f/DEgMH4U9ABPoFizq391mCn",
+      "name": "narrative-G3_MOON_AND_WATER.mp3",
+      "caption": "Performance, recorded on site",
+      "duration": { "value": { "amount": 15, "precision": 1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "MINUTE"] }] },
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G3_STAKE_NOTATION"] }]
+    }
+  ]
+}

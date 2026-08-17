@@ -1,0 +1,24 @@
+{
+  "id": ["xeno.peerdb.org", "NARRATIVE_GENRE", "RIDDLE_SEQUENCE"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "NARRATIVE_GENRE"] }],
+  "name": [
+    { "value": "Riddle sequence", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "Niz ugank", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }] },
+    { "value": "Sequência de adivinhas", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>Ordered exchange of posed problems with settled answers, often a test of standing rather than of wit. Excludes single riddles in other narratives.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Urejena izmenjava ugank z ustaljenimi odgovori, pogosto preizkus položaja in ne bistrosti.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Troca ordenada de problemas propostos com respostas fixadas, muitas vezes uma prova de posição social e não de engenho. Exclui adivinhas isoladas noutras narrativas.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "code": ["riddle"]
+}

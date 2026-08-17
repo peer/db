@@ -1,0 +1,30 @@
+{
+  "id": ["xeno.peerdb.org", "PUBLICATION", "PUB_KEPHRA_REGISTER"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PUBLICATION"] }],
+  "title": [
+    {
+      "value": "Fifty Years of Kephra March Registers: What a Contact Programme That Never Began Leaves in the Filing, and What May Be Recovered From It",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "doi": "10.5281/xeno.2305.0201",
+  "abstract": [
+    {
+      "value": "<p>The Kephra march registers record fifty years of intended, deferred and cancelled approaches to the Warm Pool population, and contain almost no observations of that population at all. We treat the registers as a source in their own right and reconstruct from them the decision rules by which contact was repeatedly postponed, none of which was ever written down as a rule. Three of the deferrals were made on grounds later shown to be clerical. The exercise recovers a good deal about the Consortium and very little about the Warm Pool People, which we take to be the honest result.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "author": [
+    { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_WEN"] },
+    { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_BONETTI"] },
+    { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_SUBRAMANIAN"] }
+  ],
+  "journal": "Long-Duration Field Reports",
+  "publishedOn": { "time": "2305-07-01T00:00:00Z", "precision": "m" },
+  "about": [{ "id": ["xeno.peerdb.org", "SPECIES", "G1_KEHRUNEI"] }],
+  "cites": [
+    { "id": ["xeno.peerdb.org", "PUBLICATION", "PUB_GREETING_ERROR"] },
+    { "id": ["xeno.peerdb.org", "PUBLICATION", "PUB_REMOTE_SUFFICIENCY"] },
+    { "id": ["xeno.peerdb.org", "PUBLICATION", "PUB_MARGIN_SUSPENSION"] }
+  ]
+}

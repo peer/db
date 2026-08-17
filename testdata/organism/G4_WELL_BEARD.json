@@ -1,0 +1,26 @@
+{
+  "id": ["xeno.peerdb.org", "ORGANISM", "G4_WELL_BEARD"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "ORGANISM"] }],
+  "name": [{ "value": "Well Beard", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Vetuvetu" }],
+  "taxonCode": "TX-1601-c",
+  "description": [
+    {
+      "value": "<p>A filamentous decomposer network growing on the wet rock of Assize&#39;s aquifer shafts, spreading in pale strands that run several metres between feeding points and shift nutrients along their length. The well keepers scrape it, dry it and pack it into wound dressings, and also read its colour as an indicator that a shaft is about to run poor. It does not survive above the water table for more than a few hours.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "category": { "id": ["xeno.peerdb.org", "ORGANISM_CATEGORY", "DECOMPOSER_NETWORK"] },
+  "foundOn": [{ "id": ["xeno.peerdb.org", "PLANET", "G4_ASSIZE"] }],
+  "biome": [{ "id": ["xeno.peerdb.org", "BIOME", "ENDOLITH_ZONE"] }],
+  "typicalSize": { "value": { "amount": 0.9, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+  "typicalMass": { "value": { "amount": 0.3, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "kg"] }] },
+  "image": [
+    {
+      "value": "/f/GypoixHDwmy8N1tzHKbx3G",
+      "name": "G4_WELL_BEARD.jpg",
+      "caption": "Field plate",
+      "source": "Drawn in the field; Consortium collection"
+    }
+  ]
+}

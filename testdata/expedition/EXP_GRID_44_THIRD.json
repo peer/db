@@ -1,0 +1,39 @@
+{
+  "id": ["xeno.peerdb.org", "EXPEDITION", "EXP_GRID_44_THIRD"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "EXPEDITION"] }],
+  "name": [{ "value": "Third Grid 44 Residency", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "catalogueCode": "EXP-2270-07",
+  "description": [
+    {
+      "value": "<p>A residency in the dusk band, intended to record the channel-following settlement cycle across a full rearrangement of the meltwater. Its first year went well. Its second was spent in a state of formal apology, after a greeting was offered in a form that marks the end of an obligation rather than the beginning of one, and no household would receive the team until the matter had been settled. The residency was recalled in 2274, three years after the sector&#39;s contact status was suspended, and its language material is still the best that exists.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "destination": [
+    { "id": ["xeno.peerdb.org", "PLANET", "G1_SURVEY_GRID_44_B"] },
+    { "id": ["xeno.peerdb.org", "REGION", "G1_GRID_44_DUSK"] },
+    { "id": ["xeno.peerdb.org", "REGION", "G1_GRID_44_NIGHT"] }
+  ],
+  "period": { "from": { "time": "2270-01-01T00:00:00Z", "precision": "y" }, "to": { "time": "2274-01-01T00:00:00Z", "precision": "y" } },
+  "ledBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_LINDQVIST"] }],
+  "teamMember": [
+    { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_REYES"] },
+    { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_HALVORSEN"] },
+    { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_NOWAK"] }
+  ],
+  "organisedBy": [{ "id": ["xeno.peerdb.org", "INSTITUTE", "INST_ANCHOR"] }, { "id": ["xeno.peerdb.org", "INSTITUTE", "INST_IELUARO"] }],
+  "method": [
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "LINGUISTIC_ELICITATION"] },
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "PARTICIPANT_OBSERVATION"] },
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "OPEN_INTERVIEW"] }
+  ],
+  "ethics": { "id": ["xeno.peerdb.org", "ETHICS_PROTOCOL", "PROTOCOL_3"] },
+  "budget": { "value": { "amount": 9800000, "precision": 1000 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "$"] }] },
+  "report": [{ "value": "/f/XjYWWEZWBNvQVdqRrbJTWR", "name": "EXP_GRID_44_THIRD.pdf", "caption": "Final report" }],
+  "notes": [
+    {
+      "value": "<p>The corrected greeting is one line long. It has been read aloud at every departure briefing for the sector since 2275, and is attributed to nobody.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

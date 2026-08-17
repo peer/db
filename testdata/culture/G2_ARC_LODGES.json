@@ -1,0 +1,42 @@
+{
+  "id": ["xeno.peerdb.org", "CULTURE", "G2_ARC_LODGES"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "CULTURE"] }],
+  "name": [{ "value": "Arc Lodges", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [
+    {
+      "value": "Shamnesse",
+      "gloss": "the holding of an arc, in turn",
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G2_FLAT_CORD"] }]
+    }
+  ],
+  "catalogueCode": "CU-2253-07",
+  "description": [
+    {
+      "value": "<p>Nine stone benches above sixty kilometres of tidal flat, worked twice in every cycle by lodges that drive stranded burrowers into three concentric arcs of stone weir. A lodge takes a named arc for one long cycle, rebuilds whatever the storms took and hands it on in a fixed order that no living person has seen deviated from. Children are reared by the lodge holding the arc at their birth and then by its successor, so a person&#39;s principal kin are their rearers and their rearers&#39; rearers, and birth parents hold no particular standing. Below the ice line the lodges leave sorted goods for the colonies under the cap and collect what is left in return, in silence, an arrangement they find no more interesting than the tide. Whether an arc is property at all, given that it can be neither sold nor kept, is the open question, and the twenty years of interview material bearing on it remain restricted.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Lože si po ustaljenem vrstnem redu izmenjujejo skrb za kamnite pregrade na blatišču. Otroke vzgaja loža, ki ob rojstvu drži pregrado.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Nove bancadas de pedra acima de sessenta quilómetros de baixio de maré, trabalhadas duas vezes por ciclo por confrarias que encaminham os escavadores encalhados para três arcos concêntricos de açude de pedra. Uma confraria toma um arco com nome próprio por um ciclo longo, reconstrói o que as tempestades levaram e passa-o adiante numa ordem fixa de que nenhuma pessoa viva viu um desvio. As crianças são criadas pela confraria que detém o arco no seu nascimento e depois pela confraria seguinte, pelo que os parentes principais de uma pessoa são os seus criadores e os criadores dos seus criadores, e os progenitores não gozam de estatuto especial. Abaixo da linha do gelo, as confrarias deixam bens separados para as colónias que vivem sob a calote e recolhem em troca o que ali fica, em silêncio, num arranjo que acham tão interessante como a maré. Se um arco é sequer propriedade, dado que não pode ser vendido nem conservado, é a questão em aberto, e os vinte anos de material de entrevistas que lhe dizem respeito continuam sob reserva.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "practisedBy": [{ "id": ["xeno.peerdb.org", "SPECIES", "G2_SESSHUNE"] }, { "id": ["xeno.peerdb.org", "SPECIES", "G2_NISSESSU"] }],
+  "presentAt": [{ "id": ["xeno.peerdb.org", "SITE", "G2_HIGH_WEIR"] }],
+  "kinshipSystem": { "id": ["xeno.peerdb.org", "KINSHIP_SYSTEM", "FOSTERAGE_CHAIN"] },
+  "socialOrganisation": { "id": ["xeno.peerdb.org", "SOCIAL_ORGANISATION", "ROTATING_STEWARDSHIP"] },
+  "subsistence": [
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "TIDAL_TRAPPING"] },
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "SILT_GARDENING"] }
+  ],
+  "communication": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G2_FLAT_CORD"] }],
+  "population": {
+    "value": { "from": { "amount": 14000, "precision": 100 }, "to": { "amount": 30000, "precision": 100 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "period": { "from": { "time": "2253-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true },
+  "image": [{ "value": "/f/2vceHtZMty6hTntCtQNymB", "name": "G2_ARC_LODGES.jpg", "caption": "Gathering", "source": "Consortium survey archive" }]
+}

@@ -1,0 +1,36 @@
+{
+  "id": ["xeno.peerdb.org", "PUBLICATION", "PUB_HEARTH_REFOUNDING"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PUBLICATION"] }],
+  "title": [
+    {
+      "value": "Refounding the Hearths: Mobile Settlement, Glass Supply and the Nightward Margin Exchange on the Terminator Band of Fetch",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "doi": "10.5281/xeno.2295.0107",
+  "abstract": [
+    {
+      "value": "<p>The Dusk March circuit refounds its hearths at each stop by carrying coals from the last, a procedure that takes precedence over shelter, water and food, and which fails perhaps once a decade. We follow four circuits and relate refounding intervals to glass quarry access and to the volume of the nightward exchange with the cold-locker trap keepers. Where the exchange is heavy the circuit slows and the hearth spacing tightens, which the walkers describe as the fire getting expensive. A failed refounding is not treated as a disaster but as a debt, owed to whichever hearth supplies the replacement coals.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "author": [
+    { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_FERREIRA"] },
+    { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_HADDAD"] },
+    { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_DOYLE"] },
+    { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_FARAHANI"] }
+  ],
+  "journal": "Bulletin of Comparative Xenoanthropology",
+  "publishedOn": { "time": "2295-07-01T00:00:00Z", "precision": "m" },
+  "about": [
+    { "id": ["xeno.peerdb.org", "SPECIES", "G4_HEARTH_WALKERS"] },
+    { "id": ["xeno.peerdb.org", "CULTURE", "G4_CU_HEARTH_CIRCUIT"] },
+    { "id": ["xeno.peerdb.org", "PRACTICE", "G4_PR_MARGIN_EXCHANGE"] }
+  ],
+  "cites": [
+    { "id": ["xeno.peerdb.org", "PUBLICATION", "PUB_STANDING_CROP"] },
+    { "id": ["xeno.peerdb.org", "PUBLICATION", "PUB_CASCADE_TASTING"] },
+    { "id": ["xeno.peerdb.org", "PUBLICATION", "PUB_ELEVEN_DAYS"] }
+  ],
+  "document": [{ "value": "/f/LKWbgfDtKxEc45VmxPWeZP", "name": "PUB_HEARTH_REFOUNDING.pdf", "caption": "Author's accepted manuscript" }]
+}

@@ -1,0 +1,54 @@
+{
+  "id": ["xeno.peerdb.org", "NARRATIVE", "G2_UNCLOSED_LAMENT"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "NARRATIVE"] }],
+  "title": [{ "value": "Nine Open and None Closing", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [
+    {
+      "value": "Nukkelanne",
+      "gloss": "the open count, the same word as the mourning term",
+      "inSystem": [
+        { "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G2_WARREN_KNOCK"] },
+        { "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G2_MOUTH_TALLY"] }
+      ]
+    }
+  ],
+  "description": [
+    {
+      "value": "<p>Struck on the gallery wall by one member of a chamber during the dormancy following a death, once a day, for as long as the positions stay open. It is answered by nobody and is audible from the far end of the system.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "genre": { "id": ["xeno.peerdb.org", "NARRATIVE_GENRE", "LAMENT"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G2_WARREN_TALLY"] }],
+  "recordedBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_DEMIR"] }, { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_FARAHANI"] }],
+  "recordedAt": { "id": ["xeno.peerdb.org", "SITE", "G2_FROST_WARREN"] },
+  "recordedOn": { "time": "2289-01-01T00:00:00Z", "precision": "y" },
+  "inSystem": [
+    { "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G2_WARREN_KNOCK"] },
+    { "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G2_MOUTH_TALLY"] }
+  ],
+  "content": [
+    {
+      "value": "<p>Nine open and none closing. Nine open and none closing.</p><p>Who was alongside? I was alongside. Who was alongside? I was alongside. Who was alongside? I was alongside, and so were eight.</p><p>The cord is long enough. Leave it long.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "recording": [
+    {
+      "value": "/f/EftJh2M7aYvfBLxBp5Y6Ax",
+      "name": "narrative-G2_UNCLOSED_LAMENT.mp3",
+      "caption": "Performance, recorded on site",
+      "duration": { "value": { "amount": 13, "precision": 1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "MINUTE"] }] },
+      "inSystem": [
+        { "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G2_WARREN_KNOCK"] },
+        { "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G2_MOUTH_TALLY"] }
+      ]
+    }
+  ],
+  "notes": [
+    {
+      "value": "<p>The 2289 recording was made from the second gallery with a contact sensor left on the wall for eleven days. The knocks stop on the ninth day and the last two days of the file are ice.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

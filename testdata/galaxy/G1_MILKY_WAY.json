@@ -1,0 +1,27 @@
+{
+  "id": ["xeno.peerdb.org", "GALAXY", "G1_MILKY_WAY"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "GALAXY"] }],
+  "name": [
+    { "value": "Milky Way", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "Rimska cesta", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }] }
+  ],
+  "catalogueCode": "MW",
+  "description": [
+    {
+      "value": "<p>The home galaxy, and the one the Consortium has surveyed longest and least gracefully. Four administrative sectors cover the settled arc; three of them have been renamed by committee since 2240 and not one of the new names is used in conversation. Rather more than half of all CCX fieldwork by staff-years has been done here, which is why this register is at once the fullest and the most self-contradictory in the catalogue.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Domača galaksija: najbolje raziskana in najbolj zabirokratizirana v katalogu.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    }
+  ],
+  "diameter": { "value": { "amount": 32000, "precision": 100 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "PARSEC"] }] },
+  "surveyPeriod": { "from": { "time": "2190-01-01T00:00:00Z", "precision": "y" }, "to": { "time": "2312-01-01T00:00:00Z", "precision": "y" } },
+  "notes": [
+    {
+      "value": "<p>This is the only register in which a body may hold two catalogue codes at the same time without either being an error. The Nomenclature Panel has kept the merge queue open since 2281 and reports steady progress at every annual meeting.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

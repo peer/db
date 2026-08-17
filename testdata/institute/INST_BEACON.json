@@ -1,0 +1,29 @@
+{
+  "id": ["xeno.peerdb.org", "INSTITUTE", "INST_BEACON"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "INSTITUTE"] }],
+  "name": [
+    { "value": "Consortium Deposit and Clearance Office", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "Urad konzorcija za hrambo in presojo", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }] }
+  ],
+  "shortName": [{ "value": "Deposit", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "description": [
+    {
+      "value": "<p>Not a research institute at all, but it holds a seat and votes like one. Everything gathered under a restricted protocol is bonded here until a custodian, a consent and a reviewer can be got into the same decade. It knows precisely what it holds and, in nineteen catalogued cases, has no idea at all who is entitled to see it.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Urad, ki hrani gradivo, dokler ga eticna presoja ne sprosti.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    }
+  ],
+  "founded": { "time": "2282-01-01T00:00:00Z", "precision": "y" },
+  "locatedAt": { "id": ["xeno.peerdb.org", "SITE", "G1_BEACON_ARCHIVE"] },
+  "staffCount": { "amount": 37, "precision": 1 },
+  "website": ["https://deposit.ccx.example/"],
+  "notes": [
+    {
+      "value": "<p>The office took over the staff and the unfinished obligations of a member institute dissolved in 2289. Two catalogue entries still require that institute&#39;s assent to close, and it cannot now be given by anybody.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

@@ -1,0 +1,31 @@
+{
+  "id": ["xeno.peerdb.org", "PRACTICE", "G3_FRAME_RAISING"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PRACTICE"] }],
+  "name": [{ "value": "Setting in the Shallows", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Ummoro-tekki", "gloss": "the setting on the outer islands" }],
+  "description": [
+    {
+      "value": "<p>The dead are wrapped in stake crust matting, carried out at low water to the seaward side of the two outermost islands, and set on a platform frame raised above the deepest recorded flood. The frame is built by the household holding the line that year, from the same stakes and to the same spacing, and it is maintained thereafter by whichever household holds that stretch, so care of the dead passes with the ground and not with the family. Burdens are not disturbed, moved or counted aloud, and the frames are never repaired while a burden is on them; a failing frame is replaced by building a second one alongside and shifting the burden across at slack water. There were thirty-eight frames when the survey first photographed the shore in 2295 and forty-one at the last count. Everything in this entry was compiled at two kilometres through a long lens, and the survey has never asked to come nearer.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Zavita bremena postavijo na ogrodja v plitvini in jih nikoli ne premikajo brez potrebe.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    }
+  ],
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G3_TIDE_LINES"] }],
+  "category": { "id": ["xeno.peerdb.org", "PRACTICE_CATEGORY", "MORTUARY"] },
+  "periodicity": "at each death, at the following low water",
+  "participants": {
+    "value": { "from": { "amount": 6, "precision": 1 }, "to": { "amount": 30, "precision": 1 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "firstDocumented": { "time": "2295-01-01T00:00:00Z", "precision": "y" },
+  "relatedPractice": [{ "id": ["xeno.peerdb.org", "PRACTICE", "G3_STAKE_TURN"] }],
+  "notes": [
+    {
+      "value": "<p>The frame count is taken from photographs and is the only quantity in this culture&#39;s entry that has never been revised, mainly because nobody has been in a position to revise it.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

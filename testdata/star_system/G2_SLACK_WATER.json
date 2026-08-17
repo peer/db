@@ -1,0 +1,18 @@
+{
+  "id": ["xeno.peerdb.org", "STAR_SYSTEM", "G2_SLACK_WATER"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "STAR_SYSTEM"] }],
+  "name": [{ "value": "Slack Water", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "catalogueCode": "SW-0262",
+  "description": [
+    {
+      "value": "<p>A wide M-dwarf pair with one carbon world between them and nothing else worth a code. Approach means a slow crossing of a dust lane the survey has never adequately mapped.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "SECTOR", "G2_LONG_BASELINE"] },
+  "spectralClass": "M4V",
+  "starCount": { "amount": 2, "precision": 1 },
+  "planetCount": { "amount": 1, "precision": 1 },
+  "distanceFromSol": { "value": { "amount": 23133.9, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "PARSEC"] }] },
+  "firstSurveyed": { "time": "2262-01-01T00:00:00Z", "precision": "y" }
+}

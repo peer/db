@@ -1,0 +1,22 @@
+{
+  "id": ["xeno.peerdb.org", "REGION", "G1_LOWER_SHALLOWS"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "REGION"] }],
+  "name": [{ "value": "The Lower Shallows", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Asherelu Nesh" }],
+  "description": [
+    {
+      "value": "<p>Eight hundred thousand square kilometres of tidal flat on the leading edge of the warm pool, drained and reflooded twice each cycle with a range of nineteen metres. The whole region is worked: stone traps, drying grounds, gathering lines and paths that exist only at low water. It is entirely flat, entirely wet and almost entirely without landmarks, which is why every path is marked.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "PLANET", "G1_HOLLIS_III"] },
+  "biome": [{ "id": ["xeno.peerdb.org", "BIOME", "SWEEP_FLAT"] }],
+  "area": { "value": { "amount": 812000, "precision": 100 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "SQUARE_KILOMETRE"] }] },
+  "elevationRange": {
+    "value": { "from": { "amount": -220, "precision": 10 }, "to": { "amount": 40, "precision": 10 } },
+    "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }]
+  },
+  "image": [
+    { "value": "/f/RPMeGAjUf8TBfn2iDiMyRM", "name": "G1_LOWER_SHALLOWS.jpg", "caption": "Regional view", "source": "Consortium survey archive" }
+  ]
+}

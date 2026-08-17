@@ -1,0 +1,23 @@
+{
+  "id": ["xeno.peerdb.org", "RESEARCHER", "RES_SUBRAMANIAN"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "RESEARCHER"] }],
+  "name": [{ "value": "Ravi" }],
+  "familyName": [{ "value": "Subramanian" }],
+  "researcherCode": "CCX-P-01387",
+  "description": [
+    {
+      "value": "<p>A network mapper who has been recording ties of obligation for half a century and is thoroughly tired of being asked to draw them. His long argument with the Ledger School over whether a refused exchange is a tie has run through four papers and one very cold committee. He and Jiaying Wen have shared every posting since 2264 and have published apart exactly once.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "affiliatedWith": [{ "id": ["xeno.peerdb.org", "INSTITUTE", "INST_ANCHOR"] }, { "id": ["xeno.peerdb.org", "INSTITUTE", "INST_SUBSTRATE"] }],
+  "specialisesIn": [
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "NETWORK_MAPPING"] },
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "PHOTOGRAMMETRY"] }
+  ],
+  "activePeriod": { "from": { "time": "2260-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true },
+  "born": { "time": "2236-01-01T00:00:00Z", "precision": "y" },
+  "image": [
+    { "value": "/f/LFpeGQ2ucYP59aAD9pXysM", "name": "RES_SUBRAMANIAN.jpg", "caption": "Staff photograph", "source": "Consortium personnel record" }
+  ]
+}

@@ -1,0 +1,48 @@
+{
+  "id": ["xeno.peerdb.org", "CULTURE", "G3_ICE_LODGES"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "CULTURE"] }],
+  "name": [{ "value": "The Hauling Lodges", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [
+    {
+      "value": "Ulleth",
+      "gloss": "the harness, and by extension everyone on it",
+      "inSystem": [
+        { "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G3_STRIP_SPEECH"] },
+        { "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G3_LODGE_CORD"] }
+      ]
+    }
+  ],
+  "catalogueCode": "CU-2271-03",
+  "description": [
+    {
+      "value": "<p>Lodges cut ice from the night side and haul it into the dusk band, where they exchange water for everything they eat, and the whole economy is one commodity carried one way. A lodge holds a route, a set of harness and a share of what it brings back, and membership is by training and by nothing else. Children are reared by the lodge that takes them rather than by those who bore them, so obligation runs back along the chain of fosterers and not along any bloodline. Because a dispute between hearths is settled in practice by whichever lodge agrees to carry for whom, the discipline has spent forty years arguing whether these are a subsistence institution or the only court on the world. Since contact the lodges have added metal runners and a great deal of Consortium cord, and have declined, four times, to add a radio.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Družbe voznikov ledu vozijo vodo z nočne strani in v somračnem pasu zanjo dobijo vso hrano. Članstvo se pridobi z izučenostjo, ne z rojstvom.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>As confrarias cortam gelo do lado noturno e arrastam-no até à faixa crepuscular, onde trocam água por tudo o que comem, e toda a economia é uma única mercadoria transportada num único sentido. Uma confraria detém uma rota, um conjunto de arreios e uma parte do que traz de volta, e a pertença obtém-se pela formação e por mais nada. As crianças são criadas pela confraria que as aceita e não por quem as gerou, pelo que a obrigação corre para trás pela cadeia de criadores e não por nenhuma linha de sangue. Como uma disputa entre lareiras se resolve na prática consoante a confraria que aceita transportar para quem, a disciplina passou quarenta anos a discutir se isto é uma instituição de subsistência ou o único tribunal do mundo. Desde o contacto, as confrarias acrescentaram patins de metal e uma grande quantidade de corda do Consórcio, e recusaram, quatro vezes, acrescentar um rádio.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "practisedBy": [{ "id": ["xeno.peerdb.org", "SPECIES", "G3_SHELLUTHE"] }],
+  "presentAt": [{ "id": ["xeno.peerdb.org", "SITE", "G3_UPPER_HEARTHS"] }, { "id": ["xeno.peerdb.org", "SITE", "G3_SHELF_WARREN"] }],
+  "kinshipSystem": { "id": ["xeno.peerdb.org", "KINSHIP_SYSTEM", "FOSTERAGE_CHAIN"] },
+  "socialOrganisation": { "id": ["xeno.peerdb.org", "SOCIAL_ORGANISATION", "GUILD_FEDERATION"] },
+  "subsistence": [
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "TRADE_DEPENDENCY"] },
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "OPPORTUNISTIC_FORAGING"] }
+  ],
+  "communication": [
+    { "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G3_STRIP_SPEECH"] },
+    { "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G3_LODGE_CORD"] }
+  ],
+  "population": {
+    "value": { "from": { "amount": 3000, "precision": 100 }, "to": { "amount": 11000, "precision": 100 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "period": { "from": { "time": "2271-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true },
+  "image": [{ "value": "/f/13dpaJpnptD1QdcKAB2WDF", "name": "G3_ICE_LODGES.jpg", "caption": "Gathering", "source": "Consortium survey archive" }]
+}

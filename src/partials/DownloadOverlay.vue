@@ -52,7 +52,7 @@ function onCancel() {
 <template>
   <Dialog as="div" class="pd-downloadoverlay relative z-50" :open="open" @close="onClose">
     <!-- Backdrop. -->
-    <div class="fixed inset-0 bg-black/30" aria-hidden="true" />
+    <div class="pd-downloadoverlay-backdrop fixed inset-0 bg-black/30" aria-hidden="true" />
 
     <!-- Full-screen container to center the panel. -->
     <div class="fixed inset-0 flex items-center justify-center">
@@ -76,7 +76,7 @@ function onCancel() {
           <div v-if="error" class="pd-downloadoverlay-error text-error-600">{{ t("partials.DownloadOverlay.error") }}</div>
         </div>
 
-        <div class="flex flex-row justify-end">
+        <div class="pd-downloadoverlay-actions flex flex-row justify-end">
           <Button id="downloadoverlay-button-cancel" @click="onCancel">{{ closeOnly ? t("common.buttons.close") : t("common.buttons.cancel") }}</Button>
         </div>
       </DialogPanel>

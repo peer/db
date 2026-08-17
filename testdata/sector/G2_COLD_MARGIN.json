@@ -1,0 +1,20 @@
+{
+  "id": ["xeno.peerdb.org", "SECTOR", "G2_COLD_MARGIN"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SECTOR"] }],
+  "name": [{ "value": "Cold Margin Sector", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "catalogueCode": "SEC-CM/2",
+  "description": [
+    {
+      "value": "<p>Three systems on the trailing side, none of them warm and one of them a white dwarf pair whose worlds were baked and then abandoned by their own star. Coverage is largely orbital and thin. Two of the three were reached once each and written up from the data on the return leg.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "GALAXY", "G2_UNDERCOUNT"] },
+  "surveyPeriod": { "from": { "time": "2247-01-01T00:00:00Z", "precision": "y" }, "to": { "time": "2295-01-01T00:00:00Z", "precision": "y" } },
+  "notes": [
+    {
+      "value": "<p>All three systems were worked from a single expedition that left Ceres in 2245 and docked again in 2296. The Consortium counts it as one survey. The people on it counted it as most of their lives.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

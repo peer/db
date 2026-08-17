@@ -20,6 +20,7 @@ func main() {
 		"defaultIndexPrefix":  peerdb.DefaultIndexPrefix,
 		"defaultShards":       peerdb.DefaultShards,
 		"defaultTitle":        peerdb.DefaultTitle,
+		"defaultTestData":     peerdb.DefaultTestData,
 		"developmentModeHelp": peerdb.DevelopmentModeHelp,
 	}, func(ctx *cli.Context) errors.E {
 		return ctx.Run(&config.Globals)

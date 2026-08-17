@@ -1,0 +1,31 @@
+{
+  "id": ["xeno.peerdb.org", "ORGANISM", "G2_CELLAR_RELICT"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "ORGANISM"] }],
+  "name": [{ "value": "Deep Cellar Relict", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "taxonCode": "TX-1169-b",
+  "description": [
+    {
+      "value": "<p>Pore-water communities between nine and thirteen kilometres down, which survived the giant phase that sterilised everything above them and have been isolated ever since. They divide about once in nine hundred years, and the single borehole that reaches them has returned enough material for four analyses in total. Rock temperature at the zone is seventy-four degrees and falling, which sets a limit on how long any of this continues.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "category": { "id": ["xeno.peerdb.org", "ORGANISM_CATEGORY", "ENDOLITH"] },
+  "foundOn": [{ "id": ["xeno.peerdb.org", "PLANET", "G2_QUIET_FACE"] }],
+  "biome": [{ "id": ["xeno.peerdb.org", "BIOME", "ENDOLITH_ZONE"] }],
+  "typicalSize": { "value": { "amount": 8e-06, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+  "typicalMass": { "value": { "amount": 1.2e-12, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "kg"] }] },
+  "image": [
+    {
+      "value": "/f/SwFXiKRwa8LRsQCozJ2kSD",
+      "name": "G2_CELLAR_RELICT.jpg",
+      "caption": "Field plate",
+      "source": "Drawn in the field; Consortium collection"
+    }
+  ],
+  "notes": [
+    {
+      "value": "<p>Two of the four analyses were performed on the same sample eleven years apart, because the borehole was capped in the interval and nobody expected to be allowed back.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

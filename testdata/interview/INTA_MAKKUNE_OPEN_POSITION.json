@@ -1,0 +1,55 @@
+{
+  "id": ["xeno.peerdb.org", "INTERVIEW", "INTA_MAKKUNE_OPEN_POSITION"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "INTERVIEW"] }],
+  "title": [
+    { "value": "Makkune on the position entered against the station every year", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>The holder of the warren&#39;s cold store, on the reserve rations kept for the Consortium and entered on the cord as an open debt. He gives the figure, which has not previously been given.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "interviewee": [{ "id": ["xeno.peerdb.org", "INDIVIDUAL", "G2_MAKKUNE"] }],
+  "interviewer": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_SUBRAMANIAN"] }, { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_BONETTI"] }],
+  "recordedAt": { "id": ["xeno.peerdb.org", "SITE", "G2_FROST_WARREN"] },
+  "recordedOn": { "time": "2309-01-26T00:00:00Z", "precision": "d" },
+  "expedition": { "id": ["xeno.peerdb.org", "EXPEDITION", "EXP_COLD_QUARTER_WARREN"] },
+  "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G2_MOUTH_TALLY"] }],
+  "duration": { "value": { "amount": 63, "precision": 1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "MINUTE"] }] },
+  "content": [
+    {
+      "value": "<p><b>Q.</b> We have never thanked you properly for the reserve. Is there a way to thank somebody for a gift like that?</p><p><b>A.</b> It is not a gift. Nothing here is a gift; there is no word for it that a tally would accept. It is an open position, entered every year against your station, and it is getting longer.</p><p><b>Q.</b> Entered by whom?</p><p><b>A.</b> By me, without anybody asking me to. It is my work to enter what is out. If I did not enter it, the cord would say your station had taken nothing for twenty-five years, and that would be the falsehood, not the debt.</p><p><b>Q.</b> How large is the position?</p><p><b>A.</b> Nine hundred and forty measures at the last waking count, against nine positions, none of them closed. I can read you the sections. Nobody at your station has ever asked and I have never volunteered it, which between us has kept everybody comfortable for a long time.</p><p><b>Q.</b> Why volunteer it now?</p><p><b>A.</b> Because two of the positions were entered against people who are dead, and a position against a dead holder goes to whoever holds the chamber. That is now the station, whether the station knows it or not.</p><p><b>Q.</b> What would closing it look like?</p><p><b>A.</b> Nobody has ever proposed one. That is the honest answer and it is why I am content to say the figure. You cannot pay it, so nothing changes by your knowing it, except that you will stop calling it a gift.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "recording": [
+    {
+      "value": "/f/RSbfeRfBek7aHq4aLcM7HD",
+      "name": "interview-INTA_MAKKUNE_OPEN_POSITION.mp3",
+      "caption": "Session recording",
+      "duration": { "value": { "amount": 63, "precision": 1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "MINUTE"] }] },
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G2_MOUTH_TALLY"] }]
+    }
+  ],
+  "ethics": { "id": ["xeno.peerdb.org", "ETHICS_PROTOCOL", "PROTOCOL_2"] },
+  "consentNote": [
+    {
+      "value": "<p>Makkune agreed that the exchange be kept and read by anybody who asks the Consortium for it, and asked only that the figure be quoted with the year and the count it came from. He declined a photograph, the chamber being unlit and the alternative being to go outside.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "clearedReader": ["mock-user@localhost", "mock-user-curator@localhost"],
+  "permission": [
+    {
+      "action": { "id": ["core.peerdb.org", "PERMISSION_ACTIONS", "ACTION_READ"] },
+      "user": ["mock-user@localhost", "mock-user-curator@localhost"],
+      "scope": ["self"]
+    },
+    {
+      "action": { "id": ["core.peerdb.org", "PERMISSION_ACTIONS", "ACTION_READ_HISTORIC"] },
+      "user": ["mock-user@localhost", "mock-user-curator@localhost"],
+      "scope": ["self"]
+    }
+  ]
+}

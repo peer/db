@@ -1,0 +1,31 @@
+{
+  "id": ["xeno.peerdb.org", "PRACTICE", "G1_FIRST_DRAW_MEAL"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PRACTICE"] }],
+  "name": [{ "value": "The First Draw", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Elmashesh", "gloss": "the first taken from the pit" }],
+  "description": [
+    {
+      "value": "<p>Every ninth day the pit is opened and the first portion is lifted out with a shell scoop by the pit keeper, tasted, and either passed or sent back, in which case the entire draw goes back into the pit and the house eats yesterday&#39;s. Nothing is seasoned and nothing is cooked afterwards. The house eats standing at the pit edge in the order in which its members kneel at the beds, which is not the order of seniority and is not explained to visitors who ask. A guest is given a portion at the same moment as everybody else and is watched while eating it, not for amusement but because a guest who cannot eat has to be fed some other way and the house would rather find out early.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Vsak deveti dan gospodinjstvo poje prvo zajemalko iz jame, stoje ob robu in brez začimb.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>De nove em nove dias a cova é aberta e a primeira porção é retirada com uma concha de casca pelo guardião da cova, provada e aprovada ou devolvida, caso em que toda a porção retirada volta para a cova e a casa come a de ontem. Nada é temperado e nada é cozinhado depois. A casa come de pé à beira da cova, pela ordem em que os seus membros se ajoelham nos canteiros, que não é a ordem de antiguidade e não é explicada aos visitantes que perguntam. A um convidado é dada uma porção ao mesmo tempo que a todos os outros e é observado enquanto a come, não por divertimento mas porque um convidado que não consegue comer tem de ser alimentado de outra maneira e a casa prefere descobri-lo cedo.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G1_ANCHOR_HOUSES"] }],
+  "category": { "id": ["xeno.peerdb.org", "PRACTICE_CATEGORY", "FOOD_PREPARATION"] },
+  "periodicity": "every ninth day",
+  "participants": {
+    "value": { "from": { "amount": 8, "precision": 1 }, "to": { "amount": 45, "precision": 1 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "firstDocumented": { "time": "2238-01-01T00:00:00Z", "precision": "y" },
+  "image": [
+    { "value": "/f/914dV1yrRRd9JMcWBXfdVn", "name": "G1_FIRST_DRAW_MEAL.jpg", "caption": "In progress", "source": "Consortium survey archive" }
+  ]
+}

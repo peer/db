@@ -1,0 +1,57 @@
+{
+  "id": ["xeno.peerdb.org", "SPECIES", "G2_ULLOMARRE"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SPECIES"] }],
+  "name": [{ "value": "Long Lid Floor Signallers", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Ullomarre", "gloss": "one voice in the cold" }],
+  "exonym": [{ "value": "Marrelu", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "taxonCode": "TX-4163-a",
+  "description": [
+    {
+      "value": "<p>On the floor four kilometres below the inhabited ceiling there are bodies, and among them there is one self, or a small number of selves, held together by continuous low-frequency signalling through water that has not moved appreciably in eleven thousand years. Nothing here is an individual: a body that goes out of range stops behaving and is left, and the surviving self reports no loss, having never counted. Decisions are reached by an assembly in which assent is unanimous and immediate, which sounds impressive until one notices that this is simply what a single self does, and which two review articles have argued should disqualify the whole entry from the social register. All of it is known through the ceiling dwellers, who drop waste onto the floor, receive sorted material back and describe the arrangement as trade with a debt that is never settled and never intended to be. The bodies have been photographed twice, in 2268 and 2291, both times by an instrument lowered for another purpose.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>No fundo, quatro quilómetros abaixo do teto habitado, há corpos, e entre eles há um eu, ou um pequeno número de eus, mantidos juntos por sinalização contínua de baixa frequência através de uma água que não se move de forma apreciável há onze mil anos. Nada aqui é um indivíduo: um corpo que sai do alcance deixa de se comportar e é abandonado, e o eu sobrevivente não reporta perda alguma, por nunca ter contado. As decisões são tomadas por uma assembleia em que o assentimento é unânime e imediato, o que soa impressionante até se reparar que isto é simplesmente o que um único eu faz, e o que dois artigos de revisão defenderam dever desqualificar toda a entrada do registo social. Tudo isto se sabe através dos habitantes do teto, que deixam cair resíduos até ao fundo, recebem material triado de volta e descrevem o acordo como comércio com uma dívida que nunca é saldada e que nunca se pretendeu saldar. Os corpos foram fotografados duas vezes, em 2268 e 2291, ambas por um instrumento descido para outro fim.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "homeworld": { "id": ["xeno.peerdb.org", "PLANET", "G2_LONG_LID"] },
+  "bodyPlan": [
+    {
+      "value": "<p>The bodies are flat, soft and roughly circular, half a metre across, creeping over the sediment on a ciliated underside at a few metres an hour. Each carries a thickened rim organ that both produces and receives the low hum that ties the self together, and there is no other conspicuous structure at all. They are pale grey, they do not respond to light, and they take no notice whatever of being handled.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "typicalHeight": { "value": { "amount": 0.5, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+  "typicalMass": { "value": { "amount": 8.5, "precision": 0.1 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "kg"] }] },
+  "lifespan": {
+    "value": { "from": { "amount": 60, "precision": 1 }, "to": { "amount": 400, "precision": 1 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_YEAR"] }]
+  },
+  "sensoryModality": [
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "ACOUSTIC_RANGING"] },
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "GRAVICEPTION"] },
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "CONTACT_CHEMO"] }
+  ],
+  "subsistence": [
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "DRIFT_HARVESTING"] },
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "MANAGED_DECAY"] }
+  ],
+  "individuality": { "id": ["xeno.peerdb.org", "INDIVIDUALITY_MODE", "DISTRIBUTED_SELF"] },
+  "socialOrganisation": { "id": ["xeno.peerdb.org", "SOCIAL_ORGANISATION", "CONSENSUS_ASSEMBLY"] },
+  "kinshipSystem": { "id": ["xeno.peerdb.org", "KINSHIP_SYSTEM", "DEBT_KINSHIP"] },
+  "population": {
+    "value": { "from": { "amount": 300, "precision": 1000 }, "to": { "amount": 4000, "precision": 1000 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "contactStatus": { "id": ["xeno.peerdb.org", "CONTACT_STATUS", "INDIRECT"] },
+  "firstContact": { "time": "2268-01-01T00:00:00Z", "precision": "y" },
+  "image": [
+    {
+      "value": "/f/ViVwWRt2QiAmi2ULEh1V28",
+      "name": "G2_ULLOMARRE.jpg",
+      "caption": "Field plate",
+      "source": "Drawn in the field; Consortium collection"
+    }
+  ]
+}

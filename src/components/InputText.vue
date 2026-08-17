@@ -8,7 +8,7 @@ import type { ValidationError, ValidatorFn } from "@/types"
 import { computed, ref, useTemplateRef, vModelText, watch } from "vue"
 
 import InputStyled from "@/components/InputStyled.vue"
-import { useLock } from "@/progress"
+import { useInactivated, useLock } from "@/progress"
 import { useValidation } from "@/validation"
 
 const props = withDefaults(
@@ -41,7 +41,8 @@ const invalid = computed(() => props.invalid || errors.value.length > 0)
 
 // Data modification and controls.
 const lock = useLock()
-const inactive = computed(() => lock.value > 0 || props.readonly)
+const inactivated = useInactivated()
+const inactive = computed(() => lock.value > 0 || inactivated.value || props.readonly)
 
 const inputStyledRef = useTemplateRef<ComponentPublicInstance>("inputStyledRef")
 
@@ -75,7 +76,7 @@ async function onBlur() {
     :readonly="inactive"
     :aria-invalid="invalid || undefined"
     class="pd-inputtext"
-    :class="{ 'pd-locked': lock > 0 }"
+    :class="{ 'pd-locked': lock > 0, 'pd-inactive': inactivated || readonly }"
     @update:model-value="model = $event"
     @blur="onBlur"
   />

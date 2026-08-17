@@ -1,0 +1,24 @@
+{
+  "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "OPPORTUNISTIC_FORAGING"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE"] }],
+  "name": [
+    { "value": "Opportunistic foraging", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "Priložnostno nabiralništvo", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }] },
+    { "value": "Recolha oportunista", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>Broad-spectrum collection of whatever the season offers, with no storage beyond a few days. Excludes scheduled harvesting of a known crop.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Široko nabiranje vsega, kar ponudi letni čas, brez zalog za več kot nekaj dni.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Recolha de largo espectro do que a estação oferecer, sem armazenamento para além de alguns dias. Exclui a colheita programada de uma cultura conhecida.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "code": ["forage"]
+}

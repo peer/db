@@ -1,0 +1,28 @@
+{
+  "id": ["xeno.peerdb.org", "PRACTICE", "G4_PR_CASCADE_TASTING"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PRACTICE"] }],
+  "name": [{ "value": "Tasting Down the Cascade", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "meiaurelira", "gloss": "down the steps, one mouth at a time" }],
+  "description": [
+    {
+      "value": "<p>Every ninth day one pot is opened on each of the sixteen fermenting levels, in order from the bottom of the gorge upward, and each pot is tasted by the keeper of the level below it and never by the keeper who made it. A batch is refused by setting its lid upside down on the ground beside it, which nobody is required to explain and nobody may argue with. Refused material goes into the cascade and settles in the lower pool, where the canopy houses take what they want of it, so a refusal high in the gorge is a delivery low in it. Children walk the line ahead of the keepers and are given the first taste of anything that is not going to be refused, which is how they learn what a refusal tastes like without ever being told. The survey&#39;s request for a record of which batches were refused and why produced eleven years of tasting notes and not one reason.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Vsak deveti dan skrbnik nižje terase pokusi lonec z višje; zavrnitev pomeni obrnjen pokrov in nobene razlage.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    }
+  ],
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G4_CU_LADDER_GORGE"] }],
+  "category": { "id": ["xeno.peerdb.org", "PRACTICE_CATEGORY", "FOOD_PREPARATION"] },
+  "periodicity": "every ninth day, and after any flood",
+  "participants": {
+    "value": { "from": { "amount": 8, "precision": 1 }, "to": { "amount": 40, "precision": 1 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "firstDocumented": { "time": "2243-01-01T00:00:00Z", "precision": "y" },
+  "relatedPractice": [{ "id": ["xeno.peerdb.org", "PRACTICE", "G4_PR_TAKING_IN"] }],
+  "image": [
+    { "value": "/f/PDTA9LjhbZkPuPMx1jLx78", "name": "G4_PR_CASCADE_TASTING.jpg", "caption": "In progress", "source": "Consortium survey archive" }
+  ]
+}

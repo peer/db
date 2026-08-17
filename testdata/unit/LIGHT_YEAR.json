@@ -1,0 +1,24 @@
+{
+  "id": ["xeno.peerdb.org", "UNIT", "LIGHT_YEAR"],
+  "instanceOf": [{ "id": ["core.peerdb.org", "UNIT"] }],
+  "name": [
+    { "value": "light-year", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "svetlobno leto", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }] },
+    { "value": "ano-luz", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>Distance light travels in one Earth year in vacuum, about 0.307 parsecs. Used in narrative and outreach text where parsecs read badly.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Razdalja, ki jo svetloba v vakuumu prepotuje v enem zemeljskem letu, približno 0,307 parseka. Uporablja se v pripovednih in poljudnih besedilih, kjer se parseki slabo berejo.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Distância que a luz percorre no vácuo num ano terrestre, cerca de 0,307 parsecs. Usa-se em textos narrativos e de divulgação, onde os parsecs se leem mal.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "code": ["ly"]
+}

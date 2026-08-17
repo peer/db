@@ -1,0 +1,24 @@
+{
+  "id": ["xeno.peerdb.org", "ORGANISM_CATEGORY", "ENDOLITH"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "ORGANISM_CATEGORY"] }],
+  "name": [
+    { "value": "Endolith", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "Endolit", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }] },
+    { "value": "Endólito", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>Organisms living inside rock, in pore space or self-excavated cavities, often with generation times in centuries. Excludes surface crusts.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Organizmi, ki živijo v kamnini, v porah ali izdolbenih votlinah, pogosto z generacijami, dolgimi stoletja.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Organismos que vivem dentro da rocha, nos poros ou em cavidades que escavam, muitas vezes com gerações medidas em séculos. Exclui crostas de superfície.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "code": ["endolith"]
+}

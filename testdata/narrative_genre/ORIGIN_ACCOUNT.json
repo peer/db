@@ -1,0 +1,24 @@
+{
+  "id": ["xeno.peerdb.org", "NARRATIVE_GENRE", "ORIGIN_ACCOUNT"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "NARRATIVE_GENRE"] }],
+  "name": [
+    { "value": "Origin account", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "Pripoved o izvoru", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }] },
+    { "value": "Relato de origem", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>Narrative of how a people, a place or an institution came to be, told as authoritative. Excludes speculative cosmology offered as one view among several.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Pripoved o nastanku ljudstva, kraja ali ustanove, povedana kot verodostojna.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Narrativa de como um povo, um lugar ou uma instituição vieram a existir, contada como autorizada. Exclui a cosmologia especulativa apresentada como uma visão entre várias.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "code": ["origin"]
+}

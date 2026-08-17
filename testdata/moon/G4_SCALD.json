@@ -1,0 +1,39 @@
+{
+  "id": ["xeno.peerdb.org", "MOON", "G4_SCALD"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "MOON"] }],
+  "name": [{ "value": "Scald", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "catalogueCode": "SPW-A/104-e-iv",
+  "description": [
+    {
+      "value": "<p>A small inner moon under enough tidal heating to resurface itself completely on a cycle of about four thousand years, in an episode lasting a few decades. The present surface is roughly eighteen hundred years old, which is the age of every square kilometre of it. Cryovolcanic plains of ammonia-water slush cover the whole body, and pockets of that slush stay liquid for centuries after each event.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "PLANET", "G4_SELVEDGE_E"] },
+  "planetType": { "id": ["xeno.peerdb.org", "PLANET_TYPE", "ICE_SHELL"] },
+  "biome": [{ "id": ["xeno.peerdb.org", "BIOME", "CRYO_PLAIN"] }, { "id": ["xeno.peerdb.org", "BIOME", "BRINE_SEA"] }],
+  "radius": { "value": { "amount": 0.19, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_RADIUS"] }] },
+  "mass": { "value": { "amount": 0.0022, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_MASS"] }] },
+  "surfaceGravity": { "value": { "amount": 0.061, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "STANDARD_GRAVITY"] }] },
+  "dayLength": { "value": { "amount": 50.4, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "HOUR"] }] },
+  "orbitalPeriod": { "value": { "amount": 2.1, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_DAY"] }] },
+  "tidallyLocked": true,
+  "meanTemperature": { "value": { "amount": -128.0, "precision": 0.1 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "°C"] }] },
+  "hydrosphere": { "value": { "amount": 0, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "PERCENT"] }] },
+  "atmosphere": [
+    {
+      "value": "<p>Ammonia and nitrogen vented from active fissures, at a pressure that varies by two orders of magnitude between one fissure and the next.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "biosphereUnknown": true,
+  "contactStatus": { "id": ["xeno.peerdb.org", "CONTACT_STATUS", "REMOTE_OBSERVATION"] },
+  "firstSurveyed": { "time": "2220-01-01T00:00:00Z", "precision": "y" },
+  "image": [{ "value": "/f/KDAFA6jnUHfuwbjxAhXA1v", "name": "G4_SCALD.jpg", "caption": "Surface view", "source": "Consortium survey archive" }],
+  "notes": [
+    {
+      "value": "<p>The resurfacing has been dated three ways, giving 3,600, 4,100 and 4,400 years. The catalogue records about four thousand, and carries three separate footnotes explaining why the other two are wrong.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

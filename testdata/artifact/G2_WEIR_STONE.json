@@ -1,0 +1,27 @@
+{
+  "id": ["xeno.peerdb.org", "ARTIFACT", "G2_WEIR_STONE"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "ARTIFACT"] }],
+  "name": [{ "value": "Dressed Weir Stone, Middle Arc", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "accessionCode": "CCX-A-14903",
+  "description": [
+    {
+      "value": "<p>A wedge-dressed block from the seaward face of the middle arc, cut so that it sits without mortar and locks under the pull of the falling tide rather than against it. It was set in the rebuild of 2296 and lifted for recording in 2298 with the arc holder present, then reset in the same course and the same way round. Two faces carry the fine parallel dressing marks that identify a rebuild, and the lower face is already colonised by lashing weed holdfasts, which were left on it. It weighs rather more than the survey expected and the lifting frame was rebuilt afterwards.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "category": { "id": ["xeno.peerdb.org", "ARTIFACT_CATEGORY", "STRUCTURAL_ELEMENT"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G2_ARC_LODGES"] }],
+  "foundAt": { "id": ["xeno.peerdb.org", "SITE", "G2_HIGH_WEIR"] },
+  "material": [
+    { "value": "dressed stone", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "lashing weed", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }
+  ],
+  "dimension": [
+    { "value": { "amount": 0.94, "precision": 0.001 }, "axis": "length", "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+    { "value": { "amount": 0.51, "precision": 0.001 }, "axis": "width", "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+    { "value": { "amount": 0.38, "precision": 0.001 }, "axis": "height", "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] }
+  ],
+  "dateMade": { "time": "2296-01-01T00:00:00Z", "precision": "y" },
+  "collectedBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_WEN"] }],
+  "image": [{ "value": "/f/JTLnG2Zr9HKQ7Dpx6F3J5M", "name": "G2_WEIR_STONE.jpg", "caption": "Object drawing", "source": "Consortium collection" }]
+}

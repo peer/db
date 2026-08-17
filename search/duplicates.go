@@ -45,6 +45,10 @@ import (
 // The relation is symmetric, so documents that assert they are distinct from the input are excluded too.
 // It is not transitive (A distinct from B and B distinct from C does not make A distinct from C, since A
 // and C may be the same), so only directly asserted pairs are excluded, never chains.
+//
+// The permission properties are the other exception, and are simply ignored: they say who may read or
+// change a document rather than which entity it is about, and every document made through the interface
+// carries the same seeded set of them.
 const (
 	// identifierDuplicateWeight is the score a shared identifier value contributes. External
 	// identifiers (Wikidata IDs, ISBNs, ...) are near-unique, so a single shared one is on its own a
@@ -247,6 +251,13 @@ func (v *duplicateVisitor) VisitReference(claim *document.ReferenceClaim) (docum
 		// The target is asserted to be a different entity, so it is excluded from the results (in
 		// duplicatesQuery) rather than scored as a similarity.
 		v.DistinctFrom = append(v.DistinctFrom, claim.To.ID)
+		return document.Keep, nil
+	}
+	if claim.Prop.ID == internalCore.HasPermissionPropID || claim.Prop.ID == internalCore.HasRequestedPermissionPropID {
+		// Who may read or change a document says nothing about which entity it is about. Every document
+		// made through the interface is seeded with the creator's permissions, so scoring them would make
+		// every such document a candidate duplicate of every other one, at a score above the threshold
+		// before anything has been stated about the entity at all.
 		return document.Keep, nil
 	}
 	// The index expands a reference to the target and all its hierarchy ancestors, so matching the

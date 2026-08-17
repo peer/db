@@ -1,0 +1,48 @@
+{
+  "id": ["xeno.peerdb.org", "PLANET", "G2_COLD_REGISTER"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PLANET"] }],
+  "name": [{ "value": "Cold Register", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "catalogueCode": "OP-0294-a",
+  "description": [
+    {
+      "value": "<p>The only catalogued world in the Unvisited Quarter, logged over eleven days in 2294 by a ship that was passing through with spare instrument time. It appears to be a cold, dry, thin-aired terrestrial with wide evaporite basins and an unexplained infrared excess at both poles. Whether anything lives on it has not been determined and will not be until somebody goes back.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Popisan v enajstih dneh leta 2294 in od takrat neobiskan.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>O único mundo catalogado no Unvisited Quarter, registado ao longo de onze dias em 2294 por uma nave que passava com tempo de instrumento sobrante. Parece ser um planeta telúrico frio, seco e de ar rarefeito, com amplas bacias de evaporitos e um excesso infravermelho inexplicado em ambos os polos. Se algo aí vive, não foi determinado, e não o será enquanto alguém não voltar.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "STAR_SYSTEM", "G2_ONE_PASS"] },
+  "planetType": { "id": ["xeno.peerdb.org", "PLANET_TYPE", "DESICCATED"] },
+  "radius": { "value": { "amount": 0.68, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_RADIUS"] }] },
+  "mass": { "value": { "amount": 0.33, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_MASS"] }] },
+  "surfaceGravity": { "value": { "amount": 0.71, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "STANDARD_GRAVITY"] }] },
+  "dayLength": { "value": { "amount": 84.0, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "HOUR"] }] },
+  "orbitalPeriod": { "value": { "amount": 117.9, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_DAY"] }] },
+  "meanTemperature": { "value": { "amount": -165.0, "precision": 0.1 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "°C"] }] },
+  "hydrosphere": { "value": { "amount": 0, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "PERCENT"] }] },
+  "atmosphere": [
+    {
+      "value": "<p>Estimated at 0.09 bar and mostly nitrogen, from a single occultation. Nobody has stood in it, and the figure carries an error bar the sector office prefers not to print.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "biosphereUnknown": true,
+  "contactStatus": { "id": ["xeno.peerdb.org", "CONTACT_STATUS", "NO_CONTACT"] },
+  "firstSurveyed": { "time": "2294-01-01T00:00:00Z", "precision": "y" },
+  "surveyPeriod": { "from": { "time": "2294-01-01T00:00:00Z", "precision": "y" }, "to": { "time": "2294-01-01T00:00:00Z", "precision": "y" } },
+  "image": [
+    { "value": "/f/QWo1LWCbYytnDU5DRKNH7d", "name": "G2_COLD_REGISTER.jpg", "caption": "Surface view", "source": "Consortium survey archive" }
+  ],
+  "notes": [
+    {
+      "value": "<p>The eleven days included two lost to an instrument fault. The resulting file is the shortest primary survey in the register and is cited more often than several forty-year efforts, because it is the only thing there is.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

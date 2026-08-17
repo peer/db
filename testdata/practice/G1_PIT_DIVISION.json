@@ -1,0 +1,26 @@
+{
+  "id": ["xeno.peerdb.org", "PRACTICE", "G1_PIT_DIVISION"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PRACTICE"] }],
+  "name": [{ "value": "Dividing the Culture", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Elmashen Kesh", "gloss": "the house cut in two" }],
+  "description": [
+    {
+      "value": "<p>When a terrace house divides, the oldest pit is opened at the top of a tide and a measured half of the living mass is lifted out by the departing head, by hand, into a fired vessel made that morning. The vessel is carried up the slope to the new pit without being set down at any point, and anybody who touches it on the way is thereby of the new house. For nine days the new pit is fed with silt drawn off the old house&#39;s top basin, which the old house is obliged to give and does not have to be asked for. Until the new pit takes, the departing house eats only what the old pit produces, so that a division always costs the parent house a season of food. The whole thing is conducted with very little talk and a great deal of measuring, and a house that gets it wrong is understood to have lost the ability to eat rather than merely a recipe.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Ob delitvi hiše polovico žive kvasne kulture ročno prenesejo v novo jamo, ne da bi posodo vmes odložili.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    }
+  ],
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G1_ANCHOR_HOUSES"] }],
+  "category": { "id": ["xeno.peerdb.org", "PRACTICE_CATEGORY", "RITE_OF_PASSAGE"] },
+  "periodicity": "when a house divides, perhaps twice in a century",
+  "participants": {
+    "value": { "from": { "amount": 6, "precision": 1 }, "to": { "amount": 80, "precision": 1 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "firstDocumented": { "time": "2249-01-01T00:00:00Z", "precision": "y" },
+  "relatedPractice": [{ "id": ["xeno.peerdb.org", "PRACTICE", "G1_FIRST_DRAW_MEAL"] }],
+  "image": [{ "value": "/f/FowZ4NX2EXHQXFYLQQWryU", "name": "G1_PIT_DIVISION.jpg", "caption": "In progress", "source": "Consortium survey archive" }]
+}

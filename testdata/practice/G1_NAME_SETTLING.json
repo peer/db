@@ -1,0 +1,31 @@
+{
+  "id": ["xeno.peerdb.org", "PRACTICE", "G1_NAME_SETTLING"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PRACTICE"] }],
+  "name": [{ "value": "Settling the Name", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Qatpe Nat", "gloss": "the name for two" }],
+  "description": [
+    {
+      "value": "<p>The two selves that have come out of a division present themselves on the basin floor while the pool stands, and each recounts the whole of the shared life up to the month of the split, in turn, until the two accounts stop agreeing. The households that hold the name listen to both and one of the two selves keeps it; there is no appeal and no vote. The other is read the empty names in the order they fell vacant and must take one before the pool drains, together with whatever relations that name was carrying when its last holder let it go. Refusing is possible and leaves a person named but related to nobody, which is understood as the serious outcome. The whole business takes about a day and is conducted with roughly the ceremony of a house move.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Po delitvi se dva jaza dogovorita, kdo obdrži ime; drugi mora prevzeti eno od praznih imen.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    }
+  ],
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G1_NAME_ASSEMBLY"] }],
+  "category": { "id": ["xeno.peerdb.org", "PRACTICE_CATEGORY", "NAMING"] },
+  "periodicity": "whenever an adult has become two, and only while the pool stands",
+  "participants": {
+    "value": { "from": { "amount": 12, "precision": 1 }, "to": { "amount": 300, "precision": 1 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "firstDocumented": { "time": "2241-01-01T00:00:00Z", "precision": "y" },
+  "image": [{ "value": "/f/FjSAoUQ8XTarjdk2ZzfHqz", "name": "G1_NAME_SETTLING.jpg", "caption": "In progress", "source": "Consortium survey archive" }],
+  "notes": [
+    {
+      "value": "<p>One division is on record in which neither self would take the name. It has stood empty since 2244, is read out in its place at every gathering, and the assembly has twice declined to explain to visiting staff what would happen if somebody took it now.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

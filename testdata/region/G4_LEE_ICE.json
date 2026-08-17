@@ -1,0 +1,20 @@
+{
+  "id": ["xeno.peerdb.org", "REGION", "G4_LEE_ICE"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "REGION"] }],
+  "name": [{ "value": "Lee Ice", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Munungu" }],
+  "description": [
+    {
+      "value": "<p>The margin of the night-side cap, where the ice front meets the ring sea and calves continuously. Fresh water from the cap sinks here and drives the return flow along the ocean floor. The front advances and retreats by a few hundred metres a decade, and is watched closely by everyone with a settlement downstream of it.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "PLANET", "G4_HALFLIGHT"] },
+  "biome": [{ "id": ["xeno.peerdb.org", "BIOME", "NIGHTSIDE_TRAP"] }],
+  "area": { "value": { "amount": 1260000, "precision": 100 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "SQUARE_KILOMETRE"] }] },
+  "elevationRange": {
+    "value": { "from": { "amount": -900, "precision": 10 }, "to": { "amount": 1840, "precision": 10 } },
+    "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }]
+  },
+  "image": [{ "value": "/f/1tUjC18Jdv4yJFQwmMGKzs", "name": "G4_LEE_ICE.jpg", "caption": "Regional view", "source": "Consortium survey archive" }]
+}

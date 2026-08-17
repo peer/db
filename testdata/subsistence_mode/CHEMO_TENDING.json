@@ -1,0 +1,24 @@
+{
+  "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "CHEMO_TENDING"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE"] }],
+  "name": [
+    { "value": "Chemosynthetic tending", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "Oskrbovanje kemosintetskih kultur", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }] },
+    { "value": "Maneio quimiossintético", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>Deliberate management of chemosynthetic mats or symbionts, including plumbing of vent flow and control of temperature. Excludes simple gathering at vents.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Načrtno gojenje kemosintetskih preprog ali simbiontov, z uravnavanjem pretoka in temperature.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Gestão deliberada de tapetes ou simbiontes quimiossintéticos, incluindo a canalização do fluxo das fontes e o controlo da temperatura. Exclui a simples recolha junto às fontes.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "code": ["chemo-tend"]
+}

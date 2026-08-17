@@ -1,0 +1,30 @@
+{
+  "id": ["xeno.peerdb.org", "ORGANISM", "G2_CHIMNEY_GRAZER"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "ORGANISM"] }],
+  "name": [{ "value": "Chimney Grazer", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Nurruwe" }],
+  "taxonCode": "TX-1142-c",
+  "description": [
+    {
+      "value": "<p>An armoured crawler that works the outer crusts of the mineral chimneys, rasping off sulphide growth and moving on before the surface it stands on gets too hot. Its gut lining is dried and used as a poultice for the burns that come with living beside a vent, which is one of the very few local remedies that appears to do something. Chimney collapse is the commonest cause of death and the animals appear to have no way of anticipating it.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Um rastejante blindado que trabalha as crostas exteriores das chaminés minerais, raspando o crescimento de sulfuretos e seguindo em frente antes que a superfície onde está fique demasiado quente. O revestimento do seu intestino é seco e usado como cataplasma para as queimaduras que vêm de viver ao lado de uma fonte, e é um dos pouquíssimos remédios locais que parece fazer alguma coisa. O desabamento das chaminés é a causa de morte mais comum e os animais não parecem ter maneira nenhuma de o prever.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "category": { "id": ["xeno.peerdb.org", "ORGANISM_CATEGORY", "MOTILE_HETEROTROPH"] },
+  "foundOn": [{ "id": ["xeno.peerdb.org", "PLANET", "G2_LONG_LID"] }],
+  "biome": [{ "id": ["xeno.peerdb.org", "BIOME", "VENT_FIELD"] }],
+  "typicalSize": { "value": { "amount": 0.4, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+  "typicalMass": { "value": { "amount": 3.2, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "kg"] }] },
+  "image": [
+    {
+      "value": "/f/1bnZqFyFArmvq9jWMTwe7p",
+      "name": "G2_CHIMNEY_GRAZER.jpg",
+      "caption": "Field plate",
+      "source": "Drawn in the field; Consortium collection"
+    }
+  ]
+}

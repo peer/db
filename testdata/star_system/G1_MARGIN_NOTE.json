@@ -1,0 +1,18 @@
+{
+  "id": ["xeno.peerdb.org", "STAR_SYSTEM", "G1_MARGIN_NOTE"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "STAR_SYSTEM"] }],
+  "name": [{ "value": "Margin Note", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "catalogueCode": "MW-0709-MGN",
+  "description": [
+    {
+      "value": "<p>An orange dwarf with three planets, named for the pencilled aside in which it was first recorded. The aside was correct and the main entry was not.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "SECTOR", "G1_LONG_TALLY"] },
+  "spectralClass": "K5V",
+  "starCount": { "amount": 1, "precision": 1 },
+  "planetCount": { "amount": 3, "precision": 1 },
+  "distanceFromSol": { "value": { "amount": 690.4, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "PARSEC"] }] },
+  "firstSurveyed": { "time": "2248-01-01T00:00:00Z", "precision": "y" }
+}

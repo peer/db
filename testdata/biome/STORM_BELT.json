@@ -1,0 +1,24 @@
+{
+  "id": ["xeno.peerdb.org", "BIOME", "STORM_BELT"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "BIOME"] }],
+  "name": [
+    { "value": "Permanent storm belt", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "Stalni nevihtni pas", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }] },
+    { "value": "Faixa de tempestade permanente", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>Latitudinal band under continuous convective violence, where organisms are built for constant rain, lightning and shear. Excludes coasts merely subject to a storm season.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Širinski pas z nenehnimi nevihtami, kjer so organizmi prilagojeni na stalen dež in strele.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Faixa latitudinal sob violência convectiva contínua, onde os organismos são feitos para chuva, relâmpagos e cisalhamento constantes. Exclui costas apenas sujeitas a uma época de tempestades.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "code": ["storm-belt"]
+}

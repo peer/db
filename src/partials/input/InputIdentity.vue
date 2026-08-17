@@ -41,7 +41,7 @@ import Button from "@/components/Button.vue"
 import InputStyled from "@/components/InputStyled.vue"
 import ProgressBar from "@/components/ProgressBar.vue"
 import IdentityInline from "@/partials/IdentityInline.vue"
-import { useLock } from "@/progress"
+import { useInactivated, useLock } from "@/progress"
 import { useValidation } from "@/validation"
 
 const props = withDefaults(
@@ -102,7 +102,8 @@ const lookupProgress = ref(0)
 // edited or cleared. The Clear button then visually appears but is disabled, which the harder readonly
 // prop distinguishes by hiding it entirely.
 const lock = useLock()
-const inactive = computed(() => lock.value > 0 || props.readonly)
+const inactivated = useInactivated()
+const inactive = computed(() => lock.value > 0 || inactivated.value || props.readonly)
 
 // Toggles between the two visual states: false shows the chip naming the user, true shows the input so
 // the subject can be typed. There is nothing to show a chip for while the value is empty.
@@ -228,13 +229,13 @@ async function clearSelection() {
     auto-merge onto this root (fallthrough attrs target the input), so the wrapper needs explicit
     flex-item classes to stretch in a row-flex parent the way InputString et al. do.
   -->
-  <div ref="wrapperRef" class="min-w-0 flex-auto grow" @focusout="onWrapperFocusout">
+  <div ref="wrapperRef" class="pd-inputidentity min-w-0 flex-auto grow" @focusout="onWrapperFocusout">
     <!--
       Grid with a single minmax(0,1fr) column. The "0" min track size propagates a min-content of 0 up
       through the flex ancestors, so the whole input chain can shrink and the chip's truncate actually
       clips a long name instead of forcing the input to grow.
     -->
-    <div class="relative grid w-full grid-cols-[minmax(0,1fr)]">
+    <div class="pd-inputidentity-field relative grid w-full grid-cols-[minmax(0,1fr)]">
       <!--
         A user is named and their subject is not being typed: the name inside a contenteditable div
         styled to look like a text input.
@@ -250,8 +251,8 @@ async function clearSelection() {
         :invalid="invalid"
         :aria-readonly="inactive || undefined"
         :aria-invalid="invalid || undefined"
-        class="pd-inputidentity w-full truncate"
-        :class="[readonly ? '' : 'pr-23', { 'pd-locked': lock > 0 }]"
+        class="pd-inputidentity-value w-full truncate"
+        :class="[readonly ? '' : 'pr-23', { 'pd-locked': lock > 0, 'pd-inactive': inactivated || readonly }]"
         @click="enterEditMode"
         @focus="enterEditMode"
         @beforeinput.prevent
@@ -273,8 +274,8 @@ async function clearSelection() {
         :readonly="inactive"
         :aria-invalid="invalid || undefined"
         v-bind="$attrs"
-        class="pd-inputidentity w-full"
-        :class="[clearable && !readonly ? 'pr-23' : 'pr-3', { 'pd-locked': lock > 0 }]"
+        class="pd-inputidentity-input w-full"
+        :class="[clearable && !readonly ? 'pr-23' : 'pr-3', { 'pd-locked': lock > 0, 'pd-inactive': inactivated || readonly }]"
         @update:model-value="text = $event"
       />
 
@@ -286,11 +287,11 @@ async function clearSelection() {
         change it but not right now".
       -->
       <div v-if="!readonly && clearable" class="absolute inset-y-0 right-0 flex items-center gap-1 pr-2">
-        <Button type="button" class="px-2.5 py-1" @click.prevent="clearSelection">{{ t("common.buttons.clear") }}</Button>
+        <Button type="button" class="pd-inputidentity-button-clear px-2.5 py-1" @click.prevent="clearSelection">{{ t("common.buttons.clear") }}</Button>
       </div>
 
       <!-- Indeterminate progress bar bound only to the lookup, which is the only work this input does. -->
-      <ProgressBar :progress="lookupProgress" class="absolute inset-x-0 bottom-0 rounded-b" />
+      <ProgressBar :progress="lookupProgress" class="pd-inputidentity-loading absolute inset-x-0 bottom-0 rounded-b" />
     </div>
   </div>
 </template>

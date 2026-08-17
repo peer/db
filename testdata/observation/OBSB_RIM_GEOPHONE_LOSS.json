@@ -1,0 +1,38 @@
+{
+  "id": ["xeno.peerdb.org", "OBSERVATION", "OBSB_RIM_GEOPHONE_LOSS"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "OBSERVATION"] }],
+  "title": [
+    { "value": "Failure of the geophone string during a convergence at the ring", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>Note on an instrument failure at the one event the programme was built to record, and on what was salvaged from the first forty minutes.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "content": [
+    {
+      "value": "<p>11.vii.2302. Bodies began arriving at the ring over about half a day, singly and from all along the rim, and took a slab each. Thirty-six of the forty slabs were occupied at the peak.</p><p>The striking began together, which we had not expected, and six of our eleven geophone channels clipped within the first four minutes. The string was rated against basin seismicity, on the reasonable assumption that a body striking a stone slab would be quieter than the ground moving. It is not.</p><p>Usable amplitude therefore exists for forty minutes on five channels, and the remaining five hours are recorded as saturation. The figure built, thinned and stopped, and the bodies dispersed within the day, still drumming, exactly as the earlier accounts describe.</p><p>The intervals between convergences remain unpredicted. We have four dates now and no period that fits them. We also cannot say what arrived at the ring: the drumming was running through the ground ahead of the bodies, so by any local reckoning the self was already present before anything of it walked in.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "expedition": { "id": ["xeno.peerdb.org", "EXPEDITION", "EXP_SUMP_GEOPHONE"] },
+  "observedBy": [
+    { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_MOKOENA"] },
+    { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_VASILAKIS"] },
+    { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_DOYLE"] }
+  ],
+  "observedAt": { "id": ["xeno.peerdb.org", "SITE", "G3_RIM_DRUM_GROUND"] },
+  "observedOn": { "time": "2302-07-11T00:00:00Z", "precision": "d" },
+  "about": [
+    { "id": ["xeno.peerdb.org", "SPECIES", "G3_RIM_DRUMMERS"] },
+    { "id": ["xeno.peerdb.org", "PRACTICE", "G3_STRIKING_TOGETHER"] },
+    { "id": ["xeno.peerdb.org", "CULTURE", "G3_RIM_CONVERGENCE"] }
+  ],
+  "method": [
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "ACOUSTIC_RECORDING"] },
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "REMOTE_SENSING"] }
+  ],
+  "fieldConditions": "Warm rock, no wind to speak of, the rim in haze from the tar plains. Three of us at two hundred metres, off the ring.",
+  "image": [{ "value": "/f/LXqyhQdvDNEZxu7TNta7iz", "name": "OBSB_RIM_GEOPHONE_LOSS.jpg", "caption": "Taken at the time", "source": "Field record" }]
+}

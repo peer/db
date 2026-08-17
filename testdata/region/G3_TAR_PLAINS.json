@@ -1,0 +1,19 @@
+{
+  "id": ["xeno.peerdb.org", "REGION", "G3_TAR_PLAINS"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "REGION"] }],
+  "name": [{ "value": "Tar Plains", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "description": [
+    {
+      "value": "<p>The basin floor: level, black, slick, and under a standing haze that never lifts entirely. Heavy organics pool in shallow depressions and slowly bake. It is worked at the edges for pigment and hard carbon, and crossed as little as possible.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "PLANET", "G3_SUMP"] },
+  "biome": [{ "id": ["xeno.peerdb.org", "BIOME", "HAZE_LOWLAND"] }],
+  "area": { "value": { "amount": 1500000, "precision": 100 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "SQUARE_KILOMETRE"] }] },
+  "elevationRange": {
+    "value": { "from": { "amount": -300, "precision": 10 }, "to": { "amount": 400, "precision": 10 } },
+    "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }]
+  },
+  "image": [{ "value": "/f/UKCKN9AdNEQ7ic7mmNzbdG", "name": "G3_TAR_PLAINS.jpg", "caption": "Regional view", "source": "Consortium survey archive" }]
+}

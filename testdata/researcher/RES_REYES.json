@@ -1,0 +1,22 @@
+{
+  "id": ["xeno.peerdb.org", "RESEARCHER", "RES_REYES"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "RESEARCHER"] }],
+  "name": [{ "value": "Tomas" }],
+  "familyName": [{ "value": "Reyes" }],
+  "researcherCode": "CCX-P-00914",
+  "description": [
+    {
+      "value": "<p>Spent four decades on macrotidal coasts and produced the second of the four tide tables, which he still maintains is the only one that was measured rather than argued. He came to xenoanthropology from hydrographic survey and never entirely stopped being a surveyor. He retired in 2306 at the end of an archival posting he had asked for in writing three times.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "affiliatedWith": [{ "id": ["xeno.peerdb.org", "INSTITUTE", "INST_ANCHOR"] }],
+  "specialisesIn": [
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "PARTICIPANT_OBSERVATION"] },
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "NETWORK_MAPPING"] }
+  ],
+  "activePeriod": { "from": { "time": "2254-01-01T00:00:00Z", "precision": "y" }, "to": { "time": "2306-01-01T00:00:00Z", "precision": "y" } },
+  "born": { "time": "2229-01-01T00:00:00Z", "precision": "y" },
+  "website": ["https://anchor.ccx.example/people/reyes"],
+  "image": [{ "value": "/f/DgBzZsqSmvNtqkaZPs6unC", "name": "RES_REYES.jpg", "caption": "Staff photograph", "source": "Consortium personnel record" }]
+}

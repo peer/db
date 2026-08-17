@@ -1,0 +1,26 @@
+{
+  "id": ["xeno.peerdb.org", "RESEARCHER", "RES_PRASETYO"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "RESEARCHER"] }],
+  "name": [{ "value": "Bayu" }],
+  "familyName": [{ "value": "Prasetyo" }],
+  "researcherCode": "CCX-P-04390",
+  "description": [
+    {
+      "value": "<p>Administers the allocation instrument and has asked its forty-one questions, in order, rather more than two thousand times. He is writing a paper about what the order does to the answers, which his institute has not yet seen. He is very good with people who do not want to be interviewed.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "affiliatedWith": [{ "id": ["xeno.peerdb.org", "INSTITUTE", "INST_LEDGER"] }, { "id": ["xeno.peerdb.org", "INSTITUTE", "INST_SUBSTRATE"] }],
+  "specialisesIn": [
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "STRUCTURED_INTERVIEW"] },
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "NETWORK_MAPPING"] }
+  ],
+  "activePeriod": { "from": { "time": "2292-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true },
+  "born": { "time": "2267-01-01T00:00:00Z", "precision": "y" },
+  "notes": [
+    {
+      "value": "<p>The paper on question order has been in draft since 2304. He has asked twice whether it needs ethics clearance and has had two different answers.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

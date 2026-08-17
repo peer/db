@@ -1,0 +1,33 @@
+{
+  "id": ["xeno.peerdb.org", "EXPEDITION", "EXP_FETCH_BAND"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "EXPEDITION"] }],
+  "name": [{ "value": "Fetch Terminator Band Survey", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "catalogueCode": "EXP-2288-04",
+  "description": [
+    {
+      "value": "<p>Five years in the habitable band, following two hearth clusters that move with it and sampling the glass quarry that supplies both. The survey established that the band itself is migrating, and that at least one settlement has moved eleven kilometres inward since 2231 without anybody involved regarding it as a move. Whether that is a migration or a correction of the earlier survey is a question the report puts twice and answers neither time.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "destination": [
+    { "id": ["xeno.peerdb.org", "PLANET", "G4_FETCH"] },
+    { "id": ["xeno.peerdb.org", "REGION", "G4_DUSK_MARCH"] },
+    { "id": ["xeno.peerdb.org", "REGION", "G4_COLD_LOCKER"] }
+  ],
+  "period": { "from": { "time": "2288-01-01T00:00:00Z", "precision": "y" }, "to": { "time": "2293-01-01T00:00:00Z", "precision": "y" } },
+  "ledBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_FERREIRA"] }],
+  "teamMember": [
+    { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_HADDAD"] },
+    { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_DOYLE"] },
+    { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_FARAHANI"] }
+  ],
+  "organisedBy": [{ "id": ["xeno.peerdb.org", "INSTITUTE", "INST_SUBSTRATE"] }, { "id": ["xeno.peerdb.org", "INSTITUTE", "INST_IELUARO"] }],
+  "method": [
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "PARTICIPANT_OBSERVATION"] },
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "MATERIAL_SAMPLING"] },
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "OPEN_INTERVIEW"] }
+  ],
+  "ethics": { "id": ["xeno.peerdb.org", "ETHICS_PROTOCOL", "PROTOCOL_1"] },
+  "budget": { "value": { "amount": 2400000, "precision": 1000 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "$"] }] },
+  "report": [{ "value": "/f/W6N5v5Goc7jcroRNn8u28X", "name": "EXP_FETCH_BAND.pdf", "caption": "Final report" }]
+}

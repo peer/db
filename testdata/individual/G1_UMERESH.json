@@ -1,0 +1,17 @@
+{
+  "id": ["xeno.peerdb.org", "INDIVIDUAL", "G1_UMERESH"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "INDIVIDUAL"] }],
+  "name": [{ "value": "Umeresh" }],
+  "description": [
+    {
+      "value": "<p>Reads and re-knots the rota cord for the lower ring, a job that is neither senior nor optional and that nobody else there will do twice. He has answered every question the survey has put to him and refused every request to photograph the cord, on the ground that a cord read by somebody who was not present is not a cord but a rumour. The 2304 transcript of his account runs to two hundred pages and contains no image of anything.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "species": { "id": ["xeno.peerdb.org", "SPECIES", "G1_SUNARELI"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G1_WEIR_ROTA"] }],
+  "role": [{ "value": "cord reader", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "formOfAddress": "by name",
+  "born": { "time": "2241-01-01T00:00:00Z", "precision": "y" },
+  "birthplace": { "id": ["xeno.peerdb.org", "SITE", "G1_LOWER_MIDDEN"] }
+}

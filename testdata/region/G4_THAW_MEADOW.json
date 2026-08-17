@@ -1,0 +1,25 @@
+{
+  "id": ["xeno.peerdb.org", "REGION", "G4_THAW_MEADOW"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "REGION"] }],
+  "name": [{ "value": "Thaw Meadow", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Tokkun" }],
+  "description": [
+    {
+      "value": "<p>A basin of braided meltwater channels seven hundred kilometres across, which exists as a landscape for about thirty years in every four hundred and as a frozen plain for the rest. During the thaw the channels rearrange themselves weekly and the surface is not safe to cross on foot. All of the world&#39;s above-ground activity happens here, in a hurry.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "PLANET", "G4_MARROW"] },
+  "biome": [{ "id": ["xeno.peerdb.org", "BIOME", "BRAIDED_MELT"] }],
+  "area": { "value": { "amount": 388000, "precision": 100 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "SQUARE_KILOMETRE"] }] },
+  "elevationRange": {
+    "value": { "from": { "amount": 620, "precision": 10 }, "to": { "amount": 1490, "precision": 10 } },
+    "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }]
+  },
+  "notes": [
+    {
+      "value": "<p>Every published map of this region is dated in the caption to the week, which is the only sensible way to do it and looks, to anyone unfamiliar with the place, like an affectation.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

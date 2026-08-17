@@ -1,0 +1,25 @@
+{
+  "id": ["xeno.peerdb.org", "INDIVIDUAL", "G4_IN_SOVITHAN"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "INDIVIDUAL"] }],
+  "name": [{ "value": "Sovithan" }],
+  "description": [
+    {
+      "value": "<p>Carried a starter culture forty kilometres nightward in 2301 after a chamber failure took out four producing strains, arriving, by the account of the group that received it, barely warm enough to speak. The transfer created obligations in three directions that the assay subsequently declined to confirm, and nobody has adjusted their behaviour. She consented to a photograph in 2306 and has asked for a copy every year since, which the Consortium has so far managed to deliver twice.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "species": { "id": ["xeno.peerdb.org", "SPECIES", "G4_TRAP_KEEPERS"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G4_CU_COLD_STORE"] }],
+  "role": [{ "value": "culture carrier", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "formOfAddress": "by strain, then by name",
+  "born": { "time": "2266-01-01T00:00:00Z", "precision": "y" },
+  "birthplace": { "id": ["xeno.peerdb.org", "SITE", "G4_FROST_HOUSE"] },
+  "image": [
+    {
+      "value": "/f/FvyKsJzRxDSYWNTEUU4XFa",
+      "name": "G4_IN_SOVITHAN.jpg",
+      "caption": "Portrait",
+      "source": "Made with consent; Consortium collection"
+    }
+  ]
+}

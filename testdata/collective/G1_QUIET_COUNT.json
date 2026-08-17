@@ -1,0 +1,25 @@
+{
+  "id": ["xeno.peerdb.org", "COLLECTIVE", "G1_QUIET_COUNT"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "COLLECTIVE"] }],
+  "name": [{ "value": "The Count That Went Quiet", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "description": [
+    {
+      "value": "<p>A colony recorded drumming continuously between 2276 and 2294 and not recorded since, on a stretch of shelf that has been walked over twice in the years after. Colonies do not die in any way the discipline has managed to define, so the file records dispersal rather than death, and nobody is satisfied with that. The last four days of its drumming are transcribed in full and read, to the two people who have read them, like an inventory.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "species": { "id": ["xeno.peerdb.org", "SPECIES", "G1_KHEVNITH"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G1_SHELF_LEDGER"] }],
+  "role": [{ "value": "drum correspondent", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "memberCount": {
+    "value": { "from": { "amount": 12000, "precision": 10 }, "to": { "amount": 30000, "precision": 10 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "activePeriod": { "from": { "time": "2276-01-01T00:00:00Z", "precision": "y" }, "to": { "time": "2294-01-01T00:00:00Z", "precision": "y" } },
+  "notes": [
+    {
+      "value": "<p>The transcript was made under a permission that names the colony as the consenting party. The ethics panel has twice declined to say whether that permission survives the silence, on the ground that the question is not one it has been asked to answer.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "id": ["xeno.peerdb.org", "STAR_SYSTEM", "G4_SELVEDGE"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "STAR_SYSTEM"] }],
+  "name": [{ "value": "Selvedge", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "catalogueCode": "SPW-A/104",
+  "description": [
+    {
+      "value": "<p>A single yellow dwarf at the head of the Long Stream, with six planets, a ring-bearing giant and the densest concentration of fieldwork in the galaxy. Its inner system is unusually flat for the Spillwork, which is why the survey began here.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "SECTOR", "G4_LONG_STREAM"] },
+  "spectralClass": "G6V",
+  "starCount": { "amount": 1, "precision": 1 },
+  "planetCount": { "amount": 6, "precision": 1 },
+  "distanceFromSol": { "value": { "amount": 611.2, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "PARSEC"] }] },
+  "firstSurveyed": { "time": "2216-01-01T00:00:00Z", "precision": "y" }
+}

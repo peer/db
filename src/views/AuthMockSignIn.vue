@@ -53,23 +53,33 @@ function onSignIn() {
   <div class="pd-authmocksignin mt-[var(--pd-navbar-offset)] flex w-full flex-col p-1 sm:p-4 xl:px-16">
     <div class="flex flex-col gap-y-4 rounded-sm border border-gray-200 bg-white p-4 shadow-sm">
       <div>
-        <h1 class="text-3xl font-bold drop-shadow-xs">{{ t("views.AuthMockSignIn.title") }}</h1>
-        <p class="mt-1 text-gray-700">{{ t("views.AuthMockSignIn.description") }}</p>
+        <h1 id="authmocksignin-title" class="text-3xl font-bold drop-shadow-xs">{{ t("views.AuthMockSignIn.title") }}</h1>
+        <p class="pd-authmocksignin-text-description mt-1 text-gray-700">{{ t("views.AuthMockSignIn.description") }}</p>
       </div>
-      <form v-if="state" class="flex flex-col gap-y-4" @submit.prevent="onSignIn">
+      <form v-if="state" class="pd-authmocksignin-form flex flex-col gap-y-4" @submit.prevent="onSignIn">
         <!-- The roles are shown as the site names them, because that is what the sign-in claims. -->
-        <div v-if="roles.length" class="flex flex-col gap-y-1">
-          <label v-for="role of roles" :key="role" class="flex cursor-pointer items-center gap-x-2">
-            <CheckBox :model-value="selected.includes(role)" @update:model-value="onToggle(role, $event as boolean)" />
+        <div v-if="roles.length" class="pd-authmocksignin-list-roles flex flex-col gap-y-1">
+          <label
+            v-for="role of roles"
+            :key="role"
+            class="pd-authmocksignin-label-role flex cursor-pointer items-center gap-x-2"
+            :class="`pd-authmocksignin-label-role-${role}`"
+          >
+            <CheckBox
+              class="pd-authmocksignin-checkbox-role"
+              :class="`pd-authmocksignin-checkbox-role-${role}`"
+              :model-value="selected.includes(role)"
+              @update:model-value="onToggle(role, $event as boolean)"
+            />
             {{ role }}
           </label>
         </div>
-        <p v-else class="text-gray-700">{{ t("views.AuthMockSignIn.noRoles") }}</p>
+        <p v-else id="authmocksignin-empty-roles" class="text-gray-700">{{ t("views.AuthMockSignIn.noRoles") }}</p>
         <div class="flex flex-row justify-end">
           <Button id="authmocksignin-button-signin" type="submit" primary :progress="busy">{{ t("common.buttons.signIn") }}</Button>
         </div>
       </form>
-      <p v-else class="text-error-600">{{ t("views.AuthMockSignIn.noState") }}</p>
+      <p v-else id="authmocksignin-error-nostate" class="text-error-600">{{ t("views.AuthMockSignIn.noState") }}</p>
     </div>
   </div>
   <Teleport to="footer">

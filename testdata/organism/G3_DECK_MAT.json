@@ -1,0 +1,31 @@
+{
+  "id": ["xeno.peerdb.org", "ORGANISM", "G3_DECK_MAT"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "ORGANISM"] }],
+  "name": [{ "value": "Cloud Deck Mat", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "taxonCode": "TX-1131-b",
+  "description": [
+    {
+      "value": "<p>Dark sheets tens of metres across that hold station against the zonal winds at the top of a giant&#39;s cloud deck, apparently for the whole of a life cycle nobody has observed. Two probes have gone into the Bellows population: one returned spectra suggesting photosynthesis of a sort, the other returned nothing whatever. The Windlass f identification rests on a single spectrum that one reviewer still disputes in print.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "category": { "id": ["xeno.peerdb.org", "ORGANISM_CATEGORY", "AERIAL_DRIFTER"] },
+  "foundOn": [{ "id": ["xeno.peerdb.org", "PLANET", "G3_BELLOWS_E"] }, { "id": ["xeno.peerdb.org", "PLANET", "G3_WINDLASS_F"] }],
+  "biome": [{ "id": ["xeno.peerdb.org", "BIOME", "AERIAL_MAT"] }],
+  "typicalSize": { "value": { "amount": 55.0, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+  "typicalMass": { "value": { "amount": 1200.0, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "kg"] }] },
+  "image": [
+    {
+      "value": "/f/1fieDYapecLWo7HLMQQ8Vv",
+      "name": "G3_DECK_MAT.jpg",
+      "caption": "Field plate",
+      "source": "Drawn in the field; Consortium collection"
+    }
+  ],
+  "notes": [
+    {
+      "value": "<p>What the mats do for a living is the sector&#39;s most cited open question, in part because it can be cited without anybody having to go there.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

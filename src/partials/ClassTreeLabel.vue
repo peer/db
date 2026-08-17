@@ -52,7 +52,7 @@ const WithDocumentD = WithDocument<D>
     </template>
     <template #loading="{ url }">
       <div
-        class="pd-withdocument-loading my-1.5 h-2 rounded-sm bg-slate-200 motion-safe:animate-pulse"
+        class="pd-classtreelabel pd-classtreelabel-loading pd-withdocument-loading my-1.5 h-2 rounded-sm bg-slate-200 motion-safe:animate-pulse"
         :data-url="url"
         :class="[loadingWidth(node.res.id)]"
         aria-hidden="true"

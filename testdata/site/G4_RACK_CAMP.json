@@ -1,0 +1,26 @@
+{
+  "id": ["xeno.peerdb.org", "SITE", "G4_RACK_CAMP"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SITE"] }],
+  "name": [{ "value": "Rack Camp", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "description": [
+    {
+      "value": "<p>A Consortium weather station established in 2231 on the only high ground in the storm belt that is not routinely struck by lightning, a fact established by building it twice. It ran a continuous atmospheric record for thirty-one years with a crew of between four and eleven. It was abandoned in 2262, when the automated replacement proved able to do the same work without anybody having to live in it.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "REGION", "G4_THE_RACK"] },
+  "siteType": { "id": ["xeno.peerdb.org", "SITE_TYPE", "FIELD_CAMP"] },
+  "gridReference": "RK-002.7/0.4",
+  "population": {
+    "value": { "from": { "amount": 4, "precision": 10 }, "to": { "amount": 11, "precision": 10 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "founded": { "time": "2231-01-01T00:00:00Z", "precision": "y" },
+  "occupation": { "from": { "time": "2231-01-01T00:00:00Z", "precision": "y" }, "to": { "time": "2262-01-01T00:00:00Z", "precision": "y" } },
+  "notes": [
+    {
+      "value": "<p>The first siting lasted nine weeks. The staff moved three kilometres and forty metres higher, and the second siting lasted thirty-one years, which suggests the ground was the variable rather than the weather.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

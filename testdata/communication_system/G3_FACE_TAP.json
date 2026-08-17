@@ -1,0 +1,46 @@
+{
+  "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G3_FACE_TAP"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM"] }],
+  "name": [{ "value": "Face Tap", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [
+    {
+      "value": "[tapping on the open face]",
+      "gloss": "a description rather than a name; the Tessilen have no word for it that is not the word for working"
+    }
+  ],
+  "description": [
+    {
+      "value": "<p>Signals struck along the bedding planes of split rock, carried by the stone itself, together with contact chemical marks left on the working face and read by touch. It carries identity, the stage a face has reached and whether a face may be opened, and it cannot carry anything at all about ground the speaker is not touching. Colonies at the ice front use the same system on frost-shattered rubble, more slowly and with a wider vocabulary of marks. A fieldworker&#39;s first error is to hear the pauses as punctuation, when the pause length is the greater part of the content and the strikes are little more than a frame for it.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "modality": [
+    { "id": ["xeno.peerdb.org", "COMMUNICATION_MODALITY", "SUBSTRATE_PERCUSSION"] },
+    { "id": ["xeno.peerdb.org", "COMMUNICATION_MODALITY", "CHEMICAL_SIGNATURE"] }
+  ],
+  "users": {
+    "value": { "from": { "amount": 7000, "precision": 100 }, "to": { "amount": 29000, "precision": 100 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "sampleGloss": [
+    {
+      "value": "<p><i>three strikes, a long pause, one strike, a mark laid across the seam</i>. Element by element: face open, wait, mine, tenth year. Freely: this face is open, do nothing yet, it is mine and it is ten years in.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "recording": [
+    {
+      "value": "/f/Ckdwqy238jJQxaZhVbQWmN",
+      "name": "system-G3_FACE_TAP.mp3",
+      "caption": "Elicitation sample",
+      "duration": { "value": { "amount": 4, "precision": 1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "MINUTE"] }] },
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G3_FACE_TAP"] }],
+      "note": [
+        {
+          "value": "<p>Recorded during elicitation and kept as the reference sample for this system.</p>",
+          "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+        }
+      ]
+    }
+  ]
+}

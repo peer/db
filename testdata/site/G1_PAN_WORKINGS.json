@@ -1,0 +1,21 @@
+{
+  "id": ["xeno.peerdb.org", "SITE", "G1_PAN_WORKINGS"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SITE"] }],
+  "name": [{ "value": "Pan Workings", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "description": [
+    {
+      "value": "<p>A grid of cut evaporation cells worked for lithium salts between 2266 and 2288, with low walls of stacked crust still standing between them. The operation closed when the shipping economics failed, not the deposit. The cells have not been disturbed since and are used now as a reference surface for weathering rates.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "REGION", "G1_PROVISION_PANS"] },
+  "siteType": { "id": ["xeno.peerdb.org", "SITE_TYPE", "EXTRACTION_SITE"] },
+  "gridReference": "TB-116.4/+42.6",
+  "population": {
+    "value": { "from": { "amount": 18, "precision": 10 }, "to": { "amount": 50, "precision": 10 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "founded": { "time": "2266-01-01T00:00:00Z", "precision": "y" },
+  "occupation": { "from": { "time": "2266-01-01T00:00:00Z", "precision": "y" }, "to": { "time": "2288-01-01T00:00:00Z", "precision": "y" } },
+  "image": [{ "value": "/f/XXFsaX1U8VU3vt2CmM4UwS", "name": "G1_PAN_WORKINGS.jpg", "caption": "General view", "source": "Consortium survey archive" }]
+}

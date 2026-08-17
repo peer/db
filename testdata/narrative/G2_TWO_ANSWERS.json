@@ -1,0 +1,39 @@
+{
+  "id": ["xeno.peerdb.org", "NARRATIVE", "G2_TWO_ANSWERS"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "NARRATIVE"] }],
+  "title": [{ "value": "The One Who Divided to Get Out of It", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [
+    {
+      "value": "Nurremenne marru",
+      "gloss": "the heat-saying about the two",
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G2_SEAM_PULSE"] }]
+    }
+  ],
+  "description": [
+    {
+      "value": "<p>A linked set of episodes about a hearth holder who divides in order to leave a debt behind, and who keeps finding that both continuations owe all of it. It is struck out at the fissures between shifts, in no fixed order, and every household tells it with a different last episode.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "genre": { "id": ["xeno.peerdb.org", "NARRATIVE_GENRE", "TRICKSTER_CYCLE"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G2_HEARTH_CORPORATIONS"] }],
+  "recordedBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_ZUPAN"] }],
+  "recordedAt": { "id": ["xeno.peerdb.org", "SITE", "G2_NURRU_HEARTHS"] },
+  "recordedOn": { "time": "2281-01-01T00:00:00Z", "precision": "y" },
+  "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G2_SEAM_PULSE"] }],
+  "content": [
+    {
+      "value": "<p>One owed nine mats to the fourth fissure and did not want to pay, so they divided, and told the fourth fissure that the one who owed was gone and there were two here now who did not.</p><p>The fourth fissure said: then I am owed nine from you and nine from you. And that was the first time.</p><p>So the one divided again, and then there were four, and the fourth fissure counted to thirty-six and was pleased, and moved to a warmer vent on the strength of it.</p><p>The four went to the tiers and asked to be made one. The tiers said that they could finish a piece and be admitted, but that nobody has ever been admitted backwards. Then the four went to their own vent and found it cold, and took heat at the fourth fissure, which made them kin, which made the debt a thing between kin, which is not payable and is not forgiven either.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "recording": [
+    {
+      "value": "/f/MKVy9ecXY1E5vCav7ymwDQ",
+      "name": "narrative-G2_TWO_ANSWERS.mp3",
+      "caption": "Performance, recorded on site",
+      "duration": { "value": { "amount": 22, "precision": 1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "MINUTE"] }] },
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G2_SEAM_PULSE"] }]
+    }
+  ]
+}

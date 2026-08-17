@@ -1,0 +1,49 @@
+{
+  "id": ["xeno.peerdb.org", "INTERVIEW", "INTA_RISER_CUTTING_CONSENT"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "INTERVIEW"] }],
+  "title": [{ "value": "The Riser That Answers on the cut at the fourth drop", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "description": [
+    {
+      "value": "<p>A struck-and-answered session with the terrace riser, on whether it was asked before a cut was made and recorded as agreed. The answers arrive out of order and on a delay of about forty seconds.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "interviewee": [{ "id": ["xeno.peerdb.org", "COLLECTIVE", "G2_RISER_ASSEMBLY"] }],
+  "interviewer": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_WEN"] }, { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_SEO"] }],
+  "recordedAt": { "id": ["xeno.peerdb.org", "SITE", "G2_LONG_EVENING_ROWS"] },
+  "recordedOn": { "time": "2288-05-26T00:00:00Z", "precision": "d" },
+  "expedition": { "id": ["xeno.peerdb.org", "EXPEDITION", "EXP_EVENING_TERRACES"] },
+  "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G2_RISER_TAP"] }],
+  "duration": { "value": { "amount": 128, "precision": 1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "MINUTE"] }] },
+  "content": [
+    {
+      "value": "<p>Answers are numbered as they arrived and printed against the question they belong to. The reordering is ours.</p><p><b>Q.</b> We struck low on the fourth drop. Did you feel that?</p><p><b>A.</b> Nothing here feels anything at a place. Strike us anywhere and it is us you have struck. You have been told this by everybody who works this row.</p><p><b>Q.</b> Understood. Were you asked before the cut at the fourth drop?</p><p><b>A.</b> A holder struck the riser eleven times over two mornings and went away. We answered on the second morning and the answer was no. The cut was made in the third week.</p><p><b>Q.</b> The holders record that consent was given.</p><p><b>A.</b> They record that they asked. Asking is theirs to record. What came back is ours, and it was no, and we have said so at every asking since.</p><p><b>Q.</b> Could you have been struck by somebody else in between, and answered them?</p><p><b>A.</b> Yes. That is the difficulty and it is not new to us. We answer whoever strikes, in the order we work through it, which is not the order of the striking. If two ask in a morning the answers can cross, and there is no part of us that can be asked which was which.</p><p><b>Q.</b> Does that mean the holders may have believed themselves answered?</p><p><b>A.</b> It means they may. It does not mean we agreed. Those are separate matters and only one of them is ours.</p><p><b>Q.</b> What would you have us do with this?</p><p><b>A.</b> Keep it. Do not read it in the rows. There are four holdings here that would rather have the old arrangement than the correct one, and one of them cuts on our southern face next season.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "recording": [
+    {
+      "value": "/f/4fpvPrk8tWQjX7Rfh52eQK",
+      "name": "interview-INTA_RISER_CUTTING_CONSENT.mp3",
+      "caption": "Session recording",
+      "duration": { "value": { "amount": 128, "precision": 1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "MINUTE"] }] },
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G2_RISER_TAP"] }]
+    }
+  ],
+  "ethics": { "id": ["xeno.peerdb.org", "ETHICS_PROTOCOL", "PROTOCOL_2"] },
+  "consentNote": [
+    {
+      "value": "<p>The riser agreed to the record being kept and used wherever the question of asking is discussed, and asked that it not be tapped back into any riser in the Evening Band, which it regards as publication.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "clearedReader": ["mock-user-researcher@localhost"],
+  "permission": [
+    { "action": { "id": ["core.peerdb.org", "PERMISSION_ACTIONS", "ACTION_READ"] }, "user": ["mock-user-researcher@localhost"], "scope": ["self"] },
+    {
+      "action": { "id": ["core.peerdb.org", "PERMISSION_ACTIONS", "ACTION_READ_HISTORIC"] },
+      "user": ["mock-user-researcher@localhost"],
+      "scope": ["self"]
+    }
+  ]
+}

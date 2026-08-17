@@ -1,0 +1,24 @@
+{
+  "id": ["xeno.peerdb.org", "PRACTICE_CATEGORY", "GREETING"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PRACTICE_CATEGORY"] }],
+  "name": [
+    { "value": "Greeting protocol", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "Pozdravni protokol", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }] },
+    { "value": "Protocolo de saudação", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>Prescribed opening of an encounter, which usually encodes relative status and intent. A category the Consortium takes seriously, one survey having lost a year to a mistranslated greeting.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Predpisan začetek srečanja, ki običajno izraža medsebojni položaj in namen.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Abertura prescrita de um encontro, que em geral codifica posição relativa e intenção. Uma categoria que o Consórcio leva a sério, tendo um levantamento perdido um ano por uma saudação mal traduzida.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "code": ["greeting"]
+}

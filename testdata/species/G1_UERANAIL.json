@@ -1,0 +1,61 @@
+{
+  "id": ["xeno.peerdb.org", "SPECIES", "G1_UERANAIL"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SPECIES"] }],
+  "name": [{ "value": "Ledger Haze Population", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "exonym": [
+    {
+      "value": "Ueranail, the salt-basin word for them, which is also their word for weather",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "taxonCode": "TX-1329-f",
+  "description": [
+    {
+      "value": "<p>A population of the sulphurous lowland haze on the same world as the salt basins, studied entirely from the rim because nothing the Consortium owns will work in the haze for more than a day. Bodies are separate, numerous and small, but they are in continuous chemical contact with one another across the whole width of a valley, and every attempt to elicit a response from one body has produced a response from the valley. There are therefore no individuals to interview, and the ethics file treats a valley as a single participant who has not been asked. Population figures below are the range of published estimates and not a measurement; the honest position, which the register does not print, is that nobody knows within a factor of ten. What is agreed is that the haze chemistry is being managed rather than merely inhabited, since the plume composition holds steady across a temperature swing that ought to wreck it.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Porazdeljeno bitje v kislih meglenih nižavjih, opazovano le z roba kotanj.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    }
+  ],
+  "homeworld": { "id": ["xeno.peerdb.org", "PLANET", "G1_LEDGER_IV"] },
+  "bodyPlan": [
+    {
+      "value": "<p>Low, four-limbed and long-bodied, moving with the belly close to the ground and the head carried forward on a short neck. There are no eyes; the forward end carries a pair of pleated chemical vanes that stand up when the body is stationary and fold back when it moves. A fan of pale exchange tissue runs the length of the spine and is the visible part of the signalling apparatus, which is chemical, continuous and never switched off. The lifespan figures in this entry apply to a body; the participant those bodies belong to has been signalling without a break since the first probe went over the rim in 2244.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "typicalHeight": { "value": { "amount": 0.62, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+  "typicalMass": { "value": { "amount": 38.0, "precision": 0.1 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "kg"] }] },
+  "lifespan": {
+    "value": { "from": { "amount": 6, "precision": 1 }, "to": { "amount": 19, "precision": 1 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_YEAR"] }]
+  },
+  "sensoryModality": [
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "CHEMICAL_PLUME"] },
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "THERMAL_RADIANCE"] },
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "PRESSURE_GRADIENT"] }
+  ],
+  "subsistence": [
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "CHEMO_TENDING"] },
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "DRIFT_HARVESTING"] }
+  ],
+  "individuality": { "id": ["xeno.peerdb.org", "INDIVIDUALITY_MODE", "DISTRIBUTED_SELF"] },
+  "socialOrganisation": { "id": ["xeno.peerdb.org", "SOCIAL_ORGANISATION", "CONSENSUS_ASSEMBLY"] },
+  "kinshipSystem": { "id": ["xeno.peerdb.org", "KINSHIP_SYSTEM", "NOT_RECKONED"] },
+  "communication": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G1_HAZE_SIGNATURE"] }],
+  "population": {
+    "value": { "from": { "amount": 20000, "precision": 1000 }, "to": { "amount": 2000000, "precision": 1000 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "contactStatus": { "id": ["xeno.peerdb.org", "CONTACT_STATUS", "REMOTE_OBSERVATION"] },
+  "image": [
+    {
+      "value": "/f/G4JpskQrqeCR26UVYzEPqV",
+      "name": "G1_UERANAIL.jpg",
+      "caption": "Field plate",
+      "source": "Drawn in the field; Consortium collection"
+    }
+  ]
+}

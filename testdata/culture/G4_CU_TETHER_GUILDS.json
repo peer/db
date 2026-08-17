@@ -1,0 +1,45 @@
+{
+  "id": ["xeno.peerdb.org", "CULTURE", "G4_CU_TETHER_GUILDS"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "CULTURE"] }],
+  "name": [{ "value": "Tether Foot Guilds", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [
+    {
+      "value": "Wehiunawe",
+      "gloss": "the corporations of the long rope",
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G4_COM_TERRACE_REGISTER"] }]
+    }
+  ],
+  "catalogueCode": "CU-2246-11",
+  "description": [
+    {
+      "value": "<p>Eleven craft corporations that held the works at the foot of the surface-to-orbit tether on the highest terrace, entered by training and jointly holding every public function connected with the build. The water corporation judged disputes about water, the cable corporation judged disputes about cable, and children were reared away from the household that bore them, so that the chain of fosterage crossed every corporation and made the federation hold. Labour beyond what the terraces could supply came from the coast under standing obligation, priced in work rather than in goods, which the coastal ledgers still carry. The ribbon was never taken above forty kilometres. The site was cleared in 2297 and the corporations stood down the following season; whether that ended them, or merely ended what could be seen of them, cannot be settled from orbit and the entry should be read with that in mind.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Cehi so vzdrževali podnožje orbitalne vrvi, dokler ni bilo najdišče leta 2297 izpraznjeno. Ali so s tem tudi razpadli, iz orbite ni mogoče ugotoviti.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Onze corporações de ofício que detinham as obras no pé do cabo de ligação entre a superfície e a órbita, no terraço mais alto, nas quais se entrava por aprendizagem e que detinham em conjunto todas as funções públicas ligadas à construção. A corporação da água julgava as disputas sobre água, a corporação do cabo julgava as disputas sobre cabo, e as crianças eram criadas longe da casa que as gerou, de modo que a cadeia de acolhimento atravessava todas as corporações e mantinha a federação coesa. A mão de obra que os terraços não conseguiam fornecer vinha da costa ao abrigo de uma obrigação permanente, paga em trabalho e não em bens, o que os livros de contas costeiros ainda registam. A fita nunca subiu acima dos quarenta quilómetros. O local foi desmantelado em 2297 e as corporações dissolveram-se na época seguinte; se isso lhes pôs fim, ou apenas pôs fim ao que delas se podia ver, não é coisa que se decida a partir da órbita, e a entrada deve ser lida com isso em mente.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "practisedBy": [{ "id": ["xeno.peerdb.org", "SPECIES", "G4_TERRACE_BUILDERS"] }, { "id": ["xeno.peerdb.org", "SPECIES", "G4_NET_KEEPERS"] }],
+  "presentAt": [{ "id": ["xeno.peerdb.org", "SITE", "G4_TETHER_STUMP"] }],
+  "kinshipSystem": { "id": ["xeno.peerdb.org", "KINSHIP_SYSTEM", "FOSTERAGE_CHAIN"] },
+  "socialOrganisation": { "id": ["xeno.peerdb.org", "SOCIAL_ORGANISATION", "GUILD_FEDERATION"] },
+  "subsistence": [
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "SILT_GARDENING"] },
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "COLONY_GRAZING"] },
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "TRADE_DEPENDENCY"] }
+  ],
+  "communication": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G4_COM_TERRACE_REGISTER"] }],
+  "population": {
+    "value": { "from": { "amount": 20000, "precision": 100 }, "to": { "amount": 60000, "precision": 100 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "period": { "from": { "time": "2246-01-01T00:00:00Z", "precision": "y" }, "to": { "time": "2297-01-01T00:00:00Z", "precision": "y" } },
+  "image": [
+    { "value": "/f/8DkCzeZupoFns354na6H6K", "name": "G4_CU_TETHER_GUILDS.jpg", "caption": "Gathering", "source": "Consortium survey archive" }
+  ]
+}

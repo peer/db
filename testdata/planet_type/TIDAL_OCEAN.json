@@ -1,0 +1,24 @@
+{
+  "id": ["xeno.peerdb.org", "PLANET_TYPE", "TIDAL_OCEAN"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PLANET_TYPE"] }],
+  "name": [
+    { "value": "Tidally locked ocean world", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "Plimsko vklenjeni oceanski svet", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }] },
+    { "value": "Mundo oceânico aprisionado por maré", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>A synchronously rotating world carrying a liquid surface ocean, typically with a substellar warm pool and an antistellar ice cap. Excludes worlds whose ocean lies sealed beneath a permanent ice shell.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Sinhrono vrteči se svet s tekočim oceanom na površju, s toplim bazenom pod zvezdo in ledeno kapo na nočni strani.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Mundo de rotação síncrona com um oceano líquido à superfície, tipicamente com uma poça quente subestelar e uma calote de gelo antiestelar. Exclui mundos cujo oceano está selado sob uma calote de gelo permanente.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "code": ["tidal-ocean"]
+}

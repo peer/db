@@ -1,0 +1,20 @@
+{
+  "id": ["xeno.peerdb.org", "REGION", "G4_COLD_LOCKER"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "REGION"] }],
+  "name": [{ "value": "Cold Locker", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Thissova" }],
+  "description": [
+    {
+      "value": "<p>The night side proper, beginning where the last light fails and running to the antistellar point, where the surface is nitrogen ice over water ice over rock. Volatiles migrate here from the day side and do not leave again. Parties from the march enter its margin to cut ice, and do not go deep.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "PLANET", "G4_FETCH"] },
+  "biome": [{ "id": ["xeno.peerdb.org", "BIOME", "NIGHTSIDE_TRAP"] }],
+  "area": { "value": { "amount": 6100000, "precision": 100 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "SQUARE_KILOMETRE"] }] },
+  "elevationRange": {
+    "value": { "from": { "amount": -210, "precision": 10 }, "to": { "amount": 3400, "precision": 10 } },
+    "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }]
+  },
+  "image": [{ "value": "/f/8SvXW9oXsq6ejsxNQ4Vyb4", "name": "G4_COLD_LOCKER.jpg", "caption": "Regional view", "source": "Consortium survey archive" }]
+}

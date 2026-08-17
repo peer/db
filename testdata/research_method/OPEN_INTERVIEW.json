@@ -1,0 +1,24 @@
+{
+  "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "OPEN_INTERVIEW"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "RESEARCH_METHOD"] }],
+  "name": [
+    { "value": "Open-ended interview", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "Odprti intervju", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }] },
+    { "value": "Entrevista aberta", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>Conversation led by the respondent from a short prompt list, recorded in full. Excludes casual talk not consented to as research.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Pogovor, ki ga vodi sogovornik iz kratkega nabora iztočnic, posnet v celoti.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Conversa conduzida pelo entrevistado a partir de uma lista curta de tópicos, gravada na íntegra. Exclui a conversa casual para a qual não houve consentimento como investigação.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "code": ["open-int"]
+}

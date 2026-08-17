@@ -1,0 +1,40 @@
+{
+  "id": ["xeno.peerdb.org", "OBSERVATION", "OBSA_KUTAK_EMPTY_NAME"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "OBSERVATION"] }],
+  "title": [
+    { "value": "The reading of the empty names at a settling, second refill", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>A name settling watched from the edge of the basin floor, including the reading of the vacant names to the self who did not keep the name. One name was passed over.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "content": [
+    {
+      "value": "<p>The pool stood for nineteen days and the assembly sat on the eleventh. Two selves out of a division in the previous year presented on the basin floor and recounted the shared life in turn, until the accounts stopped agreeing.</p><p>They stopped agreeing at a point about four months before the split, over a journey to the northern pans that one gave as made alone and the other gave as made together. Neither corrected the other and neither was asked to. The households listened to the whole of both, which took most of the day, and the name went to one of them.</p><p>The other was read the empty names in the order they fell vacant. There were seventeen. The sixth was read at about half the speed of the rest and was not taken; the reader simply went on. The name taken was the fourteenth, and came with the relations it was carrying when its last holder let it go, which were recited as well.</p><p>We do not know what is wrong with the sixth name. Our interpreter would not gloss it, and the question was received badly enough on the one occasion we put it that we have not put it again.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "observedBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_NOWAK"] }, { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_OKONKWO"] }],
+  "observedAt": { "id": ["xeno.peerdb.org", "SITE", "G1_KUTAK_MEET"] },
+  "observedOn": { "time": "2276-06-03T00:00:00Z", "precision": "d" },
+  "about": [
+    { "id": ["xeno.peerdb.org", "PRACTICE", "G1_NAME_SETTLING"] },
+    { "id": ["xeno.peerdb.org", "CULTURE", "G1_NAME_ASSEMBLY"] },
+    { "id": ["xeno.peerdb.org", "SPECIES", "G1_TAQPEKUN"] }
+  ],
+  "method": [
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "PARTICIPANT_OBSERVATION"] },
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "ACOUSTIC_RECORDING"] },
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "LINGUISTIC_ELICITATION"] }
+  ],
+  "fieldConditions": "Two suns up for most of it, glare off the white pan bad enough to work in shade, wind dropped as it always is in the basin. Several hundred present, converged from the dunes over about a week.",
+  "image": [{ "value": "/f/X8dxvu2aJaxkoTnwuyBPfR", "name": "OBSA_KUTAK_EMPTY_NAME.jpg", "caption": "Taken at the time", "source": "Field record" }],
+  "notes": [
+    {
+      "value": "<p>The name read sixth may be the one that stands last in the recorded roll. We have kept the two entries apart in the catalogue until somebody who is entitled to tell us confirms that they are the same name.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

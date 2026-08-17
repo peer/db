@@ -1,0 +1,54 @@
+{
+  "id": ["xeno.peerdb.org", "INTERVIEW", "INTB_NAME_STRUCK"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "INTERVIEW"] }],
+  "title": [
+    {
+      "value": "The holder of two long, one short, one long on the name and the quarrel that came with it",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "description": [
+    {
+      "value": "<p>Interview with the current holder of a floor keepers&#39; name on inheritance of a name, its debts and its unfinished business. Conducted on a worked floor, where nothing said is private.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "interviewee": [{ "id": ["xeno.peerdb.org", "INDIVIDUAL", "G4_IN_TWOLONG_HOLDER"] }],
+  "interviewer": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_OKONKWO"] }],
+  "recordedAt": { "id": ["xeno.peerdb.org", "SITE", "G4_QUIET_FLOOR"] },
+  "recordedOn": { "time": "2301-09-01T00:00:00Z", "precision": "d" },
+  "expedition": { "id": ["xeno.peerdb.org", "EXPEDITION", "EXP_SOUNDING_FLOOR"] },
+  "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G4_COM_STRUCK_FLOOR"] }],
+  "duration": { "value": { "amount": 71, "precision": 1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "MINUTE"] }] },
+  "content": [
+    {
+      "value": "<p><b>Q.</b> What was your name before this one?</p><p><b>A.</b> I did not have another name. I had this one after her. The floor does not hold two and I was not anybody in particular in between.</p><p><b>Q.</b> Could we take the next part off the record?</p><p><b>A.</b> There is no off the floor. Everything within sixty kilometres has already heard you ask. Two grades and a salt gang are listening to this and one of them is the reason you are about to get an interesting answer.</p><p><b>Q.</b> What came with the name?</p><p><b>A.</b> Her work, her debts, and a quarrel with the salt-cutting grade that she did not finish. It was struck onto me within the season, whole, including the parts nobody could explain.</p><p><b>Q.</b> Have you finished it?</p><p><b>A.</b> I have been dressing the pan floors a little flat for four years. The grade&#39;s figures come off the salt sounding thin and their blocks have been graded down twice. It is a slow way to win an argument and it is the only one the name gave me.</p><p><b>Q.</b> You have just said that on a floor.</p><p><b>A.</b> I have. They will have it before I am home. I have been meaning to for a year and it turns out I needed somebody to ask.</p><p><b>Q.</b> Why is this restricted, then, if everyone heard it?</p><p><b>A.</b> Because everyone here heard it once, and your version does not stop.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "recording": [
+    {
+      "value": "/f/7x9QE4jSRK9pacGyex6h9N",
+      "name": "interview-INTB_NAME_STRUCK.mp3",
+      "caption": "Session recording",
+      "duration": { "value": { "amount": 71, "precision": 1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "MINUTE"] }] },
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G4_COM_STRUCK_FLOOR"] }]
+    }
+  ],
+  "ethics": { "id": ["xeno.peerdb.org", "ETHICS_PROTOCOL", "PROTOCOL_2"] },
+  "consentNote": [
+    {
+      "value": "<p>The holder gave named consent as holder of the name, for the material on inheritance and for the passage on the pan floors, and observed that consent on a worked floor is a strange thing to be asked for after the fact. He asked that the record be restricted anyway, on the ground that a transcript is a different object from a thing overheard.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "clearedReader": ["mock-user-researcher@localhost"],
+  "permission": [
+    { "action": { "id": ["core.peerdb.org", "PERMISSION_ACTIONS", "ACTION_READ"] }, "user": ["mock-user-researcher@localhost"], "scope": ["self"] },
+    {
+      "action": { "id": ["core.peerdb.org", "PERMISSION_ACTIONS", "ACTION_READ_HISTORIC"] },
+      "user": ["mock-user-researcher@localhost"],
+      "scope": ["self"]
+    }
+  ]
+}

@@ -1,0 +1,44 @@
+{
+  "id": ["xeno.peerdb.org", "CULTURE", "G3_RUBBLE_LEDGER"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "CULTURE"] }],
+  "name": [{ "value": "The Rubble Exchange", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [
+    {
+      "value": "[the heap and what it owes]",
+      "gloss": "a gloss of a tapped figure; the local rendering has no plural and needs none",
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G3_FACE_TAP"] }]
+    }
+  ],
+  "catalogueCode": "CU-2283-06",
+  "description": [
+    {
+      "value": "<p>Colonies at the ice front stage rot in sealed cavities and take whatever the terminator wind delivers into the rubble, and they hold each other by tracked obligation rather than by any territory. A colony&#39;s standing is its ledger position, and the ledger is kept by tapping and by chemical marks laid on the rubble itself, so a heap&#39;s entire history of debts is written on the ground it lives in. Relatedness is not reckoned and the question of who is related to whom is treated as badly formed. They answer questions readily, at the speed of a heap, and have given consistent accounts of themselves across a century of visits. The Consortium&#39;s own camp sits inside the exchange as a debtor in good standing, on the strength of a load of ration waste tipped out in 2283, which the register has never found a way to enter.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>As colónias da frente de gelo encenam a podridão em cavidades seladas e recolhem o que o vento do terminador deposita no cascalho, e mantêm-se umas às outras por obrigação registada e não por qualquer território. O estatuto de uma colónia é a sua posição no livro de contas, e o livro é mantido por pancadas e por marcas químicas depositadas no próprio cascalho, pelo que toda a história de dívidas de um monte está escrita no chão em que vive. O aparentamento não é contabilizado e a questão de quem é parente de quem é tratada como mal formulada. Respondem prontamente às perguntas, à velocidade de um monte, e deram relatos consistentes de si próprios ao longo de um século de visitas. O próprio acampamento do Consórcio está dentro da troca como devedor em boa situação, por força de uma carga de restos de rações despejada em 2283, que o registo nunca conseguiu encontrar maneira de lançar.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "practisedBy": [{ "id": ["xeno.peerdb.org", "SPECIES", "G3_NITHESH"] }],
+  "presentAt": [{ "id": ["xeno.peerdb.org", "SITE", "G3_ICEFRONT_CAMP"] }],
+  "kinshipSystem": { "id": ["xeno.peerdb.org", "KINSHIP_SYSTEM", "NOT_RECKONED"] },
+  "socialOrganisation": { "id": ["xeno.peerdb.org", "SOCIAL_ORGANISATION", "OBLIGATION_NETWORK"] },
+  "subsistence": [
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "MANAGED_DECAY"] },
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "DRIFT_HARVESTING"] }
+  ],
+  "communication": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G3_FACE_TAP"] }],
+  "population": {
+    "value": { "from": { "amount": 900, "precision": 100 }, "to": { "amount": 4000, "precision": 100 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "period": { "from": { "time": "2283-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true },
+  "image": [{ "value": "/f/6wC1s85YqN9Ny9tNvDyoBq", "name": "G3_RUBBLE_LEDGER.jpg", "caption": "Gathering", "source": "Consortium survey archive" }],
+  "notes": [
+    {
+      "value": "<p>The population figure counts colonies. Counting bodies produces a figure in the hundreds of millions and an argument.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

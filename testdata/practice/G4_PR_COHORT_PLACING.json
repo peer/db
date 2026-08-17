@@ -1,0 +1,29 @@
+{
+  "id": ["xeno.peerdb.org", "PRACTICE", "G4_PR_COHORT_PLACING"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PRACTICE"] }],
+  "name": [{ "value": "Placing the Cohort", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "pirrukkatan", "gloss": "the placing in the deep rooms" }],
+  "description": [
+    {
+      "value": "<p>In the last season before the frost, with the channels already closing, each warren is filled in a set order, and the placing decides who will be fused to whom for two centuries and therefore who will be kin at the next waking. Fusion pads are dressed and matched days in advance, a body is laid against the flank it will grow into, and the pads are pressed until they take. Quarrels are placed apart but not far apart, on the argument that two hundred years is long enough to settle anything and that a quarrel carried across a thaw wastes a warren. The last work is the sealing of the rot chambers, done by whoever is placed nearest the entrance and is therefore last to fuse. Nobody is placed alone; the register carries no instance of it and the language offers no way to describe it.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Pred zmrzaljo določijo, kdo bo dve stoletji zraščen s kom, in s tem, kdo bo ob prebujenju sorodnik.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Na última estação antes da geada, com os canais já a fechar, cada toca é preenchida por uma ordem estabelecida, e a colocação decide quem ficará fundido com quem durante dois séculos e, portanto, quem será parente no despertar seguinte. As almofadas de fusão são preparadas e emparelhadas com dias de antecedência, um corpo é deitado contra o flanco no qual vai crescer, e as almofadas são pressionadas até pegarem. Os desavindos são colocados separados, mas não muito separados, com o argumento de que duzentos anos chegam para resolver qualquer coisa e de que uma zanga levada para lá de um degelo estraga uma toca. O último trabalho é a selagem das câmaras de podridão, feita por quem ficou colocado mais perto da entrada e é, por isso, o último a fundir-se. Ninguém é colocado sozinho; o registo não guarda um único caso e a língua não oferece maneira de o descrever.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G4_CU_DEEP_COURSE_WARRENS"] }],
+  "category": { "id": ["xeno.peerdb.org", "PRACTICE_CATEGORY", "CALENDRICAL"] },
+  "periodicity": "once each orbit, in the last season of the thaw",
+  "participants": {
+    "value": { "from": { "amount": 400, "precision": 1 }, "to": { "amount": 3000, "precision": 1 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "firstDocumented": { "time": "2251-01-01T00:00:00Z", "precision": "y" },
+  "relatedPractice": [{ "id": ["xeno.peerdb.org", "PRACTICE", "G4_PR_UNSEPARATED"] }]
+}

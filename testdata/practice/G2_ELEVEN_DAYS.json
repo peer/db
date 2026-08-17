@@ -1,0 +1,30 @@
+{
+  "id": ["xeno.peerdb.org", "PRACTICE", "G2_ELEVEN_DAYS"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PRACTICE"] }],
+  "name": [{ "value": "The Eleven Days", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Anumenulle", "gloss": "the eleven, counted and not named" }],
+  "description": [
+    {
+      "value": "<p>A large part of the band walks in to two hundred hectares of flat stone, pegs shelters into sockets cut into the bedrock, and for eleven days there is an authority that can bind every holding in the sequence. The drops are opened and closed in an order recited from memory by one person, who is answered by the holding below each drop before the water is let down, and a holding that does not answer is passed over and gets nothing that cycle. Food is carried in and none is grown there; the warren sends cold stores and glass, the terraces send led mat, and the carriers eat last and by right. Everything agreed is entered against a position rather than a person, on knotted cord held by the warren households, which is the only record that outlasts the eleven days. On the twelfth morning the shelters come out of the sockets, the authority stops existing, and whether the whole thing is a government or a market has been argued in the literature since 2263 without either side asking the Anuwelme, who have declined three times to be asked.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Enajst dni skupnost preusmerja vodo in sklepa obveznosti; dvanajsti dan te oblasti ni več.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Grande parte da faixa vai a pé até duzentos hectares de pedra plana, finca abrigos em encaixes talhados na rocha, e durante onze dias existe uma autoridade que pode vincular todas as explorações da sequência. As quedas são abertas e fechadas por uma ordem recitada de memória por uma pessoa, a quem responde a exploração abaixo de cada queda antes de a água ser largada, e uma exploração que não responde é saltada e não recebe nada nesse ciclo. A comida é levada para lá e nada se cultiva ali; a toca manda as reservas frias e vidro, as terraças mandam tapete conduzido, e os carregadores comem em último lugar e por direito. Tudo o que se acorda é lançado contra uma posição e não contra uma pessoa, em corda com nós guardada pelos agregados da toca, que é o único registo que dura mais do que os onze dias. Na décima segunda manhã os abrigos saem dos encaixes, a autoridade deixa de existir, e se a coisa toda é um governo ou um mercado discute-se na literatura desde 2263 sem que nenhum dos lados pergunte aos Anuwelme, que já recusaram três vezes ser perguntados.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G2_SWITCHING_ASSEMBLY"] }],
+  "category": { "id": ["xeno.peerdb.org", "PRACTICE_CATEGORY", "CALENDRICAL"] },
+  "periodicity": "eleven days in every cycle",
+  "participants": {
+    "value": { "from": { "amount": 6000, "precision": 1 }, "to": { "amount": 19000, "precision": 1 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "firstDocumented": { "time": "2244-01-01T00:00:00Z", "precision": "y" },
+  "relatedPractice": [{ "id": ["xeno.peerdb.org", "PRACTICE", "G2_WALL_ASKING"] }, { "id": ["xeno.peerdb.org", "PRACTICE", "G2_CIRCUIT_WALK"] }],
+  "image": [{ "value": "/f/RKuCy9rDGdEfZATd51tToR", "name": "G2_ELEVEN_DAYS.jpg", "caption": "In progress", "source": "Consortium survey archive" }]
+}

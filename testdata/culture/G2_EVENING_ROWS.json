@@ -1,0 +1,50 @@
+{
+  "id": ["xeno.peerdb.org", "CULTURE", "G2_EVENING_ROWS"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "CULTURE"] }],
+  "name": [{ "value": "Evening Row Holdings", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [
+    {
+      "value": "Wellamanu",
+      "gloss": "the row-holding, naming the practice and not the people",
+      "inSystem": [
+        { "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G2_PLATE_LIGHT"] },
+        { "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G2_RISER_TAP"] }
+      ]
+    }
+  ],
+  "catalogueCode": "CU-2244-04",
+  "description": [
+    {
+      "value": "<p>Eleven hundred kilometres of contour terracing along the windward side of the twilight band, held not as fields but as positions in a sequence, so that a holding is described by where it comes rather than by how large it is. A household takes the name of its position, and the name outlives its holders and inherits their obligations along with their ground, which means the dead are still owed things and are still owed things by name. Silt comes down from the night side through drops opened and closed by agreement, and an agreement is with the position and not with anybody currently standing in it. The risers themselves are occupied, and consent to cut into one is asked of the wall and answered by it, on a delay, which the households find unremarkable and the discipline took until 2271 to notice at all. The dead are carried across the ice line to a walled channel on the night side and left, and the cold does the rest slowly.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Gospodinjstva imajo terase v pasu trajnega mraka. Ime nosi mesto v zaporedju, ne družina, in z imenom se dedujejo tudi obveznosti.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    }
+  ],
+  "practisedBy": [{ "id": ["xeno.peerdb.org", "SPECIES", "G2_ANUWELME"] }, { "id": ["xeno.peerdb.org", "SPECIES", "G2_RISER_KIN"] }],
+  "presentAt": [{ "id": ["xeno.peerdb.org", "SITE", "G2_LONG_EVENING_ROWS"] }, { "id": ["xeno.peerdb.org", "SITE", "G2_QUIET_FURROW"] }],
+  "kinshipSystem": { "id": ["xeno.peerdb.org", "KINSHIP_SYSTEM", "NAME_INHERITANCE"] },
+  "socialOrganisation": { "id": ["xeno.peerdb.org", "SOCIAL_ORGANISATION", "LINEAGE_HOUSES"] },
+  "subsistence": [
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "SILT_GARDENING"] },
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "COLONY_GRAZING"] }
+  ],
+  "communication": [
+    { "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G2_PLATE_LIGHT"] },
+    { "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G2_RISER_TAP"] }
+  ],
+  "population": {
+    "value": { "from": { "amount": 60000, "precision": 100 }, "to": { "amount": 130000, "precision": 100 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "period": { "from": { "time": "2244-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true },
+  "image": [{ "value": "/f/M918f8Mr8qjpAsafrgKjSA", "name": "G2_EVENING_ROWS.jpg", "caption": "Gathering", "source": "Consortium survey archive" }],
+  "notes": [
+    {
+      "value": "<p>Sixteen years of terrace-construction literature was written before anybody established that the risers were inhabited. It is still cited, though now mainly for the drawings.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

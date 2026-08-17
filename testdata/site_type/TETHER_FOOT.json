@@ -1,0 +1,24 @@
+{
+  "id": ["xeno.peerdb.org", "SITE_TYPE", "TETHER_FOOT"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SITE_TYPE"] }],
+  "name": [
+    { "value": "Orbital tether foot", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "Podnožje orbitalne vrvi", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }] },
+    { "value": "Base de amarra orbital", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>Ground anchor and service settlement of a surface-to-orbit tether, whether working, mothballed or collapsed. Excludes launch fields with no fixed link to orbit.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Talno sidrišče in naselje ob vrvi med površjem in orbito, delujoče ali opuščeno.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Ancoragem no solo e povoação de apoio de uma amarra entre a superfície e a órbita, em funcionamento, desativada ou desabada. Exclui campos de lançamento sem ligação fixa à órbita.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "code": ["tether-foot"]
+}

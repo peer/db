@@ -1,0 +1,38 @@
+{
+  "id": ["xeno.peerdb.org", "CULTURE", "G1_CANOPY_HOUSES"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "CULTURE"] }],
+  "name": [{ "value": "The Canopy Houses", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [
+    {
+      "value": "Vethran Nef",
+      "gloss": "the houses that do not come down",
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G1_COLUMN_PERCUSSION"] }]
+    }
+  ],
+  "catalogueCode": "CU-2251-06",
+  "description": [
+    {
+      "value": "<p>Corporate houses of a black forest, each holding a named block of canopy, the columns standing in it and the right to cut them, with platforms built from the columns they own. A person belongs to the house of one parent and to the platform of both, which produces two overlapping maps of the same forest and a great deal of visiting. Nothing of consequence happens on the ground: the floor is damp charcoal, most people have never stood on it, and the whole economy is conducted between sixty and ninety metres. Contact has been continuous since 2249 and takes place almost entirely at the tether foot, the one place on the planet where outsiders are expected and, by long habit, contained. Whether a house is a kin group with a forest attached or a forest maintenance rota with a family attached is a question the households find funny, and no visiting team has yet been told why.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Casas corporativas de uma floresta negra, cada uma detendo um bloco nomeado de dossel, as colunas que nele se erguem e o direito de as cortar, com plataformas construídas a partir das colunas que possuem. Uma pessoa pertence à casa de um dos progenitores e à plataforma de ambos, o que produz dois mapas sobrepostos da mesma floresta e uma enorme quantidade de visitas. Nada de importante acontece no chão: o solo é carvão húmido, a maioria das pessoas nunca lá pôs os pés, e toda a economia se faz entre os sessenta e os noventa metros. O contacto é contínuo desde 2249 e decorre quase inteiramente ao pé do cabo orbital, o único sítio do planeta onde os estranhos são esperados e, por longo hábito, contidos. Se uma casa é um grupo de parentes com uma floresta agarrada ou uma escala de manutenção florestal com uma família agarrada é uma pergunta que os agregados acham divertida, e a nenhuma equipa visitante foi ainda dito porquê.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "practisedBy": [{ "id": ["xeno.peerdb.org", "SPECIES", "G1_VETHRANI"] }],
+  "presentAt": [{ "id": ["xeno.peerdb.org", "SITE", "G1_CANOPY_TETHER"] }],
+  "kinshipSystem": { "id": ["xeno.peerdb.org", "KINSHIP_SYSTEM", "UNILINEAL_DESCENT"] },
+  "socialOrganisation": { "id": ["xeno.peerdb.org", "SOCIAL_ORGANISATION", "LINEAGE_HOUSES"] },
+  "subsistence": [
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "COLONY_GRAZING"] },
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "DRIFT_HARVESTING"] }
+  ],
+  "communication": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G1_COLUMN_PERCUSSION"] }],
+  "population": {
+    "value": { "from": { "amount": 800000, "precision": 100 }, "to": { "amount": 1200000, "precision": 100 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "period": { "from": { "time": "2249-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true },
+  "image": [{ "value": "/f/XFxoLpsatHQRk6hnk2AUQi", "name": "G1_CANOPY_HOUSES.jpg", "caption": "Gathering", "source": "Consortium survey archive" }]
+}

@@ -1,0 +1,55 @@
+{
+  "id": ["xeno.peerdb.org", "PLANET", "G4_HALFLIGHT"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PLANET"] }],
+  "name": [{ "value": "Halflight", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Nungamo", "gloss": "the long side, meaning the day hemisphere" }],
+  "catalogueCode": "SPW-A/152-c",
+  "description": [
+    {
+      "value": "<p>A locked ocean world with a warm pool three thousand kilometres across beneath its star and an ice cap over the whole night hemisphere. Between them runs a ring of shallow, permanently lit sea with a tidal range of nineteen metres, driven by its one small moon, since the star&#39;s own tide stands still. The circulation is single-celled and enormous: warm water leaves the substellar point, sinks under the ice and returns along the floor past a vent chain that most of the food web depends on. The inhabited zone is the ring, and everything built there floats or is meant to.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Plimsko vklenjen oceanski svet s toplim bazenom pod zvezdo in ledeno kapo na nočni strani.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Um mundo oceânico preso por maré, com uma piscina quente de três mil quilómetros de diâmetro sob a sua estrela e uma calote de gelo sobre todo o hemisfério noturno. Entre elas corre um anel de mar pouco profundo e permanentemente iluminado, com uma amplitude de maré de dezanove metros, movida pela sua única lua pequena, já que a maré da própria estrela está parada. A circulação é de uma só célula e é enorme: a água quente sai do ponto subestelar, afunda-se sob o gelo e regressa pelo fundo, passando por uma cadeia de fontes de que depende a maior parte da teia alimentar. A zona habitada é o anel, e tudo o que ali se constrói flutua ou deveria flutuar.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "STAR_SYSTEM", "G4_TENTER"] },
+  "planetType": { "id": ["xeno.peerdb.org", "PLANET_TYPE", "TIDAL_OCEAN"] },
+  "biome": [
+    { "id": ["xeno.peerdb.org", "BIOME", "SWEEP_FLAT"] },
+    { "id": ["xeno.peerdb.org", "BIOME", "VENT_FIELD"] },
+    { "id": ["xeno.peerdb.org", "BIOME", "NIGHTSIDE_TRAP"] }
+  ],
+  "radius": { "value": { "amount": 1.08, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_RADIUS"] }] },
+  "mass": { "value": { "amount": 1.24, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_MASS"] }] },
+  "surfaceGravity": { "value": { "amount": 1.06, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "STANDARD_GRAVITY"] }] },
+  "dayLength": { "value": { "amount": 1056.0, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "HOUR"] }] },
+  "orbitalPeriod": { "value": { "amount": 44.0, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_DAY"] }] },
+  "meanTemperature": { "value": { "amount": 2.0, "precision": 0.1 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "°C"] }] },
+  "hydrosphere": { "value": { "amount": 94.0, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "PERCENT"] }] },
+  "atmosphere": [
+    {
+      "value": "<p>Nitrogen and oxygen at 0.96 bar with heavy cloud over the substellar pool. Standing on the ring is like standing on a temperate Earth coast at four in the morning, permanently.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "biosphere": [
+    {
+      "value": "<p>Life is present: 1 catalogued species (Ring Sea Swimmers) and 1 recorded non-sapient organism. The survey is not claimed to be complete.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "contactStatus": { "id": ["xeno.peerdb.org", "CONTACT_STATUS", "SUSTAINED"] },
+  "firstSurveyed": { "time": "2252-01-01T00:00:00Z", "precision": "y" },
+  "surveyPeriod": { "from": { "time": "2254-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true },
+  "populationEstimate": {
+    "value": { "from": { "amount": 65000, "precision": 100 }, "to": { "amount": 140000, "precision": 100 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "image": [{ "value": "/f/GAsNk5JSwfrdLXGnWdwEGB", "name": "G4_HALFLIGHT.jpg", "caption": "Approach view", "source": "Consortium survey archive" }]
+}

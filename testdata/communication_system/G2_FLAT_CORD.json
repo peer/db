@@ -1,0 +1,42 @@
+{
+  "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G2_FLAT_CORD"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM"] }],
+  "name": [{ "value": "Flat Cord", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Sesshamesh", "gloss": "the tied word, a compound of the roots for arc and for holding" }],
+  "description": [
+    {
+      "value": "<p>Dyed cord knotted and left at a named anchorage or a weir gap, read by touch and by the polarisation of the dye, and accompanied when the parties are in sight of one another by a small repertoire of arm positions. It is the only system in this galaxy in regular use by two species with no sense in common, and it works because it does not require one: the striders read the dye, the weir builders read the knots. Its subject matter is entirely the flats, the tides and who is due to rebuild what. A fieldworker&#39;s first error is to collect the cords, which is theft of a sentence mid-conversation and was explained as such in 2261.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "modality": [
+    { "id": ["xeno.peerdb.org", "COMMUNICATION_MODALITY", "WOVEN_TOKEN"] },
+    { "id": ["xeno.peerdb.org", "COMMUNICATION_MODALITY", "GESTURE"] }
+  ],
+  "users": {
+    "value": { "from": { "amount": 17000, "precision": 100 }, "to": { "amount": 37000, "precision": 100 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "notation": true,
+  "sampleGloss": [
+    {
+      "value": "<p><i>[a red-dyed cord, nine knots, the fourth left loose]</i> - <b>nine-tides-fourth-open</b> - &#39;the outer arc is down at the fourth gap, and it will be nine tides before anyone gets to it.&#39;</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "recording": [
+    {
+      "value": "/f/DcpuQ7233uoxBfdoSE14xW",
+      "name": "system-G2_FLAT_CORD.mp3",
+      "caption": "Elicitation sample",
+      "duration": { "value": { "amount": 3, "precision": 1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "MINUTE"] }] },
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G2_FLAT_CORD"] }],
+      "note": [
+        {
+          "value": "<p>Recorded during elicitation and kept as the reference sample for this system.</p>",
+          "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+        }
+      ]
+    }
+  ]
+}

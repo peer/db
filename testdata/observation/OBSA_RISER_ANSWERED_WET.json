@@ -1,0 +1,40 @@
+{
+  "id": ["xeno.peerdb.org", "OBSERVATION", "OBSA_RISER_ANSWERED_WET"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "OBSERVATION"] }],
+  "title": [
+    {
+      "value": "A riser struck three times and answered wet at forty-one seconds",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "description": [
+    {
+      "value": "<p>A householder&#39;s asking before a cut on the middle rows, timed and recorded, with the answer read by a neighbour who had not struck. The cut was not made.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "content": [
+    {
+      "value": "<p>A householder on the middle rows intended a new channel mouth in her riser. She struck three times with the short plate mallet and left to do other work for the rest of the shift, as required.</p><p>The answer came back at forty-one seconds, out of the order the strikes were made in. It was read by a neighbour two holdings along who had not struck and had no interest in the cut, since the riser is not answering a person.</p><p>The answer carried the sign for wet. The cut was not made this cycle. No reason was asked for and none offered, and the householder went back to her work without any sign of disappointment that we could detect, which may mean there was none.</p><p>The prohibition on a second strike was put to us twice before we were allowed to stand near, and the two seasons the Consortium once spent courteously answering itself can still be named by every household on this row.</p><p>We record with some discomfort that our instruments cannot yet separate the wet answer from the other two at this distance. We are dependent on the neighbour, and the neighbour will not always be standing there.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "expedition": { "id": ["xeno.peerdb.org", "EXPEDITION", "EXP_EVENING_TERRACES"] },
+  "observedBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_MOKOENA"] }, { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_SEO"] }],
+  "observedAt": { "id": ["xeno.peerdb.org", "SITE", "G2_LONG_EVENING_ROWS"] },
+  "observedOn": { "time": "2287-08-23T00:00:00Z", "precision": "d" },
+  "about": [
+    { "id": ["xeno.peerdb.org", "PRACTICE", "G2_WALL_ASKING"] },
+    { "id": ["xeno.peerdb.org", "CULTURE", "G2_EVENING_ROWS"] },
+    { "id": ["xeno.peerdb.org", "SPECIES", "G2_RISER_KIN"] }
+  ],
+  "method": [
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "PARTICIPANT_OBSERVATION"] },
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "ACOUSTIC_RECORDING"] }
+  ],
+  "fieldConditions": "Permanent low evening light, wind steady off the bright side, the drop above us running. Four householders on the stretch and a band of herd followers camped two kilometres downwind.",
+  "permission": [
+    { "action": { "id": ["core.peerdb.org", "PERMISSION_ACTIONS", "ACTION_UPDATE"] }, "user": ["mock-user-researcher@localhost"], "scope": ["self"] },
+    { "action": { "id": ["core.peerdb.org", "PERMISSION_ACTIONS", "ACTION_DELETE"] }, "user": ["mock-user-curator@localhost"], "scope": ["self"] }
+  ]
+}

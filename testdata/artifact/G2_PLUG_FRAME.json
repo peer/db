@@ -1,0 +1,28 @@
+{
+  "id": ["xeno.peerdb.org", "ARTIFACT", "G2_PLUG_FRAME"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "ARTIFACT"] }],
+  "name": [{ "value": "Mouth Plug Casting Frame", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Kullenne", "gloss": "the ring that holds the water still" }],
+  "accessionCode": "CCX-A-14807",
+  "description": [
+    {
+      "value": "<p>A hooped frame of split grazer plate bound with cord, set into a tunnel mouth and packed round with silt so that meltwater poured behind it freezes into a plug that fits the rock rather than the frame. It is used once per casting and recovered when the plug is cut out, so a frame lives about nine years and this one is at the end of that. Three of the hoop segments have been replaced at different times and are visibly newer than the rest, and the binding has been renewed throughout. It came out of service in 2291 and was handed over with the observation that it still worked.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "category": { "id": ["xeno.peerdb.org", "ARTIFACT_CATEGORY", "APPARATUS"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G2_WARREN_TALLY"] }],
+  "foundAt": { "id": ["xeno.peerdb.org", "SITE", "G2_FROST_WARREN"] },
+  "material": [
+    { "value": "band grazer plate", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "cord", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "packed silt", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }
+  ],
+  "dimension": [
+    { "value": { "amount": 0.86, "precision": 0.001 }, "axis": "diameter", "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+    { "value": { "amount": 0.31, "precision": 0.001 }, "axis": "height", "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] }
+  ],
+  "dateMade": { "time": "2282-01-01T00:00:00Z", "precision": "y" },
+  "collectedBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_NOWAK"] }, { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_WEN"] }],
+  "image": [{ "value": "/f/NMKUw42ieY2bdTtCSWBvTW", "name": "G2_PLUG_FRAME.jpg", "caption": "Object drawing", "source": "Consortium collection" }]
+}

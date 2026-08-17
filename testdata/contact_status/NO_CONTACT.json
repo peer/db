@@ -1,0 +1,24 @@
+{
+  "id": ["xeno.peerdb.org", "CONTACT_STATUS", "NO_CONTACT"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "CONTACT_STATUS"] }],
+  "name": [
+    { "value": "No contact", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "Brez stika", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }] },
+    { "value": "Sem contacto", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>No approach of any kind has been made and none is authorised, including passive study from close orbit. Everything known comes from outside the system.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Nobenega približevanja ni bilo in nobeno ni dovoljeno, znanje prihaja od zunaj sistema.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Não houve aproximação de espécie alguma nem alguma está autorizada, incluindo o estudo passivo a partir de órbita próxima. Tudo o que se sabe vem de fora do sistema.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "code": ["none"]
+}

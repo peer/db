@@ -1,0 +1,28 @@
+{
+  "id": ["xeno.peerdb.org", "ARTIFACT", "G1_SLUICE_TALLY"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "ARTIFACT"] }],
+  "name": [{ "value": "Sluice tally", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "accessionCode": "CCX-A-13173",
+  "description": [
+    {
+      "value": "<p>A flat plaque of thinned crawler shell scored with the order in which forty-one basins are drained, read from the top down and turned over for the return sequence. Since the order has not changed in ninety years of record the tally is not a working document but a check on the person doing the work, and it is carried by whoever is walking the sluices that day. The scoring is filled with basin pigment and has been refreshed at least four times. The scanned record filed with it was drawn up by the sluice keeper rather than by the survey, and is the only document in the sector holdings written by a member of a terrace house.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "category": { "id": ["xeno.peerdb.org", "ARTIFACT_CATEGORY", "NOTATION_OBJECT"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G1_ANCHOR_HOUSES"] }],
+  "foundAt": { "id": ["xeno.peerdb.org", "SITE", "G1_ANCHOR_STEPS"] },
+  "material": [
+    { "value": "crawler shell", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "ground pigment", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }
+  ],
+  "dimension": [
+    { "value": { "amount": 0.22, "precision": 0.001 }, "axis": "length", "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+    { "value": { "amount": 0.09, "precision": 0.001 }, "axis": "width", "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+    { "value": { "amount": 0.006, "precision": 0.001 }, "axis": "thickness", "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] }
+  ],
+  "dateMade": { "time": "2266-01-01T00:00:00Z", "precision": "y" },
+  "collectedBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_VASILAKIS"] }],
+  "image": [{ "value": "/f/VXKfcAEWAtq8DSjGcmXgCH", "name": "G1_SLUICE_TALLY.jpg", "caption": "Object drawing", "source": "Consortium collection" }],
+  "document": [{ "value": "/f/Ub4wyHKmypvyK3JiYEHtTq", "name": "G1_SLUICE_TALLY.txt", "caption": "Accession record" }]
+}

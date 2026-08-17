@@ -1,0 +1,38 @@
+{
+  "id": ["xeno.peerdb.org", "CULTURE", "G3_WEIR_GRADES"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "CULTURE"] }],
+  "name": [{ "value": "The Weir Grades", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [
+    {
+      "value": "Ounare",
+      "gloss": "those born within the same nine years",
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G3_SWEEP_CALL"] }]
+    }
+  ],
+  "catalogueCode": "CU-2266-07",
+  "description": [
+    {
+      "value": "<p>The stone weirs on the sweep flats are held by age cohorts: a grade takes a named section of wall, keeps it for its span, and hands it on entire. A wall that fails is the failure of everybody born in the same nine years, which is stated plainly and without apparent cruelty, and which shapes how the flats are worked far more than any household arrangement does. Between tides the same people garden the silt behind the walls, which the flood renews without being asked. Kin are reckoned outward from each person through both parents, so no two people have the same relatives and nobody has tried to make them. The grades describe themselves as a rota for keeping walls up, the register codes them as a polity, and neither side has moved in forty-six years of extremely polite correspondence.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Starostni razredi vzdržujejo kamnite pregrade na plimskih blatiščih; vsak razred ima svoj odsek zidu in ga preda naslednjemu.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    }
+  ],
+  "practisedBy": [{ "id": ["xeno.peerdb.org", "SPECIES", "G3_MAUNUWA"] }],
+  "presentAt": [{ "id": ["xeno.peerdb.org", "SITE", "G3_LOWER_MIDDEN"] }, { "id": ["xeno.peerdb.org", "SITE", "G3_TIDE_MEET"] }],
+  "kinshipSystem": { "id": ["xeno.peerdb.org", "KINSHIP_SYSTEM", "BILATERAL_KINDRED"] },
+  "socialOrganisation": { "id": ["xeno.peerdb.org", "SOCIAL_ORGANISATION", "AGE_GRADE_POLITY"] },
+  "subsistence": [
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "TIDAL_TRAPPING"] },
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "SILT_GARDENING"] }
+  ],
+  "communication": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G3_SWEEP_CALL"] }],
+  "population": {
+    "value": { "from": { "amount": 150000, "precision": 100 }, "to": { "amount": 400000, "precision": 100 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "period": { "from": { "time": "2266-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true },
+  "image": [{ "value": "/f/Q2pg7Y7SVtqDuM8Wi1ZAuz", "name": "G3_WEIR_GRADES.jpg", "caption": "Gathering", "source": "Consortium survey archive" }]
+}

@@ -1,0 +1,26 @@
+{
+  "id": ["xeno.peerdb.org", "RESEARCHER", "RES_LINDQVIST"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "RESEARCHER"] }],
+  "name": [{ "value": "Sofia" }],
+  "familyName": [{ "value": "Lindqvist" }],
+  "researcherCode": "CCX-P-01655",
+  "description": [
+    {
+      "value": "<p>Led the third residency in the dusk band and gave the greeting that cost it a year and, in the end, cost the sector its contact status. The correction she wrote afterwards is one line long and is still read aloud at departure briefings, without her name attached, at her request. She left the field in 2274 and has published nothing since.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "affiliatedWith": [{ "id": ["xeno.peerdb.org", "INSTITUTE", "INST_ANCHOR"] }],
+  "specialisesIn": [
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "LINGUISTIC_ELICITATION"] },
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "OPEN_INTERVIEW"] }
+  ],
+  "activePeriod": { "from": { "time": "2262-01-01T00:00:00Z", "precision": "y" }, "to": { "time": "2274-01-01T00:00:00Z", "precision": "y" } },
+  "born": { "time": "2238-01-01T00:00:00Z", "precision": "y" },
+  "notes": [
+    {
+      "value": "<p>She continues to answer technical queries about the language, promptly and in detail, and declines every invitation to be credited for the answers.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

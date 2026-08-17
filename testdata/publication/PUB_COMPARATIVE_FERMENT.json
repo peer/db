@@ -1,0 +1,43 @@
+{
+  "id": ["xeno.peerdb.org", "PUBLICATION", "PUB_COMPARATIVE_FERMENT"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PUBLICATION"] }],
+  "title": [
+    {
+      "value": "Ferment Lineage in Four Galaxies: A Comparative Reassessment of Descent Reckoned Through Living Starter Cultures, With Doubts",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "doi": "10.5281/xeno.2299.0126",
+  "abstract": [
+    {
+      "value": "<p>Descent through inherited living cultures has been reported from four galaxies and is routinely described using the ferment-lineage model set out by Halvorsen for the Anchor Terraces. We compare four cases and find that the model holds only where the culture is divided at transmission; where it is shared, lent or bought, the resulting relations are not descent relations at all and behave far more like the debt systems described in the exchange literature. We therefore argue that the ferment-lineage category has been over-applied, including by two of the present authors, and propose that division be made a defining criterion rather than an incidental one. The cold-locker case, in which cultures are kept but never transmitted, is offered as the decisive counter-example.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "author": [
+    { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_HADDAD"] },
+    { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_PRASETYO"] },
+    { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_MOLNAR"] }
+  ],
+  "journal": "Comparative Kinship and Descent",
+  "publishedOn": { "time": "2299-05-01T00:00:00Z", "precision": "m" },
+  "about": [
+    { "id": ["xeno.peerdb.org", "SPECIES", "G1_ELMASHELU"] },
+    { "id": ["xeno.peerdb.org", "SPECIES", "G2_OLLUMARU"] },
+    { "id": ["xeno.peerdb.org", "SPECIES", "G3_NAWAIMU"] },
+    { "id": ["xeno.peerdb.org", "SPECIES", "G4_TRAP_KEEPERS"] }
+  ],
+  "cites": [
+    { "id": ["xeno.peerdb.org", "PUBLICATION", "PUB_FERMENT_LINEAGE"] },
+    { "id": ["xeno.peerdb.org", "PUBLICATION", "PUB_CASCADE_TASTING"] },
+    { "id": ["xeno.peerdb.org", "PUBLICATION", "PUB_LODGE_CORD_READING"] },
+    { "id": ["xeno.peerdb.org", "PUBLICATION", "PUB_HEARTH_REFOUNDING"] }
+  ],
+  "document": [{ "value": "/f/MtfghBpqNZqYzMrFCqjEdr", "name": "PUB_COMPARATIVE_FERMENT.pdf", "caption": "Author's accepted manuscript" }],
+  "notes": [
+    {
+      "value": "<p>Halvorsen&#39;s reply, promised for the following issue, had not arrived at the time of her retirement and is understood to be in transit.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

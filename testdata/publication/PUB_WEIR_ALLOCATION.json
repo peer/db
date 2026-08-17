@@ -1,0 +1,31 @@
+{
+  "id": ["xeno.peerdb.org", "PUBLICATION", "PUB_WEIR_ALLOCATION"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PUBLICATION"] }],
+  "title": [
+    {
+      "value": "Rota Without Register: Wall Tenure, the Walk Along the Wall, and the Handing On of Weir Sections in the Lower Shallows of Hollis Anchor III",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "doi": "10.5281/xeno.2256.0031",
+  "abstract": [
+    {
+      "value": "<p>The weir walls of the Lower Shallows are held in turn rather than owned, and the turn is recorded in a knotted cord that is destroyed as soon as it has been read aloud. We follow the handing-on sequence across three tidal years and show that allocation is settled by the order of the walk along the wall, and never by any statement of right. Attempts to force the material into a rotational-tenure framework were abandoned early and are described here only so that others do not repeat them. We propose instead that allocation systems be described first by what they leave behind, since in this case the answer is nothing whatever.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "author": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_REYES"] }],
+  "journal": "Bulletin of Comparative Xenoanthropology",
+  "publishedOn": { "time": "2256-04-01T00:00:00Z", "precision": "m" },
+  "about": [
+    { "id": ["xeno.peerdb.org", "SPECIES", "G1_SUNARELI"] },
+    { "id": ["xeno.peerdb.org", "CULTURE", "G1_WEIR_ROTA"] },
+    { "id": ["xeno.peerdb.org", "PRACTICE", "G1_WALL_HANDOVER"] }
+  ],
+  "notes": [
+    {
+      "value": "<p>Deposit holds a scanned typescript with the plates missing. The Anchor Institute has been asked twice for the originals and has twice replied that they were sent.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

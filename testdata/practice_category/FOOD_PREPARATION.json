@@ -1,0 +1,24 @@
+{
+  "id": ["xeno.peerdb.org", "PRACTICE_CATEGORY", "FOOD_PREPARATION"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PRACTICE_CATEGORY"] }],
+  "name": [
+    { "value": "Food preparation", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "Priprava hrane", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }] },
+    { "value": "Preparação de alimentos", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>Techniques of rendering material edible, including detoxification, fermentation and portioning. Excludes acquisition, which is subsistence.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Postopki, ki naredijo snov užitno, vključno z razstrupljanjem, vrenjem in razdeljevanjem.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Técnicas que tornam a matéria comestível, incluindo desintoxicação, fermentação e divisão em porções. Exclui a obtenção, que é subsistência.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "code": ["food-prep"]
+}

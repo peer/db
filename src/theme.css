@@ -82,24 +82,45 @@
 }
 
 /*
-  Navbar height is the single source of truth for the fixed navbar's size and everything that has to line up with it:
-  the content top margin that clears the navbar, the TOC and editor-toolbar sticky tops, and the TOC height. Mobile is
-  spacing*12 (the navbar's small-screen min-height), the sm breakpoint grows it to spacing*18. Print and the print
-  preview reset it to 0 (further down) so content starts at the page top.
+  The navbar is described by four variables, one styled and three published by useNavbar from the navbar
+  itself, because what the navbar is styled to be, what it turns out to be, how much room it takes, and where
+  it currently is are four different things. Print and the print preview reset them to 0 (further down) so
+  content starts at the page top.
+
+  Three of them are declared below. The fourth, --pd-navbar-top, is where the navbar currently is: the top
+  edge of the navbar against the top of the window. It is zero while the navbar is up there, which for a fixed
+  navbar is always, and it turns negative as an auto-hiding navbar slides away or an in-flow navbar is
+  scrolled past, down to minus the navbar's height once none of it is in view and no further. Anything which
+  follows the navbar adds it to the height. It is not declared here because it says where a navbar is rather
+  than what the page is like: it is read with a zero fallback, which is what a page whose navbar never
+  published one (or which has no navbar at all) is left with.
 */
 :root {
-  --pd-navbar-height: calc(var(--spacing) * 12);
   /*
-    The top margin content uses to clear the navbar. It follows the navbar height while the navbar is out of
-    the document flow (auto-hide and fixed modes); the static navbar mode zeroes it (from useNavbar) because
-    the in-flow navbar pushes content down by itself.
+    What the navbar is styled to be at least: its min-height. Mobile is spacing*12, the sm breakpoint grows it
+    to spacing*18. This is the one an application built on PeerDB overrides to give its own header a height.
+    Nothing lines itself up with the navbar by this: the navbar is as tall as what is in it plus its border,
+    which is what the measured height below carries.
   */
-  --pd-navbar-offset: var(--pd-navbar-height);
+  --pd-navbar-min-height: calc(var(--spacing) * 12);
+  /*
+    How tall the navbar is, measured. Everything which has to line up with the navbar goes by it: the sticky
+    tops of the table of contents and of the editor toolbar, and the height of the table of contents. The
+    value here is what they line up with until the first measurement.
+  */
+  --pd-navbar-height: var(--pd-navbar-min-height);
+  /*
+    How much room content has to leave at the top of the page for the navbar: the measured height while the
+    navbar is out of the document flow (auto-hide and fixed modes), and zero in the static mode, where the
+    in-flow navbar takes the room itself. It is a separate value from the height because the navbar is as
+    tall in that mode, and things which follow the navbar still line up with it.
+  */
+  --pd-navbar-offset: var(--pd-navbar-min-height);
 }
 
 @media (min-width: 640px) {
   :root {
-    --pd-navbar-height: calc(var(--spacing) * 18);
+    --pd-navbar-min-height: calc(var(--spacing) * 18);
   }
 }
 
@@ -692,9 +713,20 @@
     min-height: unset !important;
   }
 
-  /* Collapse the navbar-height offset (margins, sticky tops, and TOC height all derive from it) so content starts at the page top. */
+  /* Collapse the styled minimum so anything still deriving from it starts at the page top. */
   :root {
+    --pd-navbar-min-height: 0;
+  }
+
+  /*
+    The measured height and the offset are published by useNavbar as inline custom properties on the document
+    element, which no rule for that element can override, so they are zeroed on the element below it instead:
+    content inherits the values from there. This is the same reason the print preview zeroes them on the body
+    (see body.pd-printing further down).
+  */
+  body {
     --pd-navbar-height: 0;
+    --pd-navbar-offset: 0;
   }
 
   /* Remove shadows and borders for cleaner print. */
@@ -777,13 +809,13 @@ body.pd-printing [role="tablist"] {
 }
 
 /*
-  Collapse the navbar-height offset so the preview content starts at the page top, matching @media print. Setting
-  --pd-navbar-height alone is not enough in the preview: --pd-navbar-offset (the top margin content uses to clear the
-  navbar) derives from --pd-navbar-height at :root, so a body-level height override does not reach the already-resolved
-  offset. The @media print block avoids this by zeroing the height at :root; here we zero the offset directly on the
-  preview body, which reaches .pd-searchget's margin through inheritance regardless of the navbar mode's inline offset on <html>.
+  Collapse the navbar variables so the preview content starts at the page top, matching @media print. Setting
+  --pd-navbar-min-height alone is not enough: the height and the offset are published by useNavbar as inline
+  custom properties on the document element, which no rule for that element can override, so they are zeroed on
+  the preview body, which reaches .pd-searchget's margin through inheritance whatever the navbar mode published.
 */
 body.pd-printing {
+  --pd-navbar-min-height: 0;
   --pd-navbar-height: 0;
   --pd-navbar-offset: 0;
 }

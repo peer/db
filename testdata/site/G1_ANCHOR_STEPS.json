@@ -1,0 +1,22 @@
+{
+  "id": ["xeno.peerdb.org", "SITE", "G1_ANCHOR_STEPS"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SITE"] }],
+  "name": [{ "value": "Anchor Steps", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "localName": [{ "value": "Ulusheren Kesh", "gloss": "the upper working" }],
+  "description": [
+    {
+      "value": "<p>Forty-one stepped basins on a two-kilometre slope, each holding standing water and each drained into the next through a cut stone sluice. The upper basins are used for settling and the lower for growing, and the order has not changed in the ninety years of record. Roughly three thousand people live along the retaining walls.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "REGION", "G1_ANCHOR_TERRACES"] },
+  "siteType": { "id": ["xeno.peerdb.org", "SITE_TYPE", "TERRACE_COMPLEX"] },
+  "gridReference": "TB-113.8/-08.7",
+  "population": {
+    "value": { "from": { "amount": 2600, "precision": 10 }, "to": { "amount": 4200, "precision": 10 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "founded": { "time": "2231-01-01T00:00:00Z", "precision": "y" },
+  "occupation": { "from": { "time": "2231-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true },
+  "image": [{ "value": "/f/SGghsWDTPrEK3pJvfDgH8Z", "name": "G1_ANCHOR_STEPS.jpg", "caption": "General view", "source": "Consortium survey archive" }]
+}

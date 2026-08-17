@@ -5,8 +5,8 @@ import { computed, onBeforeUnmount, ref, useId, useTemplateRef, watch } from "vu
 import { useI18n } from "vue-i18n"
 
 import CheckBox from "@/components/CheckBox.vue"
-import WithLock from "@/components/WithLock.vue"
-import { getParentLock, useLock } from "@/progress"
+import WithInactive from "@/components/WithInactive.vue"
+import { getParentInactive, useInactive } from "@/progress"
 import { anySignal } from "@/utils"
 import { useRegisterForValidation, useValidationRegistry } from "@/validation"
 
@@ -44,7 +44,7 @@ const innerErrors = ref<ValidationError[]>([])
 // surface": our own (e.g. the required-but-empty error we produce in
 // validate) plus whatever the wrapped input emits through the slot's
 // @errors binding. Short-circuited while a missing-state checkbox
-// is checked - the wrapped input is locked then and its (now stale)
+// is checked - the wrapped input is inactive then and its (now stale)
 // errors do not represent the field's state.
 const errors = computed<ValidationError[]>(() => {
   if (missingSet.value) {
@@ -62,16 +62,19 @@ defineOptions({
 
 const { t } = useI18n({ useScope: "global" })
 
-// useLock establishes a lock boundary for the slotted input
-// (parentLock + own count, the latter rising while a missing-state
-// checkbox is checked).
-const lock = useLock()
+// useInactive establishes an inactive boundary for the slotted input
+// (parent + own count, the latter rising while a missing-state checkbox
+// is checked). The mark is a state of the field rather than an operation
+// running, so it goes through the inactive channel and not the lock one:
+// the input stays inactive for as long as the mark is on it.
+const inactive = useInactive()
 
-// We re-provide that bare parentLock via WithLock around the checkbox
-// column to keep the checkboxes interactive regardless of our own count.
-const parentLock = getParentLock()
-function getParentLockRef() {
-  return parentLock
+// We re-provide that bare parent count via WithInactive around the checkbox
+// column to keep the checkboxes interactive regardless of our own count,
+// which is what leaves a way to take the mark off again.
+const parentInactive = getParentInactive()
+function getParentInactiveRef() {
+  return parentInactive
 }
 
 // Transient "show the required visual" flag. Turned on by validate() when
@@ -107,12 +110,12 @@ const isNone = computed<boolean>({
   },
 })
 
-// Toggle the own lock counter on transitions to/from a checked state.
+// Toggle the own inactive counter on transitions to/from a checked state.
 watch(
   missingSet,
-  (locked, wasLocked) => {
-    if (locked && !wasLocked) lock.value += 1
-    else if (!locked && wasLocked) lock.value -= 1
+  (marked, wasMarked) => {
+    if (marked && !wasMarked) inactive.value += 1
+    else if (!marked && wasMarked) inactive.value -= 1
   },
   { immediate: true, flush: "sync" },
 )
@@ -186,7 +189,7 @@ onBeforeUnmount(() => {
 const validatedInput: ValidatedInput = {
   validate: async (signal, options) => {
     // When a missing-state checkbox is checked the wrapped input is
-    // locked and its value is intentionally "missing" - skip its
+    // inactive and its value is intentionally "missing" - skip its
     // validation entirely.
     if (missingSet.value) {
       ownErrors.value = []
@@ -279,12 +282,12 @@ async function onFocusOut(event: FocusEvent) {
       would commit mid-interaction, and the pending read-only flash would then swallow
       the label's forwarded click. The click itself still toggles the checkbox.
     -->
-    <WithLock :lock="getParentLockRef">
+    <WithInactive :inactive="getParentInactiveRef">
       <!--
         items-start keeps each label sized to its own content, so the clickable area
         does not extend past the text (the column is as wide as the widest label).
       -->
-      <div class="flex flex-col items-start">
+      <div class="pd-inputmissing-group flex flex-col items-start">
         <label class="pd-inputmissing-label-unknown flex cursor-pointer items-center gap-1 leading-5" @mousedown.prevent @click="focusCheckbox(unknownCheckboxId)"
           ><CheckBox
             :id="unknownCheckboxId"
@@ -300,6 +303,6 @@ async function onFocusOut(event: FocusEvent) {
           }}</span></label
         >
       </div>
-    </WithLock>
+    </WithInactive>
   </div>
 </template>

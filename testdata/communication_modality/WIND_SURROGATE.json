@@ -1,0 +1,24 @@
+{
+  "id": ["xeno.peerdb.org", "COMMUNICATION_MODALITY", "WIND_SURROGATE"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_MODALITY"] }],
+  "name": [
+    { "value": "Wind-instrument surrogate", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "Pihalni nadomestek govora", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }] },
+    { "value": "Substituto de sopro para a fala", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>A made instrument used to reproduce the prosody of a language over distance, understood as speech and not as music. Excludes signalling by agreed calls.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Glasbilo, ki na daljavo posnema melodijo jezika in se razume kot govor, ne kot glasba.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Instrumento fabricado que reproduz à distância a prosódia de uma língua e é entendido como fala e não como música. Exclui a sinalização por chamadas convencionadas.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "code": ["wind-surr"]
+}

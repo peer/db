@@ -1,0 +1,37 @@
+{
+  "id": ["xeno.peerdb.org", "OBSERVATION", "OBSB_FROST_HOUSE_THIRD_REST"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "OBSERVATION"] }],
+  "title": [{ "value": "Being walked out of the Frost House on a third rest", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "description": [
+    {
+      "value": "<p>An account of the survey breaking the only rule the site has, and of the entire penalty that followed.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "content": [
+    {
+      "value": "<p>3.xii.2292. We were told the rule on arrival, as everyone is: nobody sleeps more than two rest periods in the tunnels, and nobody brings in a culture chamber that is producing. People stay here for days at a time and then leave. Nobody lives in it, and the local account is careful about the difference.</p><p>Our sampling run overran. On the third rest Sovithan came down the passage, took one of us by the arm and walked him out through the eleventh entrance, without discussion and without any change in manner. That is the whole of the penalty. There is no other consequence of any kind, and there was none.</p><p>He was back inside two hours later on ordinary business and was greeted normally. We had prepared, in some detail, for an apology that turned out to have no place to go.</p><p>What we do not understand is why the rule is a rule. Thissuvo says only that a person who lives in the Frost House is a person whose culture has stopped producing, which is either a physiological statement, a moral one, or both, and we have not found a way of asking that separates them.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "expedition": { "id": ["xeno.peerdb.org", "EXPEDITION", "EXP_FETCH_BAND"] },
+  "observedBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_HADDAD"] }, { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_FARAHANI"] }],
+  "observedAt": { "id": ["xeno.peerdb.org", "SITE", "G4_FROST_HOUSE"] },
+  "observedOn": { "time": "2292-12-03T00:00:00Z", "precision": "d" },
+  "about": [
+    { "id": ["xeno.peerdb.org", "SPECIES", "G4_TRAP_KEEPERS"] },
+    { "id": ["xeno.peerdb.org", "PRACTICE", "G4_PR_NOT_LIVING_IN"] },
+    { "id": ["xeno.peerdb.org", "CULTURE", "G4_CU_COLD_STORE"] }
+  ],
+  "method": [
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "AUTOETHNOGRAPHY"] },
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "PARTICIPANT_OBSERVATION"] }
+  ],
+  "fieldConditions": "Forty metres into the night-side ice, no wind, no light but ours. Between six and twenty people in the tunnels at any time, none of them staying.",
+  "notes": [
+    {
+      "value": "<p>The incident was reported to the expedition ethics officer by the party itself and closed without action, on the grounds that the community had already dealt with it in the manner it prefers.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

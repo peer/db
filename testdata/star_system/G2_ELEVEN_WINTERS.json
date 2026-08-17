@@ -1,0 +1,18 @@
+{
+  "id": ["xeno.peerdb.org", "STAR_SYSTEM", "G2_ELEVEN_WINTERS"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "STAR_SYSTEM"] }],
+  "name": [{ "value": "Eleven Winters", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "catalogueCode": "EW-0240",
+  "description": [
+    {
+      "value": "<p>A K7 dwarf with three worlds, one of them inhabited and the most heavily documented object in this galaxy&#39;s register. The name records the relief interval and not any astronomical fact.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "SECTOR", "G2_LONG_BASELINE"] },
+  "spectralClass": "K7V",
+  "starCount": { "amount": 1, "precision": 1 },
+  "planetCount": { "amount": 3, "precision": 1 },
+  "distanceFromSol": { "value": { "amount": 23188.1, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "PARSEC"] }] },
+  "firstSurveyed": { "time": "2240-01-01T00:00:00Z", "precision": "y" }
+}

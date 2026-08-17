@@ -220,6 +220,7 @@ export function useSearch(
   moreThanTotal: DeepReadonly<Ref<boolean>>
   error: DeepReadonly<Ref<string | null>>
   url: DeepReadonly<Ref<string | null>>
+  loadedURL: DeepReadonly<Ref<string | null>>
 } {
   const router = useRouter()
 
@@ -259,16 +260,20 @@ export function useFilters(
   total: DeepReadonly<Ref<number | null>>
   moreThanTotal: DeepReadonly<Ref<boolean>>
   error: DeepReadonly<Ref<string | null>>
-  url: DeepReadonly<Ref<string | null>>
+  loadedURL: DeepReadonly<Ref<string | null>>
 } {
   const router = useRouter()
 
+  // The address published is the one the facets held came from and not the one which was asked for last,
+  // the same way the results are (searchResultsURL in SearchGet.vue): what a caller can tell from it is
+  // which search the facets on the screen belong to, which the address of a request still on its way
+  // would answer wrongly for as long as the answer to it has not been taken.
   const {
     results: rawResults,
     total,
     moreThanTotal,
     error,
-    url,
+    loadedURL,
   } = useSearchResults<FilterResult>(el, progress, () => {
     return router.apiResolve({
       name: "SearchFilters",
@@ -299,7 +304,7 @@ export function useFilters(
     return [...best.values()]
   })
 
-  return { results, total, moreThanTotal, error, url }
+  return { results, total, moreThanTotal, error, loadedURL }
 }
 
 function useSearchResults<T extends Result | FilterResult | RefFilterResult | HasFilterResult>(
@@ -312,6 +317,7 @@ function useSearchResults<T extends Result | FilterResult | RefFilterResult | Ha
   moreThanTotal: DeepReadonly<Ref<boolean>>
   error: DeepReadonly<Ref<string | null>>
   url: DeepReadonly<Ref<string | null>>
+  loadedURL: DeepReadonly<Ref<string | null>>
 } {
   const route = useRoute()
 
@@ -320,11 +326,15 @@ function useSearchResults<T extends Result | FilterResult | RefFilterResult | Ha
   const _moreThanTotal = ref(false)
   const _error = ref<string | null>(null)
   const _url = ref<string | null>(null)
+  // The URL the results currently held came from, which is not the URL above: that one is set when a
+  // request is made, while this one is set when its answer is taken, so it says what is being shown.
+  const _loadedURL = ref<string | null>(null)
   const results = process.env.NODE_ENV !== "production" ? readonly(_results) : (_results as unknown as Readonly<Ref<readonly DeepReadonly<T>[]>>)
   const total = process.env.NODE_ENV !== "production" ? readonly(_total) : _total
   const moreThanTotal = process.env.NODE_ENV !== "production" ? readonly(_moreThanTotal) : _moreThanTotal
   const error = process.env.NODE_ENV !== "production" ? readonly(_error) : _error
   const url = process.env.NODE_ENV !== "production" ? readonly(_url) : _url
+  const loadedURL = process.env.NODE_ENV !== "production" ? readonly(_loadedURL) : _loadedURL
 
   const mainController = new AbortController()
   onBeforeUnmount(() => mainController.abort())
@@ -346,6 +356,7 @@ function useSearchResults<T extends Result | FilterResult | RefFilterResult | Ha
         _results.value = []
         _total.value = null
         _moreThanTotal.value = false
+        _loadedURL.value = null
         return
       }
       const controller = new AbortController()
@@ -362,6 +373,7 @@ function useSearchResults<T extends Result | FilterResult | RefFilterResult | Ha
         _results.value = []
         _total.value = null
         _moreThanTotal.value = false
+        _loadedURL.value = null
         // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
         _error.value = `${err}`
         return
@@ -370,6 +382,7 @@ function useSearchResults<T extends Result | FilterResult | RefFilterResult | Ha
         return
       }
       _results.value = data.results
+      _loadedURL.value = newURL
       if (typeof data.total === "string") {
         if (data.total.endsWith("+")) {
           _moreThanTotal.value = true
@@ -395,6 +408,7 @@ function useSearchResults<T extends Result | FilterResult | RefFilterResult | Ha
     moreThanTotal,
     error,
     url,
+    loadedURL,
   }
 }
 
@@ -1089,28 +1103,74 @@ export function useLocationAt(searchResults: Ref<DeepReadonly<Result[]>>, search
   })
 
   const initialRouteName = route.name
+
+  const topVisible = computed(() => {
+    const sorted = Array.from(visibles.value)
+    sorted.sort((a, b) => (idToIndex.value.get(a) ?? Infinity) - (idToIndex.value.get(b) ?? Infinity))
+    return sorted[0]
+  })
+
+  // Recording where the reader is must never decide where they go. Starting a navigation aborts whichever one
+  // is already in flight, and this one is started by scrolling, which is what a click does to the page on its
+  // way to what was clicked: the reader's own navigation is then cancelled by the record of them having
+  // scrolled towards it, and they stay on the results with nothing to show for the click. So nothing is
+  // recorded while a navigation is in flight, and where they ended up is recorded once it has settled.
+  let navigating = 0
+  let pending = false
+
+  async function record(topId: string | undefined): Promise<void> {
+    // Watch can continue to run for some time after the route changes.
+    if (initialRouteName !== route.name) {
+      return
+    }
+    // Initial data has not yet been loaded, so we wait.
+    if (!topId && searchTotal.value === null) {
+      return
+    }
+    // Positions the reader passes through during a navigation collapse into the one they land on, because only
+    // where they end up is of any interest. Which position that is, is read when the navigation settles and not
+    // remembered from here, so that a navigation onto another set of results does not record a position in the
+    // set it left.
+    if (navigating > 0) {
+      pending = true
+      return
+    }
+    await router.replace({
+      name: route.name as string,
+      params: route.params,
+      // We do not want to set an empty "at" query parameter.
+      query: encodeQuery({ ...route.query, at: topId || undefined }),
+      hash: route.hash,
+    })
+  }
+
+  const stopBeforeEach = router.beforeEach(() => {
+    navigating += 1
+  })
+  // afterEach runs for a navigation which failed as well as for one which went through, so the count comes
+  // back down however a navigation ends.
+  const stopAfterEach = router.afterEach(() => {
+    navigating = Math.max(0, navigating - 1)
+    if (navigating === 0 && pending) {
+      pending = false
+      void record(topVisible.value)
+    }
+  })
+  // onError covers what never reaches afterEach at all, because a count which never came down would leave
+  // the reader's position unrecorded for as long as the page is open.
+  const stopOnError = router.onError(() => {
+    navigating = 0
+  })
+  onBeforeUnmount(() => {
+    stopBeforeEach()
+    stopAfterEach()
+    stopOnError()
+  })
+
   watch(
-    () => {
-      const sorted = Array.from(visibles.value)
-      sorted.sort((a, b) => (idToIndex.value.get(a) ?? Infinity) - (idToIndex.value.get(b) ?? Infinity))
-      return sorted[0]
-    },
-    async (topId, oldTopId, onCleanup) => {
-      // Watch can continue to run for some time after the route changes.
-      if (initialRouteName !== route.name) {
-        return
-      }
-      // Initial data has not yet been loaded, so we wait.
-      if (!topId && searchTotal.value === null) {
-        return
-      }
-      await router.replace({
-        name: route.name as string,
-        params: route.params,
-        // We do not want to set an empty "at" query parameter.
-        query: encodeQuery({ ...route.query, at: topId || undefined }),
-        hash: route.hash,
-      })
+    topVisible,
+    async (topId) => {
+      await record(topId)
     },
     {
       immediate: true,

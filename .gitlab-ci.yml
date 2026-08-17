@@ -54,7 +54,8 @@ test_go:
     POSTGRES: postgres://test:test@docker:5432/test
 
   before_script:
-    - apk --update add make bash gcc musl-dev mailcap git docker-cli
+    - apk --update add make bash gcc musl-dev mailcap git git-lfs docker-cli
+    - git lfs fetch
     - (cd /go; go install gotest.tools/gotestsum@v1.13.0)
     - go version
     - docker info
@@ -66,9 +67,9 @@ test_go:
       -e xpack.security.enabled=false
       -e ingest.geoip.downloader.enabled=false
       -e "cluster.routing.allocation.disk.watermark.flood_stage=100%"
-      -e ES_LOG_STYLE=file
       "$CI_REGISTRY_IMAGE/elastic/$ELASTIC_VERSION:latest"
     - docker run -d --name pgsql -p 5432:5432
+      -e LOG_TO_STDOUT=1
       -e PGSQL_ROLE_1_USERNAME=test
       -e PGSQL_ROLE_1_PASSWORD=test
       -e PGSQL_DB_1_NAME=test
@@ -80,12 +81,9 @@ test_go:
     - make test-ci
 
   after_script:
-    - docker cp elasticsearch:/usr/share/elasticsearch/logs elasticsearch-logs || true
-    - docker cp pgsql:/var/log/postgresql pgsql-logs || true
-    # Just in case any command above have not made directories.
-    - mkdir -p elasticsearch-logs pgsql-logs
-    - docker logs elasticsearch > elasticsearch-logs/docker.log 2>&1 || true
-    - docker logs pgsql > pgsql-logs/docker.log 2>&1 || true
+    - mkdir -p logs
+    - docker logs elasticsearch > logs/elasticsearch.log 2>&1 || true
+    - docker logs pgsql > logs/pgsql.log 2>&1 || true
 
   artifacts:
     when: always
@@ -94,8 +92,7 @@ test_go:
     paths:
       - coverage/
       - tests.xml
-      - elasticsearch-logs
-      - pgsql-logs
+      - logs/
     expire_in: never
 
 test_node:
@@ -104,7 +101,8 @@ test_node:
   image: node:24.10-alpine3.22
 
   before_script:
-    - apk --update add git
+    - apk --update add git git-lfs
+    - git lfs fetch
 
   script:
     - npm ci --audit=false
@@ -138,7 +136,8 @@ test_e2e:
     - test_node
 
   before_script:
-    - apk --update add bash jq
+    - apk --update add bash git git-lfs jq
+    - git lfs fetch
     - docker info
     - echo "$CI_REGISTRY_PASSWORD" | docker login --username "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
     - echo "LINK_PUBLISH_JOB_ID=${CI_JOB_ID}" > link_publish.env
@@ -335,7 +334,8 @@ lint_go:
   image: golang:1.25-alpine3.22
 
   before_script:
-    - apk --update add make bash gcc musl-dev git
+    - apk --update add make bash gcc musl-dev git git-lfs
+    - git lfs fetch
     - wget -O- -nv https://golangci-lint.run/install.sh | sh -s -- -b $(go env GOPATH)/bin v2.12.1
 
   script:
@@ -353,7 +353,8 @@ lint_node:
   image: node:24.10-alpine3.22
 
   before_script:
-    - apk --update add git
+    - apk --update add git git-lfs
+    - git lfs fetch
 
   script:
     - npm ci --audit=false
@@ -372,7 +373,8 @@ lint_vue:
   image: node:24.10-alpine3.22
 
   before_script:
-    - apk --update add git
+    - apk --update add git git-lfs
+    - git lfs fetch
 
   script:
     - npm ci --audit=false
@@ -384,7 +386,8 @@ lint_style:
   image: node:24.10-alpine3.22
 
   before_script:
-    - apk --update add git
+    - apk --update add git git-lfs
+    - git lfs fetch
 
   script:
     - npm ci --audit=false
@@ -403,7 +406,8 @@ fmt_go:
   image: golang:1.25-alpine3.22
 
   before_script:
-    - apk --update add make bash git gcc musl-dev grep
+    - apk --update add make bash git gcc musl-dev grep git-lfs
+    - git lfs fetch
     - go install mvdan.cc/gofumpt@v0.9.1
     - go install golang.org/x/tools/cmd/goimports@v0.37.0
 
@@ -416,7 +420,8 @@ fmt_node:
   image: node:24.10-alpine3.22
 
   before_script:
-    - apk --update add git
+    - apk --update add git git-lfs
+    - git lfs fetch
 
   script:
     - npm ci --audit=false
@@ -429,7 +434,8 @@ generate_vue_i18n:
   image: node:24.10-alpine3.22
 
   before_script:
-    - apk --update add git
+    - apk --update add git git-lfs
+    - git lfs fetch
 
   script:
     - npm ci --audit=false
@@ -442,7 +448,8 @@ lint_docs:
   image: node:24.10-alpine3.22
 
   before_script:
-    - apk --update add make bash git
+    - apk --update add make bash git git-lfs
+    - git lfs fetch
 
   script:
     - make lint-docs-ci
@@ -453,7 +460,8 @@ audit_go:
   image: golang:1.25-alpine3.22
 
   before_script:
-    - apk --update add make bash git gcc musl-dev
+    - apk --update add make bash git gcc musl-dev git-lfs
+    - git lfs fetch
     - go install github.com/sonatype-nexus-community/nancy@v1.0.52
 
   script:
@@ -465,7 +473,8 @@ audit_node:
   image: node:24.10-alpine3.22
 
   before_script:
-    - apk --update add git
+    - apk --update add git git-lfs
+    - git lfs fetch
 
   # Signatures audit is done during install in Dockerfile.
   script:
@@ -513,6 +522,8 @@ docker:
   before_script:
     - docker info
     - echo "$CI_REGISTRY_PASSWORD" | docker login --username "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
+    - apk --update add git-lfs
+    - git lfs fetch
 
   script:
     - export BUILD_TIMESTAMP="$(date -u +%FT%TZ)"

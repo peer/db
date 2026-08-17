@@ -1,0 +1,26 @@
+{
+  "id": ["xeno.peerdb.org", "PLANET", "G1_LOW_ORDER"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PLANET"] }],
+  "name": [{ "value": "Low Order", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "catalogueCode": "MGN-0709-e",
+  "description": [
+    {
+      "value": "<p>The bare metallic core of a body that lost its mantle to an impact early in the system&#39;s history, now orbiting close in with nothing on it at all. It is lifeless and always was, and the interest here is entirely geological. The surface is reflective enough that approach is flown with the shutters down.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "STAR_SYSTEM", "G1_MARGIN_NOTE"] },
+  "planetType": { "id": ["xeno.peerdb.org", "PLANET_TYPE", "STRIPPED_CORE"] },
+  "radius": { "value": { "amount": 0.48, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_RADIUS"] }] },
+  "mass": { "value": { "amount": 0.31, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_MASS"] }] },
+  "surfaceGravity": { "value": { "amount": 1.35, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "STANDARD_GRAVITY"] }] },
+  "dayLength": { "value": { "amount": 8.2, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "HOUR"] }] },
+  "orbitalPeriod": { "value": { "amount": 44.6, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_DAY"] }] },
+  "meanTemperature": { "value": { "amount": -88.0, "precision": 0.1 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "°C"] }] },
+  "hydrosphere": { "value": { "amount": 0, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "PERCENT"] }] },
+  "biosphereNone": true,
+  "contactStatus": { "id": ["xeno.peerdb.org", "CONTACT_STATUS", "NO_CONTACT"] },
+  "firstSurveyed": { "time": "2249-01-01T00:00:00Z", "precision": "y" },
+  "surveyPeriod": { "from": { "time": "2249-01-01T00:00:00Z", "precision": "y" }, "to": { "time": "2255-01-01T00:00:00Z", "precision": "y" } },
+  "image": [{ "value": "/f/PmbV1dZucEJB1zArdErYcd", "name": "G1_LOW_ORDER.jpg", "caption": "Approach view", "source": "Consortium survey archive" }]
+}

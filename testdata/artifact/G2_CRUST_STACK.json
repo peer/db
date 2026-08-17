@@ -1,0 +1,35 @@
+{
+  "id": ["xeno.peerdb.org", "ARTIFACT", "G2_CRUST_STACK"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "ARTIFACT"] }],
+  "name": [{ "value": "The Last Stack, Old Seam", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Marrunulle nurre", "gloss": "what the cutting left" }],
+  "accessionCode": "CCX-A-14863",
+  "description": [
+    {
+      "value": "<p>Forty-one unfinished sulphide blanks stacked in four courses beside a cut face, together with the debitage that came off them, recorded in place and left in place. The stack was made in the ordinary way over some weeks of cutting and was abandoned when the vent failed and the working floor emptied within the year. Nothing has moved since except by settling, and the mineral crust on the outer courses has grown about four millimetres. The accession covers the assemblage as a whole; three flakes were lifted for analysis and the rest of it is still standing on the sea floor.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "category": { "id": ["xeno.peerdb.org", "ARTIFACT_CATEGORY", "REFUSE_ASSEMBLAGE"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G2_CUT_CRUST"] }],
+  "foundAt": { "id": ["xeno.peerdb.org", "SITE", "G2_OLD_SEAM"] },
+  "material": [
+    { "value": "sulphide crust", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "mineral cement", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }
+  ],
+  "dimension": [
+    { "value": { "amount": 1.12, "precision": 0.001 }, "axis": "height", "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+    { "value": { "amount": 0.83, "precision": 0.001 }, "axis": "width", "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+    { "value": { "amount": 0.95, "precision": 0.001 }, "axis": "length", "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] }
+  ],
+  "dateMade": { "time": "2276-01-01T00:00:00Z", "precision": "y" },
+  "collectedBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_FARAHANI"] }, { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_OKONKWO"] }],
+  "image": [{ "value": "/f/AmnqLrcz7taBz2ydz6Cb5h", "name": "G2_CRUST_STACK.jpg", "caption": "Object drawing", "source": "Consortium collection" }],
+  "document": [{ "value": "/f/56eY7v8XR3wVZZFGA8cSa3", "name": "G2_CRUST_STACK.txt", "caption": "Accession record" }],
+  "notes": [
+    {
+      "value": "<p>The survey watched the vent die across three visits and photographed the stack on each of them. Nobody who worked on the file has been willing to describe the sequence as a good outcome, and the drawing was made last of all, in 2279, by somebody who had been on all three visits.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

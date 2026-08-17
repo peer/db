@@ -278,24 +278,34 @@ const sessionEnded = ref(false)
 // Potential-duplicates panel, only mounted for create sessions in field form mode.
 const duplicatesRef = useTemplateRef<{ refresh: () => Promise<void> }>("duplicatesRef")
 
-// Debounce the duplicate search so it runs once a field's blur has committed into the doc (a
-// blur fires a saveChange that the subscription applies into doc.claims shortly after), and so rapid
-// tabbing between fields does not fire a search per field.
+// How long the duplicate search waits for the document to stop changing. Tabbing through several fields
+// commits a change per field, and the search is about the document rather than about any one of them.
+const DUPLICATES_DEBOUNCE = 400
+
+// The duplicate search follows the document itself and not the blur which changed it. A blur posts a
+// saveChange, and the change reaches doc.claims only once the subscription applies it, which is a round
+// trip away: a search started by the blur can therefore ask about the document as it was before the field
+// was left, and what it answers then stands until the next blur, however wrong it has become. Watching the
+// document instead searches for what the document says, whenever that is what it comes to say.
 let duplicatesTimer: ReturnType<typeof setTimeout> | null = null
-function onFieldsBlur() {
-  if (!isCreating.value) {
-    return
-  }
-  if (duplicatesTimer !== null) {
-    clearTimeout(duplicatesTimer)
-  }
-  duplicatesTimer = setTimeout(() => {
-    duplicatesTimer = null
-    duplicatesRef.value?.refresh().catch((err: unknown) => {
-      console.error("DocumentEdit.onFieldsBlur", err)
-    })
-  }, 400)
-}
+watch(
+  doc,
+  () => {
+    if (!isCreating.value) {
+      return
+    }
+    if (duplicatesTimer !== null) {
+      clearTimeout(duplicatesTimer)
+    }
+    duplicatesTimer = setTimeout(() => {
+      duplicatesTimer = null
+      duplicatesRef.value?.refresh().catch((err: unknown) => {
+        console.error("DocumentEdit duplicates", err)
+      })
+    }, DUPLICATES_DEBOUNCE)
+  },
+  { deep: true },
+)
 
 onBeforeUnmount(() => {
   if (duplicatesTimer !== null) {
@@ -1112,174 +1122,205 @@ async function executeFills(fills: readonly CardinalityFill[], parentId: string 
 }
 
 async function onSave() {
-  const sessionController = abortController
+  let sessionController = abortController
   if (sessionController.signal.aborted) {
     return
   }
 
-  sessionError.value = ""
+  // The inputs a refused save leaves the user to fix, focused once the save is over. Focusing while the
+  // save is still running would not land on every kind of input: the form is locked for as long as the
+  // save runs, and a locked control which is a button (or a checkbox) is disabled rather than read-only,
+  // so it cannot take focus at all.
+  let invalidInputs: Iterable<ValidatedInput> | null = null
 
-  // Validate the FieldsForm tab before saving (only mounted when that tab is
-  // active - the All-properties tab does not need this gate because its claim
-  // form is submitted independently). If validation finds errors, focus the
-  // first invalid input and abort the save - no changes flushed, the session
-  // stays open for the user to fix the field.
-  if (fieldsFormRef.value) {
-    await fieldsFormRef.value.validateAll(sessionController.signal, { final: true })
-    if (sessionController.signal.aborted) {
-      return
+  saveBusy.value += 1
+  try {
+    sessionError.value = ""
+
+    // Validate the FieldsForm tab before saving (only mounted when that tab is
+    // active - the All-properties tab does not need this gate because its claim
+    // form is submitted independently). If validation finds errors, focus the
+    // first invalid input and abort the save - no changes flushed, the session
+    // stays open for the user to fix the field.
+    if (fieldsFormRef.value) {
+      await fieldsFormRef.value.validateAll(sessionController.signal, { final: true })
+      if (sessionController.signal.aborted) {
+        return
+      }
+      if (fieldsFormInvalid.value) {
+        invalidInputs = fieldsFormRef.value.inputs
+        return
+      }
     }
-    if (fieldsFormInvalid.value) {
-      focusFirstInvalid(fieldsFormRef.value.inputs)
-      return
+
+    // Flush any pending edits from all slot inputs before saving (each flush commits like
+    // the slot's blur would; invalid values stay in the form and set fieldsFormInvalid),
+    // then wait for every queued change to settle on the server - including changes queued
+    // outside the flush, e.g. by the focusout commit fired by the Save click itself.
+    for (const instance of flushRegistry) {
+      await instance.flush()
+      // Each flush commits a value by queueing a change, so no further slot is flushed once the
+      // editor is going away (only an unmount or a route change aborts this controller).
+      if (sessionController.signal.aborted) {
+        return
+      }
     }
-  }
-
-  // Flush any pending edits from all slot inputs before saving (each flush commits like
-  // the slot's blur would; invalid values stay in the form and set fieldsFormInvalid),
-  // then wait for every queued change to settle on the server - including changes queued
-  // outside the flush, e.g. by the focusout commit fired by the Save click itself.
-  for (const instance of flushRegistry) {
-    await instance.flush()
-    // Each flush commits a value by queueing a change, so no further slot is flushed once the
-    // editor is going away (only an unmount or a route change aborts this controller).
-    if (sessionController.signal.aborted) {
-      return
-    }
-  }
-  await drainSaveChanges()
-  if (sessionController.signal.aborted) {
-    return
-  }
-
-  // Re-check after flush: validateAll above clears stale state, but flush itself
-  // might surface new invalidity if mutation watchers fired. Abort save but keep
-  // the valid changes posted above.
-  if (fieldsFormInvalid.value) {
-    return
-  }
-
-  // Fill default form claims to satisfy min cardinality: a field with a default is not required
-  // of the user (fieldIsRequired), so a document may reach save short on such fields (e.g. a
-  // person left with no last name). We add exactly the missing default (none/unknown) form claims
-  // now, then validate strictly - the check ignores defaults, so a still-unsatisfied field means
-  // the fill logic missed it, and we revert the fills and abort rather than save a malformed
-  // document. Non-default under-min fields never reach here (validateAll's required check catches
-  // them above). Only the class-tab form is filled; the All-properties tab manages claims itself.
-  if (fieldsFormRef.value && mergedFieldsData.value && doc.value) {
-    const fields = flattenFields(mergedFieldsData.value)
-    const fill = await executeFills(computeCardinalityFills(fields, doc.value.claims, isFileLink), undefined)
     await drainSaveChanges()
     if (sessionController.signal.aborted) {
       return
     }
-    // The fills stopped part way without this session aborting, which is the page going away with
-    // changes still unposted. The document is short of claims the fills were meant to add, so the
-    // cardinality check below would report violations which say nothing about what the user filled
-    // in. Nothing is rolled back and no error is surfaced: the form is going away with the page.
-    if (!fill.completed) {
-      return
-    }
-    const violations = cardinalityViolations(fields, doc.value.claims, isFileLink)
-    if (violations.length > 0) {
-      console.error("DocumentEdit.onSave cardinality violations after fill", violations)
-      // Roll back the fills children-first (the ids list parents before children) so a partly
-      // filled document is not left behind, then surface the error and keep the session open.
-      for (const id of [...fill.ids].reverse()) {
-        try {
-          await saveChange({ type: "remove", id })
-        } catch (err) {
-          if (!(err instanceof ChangeDroppedError)) {
-            throw err
-          }
-        }
-        // A partial rollback is acceptable once the session is being torn down.
-        if (sessionController.signal.aborted) {
-          return
-        }
+
+    // Validate again now that the drain has left the form holding what the session will commit. The pass
+    // above ran against the form as it was before anything was flushed, which is not everything the save
+    // is about to write: a value committed a moment earlier reaches the form only once its change comes
+    // back, and the flush commits more of them still. Checks which are of one value alone survive that
+    // (a slot which is invalid says so on its own), while a check comparing a field's claims with each
+    // other (see duplicateClaimIds) is only as good as the claims the form had when it ran, so it is run
+    // again here. Abort the save but keep the valid changes posted above.
+    if (fieldsFormRef.value) {
+      await fieldsFormRef.value.validateAll(sessionController.signal, { final: true })
+      if (sessionController.signal.aborted) {
+        return
       }
+      if (fieldsFormInvalid.value) {
+        invalidInputs = fieldsFormRef.value.inputs
+        return
+      }
+    }
+
+    // Fill default form claims to satisfy min cardinality: a field with a default is not required
+    // of the user (fieldIsRequired), so a document may reach save short on such fields (e.g. a
+    // person left with no last name). We add exactly the missing default (none/unknown) form claims
+    // now, then validate strictly - the check ignores defaults, so a still-unsatisfied field means
+    // the fill logic missed it, and we revert the fills and abort rather than save a malformed
+    // document. Non-default under-min fields never reach here (validateAll's required check catches
+    // them above). Only the class-tab form is filled; the All-properties tab manages claims itself.
+    if (fieldsFormRef.value && mergedFieldsData.value && doc.value) {
+      const fields = flattenFields(mergedFieldsData.value)
+      const fill = await executeFills(computeCardinalityFills(fields, doc.value.claims, isFileLink), undefined)
       await drainSaveChanges()
       if (sessionController.signal.aborted) {
         return
       }
-      sessionError.value = "cardinality"
-      return
+      // The fills stopped part way without this session aborting, which is the page going away with
+      // changes still unposted. The document is short of claims the fills were meant to add, so the
+      // cardinality check below would report violations which say nothing about what the user filled
+      // in. Nothing is rolled back and no error is surfaced: the form is going away with the page.
+      if (!fill.completed) {
+        return
+      }
+      const violations = cardinalityViolations(fields, doc.value.claims, isFileLink)
+      if (violations.length > 0) {
+        console.error("DocumentEdit.onSave cardinality violations after fill", violations)
+        // Roll back the fills children-first (the ids list parents before children) so a partly
+        // filled document is not left behind, then surface the error and keep the session open.
+        for (const id of [...fill.ids].reverse()) {
+          try {
+            await saveChange({ type: "remove", id })
+          } catch (err) {
+            if (!(err instanceof ChangeDroppedError)) {
+              throw err
+            }
+          }
+          // A partial rollback is acceptable once the session is being torn down.
+          if (sessionController.signal.aborted) {
+            return
+          }
+        }
+        await drainSaveChanges()
+        if (sessionController.signal.aborted) {
+          return
+        }
+        sessionError.value = "cardinality"
+        return
+      }
     }
-  }
 
-  // Stop polling for changes before ending the session by aborting and creating a fresh controller.
-  // The fresh controller is needed for the save request itself.
-  sessionController.abort()
-  abortController = new AbortController()
-  const saveController = abortController
+    // Stop polling for changes before ending the session by aborting and creating a fresh controller.
+    // The fresh controller is needed for the save request itself.
+    sessionController.abort()
+    abortController = new AbortController()
+    const saveController = abortController
+    sessionController = abortController
 
-  saveBusy.value += 1
-  try {
-    await postJSON<DocumentEndEditResponse>(
-      router.apiResolve({
-        name: "DocumentEndEdit",
-        params: {
-          session: props.session,
-        },
-      }).href,
-      {},
-      saveController.signal,
-      saveBusy,
-    )
-    if (saveController.signal.aborted) {
-      return
-    }
-
-    // Poll until the session is fully completed (document committed).
-    const editStatusURL = router.apiResolve({
-      name: "DocumentEdit",
-      params: {
-        id: props.id,
-        session: props.session,
-      },
-    }).href
-    while (true) {
-      await delay(pollInterval, saveController.signal)
+    try {
+      await postJSON<DocumentEndEditResponse>(
+        router.apiResolve({
+          name: "DocumentEndEdit",
+          params: {
+            session: props.session,
+          },
+        }).href,
+        {},
+        saveController.signal,
+        saveBusy,
+      )
       if (saveController.signal.aborted) {
         return
       }
-      const statusResponse = await getURLDirect<DocumentEditStatus>(editStatusURL, saveController.signal, saveBusy)
-      if (saveController.signal.aborted || statusResponse === null) {
-        return
-      }
-      const status = statusResponse.doc
-      if (status.errored) {
-        // The commit was rejected at completion (e.g. by the commit permission check).
-        throw new Error("edit session errored")
-      }
-      if (status.changeset || status.discarded) {
-        break
-      }
-    }
 
-    deleteFromCache(
-      router.apiResolve({
+      // Poll until the session is fully completed (document committed).
+      const editStatusURL = router.apiResolve({
+        name: "DocumentEdit",
+        params: {
+          id: props.id,
+          session: props.session,
+        },
+      }).href
+      while (true) {
+        await delay(pollInterval, saveController.signal)
+        if (saveController.signal.aborted) {
+          return
+        }
+        const statusResponse = await getURLDirect<DocumentEditStatus>(editStatusURL, saveController.signal, saveBusy)
+        if (saveController.signal.aborted || statusResponse === null) {
+          return
+        }
+        const status = statusResponse.doc
+        if (status.errored) {
+          // The commit was rejected at completion (e.g. by the commit permission check).
+          throw new Error("edit session errored")
+        }
+        if (status.changeset || status.discarded) {
+          break
+        }
+      }
+
+      deleteFromCache(
+        router.apiResolve({
+          name: "DocumentGet",
+          params: {
+            id: props.id,
+          },
+        }).href,
+      )
+      await router.push({
         name: "DocumentGet",
         params: {
           id: props.id,
         },
-      }).href,
-    )
-    await router.push({
-      name: "DocumentGet",
-      params: {
-        id: props.id,
-      },
-    })
+      })
+    } catch (err) {
+      if (saveController.signal.aborted) {
+        return
+      }
+      throw err
+    }
   } catch (err) {
-    if (saveController.signal.aborted) {
+    if (sessionController.signal.aborted) {
       return
     }
+
     console.error("DocumentEdit.onSave", err)
     // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
     sessionError.value = `${err}`
   } finally {
     saveBusy.value -= 1
+    if (invalidInputs !== null) {
+      // The inputs are focusable again only once the render which unlocks them has run.
+      await nextTick()
+      focusFirstInvalid(invalidInputs)
+    }
   }
 }
 
@@ -1677,18 +1718,27 @@ function canSave(): boolean {
       </template>
     </NavBar>
   </Teleport>
-  <div class="mt-[var(--pd-navbar-offset)] flex w-full flex-row">
+  <div class="pd-documentedit-layout mt-[var(--pd-navbar-offset)] flex w-full flex-row">
     <!--
       The table of contents lives outside the content column, to its left: its
       sticky/scroll machinery keys off its parent (this wrapper) spanning the whole
       content height.
     -->
-    <TableOfContents v-if="hasDocumentPermission(ACTION_UPDATE, doc) && doc && classesInitialized && showToc" :targets="tocTargets" class="ml-4 w-48 shrink-0">
-      <div class="font-semibold">{{ t("partials.TableOfContents.title") }}</div>
+    <TableOfContents
+      v-if="hasDocumentPermission(ACTION_UPDATE, doc) && doc && classesInitialized && showToc"
+      :targets="tocTargets"
+      class="pd-documentedit-toc ml-4 w-48 shrink-0"
+    >
+      <div class="pd-documentedit-title-toc font-semibold">{{ t("partials.TableOfContents.title") }}</div>
     </TableOfContents>
-    <div ref="el" class="pd-documentedit flex min-w-0 grow flex-col gap-y-1 border-t border-transparent p-1 sm:gap-y-4 sm:p-4">
-      <div class="rounded-sm border border-gray-200 bg-white p-4 shadow-sm">
-        <div v-if="hasDocumentPermission(ACTION_UPDATE, doc) && sessionEnded" class="my-1 text-center sm:my-4">
+    <!--
+      The number of changes the form has queued or in flight is published here so that what the form is
+      still owing the server can be read off it. A slot with a change in flight is read-only and everything
+      derived from the document lags it, so a zero here is what says the form shows the state it has.
+    -->
+    <div ref="el" class="pd-documentedit flex min-w-0 grow flex-col gap-y-1 p-1 sm:gap-y-4 sm:p-4" :data-pending-changes="pendingChangeCount">
+      <div class="pd-documentedit-card rounded-sm border border-gray-200 bg-white p-4 shadow-sm">
+        <div v-if="hasDocumentPermission(ACTION_UPDATE, doc) && sessionEnded" id="documentedit-text-sessionended" class="my-1 text-center sm:my-4">
           <i18n-t keypath="views.DocumentEdit.sessionEnded" scope="global">
             <template #document>
               <DocumentRefInline :id="id" />
@@ -1701,7 +1751,7 @@ function canSave(): boolean {
           See: https://github.com/tailwindlabs/tailwindcss/discussions/10123
         -->
           <TabGroup manual :selected-index="selectedMainTab" @change="onMainTabChange">
-            <TabList class="mb-4 flex flex-wrap gap-2">
+            <TabList class="pd-documentedit-tabs mb-4 flex flex-wrap gap-2">
               <Tab
                 v-if="classTabId && mergedFieldsData"
                 :key="classTabId"
@@ -1714,28 +1764,26 @@ function canSave(): boolean {
               >
               <Tab
                 v-if="showPermissionsTab"
-                class="rounded-sm border border-gray-300 bg-white px-4 py-2 leading-tight font-medium text-gray-700 uppercase outline-none select-none not-aria-selected:hover:bg-gray-50 focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-1 aria-selected:border-primary-600 aria-selected:bg-primary-600 aria-selected:text-white"
+                class="pd-documentedit-tab-permissions rounded-sm border border-gray-300 bg-white px-4 py-2 leading-tight font-medium text-gray-700 uppercase outline-none select-none not-aria-selected:hover:bg-gray-50 focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-1 aria-selected:border-primary-600 aria-selected:bg-primary-600 aria-selected:text-white"
                 >{{ t("views.DocumentEdit.tabs.permissions") }}</Tab
               >
             </TabList>
-            <h1 v-show="displayLabelComponent?.displayLabel" id="documentedit-title" class="mb-4 text-3xl font-bold drop-shadow-xs"
+            <h1 v-show="displayLabelComponent?.displayLabel" id="documentedit-title" class="pd-documentedit-title mb-4 text-3xl font-bold drop-shadow-xs"
               ><DisplayLabel ref="displayLabelComponent" :doc="doc"
             /></h1>
             <!-- We explicitly disable tabbing. See: https://github.com/tailwindlabs/headlessui/discussions/1433 -->
             <TabPanels as="template">
               <!-- Class-specific tab. -->
               <TabPanel v-if="classTabId && mergedFieldsData" :key="classTabId" tabindex="-1" class="pd-documentedit-panel-fields outline-none">
-                <div @focusout="onFieldsBlur">
-                  <FieldsForm
-                    ref="fieldsFormRef"
-                    v-model:invalid="fieldsFormInvalid"
-                    :fields-data="mergedFieldsData"
-                    :claims="doc.claims"
-                    :initial-claims="initialDoc?.claims ?? doc.claims"
-                  />
-                  <!-- Potential duplicates of the document being created, refreshed on every field blur. -->
-                  <DocumentDuplicates v-if="isCreating" ref="duplicatesRef" :doc="doc" />
-                </div>
+                <FieldsForm
+                  ref="fieldsFormRef"
+                  v-model:invalid="fieldsFormInvalid"
+                  :fields-data="mergedFieldsData"
+                  :claims="doc.claims"
+                  :initial-claims="initialDoc?.claims ?? doc.claims"
+                />
+                <!-- Potential duplicates of the document being created, searched for again whenever the document changes. -->
+                <DocumentDuplicates v-if="isCreating" ref="duplicatesRef" :doc="doc" />
               </TabPanel>
               <!-- "All properties" tab panel. -->
               <TabPanel tabindex="-1" class="pd-documentedit-panel-allproperties outline-none">
@@ -1748,12 +1796,12 @@ function canSave(): boolean {
                   @remove-claim="onRemoveClaim"
                   @sub-claim="onSubClaimAdd"
                 />
-                <form id="documentedit-form-claim" ref="claimFormRef" @submit.prevent="onSubmit" @reset="onReset">
+                <form id="documentedit-form-claim" ref="claimFormRef" class="pd-documentedit-form-claim" @submit.prevent="onSubmit" @reset="onReset">
                   <h2 id="documentedit-title-claim" class="mt-4 text-xl font-medium">{{
                     editingClaimId ? t("views.DocumentEdit.editClaim") : subClaimParentId ? t("views.DocumentEdit.addSubClaim") : t("views.DocumentEdit.addClaim")
                   }}</h2>
                   <TabGroup :selected-index="selectedClaimTab" @change="onChangeClaimTab">
-                    <TabList class="mt-4 flex flex-wrap gap-2">
+                    <TabList class="pd-documentedit-tabs-claimtype mt-4 flex flex-wrap gap-2">
                       <Tab
                         v-for="type in claimTypes"
                         :key="type"
@@ -1768,7 +1816,7 @@ function canSave(): boolean {
                     </TabList>
                     <TabPanels as="template">
                       <!-- We explicitly disable tabbing. See: https://github.com/tailwindlabs/headlessui/discussions/1433 -->
-                      <TabPanel tabindex="-1" class="flex flex-col outline-none">
+                      <TabPanel tabindex="-1" class="pd-documentedit-panel-claimtype pd-documentedit-panel-claimtype-id flex flex-col outline-none">
                         <InputField required :label="t('common.labels.property')" class="pd-documentedit-field-property mt-4">
                           <template #input="inputProps">
                             <InputRef v-bind="inputProps" v-model="claimProp" :filter="PROPERTY_FILTER" />
@@ -1780,7 +1828,7 @@ function canSave(): boolean {
                           </template>
                         </InputField>
                       </TabPanel>
-                      <TabPanel tabindex="-1" class="flex flex-col outline-none">
+                      <TabPanel tabindex="-1" class="pd-documentedit-panel-claimtype pd-documentedit-panel-claimtype-string flex flex-col outline-none">
                         <InputField required :label="t('common.labels.property')" class="pd-documentedit-field-property mt-4">
                           <template #input="inputProps">
                             <InputRef v-bind="inputProps" v-model="claimProp" :filter="PROPERTY_FILTER" />
@@ -1792,7 +1840,7 @@ function canSave(): boolean {
                           </template>
                         </InputField>
                       </TabPanel>
-                      <TabPanel tabindex="-1" class="flex flex-col outline-none">
+                      <TabPanel tabindex="-1" class="pd-documentedit-panel-claimtype pd-documentedit-panel-claimtype-html flex flex-col outline-none">
                         <InputField required :label="t('common.labels.property')" class="pd-documentedit-field-property mt-4">
                           <template #input="inputProps">
                             <InputRef v-bind="inputProps" v-model="claimProp" :filter="PROPERTY_FILTER" />
@@ -1804,7 +1852,7 @@ function canSave(): boolean {
                           </template>
                         </InputField>
                       </TabPanel>
-                      <TabPanel tabindex="-1" class="flex flex-col outline-none">
+                      <TabPanel tabindex="-1" class="pd-documentedit-panel-claimtype pd-documentedit-panel-claimtype-amount flex flex-col outline-none">
                         <InputField required :label="t('common.labels.property')" class="pd-documentedit-field-property mt-4">
                           <template #input="inputProps">
                             <InputRef v-bind="inputProps" v-model="claimProp" :filter="PROPERTY_FILTER" />
@@ -1816,7 +1864,7 @@ function canSave(): boolean {
                           </template>
                         </InputField>
                       </TabPanel>
-                      <TabPanel tabindex="-1" class="flex flex-col outline-none">
+                      <TabPanel tabindex="-1" class="pd-documentedit-panel-claimtype pd-documentedit-panel-claimtype-amountinterval flex flex-col outline-none">
                         <InputField required :label="t('common.labels.property')" class="pd-documentedit-field-property mt-4">
                           <template #input="inputProps">
                             <InputRef v-bind="inputProps" v-model="claimProp" :filter="PROPERTY_FILTER" />
@@ -1841,7 +1889,7 @@ function canSave(): boolean {
                           </template>
                         </InputField>
                       </TabPanel>
-                      <TabPanel tabindex="-1" class="flex flex-col outline-none">
+                      <TabPanel tabindex="-1" class="pd-documentedit-panel-claimtype pd-documentedit-panel-claimtype-time flex flex-col outline-none">
                         <InputField required :label="t('common.labels.property')" class="pd-documentedit-field-property mt-4">
                           <template #input="inputProps">
                             <InputRef v-bind="inputProps" v-model="claimProp" :filter="PROPERTY_FILTER" />
@@ -1853,7 +1901,7 @@ function canSave(): boolean {
                           </template>
                         </InputField>
                       </TabPanel>
-                      <TabPanel tabindex="-1" class="flex flex-col outline-none">
+                      <TabPanel tabindex="-1" class="pd-documentedit-panel-claimtype pd-documentedit-panel-claimtype-timeinterval flex flex-col outline-none">
                         <InputField required :label="t('common.labels.property')" class="pd-documentedit-field-property mt-4">
                           <template #input="inputProps">
                             <InputRef v-bind="inputProps" v-model="claimProp" :filter="PROPERTY_FILTER" />
@@ -1878,7 +1926,7 @@ function canSave(): boolean {
                           </template>
                         </InputField>
                       </TabPanel>
-                      <TabPanel tabindex="-1" class="flex flex-col outline-none">
+                      <TabPanel tabindex="-1" class="pd-documentedit-panel-claimtype pd-documentedit-panel-claimtype-link flex flex-col outline-none">
                         <InputField required :label="t('common.labels.property')" class="pd-documentedit-field-property mt-4">
                           <template #input="inputProps">
                             <InputRef v-bind="inputProps" v-model="claimProp" :filter="PROPERTY_FILTER" />
@@ -1890,7 +1938,7 @@ function canSave(): boolean {
                           </template>
                         </InputField>
                       </TabPanel>
-                      <TabPanel tabindex="-1" class="flex flex-col outline-none">
+                      <TabPanel tabindex="-1" class="pd-documentedit-panel-claimtype pd-documentedit-panel-claimtype-file flex flex-col outline-none">
                         <InputField required :label="t('common.labels.property')" class="pd-documentedit-field-property mt-4">
                           <template #input="inputProps">
                             <InputRef v-bind="inputProps" v-model="claimProp" :filter="PROPERTY_FILTER" />
@@ -1902,7 +1950,7 @@ function canSave(): boolean {
                           </template>
                         </InputField>
                       </TabPanel>
-                      <TabPanel tabindex="-1" class="flex flex-col outline-none">
+                      <TabPanel tabindex="-1" class="pd-documentedit-panel-claimtype pd-documentedit-panel-claimtype-ref flex flex-col outline-none">
                         <InputField required :label="t('common.labels.property')" class="pd-documentedit-field-property mt-4">
                           <template #input="inputProps">
                             <InputRef v-bind="inputProps" v-model="claimProp" :filter="PROPERTY_FILTER" />
@@ -1914,21 +1962,21 @@ function canSave(): boolean {
                           </template>
                         </InputField>
                       </TabPanel>
-                      <TabPanel tabindex="-1" class="flex flex-col outline-none">
+                      <TabPanel tabindex="-1" class="pd-documentedit-panel-claimtype pd-documentedit-panel-claimtype-has flex flex-col outline-none">
                         <InputField required :label="t('common.labels.property')" class="pd-documentedit-field-property mt-4">
                           <template #input="inputProps">
                             <InputRef v-bind="inputProps" v-model="claimProp" :filter="PROPERTY_FILTER" />
                           </template>
                         </InputField>
                       </TabPanel>
-                      <TabPanel tabindex="-1" class="flex flex-col outline-none">
+                      <TabPanel tabindex="-1" class="pd-documentedit-panel-claimtype pd-documentedit-panel-claimtype-none flex flex-col outline-none">
                         <InputField required :label="t('common.labels.property')" class="pd-documentedit-field-property mt-4">
                           <template #input="inputProps">
                             <InputRef v-bind="inputProps" v-model="claimProp" :filter="PROPERTY_FILTER" />
                           </template>
                         </InputField>
                       </TabPanel>
-                      <TabPanel tabindex="-1" class="flex flex-col outline-none">
+                      <TabPanel tabindex="-1" class="pd-documentedit-panel-claimtype pd-documentedit-panel-claimtype-unknown flex flex-col outline-none">
                         <InputField required :label="t('common.labels.property')" class="pd-documentedit-field-property mt-4">
                           <template #input="inputProps">
                             <InputRef v-bind="inputProps" v-model="claimProp" :filter="PROPERTY_FILTER" />
@@ -1939,7 +1987,7 @@ function canSave(): boolean {
                   </TabGroup>
                   <div v-if="claimFormErrorCode === 'notAllowed'" id="documentedit-error-claim" class="mt-4 text-error-600">{{ t("common.errors.notAllowed") }}</div>
                   <div v-else-if="claimFormError" id="documentedit-error-claim" class="mt-4 text-error-600">{{ t("common.errors.unexpected") }}</div>
-                  <div class="mt-4 flex flex-row justify-end gap-4">
+                  <div class="pd-documentedit-actions-claim mt-4 flex flex-row justify-end gap-4">
                     <Button id="documentedit-button-cancelclaim" type="reset" :disabled="allEmpty && !anyError">{{ t("common.buttons.cancel") }}</Button>
                     <!--
                     We do enable button even when inputs are invalid because we want the user to
@@ -1955,13 +2003,13 @@ function canSave(): boolean {
                 Permissions tab panel. It is kept mounted across tab switches (:unmount="false"), so
                 pending, not-yet-saved operations survive them.
               -->
-              <TabPanel v-if="showPermissionsTab" tabindex="-1" :unmount="false" class="outline-none">
+              <TabPanel v-if="showPermissionsTab" tabindex="-1" :unmount="false" class="pd-documentedit-panel-permissions outline-none">
                 <PermissionsForm :claims="doc.claims" />
               </TabPanel>
             </TabPanels>
           </TabGroup>
           <div v-if="sessionError" id="documentedit-error-session" class="mt-4 text-error-600">{{ t("common.errors.unexpected") }}</div>
-          <div class="mt-4 flex flex-row justify-between gap-4">
+          <div class="pd-documentedit-actions mt-4 flex flex-row justify-between gap-4">
             <Button id="documentedit-button-discard" type="button" :progress="saveBusy" @click.prevent="onDiscard">{{ t("common.buttons.discard") }}</Button>
             <!-- The button sits outside the claim form (a form cannot nest in it), so saving is a click and not a submit. -->
             <Button id="documentedit-button-save" type="button" primary :disabled="!canSave()" :progress="saveBusy" @click.prevent="onSave">{{

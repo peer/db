@@ -121,18 +121,25 @@ async function onFocusout(): Promise<void> {
     @focusout="onFocusout"
   >
     <!-- The grid's second column aligns the hint under the label's text. -->
-    <label v-for="option of actions" :key="option.id" class="grid cursor-pointer grid-cols-[auto_1fr] items-center gap-x-2 leading-none">
+    <label
+      v-for="option of actions"
+      :key="option.id"
+      class="pd-permissionactionsinput-label grid cursor-pointer grid-cols-[auto_1fr] items-center gap-x-2 leading-none"
+      :class="`pd-permissionactionsinput-label-${option.id}`"
+    >
       <CheckBox
         :id="`${baseId}-${option.id}`"
+        class="pd-permissionactionsinput-checkbox"
+        :class="`pd-permissionactionsinput-checkbox-${option.id}`"
         :model-value="model.includes(option.id)"
         :invalid="errors.length > 0"
         :aria-labelledby="labelId(option.id)"
         :aria-describedby="hintId(option.id)"
         @update:model-value="onToggle(option.id, $event as boolean)"
       />
-      <span :id="labelId(option.id)">{{ option.label(t) }}</span>
-      <span :id="hintId(option.id)" class="col-start-2 mt-1 text-sm text-neutral-500 italic">{{ option.hint(t) }}</span>
+      <span :id="labelId(option.id)" class="pd-permissionactionsinput-text-label">{{ option.label(t) }}</span>
+      <span :id="hintId(option.id)" class="pd-permissionactionsinput-text-hint col-start-2 mt-1 text-sm text-neutral-500 italic">{{ option.hint(t) }}</span>
     </label>
-    <p v-if="errorMessage" :id="errorId" class="text-sm text-error-600">{{ errorMessage }}</p>
+    <p v-if="errorMessage" :id="errorId" class="pd-permissionactionsinput-error text-sm text-error-600">{{ errorMessage }}</p>
   </div>
 </template>

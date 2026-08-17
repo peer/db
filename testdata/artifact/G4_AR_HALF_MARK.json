@@ -1,0 +1,28 @@
+{
+  "id": ["xeno.peerdb.org", "ARTIFACT", "G4_AR_HALF_MARK"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "ARTIFACT"] }],
+  "name": [{ "value": "Moiety Plate", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "ngomunuma", "gloss": "the half, worn on the flank" }],
+  "accessionCode": "CCX-A-20536",
+  "description": [
+    {
+      "value": "<p>A curved plate of beak keratin about forty centimetres across, tied through three flank tubercles and worn on the leading side, cut so that its notch pattern states the wearer&#39;s half. It is legible by touch and by electroreception in water where nothing whatever is visible, and it is worn from the first crossing gathering onward and replaced as the swimmer grows. This one was cut loose on the relay deck in 2284 after a station-keeping hearing, by a swimmer who had outgrown it and had the new one already on. It is scarred along the trailing edge where the ties passed through.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "category": { "id": ["xeno.peerdb.org", "ARTIFACT_CATEGORY", "ORNAMENT"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G4_CU_RING_MOIETIES"] }],
+  "foundAt": { "id": ["xeno.peerdb.org", "SITE", "G4_SUNK_RELAY"] },
+  "material": [
+    { "value": "beak keratin", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "hide cord", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }
+  ],
+  "dimension": [
+    { "value": { "amount": 0.42, "precision": 0.001 }, "axis": "length", "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+    { "value": { "amount": 0.24, "precision": 0.001 }, "axis": "width", "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+    { "value": { "amount": 0.012, "precision": 0.001 }, "axis": "thickness", "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] }
+  ],
+  "dateMade": { "time": "2278-01-01T00:00:00Z", "precision": "y" },
+  "collectedBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_BEKELE"] }, { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_BONETTI"] }],
+  "image": [{ "value": "/f/3cDiNPtVNvAFxwUtRaphwx", "name": "G4_AR_HALF_MARK.jpg", "caption": "Object drawing", "source": "Consortium collection" }]
+}

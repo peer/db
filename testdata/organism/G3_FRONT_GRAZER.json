@@ -1,0 +1,26 @@
+{
+  "id": ["xeno.peerdb.org", "ORGANISM", "G3_FRONT_GRAZER"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "ORGANISM"] }],
+  "name": [{ "value": "Ice Front Grazer", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "methel" }],
+  "taxonCode": "TX-1106-b",
+  "description": [
+    {
+      "value": "<p>A heavy six-limbed browser that works the scrub rows at the ice front and crosses onto the night side to lick frost from bare stone. Herds run to a few hundred and are followed rather than owned, since nobody controls their breeding and nobody has tried. Their trampling opens the rows, which is why the scrub grows thickest where the herds have already been.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "category": { "id": ["xeno.peerdb.org", "ORGANISM_CATEGORY", "MOTILE_HETEROTROPH"] },
+  "foundOn": [{ "id": ["xeno.peerdb.org", "PLANET", "G3_SISHELETH"] }],
+  "biome": [{ "id": ["xeno.peerdb.org", "BIOME", "DUSK_BELT"] }, { "id": ["xeno.peerdb.org", "BIOME", "NIGHTSIDE_TRAP"] }],
+  "typicalSize": { "value": { "amount": 1.2, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+  "typicalMass": { "value": { "amount": 165.0, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "kg"] }] },
+  "image": [
+    {
+      "value": "/f/NEcfki4iVph2wBk4gnGEpE",
+      "name": "G3_FRONT_GRAZER.jpg",
+      "caption": "Field plate",
+      "source": "Drawn in the field; Consortium collection"
+    }
+  ]
+}

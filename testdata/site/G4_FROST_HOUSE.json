@@ -1,0 +1,21 @@
+{
+  "id": ["xeno.peerdb.org", "SITE", "G4_FROST_HOUSE"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SITE"] }],
+  "name": [{ "value": "Frost House", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "localName": [{ "value": "Shethivass", "gloss": "the cold store" }],
+  "description": [
+    {
+      "value": "<p>A cut tunnel system forty metres into the night-side ice, at the point where the march comes closest to the antistellar front, used for storage and as a staging point for ice cutting. There are twelve entrances, all on the marchward face. Nobody lives in it: people stay for days at a time and then leave, a distinction the local account is careful to make.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "REGION", "G4_COLD_LOCKER"] },
+  "siteType": { "id": ["xeno.peerdb.org", "SITE_TYPE", "SUBSURFACE_WARREN"] },
+  "gridReference": "CL-244.1/-3.6",
+  "population": {
+    "value": { "from": { "amount": 0, "precision": 10 }, "to": { "amount": 45, "precision": 10 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "occupation": { "from": { "time": "2239-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true },
+  "image": [{ "value": "/f/YBfB3W4uwL5KixQD2xqSD8", "name": "G4_FROST_HOUSE.jpg", "caption": "General view", "source": "Consortium survey archive" }]
+}

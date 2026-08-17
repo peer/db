@@ -1,0 +1,28 @@
+{
+  "id": ["xeno.peerdb.org", "ARTIFACT", "G3_WALL_SHEET"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "ARTIFACT"] }],
+  "name": [{ "value": "Shelter Sheet, Coldward Face", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "accessionCode": "CCX-A-31015",
+  "description": [
+    {
+      "value": "<p>A felted sheet of herd fibre, made by soaking, beating and rolling rather than by weaving, used as the inner skin of the thick wall. One face is matted flat and stained with fat and soot, the other has been left rough and still carries the dust of the strip in a fine bright layer that no amount of handling removes. It has been patched eleven times, each patch felted directly on rather than sewn, so the sheet is thicker at the repairs than anywhere else. It was given to the survey when the household that owned it decided the sheet had reached the point of being carried rather than used.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "category": { "id": ["xeno.peerdb.org", "ARTIFACT_CATEGORY", "TEXTILE"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G3_STRIP_STEWARDSHIP"] }],
+  "foundAt": { "id": ["xeno.peerdb.org", "SITE", "G3_UPPER_HEARTHS"] },
+  "material": [
+    { "value": "felted herd fibre", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "rendered fat", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "terminator dust", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }
+  ],
+  "dimension": [
+    { "value": { "amount": 3.1, "precision": 0.001 }, "axis": "length", "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+    { "value": { "amount": 1.9, "precision": 0.001 }, "axis": "width", "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+    { "value": { "amount": 0.022, "precision": 0.001 }, "axis": "thickness", "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] }
+  ],
+  "dateMade": { "time": "2260-01-01T00:00:00Z", "precision": "10y" },
+  "collectedBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_MOLNAR"] }, { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_ZUPAN"] }],
+  "image": [{ "value": "/f/83urtoTWJPBuRGoEjY4Cg7", "name": "G3_WALL_SHEET.jpg", "caption": "Object drawing", "source": "Consortium collection" }]
+}

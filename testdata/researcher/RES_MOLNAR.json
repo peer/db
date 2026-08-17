@@ -1,0 +1,23 @@
+{
+  "id": ["xeno.peerdb.org", "RESEARCHER", "RES_MOLNAR"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "RESEARCHER"] }],
+  "name": [{ "value": "Peter" }],
+  "familyName": [{ "value": "Molnar" }],
+  "researcherCode": "CCX-P-03119",
+  "description": [
+    {
+      "value": "<p>Maintains the reference corpus of substrate recordings and is unmoved by arguments that it should be opened, including the ones he agrees with. He has spent nine years on a catalogue of recording positions and considers it the most useful thing he will do. He has been on six expeditions and has never once led one.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "affiliatedWith": [{ "id": ["xeno.peerdb.org", "INSTITUTE", "INST_SUBSTRATE"] }, { "id": ["xeno.peerdb.org", "INSTITUTE", "INST_EVENING"] }],
+  "specialisesIn": [
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "ACOUSTIC_RECORDING"] },
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "ARCHIVAL_COMPARISON"] }
+  ],
+  "activePeriod": { "from": { "time": "2278-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true },
+  "born": { "time": "2253-01-01T00:00:00Z", "precision": "y" },
+  "image": [
+    { "value": "/f/KfhBDjjBUTrH3wFqdvDfLZ", "name": "RES_MOLNAR.jpg", "caption": "Staff photograph", "source": "Consortium personnel record" }
+  ]
+}

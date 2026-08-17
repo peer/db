@@ -1,4 +1,5 @@
 import type { ComputedRef, DeepReadonly, InjectionKey, Ref } from "vue"
+import type { ComposerTranslation } from "vue-i18n"
 
 import type { TimePrecision } from "@/document"
 import type {
@@ -24,7 +25,8 @@ import { prng_alea } from "esm-seedrandom"
 import { cloneDeep, isEqual } from "lodash-es"
 import { inject, onBeforeUnmount, onMounted, readonly, ref, shallowRef, toRaw, useId, watch, watchEffect } from "vue"
 
-import { INSTANCE_OF, NAME, TITLE } from "@/core"
+import siteContext from "@/context"
+import { INSTANCE_OF } from "@/core"
 import { getClaimsOfTypeWithConfidence, selectClaimsByLanguage } from "@/document/claims"
 import { AddClaimChange } from "@/document/patch"
 import { yearPrecisionMultiple } from "@/document/time"
@@ -396,7 +398,7 @@ export const HAS_PROPERTY_VALUE_ID = "__HAS__"
 //
 // The labels are t() call results and not message keys, so that a search for a translation finds where
 // it is used.
-export function specialValueLabel(id: string, t: (key: string) => string): string | null {
+export function specialValueLabel(id: string, t: ComposerTranslation): string | null {
   switch (id) {
     case MISSING_VALUE_ID:
       return t("common.values.missing")
@@ -754,11 +756,6 @@ export function amountRangeDisplay(from: number, to: number): { decimals: number
   }
 }
 
-// NAMING_PROPERTIES lists the properties considered for display labels.
-// This matches the backend's naming properties (sub-properties of NAMING).
-// TODO: Derive this dynamically from the property hierarchy instead of hard-coding.
-const NAMING_PROPERTIES = [NAME, TITLE]
-
 // getDisplayLabel returns the display label for a document's claims, using the
 // current locale and language fallback chain.
 //
@@ -794,7 +791,9 @@ export const defaultDisplayLabel: GetDisplayLabel = async function (claims, rout
 
   const { locale } = i18n
 
-  const claim = selectClaimsByLanguage(claims, "string", NAMING_PROPERTIES, locale.value, (claims) => !!(claims.length > 0 && claims[0].string))
+  // The properties a label is picked from are the ones the site sends, in the order they state in the
+  // schema, so that a document is called here what the indexing called it.
+  const claim = selectClaimsByLanguage(claims, "string", siteContext.namingProperties, locale.value, (claims) => !!(claims.length > 0 && claims[0].string))
   return claim?.[0].string ?? null
 }
 

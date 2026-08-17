@@ -1,0 +1,39 @@
+{
+  "id": ["xeno.peerdb.org", "NARRATIVE", "G2_ROWS_ORIGIN"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "NARRATIVE"] }],
+  "title": [{ "value": "How the Rows Were Counted", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [
+    {
+      "value": "Wellamanu anumenne",
+      "gloss": "the evening saying of the row-holding",
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G2_PLATE_LIGHT"] }]
+    }
+  ],
+  "description": [
+    {
+      "value": "<p>An account of the first terraces, given by a holder to whoever is standing at the drop with them, usually while waiting for water. It is short, it is not performed, and it ends with an instruction.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "genre": { "id": ["xeno.peerdb.org", "NARRATIVE_GENRE", "ORIGIN_ACCOUNT"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G2_EVENING_ROWS"] }],
+  "recordedBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_VASILAKIS"] }],
+  "recordedAt": { "id": ["xeno.peerdb.org", "SITE", "G2_LONG_EVENING_ROWS"] },
+  "recordedOn": { "time": "2268-01-01T00:00:00Z", "precision": "y" },
+  "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G2_PLATE_LIGHT"] }],
+  "content": [
+    {
+      "value": "<p>Before there was a first row there was a first drop, and nobody held it, and the water went where it went.</p><p>Somebody stood below it and cut a bench, and the water came to the bench. Somebody stood below that one and cut another. When there were nine, the ninth said: I am ninth. That is the whole of what the ninth said. The ninth did not give a name and did not have one to give. The ninth said <i>where</i>.</p><p>Now the ninth is dead and there is a ninth. The ninth owes the fourth two turns of water from the year of the bad wind. The fourth is dead and there is a fourth.</p><p>Pay the fourth.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "recording": [
+    {
+      "value": "/f/XHZriLwcrSyUymdW7Ewhhj",
+      "name": "narrative-G2_ROWS_ORIGIN.mp3",
+      "caption": "Performance, recorded on site",
+      "duration": { "value": { "amount": 20, "precision": 1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "MINUTE"] }] },
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G2_PLATE_LIGHT"] }]
+    }
+  ]
+}

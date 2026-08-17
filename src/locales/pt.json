@@ -1,0 +1,439 @@
+{
+  "common": {
+    "labelWithUnit": "{label} ({unit})",
+    "labelWithValues": "{label}: {values}",
+    "valueWithDirect": "{value} ({direct})",
+    "buttons": {
+      "search": "Pesquisar",
+      "cancel": "Cancelar",
+      "close": "Fechar",
+      "create": "Criar",
+      "upload": "Carregar",
+      "edit": "Editar",
+      "editPermissions": "Editar permissões",
+      "requestPermissions": "Pedir permissões",
+      "manageRequests": "Gerir pedidos",
+      "permissions": "Permissões",
+      "delete": "Eliminar",
+      "save": "Guardar",
+      "discard": "Descartar",
+      "add": "Adicionar",
+      "insert": "Inserir",
+      "update": "Atualizar",
+      "clear": "Limpar",
+      "showAll": "Mostrar tudo",
+      "remove": "Remover",
+      "revert": "Reverter",
+      "moveUp": "Mover para cima",
+      "moveDown": "Mover para baixo",
+      "subClaim": "Subvalor",
+      "loadCountMore": "mais {count}",
+      "loadMore": "Carregar mais",
+      "filters": "Filtros",
+      "prev": "Anterior",
+      "next": "Seguinte",
+      "open": "Abrir",
+      "unlink": "Remover ligação",
+      "menu": "Menu",
+      "signIn": "Iniciar sessão",
+      "signOut": "Terminar sessão"
+    },
+    "errors": {
+      "unexpected": "Erro inesperado. Tente novamente.",
+      "notAllowed": "Esta alteração não é permitida.",
+      "upload": "O carregamento falhou. Tente novamente."
+    },
+    "status": {
+      "deletingNotAllowed": "Eliminação não permitida.",
+      "editingNotAllowed": "Edição não permitida.",
+      "loading": "A carregar...",
+      "loadingDataFailed": "o carregamento dos dados falhou",
+      "dataNotAvailable": "dados não disponíveis",
+      "error": "erro",
+      "valuesNotShown": "1 valor não mostrado. | {count} valores não mostrados.",
+      "valuesNotShownShort": "...",
+      "allResults": "Mostrado o único resultado. | Mostrados todos os {count} resultados.",
+      "allResultsOnly": "Mostrados os primeiros {first} de 1 resultado encontrado. | Mostrados os primeiros {first} de {count} resultados encontrados.",
+      "allResultsMoreThan": "Mostrados os primeiros {first} de mais de 1 resultado encontrado. | Mostrados os primeiros {first} de mais de {count} resultados encontrados."
+    },
+    "labels": {
+      "property": "Propriedade",
+      "value": "Valor",
+      "time": "Tempo",
+      "amount": "Quantidade",
+      "precision": "Precisão",
+      "required": "obrigatório",
+      "multiple": "múltiplo",
+      "changed": "alterado"
+    },
+    "icons": {
+      "link": "Ligação",
+      "feed": "Fluxo",
+      "table": "Tabela"
+    },
+    "values": {
+      "direct": "direto",
+      "exists": "existe",
+      "hasProperty": "tem propriedade",
+      "missing": "em falta",
+      "noName": "sem nome",
+      "none": "nenhum",
+      "unknown": "desconhecido"
+    },
+    "validation": {
+      "required": "Valor obrigatório.",
+      "duplicate": "Valor duplicado.",
+      "requiredPrecision": "Precisão obrigatória.",
+      "invalid": "Valor inválido.",
+      "invalidPrecision": "Precisão inválida.",
+      "unfinished": "Valor incompleto."
+    },
+    "permissionActions": {
+      "read": "leitura",
+      "history": "histórico",
+      "update": "atualização",
+      "permissions": "permissões",
+      "delete": "eliminação"
+    },
+    "permissionActionHints": {
+      "read": "Ver o documento e o seu conteúdo.",
+      "history": "Ver versões anteriores do documento, incluindo as anteriores à concessão deste acesso.",
+      "update": "Alterar o documento e o seu conteúdo.",
+      "permissions": "Conceder e remover o acesso ao documento a outros utilizadores.",
+      "delete": "Eliminar o documento."
+    }
+  },
+  "partials": {
+    "LanguageSwitcher": {
+      "selectLanguage": "Selecionar idioma"
+    },
+    "NavBarUser": {
+      "copyId": "Copiar ID do utilizador",
+      "copied": "ID do utilizador copiado."
+    },
+    "input": {
+      "InputHTML": {
+        "toolbar": {
+          "label": "Formatação",
+          "undo": "Desfazer",
+          "redo": "Refazer",
+          "blockType": "Tipo de bloco",
+          "paragraph": "Parágrafo",
+          "heading": "Título {level}",
+          "preformatted": "Pré-formatado",
+          "bold": "Negrito",
+          "italic": "Itálico",
+          "underline": "Sublinhado",
+          "strikethrough": "Rasurado",
+          "monospace": "Monoespaçado",
+          "bulletList": "Lista com marcas",
+          "orderedList": "Lista numerada",
+          "blockquote": "Citação",
+          "indent": "Aumentar avanço",
+          "outdent": "Diminuir avanço",
+          "horizontalRule": "Linha horizontal",
+          "lineBreak": "Quebra de linha",
+          "link": "Ligação",
+          "attachFile": "Anexar ficheiro",
+          "replaceFile": "Para substituir o ficheiro, largue um ficheiro ou clique para procurar"
+        },
+        "bottomToolbar": {
+          "linkLabel": "Ligação",
+          "blockquoteLabel": "Fonte",
+          "fileLabel": "Ficheiro",
+          "uploadingLabel": "A carregar: {name}",
+          "dropFileLabel": "Largue o ficheiro para o carregar..."
+        }
+      },
+      "InputFile": {
+        "dropOrBrowse": "Largue o ficheiro aqui ou clique para procurar",
+        "noPermission": "Carregamento de ficheiros não permitido."
+      },
+      "InputIdentityFromPermissions": {
+        "noMoreUsers": "Não há mais utilizadores com acesso para escolher.",
+        "noUsers": "Não há utilizadores com acesso para escolher."
+      },
+      "InputLink": {
+        "hint": "Exemplo: https://example.com"
+      },
+      "InputRef": {
+        "alreadyUsed": "já utilizado",
+        "invalidValue": "valor inválido",
+        "noResults": "Nenhum resultado encontrado."
+      },
+      "InputTime": {
+        "format": "Formato: AAAA-MM-DD HH:MM:SS",
+        "precision": {
+          "G": "giga-anos",
+          "100M": "cem mega-anos",
+          "10M": "dez mega-anos",
+          "M": "mega-anos",
+          "100k": "cem quilo-anos",
+          "10k": "dez quilo-anos",
+          "k": "quilo-anos",
+          "100y": "cem anos",
+          "10y": "dez anos",
+          "y": "anos",
+          "m": "meses",
+          "d": "dias",
+          "h": "horas",
+          "min": "minutos",
+          "s": "segundos",
+          "ms": "milissegundos",
+          "us": "microssegundos",
+          "ns": "nanossegundos"
+        },
+        "errors": {
+          "invalid": "Formato inválido.",
+          "daysNotZero": "Os meses não podem ser 0 quando os dias não são 0.",
+          "months": "Os meses têm de estar entre 1-12.",
+          "months0": "Os meses têm de estar entre 0-12.",
+          "days": "O dia tem de estar entre 1-{maxDay}.",
+          "days0": "O dia tem de estar entre 0-{maxDay}.",
+          "hours": "As horas têm de estar entre 0-23.",
+          "minutes": "Os minutos têm de estar entre 0-59.",
+          "seconds": "Os segundos têm de estar entre 0-59.",
+          "subseconds": "Os subsegundos têm de ter 3, 6 ou 9 dígitos."
+        }
+      }
+    },
+    "ClaimRefSelect": {
+      "noOptions": "Não há opções disponíveis."
+    },
+    "Footer": {
+      "poweredBy": "Com tecnologia de {linkName}"
+    },
+    "SearchResultsHeader": {
+      "searchingQueryFilters": "A pesquisar a consulta {query} com 1 filtro ativo. | A pesquisar a consulta {query} com {count} filtros ativos.",
+      "searchingNoQueryFilters": "A pesquisar sem consulta e com 1 filtro ativo. | A pesquisar sem consulta e com {count} filtros ativos.",
+      "searchingQueryFiltersInProgress": "A pesquisar a consulta {query} com 1 filtro ativo... | A pesquisar a consulta {query} com {count} filtros ativos...",
+      "searchingNoQueryFiltersInProgress": "A pesquisar sem consulta e com 1 filtro ativo... | A pesquisar sem consulta e com {count} filtros ativos...",
+      "resultsFound": "1 resultado encontrado. | {count} resultados encontrados.",
+      "resultsFoundMoreThan": "Mais de 1 resultado encontrado. | Mais de {count} resultados encontrados.",
+      "noResults": "Nenhum resultado encontrado.",
+      "downloadZip": "Transferir ficheiros como zip",
+      "downloadFiles": "Transferir ficheiros para pasta",
+      "sort": "Ordenação e agrupamento",
+      "print": "Vista de impressão"
+    },
+    "SearchSortDialog": {
+      "title": "Ordenação e agrupamento",
+      "sortOrder": "Critério de ordenação",
+      "addColumn": "Adicionar coluna",
+      "empty": "Ordem predefinida (relevância, tempo, etiqueta apresentada).",
+      "group": "Agrupar",
+      "expand": "Expandir",
+      "ascending": "Ascendente",
+      "descending": "Descendente",
+      "columns": {
+        "score": "relevância",
+        "time": "tempo",
+        "label": "etiqueta apresentada"
+      }
+    },
+    "DownloadOverlay": {
+      "preparing": "A preparar...",
+      "downloadingFile": "A transferir o ficheiro {completed} de {total}.",
+      "noFiles": "Não há ficheiros para transferir.",
+      "error": "Erro ao transferir o ficheiro."
+    },
+    "SearchResultsFeed": {
+      "closePrint": "Fechar vista de impressão",
+      "moreFilters": "Mais filtros",
+      "shownResults": "{i} de 1 resultado. | {i} de {count} resultados.",
+      "shownResultsOnly": "{i} de 1 resultado mostrado. | {i} de {count} resultados mostrados.",
+      "filtersNotShown": "1 filtro não mostrado. | {count} filtros não mostrados.",
+      "resultsNotShown": "1 de {total} resultado não mostrado. | {count} de {total} resultados não mostrados.",
+      "noFilters": "Não há filtros disponíveis.",
+      "filtersAvailable": "Pesquisar 1 filtro disponível: | Pesquisar {count} filtros disponíveis:",
+      "filtersAvailableMoreThan": "Pesquisar mais de 1 filtro disponível: | Pesquisar mais de {count} filtros disponíveis:",
+      "filtersSearchLabel": "Pesquisar filtros e valores de filtros",
+      "filtersNoMatch": "Nenhum filtro corresponde à sua pesquisa.",
+      "determiningFilters": "A determinar filtros...",
+      "skipToFilters": "Saltar para os filtros",
+      "skipToResults": "Saltar para os resultados",
+      "resultsScoped": "Limitado a {count} documento | Limitado a {count} documentos",
+      "clearScoped": "Limpar limitação a documentos",
+      "resultsReferencing": "Resultados que referenciam {label}",
+      "resultsReferencingExpanded": "Resultados que referenciam:",
+      "expandReferencing": "Expandir",
+      "collapseReferencing": "Recolher",
+      "clearReferencing": "Limpar limitação às referências",
+      "resultsLimitedTo": "Resultados limitados a {filter}",
+      "resultsLimitedToMany": "Resultados limitados a:",
+      "clearLimited": "Limpar limitação dos resultados"
+    },
+    "AmountFiltersResult": {
+      "clearFilter": "Limpar filtro"
+    },
+    "HasFiltersResult": {
+      "title": "tem propriedade",
+      "clearFilter": "@:partials.AmountFiltersResult.clearFilter"
+    },
+    "RefFiltersResult": {
+      "clearFilter": "@:partials.AmountFiltersResult.clearFilter"
+    },
+    "TimeFiltersResult": {
+      "clearFilter": "@:partials.AmountFiltersResult.clearFilter"
+    },
+    "FilterPropLabel": {
+      "hasProperty": "@:partials.HasFiltersResult.title"
+    },
+    "SearchResultsTable": {
+      "expandRow": "Expandir linha",
+      "collapseRow": "Recolher linha",
+      "moreColumns": "Mais colunas"
+    },
+    "SearchResult": {
+      "details": "Detalhes",
+      "resultShownAlready": "Resultado já mostrado {above}.",
+      "above": "acima"
+    },
+    "SearchResultGroup": {
+      "expand": "Expandir",
+      "collapse": "Recolher"
+    },
+    "FieldsForm": {
+      "from": "De",
+      "to": "Até"
+    },
+    "TableOfContents": {
+      "title": "Índice"
+    },
+    "TimeDisplay": {
+      "relative": {
+        "secondsAgo": "há 1 segundo | há {count} segundos",
+        "minutesAgo": "há 1 minuto | há {count} minutos",
+        "hoursAgo": "há 1 hora | há {count} horas",
+        "daysAgo": "há 1 dia | há {count} dias",
+        "monthsAgo": "há 1 mês | há {count} meses",
+        "yearsAgo": "há 1 ano | há {count} anos",
+        "kiloYearsAgo": "há 1k anos | há {count}k anos",
+        "megaYearsAgo": "há 1M anos | há {count}M anos",
+        "gigaYearsAgo": "há 1G anos | há {count}G anos",
+        "inSeconds": "dentro de 1 segundo | dentro de {count} segundos",
+        "inMinutes": "dentro de 1 minuto | dentro de {count} minutos",
+        "inHours": "dentro de 1 hora | dentro de {count} horas",
+        "inDays": "dentro de 1 dia | dentro de {count} dias",
+        "inMonths": "dentro de 1 mês | dentro de {count} meses",
+        "inYears": "dentro de 1 ano | dentro de {count} anos",
+        "inKiloYears": "dentro de 1k anos | dentro de {count}k anos",
+        "inMegaYears": "dentro de 1M anos | dentro de {count}M anos",
+        "inGigaYears": "dentro de 1G anos | dentro de {count}G anos"
+      }
+    },
+    "PermissionsForm": {
+      "approve": "Aprovar",
+      "deny": "Recusar",
+      "noRequests": "Não há pedidos pendentes.",
+      "noUsers": "Nenhum utilizador tem acesso concedido.",
+      "removeAccess": "Remover acesso",
+      "requestsTitle": "Pedidos pendentes",
+      "usersTitle": "Utilizadores com acesso",
+      "requestedAction": "Permissão pedida",
+      "cannotGrant": "Não pode conceder uma permissão que não possui.",
+      "addUser": "Outro utilizador",
+      "addUserHint": "O ID do utilizador a quem conceder acesso.",
+      "nothingToGrant": "Este utilizador já tem acesso total ao documento (todas as permissões).",
+      "alreadyGranted": "As permissões assinaladas já estão concedidas a este utilizador e podem ser retiradas na entrada dele acima."
+    },
+    "PermissionsView": {
+      "usersTitle": "@:partials.PermissionsForm.usersTitle",
+      "noUsers": "@:partials.PermissionsForm.noUsers",
+      "requestsTitle": "@:partials.PermissionsForm.requestsTitle",
+      "noRequests": "@:partials.PermissionsForm.noRequests",
+      "requestedAction": "@:partials.PermissionsForm.requestedAction"
+    }
+  },
+  "views": {
+    "AuthMockSignIn": {
+      "title": "Início de sessão simulado",
+      "description": "Este sítio inicia sessão sem um fornecedor de identidade. Escolha as funções com que iniciar sessão.",
+      "noRoles": "Este sítio não declara funções, por isso não há nenhuma com que iniciar sessão.",
+      "noState": "Não há nenhum início de sessão para concluir. Comece-o pelo botão de início de sessão."
+    },
+    "DocumentCreate": {
+      "title": "Criar um novo documento",
+      "noClasses": "Não há tipos de documento disponíveis para criar."
+    },
+    "DocumentDelete": {
+      "title": "Eliminar documento",
+      "confirm": "Pretende eliminar o documento?"
+    },
+    "DocumentSessions": {
+      "title": "Sessões de edição",
+      "notSignedIn": "Tem de iniciar sessão para ver as sessões de edição.",
+      "noSessions": "Não há sessões de edição ativas.",
+      "started": "Iniciada: {time}, utilizador {user}",
+      "lastChange": "Última alteração: {time}, utilizador {user}",
+      "create": "criação",
+      "edit": "edição",
+      "open": "Abrir"
+    },
+    "DocumentGet": {
+      "tabs": {
+        "allProperties": "Todas as propriedades",
+        "content": "Conteúdo",
+        "history": "Histórico",
+        "permissions": "Permissões"
+      },
+      "history": {
+        "author": "Autor",
+        "anonymous": "anónimo",
+        "empty": "Sem histórico."
+      },
+      "referencedBy": "Referenciado por",
+      "shortcutWithCount": "{name} ({count})",
+      "sidebar": "Barra lateral"
+    },
+    "DocumentEdit": {
+      "tabs": {
+        "allProperties": "@:views.DocumentGet.tabs.allProperties",
+        "permissions": "@:views.DocumentGet.tabs.permissions"
+      },
+      "addClaim": "Adicionar valor",
+      "editClaim": "Editar valor",
+      "addSubClaim": "Adicionar subvalor",
+      "potentialDuplicates": "Duplicados possíveis",
+      "sessionEnded": "A sessão de edição de {document} terminou.",
+      "claimTypes": {
+        "identifier": "Identificador",
+        "string": "Texto simples",
+        "html": "HTML",
+        "amount": "Quantidade",
+        "amountInterval": "Intervalo de quantidade",
+        "time": "Tempo",
+        "timeInterval": "Intervalo de tempo",
+        "link": "Ligação",
+        "file": "Ficheiro",
+        "reference": "Referência",
+        "has": "Tem",
+        "none": "Nenhum",
+        "unknown": "Desconhecido"
+      },
+      "labels": {
+        "link": "Ligação",
+        "iri": "Ligação",
+        "html": "HTML",
+        "string": "Texto simples",
+        "identifier": "Identificador",
+        "amount": "Quantidade",
+        "file": "Ficheiro",
+        "from": "De",
+        "to": "Até"
+      }
+    },
+    "DocumentRequest": {
+      "confirm": "Pretende pedir acesso ao documento?",
+      "notSignedIn": "Tem de iniciar sessão para pedir acesso ao documento.",
+      "request": "Pedir",
+      "requested": "O acesso ao documento foi pedido.",
+      "title": "Pedir acesso",
+      "note": "Nota",
+      "notAvailable": "Pedir acesso a documentos não está disponível.",
+      "permission": "Permissão",
+      "noteHint": "Porque precisa deste acesso?",
+      "nothingToRequest": "Já tem acesso total ao documento (todas as permissões)."
+    }
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "id": ["xeno.peerdb.org", "OBSERVATION", "OBSA_TRANSECT_LAMINAE_COUNT"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "OBSERVATION"] }],
+  "title": [
+    { "value": "Counting laminae against the 2258 core boxes at Beacon House", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>Two days in the beacon hut with an old core box and a fresh core from the same station. The laminae match to the year, again.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "content": [
+    {
+      "value": "<p>Two days in the beacon hut with the third core box from 2258 and a fresh core taken at the same station in October. Counting was done twice by two people separately and then once together.</p><p>The laminae match across the whole overlap. Forty-seven years between the marker laminae, forty-seven years on the log. It remains the only clock in this half of the galaxy and it has still never been wrong.</p><p>Three laminae from the 2270s run at about a third of the usual thickness. There is no ice record for those years and nothing else on the transect to check them against, so we can say the mat had a poor decade and nothing whatever about why.</p><p>Otherwise nothing happened. The beacon was running when we arrived and was running when we left. The visitors&#39; log held fourteen entries, the earliest 2258 and the latest 2298, and now holds fifteen.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "expedition": { "id": ["xeno.peerdb.org", "EXPEDITION", "EXP_TRANSECT_RETURN"] },
+  "observedBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_FERREIRA"] }, { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_DE_VRIES"] }],
+  "observedAt": { "id": ["xeno.peerdb.org", "SITE", "G2_BEACON_HOUSE"] },
+  "observedOn": { "time": "2305-11-06T00:00:00Z", "precision": "d" },
+  "about": [{ "id": ["xeno.peerdb.org", "ORGANISM", "G2_TRANSECT_MAT"] }],
+  "method": [
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "MATERIAL_SAMPLING"] },
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "ARCHIVAL_COMPARISON"] },
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "PHOTOGRAMMETRY"] }
+  ],
+  "fieldConditions": "Ice, no weather, and the hut warmer than the shelter we did not deploy. Two of us for the whole of it and nobody within four hundred kilometres.",
+  "image": [
+    { "value": "/f/ViUXSDNouPA4p5bUBSD2HZ", "name": "OBSA_TRANSECT_LAMINAE_COUNT.jpg", "caption": "Taken at the time", "source": "Field record" }
+  ],
+  "notes": [
+    {
+      "value": "<p>The core boxes stay at Beacon House. Shipping them costs more than re-coring, and the hut is colder than any store the sector could build.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

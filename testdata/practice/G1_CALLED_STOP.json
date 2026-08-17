@@ -1,0 +1,36 @@
+{
+  "id": ["xeno.peerdb.org", "PRACTICE", "G1_CALLED_STOP"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PRACTICE"] }],
+  "name": [{ "value": "Calling the Stop", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Qatep", "gloss": "the stop itself, and also the word for the wall you stand behind" }],
+  "description": [
+    {
+      "value": "<p>The weather watch reads the flank pits against the belt, and when the reading turns the call goes out through the vent plumbing and along the wind pipes at the same moment. Within the hour every trap line on four hundred kilometres of coast is dropped where it lies, every vent valve is shut, and everybody is behind stone. Nobody is asked to agree and nothing is put to a meeting; the right to call belongs to the watch and to nobody else. A stop is never lifted by the person who called it, which is the only formal check in the system. The corporations keep two counts, of stops called and of stops ignored, and the second count stands at one.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Vremenska straža lahko ustavi vse delo na obali in tega ni mogoče zavrniti.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>A vigia do tempo lê as covas dos flancos em confronto com a faixa e, quando a leitura vira, o aviso sai ao mesmo tempo pela canalização das fontes e pelos tubos de vento. Dentro de uma hora, todas as linhas de armadilhas ao longo de quatrocentos quilómetros de costa ficam largadas onde estão, todas as válvulas das fontes são fechadas e toda a gente está atrás de pedra. Não se pede o acordo de ninguém e nada é levado a reunião; o direito de dar o aviso pertence à vigia e a mais ninguém. Uma paragem nunca é levantada por quem a declarou, o que constitui o único travão formal do sistema. As corporações mantêm duas contagens, a das paragens declaradas e a das paragens ignoradas, e a segunda vai em uma.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G1_LEE_CORPORATIONS"] }],
+  "category": { "id": ["xeno.peerdb.org", "PRACTICE_CATEGORY", "PROHIBITION"] },
+  "periodicity": "whenever the watch reads the belt turning, eleven times in twenty years",
+  "participants": {
+    "value": { "from": { "amount": 200, "precision": 1 }, "to": { "amount": 4000, "precision": 1 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "firstDocumented": { "time": "2262-01-01T00:00:00Z", "precision": "y" },
+  "relatedPractice": [{ "id": ["xeno.peerdb.org", "PRACTICE", "G1_BELT_EDGE_PARTY"] }],
+  "image": [{ "value": "/f/MJP1SAKg6Ri49wL2yDts5p", "name": "G1_CALLED_STOP.jpg", "caption": "In progress", "source": "Consortium survey archive" }],
+  "notes": [
+    {
+      "value": "<p>The one ignored stop was the Consortium&#39;s own belt-edge camp in 2301. The camp was abandoned eight days later and is now monitored from orbit as a corrosion reference, and neither party has raised the matter with the other since.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

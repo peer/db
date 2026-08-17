@@ -1,0 +1,27 @@
+{
+  "id": ["xeno.peerdb.org", "INSTITUTE", "INST_LEDGER"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "INSTITUTE"] }],
+  "name": [
+    { "value": "Ledger Star School of Comparative Exchange", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "Sola za primerjalno preucevanje izmenjave", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }] }
+  ],
+  "shortName": [{ "value": "the Ledger School", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "description": [
+    {
+      "value": "<p>Founded to compare systems of allocation under scarcity, and in particular the governance of standing water, which on its own planet is the one subject anybody will argue about in public. Its structured interview instrument is used by roughly two thirds of the register&#39;s fieldwork and is disliked by all of it. The school has never produced a satisfactory account of a society with a surplus and no longer pretends to be working on one.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Sola za primerjalno preucevanje razdeljevanja dobrin v razmerah pomanjkanja.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Fundada para comparar sistemas de distribuição em condições de escassez e, em especial, a gestão da água parada, que no seu próprio planeta é o único assunto sobre o qual alguém discute em público. O seu instrumento de entrevista estruturada é usado por cerca de dois terços do trabalho de campo do registo e é detestado por todo ele. A escola nunca produziu uma descrição satisfatória de uma sociedade com excedente e já não finge estar a trabalhar em nenhuma.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "founded": { "time": "2244-01-01T00:00:00Z", "precision": "y" },
+  "locatedAt": { "id": ["xeno.peerdb.org", "PLANET", "G1_LEDGER_IV"] },
+  "staffCount": { "amount": 512, "precision": 1 },
+  "website": ["https://ledger-school.ccx.example/"]
+}

@@ -1,0 +1,19 @@
+{
+  "id": ["xeno.peerdb.org", "REGION", "G4_TALL_SHOALS"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "REGION"] }],
+  "name": [{ "value": "The Tall Shoals", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Aumeira" }],
+  "description": [
+    {
+      "value": "<p>A shelf sea nine hundred kilometres across on the northern coast, so shallow and so flat that the twenty-six metre tide moves the waterline as much as forty kilometres in six hours. Twice a day it is a sea with boats on it; twice a day it is grey mud with weirs standing in it and a great deal of activity. The whole economy of the northern settlements runs on this timetable, and so does everything else, including sleep.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "PLANET", "G4_LONG_WATER"] },
+  "biome": [{ "id": ["xeno.peerdb.org", "BIOME", "SWEEP_FLAT"] }],
+  "area": { "value": { "amount": 412000, "precision": 100 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "SQUARE_KILOMETRE"] }] },
+  "elevationRange": {
+    "value": { "from": { "amount": -18, "precision": 10 }, "to": { "amount": 24, "precision": 10 } },
+    "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }]
+  }
+}

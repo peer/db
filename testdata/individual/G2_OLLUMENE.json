@@ -1,0 +1,18 @@
+{
+  "id": ["xeno.peerdb.org", "INDIVIDUAL", "G2_OLLUMENE"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "INDIVIDUAL"] }],
+  "name": [{ "value": "Ollumene" }],
+  "lineageName": [{ "value": "House of the Sixth Rib" }],
+  "description": [
+    {
+      "value": "<p>Head of a household on the sixth rib, known to their neighbours by the shape of a hull, the pitch of a wake and the taste of the water leaving it, and known to the Consortium by the same three things. They handled the 2244 agreement that fixed how close a hull may come to the station and have renewed it four times without alteration. There is no photograph and there could not be one, since there is no light and the station is not permitted to make any.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "species": { "id": ["xeno.peerdb.org", "SPECIES", "G2_OLLUMARU"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G2_RIB_HOLDINGS"] }],
+  "role": [{ "value": "household head", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "formOfAddress": "by house and rib, never by hull",
+  "born": { "time": "2247-01-01T00:00:00Z", "precision": "y" },
+  "birthplace": { "id": ["xeno.peerdb.org", "SITE", "G2_LOWER_MIDDEN"] }
+}

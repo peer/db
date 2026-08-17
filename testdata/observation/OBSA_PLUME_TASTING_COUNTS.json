@@ -1,0 +1,29 @@
+{
+  "id": ["xeno.peerdb.org", "OBSERVATION", "OBSA_PLUME_TASTING_COUNTS"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "OBSERVATION"] }],
+  "title": [
+    { "value": "Three plume readings timed at the rib edge before a re-hanging", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>Three households each sent one member to hold into the rising plume for a count of two hundred. The reports came back in whistle only and cannot be attributed to anybody.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "content": [
+    {
+      "value": "<p>Three households, three readings, one before each re-hanging of the nets. Each sent one member to the outer edge of the rib to hold against the current with the mouth open into the plume off the vent chain, for a count of two hundred.</p><p>Timed on the hydrophone, the three holds ran 3 minutes 40, 4 minutes 02 and 3 minutes 11. If that count is a count of anything regular we have not found it, and we would rather say so than manufacture a unit out of the average.</p><p>The report is given in the whistle and never in the released plume, so it carries no household signature and cannot be attributed to anybody. That is the point of it. A reading that turns out wrong is nobody&#39;s, and the households are patient with the difference between tasting and knowing in a way this discipline could stand to learn.</p><p>Nets went out shallower than in the previous cycle at all three ribs. What died upstream and how far up, which is what is being read, we did not establish independently and have no instrument here that would.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "expedition": { "id": ["xeno.peerdb.org", "EXPEDITION", "EXP_LONG_LID_SEASON"] },
+  "observedBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_MOKOENA"] }, { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_MOLNAR"] }],
+  "observedAt": { "id": ["xeno.peerdb.org", "SITE", "G2_STATION_TWO"] },
+  "observedOn": { "time": "2280-11-16T00:00:00Z", "precision": "d" },
+  "about": [{ "id": ["xeno.peerdb.org", "PRACTICE", "G2_PLUME_READING"] }, { "id": ["xeno.peerdb.org", "SPECIES", "G2_OLLUMARU"] }],
+  "method": [
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "ACOUSTIC_RECORDING"] },
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "PARTICIPANT_OBSERVATION"] }
+  ],
+  "fieldConditions": "Station lights off, as always. Current running hard off the vent chain and the station audibly working against its anchors for most of the watch."
+}

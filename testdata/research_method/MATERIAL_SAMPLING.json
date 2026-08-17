@@ -1,0 +1,24 @@
+{
+  "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "MATERIAL_SAMPLING"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "RESEARCH_METHOD"] }],
+  "name": [
+    { "value": "Material sampling", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "Vzorčenje gradiva", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }] },
+    { "value": "Amostragem de materiais", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>Collection of physical samples with provenance, consent and a return or disposal undertaking. Excludes acquisition by purchase or gift, recorded separately.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Odvzem fizičnih vzorcev z zabeleženim izvorom, privolitvijo in zavezo o vrnitvi.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Recolha de amostras físicas com proveniência, consentimento e compromisso de devolução ou de eliminação. Exclui a aquisição por compra ou dádiva, registada em separado.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "code": ["sampling"]
+}

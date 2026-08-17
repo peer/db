@@ -1,0 +1,39 @@
+{
+  "id": ["xeno.peerdb.org", "PLANET", "G1_SIXTEEN_HUNDRED_VIII"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PLANET"] }],
+  "name": [{ "value": "Sixteen Hundred VIII", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "catalogueCode": "SXH-0716-h",
+  "description": [
+    {
+      "value": "<p>The outermost giant of the system, pale blue-green, ringed, with two catalogued moons and a probable third that has been seen once. No life has been confirmed in its atmosphere, though the sampling programme is four probes short of the design and has been since 2288. The register declines to call it lifeless and describes it instead as unassayed below the ammonia deck.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>O gigante mais exterior do sistema, de um azul-esverdeado pálido, com anéis, duas luas catalogadas e uma provável terceira que foi vista uma única vez. Não há vida confirmada na sua atmosfera, embora ao programa de amostragem faltem quatro sondas em relação ao previsto, e assim seja desde 2288. O registo recusa-se a chamar-lhe mundo sem vida e descreve-o antes como não analisado abaixo da camada de amoníaco.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "STAR_SYSTEM", "G1_SIXTEEN_HUNDRED"] },
+  "planetType": { "id": ["xeno.peerdb.org", "PLANET_TYPE", "VOLATILE_GIANT"] },
+  "radius": { "value": { "amount": 11.2, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_RADIUS"] }] },
+  "mass": { "value": { "amount": 318.0, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_MASS"] }] },
+  "surfaceGravity": { "value": { "amount": 2.54, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "STANDARD_GRAVITY"] }] },
+  "dayLength": { "value": { "amount": 9.9, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "HOUR"] }] },
+  "orbitalPeriod": { "value": { "amount": 8402.4, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_DAY"] }] },
+  "ringSystem": true,
+  "meanTemperature": { "value": { "amount": -168.0, "precision": 0.1 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "°C"] }] },
+  "hydrosphere": { "value": { "amount": 0, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "PERCENT"] }] },
+  "atmosphere": [
+    {
+      "value": "<p>Hydrogen and helium with methane giving the colour, and ammonia cloud far below. There is no ground; the deepest instrument returned data from twelve bar and then stopped returning anything.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "biosphereUnknown": true,
+  "contactStatus": { "id": ["xeno.peerdb.org", "CONTACT_STATUS", "NO_CONTACT"] },
+  "firstSurveyed": { "time": "2247-01-01T00:00:00Z", "precision": "y" },
+  "surveyPeriod": { "from": { "time": "2247-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true },
+  "image": [
+    { "value": "/f/SEPRYVKmbYfJXZNjkyqrWv", "name": "G1_SIXTEEN_HUNDRED_VIII.jpg", "caption": "Surface view", "source": "Consortium survey archive" }
+  ]
+}

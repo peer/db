@@ -1,0 +1,24 @@
+{
+  "id": ["xeno.peerdb.org", "INDIVIDUALITY_MODE", "FISSIONING"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "INDIVIDUALITY_MODE"] }],
+  "name": [
+    { "value": "Fissioning individual", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "Cepitveni posameznik", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }] },
+    { "value": "Indivíduo cindível", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>A self that routinely divides into two or more continuing selves, each treating the shared past as its own. Excludes reproduction by budding where the offspring is a new person.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Jaz, ki se redno razdeli v dva ali več nadaljnjih jazov, od katerih vsak šteje skupno preteklost za svojo.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Um eu que se divide com regularidade em dois ou mais eus continuadores, cada um tratando o passado partilhado como seu. Exclui a reprodução por gomos, em que a descendência é uma pessoa nova.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "code": ["fissioning"]
+}

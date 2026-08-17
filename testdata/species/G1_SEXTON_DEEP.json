@@ -1,0 +1,60 @@
+{
+  "id": ["xeno.peerdb.org", "SPECIES", "G1_SEXTON_DEEP"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SPECIES"] }],
+  "name": [{ "value": "Sexton Under-Ice Population", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "taxonCode": "TX-1408-x",
+  "description": [
+    {
+      "value": "<p>A population inferred from eleven years of structured acoustic returns through eleven kilometres of moon ice, and from nothing else whatever. No body has been seen, no image exists, and every figure in this entry is a modelled estimate carrying an error bar that the summary tables decline to print. The returns are continuous rather than exchanged: there are no turns, no gaps and no addressable participants, and the file therefore records a single distributed self of unknown extent rather than a number of persons. Vent apertures across the whole ocean floor open and close on a schedule that no geologist on the project will defend, which is the strongest evidence that something down there is keeping house. Whether the record is a language or an extremely thorough survey of a sea floor is the oldest open question in the sector, and the two camps have grown politer over the decades without moving.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Domnevna vrsta pod enajstimi kilometri ledu, znana le iz zvočnih odbojev.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    }
+  ],
+  "homeworld": { "id": ["xeno.peerdb.org", "MOON", "G1_SEXTON"] },
+  "bodyPlan": [
+    {
+      "value": "<p>Every statement here is reconstruction from return timing and should be read as such. The scattering pattern is consistent with a broad flattened swimmer three to four metres across, with a fringe of short paddling limbs along both flanks and a stiff dorsal ridge. Nothing in the returns requires eyes, and the depth argues strongly against them.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "typicalHeight": { "value": { "amount": 3.2, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+  "typicalMass": { "value": { "amount": 640.0, "precision": 0.1 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "kg"] }] },
+  "lifespan": {
+    "value": { "from": { "amount": 30, "precision": 1 }, "to": { "amount": 200, "precision": 1 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_YEAR"] }]
+  },
+  "sensoryModality": [
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "ACOUSTIC_RANGING"] },
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "PRESSURE_GRADIENT"] },
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "CHEMICAL_PLUME"] }
+  ],
+  "subsistence": [
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "CHEMO_TENDING"] },
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "DRIFT_HARVESTING"] }
+  ],
+  "individuality": { "id": ["xeno.peerdb.org", "INDIVIDUALITY_MODE", "DISTRIBUTED_SELF"] },
+  "socialOrganisation": { "id": ["xeno.peerdb.org", "SOCIAL_ORGANISATION", "CONSENSUS_ASSEMBLY"] },
+  "kinshipSystem": { "id": ["xeno.peerdb.org", "KINSHIP_SYSTEM", "NAME_INHERITANCE"] },
+  "population": {
+    "value": { "from": { "amount": 5000, "precision": 1000 }, "to": { "amount": 4000000, "precision": 1000 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "contactStatus": { "id": ["xeno.peerdb.org", "CONTACT_STATUS", "NO_CONTACT"] },
+  "image": [
+    {
+      "value": "/f/7GQpEMm7bdkK7qtQebSsue",
+      "name": "G1_SEXTON_DEEP.jpg",
+      "caption": "Field plate",
+      "source": "Drawn in the field; Consortium collection"
+    }
+  ],
+  "notes": [
+    {
+      "value": "<p>The kinship entry is an inference from repeated signal structures and is disputed by everyone who has read the file, including the person who made it.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "id": ["xeno.peerdb.org", "COLLECTIVE", "G2_BASIN_SHEET"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "COLLECTIVE"] }],
+  "name": [{ "value": "The Basin Sheet", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "description": [
+    {
+      "value": "<p>A continuous sheet of joined bodies lying on the floor of a sealed ocean, exchanging chemistry on a cycle of roughly nine years, so that a single completed exchange between two bodies takes something over a century. Nothing can be separated: not a body from its sheet, not the sheet from the basin, and not the question of whether any of it is a person from the length of time it would take to find out. It is recorded as one body because the alternative is to record nine hundred thousand of them on the strength of a guess from basin area.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "species": { "id": ["xeno.peerdb.org", "SPECIES", "G2_SLOW_DWELLERS"] },
+  "role": [{ "value": "subject of long-baseline observation", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "memberCount": {
+    "value": { "from": { "amount": 1000, "precision": 10 }, "to": { "amount": 900000, "precision": 10 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "activePeriod": { "from": { "time": "2255-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true }
+}

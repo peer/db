@@ -1,0 +1,29 @@
+{
+  "id": ["xeno.peerdb.org", "ARTIFACT", "G2_GAP_CORD_OBJ"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "ARTIFACT"] }],
+  "name": [{ "value": "Answering Cord from the Fourth Gap", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Shamnesh", "gloss": "the tied answer" }],
+  "accessionCode": "CCX-A-14896",
+  "description": [
+    {
+      "value": "<p>One and a third metres of dyed cord carrying nine knots with the fourth left loose, weighted at one end with a drilled stone, left in a storm gap of the outer arc and recovered after the claim it answered had been settled. The dye is a deep red taken from ground iron sand and is laid on in a single pass so that its polarisation reads clean, which is the half of the message the weir builders cannot see. The cord is salt-stiffened and one strand is broken near the weighted end. It was handed over in 2274 by the house that tied it, twelve tides after the gap was closed.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "category": { "id": ["xeno.peerdb.org", "ARTIFACT_CATEGORY", "NOTATION_OBJECT"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G2_NET_HOUSES"] }, { "id": ["xeno.peerdb.org", "CULTURE", "G2_ARC_LODGES"] }],
+  "foundAt": { "id": ["xeno.peerdb.org", "SITE", "G2_HIGH_WEIR"] },
+  "material": [
+    { "value": "lashing weed blade cord", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "iron sand dye", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "drilled stone", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }
+  ],
+  "dimension": [
+    { "value": { "amount": 1.35, "precision": 0.001 }, "axis": "length", "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+    { "value": { "amount": 0.009, "precision": 0.001 }, "axis": "thickness", "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] }
+  ],
+  "dateMade": { "time": "2274-01-01T00:00:00Z", "precision": "y" },
+  "collectedBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_QUISPE"] }],
+  "image": [{ "value": "/f/TFkUrHKq93zJAY4ksTPbpd", "name": "G2_GAP_CORD_OBJ.jpg", "caption": "Object drawing", "source": "Consortium collection" }],
+  "document": [{ "value": "/f/FNoN2G6vfYVtxf57EXskyG", "name": "G2_GAP_CORD_OBJ.txt", "caption": "Accession record" }]
+}

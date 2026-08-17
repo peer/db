@@ -1,0 +1,39 @@
+{
+  "id": ["xeno.peerdb.org", "PRACTICE", "G4_PR_REFOUNDING"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PRACTICE"] }],
+  "name": [{ "value": "Refounding the Hearths", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "sesshavathon", "gloss": "the fires go over" }],
+  "description": [
+    {
+      "value": "<p>Once in a generation the whole cluster is taken down and rebuilt a few hundred metres nightward, in the order in which the hearths hold authority, so that the household holding the term lays its stones last and sleeps cold. Nothing is carried that four adults cannot lift, and the stone screens of the abandoned hearths are left standing exactly where they are. The first fire in the new position is lit from the last coals of the old one, carried in a shallow bowl by whoever is least useful for lifting, which is a formal category and not an insult. Nobody measures the distance moved: it is set by where the wind shadow has gone, and the ridge decides it. The line of abandoned screens running dayward from the cluster can be counted, and that count is the only chronology this culture keeps.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Ognjišča vsako generacijo podrejo in postavijo nekaj sto metrov proti noči, prvi ogenj pa prižgejo z zadnjim ogljem starega.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Uma vez por geração todo o aglomerado é desmontado e reconstruído algumas centenas de metros na direção da noite, pela ordem em que as lareiras detêm a autoridade, de modo que o agregado que tem o mandato assenta as suas pedras em último lugar e dorme com frio. Não se transporta nada que quatro adultos não consigam levantar, e os anteparos de pedra das lareiras abandonadas ficam de pé exatamente onde estão. O primeiro fogo na posição nova é aceso com as últimas brasas do antigo, levadas numa taça baixa por quem for menos útil para carregar, que é uma categoria formal e não um insulto. Ninguém mede a distância percorrida: é fixada por onde foi parar a sombra do vento, e é a crista que decide. A fila de anteparos abandonados que corre do aglomerado na direção do dia pode ser contada, e essa contagem é a única cronologia que esta cultura mantém.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G4_CU_HEARTH_CIRCUIT"] }],
+  "category": { "id": ["xeno.peerdb.org", "PRACTICE_CATEGORY", "SEASONAL_MIGRATION"] },
+  "periodicity": "roughly once a generation, when the wind shadow has moved",
+  "participants": {
+    "value": { "from": { "amount": 40, "precision": 1 }, "to": { "amount": 140, "precision": 1 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "firstDocumented": { "time": "2238-01-01T00:00:00Z", "precision": "y" },
+  "relatedPractice": [
+    { "id": ["xeno.peerdb.org", "PRACTICE", "G4_PR_GLASS_FACE"] },
+    { "id": ["xeno.peerdb.org", "PRACTICE", "G4_PR_MARGIN_EXCHANGE"] }
+  ],
+  "image": [{ "value": "/f/UybZUhi2K1AhL2MejkhyF5", "name": "G4_PR_REFOUNDING.jpg", "caption": "In progress", "source": "Consortium survey archive" }],
+  "notes": [
+    {
+      "value": "<p>The 2288 resurvey placed two hearth positions eleven and fourteen kilometres inside the band and was read locally as a claim that the households had moved further than they said they had. The correction was published. The grievance was not withdrawn.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

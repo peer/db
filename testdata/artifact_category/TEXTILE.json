@@ -1,0 +1,24 @@
+{
+  "id": ["xeno.peerdb.org", "ARTIFACT_CATEGORY", "TEXTILE"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "ARTIFACT_CATEGORY"] }],
+  "name": [
+    { "value": "Textile", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "Tkanina", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }] },
+    { "value": "Têxtil", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>Woven, felted or netted sheet material, whether for wear, shelter or wrapping. Excludes woven tokens carrying encoded meaning.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Tkano, polsteno ali mrežasto ploskovno gradivo za obleko, zavetje ali ovijanje.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Material em pano tecido, feltrado ou de malha, seja para vestir, abrigar ou embrulhar. Exclui sinais tecidos que transportam sentido codificado.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "code": ["textile"]
+}

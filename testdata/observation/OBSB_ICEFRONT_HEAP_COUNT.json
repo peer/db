@@ -1,0 +1,36 @@
+{
+  "id": ["xeno.peerdb.org", "OBSERVATION", "OBSB_ICEFRONT_HEAP_COUNT"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "OBSERVATION"] }],
+  "title": [
+    { "value": "Count of debt marks on the boundary ground of the leeward heap", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>A straight count of chemical entries laid into the rubble at a colony boundary, made under the standing instruction to lift nothing.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "content": [
+    {
+      "value": "<p>21.ii.2275. Six working days on the boundary ground between the leeward heap and its nearest neighbour, at a mean distance of two metres from the rubble and touching none of it.</p><p>The marks are compound, laid in overlapping bands, and are invisible to the eye; we worked from the field spectrometer and from a grid of pegs set outside the ground. Final count: eight hundred and twelve distinct entries in a strip forty metres long, of which one hundred and ninety are on fragments that also carry an older entry underneath.</p><p>Twice during the count the heap tapped a figure through the stone and a figure came back from the neighbour within about ninety seconds. We recorded both exchanges and can state that they were not identical, which is as far as we can honestly go.</p><p>We note for the record that nothing was lifted. A marked fragment carried off the ground would take a debt entry with it, and the colonies have no procedure for a debt that has left. What we do not understand is why the density of entries falls away so sharply at the leeward end of the strip, where the wind delivers most and the marks are fewest.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "expedition": { "id": ["xeno.peerdb.org", "EXPEDITION", "EXP_HOLLOW_BAR_FIRST"] },
+  "observedBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_FERREIRA"] }, { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_DEMIR"] }],
+  "observedAt": { "id": ["xeno.peerdb.org", "SITE", "G3_ICEFRONT_CAMP"] },
+  "observedOn": { "time": "2275-02-21T00:00:00Z", "precision": "d" },
+  "about": [
+    { "id": ["xeno.peerdb.org", "SPECIES", "G3_NITHESH"] },
+    { "id": ["xeno.peerdb.org", "PRACTICE", "G3_HEAP_MARKING"] },
+    { "id": ["xeno.peerdb.org", "CULTURE", "G3_RUBBLE_LEDGER"] }
+  ],
+  "method": [
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "MATERIAL_SAMPLING"] },
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "NETWORK_MAPPING"] }
+  ],
+  "fieldConditions": "Terminator wind rising through the week, visibility poor at the end of it. Two of us on the grid, one at the mast.",
+  "image": [
+    { "value": "/f/TqEMTV45vtWzZKf5tUjT4q", "name": "OBSB_ICEFRONT_HEAP_COUNT.jpg", "caption": "Taken at the time", "source": "Field record" }
+  ]
+}

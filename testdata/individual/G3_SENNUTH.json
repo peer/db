@@ -1,0 +1,23 @@
+{
+  "id": ["xeno.peerdb.org", "INDIVIDUAL", "G3_SENNUTH"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "INDIVIDUAL"] }],
+  "name": [{ "value": "Sennuth" }],
+  "lineageName": [{ "value": "Musseth" }],
+  "description": [
+    {
+      "value": "<p>Master of a lodge holding two near routes and a share of a third, taken in as a child of four by the lodge that now answers for him and reared by it in the ordinary way. He reads cord faster than anyone the survey has recorded and has twice corrected the expedition&#39;s transcription of its own borrowed cord. He consented to a photograph in 2299 on condition that the harness was in it, which he considered the more important of the two subjects.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "species": { "id": ["xeno.peerdb.org", "SPECIES", "G3_SHELLUTHE"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G3_ICE_LODGES"] }],
+  "role": [
+    { "value": "lodge master", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "route holder", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }
+  ],
+  "formOfAddress": "by lodge first and then name while on a haul, by name alone in the band",
+  "born": { "time": "2258-01-01T00:00:00Z", "precision": "y" },
+  "image": [
+    { "value": "/f/VstgpQ92RQ6did2W5uerKr", "name": "G3_SENNUTH.jpg", "caption": "Portrait", "source": "Made with consent; Consortium collection" }
+  ]
+}

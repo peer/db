@@ -1,0 +1,53 @@
+{
+  "id": ["xeno.peerdb.org", "SPECIES", "G3_TAKKUT"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SPECIES"] }],
+  "name": [{ "value": "Low Anvil Enclosure Builders", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [
+    { "value": "Takkut", "gloss": "possibly the near ones; taken from the same intercepted transmission as the world name and no better confirmed" }
+  ],
+  "taxonCode": "TX-4441-b",
+  "description": [
+    {
+      "value": "<p>Everything in this entry was taken from three hundred and forty kilometres up. Banked earth enclosures run along the dusk band with tracks between them, and fires are lit at intervals regular enough to be a schedule rather than a season, holding to within a few hours across five decades of passes. The height given is a shadow measurement, the mass is arithmetic performed on the height, and both are printed with more confidence than they have earned. The entries for social organisation, kinship and sensory modality are inferences from enclosure plans and fire spacing, and two reviewers hold that they should not appear in the register at all. No approach has been authorised, none is pending, and the population figure comes from counting heat sources, which is not a census.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "homeworld": { "id": ["xeno.peerdb.org", "PLANET", "G3_UTKA"] },
+  "bodyPlan": [
+    {
+      "value": "<p>Nothing is known of the body. The reconstruction below is built from track spacing, from the stride implied by the worn paths between enclosures, and from the height of the doorways cut into the banks. It shows a two-legged upright animal of moderate build, and it is a drawing of an inference.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "typicalHeight": { "value": { "amount": 1.4, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+  "typicalMass": { "value": { "amount": 52.0, "precision": 0.1 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "kg"] }] },
+  "lifespan": {
+    "value": { "from": { "amount": 30, "precision": 1 }, "to": { "amount": 70, "precision": 1 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_YEAR"] }]
+  },
+  "sensoryModality": [
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "THERMAL_RADIANCE"] },
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "POLARISED_VISION"] }
+  ],
+  "subsistence": [
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "SEALED_CULTIVATION"] },
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "OPPORTUNISTIC_FORAGING"] }
+  ],
+  "individuality": { "id": ["xeno.peerdb.org", "INDIVIDUALITY_MODE", "BOUNDED"] },
+  "socialOrganisation": { "id": ["xeno.peerdb.org", "SOCIAL_ORGANISATION", "FESTIVAL_STATE"] },
+  "kinshipSystem": { "id": ["xeno.peerdb.org", "KINSHIP_SYSTEM", "BILATERAL_KINDRED"] },
+  "population": {
+    "value": { "from": { "amount": 5000, "precision": 1000 }, "to": { "amount": 50000, "precision": 1000 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "contactStatus": { "id": ["xeno.peerdb.org", "CONTACT_STATUS", "REMOTE_OBSERVATION"] },
+  "image": [
+    { "value": "/f/SimSfX1ZrMXTwUiMr1q4fN", "name": "G3_TAKKUT.jpg", "caption": "Field plate", "source": "Drawn in the field; Consortium collection" }
+  ],
+  "notes": [
+    {
+      "value": "<p>The plate is a reconstruction from shadow lengths and track spacing, and is labelled as such everywhere except on the plate itself.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

@@ -1,0 +1,32 @@
+{
+  "id": ["xeno.peerdb.org", "PRACTICE", "G3_CORD_MEETING"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PRACTICE"] }],
+  "name": [{ "value": "Reading Across", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Nasseth", "gloss": "the reading across" }],
+  "description": [
+    {
+      "value": "<p>Two lodges meeting on a route halt, unclip the working cords from both harnesses, and lay them side by side on the ice with the load ends together. Each side reads the other with the flat of the hand, working outward, and neither speaks while a hand is moving. A route is claimed by adding a turn to one&#39;s own cord in the other lodge&#39;s sight, transferred by cutting a length off and knotting it into theirs, and given up by leaving the cut end unfinished, which is the only way of saying that a thing is over. Because the cords have no way of stating what has been settled, a meeting can record a new debt but cannot record its discharge, so lodges meet more often than the routes require. The reading takes between a quarter of an hour and most of a day, and haulers describe the long ones as arithmetic rather than as argument.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Duas confrarias que se encontram numa rota param, soltam as cordas de trabalho dos dois arreios e deitam-nas lado a lado sobre o gelo, com as pontas de carga juntas. Cada lado lê a do outro com a palma da mão, trabalhando de dentro para fora, e nenhum fala enquanto uma mão se move. Uma rota é reclamada acrescentando uma volta à própria corda à vista da outra confraria, é transferida cortando um troço e atando-o à corda dela, e é abandonada deixando a ponta cortada por rematar, que é a única maneira de dizer que uma coisa terminou. Como as cordas não têm forma de declarar o que foi saldado, um encontro pode registar uma dívida nova mas não pode registar a sua quitação, pelo que as confrarias se encontram mais vezes do que as rotas exigem. A leitura leva entre um quarto de hora e quase um dia inteiro, e os arrastadores descrevem as longas como aritmética e não como discussão.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G3_ICE_LODGES"] }],
+  "category": { "id": ["xeno.peerdb.org", "PRACTICE_CATEGORY", "EXCHANGE_CYCLE"] },
+  "periodicity": "whenever two lodges meet on a route",
+  "participants": {
+    "value": { "from": { "amount": 4, "precision": 1 }, "to": { "amount": 16, "precision": 1 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "firstDocumented": { "time": "2273-01-01T00:00:00Z", "precision": "y" },
+  "relatedPractice": [{ "id": ["xeno.peerdb.org", "PRACTICE", "G3_WATER_AT_DOOR"] }, { "id": ["xeno.peerdb.org", "PRACTICE", "G3_ROUTE_UNMAKING"] }],
+  "image": [{ "value": "/f/ThVpxokaNhptf21cmL4UjD", "name": "G3_CORD_MEETING.jpg", "caption": "In progress", "source": "Consortium survey archive" }],
+  "notes": [
+    {
+      "value": "<p>The survey has been shown a cord six times and has been permitted to touch one twice, both times after the reading had finished and the numbers no longer mattered to anybody present.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

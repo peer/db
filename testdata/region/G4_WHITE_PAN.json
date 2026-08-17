@@ -1,0 +1,20 @@
+{
+  "id": ["xeno.peerdb.org", "REGION", "G4_WHITE_PAN"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "REGION"] }],
+  "name": [{ "value": "White Pan", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "[white, no echo]" }],
+  "description": [
+    {
+      "value": "<p>A closed basin in the western lowlands floored with forty metres of layered salt, blinding at midday and acoustically dead. Sound does not travel in the pan crust as it does in the plain rock, which makes the place effectively silent and, by every account collected, unpleasant. Salt is cut here in blocks and hauled out across the crust.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "PLANET", "G4_SOUNDING"] },
+  "biome": [{ "id": ["xeno.peerdb.org", "BIOME", "EVAPORITE_PAN"] }],
+  "area": { "value": { "amount": 74000, "precision": 100 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "SQUARE_KILOMETRE"] }] },
+  "elevationRange": {
+    "value": { "from": { "amount": -340, "precision": 10 }, "to": { "amount": -40, "precision": 10 } },
+    "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }]
+  },
+  "image": [{ "value": "/f/LkaUvkVEkLrB1DHKR7vCdP", "name": "G4_WHITE_PAN.jpg", "caption": "Regional view", "source": "Consortium survey archive" }]
+}

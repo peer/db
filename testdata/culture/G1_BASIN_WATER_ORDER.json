@@ -1,0 +1,37 @@
+{
+  "id": ["xeno.peerdb.org", "CULTURE", "G1_BASIN_WATER_ORDER"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "CULTURE"] }],
+  "name": [{ "value": "The Deep Basin Water Order", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [
+    { "value": "Naueiro", "gloss": "the order of drawing", "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G1_BASIN_SPEECH"] }] }
+  ],
+  "catalogueCode": "CU-2233-01",
+  "description": [
+    {
+      "value": "<p>The largest social arrangement in the sector and the least dramatic: a schedule stating which household may draw from which deep basin, in what quantity, and until when, maintained on incised salt tablets by clerks who inherit the job with a ferment. The deep basins draw labour from every settlement within four days&#39; travel and return water, an exchange the settlements describe as fair and the basins do not describe at all. Kin are exactly those who share a living fermentation culture, so a household division is also a division of the ferment, and a household whose ferment dies is left related to nobody. Outdoor work happens in the four hours either side of dawn and the rest of the day is spent behind a metre of wall, which makes the afternoon the busiest social period on the planet. Whether the arrangement constitutes a state has been argued since 2247 without either side conceding a term, and the water has continued to be allocated throughout.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Ureditev, ki določa, kdo sme zajemati vodo iz globokih kotanj in kdaj.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>O maior arranjo social do setor e o menos dramático: um calendário que estabelece que casa pode tirar água de que bacia profunda, em que quantidade e até quando, mantido em tábuas de sal incisas por escriturários que herdam o cargo juntamente com um fermento. As bacias profundas atraem mão de obra de todos os povoados a menos de quatro dias de viagem e devolvem água, troca que os povoados descrevem como justa e que as bacias não descrevem de todo. Parentes são exatamente aqueles que partilham uma cultura de fermentação viva, pelo que a divisão de uma casa é também a divisão do fermento, e uma casa cujo fermento morre fica sem parentesco nenhum. O trabalho ao ar livre decorre nas quatro horas antes e depois do amanhecer e o resto do dia passa-se atrás de um metro de parede, o que faz da tarde o período de maior convívio do planeta. Se o arranjo constitui ou não um Estado discute-se desde 2247 sem que nenhum dos lados ceda um termo, e a água continuou a ser distribuída durante todo esse tempo.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "practisedBy": [{ "id": ["xeno.peerdb.org", "SPECIES", "G1_AOLEIARU"] }],
+  "presentAt": [{ "id": ["xeno.peerdb.org", "SITE", "G1_EVAPORITE_WORKINGS"] }],
+  "kinshipSystem": { "id": ["xeno.peerdb.org", "KINSHIP_SYSTEM", "FERMENT_LINEAGE"] },
+  "socialOrganisation": { "id": ["xeno.peerdb.org", "SOCIAL_ORGANISATION", "TRIBUTARY_CENTRE"] },
+  "subsistence": [
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "SILT_GARDENING"] },
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "MANAGED_DECAY"] }
+  ],
+  "communication": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G1_BASIN_SPEECH"] }],
+  "population": {
+    "value": { "from": { "amount": 1000000, "precision": 100 }, "to": { "amount": 1500000, "precision": 100 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "period": { "from": { "time": "2230-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true }
+}

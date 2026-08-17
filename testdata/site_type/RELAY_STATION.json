@@ -1,0 +1,24 @@
+{
+  "id": ["xeno.peerdb.org", "SITE_TYPE", "RELAY_STATION"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SITE_TYPE"] }],
+  "name": [
+    { "value": "Abandoned relay station", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "Opuščena relejna postaja", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }] },
+    { "value": "Estação repetidora abandonada", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>Decommissioned communications or navigation installation, often reoccupied for purposes its builders would not recognise. Excludes stations still under their original operator, however thin the staffing.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Opuščena komunikacijska ali navigacijska postaja, pogosto ponovno naseljena za povsem druge namene.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Instalação de comunicações ou de navegação desativada, muitas vezes reocupada para fins que os seus construtores não reconheceriam. Exclui estações ainda a cargo do operador original, por mais escasso que seja o pessoal.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "code": ["relay"]
+}

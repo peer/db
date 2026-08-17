@@ -1,0 +1,24 @@
+{
+  "id": ["xeno.peerdb.org", "SITE", "G1_DUSK_TERRACES"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SITE"] }],
+  "name": [{ "value": "Dusk Terraces", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "localName": [{ "value": "[steps in the warm line]", "gloss": "a substrate sign meaning steps in the warm line" }],
+  "description": [
+    {
+      "value": "<p>Stepped growing beds cut into a slope facing the day side, fed by a diverted meltwater channel and drained downslope into the next set. The complex has been rebuilt in three different places since it was first recorded, following the channel each time it moved. What is catalogued is the current position; the two earlier ones are recorded as annexes to this entry.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "REGION", "G1_GRID_44_DUSK"] },
+  "siteType": { "id": ["xeno.peerdb.org", "SITE_TYPE", "TERRACE_COMPLEX"] },
+  "gridReference": "TB-144.2/+00.6",
+  "population": {
+    "value": { "from": { "amount": 600, "precision": 10 }, "to": { "amount": 1400, "precision": 10 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "founded": { "time": "2246-01-01T00:00:00Z", "precision": "y" },
+  "occupation": { "from": { "time": "2246-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true },
+  "image": [
+    { "value": "/f/WSk9zugRjtjBw98yjyrEZn", "name": "G1_DUSK_TERRACES.jpg", "caption": "General view", "source": "Consortium survey archive" }
+  ]
+}

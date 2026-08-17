@@ -1,0 +1,22 @@
+{
+  "id": ["xeno.peerdb.org", "INDIVIDUAL", "G2_MUSSHENE"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "INDIVIDUAL"] }],
+  "name": [{ "value": "Musshene" }],
+  "lineageName": [{ "value": "Inner Arc Lodge" }],
+  "description": [
+    {
+      "value": "<p>Held the inner arc twice, separated by fifty-one years, and rebuilt it after both of the storms that fell within the survey. In the second rebuilding they set the stones on a slightly different line and told nobody, which was discovered in 2297 by photogrammetry and had been obvious to every lodge on the benches since 2296. They were never photographed, having been asked once, in the middle of a rebuild.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "species": { "id": ["xeno.peerdb.org", "SPECIES", "G2_SESSHUNE"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G2_ARC_LODGES"] }],
+  "role": [
+    { "value": "arc holder", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "weir builder", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }
+  ],
+  "formOfAddress": "by lodge and arc",
+  "born": { "time": "2223-01-01T00:00:00Z", "precision": "y" },
+  "died": { "time": "2301-01-01T00:00:00Z", "precision": "y" },
+  "birthplace": { "id": ["xeno.peerdb.org", "SITE", "G2_HIGH_WEIR"] }
+}

@@ -1,0 +1,37 @@
+{
+  "id": ["xeno.peerdb.org", "PUBLICATION", "PUB_HAZE_COLLECTIVE_LABOUR"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PUBLICATION"] }],
+  "title": [
+    {
+      "value": "The Working Front: Labour Allocation, Task Handover and the Absence of a Second Person in the Haze Valley Management of Ledger Star IV",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "doi": "10.5281/xeno.2285.0245",
+  "abstract": [
+    {
+      "value": "<p>The Ledger haze population has no bounded individuals and no term corresponding to a worker, yet it maintains a working front along the evaporite cuts that advances at a measurable and negotiated rate. We show that handover between valleys is signalled chemically at the front itself and that the signal encodes a rate rather than an instruction. Our interview material is thin for the obvious reason that there is nobody to interview, and what we have was obtained by placing recorders in the plume and waiting. The description offered here is of a labour system without labourers, and we accept that this formulation will satisfy nobody.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "author": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_OKONKWO"] }, { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_FERREIRA"] }],
+  "journal": "Bulletin of Comparative Xenoanthropology",
+  "publishedOn": { "time": "2285-11-01T00:00:00Z", "precision": "m" },
+  "about": [
+    { "id": ["xeno.peerdb.org", "SPECIES", "G1_UERANAIL"] },
+    { "id": ["xeno.peerdb.org", "CULTURE", "G1_HAZE_VALLEY_ORDER"] },
+    { "id": ["xeno.peerdb.org", "PRACTICE", "G1_WORKING_FRONT"] }
+  ],
+  "cites": [
+    { "id": ["xeno.peerdb.org", "PUBLICATION", "PUB_WEIR_ALLOCATION"] },
+    { "id": ["xeno.peerdb.org", "PUBLICATION", "PUB_GREETING_ERROR"] },
+    { "id": ["xeno.peerdb.org", "PUBLICATION", "PUB_LEDGER_WATER_ORDER"] }
+  ],
+  "document": [{ "value": "/f/Y25vbchfLagPMnbTiMcCRr", "name": "PUB_HAZE_COLLECTIVE_LABOUR.pdf", "caption": "Author's accepted manuscript" }],
+  "notes": [
+    {
+      "value": "<p>The recorders were left in place for nineteen months. Two were returned to the survey camp by the working front, cleaned, which the authors decline to interpret.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

@@ -1,0 +1,28 @@
+{
+  "id": ["xeno.peerdb.org", "PRACTICE", "G1_PLATFORM_VISIT"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PRACTICE"] }],
+  "name": [{ "value": "Going Across", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Nefvethra", "gloss": "going between houses without touching down" }],
+  "description": [
+    {
+      "value": "<p>Because a person belongs to the house of one parent and to the platform of both, roughly half the canopy is owed a visit at any time, and the traffic between platforms is continuous. A visitor announces themselves with two strikes at the trunk base, waits at the platform rim, and does not cross it until the house has struck come-up. For the first two visits of a season the guest is fed at the rim, and from the third onward inside, which is a distinction visitors from other houses take seriously and outsiders are usually not told about. Nobody may bring food across, on the ground that arriving with food implies the house has none. A visitor who descends to the forest floor during a visit is not refused entry afterwards, but must begin again at the first visit, and no house has yet explained to the survey why.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Obiskovalec počaka na robu ploščadi, dokler ga hiša ne pokliče gor, in prvič je pogoščen na robu.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Como cada pessoa pertence à casa de um dos progenitores e à plataforma de ambos, deve-se visita a cerca de metade do dossel em qualquer momento, e o trânsito entre plataformas é contínuo. Quem chega anuncia-se com duas pancadas na base do tronco, espera na borda da plataforma e não a transpõe enquanto a casa não bater o sinal de subir. Nas duas primeiras visitas de uma estação o hóspede come na borda e, a partir da terceira, lá dentro, distinção que os visitantes de outras casas levam a sério e de que raramente se fala aos estranhos. Ninguém pode levar comida consigo, pelo motivo de que chegar com comida dá a entender que a casa não a tem. Um visitante que desça ao chão da floresta durante uma visita não fica impedido de voltar, mas tem de recomeçar na primeira visita, e nenhuma casa explicou ainda ao levantamento porquê.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G1_CANOPY_HOUSES"] }],
+  "category": { "id": ["xeno.peerdb.org", "PRACTICE_CATEGORY", "HOSPITALITY"] },
+  "periodicity": "every second or third rest day",
+  "participants": {
+    "value": { "from": { "amount": 2, "precision": 1 }, "to": { "amount": 25, "precision": 1 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "firstDocumented": { "time": "2255-01-01T00:00:00Z", "precision": "y" }
+}

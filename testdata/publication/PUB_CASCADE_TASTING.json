@@ -1,0 +1,31 @@
+{
+  "id": ["xeno.peerdb.org", "PUBLICATION", "PUB_CASCADE_TASTING"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PUBLICATION"] }],
+  "title": [
+    {
+      "value": "Tasting Down the Cascade: Ferment Transfer, Household Rank and the Practice of Taking In on the Ladder Terraces of Long Water",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "doi": "10.5281/xeno.2284.0117",
+  "abstract": [
+    {
+      "value": "<p>Ladder Gorge households arrange themselves along a cascade of terraces and taste each other&#39;s ferments in strict downhill order, a sequence that is understood by everyone concerned to be a ranking. We record the tasting order for four seasons and show that rank changes only when a household takes in a member from another terrace, at which point the whole order is restated from the top. The Anchor Terrace model of descent through starter cultures applies here in part, but the starter is shared rather than divided, and a household may hold no culture of its own without losing standing. We give the tasting sequence in full as an appendix because the order is the argument.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "author": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_ARAI"] }, { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_BRANDT"] }],
+  "journal": "Comparative Kinship and Descent",
+  "publishedOn": { "time": "2284-09-01T00:00:00Z", "precision": "m" },
+  "about": [
+    { "id": ["xeno.peerdb.org", "SPECIES", "G4_SMALLFOLK"] },
+    { "id": ["xeno.peerdb.org", "CULTURE", "G4_CU_LADDER_GORGE"] },
+    { "id": ["xeno.peerdb.org", "PRACTICE", "G4_PR_CASCADE_TASTING"] }
+  ],
+  "cites": [
+    { "id": ["xeno.peerdb.org", "PUBLICATION", "PUB_FERMENT_LINEAGE"] },
+    { "id": ["xeno.peerdb.org", "PUBLICATION", "PUB_STANDING_CROP"] },
+    { "id": ["xeno.peerdb.org", "PUBLICATION", "PUB_JOINT_WALK"] }
+  ],
+  "document": [{ "value": "/f/1S94SAdZaxNWgPf2TmzB23", "name": "PUB_CASCADE_TASTING.pdf", "caption": "Author's accepted manuscript" }]
+}

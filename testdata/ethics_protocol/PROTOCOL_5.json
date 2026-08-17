@@ -1,0 +1,24 @@
+{
+  "id": ["xeno.peerdb.org", "ETHICS_PROTOCOL", "PROTOCOL_5"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "ETHICS_PROTOCOL"] }],
+  "name": [
+    { "value": "Protocol 5 (non-interference)", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "Protokol 5 (nevmešavanje)", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }] },
+    { "value": "Protocolo 5 (não interferência)", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>Governs work on no-contact and remote-observation worlds; requires passive methods, minimum signature and full disclosure of every pass. Forbids landing, transmission and the leaving of any object.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Ureja delo na svetovih brez stika: zahteva pasivne metode in prepoveduje pristanek ter oddajanje.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Rege o trabalho em mundos sem contacto e de observação remota; exige métodos passivos, assinatura mínima e divulgação integral de cada passagem. Proíbe a aterragem, a transmissão e o abandono de qualquer objeto.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "code": ["eth-5"]
+}

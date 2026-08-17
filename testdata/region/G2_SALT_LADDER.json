@@ -1,0 +1,18 @@
+{
+  "id": ["xeno.peerdb.org", "REGION", "G2_SALT_LADDER"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "REGION"] }],
+  "name": [{ "value": "Salt Ladder", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "description": [
+    {
+      "value": "<p>Nine stepped basins descending two kilometres from the old shoreline to the deepest pan, each floored by a different evaporite as the sea concentrated on its way out. The step risers are salt cliffs and they fail regularly and without noise. Brine films between the crystals hold the world&#39;s only life.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "PLANET", "G2_OLD_SALT"] },
+  "biome": [{ "id": ["xeno.peerdb.org", "BIOME", "EVAPORITE_PAN"] }, { "id": ["xeno.peerdb.org", "BIOME", "ENDOLITH_ZONE"] }],
+  "area": { "value": { "amount": 320000, "precision": 100 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "SQUARE_KILOMETRE"] }] },
+  "elevationRange": {
+    "value": { "from": { "amount": -2110, "precision": 10 }, "to": { "amount": 40, "precision": 10 } },
+    "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }]
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "id": ["xeno.peerdb.org", "PRACTICE", "G1_TOP_TIDE_GREETING"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PRACTICE"] }],
+  "name": [{ "value": "Standing to Meet", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Neshwana", "gloss": "the standing and the swimming, said as one word" }],
+  "description": [
+    {
+      "value": "<p>The flats party walked out along the marked path to the edge of deep water at the top of the highest tide and stopped where the ground did. The first call came from the grazers, one long low note repeated three times, and the flats party answered by name and by turn, each speaker with one hand held flat on the water while speaking. Nobody moved from the edge until everybody present on both sides had been named, which at a large meeting took most of an hour. A party that arrived after the naming waited at the back and was named last, and was not thereby slighted. The survey&#39;s early recordings of this contain none of the electrical layer, and so preserve an hour of ceremony with all the participants removed.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Ob najvišji plimi so se strani pozdravile tako, da so poimenovale vse navzoče, preden se je kdo premaknil.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    }
+  ],
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G1_TOP_TIDE_MEET"] }],
+  "category": { "id": ["xeno.peerdb.org", "PRACTICE_CATEGORY", "GREETING"] },
+  "periodicity": "at the four or five highest tides of the year, until 2294",
+  "participants": {
+    "value": { "from": { "amount": 40, "precision": 1 }, "to": { "amount": 900, "precision": 1 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "firstDocumented": { "time": "2253-01-01T00:00:00Z", "precision": "y" },
+  "relatedPractice": [{ "id": ["xeno.peerdb.org", "PRACTICE", "G1_TIDE_TEACHING"] }]
+}

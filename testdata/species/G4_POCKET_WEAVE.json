@@ -1,0 +1,51 @@
+{
+  "id": ["xeno.peerdb.org", "SPECIES", "G4_POCKET_WEAVE"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SPECIES"] }],
+  "name": [{ "value": "Scald Pocket Weave", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "[still soft]", "gloss": "a provisional rendering of a repeated pattern in the fissure venting, and disputed" }],
+  "taxonCode": "TX-4908-a",
+  "description": [
+    {
+      "value": "<p>A people of the ammonia-water slush pockets of Scald, whose cycle is set by the moon resurfacing itself every four thousand years or so. For the centuries in which a pocket stays liquid they are separate bodies moving freely through it; as the pocket stiffens they knit together into one integrated mass and remain so, aware and very slow, until the next episode reopens the ground. Individuals therefore exist for a fraction of the cycle and the register counts pockets, which is also the only unit the instruments can resolve. Authority appears while the pockets are connected by fresh fissures, spans as many pockets as the fissures reach, and vanishes with them, so the polity has no continuous existence at all and is reconstituted from nothing every few thousand years. Every statement here is inferred from vent chemistry and from eleven years of pattern recording, and the population figure is a guess with a factor of a hundred in it.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "homeworld": { "id": ["xeno.peerdb.org", "MOON", "G4_SCALD"] },
+  "bodyPlan": [
+    {
+      "value": "<p>Each body is a soft translucent lozenge about a third of a metre long, swimming by peristaltic waves along its flanks and carrying no hard part except a ring of grasping hooks at the leading end. The surface is faintly luminous where it meets fresh slush, an effect the reports treat as metabolic rather than as signal. As the medium stiffens the bodies flatten against one another and fuse along the flanks, and the hooks are resorbed.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "typicalHeight": { "value": { "amount": 0.35, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+  "typicalMass": { "value": { "amount": 1.1, "precision": 0.1 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "kg"] }] },
+  "lifespan": {
+    "value": { "from": { "amount": 800, "precision": 1 }, "to": { "amount": 4200, "precision": 1 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_YEAR"] }]
+  },
+  "sensoryModality": [
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "CONTACT_CHEMO"] },
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "HYGRORECEPTION"] },
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "THERMAL_RADIANCE"] }
+  ],
+  "subsistence": [
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "CHEMO_TENDING"] },
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "MANAGED_DECAY"] }
+  ],
+  "individuality": { "id": ["xeno.peerdb.org", "INDIVIDUALITY_MODE", "SEASONAL_COLLECTIVE"] },
+  "socialOrganisation": { "id": ["xeno.peerdb.org", "SOCIAL_ORGANISATION", "FESTIVAL_STATE"] },
+  "kinshipSystem": { "id": ["xeno.peerdb.org", "KINSHIP_SYSTEM", "NOT_RECKONED"] },
+  "population": {
+    "value": { "from": { "amount": 500, "precision": 1000 }, "to": { "amount": 60000, "precision": 1000 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "contactStatus": { "id": ["xeno.peerdb.org", "CONTACT_STATUS", "REMOTE_OBSERVATION"] },
+  "image": [
+    {
+      "value": "/f/31jeUPbK6cVKB1riGhzbX2",
+      "name": "G4_POCKET_WEAVE.jpg",
+      "caption": "Field plate",
+      "source": "Drawn in the field; Consortium collection"
+    }
+  ]
+}

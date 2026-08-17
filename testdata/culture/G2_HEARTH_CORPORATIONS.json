@@ -1,0 +1,44 @@
+{
+  "id": ["xeno.peerdb.org", "CULTURE", "G2_HEARTH_CORPORATIONS"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "CULTURE"] }],
+  "name": [{ "value": "Hearth Corporations", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [
+    {
+      "value": "Nurremesse",
+      "gloss": "the finished piece, naming the admission rather than the body",
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G2_SEAM_PULSE"] }]
+    }
+  ],
+  "catalogueCode": "CU-2229-01",
+  "description": [
+    {
+      "value": "<p>Eleven households strung along two kilometres of vent chain, each tapping one fissure and each visible to the next by the light the vents themselves put out. Everything a government would hold is held instead by three trained corporations, the cutters, the benders and the tiers, and admission to any of them is by finishing a piece to the corporation&#39;s satisfaction rather than by descent. Kin are whoever takes heat at your fissure this season, so a household that moves when its vent cools arrives at the new one with its relationships already dissolved and has to make them again. A person may divide once or twice in a lifetime, at their own choosing, and both continuations are answerable for the whole of the original&#39;s debts, which is why the local law of obligation is more elaborate than the local law of property. Since the survey began the number of running vents has gone from six to three and the households have moved five times.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Enajst gospodinjstev ob verigi vročih izvirov; vse javne naloge opravljajo tri obrtne korporacije, članstvo pa se pridobi z izdelkom.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Onze agregados enfiados ao longo de dois quilómetros de cadeia de fontes, cada um a explorar uma fissura e cada um visível do seguinte pela luz que as próprias fontes emitem. Tudo o que um governo deteria é detido antes por três corporações de ofício, os cortadores, os dobradores e os atadores, e a admissão em qualquer delas faz-se acabando uma peça a contento da corporação e não por descendência. Os parentes são quem tira calor da mesma fissura nesta estação, pelo que um agregado que muda de sítio quando a sua fonte arrefece chega à nova com as suas relações já dissolvidas e tem de as fazer outra vez. Uma pessoa pode dividir-se uma ou duas vezes na vida, quando quiser, e ambas as continuações respondem pela totalidade das dívidas do original, razão pela qual o direito local das obrigações é mais elaborado do que o direito local da propriedade. Desde que o levantamento começou, o número de fontes ativas passou de seis para três e os agregados mudaram-se cinco vezes.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "practisedBy": [{ "id": ["xeno.peerdb.org", "SPECIES", "G2_NURRUMALI"] }],
+  "presentAt": [{ "id": ["xeno.peerdb.org", "SITE", "G2_NURRU_HEARTHS"] }, { "id": ["xeno.peerdb.org", "SITE", "G2_OLD_SEAM"] }],
+  "kinshipSystem": { "id": ["xeno.peerdb.org", "KINSHIP_SYSTEM", "HEARTH_AFFILIATION"] },
+  "socialOrganisation": { "id": ["xeno.peerdb.org", "SOCIAL_ORGANISATION", "GUILD_FEDERATION"] },
+  "subsistence": [
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "CHEMO_TENDING"] },
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "COLONY_GRAZING"] }
+  ],
+  "communication": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G2_SEAM_PULSE"] }],
+  "population": {
+    "value": { "from": { "amount": 2000, "precision": 100 }, "to": { "amount": 6000, "precision": 100 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "period": { "from": { "time": "2229-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true },
+  "image": [
+    { "value": "/f/GSQEzHSJNKxJj57K4qqETz", "name": "G2_HEARTH_CORPORATIONS.jpg", "caption": "Gathering", "source": "Consortium survey archive" }
+  ]
+}

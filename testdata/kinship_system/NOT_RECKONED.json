@@ -1,0 +1,24 @@
+{
+  "id": ["xeno.peerdb.org", "KINSHIP_SYSTEM", "NOT_RECKONED"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "KINSHIP_SYSTEM"] }],
+  "name": [
+    { "value": "Relatedness not reckoned", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "Sorodstva ne štejejo", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }] },
+    { "value": "Parentesco não contado", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>The society keeps no category of relatedness at all and organises duty on other grounds entirely. Applied only where enquiry has been made and answered, not where the data are missing.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Družba sorodstva sploh ne pozna in dolžnosti ureja na povsem drugih podlagah.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>A sociedade não tem qualquer categoria de parentesco e organiza os deveres em bases inteiramente diferentes. Aplica-se apenas onde a pergunta foi feita e respondida, não onde faltam dados.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "code": ["not-reckon"]
+}

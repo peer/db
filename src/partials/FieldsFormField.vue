@@ -113,8 +113,8 @@ async function revertField(): Promise<void> {
     class="pd-fieldsformfield grid grid-cols-1 gap-y-4 md:grid-cols-[20%_1fr] md:items-start md:gap-x-3 md:gap-y-1 md:px-2"
     :class="`pd-fieldsformfield-${field.propertyId}`"
   >
-    <tr class="contents">
-      <th ref="labelCellRef" scope="row" class="pl-4 text-left font-medium text-gray-700 md:pl-0">
+    <tr class="pd-fieldsformfield-row contents">
+      <th ref="labelCellRef" scope="row" class="pd-fieldsformfield-cell-label pl-4 text-left font-medium text-gray-700 md:pl-0">
         <div class="flex flex-row flex-wrap items-center gap-1 md:flex-col md:items-start">
           <span :id="labelId" class="pd-fieldsformfield-label cursor-pointer pt-0.5 leading-none" @mousedown.prevent="onLabelMousedown"
             ><DocumentRefInline :id="field.propertyId" :link="false"

@@ -1,0 +1,48 @@
+{
+  "id": ["xeno.peerdb.org", "CULTURE", "G1_REACH_FOSTERAGE"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "CULTURE"] }],
+  "name": [{ "value": "Channel Reach Fosterage", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [
+    {
+      "value": "[the reach one was reared on]",
+      "gloss": "a substrate sign made flat with both forelimbs, and the nearest thing the language has to a surname",
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G1_GROUND_SIGN"] }]
+    }
+  ],
+  "catalogueCode": "CU-2241-09",
+  "description": [
+    {
+      "value": "<p>The social order of a four-hundred-kilometre twilight ring, organised around meltwater channels that rearrange themselves every few years and around the obligation to rear whoever is born on your reach. Primary kin are fosterers and fosterers&#39; fosterers, chained back as far as anybody troubles to count, which in practice is about five links and in the case of one reach holder is nineteen. Decisions are taken by everyone standing on the same ground, because the language makes any other arrangement impossible, and a dissenting party has to be argued out rather than outvoted. Growing beds are cut into the day-facing slope and moved bodily each time the channel moves; storage goes into the tunnels on the night side, which are the only permanent construction on the planet and are described as such by everybody, often. Contact ran from 2237 to the suspension of 2271 and resumed in 2306, and the two files are still being reconciled line by line.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Otroke vzgaja tisti, ki drži rečni odsek, kjer so se rodili; sorodstvo teče po rejnikih.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>A ordem social de um anel crepuscular de quatrocentos quilómetros, organizada em torno dos canais de degelo que se reorganizam de poucos em poucos anos e da obrigação de criar quem quer que nasça no troço de que se é responsável. Os parentes primários são os criadores e os criadores dos criadores, encadeados para trás até onde alguém se dê ao trabalho de contar, o que na prática são cerca de cinco elos e, no caso de um responsável de troço, dezanove. As decisões são tomadas com toda a gente de pé no mesmo terreno, porque a língua torna impossível qualquer outro arranjo, e uma parte discordante tem de ser convencida e não vencida por votos. Os canteiros de cultivo são abertos na encosta virada ao dia e mudados por inteiro sempre que o canal se desloca; o armazenamento fica nos túneis do lado noturno, que são a única construção permanente do planeta e são descritos como tal por toda a gente, muitas vezes. O contacto durou de 2237 até à suspensão de 2271 e foi retomado em 2306, e os dois processos continuam a ser conciliados linha a linha.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "practisedBy": [{ "id": ["xeno.peerdb.org", "SPECIES", "G1_GRID44_HOLDERS"] }],
+  "presentAt": [{ "id": ["xeno.peerdb.org", "SITE", "G1_DUSK_TERRACES"] }, { "id": ["xeno.peerdb.org", "SITE", "G1_NIGHT_WARREN"] }],
+  "kinshipSystem": { "id": ["xeno.peerdb.org", "KINSHIP_SYSTEM", "FOSTERAGE_CHAIN"] },
+  "socialOrganisation": { "id": ["xeno.peerdb.org", "SOCIAL_ORGANISATION", "CONSENSUS_ASSEMBLY"] },
+  "subsistence": [
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "SILT_GARDENING"] },
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "MANAGED_DECAY"] }
+  ],
+  "communication": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G1_GROUND_SIGN"] }],
+  "population": {
+    "value": { "from": { "amount": 8000, "precision": 100 }, "to": { "amount": 15000, "precision": 100 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "period": { "from": { "time": "2237-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true },
+  "image": [{ "value": "/f/VzCLdw7dgBrrCiHexUM6pe", "name": "G1_REACH_FOSTERAGE.jpg", "caption": "Gathering", "source": "Consortium survey archive" }],
+  "notes": [
+    {
+      "value": "<p>The 2306 team found the terraces in their third position and the fosterage chains unbroken across the thirty-five-year gap. The reconciliation is expected to take another four years, most of which will be spent on the two hundred pages the 2260s file devotes to a channel that no longer exists.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

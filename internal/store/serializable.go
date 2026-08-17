@@ -99,6 +99,12 @@ func RetryTransactionWithIsoLevel(
 	metrics, _ := waf.GetMetrics(ctx)
 	counter := metrics.Counter(MetricDatabaseRetries)
 
+	// What the last attempt failed with, so that a run which used up every retry can say what kept failing.
+	// Only the last one is kept: every attempt failed for a reason which is retried, and which of those
+	// reasons it was is what tells a serialization conflict from a connection which never carried the query,
+	// while how many times each occurred says nothing further.
+	var lastErrE errors.E
+
 	// We make i match the counter. That means that when loop
 	// reaches MaxRetries, counter equals MaxRetries, too.
 	for i := 0; i < MaxRetries; i, _ = i+1, counter.Inc() {
@@ -138,6 +144,8 @@ func RetryTransactionWithIsoLevel(
 		})()
 
 		if errE != nil {
+			lastErrE = errE
+
 			if errors.Is(errE, context.Canceled) || errors.Is(errE, context.DeadlineExceeded) {
 				return errE
 			}
@@ -171,5 +179,10 @@ func RetryTransactionWithIsoLevel(
 		return nil
 	}
 
-	return errors.WithStack(ErrMaxRetriesReached)
+	errE := errors.WithStack(ErrMaxRetriesReached)
+	// The last error is attached as a detail and not made part of the returned error, neither joined with it
+	// nor wrapped as its cause, because errors.Is and errors.As traverse into both of those: what a caller
+	// decides about this error stays decided by ErrMaxRetriesReached alone.
+	errors.Details(errE)["lastError"] = errors.Formatter{Error: lastErrE}
+	return errE
 }

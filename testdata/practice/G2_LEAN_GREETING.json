@@ -1,0 +1,31 @@
+{
+  "id": ["xeno.peerdb.org", "PRACTICE", "G2_LEAN_GREETING"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PRACTICE"] }],
+  "name": [{ "value": "The Greeting Given Downwind", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Nuwemme", "gloss": "the walking-with, spoken as one word" }],
+  "description": [
+    {
+      "value": "<p>A band approaching anybody at all sends one walker out to the downwind side, who stops at about thirty paces, turns the dorsal plates through a single running wave from fore to aft, and holds them flat. The stranger is expected to lean, which is to say to put weight into the wind and keep it there, and the greeting is finished when they do. It is not a welcome. It states that the stranger is now walking with the band, and therefore that the stranger is now answerable for the herd, for anything the herd eats and for anything it walks over. Nobody in a band ever gives it from upwind, and nobody gives it twice to the same party. The first field season read it as an invitation and accepted it, and the second field season spent a year finding out what had been accepted.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Pozdrav pomeni, da tujec zdaj hodi s skupino in odgovarja za čredo, ne pa dobrodošlice.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    }
+  ],
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G2_LEEWARD_BANDS"] }],
+  "category": { "id": ["xeno.peerdb.org", "PRACTICE_CATEGORY", "GREETING"] },
+  "periodicity": "at every first meeting with a party the band has not met",
+  "participants": {
+    "value": { "from": { "amount": 2, "precision": 1 }, "to": { "amount": 40, "precision": 1 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "firstDocumented": { "time": "2263-01-01T00:00:00Z", "precision": "y" },
+  "relatedPractice": [{ "id": ["xeno.peerdb.org", "PRACTICE", "G2_WALK_ON_AHEAD"] }],
+  "notes": [
+    {
+      "value": "<p>The 2264 report recommends that greetings be translated before they are returned. It is the only recommendation in the file that has never had to be repeated.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

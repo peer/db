@@ -1,0 +1,33 @@
+{
+  "id": ["xeno.peerdb.org", "PLANET", "G2_SUMP"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PLANET"] }],
+  "name": [{ "value": "Sump", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "catalogueCode": "DO-0258-c",
+  "description": [
+    {
+      "value": "<p>A small ice world in the tidal tail with a shallow sealed sea over a floor of dark, carbon-rich mud, surveyed between 2258 and 2298 because a return leg could not be funded any sooner. The sea is stratified, nearly motionless and productive only in its lowest metre. Its mats build laminated structures that recorded every one of the forty years the survey lasted, which turned out to be the most useful clock in the sector.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "STAR_SYSTEM", "G2_DRAWN_OUT"] },
+  "planetType": { "id": ["xeno.peerdb.org", "PLANET_TYPE", "ICE_SHELL"] },
+  "biome": [{ "id": ["xeno.peerdb.org", "BIOME", "BRINE_SEA"] }],
+  "radius": { "value": { "amount": 0.71, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_RADIUS"] }] },
+  "mass": { "value": { "amount": 0.15, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_MASS"] }] },
+  "surfaceGravity": { "value": { "amount": 0.3, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "STANDARD_GRAVITY"] }] },
+  "dayLength": { "value": { "amount": 39.4, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "HOUR"] }] },
+  "orbitalPeriod": { "value": { "amount": 542.7, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_DAY"] }] },
+  "meanTemperature": { "value": { "amount": -181.0, "precision": 0.1 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "°C"] }] },
+  "hydrosphere": { "value": { "amount": 100, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "PERCENT"] }] },
+  "atmosphere": [
+    {
+      "value": "<p>A methane and nitrogen trace at 0.001 bar, enough to put a faint brown cast on the horizon and to do nothing else. The ice underfoot is dirty, granular and full of embedded grit.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "biosphereUnknown": true,
+  "contactStatus": { "id": ["xeno.peerdb.org", "CONTACT_STATUS", "NO_CONTACT"] },
+  "firstSurveyed": { "time": "2258-01-01T00:00:00Z", "precision": "y" },
+  "surveyPeriod": { "from": { "time": "2258-01-01T00:00:00Z", "precision": "y" }, "to": { "time": "2298-01-01T00:00:00Z", "precision": "y" } },
+  "image": [{ "value": "/f/C2HmTkrk2Kg1EXE2eohoVz", "name": "G2_SUMP.jpg", "caption": "Surface view", "source": "Consortium survey archive" }]
+}

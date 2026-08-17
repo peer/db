@@ -1,0 +1,29 @@
+{
+  "id": ["xeno.peerdb.org", "RESEARCHER", "RES_BEKELE"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "RESEARCHER"] }],
+  "name": [{ "value": "Tadesse" }],
+  "familyName": [{ "value": "Bekele" }],
+  "researcherCode": "CCX-P-04012",
+  "description": [
+    {
+      "value": "<p>Twice funded for the empty sector and twice went, which he points out is a different distinction from his colleague&#39;s. He keeps the instrument logs of both approaches and refuses to merge them. He is the person on any ship who knows where everything is stowed.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "affiliatedWith": [{ "id": ["xeno.peerdb.org", "INSTITUTE", "INST_FARSIGHT"] }, { "id": ["xeno.peerdb.org", "INSTITUTE", "INST_BEACON"] }],
+  "specialisesIn": [
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "REMOTE_SENSING"] },
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "ARCHIVAL_COMPARISON"] }
+  ],
+  "activePeriod": { "from": { "time": "2288-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true },
+  "born": { "time": "2263-01-01T00:00:00Z", "precision": "y" },
+  "image": [
+    { "value": "/f/Vzkyg2T9C9Xwc1VAHFRhex", "name": "RES_BEKELE.jpg", "caption": "Staff photograph", "source": "Consortium personnel record" }
+  ],
+  "notes": [
+    {
+      "value": "<p>He maintains that the two approaches are one programme and has submitted the merged log twice, on both occasions to the wrong panel.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

@@ -1,0 +1,50 @@
+{
+  "id": ["xeno.peerdb.org", "INTERVIEW", "INTB_PAN_WITHDRAWN"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "INTERVIEW"] }],
+  "title": [
+    {
+      "value": "Semmirra on the rotation of the block groups: the first four blocks only",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "description": [
+    {
+      "value": "<p>Interview with a block group holder at the pan workings which the interviewee agreed to and then, at the end of the day, withdrew almost entirely. Four blocks survive in translation; the rest was flooded.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "interviewee": [{ "id": ["xeno.peerdb.org", "INDIVIDUAL", "G3_SEMMIRRA"] }],
+  "interviewer": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_MOKOENA"] }],
+  "recordedAt": { "id": ["xeno.peerdb.org", "SITE", "G3_PAN_WORKINGS"] },
+  "recordedOn": { "time": "2297-10-05T00:00:00Z", "precision": "d" },
+  "expedition": { "id": ["xeno.peerdb.org", "EXPEDITION", "EXP_SALTMARCH_CONTACT"] },
+  "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G3_PAN_CUT"] }],
+  "duration": { "value": { "amount": 240, "precision": 1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "MINUTE"] }] },
+  "content": [
+    {
+      "value": "<p><b>Q.</b> May we ask about the rotation?</p><p><b>A.</b> You may ask about the rotation. Cut at the edge and leave me the face.</p><p><b>Q.</b> How many block groups hold at the second channel mouth?</p><p><b>A.</b> Six now. Nine before the suspension of the near channel. The three are not gone, they are placed elsewhere, and that is the last plain thing I am going to say.</p><p><i>[The remaining three hours and fifty minutes, some thirty blocks, were withdrawn by the interviewee at the end of the working day and flooded by her the same evening. No translation was made. The survey holds photographs of the first four blocks only, under the same restriction as this record.]</i></p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "ethics": { "id": ["xeno.peerdb.org", "ETHICS_PROTOCOL", "PROTOCOL_4"] },
+  "consentNote": [
+    {
+      "value": "<p>Semmirra agreed to a full day and answered at length, and then said that she had cut things about the placing of the three groups that were not hers to cut, and asked that everything after the fourth block be withheld. She then flooded the blocks herself, which here is not destruction of a record but the ordinary way a statement is unmade, and the survey did not argue.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "clearedReader": ["mock-user@localhost"],
+  "permission": [
+    { "action": { "id": ["core.peerdb.org", "PERMISSION_ACTIONS", "ACTION_READ"] }, "user": ["mock-user@localhost"], "scope": ["self"] },
+    { "action": { "id": ["core.peerdb.org", "PERMISSION_ACTIONS", "ACTION_READ_HISTORIC"] }, "user": ["mock-user@localhost"], "scope": ["self"] }
+  ],
+  "requestedPermission": [
+    { "action": { "id": ["core.peerdb.org", "PERMISSION_ACTIONS", "ACTION_READ"] }, "user": ["mock-user@localhost"], "scope": ["self"] }
+  ],
+  "notes": [
+    {
+      "value": "<p>Contact was suspended the following year. The four surviving photographs have been requested twice, once by an institute and once by a journal, and the ethics office has held both requests open on the ground that the person who would be asked cannot currently be reached.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

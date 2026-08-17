@@ -1,0 +1,18 @@
+{
+  "id": ["xeno.peerdb.org", "STAR_SYSTEM", "G3_KILN"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "STAR_SYSTEM"] }],
+  "name": [{ "value": "Kiln", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "catalogueCode": "HB-2/016",
+  "description": [
+    {
+      "value": "<p>Two planets, one of them an ocean world with a population estimated to within a factor of ten, which is the current state of the art out here.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "SECTOR", "G3_NINEPIN"] },
+  "spectralClass": "K1V",
+  "starCount": { "amount": 1, "precision": 1 },
+  "planetCount": { "amount": 2, "precision": 1 },
+  "distanceFromSol": { "value": { "amount": 355.2, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "PARSEC"] }] },
+  "firstSurveyed": { "time": "2288-01-01T00:00:00Z", "precision": "y" }
+}

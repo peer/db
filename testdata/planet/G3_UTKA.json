@@ -1,0 +1,46 @@
+{
+  "id": ["xeno.peerdb.org", "PLANET", "G3_UTKA"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PLANET"] }],
+  "name": [{ "value": "Low Anvil", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Utka", "gloss": "the near ground, taken from a single intercepted transmission and not confirmed" }],
+  "catalogueCode": "HB-1/014-b",
+  "description": [
+    {
+      "value": "<p>A small locked world with a narrow habitable ring and a substellar point hot enough to hold a permanent dust plume standing over it. Structures show in the dusk band from orbit: banked enclosures, tracks running between them, and fires lit at intervals regular enough to be a schedule rather than a season. No approach has been authorised and none is pending. Everything in this entry was taken from three hundred and forty kilometres up, and the population figure comes from counting heat sources, which is not a census.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Majhen vklenjen svet; opazovan le iz orbite, brez dovoljenja za pristanek.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Um pequeno mundo preso por maré, com um estreito anel habitável e um ponto subestelar quente o bastante para manter uma pluma de poeira permanente por cima de si. Da órbita veem-se estruturas na faixa crepuscular: recintos com taludes, caminhos a correr entre eles e fogos acesos a intervalos regulares o bastante para serem um horário e não uma estação do ano. Nenhuma aproximação foi autorizada e nenhuma está pendente. Tudo o que consta desta entrada foi obtido a trezentos e quarenta quilómetros de altitude, e o número da população vem de contar fontes de calor, o que não é um recenseamento.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "STAR_SYSTEM", "G3_CAPSTAN"] },
+  "planetType": { "id": ["xeno.peerdb.org", "PLANET_TYPE", "EYEBALL"] },
+  "biome": [{ "id": ["xeno.peerdb.org", "BIOME", "DUSK_BELT"] }, { "id": ["xeno.peerdb.org", "BIOME", "ENDOLITH_ZONE"] }],
+  "radius": { "value": { "amount": 0.78, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_RADIUS"] }] },
+  "mass": { "value": { "amount": 0.52, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_MASS"] }] },
+  "surfaceGravity": { "value": { "amount": 0.85, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "STANDARD_GRAVITY"] }] },
+  "dayLength": { "value": { "amount": 453.6, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "HOUR"] }] },
+  "orbitalPeriod": { "value": { "amount": 18.9, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_DAY"] }] },
+  "meanTemperature": { "value": { "amount": -30.2, "precision": 0.1 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "°C"] }] },
+  "hydrosphere": { "value": { "amount": 4.5, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "PERCENT"] }] },
+  "atmosphere": [
+    {
+      "value": "<p>Nitrogen and argon at 0.5 bar with a haze of fine silicate blown off the day side. Judged breathable through a filter, on instrument evidence, by people who have not tried it.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "biosphereUnknown": true,
+  "contactStatus": { "id": ["xeno.peerdb.org", "CONTACT_STATUS", "REMOTE_OBSERVATION"] },
+  "firstSurveyed": { "time": "2258-01-01T00:00:00Z", "precision": "y" },
+  "surveyPeriod": { "from": { "time": "2258-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true },
+  "populationEstimate": {
+    "value": { "from": { "amount": 9000, "precision": 100 }, "to": { "amount": 40000, "precision": 100 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "image": [{ "value": "/f/QpbACbjZECBPrTZhQU9BNM", "name": "G3_UTKA.jpg", "caption": "Surface view", "source": "Consortium survey archive" }]
+}

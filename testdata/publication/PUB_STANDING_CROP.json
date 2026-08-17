@@ -1,0 +1,22 @@
+{
+  "id": ["xeno.peerdb.org", "PUBLICATION", "PUB_STANDING_CROP"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PUBLICATION"] }],
+  "title": [
+    {
+      "value": "Standing Crop and Tended Crop: An Estimation Method for Managed Organisms in Non-Terrestrial Subsistence Systems, With a Worked Case from the Hollis Sweep",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "doi": "10.5281/xeno.2258.0114",
+  "abstract": [
+    {
+      "value": "<p>Subsistence description in this discipline still borrows its arithmetic from terrestrial range ecology, which assumes a crop that does not move toward its grazers. We set out a conversion method for ribbon-form organisms that are cropped, seeded and steered by the population feeding on them, and apply it to nine circuits of the Hollis sweep over one grazing year. The method returns standing-crop figures within eleven per cent of direct harvest weights, provided the circuit interval is known. Its principal weakness, which we state plainly, is that it treats tending as a constant when tending is manifestly a decision.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "author": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_HALVORSEN"] }],
+  "journal": "Xenoecology and Subsistence",
+  "publishedOn": { "time": "2258-06-01T00:00:00Z", "precision": "m" },
+  "about": [{ "id": ["xeno.peerdb.org", "ORGANISM", "G1_SWEEP_RIBBON"] }, { "id": ["xeno.peerdb.org", "SPECIES", "G1_WANASELU"] }],
+  "cites": [{ "id": ["xeno.peerdb.org", "PUBLICATION", "PUB_WEIR_ALLOCATION"] }]
+}

@@ -1,0 +1,43 @@
+{
+  "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G1_COLUMN_PERCUSSION"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM"] }],
+  "name": [{ "value": "Column and Shelf Percussion", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [
+    { "value": "Thravnef", "gloss": "the knocking; this is the canopy term, and the shelf colonies have no name for it and appear not to need one" }
+  ],
+  "description": [
+    {
+      "value": "<p>Struck signal travelling through graphite: up and along the living columns for the canopy households, and across the fractured floor of the plateau for the shelf colonies. The canopy register is slow, one striker at a time, and carries house business, position and invitation; the shelf register runs at a rate no single body could sustain and carries running accounts of who owes what. The discipline records the two as one system with two registers, a determination made in 2281 on structural grounds and disputed ever since by people who have heard both. Visitors are told to grip the platform rather than stand on it, and do not believe this until they have missed a conversation held around them.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "modality": [
+    { "id": ["xeno.peerdb.org", "COMMUNICATION_MODALITY", "SUBSTRATE_PERCUSSION"] },
+    { "id": ["xeno.peerdb.org", "COMMUNICATION_MODALITY", "CHEMICAL_SIGNATURE"] }
+  ],
+  "users": {
+    "value": { "from": { "amount": 809000, "precision": 100 }, "to": { "amount": 1224000, "precision": 100 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "sampleGloss": [
+    {
+      "value": "<p><i>[two strikes at the trunk base, pause, one strike at head height]</i> house / (pause) / come-up. Free translation: come up into the house, you are expected. On the shelf floor the same figure is completed eleven times inside the length of that pause.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "recording": [
+    {
+      "value": "/f/USJAYei8XF4HozDvBp56XG",
+      "name": "system-G1_COLUMN_PERCUSSION.mp3",
+      "caption": "Elicitation sample",
+      "duration": { "value": { "amount": 1, "precision": 1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "MINUTE"] }] },
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G1_COLUMN_PERCUSSION"] }],
+      "note": [
+        {
+          "value": "<p>Recorded during elicitation and kept as the reference sample for this system.</p>",
+          "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+        }
+      ]
+    }
+  ]
+}

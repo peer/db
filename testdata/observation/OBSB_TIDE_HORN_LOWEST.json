@@ -1,0 +1,32 @@
+{
+  "id": ["xeno.peerdb.org", "OBSERVATION", "OBSB_TIDE_HORN_LOWEST"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "OBSERVATION"] }],
+  "title": [{ "value": "Calling of the ninety minutes at the Draining Ground", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "description": [
+    {
+      "value": "<p>The annual lowest tide on the outer flat, the two-note call that opens it, and an attempted count of the people who came.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "content": [
+    {
+      "value": "<p>2.xi.2277. Naulei blew the ground open from the seaward edge of the midden ring at 04.11 local and blew it closed at 05.39, giving eighty-eight minutes of dry sand where there are normally six metres of water.</p><p>The horn gives two notes and nothing between them. The lower carried to our downwind station at 4.1 kilometres and was still clean there; the upper was gone by two.</p><p>Our count of arrivals is unreliable and is offered as a range: between two thousand six hundred and four thousand, on the flat at once, with temporary frames going up and coming down inside the same hour. The acoustic record does not convey the shouting and we have stopped pretending that it might.</p><p>The crier calls the minute and not the water. Naulei was standing where she could not see the outer edge and she was, on our instruments, correct to within about two minutes at both ends. She has done this for thirty-one years. We asked how it is judged and were told, without any evident intention to mislead, that one listens.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "expedition": { "id": ["xeno.peerdb.org", "EXPEDITION", "EXP_LONG_WATER_SHELF"] },
+  "observedBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_REYES"] }, { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_BRANDT"] }],
+  "observedAt": { "id": ["xeno.peerdb.org", "SITE", "G4_DRAINING_GROUND"] },
+  "observedOn": { "time": "2277-11-02T00:00:00Z", "precision": "d" },
+  "about": [
+    { "id": ["xeno.peerdb.org", "SPECIES", "G4_WEIRFOLK"] },
+    { "id": ["xeno.peerdb.org", "CULTURE", "G4_CU_WEIR_ORDER"] },
+    { "id": ["xeno.peerdb.org", "ORGANISM", "G4_FLAT_RUNNER"] }
+  ],
+  "method": [
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "ACOUSTIC_RECORDING"] },
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "REMOTE_SENSING"] }
+  ],
+  "fieldConditions": "Night tide, no moon of consequence, light wind onshore. Several thousand people on the sand and two of us at a downwind station.",
+  "image": [{ "value": "/f/4RKy1tTqgLmpChjQ9GPV9f", "name": "OBSB_TIDE_HORN_LOWEST.jpg", "caption": "Taken at the time", "source": "Field record" }]
+}

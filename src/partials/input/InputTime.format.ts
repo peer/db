@@ -1,4 +1,4 @@
-import type { NamedValue } from "vue-i18n"
+import type { ComposerTranslation } from "vue-i18n"
 
 import type { TimePrecision } from "@/document"
 
@@ -149,7 +149,7 @@ export function normalizeForParsing(raw: string): string {
  * - `""` if the input is valid or still incomplete.
  * - A descriptive error message if the input is invalid.
  */
-export function progressiveValidate(normalized: string, t: (key: string, named?: NamedValue) => string): string {
+export function progressiveValidate(normalized: string, t: ComposerTranslation): string {
   if (!normalized) return ""
 
   // Year in progress: "202", "2023".

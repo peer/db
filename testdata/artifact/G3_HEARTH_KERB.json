@@ -1,0 +1,27 @@
+{
+  "id": ["xeno.peerdb.org", "ARTIFACT", "G3_HEARTH_KERB"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "ARTIFACT"] }],
+  "name": [{ "value": "Banked Hearth Kerb Stone", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "accessionCode": "CCX-A-31011",
+  "description": [
+    {
+      "value": "<p>A dressed basalt block from the coldward arc of a hearth kerb, one face smoothed by handling and the opposite face reddened to a depth of about eight millimetres by long heating. Kerb stones are carried when a household moves and are among the few objects on the strip that outlast the shelter they belong to. This one has three sets of pecked notches on its underside, in three different hands, which is read as three successive households rather than as any kind of record. It was recovered from a hearth abandoned as the ice front passed, and it was left behind because it had cracked.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "category": { "id": ["xeno.peerdb.org", "ARTIFACT_CATEGORY", "MARKER_STONE"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G3_STRIP_STEWARDSHIP"] }],
+  "foundAt": { "id": ["xeno.peerdb.org", "SITE", "G3_UPPER_HEARTHS"] },
+  "material": [
+    { "value": "basalt", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "soot deposit", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }
+  ],
+  "dimension": [
+    { "value": { "amount": 0.64, "precision": 0.001 }, "axis": "length", "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+    { "value": { "amount": 0.29, "precision": 0.001 }, "axis": "width", "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+    { "value": { "amount": 0.15, "precision": 0.001 }, "axis": "thickness", "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] }
+  ],
+  "dateMade": { "time": "2200-01-01T00:00:00Z", "precision": "100y" },
+  "collectedBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_LINDQVIST"] }, { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_DEMIR"] }],
+  "image": [{ "value": "/f/P9CT2ZPDTWt9cc4gvBrGBN", "name": "G3_HEARTH_KERB.jpg", "caption": "Object drawing", "source": "Consortium collection" }]
+}

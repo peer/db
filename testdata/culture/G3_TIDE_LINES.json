@@ -1,0 +1,48 @@
+{
+  "id": ["xeno.peerdb.org", "CULTURE", "G3_TIDE_LINES"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "CULTURE"] }],
+  "name": [{ "value": "The Tide Lines", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [
+    {
+      "value": "Onnekki-tekko",
+      "gloss": "the count and those who set it",
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G3_STAKE_NOTATION"] }]
+    }
+  ],
+  "catalogueCode": "CU-2291-10",
+  "description": [
+    {
+      "value": "<p>Stake lines run for kilometres across the tidal flats, are cropped for the crust that grows on them, and hold whatever the falling water strands behind them. A line is held by one household for a tide-year and then passes on in a fixed order, so a household works a different stretch of coast every year of its existence. Obligation is tracked in detail and two parties are kin for exactly as long as a debt between them is open, which makes settling a debt an ending rather than a repair. At flood the same lines pass to the joined collectives, which read them from the water side and add to them, and the register keeps one entry for both because four meetings have not been enough to show that there are two. All four of those meetings took place at the turn of the tide and all four ended when the water came back, which the survey has stopped describing as bad luck.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Vrste kolov na blatiščih vsako plimsko leto preidejo drugemu gospodinjstvu. Sorodnika sta si, dokler je dolg odprt.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>As fileiras de estacas correm por quilómetros através das planícies de maré, são colhidas pela crosta que nelas cresce e retêm o que a água em vazante deixa encalhado atrás delas. Uma fileira é detida por um agregado durante um ano de marés e passa depois numa ordem fixa, pelo que um agregado trabalha um troço de costa diferente em cada ano da sua existência. A obrigação é seguida ao pormenor e duas partes são parentes exatamente enquanto uma dívida entre elas estiver aberta, o que faz de saldar uma dívida um fim e não uma reparação. Na enchente as mesmas fileiras passam para os coletivos unidos, que as leem do lado da água e lhes acrescentam coisas, e o registo mantém uma única entrada para ambos porque quatro encontros não bastaram para mostrar que são dois. Todos esses quatro encontros ocorreram na viragem da maré e todos os quatro terminaram quando a água voltou, o que o levantamento deixou de descrever como falta de sorte.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "practisedBy": [{ "id": ["xeno.peerdb.org", "SPECIES", "G3_TEKKONNO"] }, { "id": ["xeno.peerdb.org", "SPECIES", "G3_ORRENKO"] }],
+  "presentAt": [{ "id": ["xeno.peerdb.org", "SITE", "G3_FOURTH_MEETING"] }, { "id": ["xeno.peerdb.org", "SITE", "G3_OUTER_STAKES"] }],
+  "kinshipSystem": { "id": ["xeno.peerdb.org", "KINSHIP_SYSTEM", "DEBT_KINSHIP"] },
+  "socialOrganisation": { "id": ["xeno.peerdb.org", "SOCIAL_ORGANISATION", "ROTATING_STEWARDSHIP"] },
+  "subsistence": [
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "TIDAL_TRAPPING"] },
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "COLONY_GRAZING"] },
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "DRIFT_HARVESTING"] }
+  ],
+  "communication": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G3_STAKE_NOTATION"] }],
+  "population": {
+    "value": { "from": { "amount": 90000, "precision": 100 }, "to": { "amount": 1000000, "precision": 100 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "period": { "from": { "time": "2291-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true },
+  "notes": [
+    {
+      "value": "<p>The single entry is a working compromise and is labelled as one. Two reviewers hold that it records the limits of the survey rather than anything about the coast.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

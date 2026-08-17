@@ -37,7 +37,7 @@ import NavBarSearch from "@/partials/NavBarSearch.vue"
 import PermissionsView from "@/partials/PermissionsView.vue"
 import PropertiesView from "@/partials/PropertiesView.vue"
 import SearchShortcutLink from "@/partials/SearchShortcutLink.vue"
-import { getParentLock, localCounter, lockScope, useProgress } from "@/progress"
+import { getParentLock, localCounter, counterScope, useProgress } from "@/progress"
 import { getDocumentComponents } from "@/registry/document"
 import { getDocumentHeaderComponents } from "@/registry/document-header"
 import { useSearch, useSearchSession } from "@/search"
@@ -71,7 +71,7 @@ const progress = useProgress()
 // editBusy is the writable handle used in the handler and as the button's
 // :progress visual. Local count is isolated from any ancestor lock
 // contributions; writes still propagate into editLock for descendant cascade.
-const editLock = lockScope(getParentLock())
+const editLock = counterScope(getParentLock())
 const editBusy = localCounter(editLock)
 function getEditLock() {
   return editLock
@@ -514,7 +514,7 @@ async function beginEdit(tab?: string) {
           <div class="pd-navbarshortcut contents">
             <!-- self-stretch so the query link keeps the row height even when the query is empty, instead of collapsing to its text height. -->
             <InputTextLink
-              class="max-w-xl grow self-stretch"
+              class="pd-documentget-link-query max-w-xl grow self-stretch"
               :to="{ name: 'SearchGet', params: { id: searchSession.id }, query: encodeQuery({ at: id }) }"
               :after-click="afterClick"
             >
@@ -535,7 +535,7 @@ async function beginEdit(tab?: string) {
             compress the pair down to the buttons' own floor (an icon each) but not past it, which would let the
             buttons overflow the group and collide with the next navbar item.
           -->
-          <div class="flex min-w-25 gap-x-1">
+          <div class="pd-documentget-group-prevnext flex min-w-25 gap-x-1">
             <ButtonLink
               id="documentget-button-prev"
               primary
@@ -576,11 +576,7 @@ async function beginEdit(tab?: string) {
       </template>
     </NavBar>
   </Teleport>
-  <div
-    ref="el"
-    class="pd-documentget mt-[var(--pd-navbar-offset)] flex w-full flex-col gap-y-1 border-t border-transparent p-1 sm:gap-y-4 sm:p-4"
-    :data-url="withDocument?.url"
-  >
+  <div ref="el" class="pd-documentget mt-[var(--pd-navbar-offset)] flex w-full flex-col gap-y-1 p-1 sm:gap-y-4 sm:p-4" :data-url="withDocument?.url">
     <!--
       Registered document header components render above the card, on every tab. They get the document
       the card renders, so the page reads it once, and null while it is still being read.
@@ -597,7 +593,7 @@ async function beginEdit(tab?: string) {
       >
         <WithDocumentD :id="id" ref="withDocument" :key="documentEpoch" name="DocumentGet" :version="reqVersion">
           <template #default="{ doc }">
-            <div v-if="!classesInitialized" class="my-1 text-center sm:my-4">{{ t("common.status.loading") }}</div>
+            <div v-if="!classesInitialized" id="documentget-loading-classes" class="my-1 text-center sm:my-4">{{ t("common.status.loading") }}</div>
             <!--
             TODO: Fix how hover interacts with focused tab.
             See: https://github.com/tailwindlabs/tailwindcss/discussions/10123
@@ -703,7 +699,7 @@ async function beginEdit(tab?: string) {
       >
         <div
           v-if="!siteContext.features.hideDocumentActions && (hasDocumentPermission(ACTION_UPDATE, docRef) || hasDocumentPermission(ACTION_DELETE, docRef))"
-          class="flex flex-col gap-2"
+          class="pd-documentget-actions flex flex-col gap-2"
         >
           <WithLock v-if="hasDocumentPermission(ACTION_UPDATE, docRef)" :lock="getEditLock">
             <Button id="documentget-button-edit" :progress="editBusy" type="button" class="w-full" @click.prevent="beginEdit()">{{ t("common.buttons.edit") }}</Button>

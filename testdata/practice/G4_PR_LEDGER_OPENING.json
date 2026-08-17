@@ -1,0 +1,24 @@
+{
+  "id": ["xeno.peerdb.org", "PRACTICE", "G4_PR_LEDGER_OPENING"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PRACTICE"] }],
+  "name": [{ "value": "Stating the Position", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "[what stands between us]", "gloss": "a gloss of the opening figure, which is also the word for a tally" }],
+  "description": [
+    {
+      "value": "<p>No dealing of any kind begins until both parties have struck the current position of the ledger between them, and none closes without striking it again as it now stands. A chorus meeting a stranger states a position of nothing owed in either direction, which is not a greeting but a statement that the relation does not yet exist. Where the parties disagree about the position, the disagreement is the dealing and nothing else is taken up that session; the tally at the gallery mouth is cut only once both have struck the same figure. A position is never brought to zero, since a settled ledger ends the relation and no other kind of relation is available, so a party close to paying will incur something on purpose. The Consortium holds four open positions under this system and has spent thirty years failing to find an acceptable way to close any of them, which the choruses regard as the arrangement working.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Nenhum negócio, de que espécie for, começa antes de ambas as partes terem batido a posição atual do livro de contas entre elas, e nenhum se fecha sem que ela seja batida de novo tal como fica. Um coro que encontra um estranho declara uma posição de nada devido em nenhum sentido, o que não é um cumprimento mas a declaração de que a relação ainda não existe. Quando as partes discordam quanto à posição, a discordância é o negócio e mais nada se trata nessa sessão; a talha à boca da galeria só é cortada quando ambas tiverem batido a mesma figura. Uma posição nunca é levada a zero, uma vez que um livro saldado põe fim à relação e não há outra espécie de relação disponível, pelo que uma parte perto de pagar contrai alguma coisa de propósito. O Consórcio mantém quatro posições abertas neste sistema e passou trinta anos sem conseguir encontrar uma forma aceitável de fechar qualquer uma delas, o que os coros consideram ser o sistema a funcionar.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G4_CU_GALLERY_LEDGERS"] }],
+  "category": { "id": ["xeno.peerdb.org", "PRACTICE_CATEGORY", "GREETING"] },
+  "periodicity": "at the opening and the closing of every dealing",
+  "participants": {
+    "value": { "from": { "amount": 2, "precision": 1 }, "to": { "amount": 4, "precision": 1 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "firstDocumented": { "time": "2279-01-01T00:00:00Z", "precision": "y" }
+}

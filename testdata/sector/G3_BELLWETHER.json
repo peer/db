@@ -1,0 +1,14 @@
+{
+  "id": ["xeno.peerdb.org", "SECTOR", "G3_BELLWETHER"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SECTOR"] }],
+  "name": [{ "value": "Bellwether Sector", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "catalogueCode": "HB-1",
+  "description": [
+    {
+      "value": "<p>The first sector opened and the only one anybody would call surveyed. Five systems have been entered, three of them more than once, and the sector supplies the reference spectra against which the rest of the galaxy is provisionally judged. It is also the only sector in which a second visit has ever confirmed a first.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "GALAXY", "G3_HOLLOW_BAR"] },
+  "surveyPeriod": { "from": { "time": "2253-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true }
+}

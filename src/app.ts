@@ -6,7 +6,6 @@ import { createRouter, createWebHistory } from "vue-router"
 import "@/app.css"
 import App from "@/App.vue"
 import RouterLink from "@/components/RouterLink.vue"
-import { configKey } from "@/config"
 import siteContext from "@/context"
 import i18n from "@/i18n"
 import { progressKey, rootProgressKey } from "@/progress"
@@ -101,15 +100,4 @@ const app = createApp(App).use(router)
 delete app._context.components["RouterLink"]
 app.component("RouterLink", RouterLink)
 
-app
-  .use(i18n)
-  .use(twMerge)
-  .provide(progressKey, rootProgress)
-  .provide(rootProgressKey, rootProgress)
-  .provide(
-    configKey,
-    ref({
-      fixedNavbar: false,
-    }),
-  )
-  .mount("main")
+app.use(i18n).use(twMerge).provide(progressKey, rootProgress).provide(rootProgressKey, rootProgress).mount("main")

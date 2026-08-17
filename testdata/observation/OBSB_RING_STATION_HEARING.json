@@ -1,0 +1,31 @@
+{
+  "id": ["xeno.peerdb.org", "OBSERVATION", "OBSB_RING_STATION_HEARING"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "OBSERVATION"] }],
+  "title": [
+    { "value": "A station-keeping dispute heard on the deck of the sunk relay", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>Two floating settlements in dispute over station-keeping, heard on the deck of a decommissioned Consortium relay that is now local property.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "content": [
+    {
+      "value": "<p>18.vii.2295. The relay was moored in the substellar pool in 2256, decommissioned in 2271 when the orbital network made it redundant, and never removed. It is now held and maintained locally, in noticeably better condition than we left it in, and its transponder clock times the nineteen-metre tide for the whole ring.</p><p>The hearing ran for a little over three hours on the deck. Ongamu heard it. Both parties came from opposite halves, which is not an accident: obligation runs across the divide and never within it, so a dispute that arises inside one half has nowhere to be heard.</p><p>Both parties wore moiety plates on the leading side, notched and legible by touch and by electroreception in water where nothing at all can be seen. The plates were read, by both parties and by Ongamu, before anything was said.</p><p>The settlement was against the party that had brought the complaint and was accepted without visible argument. We do not understand why the clock is authoritative rather than the water. The tide is there to be observed by anybody; the clock is a piece of our old navigation equipment; and yet the schedule the whole ring works to is the one the transponder gives, and has been for twenty-four years.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "observedBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_ARAI"] }, { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_TRAN"] }],
+  "observedAt": { "id": ["xeno.peerdb.org", "SITE", "G4_SUNK_RELAY"] },
+  "observedOn": { "time": "2295-07-18T00:00:00Z", "precision": "d" },
+  "about": [{ "id": ["xeno.peerdb.org", "SPECIES", "G4_RING_SWIMMERS"] }, { "id": ["xeno.peerdb.org", "CULTURE", "G4_CU_RING_MOIETIES"] }],
+  "method": [
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "PARTICIPANT_OBSERVATION"] },
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "NETWORK_MAPPING"] }
+  ],
+  "fieldConditions": "Permanent daylight, flat pool, warm. Perhaps thirty swimmers in the water around the deck and four people on it.",
+  "image": [
+    { "value": "/f/X2UAZSBqr17nba2qntCmps", "name": "OBSB_RING_STATION_HEARING.jpg", "caption": "Taken at the time", "source": "Field record" }
+  ]
+}

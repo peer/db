@@ -1,0 +1,18 @@
+{
+  "id": ["xeno.peerdb.org", "STAR_SYSTEM", "G3_BELLOWS"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "STAR_SYSTEM"] }],
+  "name": [{ "value": "Bellows", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "catalogueCode": "HB-1/007",
+  "description": [
+    {
+      "value": "<p>A close pair, the secondary a red dwarf whose flares set the working schedule for everyone in the system. Four planets, one of them a giant with a ring system that took three passes to resolve into divisions.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "SECTOR", "G3_BELLWETHER"] },
+  "spectralClass": "G2V",
+  "starCount": { "amount": 2, "precision": 1 },
+  "planetCount": { "amount": 4, "precision": 1 },
+  "distanceFromSol": { "value": { "amount": 258.3, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "PARSEC"] }] },
+  "firstSurveyed": { "time": "2261-01-01T00:00:00Z", "precision": "y" }
+}

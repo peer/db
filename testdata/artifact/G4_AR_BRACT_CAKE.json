@@ -1,0 +1,28 @@
+{
+  "id": ["xeno.peerdb.org", "ARTIFACT", "G4_AR_BRACT_CAKE"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "ARTIFACT"] }],
+  "name": [{ "value": "Cake of Ground Bract Dye", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "aunelira", "gloss": "the ground colour, for marking" }],
+  "accessionCode": "CCX-A-20447",
+  "description": [
+    {
+      "value": "<p>A pressed cake of lantern bract ground with water and a mat binder, ultraviolet-bright and, to a human eye, a dull pinkish grey. Bracts are collected in the canopy, dried for a season, ground between two shells and pressed in a ring mould; a cake this size is about four hundred bracts and a fortnight of somebody&#39;s evenings. It was ground in front of the 2270 team, which is why the date is exact, and half of it was used the same day to mark a span boundary. What remains has faded under storage lighting and no longer reads correctly under a filter, a fact the conservation file records twice and explains once.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "category": { "id": ["xeno.peerdb.org", "ARTIFACT_CATEGORY", "PIGMENT"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G4_CU_LADDER_GORGE"] }],
+  "foundAt": { "id": ["xeno.peerdb.org", "SITE", "G4_LADDER_TERRACES"] },
+  "material": [
+    { "value": "lantern bract", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "canopy mat binder", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "water", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }
+  ],
+  "dimension": [
+    { "value": { "amount": 0.062, "precision": 0.001 }, "axis": "diameter", "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+    { "value": { "amount": 0.019, "precision": 0.001 }, "axis": "thickness", "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] }
+  ],
+  "dateMade": { "time": "2270-01-01T00:00:00Z", "precision": "d" },
+  "collectedBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_REYES"] }, { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_BAUTISTA"] }],
+  "image": [{ "value": "/f/KNnMZfCqNchvyiRELPfuri", "name": "G4_AR_BRACT_CAKE.jpg", "caption": "Object drawing", "source": "Consortium collection" }]
+}

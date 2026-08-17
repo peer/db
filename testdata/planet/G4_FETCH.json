@@ -1,0 +1,57 @@
+{
+  "id": ["xeno.peerdb.org", "PLANET", "G4_FETCH"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PLANET"] }],
+  "name": [{ "value": "Fetch", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Vesshith", "gloss": "the standing edge" }],
+  "catalogueCode": "SPW-A/117-b",
+  "description": [
+    {
+      "value": "<p>Locked to a quiet red dwarf, with a substellar point at eighty-four degrees and a night side cold enough to freeze its own atmosphere out onto the ice. Everything that matters happens in a band about four hundred kilometres wide along the terminator, where the temperature holds between minus five and twelve degrees and the wind has blown off the day side without a pause for as long as anyone can measure. The dayward margin is a dune sea of dark glass grit; the nightward margin is where the volatiles come down and stay. The habitable band creeps a few kilometres in a human lifetime, and the settlements creep with it.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Plimsko vklenjen svet, kjer je vse življenje stisnjeno v somračni pas ob meji dneva in noči.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "STAR_SYSTEM", "G4_NOIL"] },
+  "planetType": { "id": ["xeno.peerdb.org", "PLANET_TYPE", "EYEBALL"] },
+  "biome": [
+    { "id": ["xeno.peerdb.org", "BIOME", "DUSK_BELT"] },
+    { "id": ["xeno.peerdb.org", "BIOME", "NIGHTSIDE_TRAP"] },
+    { "id": ["xeno.peerdb.org", "BIOME", "REGOLITH_DUNE"] }
+  ],
+  "radius": { "value": { "amount": 1.06, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_RADIUS"] }] },
+  "mass": { "value": { "amount": 1.22, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_MASS"] }] },
+  "surfaceGravity": { "value": { "amount": 1.09, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "STANDARD_GRAVITY"] }] },
+  "dayLength": { "value": { "amount": 734.4, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "HOUR"] }] },
+  "orbitalPeriod": { "value": { "amount": 30.6, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_DAY"] }] },
+  "meanTemperature": { "value": { "amount": -21.0, "precision": 0.1 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "°C"] }] },
+  "hydrosphere": { "value": { "amount": 7.0, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "PERCENT"] }] },
+  "atmosphere": [
+    {
+      "value": "<p>Nitrogen and carbon dioxide at 0.78 bar in the dusk band, thinning towards the night side where it snows out. Wearable with a warm suit and a filter; the wind is the difficulty, not the air.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "biosphere": [
+    {
+      "value": "<p>Life is present: 2 catalogued species (Cold Locker Trap Keepers, Dusk March Hearth Walkers) and 2 recorded non-sapient organisms. The survey is not claimed to be complete.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "contactStatus": { "id": ["xeno.peerdb.org", "CONTACT_STATUS", "LIMITED"] },
+  "firstSurveyed": { "time": "2229-01-01T00:00:00Z", "precision": "y" },
+  "surveyPeriod": { "from": { "time": "2231-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true },
+  "populationEstimate": {
+    "value": { "from": { "amount": 40000, "precision": 100 }, "to": { "amount": 95000, "precision": 100 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "image": [{ "value": "/f/XZTrmUUh92CAJc44xxT6tS", "name": "G4_FETCH.jpg", "caption": "Surface view", "source": "Consortium survey archive" }],
+  "notes": [
+    {
+      "value": "<p>The band moves. Two settlements catalogued in 2231 at the dayward edge were, by the 2288 revisit, eleven and fourteen kilometres inside it, which is either a slow migration or a slow correction of the 2231 positions. The report declines to say which.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

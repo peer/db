@@ -1,0 +1,33 @@
+{
+  "id": ["xeno.peerdb.org", "EXPEDITION", "EXP_SALTMARCH_CONTACT"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "EXPEDITION"] }],
+  "name": [{ "value": "Saltmarch Contact Programme", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "catalogueCode": "EXP-2294-06",
+  "description": [
+    {
+      "value": "<p>Five years on the great pan, working alongside a pan-management practice the survey has described at length and does not claim to understand. The programme recorded the flood cycle, the labour arrangement and the four-channel schedule, and closed on the day the suspension took effect, with its camp still standing and two of its instruments still running. Nothing gathered after 2296 has been cleared. Its leader has spent the years since writing up material he may not quote.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "destination": [
+    { "id": ["xeno.peerdb.org", "PLANET", "G3_RIMMENA"] },
+    { "id": ["xeno.peerdb.org", "REGION", "G3_GREAT_PAN"] },
+    { "id": ["xeno.peerdb.org", "REGION", "G3_FOUR_CHANNELS"] }
+  ],
+  "period": { "from": { "time": "2294-01-01T00:00:00Z", "precision": "y" }, "to": { "time": "2298-01-01T00:00:00Z", "precision": "y" } },
+  "ledBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_SEO"] }],
+  "teamMember": [
+    { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_MOKOENA"] },
+    { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_MOLNAR"] },
+    { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_HADDAD"] },
+    { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_PRASETYO"] }
+  ],
+  "organisedBy": [{ "id": ["xeno.peerdb.org", "INSTITUTE", "INST_FARSIGHT"] }, { "id": ["xeno.peerdb.org", "INSTITUTE", "INST_LEDGER"] }],
+  "method": [
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "PARTICIPANT_OBSERVATION"] },
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "STRUCTURED_INTERVIEW"] },
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "ACOUSTIC_RECORDING"] }
+  ],
+  "ethics": { "id": ["xeno.peerdb.org", "ETHICS_PROTOCOL", "PROTOCOL_4"] },
+  "budget": { "value": { "amount": 1300000, "precision": 1000 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "$"] }] }
+}

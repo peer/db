@@ -1,0 +1,21 @@
+{
+  "id": ["xeno.peerdb.org", "REGION", "G3_BANKED_GROUND"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "REGION"] }],
+  "name": [{ "value": "The Banked Ground", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "description": [
+    {
+      "value": "<p>A stretch of the dusk band carrying low earth banks in shallow curves, several hundred of them, with worn tracks running between. Fires are lit within the banks on a regular cycle and go out together. The region has no recorded local name because nobody has been down to ask for one.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "PLANET", "G3_UTKA"] },
+  "biome": [{ "id": ["xeno.peerdb.org", "BIOME", "DUSK_BELT"] }],
+  "area": { "value": { "amount": 260000, "precision": 100 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "SQUARE_KILOMETRE"] }] },
+  "elevationRange": {
+    "value": { "from": { "amount": 200, "precision": 10 }, "to": { "amount": 1900, "precision": 10 } },
+    "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }]
+  },
+  "image": [
+    { "value": "/f/GKVetNpmiwTyUxvjtaY5cn", "name": "G3_BANKED_GROUND.jpg", "caption": "Regional view", "source": "Consortium survey archive" }
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "id": ["xeno.peerdb.org", "CONTACT_STATUS", "SUSPENDED"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "CONTACT_STATUS"] }],
+  "name": [
+    { "value": "Contact suspended", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "Stik prekinjen", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }] },
+    { "value": "Contacto suspenso", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>Previously established contact has been stopped by either party or by an ethics ruling, and may not be resumed without review. Excludes contact that merely lapsed for want of a ship.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Prej vzpostavljeni stik je ustavljen in ga brez presoje ni dovoljeno obnoviti.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>O contacto anteriormente estabelecido foi interrompido por uma das partes ou por decisão ética e não pode ser retomado sem reapreciação. Exclui o contacto que apenas caducou por falta de nave.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "code": ["suspended"]
+}

@@ -1,0 +1,36 @@
+{
+  "id": ["xeno.peerdb.org", "OBSERVATION", "OBSA_RIB_BLADDER_HALVES"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "OBSERVATION"] }],
+  "title": [
+    {
+      "value": "Nine nights of parallel feeding after a bladder division, sixth rib",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "description": [
+    {
+      "value": "<p>A household division followed to the pouring of the ferment bladder and through the nine nights that follow. We were told the halves are not parent and offspring.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "content": [
+    {
+      "value": "<p>Nine nights at the sixth rib, in the dark, with the household that was dividing and the household that was being made. There are no photographs of any of this and there will not be.</p><p>The bladder was brought to the rib edge, opened and poured in two into fresh gut-skin by the member who keeps it, working by the taste of the pour and by nothing else. We asked how the halving is judged and were told, patiently, by taste. Our own sampling puts the halves within four per cent by mass. We record that because it is remarkable to us and not because anybody there thought so.</p><p>Both halves were fed the same night from one stock of tube shell and grazed mat, and were fed alongside each other for nine nights before the new household took its half away down the rib. A culture that will not hold in the first nine nights, we were told, was never two cultures.</p><p>Nobody used parent or offspring. The keeper was firm that the halves are one culture in two places and that this is not a figure of speech. We have written it in her words because ours keep coming out wrong.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "expedition": { "id": ["xeno.peerdb.org", "EXPEDITION", "EXP_LONG_LID_SEASON"] },
+  "observedBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_WEN"] }, { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_SUBRAMANIAN"] }],
+  "observedAt": { "id": ["xeno.peerdb.org", "SITE", "G2_LOWER_MIDDEN"] },
+  "observedOn": { "time": "2279-07-05T00:00:00Z", "precision": "d" },
+  "about": [
+    { "id": ["xeno.peerdb.org", "PRACTICE", "G2_BLADDER_DIVISION"] },
+    { "id": ["xeno.peerdb.org", "CULTURE", "G2_RIB_HOLDINGS"] },
+    { "id": ["xeno.peerdb.org", "SPECIES", "G2_OLLUMARU"] }
+  ],
+  "method": [
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "PARTICIPANT_OBSERVATION"] },
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "MATERIAL_SAMPLING"] }
+  ],
+  "fieldConditions": "Four kilometres of black water below and no light at any point, by the ruling and by preference. Two of us and, on six of the nine nights, members of three neighbouring holdings."
+}

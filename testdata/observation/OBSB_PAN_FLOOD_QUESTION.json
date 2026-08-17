@@ -1,0 +1,43 @@
+{
+  "id": ["xeno.peerdb.org", "OBSERVATION", "OBSB_PAN_FLOOD_QUESTION"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "OBSERVATION"] }],
+  "title": [
+    {
+      "value": "A question cut into a block at the outer edge of the pan, four days before the flood",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "description": [
+    {
+      "value": "<p>Note on a single worker cutting into crust ahead of the flood, watched from first cut to last, and on what could not be read afterwards.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "content": [
+    {
+      "value": "<p>6.v.2296. Ivarre worked the block for six days, in sessions of between forty minutes and three hours, and put nine cuts into the upper surface at four depths. He neither objected to our presence nor acknowledged it, which is the ordinary condition of work here and should not be read as hostility.</p><p>The flood came down the four channels on the tenth day, stood for three, and was gone by the nineteenth. We photographed the block dry on the twenty-first, in raking light and under ultraviolet, and the survey holds a complete record of a surface that we cannot read at all.</p><p>Semmirra read it by hand, twice, in the early morning when the crust had taken the night. The reading took about four minutes. Asked what the answer had been, she said that the block had answered, which we have no reason to doubt and no way to check.</p><p>Whether the pan work is subsistence, observance or a form of record is now in its fifteenth year of argument within the Consortium, conducted with no new evidence by anybody. This note adds none.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "expedition": { "id": ["xeno.peerdb.org", "EXPEDITION", "EXP_SALTMARCH_CONTACT"] },
+  "observedBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_SEO"] }, { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_MOLNAR"] }],
+  "observedAt": { "id": ["xeno.peerdb.org", "SITE", "G3_PAN_WORKINGS"] },
+  "observedOn": { "time": "2296-05-06T00:00:00Z", "precision": "d" },
+  "about": [
+    { "id": ["xeno.peerdb.org", "SPECIES", "G3_AMMIRREN"] },
+    { "id": ["xeno.peerdb.org", "PRACTICE", "G3_FLOOD_READING"] },
+    { "id": ["xeno.peerdb.org", "CULTURE", "G3_PAN_WORK"] }
+  ],
+  "method": [
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "PARTICIPANT_OBSERVATION"] },
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "PHOTOGRAMMETRY"] }
+  ],
+  "fieldConditions": "Hot, glaring, no shade at the outer edge; wind rising in the last two days before the water. One worker, then two, then one.",
+  "image": [{ "value": "/f/SamyscVPFR4ggHTbxVPiAq", "name": "OBSB_PAN_FLOOD_QUESTION.jpg", "caption": "Taken at the time", "source": "Field record" }],
+  "notes": [
+    {
+      "value": "<p>Two years after this note contact with the Ammirren was suspended under an ethics ruling, and the photographs remain the last close record of a block being cut. They are held at Deposit and are not restricted.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

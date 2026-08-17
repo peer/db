@@ -1,0 +1,30 @@
+{
+  "id": ["xeno.peerdb.org", "PUBLICATION", "PUB_WARREN_LEDGER_OPEN"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PUBLICATION"] }],
+  "title": [
+    {
+      "value": "Leaving the Position Open: Unclosed Obligation, the Refusal at the Mouth and the Conduct of Frost Warren Traders at the Turning Ground",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "doi": "10.5281/xeno.2294.0083",
+  "abstract": [
+    {
+      "value": "<p>Frost Warren traders will not close an obligation at the turning ground, and a trader who attempts to settle in full is refused at the mouth of the warren on return. We describe the refusal, its two recognised remedies, and the ledger conventions that keep a position formally open across generations of tally keepers. The practice is intelligible as insurance against the eleven-day meeting failing to convene, though our informants gave a simpler account: a closed position is a person you no longer have. Our material comes entirely from the switching ground, the warrens themselves having remained closed to us throughout.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "author": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_SEO"] }, { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_MOKOENA"] }],
+  "journal": "Studies in Non-Terrestrial Exchange",
+  "publishedOn": { "time": "2294-08-01T00:00:00Z", "precision": "m" },
+  "about": [
+    { "id": ["xeno.peerdb.org", "SPECIES", "G2_MUNNAKULE"] },
+    { "id": ["xeno.peerdb.org", "CULTURE", "G2_WARREN_TALLY"] },
+    { "id": ["xeno.peerdb.org", "PRACTICE", "G2_UNCLOSED_POSITION"] }
+  ],
+  "cites": [
+    { "id": ["xeno.peerdb.org", "PUBLICATION", "PUB_WEIR_ALLOCATION"] },
+    { "id": ["xeno.peerdb.org", "PUBLICATION", "PUB_FERMENT_LINEAGE"] },
+    { "id": ["xeno.peerdb.org", "PUBLICATION", "PUB_ELEVEN_DAYS"] }
+  ]
+}

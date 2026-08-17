@@ -1,0 +1,63 @@
+{
+  "id": ["xeno.peerdb.org", "SPECIES", "G1_WANASELU"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SPECIES"] }],
+  "name": [{ "value": "Hollis Sweep Grazers", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Wanaselu", "gloss": "the wide ones", "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G1_LONG_CALL"] }] }],
+  "exonym": [
+    {
+      "value": "Selunwa, a weirfolk word applied to them and to the deep channels equally",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "taxonCode": "TX-1214-c",
+  "description": [
+    {
+      "value": "<p>A fully aquatic people of the deep sweep channels offshore of the flats, and the largest sapient body in the register by mass. They graze colonial growth from the vent aprons in slow circuits that take four or five years to close, and come inshore only at the top of the highest tides of the year, when the channels reach the weirs. Meetings with the flats people are old, formal and conducted in water at chest height on one party and nowhere near the bottom of the other. Consortium contact is episodic for the simple reason that the grazers are almost never where a boat can wait for them. The argument in the literature is whether their long low calls carry syntax or are a rolling census of who is present, and the two readings have been swapped by their own proponents at least twice.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Um povo inteiramente aquático dos canais profundos ao largo das planícies, e o corpo sapiente de maior massa do registo. Pastam o crescimento colonial nos taludes das fontes em circuitos lentos que demoram quatro ou cinco anos a fechar, e só se chegam à costa no auge das marés mais altas do ano, quando os canais alcançam os açudes. Os encontros com o povo das planícies são antigos, formais e conduzidos em água que dá pelo peito a uma das partes e não chega perto do fundo da outra. O contacto do Consórcio é episódico pela simples razão de que os pastadores quase nunca estão onde um barco os possa esperar. A discussão na literatura é se os seus chamamentos longos e graves têm sintaxe ou são um recenseamento contínuo de quem está presente, e as duas leituras já foram trocadas pelos seus próprios defensores pelo menos duas vezes.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "homeworld": { "id": ["xeno.peerdb.org", "PLANET", "G1_HOLLIS_III"] },
+  "bodyPlan": [
+    {
+      "value": "<p>A long, laterally flattened swimmer with radial symmetry broken to bilateral at the head end, propelled by a fringe of short paddling limbs running the whole length of both flanks. The skin is thick, dark and faintly grooved along the flow lines, and the mouth is a lateral slot lined with cropping plates rather than teeth. Two forward limbs are unmodified for swimming and are used for handling, holding and, in adults, for a great deal of touching that field notes describe as conversational.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "typicalHeight": { "value": { "amount": 7.4, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+  "typicalMass": { "value": { "amount": 4100.0, "precision": 0.1 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "kg"] }] },
+  "lifespan": {
+    "value": { "from": { "amount": 120, "precision": 1 }, "to": { "amount": 260, "precision": 1 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_YEAR"] }]
+  },
+  "sensoryModality": [
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "ELECTRORECEPTION"] },
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "PRESSURE_GRADIENT"] },
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "ACOUSTIC_RANGING"] }
+  ],
+  "subsistence": [
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "COLONY_GRAZING"] },
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "DRIFT_HARVESTING"] }
+  ],
+  "individuality": { "id": ["xeno.peerdb.org", "INDIVIDUALITY_MODE", "BOUNDED"] },
+  "socialOrganisation": { "id": ["xeno.peerdb.org", "SOCIAL_ORGANISATION", "CONSENSUS_ASSEMBLY"] },
+  "kinshipSystem": { "id": ["xeno.peerdb.org", "KINSHIP_SYSTEM", "BILATERAL_KINDRED"] },
+  "communication": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G1_LONG_CALL"] }],
+  "population": {
+    "value": { "from": { "amount": 90000, "precision": 1000 }, "to": { "amount": 160000, "precision": 1000 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "contactStatus": { "id": ["xeno.peerdb.org", "CONTACT_STATUS", "LIMITED"] },
+  "firstContact": { "time": "2251-01-01T00:00:00Z", "precision": "y" },
+  "image": [
+    {
+      "value": "/f/FsoCyWSeWg2nkeMdXiU1Lp",
+      "name": "G1_WANASELU.jpg",
+      "caption": "Field plate",
+      "source": "Drawn in the field; Consortium collection"
+    }
+  ]
+}

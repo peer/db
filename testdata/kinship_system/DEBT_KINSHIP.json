@@ -1,0 +1,24 @@
+{
+  "id": ["xeno.peerdb.org", "KINSHIP_SYSTEM", "DEBT_KINSHIP"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "KINSHIP_SYSTEM"] }],
+  "name": [
+    { "value": "Debt kinship", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "Sorodstvo po dolgu", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }] },
+    { "value": "Parentesco por dívida", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>Two parties are kin for as long as an obligation between them stands unresolved, and cease to be when it is discharged. Excludes ordinary creditor relations without kin duties.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Dve strani sta si sorodni, dokler je med njima neporavnana obveznost, in nista več, ko je poravnana.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Duas partes são parentes enquanto uma obrigação entre elas continuar por saldar, e deixam de o ser quando ela é cumprida. Exclui relações comuns de crédito sem deveres de parentesco.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "code": ["debt-kin"]
+}

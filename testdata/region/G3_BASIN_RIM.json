@@ -1,0 +1,20 @@
+{
+  "id": ["xeno.peerdb.org", "REGION", "G3_BASIN_RIM"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "REGION"] }],
+  "name": [{ "value": "The Basin Rim", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "[the edge one walks on]" }],
+  "description": [
+    {
+      "value": "<p>The black rock lip standing six hundred to two thousand metres above the haze, running the whole way round the great basin. The air is thin and clear here and the rock stays warm from below, which is why the rim is inhabited and the floor is not. Flat slabs along the crest are used for signalling, and they are polished from it.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "PLANET", "G3_SUMP"] },
+  "biome": [{ "id": ["xeno.peerdb.org", "BIOME", "HAZE_LOWLAND"] }, { "id": ["xeno.peerdb.org", "BIOME", "ENDOLITH_ZONE"] }],
+  "area": { "value": { "amount": 700000, "precision": 100 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "SQUARE_KILOMETRE"] }] },
+  "elevationRange": {
+    "value": { "from": { "amount": 400, "precision": 10 }, "to": { "amount": 2600, "precision": 10 } },
+    "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }]
+  },
+  "image": [{ "value": "/f/Lez9jpPGn2xdsx8Q8cv4BF", "name": "G3_BASIN_RIM.jpg", "caption": "Regional view", "source": "Consortium survey archive" }]
+}

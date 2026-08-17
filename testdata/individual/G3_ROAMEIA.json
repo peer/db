@@ -1,0 +1,18 @@
+{
+  "id": ["xeno.peerdb.org", "INDIVIDUAL", "G3_ROAMEIA"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "INDIVIDUAL"] }],
+  "name": [{ "value": "Roameia" }],
+  "lineageName": [{ "value": "Waunea" }],
+  "description": [
+    {
+      "value": "<p>Walks the outer channels of her house and has not seen her elder sibling since 2303, the sibling&#39;s house lying across a stretch of the warm pool that can only be reached by swimming. She has been offered passage by the survey four times and has declined each time, and has not been drawn on whether the objection is to the water or to the offer. Her account of the channel names is the most complete the register holds from anyone under thirty.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "species": { "id": ["xeno.peerdb.org", "SPECIES", "G3_RAUWENA"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G3_CHANNEL_HOUSES"] }],
+  "role": [{ "value": "channel walker", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "formOfAddress": "by house name",
+  "born": { "time": "2288-01-01T00:00:00Z", "precision": "y" },
+  "birthplace": { "id": ["xeno.peerdb.org", "SITE", "G3_TIDE_MEET"] }
+}

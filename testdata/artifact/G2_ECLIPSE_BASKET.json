@@ -1,0 +1,33 @@
+{
+  "id": ["xeno.peerdb.org", "ARTIFACT", "G2_ECLIPSE_BASKET"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "ARTIFACT"] }],
+  "name": [{ "value": "Unclaimed Goods Basket", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Munnawelle amme", "gloss": "what was carried to the dark meeting" }],
+  "accessionCode": "CCX-A-14921",
+  "description": [
+    {
+      "value": "<p>A shallow coiled basket of plate strip with a doubled rim and two carrying loops, of the type terrace parties used to carry led mat and dried grazer out to the aggregation ground before an eclipse. This one was set down at the edge of the ground on the day of the 2281 repudiation and was still there, with its contents dried to nothing, at the next visit twenty-one days later. It was lifted in 2282 after the households confirmed that nobody intended to collect it. The coiling is tight, the rim is intact and the base is bleached on one side by lying in the light.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "category": { "id": ["xeno.peerdb.org", "ARTIFACT_CATEGORY", "CONTAINER"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G2_SHUTTER_MEETINGS"] }],
+  "foundAt": { "id": ["xeno.peerdb.org", "SITE", "G2_TURNING_GROUND"] },
+  "material": [
+    { "value": "plaited plate strip", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "cord", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }
+  ],
+  "dimension": [
+    { "value": { "amount": 0.36, "precision": 0.001 }, "axis": "height", "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+    { "value": { "amount": 0.44, "precision": 0.001 }, "axis": "diameter", "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] }
+  ],
+  "dateMade": { "time": "2281-01-01T00:00:00Z", "precision": "y" },
+  "collectedBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_ZUPAN"] }],
+  "image": [{ "value": "/f/CQQVyXL8nsMK5bNDvXFTGS", "name": "G2_ECLIPSE_BASKET.jpg", "caption": "Object drawing", "source": "Consortium collection" }],
+  "notes": [
+    {
+      "value": "<p>The catalogue entry was drafted three times. Two of the drafts described the basket as abandoned and were returned by the editor, on the ground that it was set down exactly where it was meant to be set down.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

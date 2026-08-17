@@ -1,0 +1,23 @@
+{
+  "id": ["xeno.peerdb.org", "INDIVIDUAL", "G3_SEMMIRRA"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "INDIVIDUAL"] }],
+  "name": [{ "value": "Semmirra" }],
+  "lineageName": [{ "value": "Anverre" }],
+  "description": [
+    {
+      "value": "<p>Held the rotation for a block group of about four hundred cuts and refused, in 2294 and in 2297, to say what the work was for, on the grounds that it explains itself to anyone who does it. She offered to teach the cutting to a researcher who had eleven days left in the field, which was not enough, and both parties knew it. She was last seen in 2298 and her record is kept open because there is no evidence on which to close it.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "species": { "id": ["xeno.peerdb.org", "SPECIES", "G3_AMMIRREN"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G3_PAN_WORK"] }],
+  "role": [{ "value": "block group holder", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "formOfAddress": "by line name",
+  "born": { "time": "2259-01-01T00:00:00Z", "precision": "y" },
+  "notes": [
+    {
+      "value": "<p>Her photograph exists and is restricted, having been taken with consent under a protocol that the suspension does not permit anyone to invoke to release it.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

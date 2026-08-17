@@ -1,0 +1,24 @@
+{
+  "id": ["xeno.peerdb.org", "BIOME", "BRAIDED_MELT"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "BIOME"] }],
+  "name": [
+    { "value": "Braided meltwater plain", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "Ravnica prepletenih talilnih rek", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }] },
+    { "value": "Planície de degelo entrançada", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>Shifting anastomosing channels fed by seasonal or tidal melting, where the whole surface is rearranged within a few years. Excludes stable single-channel river valleys.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Premikajoči se prepleteni rokavi, ki jih hrani sezonsko ali plimsko taljenje in v nekaj letih preuredijo površje.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Canais anastomosados em deslocação constante, alimentados pelo degelo sazonal ou de maré, onde toda a superfície se reorganiza em poucos anos. Exclui vales fluviais estáveis de canal único.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "code": ["braid-melt"]
+}

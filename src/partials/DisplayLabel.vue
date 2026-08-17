@@ -50,13 +50,15 @@ defineExpose({
   <template v-if="isLoading(displayLabel)"
     ><div
       v-if="doc"
-      class="pd-displaylabel-loading inline-block h-2 rounded-sm bg-slate-200 motion-safe:animate-pulse"
+      class="pd-displaylabel pd-displaylabel-loading inline-block h-2 rounded-sm bg-slate-200 motion-safe:animate-pulse"
       :class="[loadingWidth(doc.id)]"
       aria-hidden="true"
   /></template>
-  <i v-else-if="getError(displayLabel)" class="pd-displaylabel-error text-error-600">{{ t("common.status.error") }}</i>
-  <template v-else-if="displayLabel">{{ capitalizeFirst(displayLabel) }}</template>
+  <i v-else-if="getError(displayLabel)" class="pd-displaylabel pd-displaylabel-error text-error-600">{{ t("common.status.error") }}</i>
+  <template v-else-if="displayLabel"
+    ><span class="pd-displaylabel">{{ capitalizeFirst(displayLabel) }}</span></template
+  >
   <template v-else
-    ><i class="pd-displaylabel-empty">{{ t("common.values.noName") }}</i></template
+    ><i class="pd-displaylabel pd-displaylabel-empty">{{ t("common.values.noName") }}</i></template
   >
 </template>

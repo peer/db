@@ -1,0 +1,17 @@
+{
+  "id": ["xeno.peerdb.org", "INDIVIDUAL", "G1_WAIT_SIGNER"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "INDIVIDUAL"] }],
+  "name": [{ "value": "[made both signs in order]", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "description": [
+    {
+      "value": "<p>The reach holder who put the correction to the reopened expedition in 2306 by making both forms of the greeting in sequence and then waiting eleven minutes for the difference to be understood. He was nineteen at the suspension and had the whole of it explained to him by his fosterers, on ice, which carries a sign badly. He is patient with the survey in a way the survey finds humbling and has never remarked on.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "species": { "id": ["xeno.peerdb.org", "SPECIES", "G1_GRID44_HOLDERS"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G1_REACH_FOSTERAGE"] }],
+  "role": [{ "value": "reach holder", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "formOfAddress": "the sign for wait, made with the left forelimb; the right one means something else",
+  "born": { "time": "2252-01-01T00:00:00Z", "precision": "y" },
+  "birthplace": { "id": ["xeno.peerdb.org", "SITE", "G1_DUSK_TERRACES"] }
+}

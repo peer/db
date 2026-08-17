@@ -1,0 +1,32 @@
+{
+  "id": ["xeno.peerdb.org", "PRACTICE", "G3_WALKING_THE_NAMES"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PRACTICE"] }],
+  "name": [{ "value": "Walking the Named Waters", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Waunei-orau", "gloss": "walking the named waters" }],
+  "description": [
+    {
+      "value": "<p>The house walks its channel in single file from head to mouth as the flat drains, the head of the house first and the youngest member last, and each name in the sequence of channels crossed is spoken once by whoever is standing in it at the time. Where a channel has moved since the last walk, the name is spoken at the new position and the old position is passed without comment. Nothing is taken on the walk, although whatever strands in the last channels is taken on the way back, which is the only reason anybody eats that day. The walk is the basis of a claim: a channel that has been walked and named in front of the house for three successive drains is held, and one that has been missed twice is disputed. The weir keepers regard the whole procedure as a description of water that has already gone somewhere else.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Hiša ob oseki v vrsti prehodi svoje poimenovane struge in vsako ime izgovori tam, kjer struga stoji zdaj.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>A casa percorre o seu canal em fila indiana da cabeceira até à foz enquanto a planície esvazia, o chefe da casa à frente e o membro mais novo em último lugar, e cada nome na sequência de canais atravessados é dito uma vez por quem estiver dentro dele nesse momento. Onde um canal se deslocou desde a última caminhada, o nome é dito na posição nova e passa-se pela posição antiga sem comentário. Nada se apanha durante a caminhada, embora aquilo que fique encalhado nos últimos canais seja apanhado no regresso, que é a única razão por que alguém come nesse dia. A caminhada é a base de uma reivindicação: um canal que tenha sido percorrido e nomeado perante a casa em três vazantes sucessivas está detido, e um que tenha sido falhado duas vezes fica em disputa. Os guardiões dos açudes consideram todo o procedimento uma descrição de água que já foi para outro sítio.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G3_CHANNEL_HOUSES"] }],
+  "category": { "id": ["xeno.peerdb.org", "PRACTICE_CATEGORY", "NAMING"] },
+  "periodicity": "at every full drain, twice a cycle",
+  "participants": {
+    "value": { "from": { "amount": 5, "precision": 1 }, "to": { "amount": 40, "precision": 1 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "firstDocumented": { "time": "2270-01-01T00:00:00Z", "precision": "y" },
+  "relatedPractice": [{ "id": ["xeno.peerdb.org", "PRACTICE", "G3_WALL_WALKING"] }],
+  "image": [
+    { "value": "/f/K9q7ntn6J4SFmFSArqNUNU", "name": "G3_WALKING_THE_NAMES.jpg", "caption": "In progress", "source": "Consortium survey archive" }
+  ]
+}

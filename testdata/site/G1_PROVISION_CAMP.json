@@ -1,0 +1,29 @@
+{
+  "id": ["xeno.peerdb.org", "SITE", "G1_PROVISION_CAMP"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SITE"] }],
+  "name": [{ "value": "Provision Camp", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "description": [
+    {
+      "value": "<p>Three linked pressure huts and a sample freezer at the northern margin of the pan chain, staffed continuously since 2263 by between fourteen and forty people. The camp exists to service the endolith growth experiment, which requires a reading every eleven days and will require one for at least another two centuries.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "REGION", "G1_PROVISION_PANS"] },
+  "siteType": { "id": ["xeno.peerdb.org", "SITE_TYPE", "FIELD_CAMP"] },
+  "gridReference": "TB-116.2/+41.9",
+  "population": {
+    "value": { "from": { "amount": 14, "precision": 10 }, "to": { "amount": 40, "precision": 10 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "founded": { "time": "2263-01-01T00:00:00Z", "precision": "y" },
+  "occupation": { "from": { "time": "2263-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true },
+  "image": [
+    { "value": "/f/N8U5XG3UXfkBakDmWkcGJf", "name": "G1_PROVISION_CAMP.jpg", "caption": "General view", "source": "Consortium survey archive" }
+  ],
+  "notes": [
+    {
+      "value": "<p>The experiment is currently on its third generation of investigators and its ninth freezer. The freezers are replaced considerably more often than the investigators.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

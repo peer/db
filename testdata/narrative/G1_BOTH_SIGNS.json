@@ -1,0 +1,39 @@
+{
+  "id": ["xeno.peerdb.org", "NARRATIVE", "G1_BOTH_SIGNS"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "NARRATIVE"] }],
+  "title": [{ "value": "I Made Both of Them and Then I Waited", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [
+    {
+      "value": "[the two signs, in order]",
+      "gloss": "the pair of forms that the third expedition confused, signed here deliberately one after the other",
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G1_GROUND_SIGN"] }]
+    }
+  ],
+  "description": [
+    {
+      "value": "<p>A contact account signed into the gravel at the terraces, describing the correction made to the reopened expedition in 2306. It is signed slowly, which the signer&#39;s own reach considers a courtesy and a neighbouring reach considers condescending, and both positions are known to him.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "genre": { "id": ["xeno.peerdb.org", "NARRATIVE_GENRE", "CONTACT_ACCOUNT"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G1_REACH_FOSTERAGE"] }],
+  "recordedBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_MOLNAR"] }, { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_VIRTANEN"] }],
+  "recordedAt": { "id": ["xeno.peerdb.org", "SITE", "G1_DUSK_TERRACES"] },
+  "recordedOn": { "time": "2307-01-01T00:00:00Z", "precision": "y" },
+  "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G1_GROUND_SIGN"] }],
+  "content": [
+    {
+      "value": "<p>They came back in the year the channel was in its third place. The first thing they did was ask us to begin. They meant to ask us to wait. They have meant to ask us to wait for thirty-five years.</p><p>I was nineteen when they went away and it was explained to me on ice, which carries a sign badly, so I have known the difference since before I could feel it properly.</p><p>I made the sign for wait with the left forelimb. Then I made the sign for begin with the right. Then I made the first one again and I did not lift it.</p><p>They stood on the gravel for eleven minutes. Then one of them put both forelimbs down, which is not how it is done and was the right thing to do.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "recording": [
+    {
+      "value": "/f/1zhWCk3pBMBM7GBFxqyh3F",
+      "name": "narrative-G1_BOTH_SIGNS.mp3",
+      "caption": "Performance, recorded on site",
+      "duration": { "value": { "amount": 10, "precision": 1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "MINUTE"] }] },
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G1_GROUND_SIGN"] }]
+    }
+  ]
+}

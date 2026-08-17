@@ -1,0 +1,31 @@
+{
+  "id": ["xeno.peerdb.org", "PUBLICATION", "PUB_RISER_ASKING"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PUBLICATION"] }],
+  "title": [
+    {
+      "value": "Asking the Riser: Substrate Tapping Between Terrace Householders and the Endolithic Colonies of the Evening Band, With a Catalogue of Answered and Unanswered Questions",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "doi": "10.5281/xeno.2291.0219",
+  "abstract": [
+    {
+      "value": "<p>Evening Band householders tap questions into the stone risers of their terraces and receive, at intervals of hours to weeks, replies from the endolithic colonies inhabiting them. We catalogue three hundred and four exchanges and classify them by delay, subject and whether the household treated the reply as binding. Questions about water and frost are answered promptly; questions about other households are answered slowly or not at all, a pattern the householders explain by saying the riser has no interest in us. Whether the colonies distinguish questions from other tapping we cannot determine, and we have stopped assuming they do.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "author": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_MOLNAR"] }, { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_SEO"] }],
+  "journal": "Records of Substrate Communication",
+  "publishedOn": { "time": "2291-10-01T00:00:00Z", "precision": "m" },
+  "about": [
+    { "id": ["xeno.peerdb.org", "SPECIES", "G2_RISER_KIN"] },
+    { "id": ["xeno.peerdb.org", "CULTURE", "G2_EVENING_ROWS"] },
+    { "id": ["xeno.peerdb.org", "PRACTICE", "G2_WALL_ASKING"] }
+  ],
+  "cites": [
+    { "id": ["xeno.peerdb.org", "PUBLICATION", "PUB_GREETING_ERROR"] },
+    { "id": ["xeno.peerdb.org", "PUBLICATION", "PUB_ELEVEN_DAYS"] },
+    { "id": ["xeno.peerdb.org", "PUBLICATION", "PUB_HAZE_COLLECTIVE_LABOUR"] }
+  ],
+  "document": [{ "value": "/f/VwK2yVVPFqpsF6QxtLHbfa", "name": "PUB_RISER_ASKING.pdf", "caption": "Author's accepted manuscript" }]
+}

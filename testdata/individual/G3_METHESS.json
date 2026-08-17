@@ -1,0 +1,21 @@
+{
+  "id": ["xeno.peerdb.org", "INDIVIDUAL", "G3_METHESS"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "INDIVIDUAL"] }],
+  "name": [{ "value": "Methess" }],
+  "lineageName": [{ "value": "Ussen Face" }],
+  "description": [
+    {
+      "value": "<p>Divided in 2306 along a line that had been visible since maturity, and continues under the same name-slot, working the same face. Both halves remember the same childhood and both give the same account of a conversation recorded in 2288, in the same words, which the linguists have found more unsettling than either of them does. Consented to a photograph in 2309, and asked whether the earlier one still counted.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "species": { "id": ["xeno.peerdb.org", "SPECIES", "G3_TESSILEN"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G3_FACE_TENDING"] }],
+  "role": [{ "value": "face tender", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "formOfAddress": "by the name-slot",
+  "born": { "time": "2266-01-01T00:00:00Z", "precision": "y" },
+  "birthplace": { "id": ["xeno.peerdb.org", "SITE", "G3_SHELF_WARREN"] },
+  "image": [
+    { "value": "/f/D7hnVbRZLsL9Eya5JJ7gUV", "name": "G3_METHESS.jpg", "caption": "Portrait", "source": "Made with consent; Consortium collection" }
+  ]
+}

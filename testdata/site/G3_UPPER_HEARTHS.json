@@ -1,0 +1,29 @@
+{
+  "id": ["xeno.peerdb.org", "SITE", "G3_UPPER_HEARTHS"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SITE"] }],
+  "name": [{ "value": "Upper Hearths", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "localName": [{ "value": "Selisheth", "gloss": "the fires that move first" }],
+  "description": [
+    {
+      "value": "<p>Fourteen banked fire pits scattered over about two kilometres of the warm edge of the band, each within sight of the next and none of them enclosed. The cluster is occupied continuously but not by the same households, which arrive and leave with the ice front. Recorded first in 2261 and visited on every subsequent expedition.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "REGION", "G3_MORNING_STRIP"] },
+  "siteType": { "id": ["xeno.peerdb.org", "SITE_TYPE", "HEARTH_CLUSTER"] },
+  "gridReference": "LT-041.2/+12.8",
+  "population": {
+    "value": { "from": { "amount": 200, "precision": 10 }, "to": { "amount": 900, "precision": 10 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "occupation": { "from": { "time": "2261-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true },
+  "image": [
+    { "value": "/f/8c4JSY6CN6rZ5ujCyNuaCo", "name": "G3_UPPER_HEARTHS.jpg", "caption": "General view", "source": "Consortium survey archive" }
+  ],
+  "notes": [
+    {
+      "value": "<p>The founding date is blank because the question has been asked four times and answered four different ways, all of them polite.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

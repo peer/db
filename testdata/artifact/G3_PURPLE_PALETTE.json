@@ -1,0 +1,27 @@
+{
+  "id": ["xeno.peerdb.org", "ARTIFACT", "G3_PURPLE_PALETTE"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "ARTIFACT"] }],
+  "name": [{ "value": "Grinding Slab with Purple Residue", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "accessionCode": "CCX-A-31047",
+  "description": [
+    {
+      "value": "<p>A flat slab of beach stone with a shallow worked hollow, carrying a dried residue of ground sweep purple, shell lime and oil in the hollow and in a spill down one side. The pigment is used to dye grade bands and to mark stones for restacking, and it stains the hands of anybody who grinds it for a fortnight, which is regarded as part of the work. Deep in the midden, under about a metre of shell, with the muller stone lying beside it. The residue was still soft enough in the centre to sample.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "category": { "id": ["xeno.peerdb.org", "ARTIFACT_CATEGORY", "PIGMENT"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G3_WEIR_GRADES"] }, { "id": ["xeno.peerdb.org", "CULTURE", "G3_CHANNEL_HOUSES"] }],
+  "foundAt": { "id": ["xeno.peerdb.org", "SITE", "G3_LOWER_MIDDEN"] },
+  "material": [
+    { "value": "beach stone", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "sweep purple residue", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "shell lime", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }
+  ],
+  "dimension": [
+    { "value": { "amount": 0.31, "precision": 0.001 }, "axis": "length", "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+    { "value": { "amount": 0.22, "precision": 0.001 }, "axis": "width", "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+    { "value": { "amount": 0.05, "precision": 0.001 }, "axis": "thickness", "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] }
+  ],
+  "dateMade": { "time": "2200-01-01T00:00:00Z", "precision": "100y" },
+  "collectedBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_BAUTISTA"] }, { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_REYES"] }]
+}

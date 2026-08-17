@@ -1,0 +1,24 @@
+{
+  "id": ["xeno.peerdb.org", "COMMUNICATION_MODALITY", "VOCALISATION"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_MODALITY"] }],
+  "name": [
+    { "value": "Modulated vocalisation", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "Modulirano oglašanje", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }] },
+    { "value": "Vocalização modulada", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>Sound produced by a dedicated organ and modulated for meaning, whether or not it resembles speech. Excludes incidental noise of movement or feeding.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Zvok, ki ga tvori poseben organ in je moduliran za pomen.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Som produzido por um órgão próprio e modulado para significar, quer se pareça com fala quer não. Exclui o ruído acidental do movimento ou da alimentação.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "code": ["vocal"]
+}

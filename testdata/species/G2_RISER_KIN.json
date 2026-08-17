@@ -1,0 +1,60 @@
+{
+  "id": ["xeno.peerdb.org", "SPECIES", "G2_RISER_KIN"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SPECIES"] }],
+  "name": [{ "value": "Terrace Riser Endoliths", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [
+    {
+      "value": "[three taps, a pause, three taps]",
+      "gloss": "roughly, the ones in the wall",
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G2_RISER_TAP"] }]
+    }
+  ],
+  "exonym": [{ "value": "Nukkame", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "taxonCode": "TX-4111-b",
+  "description": [
+    {
+      "value": "<p>A self spread through the pore space and fracture surfaces of a single terrace riser, communicating by tapping the stone and by chemical marking at contact. The bodies are the size of a thumb and there are millions of them; not one is a person, and the being addressed by anybody who addresses them at all is the riser. Population figures below count bodies, because counting selves would require agreeing where one riser ends, which the survey has never managed for more than a season at a time. To a visitor the whole thing is invisible until somebody strikes the wall and the wall answers, on a delay of about forty seconds, in an order that is not the order the taps were made. They were taken for a curiosity of the stonework until 2271, and the sixteen years of terrace-construction literature written before that date are now read mainly for entertainment.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "homeworld": { "id": ["xeno.peerdb.org", "PLANET", "G2_HALF_LIGHT"] },
+  "bodyPlan": [
+    {
+      "value": "<p>Each body is radial, flattened and about the width of a palm, with eight short muscular wedges that grip pore walls and drive it slowly through soft rock. There is no head and no front. The upper surface is a hard striking plate, thickened at the rim, used to knock against the stone; the lower is soft, wet and entirely given over to chemical work.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "typicalHeight": { "value": { "amount": 0.11, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+  "typicalMass": { "value": { "amount": 0.42, "precision": 0.1 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "kg"] }] },
+  "lifespan": {
+    "value": { "from": { "amount": 200, "precision": 1 }, "to": { "amount": 600, "precision": 1 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_YEAR"] }]
+  },
+  "sensoryModality": [
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "SUBSTRATE_VIBRATION"] },
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "CONTACT_CHEMO"] },
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "HYGRORECEPTION"] }
+  ],
+  "subsistence": [
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "CHEMO_TENDING"] },
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "DRIFT_HARVESTING"] }
+  ],
+  "individuality": { "id": ["xeno.peerdb.org", "INDIVIDUALITY_MODE", "DISTRIBUTED_SELF"] },
+  "socialOrganisation": { "id": ["xeno.peerdb.org", "SOCIAL_ORGANISATION", "CONSENSUS_ASSEMBLY"] },
+  "kinshipSystem": { "id": ["xeno.peerdb.org", "KINSHIP_SYSTEM", "SYMBIONT_SHARING"] },
+  "communication": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G2_RISER_TAP"] }],
+  "population": {
+    "value": { "from": { "amount": 3000000, "precision": 1000 }, "to": { "amount": 9000000, "precision": 1000 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "contactStatus": { "id": ["xeno.peerdb.org", "CONTACT_STATUS", "LIMITED"] },
+  "firstContact": { "time": "2271-01-01T00:00:00Z", "precision": "y" },
+  "image": [
+    {
+      "value": "/f/FvXdwHvXjU1YM8JsBHgbbR",
+      "name": "G2_RISER_KIN.jpg",
+      "caption": "Field plate",
+      "source": "Drawn in the field; Consortium collection"
+    }
+  ]
+}

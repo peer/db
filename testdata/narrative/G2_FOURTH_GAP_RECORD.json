@@ -1,0 +1,39 @@
+{
+  "id": ["xeno.peerdb.org", "NARRATIVE", "G2_FOURTH_GAP_RECORD"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "NARRATIVE"] }],
+  "title": [{ "value": "The Fourth Gap of the Outer Arc", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [
+    {
+      "value": "Sesshamesh shamne",
+      "gloss": "the tied word about the gap",
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G2_FLAT_CORD"] }]
+    }
+  ],
+  "description": [
+    {
+      "value": "<p>A formal recitation of a contested gap and the judgements passed on it, said at every handover of the outer arc so that the next lodge takes the dispute along with the stones. It is admissible when the gap is claimed again, and it has been.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "genre": { "id": ["xeno.peerdb.org", "NARRATIVE_GENRE", "BOUNDARY_RECORD"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G2_ARC_LODGES"] }, { "id": ["xeno.peerdb.org", "CULTURE", "G2_NET_HOUSES"] }],
+  "recordedBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_DOYLE"] }, { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_PRASETYO"] }],
+  "recordedAt": { "id": ["xeno.peerdb.org", "SITE", "G2_HIGH_WEIR"] },
+  "recordedOn": { "time": "2272-01-01T00:00:00Z", "precision": "y" },
+  "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G2_FLAT_CORD"] }],
+  "content": [
+    {
+      "value": "<p>The fourth gap of the outer arc. It was open nine tides and the outer lodge rebuilt it, and the outer lodge rebuilt it again in the cycle of the two storms, and again in the cycle after that.</p><p>The house of the fourth anchorage tied nine knots with the fourth loose and left them in the gap. The middle lodge answered with seven and the fourth loose. Both cords were left and both were read.</p><p>The gap is the outer lodge&#39;s to rebuild and the house&#39;s to fish while it is open. It has been open twice since and was fished both times and nobody said anything.</p><p>Say this at the handing on. Do not say it at any other time.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "recording": [
+    {
+      "value": "/f/66SY4KAZNPigbWoVYszSB1",
+      "name": "narrative-G2_FOURTH_GAP_RECORD.mp3",
+      "caption": "Performance, recorded on site",
+      "duration": { "value": { "amount": 25, "precision": 1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "MINUTE"] }] },
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G2_FLAT_CORD"] }]
+    }
+  ]
+}

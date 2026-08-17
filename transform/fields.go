@@ -854,16 +854,19 @@ func parseFieldsCardinality(cardinality string, fieldType reflect.Type) (int, in
 // Each entry is validated by parsing but stored as-is; the frontend interprets it
 // at render time.
 //
-// The values tag can only be used with core.Ref field type.
+// The values tag can only be used with core.Ref field type, or with a struct whose value:"" field is one
+// (core.RefWithOrder, for example): what the tag says is which documents the field may point at, which is
+// the same question either way, and which of them the reference is wrapped in is the field's business.
 func parseValuesTag(field reflect.StructField) ([]string, errors.E) {
 	tag := field.Tag.Get("values")
 	if tag == "" {
 		return nil, nil
 	}
 
-	// Validate that the field type is internalCore.Ref (or slice/pointer of internalCore.Ref).
+	// Validate that the field type is internalCore.Ref (or slice/pointer of internalCore.Ref, or a struct
+	// wrapping one).
 	baseType := internalCore.UnwrapSliceAndPointer(field.Type)
-	if baseType != internalCore.RefType {
+	if baseType != internalCore.RefType && !isRefValueStruct(baseType) {
 		errE := errors.New("values tag can only be used with core.Ref field type")
 		errors.Details(errE)["type"] = field.Type.String()
 		return nil, errE
@@ -929,6 +932,24 @@ func parseContextTag(field reflect.StructField) []string {
 // parseStructValueFieldValues looks inside a struct type for a value:"" field
 // and parses its values tag. Returns nil if the type is not a struct or has
 // no value field with a values tag.
+// isRefValueStruct reports whether the type is a struct whose value:"" field is a core.Ref, which is what
+// a reference carrying sub-claims of its own looks like (core.RefWithOrder).
+func isRefValueStruct(t reflect.Type) bool {
+	if t.Kind() != reflect.Struct {
+		return false
+	}
+	for i := range t.NumField() {
+		field := t.Field(i)
+		if _, ok := field.Tag.Lookup("value"); ok {
+			return internalCore.UnwrapSliceAndPointer(field.Type) == internalCore.RefType
+		}
+		if field.Anonymous && field.Type.Kind() == reflect.Struct && isRefValueStruct(field.Type) {
+			return true
+		}
+	}
+	return false
+}
+
 func parseStructValueFieldValues(fieldType reflect.Type) ([]string, errors.E) {
 	fieldType = internalCore.UnwrapSliceAndPointer(fieldType)
 

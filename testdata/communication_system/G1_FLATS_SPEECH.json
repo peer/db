@@ -1,0 +1,43 @@
+{
+  "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G1_FLATS_SPEECH"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM"] }],
+  "name": [{ "value": "Lower Shallows Speech", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Asherelun", "gloss": "flat-talk, literally the talk done standing in water" }],
+  "description": [
+    {
+      "value": "<p>The working language of the tidal flats, shared by the weir people and the terrace households, with a low register carried on the outbreath that travels across open water and a high one used indoors. Roughly a third of the grammar is in the free hand: a word means what it means only once you have seen where the hand was pointing when it was said. The knotted rota cord belongs to the same system rather than to a separate script, so a cord may be answered in speech and a spoken question answered with a cord. What a fieldworker gets wrong first is transcribing the speech alone, which produces a text in which nobody ever says whose turn it is.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "modality": [
+    { "id": ["xeno.peerdb.org", "COMMUNICATION_MODALITY", "VOCALISATION"] },
+    { "id": ["xeno.peerdb.org", "COMMUNICATION_MODALITY", "GESTURE"] },
+    { "id": ["xeno.peerdb.org", "COMMUNICATION_MODALITY", "WOVEN_TOKEN"] }
+  ],
+  "users": {
+    "value": { "from": { "amount": 2100000, "precision": 100 }, "to": { "amount": 3300000, "precision": 100 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "notation": true,
+  "sampleGloss": [
+    {
+      "value": "<p><i>Ashe nera, ulun esh-ne.</i> water / turns, wall / yours-not-mine. Free translation: the tide is on the turn and the ninth wall is your turn, not mine. The hand points at the wall while the mouth says wall, and a transcript of the speech alone leaves the wall unspecified.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "recording": [
+    {
+      "value": "/f/LCq3bdj4KStR76Nvo1XdxM",
+      "name": "system-G1_FLATS_SPEECH.mp3",
+      "caption": "Elicitation sample",
+      "duration": { "value": { "amount": 1, "precision": 1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "MINUTE"] }] },
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G1_FLATS_SPEECH"] }],
+      "note": [
+        {
+          "value": "<p>Recorded during elicitation and kept as the reference sample for this system.</p>",
+          "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+        }
+      ]
+    }
+  ]
+}

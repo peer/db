@@ -1,0 +1,54 @@
+{
+  "id": ["xeno.peerdb.org", "INTERVIEW", "INTA_QAMUT_IGNORED_STOP"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "INTERVIEW"] }],
+  "title": [{ "value": "Qamut on the stop called at the belt edge in 2301", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "description": [
+    {
+      "value": "<p>The weather watch for the western ring, asked for the first time about the one occasion on which a stop she called was ignored. The camp in question was abandoned eight days later.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "interviewee": [{ "id": ["xeno.peerdb.org", "INDIVIDUAL", "G1_QAMUT"] }],
+  "interviewer": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_PETROVA"] }, { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_BONETTI"] }],
+  "recordedAt": { "id": ["xeno.peerdb.org", "SITE", "G1_WINDWARD_RING"] },
+  "recordedOn": { "time": "2306-03-17T00:00:00Z", "precision": "d" },
+  "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G1_BELLS_SPEECH"] }],
+  "duration": { "value": { "amount": 52, "precision": 1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "MINUTE"] }] },
+  "content": [
+    {
+      "value": "<p><b>Q.</b> We wanted to ask about the belt edge in 2301. You warned the camp, and the warning was not taken.</p><p><b>A.</b> I did not warn anybody. Say it properly or we will spend the afternoon on it. I called the stop. A stop is not advice and it is not weather. It means that from that hour nobody on this ring is working, and anybody who is working is doing it on their own account.</p><p><b>Q.</b> Our apologies. Who did you call it to?</p><p><b>A.</b> To the ring, in the ordinary way. Two of your people were at the pipe when it went. One of them asked, through the interpreter, whether it was compulsory.</p><p><b>Q.</b> What did you answer?</p><p><b>A.</b> That it was not compulsory for him. He took that for permission. It was a statement about who he was.</p><p><b>Q.</b> Why has this never been raised with us?</p><p><b>A.</b> Because the moment I raise it, the corporations are a party. They would have to say whether a stop binds visitors, and they do not want to answer that, because the answer they would have to give is no, and then it is no next year as well, when the belt is worse.</p><p><b>Q.</b> And you are content for us to hold this now?</p><p><b>A.</b> Hold it. Do not put it to the speaker. If it comes back here through him it did not come from you, it came from me, and I would rather it stayed a thing that happened to a camp.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "ethics": { "id": ["xeno.peerdb.org", "ETHICS_PROTOCOL", "PROTOCOL_3"] },
+  "consentNote": [
+    {
+      "value": "<p>Qamut consented to a written record only, and asked that it not be put to the corporation speaker or to anybody who deals with him. She declined a recorder without giving a reason and was not pressed for one.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "clearedReader": ["mock-user-curator@localhost"],
+  "permission": [
+    { "action": { "id": ["core.peerdb.org", "PERMISSION_ACTIONS", "ACTION_READ"] }, "user": ["mock-user-curator@localhost"], "scope": ["self"] },
+    {
+      "action": { "id": ["core.peerdb.org", "PERMISSION_ACTIONS", "ACTION_READ_HISTORIC"] },
+      "user": ["mock-user-curator@localhost"],
+      "scope": ["self"]
+    },
+    { "action": { "id": ["core.peerdb.org", "PERMISSION_ACTIONS", "ACTION_UPDATE"] }, "user": ["mock-user-curator@localhost"], "scope": ["self"] },
+    {
+      "action": { "id": ["core.peerdb.org", "PERMISSION_ACTIONS", "ACTION_UPDATE_PERMISSIONS"] },
+      "user": ["mock-user-curator@localhost"],
+      "scope": ["self"]
+    }
+  ],
+  "requestedPermission": [
+    { "action": { "id": ["core.peerdb.org", "PERMISSION_ACTIONS", "ACTION_READ"] }, "user": ["mock-user@localhost"], "scope": ["self"] }
+  ],
+  "notes": [
+    {
+      "value": "<p>This is the first appearance of the 2301 call anywhere in the file. The camp is carried in the sector inventory as abandoned for corrosion and is monitored from orbit as a reference site.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

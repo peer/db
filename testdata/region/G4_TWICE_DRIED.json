@@ -1,0 +1,20 @@
+{
+  "id": ["xeno.peerdb.org", "REGION", "G4_TWICE_DRIED"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "REGION"] }],
+  "name": [{ "value": "Twice-Dried Basin", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Muremure" }],
+  "description": [
+    {
+      "value": "<p>The largest of the closed basins, eight hundred kilometres end to end, floored with salt to three hundred metres and rimmed by dunes that are still on the move. Aquifer water is reachable at the northern rim and nowhere else in the basin. Everything alive here is either in the brine films or was carried in.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "PLANET", "G4_ASSIZE"] },
+  "biome": [{ "id": ["xeno.peerdb.org", "BIOME", "EVAPORITE_PAN"] }, { "id": ["xeno.peerdb.org", "BIOME", "REGOLITH_DUNE"] }],
+  "area": { "value": { "amount": 520000, "precision": 100 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "SQUARE_KILOMETRE"] }] },
+  "elevationRange": {
+    "value": { "from": { "amount": -510, "precision": 10 }, "to": { "amount": 210, "precision": 10 } },
+    "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }]
+  },
+  "image": [{ "value": "/f/Mv73TwuVRo7NoxcCBbVGc9", "name": "G4_TWICE_DRIED.jpg", "caption": "Regional view", "source": "Consortium survey archive" }]
+}

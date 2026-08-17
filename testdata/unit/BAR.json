@@ -1,0 +1,24 @@
+{
+  "id": ["xeno.peerdb.org", "UNIT", "BAR"],
+  "instanceOf": [{ "id": ["core.peerdb.org", "UNIT"] }],
+  "name": [
+    { "value": "bar", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "bar", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }] },
+    { "value": "bar", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>Pressure of 100 kilopascals, roughly one Earth sea-level atmosphere. Quoted at the reference surface, or at the one bar level where there is no surface.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Tlak 100 kilopaskalov, približno en zemeljski atmosferski tlak na morski gladini. Naveden na referenčnem površju ali na ravni enega bara, kadar površja ni.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Pressão de 100 quilopascais, cerca de uma atmosfera ao nível do mar terrestre. Indicada na superfície de referência ou, quando não há superfície, ao nível de um bar.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "code": ["bar"]
+}

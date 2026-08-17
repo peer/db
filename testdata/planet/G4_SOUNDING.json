@@ -1,0 +1,48 @@
+{
+  "id": ["xeno.peerdb.org", "PLANET", "G4_SOUNDING"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PLANET"] }],
+  "name": [{ "value": "Sounding", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "[the ground answers]", "gloss": "a gloss, not a transcription; the name is a struck rhythm and has no vocal form" }],
+  "catalogueCode": "SPW-A/140-c",
+  "description": [
+    {
+      "value": "<p>A large dry world with a thin atmosphere, three suns of very unequal brightness and a rotation of just under forty-one hours. Its plains are sorted regolith over a bedrock that carries sound extremely well, which is the single most consequential fact about the place. There are salt pans in the western basins, an endolithic biota through most of the crust, and no standing water anywhere. Survey protocol forbids ground vehicles within thirty kilometres of an occupied floor.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    { "value": "<p>Suh svet s tremi sonci, kjer skala odlično prevaja zvok.</p>", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }] }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "STAR_SYSTEM", "G4_HEDDLE"] },
+  "planetType": { "id": ["xeno.peerdb.org", "PLANET_TYPE", "DENSE_SILICATE"] },
+  "biome": [
+    { "id": ["xeno.peerdb.org", "BIOME", "ENDOLITH_ZONE"] },
+    { "id": ["xeno.peerdb.org", "BIOME", "REGOLITH_DUNE"] },
+    { "id": ["xeno.peerdb.org", "BIOME", "EVAPORITE_PAN"] }
+  ],
+  "radius": { "value": { "amount": 1.19, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_RADIUS"] }] },
+  "mass": { "value": { "amount": 1.72, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_MASS"] }] },
+  "surfaceGravity": { "value": { "amount": 1.21, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "STANDARD_GRAVITY"] }] },
+  "dayLength": { "value": { "amount": 40.9, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "HOUR"] }] },
+  "orbitalPeriod": { "value": { "amount": 239.5, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_DAY"] }] },
+  "meanTemperature": { "value": { "amount": 11.5, "precision": 0.1 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "°C"] }] },
+  "hydrosphere": { "value": { "amount": 0, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "PERCENT"] }] },
+  "atmosphere": [
+    {
+      "value": "<p>Nitrogen and argon at 0.44 bar with almost no water vapour. Breathable at rest by a healthy adult, and dry enough to crack skin inside a day.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "biosphere": [
+    {
+      "value": "<p>Life is present: 2 catalogued species (Sounding Deep Chorus, Sounding Floor Keepers) and 1 recorded non-sapient organism. The survey is not claimed to be complete.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "contactStatus": { "id": ["xeno.peerdb.org", "CONTACT_STATUS", "LIMITED"] },
+  "firstSurveyed": { "time": "2244-01-01T00:00:00Z", "precision": "y" },
+  "surveyPeriod": { "from": { "time": "2246-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true },
+  "populationEstimate": {
+    "value": { "from": { "amount": 220000, "precision": 100 }, "to": { "amount": 410000, "precision": 100 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "image": [{ "value": "/f/2CacT7atf6MriaFqyQCrdZ", "name": "G4_SOUNDING.jpg", "caption": "Approach view", "source": "Consortium survey archive" }]
+}

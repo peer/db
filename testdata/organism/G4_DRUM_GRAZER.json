@@ -1,0 +1,26 @@
+{
+  "id": ["xeno.peerdb.org", "ORGANISM", "G4_DRUM_GRAZER"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "ORGANISM"] }],
+  "name": [{ "value": "Drum Grazer", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "[heavy, slow, four]" }],
+  "taxonCode": "TX-1504-a",
+  "description": [
+    {
+      "value": "<p>A heavy grazing heterotroph of the Drum Plain, moving in strung-out lines across the sorted regolith and feeding on interdune crust. Its footfall is loud in the bedrock and is audible on a worked floor at ranges over sixty kilometres, which is how the floor keepers track the herds without seeing them. It is placid, nearly blind and will walk through a standing structure rather than round it.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "category": { "id": ["xeno.peerdb.org", "ORGANISM_CATEGORY", "MOTILE_HETEROTROPH"] },
+  "foundOn": [{ "id": ["xeno.peerdb.org", "PLANET", "G4_SOUNDING"] }],
+  "biome": [{ "id": ["xeno.peerdb.org", "BIOME", "REGOLITH_DUNE"] }],
+  "typicalSize": { "value": { "amount": 1.9, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+  "typicalMass": { "value": { "amount": 240.0, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "kg"] }] },
+  "image": [
+    {
+      "value": "/f/2PE2E3x7o33aryinBK6Ech",
+      "name": "G4_DRUM_GRAZER.jpg",
+      "caption": "Field plate",
+      "source": "Drawn in the field; Consortium collection"
+    }
+  ]
+}

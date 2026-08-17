@@ -1,0 +1,47 @@
+{
+  "id": ["xeno.peerdb.org", "SPECIES", "G3_WANUHE"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SPECIES"] }],
+  "name": [{ "value": "Trestle b Terrace Cutters", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [
+    { "value": "Wanuhe", "gloss": "where the wind stops; the same phrase as the world, and the survey cannot say whether they distinguish the two" }
+  ],
+  "taxonCode": "TX-4444-a",
+  "description": [
+    {
+      "value": "<p>Terraces are cut, not banked, into the inner edge of a habitable ring narrow enough to walk end to end in a season, and the cuts are maintained between passes. Smoke rises from the same six places on every pass since 2281, which is the whole of the evidence that anyone is alive down there. The survey has been in the system three times and has never had permission to descend, so everything below the terrace line is inference and everything above it is photography. Kinship is recorded as hearth affiliation because hearths are the only social fact visible from eight hundred kilometres. The population figure was made by counting terraces and dividing.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "homeworld": { "id": ["xeno.peerdb.org", "PLANET", "G3_WAHUNE"] },
+  "bodyPlan": [
+    {
+      "value": "<p>No body has been observed. Terrace step heights and the width of the maintained paths between them suggest something under a metre and a half that moves on more than two limbs, and the reconstruction is drawn accordingly and believed by nobody who drew it.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "typicalHeight": { "value": { "amount": 1.25, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+  "typicalMass": { "value": { "amount": 44.0, "precision": 0.1 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "kg"] }] },
+  "lifespan": {
+    "value": { "from": { "amount": 35, "precision": 1 }, "to": { "amount": 75, "precision": 1 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_YEAR"] }]
+  },
+  "sensoryModality": [
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "THERMAL_RADIANCE"] },
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "HYGRORECEPTION"] }
+  ],
+  "subsistence": [
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "SILT_GARDENING"] },
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "OPPORTUNISTIC_FORAGING"] }
+  ],
+  "individuality": { "id": ["xeno.peerdb.org", "INDIVIDUALITY_MODE", "BOUNDED"] },
+  "socialOrganisation": { "id": ["xeno.peerdb.org", "SOCIAL_ORGANISATION", "LINEAGE_HOUSES"] },
+  "kinshipSystem": { "id": ["xeno.peerdb.org", "KINSHIP_SYSTEM", "HEARTH_AFFILIATION"] },
+  "population": {
+    "value": { "from": { "amount": 600, "precision": 1000 }, "to": { "amount": 6000, "precision": 1000 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "contactStatus": { "id": ["xeno.peerdb.org", "CONTACT_STATUS", "REMOTE_OBSERVATION"] },
+  "image": [
+    { "value": "/f/Qu2Qbe9svAf7HiaZt2p4hi", "name": "G3_WANUHE.jpg", "caption": "Field plate", "source": "Drawn in the field; Consortium collection" }
+  ]
+}

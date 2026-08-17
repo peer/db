@@ -30,10 +30,11 @@ onUnmounted(() => {
   abortController.abort()
 })
 
-// refresh re-runs the structural duplicate search for the document's current claims. It is called on
-// every blur of the fields form. The backend compares the document's claims (identifier, string, link,
-// reference, amount, time, has) against the index and returns the closest matches; a document with no
-// matchable claims yields an empty list.
+// refresh re-runs the structural duplicate search for the document's current claims. The view calls it
+// whenever the document has changed (see DocumentEdit), so what is listed is about the document as it now
+// stands. The backend compares the document's claims (identifier, string, link, reference, amount, time,
+// has) against the index and returns the closest matches; a document with no matchable claims yields an
+// empty list.
 async function refresh() {
   refreshController.abort()
   refreshController = new AbortController()

@@ -1,0 +1,39 @@
+{
+  "id": ["xeno.peerdb.org", "PLANET", "G1_NINE_MARKS_III"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PLANET"] }],
+  "name": [{ "value": "Nine Marks III", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "catalogueCode": "NMK-1188-c",
+  "description": [
+    {
+      "value": "<p>A high-pressure greenhouse with acid haze standing in every lowland and free-floating mats living in the clearer air above them. It is not lifeless, which surprised everyone, and the mats are the only thing anybody has been able to sample. There are no inhabitants, no landing has been attempted and none is scheduled. Everything known about it comes from three descent probes, of which one is still transmitting.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Uma estufa de alta pressão com bruma ácida assente em todas as terras baixas e tapetes flutuantes a viver no ar mais límpido acima delas. Não é um mundo sem vida, o que surpreendeu toda a gente, e os tapetes são a única coisa que alguém conseguiu amostrar. Não tem habitantes, nunca se tentou uma aterragem e nenhuma está prevista. Tudo o que se sabe sobre ele vem de três sondas de descida, uma das quais ainda transmite.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "STAR_SYSTEM", "G1_NINE_MARKS"] },
+  "planetType": { "id": ["xeno.peerdb.org", "PLANET_TYPE", "GREENHOUSE"] },
+  "biome": [{ "id": ["xeno.peerdb.org", "BIOME", "HAZE_LOWLAND"] }, { "id": ["xeno.peerdb.org", "BIOME", "AERIAL_MAT"] }],
+  "radius": { "value": { "amount": 1.09, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_RADIUS"] }] },
+  "mass": { "value": { "amount": 1.26, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_MASS"] }] },
+  "surfaceGravity": { "value": { "amount": 1.06, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "STANDARD_GRAVITY"] }] },
+  "dayLength": { "value": { "amount": 402.0, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "HOUR"] }] },
+  "orbitalPeriod": { "value": { "amount": 188.4, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_DAY"] }] },
+  "meanTemperature": { "value": { "amount": 214.0, "precision": 0.1 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "°C"] }] },
+  "hydrosphere": { "value": { "amount": 0, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "PERCENT"] }] },
+  "atmosphere": [
+    {
+      "value": "<p>Carbon dioxide and nitrogen at twenty-eight bar with halide aerosol pooled in the lowlands. Hot, dim and chemically aggressive: the second probe lost its optics in eleven minutes.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "biosphereUnknown": true,
+  "contactStatus": { "id": ["xeno.peerdb.org", "CONTACT_STATUS", "REMOTE_OBSERVATION"] },
+  "firstSurveyed": { "time": "2268-01-01T00:00:00Z", "precision": "y" },
+  "surveyPeriod": { "from": { "time": "2268-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true },
+  "image": [
+    { "value": "/f/H8Vg3GPKUYw6AmYfzrPnrW", "name": "G1_NINE_MARKS_III.jpg", "caption": "Approach view", "source": "Consortium survey archive" }
+  ]
+}

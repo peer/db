@@ -1,0 +1,39 @@
+{
+  "id": ["xeno.peerdb.org", "NARRATIVE", "G4_NA_AIR_COMING_DOWN"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "NARRATIVE"] }],
+  "title": [{ "value": "Signs the Air Is Coming Down", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [
+    {
+      "value": "thissovath",
+      "gloss": "when the air lies down",
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G4_COM_MARCH_SPEECH"] }]
+    }
+  ],
+  "description": [
+    {
+      "value": "<p>Weather lore of the nightward margin, half spoken and half released, listing the signs that the atmosphere is about to snow out where somebody is standing. The recording holds only the spoken half; the released half was logged as a rise in sulphide and is given in the transcript in square brackets.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "genre": { "id": ["xeno.peerdb.org", "NARRATIVE_GENRE", "WEATHER_LORE"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G4_CU_COLD_STORE"] }],
+  "recordedBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_QUISPE"] }],
+  "recordedAt": { "id": ["xeno.peerdb.org", "SITE", "G4_FROST_HOUSE"] },
+  "recordedOn": { "time": "2283-01-01T00:00:00Z", "precision": "y" },
+  "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G4_COM_MARCH_SPEECH"] }],
+  "content": [
+    {
+      "value": "<p>When the drift stops arriving and the last of it stands still on the crust, the air is thinking about it. [warm, not yet]</p><p>When your rind stops closing because it does not need to, the air has decided. Go up. Do not go up fast: a body that arrives hot at the march is a body nobody can talk to. [going up, with you]</p><p>It comes down without a sound and it comes down in the low ground first. Stand on the high crust and count. If you can count to four hundred and the crust below is still black, you have counted wrong.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "recording": [
+    {
+      "value": "/f/2oSz7zPZUkEFfK8Km3PWYH",
+      "name": "narrative-G4_NA_AIR_COMING_DOWN.mp3",
+      "caption": "Performance, recorded on site",
+      "duration": { "value": { "amount": 10, "precision": 1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "MINUTE"] }] },
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G4_COM_MARCH_SPEECH"] }]
+    }
+  ]
+}

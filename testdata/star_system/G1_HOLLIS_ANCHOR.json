@@ -1,0 +1,18 @@
+{
+  "id": ["xeno.peerdb.org", "STAR_SYSTEM", "G1_HOLLIS_ANCHOR"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "STAR_SYSTEM"] }],
+  "name": [{ "value": "Hollis Anchor", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "catalogueCode": "MW-0114-HOL",
+  "description": [
+    {
+      "value": "<p>A quiet orange dwarf with five planets and a very great deal of paperwork. It holds the oldest continuously staffed Consortium station in the register, which is why its survey grids are numbered from 0001 and everyone else&#39;s are not.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "SECTOR", "G1_THREADBARE"] },
+  "spectralClass": "K2V",
+  "starCount": { "amount": 1, "precision": 1 },
+  "planetCount": { "amount": 5, "precision": 1 },
+  "distanceFromSol": { "value": { "amount": 412.6, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "PARSEC"] }] },
+  "firstSurveyed": { "time": "2213-01-01T00:00:00Z", "precision": "y" }
+}

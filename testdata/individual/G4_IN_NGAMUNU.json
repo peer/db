@@ -1,0 +1,21 @@
+{
+  "id": ["xeno.peerdb.org", "INDIVIDUAL", "G4_IN_NGAMUNU"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "INDIVIDUAL"] }],
+  "name": [{ "value": "Ngamunu" }],
+  "lineageName": [{ "value": "of the seaward half" }],
+  "description": [
+    {
+      "value": "<p>A vent-schedule holder of a hundred and twenty-two years, who was already grown when the relay was moored in 2256 and who watched it be abandoned, adopted and finally relied upon. She holds the crop rotation for eleven vents of the return chain and has never been recorded getting one wrong. She consented to a photograph in 2288 and observed that the Consortium had taken thirty-one years to ask.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "species": { "id": ["xeno.peerdb.org", "SPECIES", "G4_RING_SWIMMERS"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G4_CU_RING_MOIETIES"] }],
+  "role": [{ "value": "vent-schedule holder", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "formOfAddress": "by half, then by name",
+  "born": { "time": "2190-01-01T00:00:00Z", "precision": "y" },
+  "birthplace": { "id": ["xeno.peerdb.org", "SITE", "G4_SUNK_RELAY"] },
+  "image": [
+    { "value": "/f/Sr8invjkLedbVBE7ujjip5", "name": "G4_IN_NGAMUNU.jpg", "caption": "Portrait", "source": "Made with consent; Consortium collection" }
+  ]
+}

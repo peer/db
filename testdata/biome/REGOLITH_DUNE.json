@@ -1,0 +1,24 @@
+{
+  "id": ["xeno.peerdb.org", "BIOME", "REGOLITH_DUNE"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "BIOME"] }],
+  "name": [
+    { "value": "Regolith dune sea", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "Regolitno sipinsko morje", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }] },
+    { "value": "Mar de dunas de regolito", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>Vast mobile dune fields of dry mineral grain, with life restricted to interdune hollows and to the damp layer under the slip faces. Excludes evaporite flats, which are stable and crusted.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Obsežna premična sipinska polja suhega mineralnega zrna, z življenjem le v kotanjah med sipinami.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Vastos campos de dunas móveis de grão mineral seco, com vida restrita às depressões interdunares e à camada húmida sob as vertentes de deslizamento. Exclui as planuras evaporíticas, que são estáveis e encrostadas.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "code": ["dune-sea"]
+}

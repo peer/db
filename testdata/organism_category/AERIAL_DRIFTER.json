@@ -1,0 +1,24 @@
+{
+  "id": ["xeno.peerdb.org", "ORGANISM_CATEGORY", "AERIAL_DRIFTER"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "ORGANISM_CATEGORY"] }],
+  "name": [
+    { "value": "Aerial drifter", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "Zračni plavač", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }] },
+    { "value": "Vagante aéreo", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>Organisms that spend the whole life cycle suspended in atmosphere, with buoyancy rather than lift. Excludes flying animals, which must land.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Organizmi, ki vse življenje lebdijo v ozračju z vzgonom in ne z letenjem.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Organismos que passam todo o ciclo de vida suspensos na atmosfera, por impulsão e não por sustentação. Exclui animais voadores, que têm de pousar.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "code": ["drifter"]
+}

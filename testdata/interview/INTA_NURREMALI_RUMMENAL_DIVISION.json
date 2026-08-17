@@ -1,0 +1,56 @@
+{
+  "id": ["xeno.peerdb.org", "INTERVIEW", "INTA_NURREMALI_RUMMENAL_DIVISION"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "INTERVIEW"] }],
+  "title": [
+    { "value": "Nurremali and Rummenal on being two continuations of one bender", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>A joint session with the two holders who came out of the division of 2284 and 2285, on shared training, undivided debts, and one thing done before the division that they now describe differently.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "interviewee": [{ "id": ["xeno.peerdb.org", "INDIVIDUAL", "G2_NURREMALI"] }, { "id": ["xeno.peerdb.org", "INDIVIDUAL", "G2_RUMMENAL"] }],
+  "interviewer": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_SUBRAMANIAN"] }, { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_MOKOENA"] }],
+  "recordedAt": { "id": ["xeno.peerdb.org", "SITE", "G2_OLD_SEAM"] },
+  "recordedOn": { "time": "2291-10-07T00:00:00Z", "precision": "d" },
+  "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G2_SEAM_PULSE"] }],
+  "duration": { "value": { "amount": 133, "precision": 1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "MINUTE"] }] },
+  "content": [
+    {
+      "value": "<p><b>Q.</b> Which of you began the division?</p><p><b>A.</b> (Nurremali) Both of us, or nobody. The person who began it is not standing here and is also standing here twice. Your register had to be rebuilt to hold that and you are still asking the old question.</p><p><b>Q.</b> Let me put it differently. What did each of you take?</p><p><b>A.</b> (Rummenal) Nothing was taken. A fissure each, the fourth and the seventh, which was decided by the corporation and not by us. The training is not divided. I was a bender, he was a bender, it is the same career and there is one of it in each of us.</p><p><b>Q.</b> And the debts?</p><p><b>A.</b> (Nurremali) In full, each. Not in half. Anybody we owed before 2284 is owed by both of us now, and if he pays it I have still not paid it.</p><p><b>Q.</b> That seems arithmetically hard on you.</p><p><b>A.</b> (Rummenal) It is arithmetically hard on the creditor, who may only collect once and has to choose. Ask the hearths what they think of it. They think it is excellent.</p><p><b>Q.</b> Is there anything from before the division you remember differently?</p><p><b>A.</b> (Rummenal) One. A piece that was refused at the Old Seam in 2281. I remember cutting it badly and taking the refusal. He remembers the bender who refused it being wrong.</p><p><b>A.</b> (Nurremali) He was wrong. It was within the line by two fingers and I have said so for ten years, from one mouth and then from two.</p><p><b>Q.</b> Does that matter to anybody but you?</p><p><b>A.</b> (Nurremali) It matters to the hearth that has that bender&#39;s fissure now. Which is why we would ask that this last part stay with you. We disagree about it in the corporation and we do not want it written where the corporation reads.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "recording": [
+    {
+      "value": "/f/FrWeeisE9RxD1wi6a4UsCq",
+      "name": "interview-INTA_NURREMALI_RUMMENAL_DIVISION.mp3",
+      "caption": "Session recording",
+      "duration": { "value": { "amount": 133, "precision": 1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "MINUTE"] }] },
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G2_SEAM_PULSE"] }]
+    }
+  ],
+  "ethics": { "id": ["xeno.peerdb.org", "ETHICS_PROTOCOL", "PROTOCOL_3"] },
+  "consentNote": [
+    {
+      "value": "<p>Both continuations consented separately and in the same words, which they noted without comment. They asked that the exchange about the refused piece of 2281 be held outside anything the hearth corporation can consult, and that both names appear on the record in the order of the fissures.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "clearedReader": ["mock-user-researcher@localhost"],
+  "permission": [
+    { "action": { "id": ["core.peerdb.org", "PERMISSION_ACTIONS", "ACTION_READ"] }, "user": ["mock-user-researcher@localhost"], "scope": ["self"] },
+    {
+      "action": { "id": ["core.peerdb.org", "PERMISSION_ACTIONS", "ACTION_READ_HISTORIC"] },
+      "user": ["mock-user-researcher@localhost"],
+      "scope": ["self"]
+    }
+  ],
+  "notes": [
+    {
+      "value": "<p>The station register could not hold two entries as the same prior person until it was restructured in 2286, so the first two years of this material were filed against a person who does not exist. Nobody has since found a second use for the change.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

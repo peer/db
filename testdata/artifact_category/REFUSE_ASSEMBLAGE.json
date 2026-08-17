@@ -1,0 +1,24 @@
+{
+  "id": ["xeno.peerdb.org", "ARTIFACT_CATEGORY", "REFUSE_ASSEMBLAGE"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "ARTIFACT_CATEGORY"] }],
+  "name": [
+    { "value": "Refuse assemblage", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "Odpadni sklop", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }] },
+    { "value": "Conjunto de detritos", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>Discard recovered as a group and studied as a group: debitage, food waste, failed products and sweepings. Individually unremarkable and collectively the most informative thing on most sites.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Odpadki, najdeni in preučevani kot celota: odlomki, ostanki hrane in ponesrečeni izdelki.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Refugo recolhido em conjunto e estudado em conjunto: debitagem, restos de comida, produtos falhados e varreduras. Individualmente banal e, no seu todo, o mais informativo da maioria dos sítios.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "code": ["refuse"]
+}

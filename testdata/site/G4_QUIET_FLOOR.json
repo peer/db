@@ -1,0 +1,21 @@
+{
+  "id": ["xeno.peerdb.org", "SITE", "G4_QUIET_FLOOR"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SITE"] }],
+  "name": [{ "value": "Quiet Floor", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "localName": [{ "value": "[floor with nothing struck on it]", "gloss": "a gloss; the name is the absence of a rhythm rather than a rhythm" }],
+  "description": [
+    {
+      "value": "<p>A prepared rock floor six hundred metres across on the drum plain, swept clear of grit and polished, on which the dead are laid out and left. No signal is ever struck here. Survey instruction is to approach on foot from downwind and to keep instruments off the rock, and deposition continues at a rate of about forty a year.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "REGION", "G4_DRUM_PLAIN"] },
+  "siteType": { "id": ["xeno.peerdb.org", "SITE_TYPE", "MORTUARY_GROUND"] },
+  "gridReference": "DP-118.4/-21.9",
+  "population": {
+    "value": { "from": { "amount": 0, "precision": 10 }, "to": { "amount": 30, "precision": 10 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "occupation": { "from": { "time": "2248-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true },
+  "image": [{ "value": "/f/EqnuvznBBUE7d4Sc48EG7M", "name": "G4_QUIET_FLOOR.jpg", "caption": "General view", "source": "Consortium survey archive" }]
+}

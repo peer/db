@@ -1,0 +1,20 @@
+{
+  "id": ["xeno.peerdb.org", "RESEARCHER", "RES_FARAHANI"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "RESEARCHER"] }],
+  "name": [{ "value": "Darius" }],
+  "familyName": [{ "value": "Farahani" }],
+  "researcherCode": "CCX-P-03712",
+  "description": [
+    {
+      "value": "<p>A field linguist who has worked mostly where elicitation must be done through an intermediary who is also a trading partner, with everything that implies about the wording. He rendered a term for a seasonal obligation as a term for a debt, in print, in 2291, and has corrected it in every paper since.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "affiliatedWith": [{ "id": ["xeno.peerdb.org", "INSTITUTE", "INST_SUBSTRATE"] }, { "id": ["xeno.peerdb.org", "INSTITUTE", "INST_EVENING"] }],
+  "specialisesIn": [
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "LINGUISTIC_ELICITATION"] },
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "OPEN_INTERVIEW"] }
+  ],
+  "activePeriod": { "from": { "time": "2284-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true },
+  "born": { "time": "2259-01-01T00:00:00Z", "precision": "y" }
+}

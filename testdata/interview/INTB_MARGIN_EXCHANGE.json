@@ -1,0 +1,51 @@
+{
+  "id": ["xeno.peerdb.org", "INTERVIEW", "INTB_MARGIN_EXCHANGE"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "INTERVIEW"] }],
+  "title": [
+    { "value": "Thavesso on interpreting at the nightward margin exchange", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>Interview with a margin trader and interpreter on the two halves of March Speech and the conduct of the exchange. Thavesso describes a shading he has taken in the scent half for eleven years.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "interviewee": [{ "id": ["xeno.peerdb.org", "INDIVIDUAL", "G4_IN_THAVESSO"] }],
+  "interviewer": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_FERREIRA"] }, { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_HADDAD"] }],
+  "recordedAt": { "id": ["xeno.peerdb.org", "SITE", "G4_WALKING_HEARTHS"] },
+  "recordedOn": { "time": "2291-07-09T00:00:00Z", "precision": "d" },
+  "expedition": { "id": ["xeno.peerdb.org", "EXPEDITION", "EXP_FETCH_BAND"] },
+  "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G4_COM_MARCH_SPEECH"] }],
+  "duration": { "value": { "amount": 84, "precision": 1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "MINUTE"] }] },
+  "content": [
+    {
+      "value": "<p><b>Q.</b> Could we continue this in the cold store, where it is quieter?</p><p><b>A.</b> You have asked me to have this conversation somewhere it cannot be had. Below four degrees I cannot release and they cannot smell, and we would sit there being two mutes and one wind.</p><p><b>Q.</b> Understood. How much of an exchange is scent?</p><p><b>A.</b> Half. Not a translation of the other half. The heat and the herd figures come in sound from our side and the obligation comes back in the rind, and it is one grammar, and I am the only person at this margin who works both ends of it.</p><p><b>Q.</b> That is a lot of standing in the middle.</p><p><b>A.</b> It is the whole job.</p><p><b>Q.</b> Does either side check you?</p><p><b>A.</b> They cannot. The hearths do not read rind. The trap keepers do not hear the low registers and would not say so if they did, because saying so at a margin is how a margin closes.</p><p><b>Q.</b> And do you shade it?</p><p><b>A.</b> Since the year the near hearth moved. A little in the obligation, always in the same direction, always small enough that a season of it is one animal.</p><p><b>Q.</b> Eleven years of one animal.</p><p><b>A.</b> Eleven years of a fee that nobody would pay me if I asked for it, for a job that stops if I stop. I have thought about this more carefully than you have, and I would still rather you did not read it out at the frost house.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "recording": [
+    {
+      "value": "/f/AxZU9T6m4inzMWNFr3fVoZ",
+      "name": "interview-INTB_MARGIN_EXCHANGE.mp3",
+      "caption": "Session recording",
+      "duration": { "value": { "amount": 84, "precision": 1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "MINUTE"] }] },
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G4_COM_MARCH_SPEECH"] }]
+    }
+  ],
+  "ethics": { "id": ["xeno.peerdb.org", "ETHICS_PROTOCOL", "PROTOCOL_3"] },
+  "consentNote": [
+    {
+      "value": "<p>Thavesso agreed to the whole of the record, including the last three answers, and asked that it not be read at either end of the margin while he is still working it. He declined the survey&#39;s offer to omit the passage, saying that an omission would be a worse record and no safer.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "clearedReader": ["mock-user-researcher@localhost"],
+  "permission": [
+    { "action": { "id": ["core.peerdb.org", "PERMISSION_ACTIONS", "ACTION_READ"] }, "user": ["mock-user-researcher@localhost"], "scope": ["self"] },
+    {
+      "action": { "id": ["core.peerdb.org", "PERMISSION_ACTIONS", "ACTION_READ_HISTORIC"] },
+      "user": ["mock-user-researcher@localhost"],
+      "scope": ["self"]
+    }
+  ]
+}

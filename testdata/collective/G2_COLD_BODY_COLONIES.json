@@ -1,0 +1,19 @@
+{
+  "id": ["xeno.peerdb.org", "COLLECTIVE", "G2_COLD_BODY_COLONIES"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "COLLECTIVE"] }],
+  "name": [{ "value": "The Cold Bodies Under the Cap", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "description": [
+    {
+      "value": "<p>Perhaps eighty separate persons beneath the night-side ice cap, each made of between nine hundred and four thousand replaceable bodies, none of which is anybody. A colony that loses a third of its bodies in a bad season treats this as an illness and not as a bereavement, which is the clearest statement anybody has of why individuals do not apply here. Each draws organic fall from the ice around it on a standing claim and administers nothing and nobody, which is why the entry sits in the social register at all.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "species": { "id": ["xeno.peerdb.org", "SPECIES", "G2_NISSESSU"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G2_ARC_LODGES"] }],
+  "role": [{ "value": "silent trade counterparty at the ice line", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "memberCount": {
+    "value": { "from": { "amount": 40, "precision": 10 }, "to": { "amount": 120, "precision": 10 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "activePeriod": { "from": { "time": "2274-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true }
+}

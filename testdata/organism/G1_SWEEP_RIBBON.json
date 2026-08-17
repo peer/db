@@ -1,0 +1,30 @@
+{
+  "id": ["xeno.peerdb.org", "ORGANISM", "G1_SWEEP_RIBBON"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "ORGANISM"] }],
+  "name": [{ "value": "Sweep ribbon", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "sunelai" }],
+  "taxonCode": "TX-2104-a",
+  "description": [
+    {
+      "value": "<p>A tough strap-shaped photosynthetic sessile anchored to stone across the whole width of the tidal flats, exposed and submerged twice a cycle and apparently indifferent to both. It grows fastest on the weir walls, which are the only stable stone within reach of the light, so the flats people effectively farm it by building. Split, retted and twisted, it makes the cordage that lashes the weirs together, which means the walls are held up by what grows on them.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Um séssil fotossintético duro, em forma de fita, ancorado à pedra por toda a largura das planícies de maré, exposto e submerso duas vezes por ciclo e aparentemente indiferente a ambas as coisas. Cresce mais depressa nos muros dos açudes, que são a única pedra estável ao alcance da luz, pelo que o povo das planícies o cultiva, na prática, construindo. Fendido, macerado e torcido, dá a cordoaria que amarra os açudes, o que significa que os muros são sustentados por aquilo que neles cresce.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "category": { "id": ["xeno.peerdb.org", "ORGANISM_CATEGORY", "PHOTO_SESSILE"] },
+  "foundOn": [{ "id": ["xeno.peerdb.org", "PLANET", "G1_HOLLIS_III"] }],
+  "biome": [{ "id": ["xeno.peerdb.org", "BIOME", "SWEEP_FLAT"] }],
+  "typicalSize": { "value": { "amount": 2.4, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+  "typicalMass": { "value": { "amount": 1.9, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "kg"] }] },
+  "image": [
+    {
+      "value": "/f/PhcwKfaoajxBMLJ7EiaTja",
+      "name": "G1_SWEEP_RIBBON.jpg",
+      "caption": "Field plate",
+      "source": "Drawn in the field; Consortium collection"
+    }
+  ]
+}

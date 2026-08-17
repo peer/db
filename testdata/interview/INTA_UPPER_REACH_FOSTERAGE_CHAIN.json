@@ -1,0 +1,50 @@
+{
+  "id": ["xeno.peerdb.org", "INTERVIEW", "INTA_UPPER_REACH_FOSTERAGE_CHAIN"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "INTERVIEW"] }],
+  "title": [
+    { "value": "The holder of the upper reach on forty years of fosterage", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>One of nine sessions in which a reach holder reconstructed a fosterage chain running back to before the suspension. She names which reaches sent children in the closed years.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "interviewee": [{ "id": ["xeno.peerdb.org", "INDIVIDUAL", "G1_UPPER_REACH_HOLDER"] }],
+  "interviewer": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_ZUPAN"] }, { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_BEKELE"] }],
+  "recordedAt": { "id": ["xeno.peerdb.org", "SITE", "G1_DUSK_TERRACES"] },
+  "recordedOn": { "time": "2306-08-12T00:00:00Z", "precision": "d" },
+  "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G1_GROUND_SIGN"] }],
+  "duration": { "value": { "amount": 165, "precision": 1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "MINUTE"] }] },
+  "content": [
+    {
+      "value": "<p>Signed on the terrace floor and read from the substrate. Pauses of a minute or more are not marked.</p><p><b>Q.</b> Of the nineteen, how many are your own?</p><p><b>A.</b> None of them and all of them, and you have asked a question that does not have a form here. I did not bear any of them. I reared them. You are trying to sort them and there is nothing to sort them with.</p><p><b>Q.</b> Then how is the chain reckoned?</p><p><b>A.</b> By who handed and who received, and in what season, and whether the reach was holding water at the time. That is three facts for each child. I have them for forty years because I am the one who was standing there.</p><p><b>Q.</b> Is the chain written anywhere?</p><p><b>A.</b> Written where? On what? You keep looking for a thing to carry away. There is me, and there is the reach below me, and between us we have not disagreed about a handing in thirty years.</p><p><b>Q.</b> During the years when your reaches would not receive us, was the handing still done?</p><p><b>A.</b> Yes, and this is the part you will keep quietly. Four children came up from the night reaches in those years and went to the terraces, which the night reaches now say did not happen. It happened. I received two of them myself. The store keeper at the fourth entrance received the others and she will not discuss it with you.</p><p><b>Q.</b> Why do they say it did not happen?</p><p><b>A.</b> Because the terraces were where your camp was, and a child handed to the terraces in those years was handed towards you. Nobody wanted that written down and now you have written it down.</p><p><b>Q.</b> Should we not have?</p><p><b>A.</b> You should hold it. In nine days you will go, and in eleven years somebody will come with a list and I will be dead, and the list will be the only thing that remembers those four.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "recording": [
+    {
+      "value": "/f/HeKzXjsEJioGjqvmzYiENM",
+      "name": "interview-INTA_UPPER_REACH_FOSTERAGE_CHAIN.mp3",
+      "caption": "Session recording",
+      "duration": { "value": { "amount": 165, "precision": 1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "MINUTE"] }] },
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G1_GROUND_SIGN"] }]
+    }
+  ],
+  "ethics": { "id": ["xeno.peerdb.org", "ETHICS_PROTOCOL", "PROTOCOL_3"] },
+  "consentNote": [
+    {
+      "value": "<p>She agreed to the whole chain being held by the Consortium and used to answer questions about handing, and asked that the four children of the closed years not be named to any reach, including her own. She has not been asked about photography, there being no way to put the question in a medium she can feel.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "clearedReader": ["mock-user-researcher@localhost"],
+  "permission": [
+    { "action": { "id": ["core.peerdb.org", "PERMISSION_ACTIONS", "ACTION_READ"] }, "user": ["mock-user-researcher@localhost"], "scope": ["self"] },
+    {
+      "action": { "id": ["core.peerdb.org", "PERMISSION_ACTIONS", "ACTION_READ_HISTORIC"] },
+      "user": ["mock-user-researcher@localhost"],
+      "scope": ["self"]
+    }
+  ]
+}

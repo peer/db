@@ -1,0 +1,24 @@
+{
+  "id": ["xeno.peerdb.org", "COMMUNICATION_MODALITY", "BIOLUMINESCENT"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_MODALITY"] }],
+  "name": [
+    { "value": "Bioluminescent flicker", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "Biosvetlobno utripanje", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }] },
+    { "value": "Cintilação bioluminescente", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>Self-generated light patterned in time, typically fast and short-range. Excludes reflective or fluorescent display, recorded under colour change.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Lastna svetloba, časovno vzorčena, običajno hitra in kratkega dosega.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Luz produzida pelo próprio organismo e padronizada no tempo, em geral rápida e de curto alcance. Exclui exibição refletora ou fluorescente, registada em mudança de cor.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "code": ["biolum"]
+}

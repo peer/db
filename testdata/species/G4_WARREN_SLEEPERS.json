@@ -1,0 +1,70 @@
+{
+  "id": ["xeno.peerdb.org", "SPECIES", "G4_WARREN_SLEEPERS"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SPECIES"] }],
+  "name": [{ "value": "Marrow Warren Sleepers", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [
+    {
+      "value": "Ekkutpakka",
+      "gloss": "those of the place under",
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G4_COM_THAW_TONGUE"] }]
+    }
+  ],
+  "taxonCode": "TX-4602-d",
+  "description": [
+    {
+      "value": "<p>The underground people of Marrow, who are separate persons for the few decades of the thaw and a single integrated body for the two centuries of frost between. Fusion is not metaphorical: the bodies grow together along prepared surfaces in the deep warrens, share a circulation and a nervous connection through the long cold, and separate again at the next periastron carrying the whole of it as one memory. Individuals therefore exist only during the thaw, and the register counts warrens rather than bodies, since a warren is the thing that persists. Public authority exists only while they are apart, is constituted at the aggregation on the meltwater plain and dissolves entirely as the channels freeze, which makes the polity the shortest-lived institution in the catalogue and, per year of existence, the busiest. Relatedness is reckoned by who last dormanted together and is re-formed at each waking, so a person can and does acquire an entirely new set of relatives while asleep.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Med dolgo zimo se telesa zrastejo v eno bitje in se ob otoplitvi spet ločijo. Oblast obstaja le v desetletjih taljenja.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    }
+  ],
+  "homeworld": { "id": ["xeno.peerdb.org", "PLANET", "G4_MARROW"] },
+  "bodyPlan": [
+    {
+      "value": "<p>An elongate burrower over four metres long, with fourteen short digging limbs along the trunk and a fused armoured head shield used to compact tunnel walls. The integument is a leathery hide that thickens enormously before dormancy and carries prepared fusion pads along both flanks, visible as smooth hairless ovals. Feeding is on managed rot cultures in sealed side chambers, and an adult eats nothing whatever for two hundred years at a stretch.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "typicalHeight": { "value": { "amount": 4.6, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+  "typicalMass": { "value": { "amount": 610.0, "precision": 0.1 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "kg"] }] },
+  "lifespan": {
+    "value": { "from": { "amount": 240, "precision": 1 }, "to": { "amount": 620, "precision": 1 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_YEAR"] }]
+  },
+  "sensoryModality": [
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "THERMAL_RADIANCE"] },
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "SUBSTRATE_VIBRATION"] },
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "CONTACT_CHEMO"] }
+  ],
+  "subsistence": [
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "MANAGED_DECAY"] },
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "SEALED_CULTIVATION"] },
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "CHEMO_TENDING"] }
+  ],
+  "individuality": { "id": ["xeno.peerdb.org", "INDIVIDUALITY_MODE", "SEASONAL_COLLECTIVE"] },
+  "socialOrganisation": { "id": ["xeno.peerdb.org", "SOCIAL_ORGANISATION", "FESTIVAL_STATE"] },
+  "kinshipSystem": { "id": ["xeno.peerdb.org", "KINSHIP_SYSTEM", "COHIBERNATION_COHORT"] },
+  "communication": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G4_COM_THAW_TONGUE"] }],
+  "population": {
+    "value": { "from": { "amount": 12000, "precision": 1000 }, "to": { "amount": 30000, "precision": 1000 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "contactStatus": { "id": ["xeno.peerdb.org", "CONTACT_STATUS", "LIMITED"] },
+  "firstContact": { "time": "2243-01-01T00:00:00Z", "precision": "y" },
+  "image": [
+    {
+      "value": "/f/M4R6tVRqazXpe3XVKX7mL4",
+      "name": "G4_WARREN_SLEEPERS.jpg",
+      "caption": "Field plate",
+      "source": "Drawn in the field; Consortium collection"
+    }
+  ],
+  "notes": [
+    {
+      "value": "<p>Everything in this entry rests on the single thaw the Consortium has observed, between 2241 and 2252. The next falls in 2419, and three institutes maintain standing instructions for it written by people who never expected to be read.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "id": ["xeno.peerdb.org", "INDIVIDUALITY_MODE", "PERMANENT_COLLECTIVE"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "INDIVIDUALITY_MODE"] }],
+  "name": [
+    { "value": "Permanent collective", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "Trajni kolektiv", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }] },
+    { "value": "Coletivo permanente", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>The person is the colony; component bodies are replaceable and are not treated as persons by anyone, including themselves. Excludes eusocial species whose members act separately.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Oseba je kolonija, posamezna telesa pa so zamenljiva in za nikogar niso osebe.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>A pessoa é a colónia; os corpos que a compõem são substituíveis e ninguém os trata como pessoas, nem eles próprios. Exclui espécies eussociais cujos membros agem em separado.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "code": ["perm-col"]
+}

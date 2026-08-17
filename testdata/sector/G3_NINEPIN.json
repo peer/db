@@ -1,0 +1,14 @@
+{
+  "id": ["xeno.peerdb.org", "SECTOR", "G3_NINEPIN"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SECTOR"] }],
+  "name": [{ "value": "Ninepin Sector", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "catalogueCode": "HB-2",
+  "description": [
+    {
+      "value": "<p>Named for nine bright stars that fall almost in a line on the approach plates and that are, on any other projection, nowhere near one another. Three systems have been entered, one of them only by probe. Coverage thins sharply past the third and stops entirely at the sector boundary.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "GALAXY", "G3_HOLLOW_BAR"] },
+  "surveyPeriod": { "from": { "time": "2276-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true }
+}

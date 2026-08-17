@@ -1,0 +1,36 @@
+{
+  "id": ["xeno.peerdb.org", "ARTIFACT", "G1_NIGHT_STORE_BIN"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "ARTIFACT"] }],
+  "name": [{ "value": "Store bin lining, fourth entrance", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [
+    {
+      "value": "[what the bin is made of]",
+      "gloss": "a substrate sign; the same sign covers the cord, the plaiting and the bin, and the store keeper was mildly amused to be asked which she meant"
+    }
+  ],
+  "accessionCode": "CCX-A-13291",
+  "description": [
+    {
+      "value": "<p>The plaited melt cord lining of a store bin built into a side chamber of the night tunnels, the bin itself having been stacked ice blocks bonded with silt and holding about four hundred kilograms of dried terrace crop. Bins are built where the store keeper wants them and are cut apart rather than opened, so a lining is normally used once. This one came out whole when the fourth entrance was extended in 2299 and was given to the 2306 team as the only part worth carrying out of the dark. The growth rings in the cord date the bin to the season the channel ran past the second terrace position, and agree with the store keeper&#39;s account to within a year.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "category": { "id": ["xeno.peerdb.org", "ARTIFACT_CATEGORY", "CONTAINER"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G1_REACH_FOSTERAGE"] }],
+  "foundAt": { "id": ["xeno.peerdb.org", "SITE", "G1_NIGHT_WARREN"] },
+  "material": [
+    { "value": "plaited melt cord", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "silt bond", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "ice block", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }
+  ],
+  "dimension": [
+    { "value": { "amount": 1.1, "precision": 0.001 }, "axis": "height", "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+    { "value": { "amount": 0.9, "precision": 0.001 }, "axis": "width", "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+    { "value": { "amount": 1.4, "precision": 0.001 }, "axis": "length", "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] }
+  ],
+  "dateMade": { "time": "2296-01-01T00:00:00Z", "precision": "y" },
+  "collectedBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_DOYLE"] }, { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_HALVORSEN"] }],
+  "image": [
+    { "value": "/f/XdwHzKwdrNMLwiYdXFTi9h", "name": "G1_NIGHT_STORE_BIN.jpg", "caption": "Object drawing", "source": "Consortium collection" }
+  ]
+}

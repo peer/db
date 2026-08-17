@@ -1,0 +1,24 @@
+{
+  "id": ["xeno.peerdb.org", "PLANET_TYPE", "ICE_SHELL"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PLANET_TYPE"] }],
+  "name": [
+    { "value": "Ice-shell ocean body", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "Telo z oceanom pod ledeno lupino", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }] },
+    { "value": "Corpo oceânico sob calote de gelo", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>A body whose water or brine ocean is sealed under a permanent ice crust at least a few kilometres thick, warmed from below. Applies equally to moons and to planets.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Telo z vodnim ali slaničnim oceanom pod trajno, vsaj nekaj kilometrov debelo ledeno skorjo.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Corpo cujo oceano de água ou de salmoura está selado sob uma crosta de gelo permanente com pelo menos alguns quilómetros de espessura, aquecido por baixo. Aplica-se igualmente a luas e a planetas.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "code": ["ice-shell"]
+}

@@ -1,0 +1,34 @@
+{
+  "id": ["xeno.peerdb.org", "OBSERVATION", "OBSA_CANOPY_RIM_MEAL"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "OBSERVATION"] }],
+  "title": [
+    { "value": "Fed at the rim on a second visit, house of the ninth block", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>Two strikes at the trunk base, a wait, and a meal taken at the platform rim rather than inside. The count of visits turns out to be the guest&#39;s to keep.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "content": [
+    {
+      "value": "<p>Second visit of the season to the house holding the ninth block. Announced with two strikes at the trunk base, waited at the rim, crossed on come-up.</p><p>Fed at the rim, as on the first visit. We had assumed the count of visits was the house&#39;s business and were told, mildly, that it is ours, and that a guest who has lost count has told the house something about the guest.</p><p>Nothing was carried across by us, on advice. Arriving with food implies the house has none, and this is the one page of the handbook that everybody reads.</p><p>Halfway through, one of us dropped a lens through the platform boards and went down the trunk after it. He was let back up without any difficulty and is now, for this house, at his first visit again with a season of rim meals in front of him. No house has yet explained to the survey why descent resets the count, and this one declined as pleasantly as the rest.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "expedition": { "id": ["xeno.peerdb.org", "EXPEDITION", "EXP_CANOPY_FIRST"] },
+  "observedBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_REYES"] }, { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_ARAI"] }],
+  "observedAt": { "id": ["xeno.peerdb.org", "SITE", "G1_CANOPY_TETHER"] },
+  "observedOn": { "time": "2285-10-21T00:00:00Z", "precision": "d" },
+  "about": [
+    { "id": ["xeno.peerdb.org", "PRACTICE", "G1_PLATFORM_VISIT"] },
+    { "id": ["xeno.peerdb.org", "CULTURE", "G1_CANOPY_HOUSES"] },
+    { "id": ["xeno.peerdb.org", "SPECIES", "G1_VETHRANI"] }
+  ],
+  "method": [
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "PARTICIPANT_OBSERVATION"] },
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "AUTOETHNOGRAPHY"] }
+  ],
+  "fieldConditions": "Ninety metres up, still air, the usual black haze under the canopy and good light above it. Eleven of the house present and two visitors from a platform on the far side of the block.",
+  "image": [{ "value": "/f/LkUKYsDhabUkeo3JAsbsHG", "name": "OBSA_CANOPY_RIM_MEAL.jpg", "caption": "Taken at the time", "source": "Field record" }]
+}

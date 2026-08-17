@@ -1,0 +1,25 @@
+{
+  "id": ["xeno.peerdb.org", "ORGANISM", "G4_COLD_TRAP_MAT"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "ORGANISM"] }],
+  "name": [{ "value": "Cold Trap Mat", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "taxonCode": "TX-1308-e",
+  "description": [
+    {
+      "value": "<p>A layered chemolithotroph growing where nightward frost lies over warm fractured rock, running on the redox contrast between the two and doing without light entirely. Sheets are metres across, a few millimetres thick, and hard enough at the surface to walk on. They are the base of everything living on the night side of Fetch, and the trap keepers cut starter pieces from wild sheets to seed their body-warm chambers.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "category": { "id": ["xeno.peerdb.org", "ORGANISM_CATEGORY", "CHEMOLITHO_MAT"] },
+  "foundOn": [{ "id": ["xeno.peerdb.org", "PLANET", "G4_FETCH"] }],
+  "biome": [{ "id": ["xeno.peerdb.org", "BIOME", "NIGHTSIDE_TRAP"] }],
+  "typicalSize": { "value": { "amount": 1.2, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+  "typicalMass": { "value": { "amount": 3.0, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "kg"] }] },
+  "image": [
+    {
+      "value": "/f/6EAChA3bqhsQqJEus2F3kJ",
+      "name": "G4_COLD_TRAP_MAT.jpg",
+      "caption": "Field plate",
+      "source": "Drawn in the field; Consortium collection"
+    }
+  ]
+}

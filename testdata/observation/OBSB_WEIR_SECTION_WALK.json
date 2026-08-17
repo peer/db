@@ -1,0 +1,34 @@
+{
+  "id": ["xeno.peerdb.org", "OBSERVATION", "OBSB_WEIR_SECTION_WALK"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "OBSERVATION"] }],
+  "title": [
+    { "value": "Walking of the eleventh section behind the falling tide", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>A full outward and return walk of a named weir section with the grade that holds it, timed against the water.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "content": [
+    {
+      "value": "<p>9.vi.2286. Out at the top of the ebb with four of the holding grade, walking three abreast and one behind. The section is a little over five kilometres of stacked wall and the walk was made in three hours and fifty minutes to the far end, arriving as the water reached its lowest, and turned round at once.</p><p>Forty-one stones were restacked on the outward leg. None were restacked on the return, which is the rule and was observed exactly, including in one place where a stone had clearly shifted between our passing it twice. Iwaru leaned a flat stone against it, as prescribed, and walked on.</p><p>The band worn high on the limb gives the grade and nothing else. Two of the walkers are, by our reckoning, at least thirty years apart in age, and both were born within the same nine years by the local count, which we have still not reconciled with our own dating of the tide record.</p><p>The wall stood. We asked Auwenu what would happen if it did not and got the standard answer, which is that everybody born in the same nine years would stop speaking at the gatherings for a term set by the length of the breach. He gave this without any sign that it was a hard thing to say.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "expedition": { "id": ["xeno.peerdb.org", "EXPEDITION", "EXP_SWEEPWATER_YEAR"] },
+  "observedBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_OKONKWO"] }, { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_PETROVA"] }],
+  "observedAt": { "id": ["xeno.peerdb.org", "SITE", "G3_LOWER_MIDDEN"] },
+  "observedOn": { "time": "2286-06-09T00:00:00Z", "precision": "d" },
+  "about": [
+    { "id": ["xeno.peerdb.org", "SPECIES", "G3_MAUNUWA"] },
+    { "id": ["xeno.peerdb.org", "PRACTICE", "G3_WALL_WALKING"] },
+    { "id": ["xeno.peerdb.org", "CULTURE", "G3_WEIR_GRADES"] }
+  ],
+  "method": [
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "PARTICIPANT_OBSERVATION"] },
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "PHOTOGRAMMETRY"] }
+  ],
+  "fieldConditions": "Overcast, low wind, the flats fully exposed for about an hour at the far end. Four walkers of the holding grade and two of us.",
+  "image": [{ "value": "/f/QWPxMVRPBvAYzDd9x1GPYz", "name": "OBSB_WEIR_SECTION_WALK.jpg", "caption": "Taken at the time", "source": "Field record" }]
+}

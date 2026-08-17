@@ -1,0 +1,20 @@
+{
+  "id": ["xeno.peerdb.org", "SECTOR", "G1_LONG_TALLY"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SECTOR"] }],
+  "name": [{ "value": "Long Tally Sector", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "catalogueCode": "MW-S07-LTY",
+  "description": [
+    {
+      "value": "<p>A long thin sector strung along the outward side of Threadbare, holding three systems and five catalogued worlds. Internal travel times are worse than the run out from Threadbare, which has shaped every expedition plan written since 2244. Two of its worlds are well studied and the rest are known mostly from instruments left behind.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "GALAXY", "G1_MILKY_WAY"] },
+  "surveyPeriod": { "from": { "time": "2238-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true },
+  "notes": [
+    {
+      "value": "<p>The sector is named for the sixteen-hundred-entry manifest of its first survey, compiled in transit and never fully reconciled with the crates that arrived.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

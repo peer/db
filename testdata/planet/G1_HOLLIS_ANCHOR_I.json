@@ -1,0 +1,38 @@
+{
+  "id": ["xeno.peerdb.org", "PLANET", "G1_HOLLIS_ANCHOR_I"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PLANET"] }],
+  "name": [{ "value": "Hollis Anchor I", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "catalogueCode": "HOL-0114-a",
+  "description": [
+    {
+      "value": "<p>The innermost body of the system, locked to its star, with a dayside surface hot enough to keep the rock slightly plastic. It is lifeless, and the phrasing in the register is unusually firm about it: eleven separate assays, no organics, no isotopic anomaly, nothing. Visits are short, instrumented and unpopular.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>O corpo mais interior do sistema, preso por maré à sua estrela, com uma superfície diurna quente o bastante para manter a rocha ligeiramente plástica. Não tem vida, e a formulação do registo é invulgarmente firme quanto a isso: onze ensaios separados, sem orgânicos, sem anomalia isotópica, nada. As visitas são curtas, instrumentadas e impopulares.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "STAR_SYSTEM", "G1_HOLLIS_ANCHOR"] },
+  "planetType": { "id": ["xeno.peerdb.org", "PLANET_TYPE", "DENSE_SILICATE"] },
+  "radius": { "value": { "amount": 0.71, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_RADIUS"] }] },
+  "mass": { "value": { "amount": 0.62, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_MASS"] }] },
+  "surfaceGravity": { "value": { "amount": 1.23, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "STANDARD_GRAVITY"] }] },
+  "dayLength": { "value": { "amount": 441.6, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "HOUR"] }] },
+  "orbitalPeriod": { "value": { "amount": 18.4, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_DAY"] }] },
+  "meanTemperature": { "value": { "amount": 418.0, "precision": 0.1 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "°C"] }] },
+  "hydrosphere": { "value": { "amount": 0, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "PERCENT"] }] },
+  "atmosphere": [
+    {
+      "value": "<p>A trace envelope of sodium and vaporised rock, refilled each day from the surface and lost each night. Standing in it would be indistinguishable from standing in vacuum, apart from the temperature.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "biosphereNone": true,
+  "contactStatus": { "id": ["xeno.peerdb.org", "CONTACT_STATUS", "NO_CONTACT"] },
+  "firstSurveyed": { "time": "2214-01-01T00:00:00Z", "precision": "y" },
+  "surveyPeriod": { "from": { "time": "2214-01-01T00:00:00Z", "precision": "y" }, "to": { "time": "2266-01-01T00:00:00Z", "precision": "y" } },
+  "image": [
+    { "value": "/f/CQjsCi1w2SeSbwRfvwytYH", "name": "G1_HOLLIS_ANCHOR_I.jpg", "caption": "Approach view", "source": "Consortium survey archive" }
+  ]
+}

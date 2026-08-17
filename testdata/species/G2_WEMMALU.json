@@ -1,0 +1,62 @@
+{
+  "id": ["xeno.peerdb.org", "SPECIES", "G2_WEMMALU"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SPECIES"] }],
+  "name": [{ "value": "Windward Herd Followers", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [
+    { "value": "Wemmalu", "gloss": "those who walk into it", "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G2_PLATE_LIGHT"] }] }
+  ],
+  "exonym": [{ "value": "Lumenne", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "taxonCode": "TX-4118-a",
+  "description": [
+    {
+      "value": "<p>Bands of eleven to forty who move with the band grazers on their circuit of the habitable ring, arriving at any given stretch of terrace about once in nine years. They own nothing that cannot be carried into the wind and they hold no office whatever; a decision is made by whoever is prepared to act on it, and anybody who disagrees walks on ahead until the matter is moot. Terrace households treat their arrival as weather, which is to say as something to be prepared for rather than negotiated with, and the two arrangements have coexisted without a settlement for as long as either can account for. A visitor notices that nobody in a band ever stands facing downwind, and that the youngest are carried on the lee side of an adult until they are old enough to lean. The discipline cannot decide whether the grazers are followed or herded, and the distinction matters, because the whole legal standing of the terrace agreements rests on it.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "homeworld": { "id": ["xeno.peerdb.org", "PLANET", "G2_HALF_LIGHT"] },
+  "bodyPlan": [
+    {
+      "value": "<p>Tall, bilateral and lightly built, with a long neck held low and a counterweighting tail that drags in the grit at rest. The hide is fine-plated and pale, and the whole animal is narrower across the shoulder than across the hip, which is a wind adaptation and not a sexual one. The nostril slits sit at the top of the skull and can be closed to a pinhole, and the forelimbs carry a long fifth digit used for stripping mat rather than for gripping.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "typicalHeight": { "value": { "amount": 1.8, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+  "typicalMass": { "value": { "amount": 70.0, "precision": 0.1 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "kg"] }] },
+  "lifespan": {
+    "value": { "from": { "amount": 35, "precision": 1 }, "to": { "amount": 75, "precision": 1 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_YEAR"] }]
+  },
+  "sensoryModality": [
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "CHEMICAL_PLUME"] },
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "POLARISED_VISION"] },
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "GRAVICEPTION"] }
+  ],
+  "subsistence": [
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "HERD_FOLLOWING"] },
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "OPPORTUNISTIC_FORAGING"] }
+  ],
+  "individuality": { "id": ["xeno.peerdb.org", "INDIVIDUALITY_MODE", "BOUNDED"] },
+  "socialOrganisation": { "id": ["xeno.peerdb.org", "SOCIAL_ORGANISATION", "ACEPHALOUS_BANDS"] },
+  "kinshipSystem": { "id": ["xeno.peerdb.org", "KINSHIP_SYSTEM", "BILATERAL_KINDRED"] },
+  "communication": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G2_PLATE_LIGHT"] }],
+  "population": {
+    "value": { "from": { "amount": 6000, "precision": 1000 }, "to": { "amount": 12000, "precision": 1000 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "contactStatus": { "id": ["xeno.peerdb.org", "CONTACT_STATUS", "LIMITED"] },
+  "firstContact": { "time": "2263-01-01T00:00:00Z", "precision": "y" },
+  "image": [
+    {
+      "value": "/f/E9jLGykz3vjf6f49tEBpYP",
+      "name": "G2_WEMMALU.jpg",
+      "caption": "Field plate",
+      "source": "Drawn in the field; Consortium collection"
+    }
+  ],
+  "notes": [
+    {
+      "value": "<p>The first season was conducted in the belief that the standard greeting meant you are welcome to walk with us. It means you are walking with us, and is a statement about who is now answerable for the herd.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

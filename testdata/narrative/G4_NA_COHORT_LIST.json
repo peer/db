@@ -1,0 +1,45 @@
+{
+  "id": ["xeno.peerdb.org", "NARRATIVE", "G4_NA_COHORT_LIST"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "NARRATIVE"] }],
+  "title": [{ "value": "The Cohort List of the Fourth Year", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [
+    {
+      "value": "ekkuttanpirruk",
+      "gloss": "the naming of who was in whose sleep",
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G4_COM_THAW_TONGUE"] }]
+    }
+  ],
+  "description": [
+    {
+      "value": "<p>A recitation struck at the Waking Ground, listing one warren&#39;s cohort in the order it was placed two hundred years earlier and correcting it where a body did not come apart. It is struck once and never repeated, since anything from before the last waking is held in common and telling it again would be an insult.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "genre": { "id": ["xeno.peerdb.org", "NARRATIVE_GENRE", "GENEALOGICAL_RECITATION"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G4_CU_THAW_ASSEMBLY"] }, { "id": ["xeno.peerdb.org", "CULTURE", "G4_CU_DEEP_COURSE_WARRENS"] }],
+  "recordedBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_REYES"] }],
+  "recordedAt": { "id": ["xeno.peerdb.org", "SITE", "G4_WAKING_GROUND"] },
+  "recordedOn": { "time": "2243-01-01T00:00:00Z", "precision": "y" },
+  "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G4_COM_THAW_TONGUE"] }],
+  "content": [
+    {
+      "value": "<p>I am up. I was in your sleep. You already know what I know.</p><p>Against my left flank: the one who cuts high, the one who came in at the ninth chamber, the one who holds the seed of the fourth rot. Against my right flank: the one who counts the doors, the one who was placed late and complained about it, and one more.</p><p>And one more. And one more. The list is short by one and the placing was not. I am up, and I am against the wall until the water reaches the door.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "recording": [
+    {
+      "value": "/f/TYLmtX4mPjRUKsREXDY91q",
+      "name": "narrative-G4_NA_COHORT_LIST.mp3",
+      "caption": "Performance, recorded on site",
+      "duration": { "value": { "amount": 11, "precision": 1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "MINUTE"] }] },
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G4_COM_THAW_TONGUE"] }]
+    }
+  ],
+  "notes": [
+    {
+      "value": "<p>Recorded under Protocol 3 and released to the catalogue in redacted form. The names are struck figures and are given here in their standing translations, which is the only form in which they can be written down at all.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

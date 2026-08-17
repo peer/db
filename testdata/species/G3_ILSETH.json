@@ -1,0 +1,66 @@
+{
+  "id": ["xeno.peerdb.org", "SPECIES", "G3_ILSETH"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SPECIES"] }],
+  "name": [{ "value": "Long Tally Band Walkers", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [
+    {
+      "value": "Ilseth",
+      "gloss": "the ones who stayed on the strip",
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G3_STRIP_SPEECH"] }]
+    }
+  ],
+  "exonym": [
+    { "value": "Sillithen, in the Tessilen mouth: those who arrive late", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }
+  ],
+  "taxonCode": "TX-4402-a",
+  "description": [
+    {
+      "value": "<p>The Ilseth work the leading half of the dusk band and move along it with the ice front, following the browsing herds that gather at its edge. A household owns nothing it cannot carry and rebuilds its shelter perhaps nine times in a life, always with the thick wall on the cold side, so that every camp on the strip faces the same way and a visitor can find the door without asking. The first thing that registers is the noise: the strip is quiet, and Ilseth work is loud, because their tools are struck rather than pushed. Stewardship of a stretch of ground is held for a fixed term by one hearth and then passed on in a set order, and is neither sought nor thanked for. Whether the Ilseth and the Tessilen are one people is the standing argument of the sector, since the two share most of a vocabulary and almost none of a practice, and each says the other used to be them.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Ljudstvo somračnega pasu, ki se seli skupaj z ledenim robom. Vsako zavetje ima debelo steno obrnjeno proti mrazu.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Os Ilseth trabalham a metade dianteira da faixa crepuscular e deslocam-se ao longo dela com a frente de gelo, seguindo as manadas que pastam junto à sua orla. Uma casa não possui nada que não consiga transportar e reconstrói o seu abrigo talvez nove vezes ao longo de uma vida, sempre com a parede grossa virada para o frio, de modo que todos os acampamentos da faixa estão orientados da mesma maneira e um visitante encontra a porta sem ter de perguntar. A primeira coisa que se nota é o ruído: a faixa é silenciosa e o trabalho dos Ilseth é barulhento, porque as suas ferramentas são de percussão e não de pressão. A guarda de um troço de terreno cabe a uma lareira por um período fixo e passa depois adiante numa ordem estabelecida, e não é pedida nem agradecida. Se os Ilseth e os Tessilen são um só povo é a discussão permanente do setor, visto que os dois partilham quase todo o vocabulário e quase nenhuma prática, e cada um diz que o outro já foi ele.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "homeworld": { "id": ["xeno.peerdb.org", "PLANET", "G3_SISHELETH"] },
+  "bodyPlan": [
+    {
+      "value": "<p>Bilateral and upright, with four limbs and a heavy tail carried low as a prop when standing still. The integument is a dense pile that lies flat on the wind side and stands up on the lee side, so that an individual is dark along one flank and pale along the other for its whole life. They feed by shearing: the mouth carries a pair of opposed plates rather than teeth, and food is cut and swallowed rather than chewed.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "typicalHeight": { "value": { "amount": 1.55, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+  "typicalMass": { "value": { "amount": 58.0, "precision": 0.1 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "kg"] }] },
+  "lifespan": {
+    "value": { "from": { "amount": 30, "precision": 1 }, "to": { "amount": 72, "precision": 1 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_YEAR"] }]
+  },
+  "sensoryModality": [
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "THERMAL_RADIANCE"] },
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "POLARISED_VISION"] },
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "HYGRORECEPTION"] }
+  ],
+  "subsistence": [
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "HERD_FOLLOWING"] },
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "COLONY_GRAZING"] },
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "TRADE_DEPENDENCY"] }
+  ],
+  "individuality": { "id": ["xeno.peerdb.org", "INDIVIDUALITY_MODE", "BOUNDED"] },
+  "socialOrganisation": { "id": ["xeno.peerdb.org", "SOCIAL_ORGANISATION", "ROTATING_STEWARDSHIP"] },
+  "kinshipSystem": { "id": ["xeno.peerdb.org", "KINSHIP_SYSTEM", "HEARTH_AFFILIATION"] },
+  "communication": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G3_STRIP_SPEECH"] }],
+  "population": {
+    "value": { "from": { "amount": 18000, "precision": 1000 }, "to": { "amount": 50000, "precision": 1000 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "contactStatus": { "id": ["xeno.peerdb.org", "CONTACT_STATUS", "LIMITED"] },
+  "firstContact": { "time": "2263-01-01T00:00:00Z", "precision": "y" },
+  "image": [
+    { "value": "/f/7PqntnaTKQYvtksBivh2Tz", "name": "G3_ILSETH.jpg", "caption": "Field plate", "source": "Drawn in the field; Consortium collection" }
+  ]
+}

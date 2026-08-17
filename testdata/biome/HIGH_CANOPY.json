@@ -1,0 +1,24 @@
+{
+  "id": ["xeno.peerdb.org", "BIOME", "HIGH_CANOPY"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "BIOME"] }],
+  "name": [
+    { "value": "High canopy forest", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "Visokokrošnji gozd", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }] },
+    { "value": "Floresta de copas altas", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>Closed multi-layered stand of tall sessile photosynthetic organisms, in which most animal life never descends to the ground. Excludes open woodland and any stand under about ten metres.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Sklenjen večplastni sestoj visokih fotosintetskih organizmov, kjer večina živali nikoli ne pride na tla.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Povoamento fechado e multiestratificado de organismos fotossintéticos sésseis e altos, em que a maior parte da vida animal nunca desce ao solo. Exclui bosque aberto e qualquer povoamento com menos de cerca de dez metros.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "code": ["high-canopy"]
+}

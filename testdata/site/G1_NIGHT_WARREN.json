@@ -1,0 +1,21 @@
+{
+  "id": ["xeno.peerdb.org", "SITE", "G1_NIGHT_WARREN"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SITE"] }],
+  "name": [{ "value": "Night Warren", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "localName": [{ "value": "[dug against the dark]", "gloss": "the same sign as the region, used here for the tunnels themselves" }],
+  "description": [
+    {
+      "value": "<p>Some forty kilometres of excavated tunnel reaching from the dusk band into the frozen hemisphere, with seven entrances and a stable internal temperature about sixty degrees above the surface. It is used for storage and, during the worst of the outward season, for living in. It is the only permanent construction on the planet and everyone is careful to say so.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "REGION", "G1_GRID_44_NIGHT"] },
+  "siteType": { "id": ["xeno.peerdb.org", "SITE_TYPE", "SUBSURFACE_WARREN"] },
+  "gridReference": "TB-144.8/-64.3",
+  "population": {
+    "value": { "from": { "amount": 200, "precision": 10 }, "to": { "amount": 900, "precision": 10 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "founded": { "time": "2252-01-01T00:00:00Z", "precision": "y" },
+  "occupation": { "from": { "time": "2252-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true }
+}

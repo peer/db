@@ -1,0 +1,65 @@
+{
+  "id": ["xeno.peerdb.org", "SPECIES", "G4_RING_SWIMMERS"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SPECIES"] }],
+  "name": [{ "value": "Ring Sea Swimmers", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [
+    { "value": "Ngomunga", "gloss": "those who go round", "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G4_COM_RING_PULSE"] }] }
+  ],
+  "taxonCode": "TX-4501-b",
+  "description": [
+    {
+      "value": "<p>Large marine people of Halflight&#39;s permanently lit ring sea, who circle the world with the deep return current and come inshore to the shallow flats only on the nineteen-metre tide. Society is divided into two exogamous halves inherited through the mother, and obligation runs across the divide rather than within it, so that no group can feed or bury itself without the other. The vent chain on the floor of the return current is both larder and calendar: gatherings are called at named vents, and the tended clumps around them are cropped and left to regrow on a schedule that has outlasted every human institution studying it. What a visitor notices first is the size, and second that they are entirely silent above water and continuous below it. The argument in the literature is over the moieties, which the swimmers describe as a fact about the sea rather than about themselves, and which nobody has been able to correlate with anything in the sea.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Velike vodne živali obročastega morja, ki se zbirajo nad vrelci. Družba je razdeljena na dve polovici, ki se dedujeta po materi.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Grande povo marinho do mar em anel permanentemente iluminado de Halflight, que dá a volta ao mundo com a corrente profunda de retorno e só se chega às planícies pouco profundas na maré de dezanove metros. A sociedade divide-se em duas metades exógamas herdadas por via materna, e a obrigação corre através da divisão e não dentro dela, de modo que nenhum grupo se pode alimentar nem enterrar os seus sem o outro. A cadeia de fontes no fundo da corrente de retorno é ao mesmo tempo despensa e calendário: as reuniões são convocadas em fontes nomeadas, e os tufos tratados à sua volta são colhidos e deixados a recrescer segundo um calendário que já durou mais do que todas as instituições humanas que o estudam. O que um visitante nota primeiro é o tamanho, e em segundo lugar que são inteiramente silenciosos acima de água e contínuos por baixo dela. A discussão na literatura é sobre as metades, que os nadadores descrevem como um facto acerca do mar e não acerca de si próprios, e que ninguém conseguiu correlacionar com coisa alguma no mar.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "homeworld": { "id": ["xeno.peerdb.org", "PLANET", "G4_HALFLIGHT"] },
+  "bodyPlan": [
+    {
+      "value": "<p>A long fusiform swimmer with four broad paddles, a fluked tail and a blunt head carrying a dense electroreceptive pad across the brow. The integument is smooth dark hide with paler counter-shading along the belly and a scatter of raised sensory tubercles down each flank. Feeding is by cropping vent clumps with a bony beak and grinding them in a muscular fore-stomach, and an adult spends most of a day at it.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "typicalHeight": { "value": { "amount": 6.4, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+  "typicalMass": { "value": { "amount": 4100.0, "precision": 0.1 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "kg"] }] },
+  "lifespan": {
+    "value": { "from": { "amount": 90, "precision": 1 }, "to": { "amount": 210, "precision": 1 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_YEAR"] }]
+  },
+  "sensoryModality": [
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "ELECTRORECEPTION"] },
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "PRESSURE_GRADIENT"] },
+    { "id": ["xeno.peerdb.org", "SENSORY_MODALITY", "ACOUSTIC_RANGING"] }
+  ],
+  "subsistence": [
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "DRIFT_HARVESTING"] },
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "CHEMO_TENDING"] },
+    { "id": ["xeno.peerdb.org", "SUBSISTENCE_MODE", "TIDAL_TRAPPING"] }
+  ],
+  "individuality": { "id": ["xeno.peerdb.org", "INDIVIDUALITY_MODE", "BOUNDED"] },
+  "contestedIndividuality": { "id": ["xeno.peerdb.org", "INDIVIDUALITY_MODE", "DISTRIBUTED_SELF"] },
+  "socialOrganisation": { "id": ["xeno.peerdb.org", "SOCIAL_ORGANISATION", "MATRILINEAL_MOIETIES"] },
+  "kinshipSystem": { "id": ["xeno.peerdb.org", "KINSHIP_SYSTEM", "UNILINEAL_DESCENT"] },
+  "communication": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G4_COM_RING_PULSE"] }],
+  "population": {
+    "value": { "from": { "amount": 65000, "precision": 1000 }, "to": { "amount": 140000, "precision": 1000 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "contactStatus": { "id": ["xeno.peerdb.org", "CONTACT_STATUS", "SUSTAINED"] },
+  "firstContact": { "time": "2257-01-01T00:00:00Z", "precision": "y" },
+  "image": [
+    {
+      "value": "/f/7NLKHrJCR4ZDBSV4DbnVMw",
+      "name": "G4_RING_SWIMMERS.jpg",
+      "caption": "Field plate",
+      "source": "Drawn in the field; Consortium collection"
+    }
+  ]
+}

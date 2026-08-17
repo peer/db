@@ -1,0 +1,24 @@
+{
+  "id": ["xeno.peerdb.org", "SITE_TYPE", "HEARTH_CLUSTER"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SITE_TYPE"] }],
+  "name": [
+    { "value": "Dispersed hearth cluster", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "Razpršena skupina ognjišč", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }] },
+    { "value": "Aglomerado disperso de lareiras", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>Several household fire or heat sites scattered within sight of each other but not enclosed or walled. Excludes nucleated villages, where structures share walls or a common yard.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Več gospodinjskih ognjišč, raztresenih na dogled, a brez skupne ograde.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    },
+    {
+      "value": "<p>Vários pontos domésticos de fogo ou de calor espalhados à vista uns dos outros, mas sem cerca nem muro. Exclui aldeias nucleadas, onde as construções partilham paredes ou um pátio comum.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "code": ["hearth"]
+}

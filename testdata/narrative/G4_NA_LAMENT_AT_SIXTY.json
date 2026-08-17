@@ -1,0 +1,38 @@
+{
+  "id": ["xeno.peerdb.org", "NARRATIVE", "G4_NA_LAMENT_AT_SIXTY"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "NARRATIVE"] }],
+  "title": [{ "value": "Lament Struck at Sixty Kilometres", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [
+    {
+      "value": "[struck far off, arriving here]",
+      "gloss": "a gloss of the opening figure; the piece has no other name",
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G4_COM_STRUCK_FLOOR"] }]
+    }
+  ],
+  "description": [
+    {
+      "value": "<p>A lament for a name-holder, struck from a worked floor a long way off so that it arrives at the mortuary ground, where nothing may be struck, as the only sound reaching it. It is performed by the grade below the dead holder&#39;s and is timed so that the last figure lands as the bearers walk backwards off the rock.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "genre": { "id": ["xeno.peerdb.org", "NARRATIVE_GENRE", "LAMENT"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G4_CU_FLOOR_GRADES"] }],
+  "recordedBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_WEN"] }],
+  "recordedOn": { "time": "2274-01-01T00:00:00Z", "precision": "y" },
+  "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G4_COM_STRUCK_FLOOR"] }],
+  "content": [
+    {
+      "value": "<blockquote><p>Your name is in the room. Your name is being carried across the floor and it is not going with you.</p><p>The debts are in the room. The in-laws are in the room. The quarrel with the salt grade is in the room, and it is not finished, and it will not be finished by you.</p><p>We are striking this where you cannot hear it, because there is nowhere you can hear it, and because a floor that had you on it should be made to say so.</p></blockquote>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "recording": [
+    {
+      "value": "/f/AYzmA9Raa33Jo69zMFMHci",
+      "name": "narrative-G4_NA_LAMENT_AT_SIXTY.mp3",
+      "caption": "Performance, recorded on site",
+      "duration": { "value": { "amount": 24, "precision": 1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "MINUTE"] }] },
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G4_COM_STRUCK_FLOOR"] }]
+    }
+  ]
+}

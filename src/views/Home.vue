@@ -67,14 +67,14 @@ const homeComponent = getHomeComponent()
       -->
       <RouterLink id="home-link-logo" :to="{ name: 'SearchShortcut' }" class="mb-10 flex w-full max-w-2xl justify-center self-center p-4 sm:w-4/5 md:w-2/3 lg:w-1/2">
         <img v-if="heroLogo" :src="heroLogo" :alt="siteContext.title" :title="siteContext.title" class="pd-home-logo logo max-h-48 max-w-full" />
-        <h1 v-else class="pd-home-logo text-5xl font-bold drop-shadow-xs">{{ siteContext.title }}</h1>
+        <h1 v-else class="pd-home-logo text-center text-3xl font-bold text-balance drop-shadow-xs sm:text-5xl">{{ siteContext.title }}</h1>
       </RouterLink>
     </div>
     <div class="flex flex-row justify-center gap-x-1 px-1 sm:gap-x-4 sm:px-4">
       <InputText id="home-input-search" v-model="searchQuery" class="pd-searchinput w-full max-w-2xl sm:w-4/5 md:w-2/3 lg:w-1/2" />
       <Button id="home-button-search" type="submit" primary>{{ t("common.buttons.search") }}</Button>
     </div>
-    <div class="flex grow basis-0"><component :is="homeComponent" v-if="homeComponent" /></div>
+    <div class="pd-home-extra flex grow basis-0"><component :is="homeComponent" v-if="homeComponent" /></div>
   </form>
   <Teleport to="footer">
     <Footer />

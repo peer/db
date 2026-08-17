@@ -1,0 +1,42 @@
+{
+  "id": ["xeno.peerdb.org", "INTERVIEW", "INTB_REFUSED_SHARE"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "INTERVIEW"] }],
+  "title": [
+    { "value": "Wenaimu on refusing a share, and on the reason cut into the lid", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }
+  ],
+  "description": [
+    {
+      "value": "<p>Interview conducted at the pit rims with a ferment household pit keeper on the refusal of a share at opening. Wenaimu states that the reason standing on the lid is not the reason.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "interviewee": [{ "id": ["xeno.peerdb.org", "INDIVIDUAL", "G3_WENAIMU"] }],
+  "interviewer": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_NOWAK"] }],
+  "recordedAt": { "id": ["xeno.peerdb.org", "SITE", "G3_DRAIN_TERRACES"] },
+  "recordedOn": { "time": "2289-03-16T00:00:00Z", "precision": "d" },
+  "expedition": { "id": ["xeno.peerdb.org", "EXPEDITION", "EXP_SWEEPWATER_YEAR"] },
+  "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G3_PIT_LEDGER"] }],
+  "duration": { "value": { "amount": 128, "precision": 1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "MINUTE"] }] },
+  "content": [
+    {
+      "value": "<p><i>Conducted by mark. The survey&#39;s questions were cut into a blank lid provided for the purpose; the answers are on the lids named in each case. The layout below is the translation and not the object.</i></p><p><b>Q.</b> What would you have marked if the pit had never been dug?</p><p><b>A.</b> [no mark made] There is nothing to cut. You have asked about a lid that is not there. Ask about this one.</p><p><b>Q.</b> This one, then. Who may open it?</p><p><b>A.</b> Three marks: the household, the mother&#39;s half, and whoever carries the third share. The third share is refused. That is the fourth mark and it is the one you keep pointing at.</p><p><b>Q.</b> What does the fourth mark say?</p><p><b>A.</b> That the second stage went sour and the share cannot be honoured out of it.</p><p><b>Q.</b> Did it go sour?</p><p><b>A.</b> No.</p><p><b>Q.</b> Then why does the lid say so?</p><p><b>A.</b> Because there is no mark for what actually happened, which is that the share was promised against a marriage and the marriage did not hold and the other household kept the goods. The system will cut sourness. It will not cut resentment.</p><p><b>Q.</b> The mark will stand for years.</p><p><b>A.</b> Eleven, if nobody opens it. Everyone who reads that lid for eleven years will believe a thing about my second stage that is not true, and I will be judged a poor keeper, and that is cheaper than the other thing.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "ethics": { "id": ["xeno.peerdb.org", "ETHICS_PROTOCOL", "PROTOCOL_3"] },
+  "consentNote": [
+    {
+      "value": "<p>Wenaimu agreed to the exchange and to its retention, and pointed out, correctly, that the survey cannot separate the record from the pit and will therefore have to come back and ask permission again every time it wants to read it. She regards this as the system working.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "clearedReader": ["mock-user-researcher@localhost"],
+  "permission": [
+    { "action": { "id": ["core.peerdb.org", "PERMISSION_ACTIONS", "ACTION_READ"] }, "user": ["mock-user-researcher@localhost"], "scope": ["self"] },
+    {
+      "action": { "id": ["core.peerdb.org", "PERMISSION_ACTIONS", "ACTION_READ_HISTORIC"] },
+      "user": ["mock-user-researcher@localhost"],
+      "scope": ["self"]
+    }
+  ]
+}

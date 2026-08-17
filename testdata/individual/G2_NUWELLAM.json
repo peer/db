@@ -1,0 +1,18 @@
+{
+  "id": ["xeno.peerdb.org", "INDIVIDUAL", "G2_NUWELLAM"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "INDIVIDUAL"] }],
+  "name": [{ "value": "Nuwellam" }],
+  "lineageName": [{ "value": "Ninth Drop, Lower Rows" }],
+  "description": [
+    {
+      "value": "<p>Carries the dead of their stretch of the rows across the ice line to the walled channel and returns without them, about four times a cycle. In 2274 they refused a Consortium request to record inside the channel and have refused it in every decade since, most recently in 2308, and the survey has never seen the site from anywhere but the wall. They have not been asked to be photographed, the ethics panel having concluded that anyone who has refused four times need not be asked a fifth.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "species": { "id": ["xeno.peerdb.org", "SPECIES", "G2_ANUWELME"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G2_EVENING_ROWS"] }],
+  "role": [{ "value": "carrier of the dead", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "formOfAddress": "by the holding name, and not at all while carrying",
+  "born": { "time": "2249-01-01T00:00:00Z", "precision": "y" },
+  "birthplace": { "id": ["xeno.peerdb.org", "SITE", "G2_LONG_EVENING_ROWS"] }
+}

@@ -26,7 +26,7 @@ import {
   progressiveValidate,
   toCanonicalString,
 } from "@/partials/input/InputTime.format"
-import { useLocked } from "@/progress"
+import { useInactivated, useLocked } from "@/progress"
 import { allErrors, useRegisterForValidation, useValidationRegistry } from "@/validation"
 
 const props = withDefaults(
@@ -62,7 +62,8 @@ const emit = defineEmits<{ errors: [ValidationError[]] }>()
 const { t } = useI18n({ useScope: "global" })
 
 const locked = useLocked()
-const inactive = computed(() => locked.value || props.readonly)
+const inactivated = useInactivated()
+const inactive = computed(() => locked.value || inactivated.value || props.readonly)
 
 const timeInputId = useId()
 // Id on the precision listbox button (the column's focusable control) so
@@ -347,7 +348,7 @@ async function onFocusOut(event: FocusEvent) {
     display:contents so the time and precision inputs become direct grid items
     of the enclosing component, each in its own column.
   -->
-  <div ref="rootRef" class="pd-inputtime contents" :class="{ 'pd-locked': locked }" @focusout="onFocusOut">
+  <div ref="rootRef" class="pd-inputtime contents" :class="{ 'pd-locked': locked, 'pd-inactive': inactivated || readonly }" @focusout="onFocusOut">
     <!-- Fall-through attrs (e.g. aria-describedby pointing at InputField's error) go on the time input, the focusable control. -->
     <InputText
       :id="timeInputId"
@@ -363,7 +364,7 @@ async function onFocusOut(event: FocusEvent) {
       @update:model-value="onTimeUpdate"
     />
 
-    <Listbox v-model="precision" :disabled="inactive" as="div" class="w-full" @update:model-value="onPrecisionSelected">
+    <Listbox v-model="precision" :disabled="inactive" as="div" class="pd-inputtime-group-precision w-full" @update:model-value="onPrecisionSelected">
       <div class="relative">
         <!--
           We add additional padding on the right (pr-10) on top of InputStyled's

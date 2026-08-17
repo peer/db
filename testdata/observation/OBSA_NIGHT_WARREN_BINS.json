@@ -1,0 +1,37 @@
+{
+  "id": ["xeno.peerdb.org", "OBSERVATION", "OBSA_NIGHT_WARREN_BINS"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "OBSERVATION"] }],
+  "title": [
+    {
+      "value": "Store bin count in the first six hundred metres, fourth entrance",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "description": [
+    {
+      "value": "<p>A count of cut and lined store bins inward from the fourth entrance during the outward season, with linings sampled where permission was given.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "content": [
+    {
+      "value": "<p>Counted along the first six hundred metres in from the fourth entrance: one hundred and forty-one bins, of which ninety-four are lined and forty-seven cut but bare. The count was made twice, on separate days, and agrees.</p><p>Linings were sampled at nine bins by permission of the holder present, and refused at two. We take the refusals as straightforward answers rather than as difficulties.</p><p>This stretch holds bins belonging to two reaches. The channel moved in 2269 and took ground from one and gave it to the other, but stores stay where they were dug, so along about two hundred metres the ownership of a bin and the ownership of the ground above it no longer agree.</p><p>Nobody appears to find this a problem. We asked how a bin is known to be in use and were shown the answer, which is that everybody knows. We cannot count on that basis and have filed the total instead.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "expedition": { "id": ["xeno.peerdb.org", "EXPEDITION", "EXP_GRID_44_THIRD"] },
+  "observedBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_REYES"] }, { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_NOWAK"] }],
+  "observedAt": { "id": ["xeno.peerdb.org", "SITE", "G1_NIGHT_WARREN"] },
+  "observedOn": { "time": "2273-02-26T00:00:00Z", "precision": "d" },
+  "about": [{ "id": ["xeno.peerdb.org", "SPECIES", "G1_GRID44_HOLDERS"] }, { "id": ["xeno.peerdb.org", "PRACTICE", "G1_CHANNEL_WALKING"] }],
+  "method": [
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "MATERIAL_SAMPLING"] },
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "PARTICIPANT_OBSERVATION"] }
+  ],
+  "fieldConditions": "Worst of the outward season, so the tunnel was in use for living as well as storage and was crowded near the entrance. Warm by local standards and entirely dark.",
+  "image": [{ "value": "/f/JJixMPBJBRDVGh4S5mZiAb", "name": "OBSA_NIGHT_WARREN_BINS.jpg", "caption": "Taken at the time", "source": "Field record" }],
+  "permission": [
+    { "action": { "id": ["core.peerdb.org", "PERMISSION_ACTIONS", "ACTION_UPDATE"] }, "user": ["mock-user-researcher@localhost"], "scope": ["self"] },
+    { "action": { "id": ["core.peerdb.org", "PERMISSION_ACTIONS", "ACTION_DELETE"] }, "user": ["mock-user-curator@localhost"], "scope": ["self"] }
+  ]
+}

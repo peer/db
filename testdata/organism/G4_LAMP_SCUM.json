@@ -1,0 +1,30 @@
+{
+  "id": ["xeno.peerdb.org", "ORGANISM", "G4_LAMP_SCUM"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "ORGANISM"] }],
+  "name": [{ "value": "Lamp Scum", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Zaivozu" }],
+  "taxonCode": "TX-2003-a",
+  "description": [
+    {
+      "value": "<p>A decomposer network of the hydrocarbon lakes of Kerf, spreading as a tough brown skin across sheltered water and breaking down the organic drizzle that settles out of the haze. Sheets are pulled, dried and worked, and the greater part of the material traded through the outer station is made of it. It is the only organism in the Backswing anybody outside the system has held in their hands.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Uma rede decompositora dos lagos de hidrocarbonetos de Kerf, que se estende como uma pele castanha e resistente sobre as águas abrigadas e decompõe o chuvisco orgânico que se deposita a partir da bruma. As folhas são puxadas, secas e trabalhadas, e a maior parte do material trocado através da estação exterior é feita dela. É o único organismo do Backswing que alguém de fora do sistema alguma vez segurou nas mãos.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "category": { "id": ["xeno.peerdb.org", "ORGANISM_CATEGORY", "DECOMPOSER_NETWORK"] },
+  "foundOn": [{ "id": ["xeno.peerdb.org", "PLANET", "G4_KERF"] }],
+  "biome": [{ "id": ["xeno.peerdb.org", "BIOME", "HYDRO_LAKE"] }],
+  "typicalSize": { "value": { "amount": 2.1, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+  "typicalMass": { "value": { "amount": 4.4, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "kg"] }] },
+  "image": [
+    {
+      "value": "/f/6TDVeZtb9jHkJ9ttC6mBUk",
+      "name": "G4_LAMP_SCUM.jpg",
+      "caption": "Field plate",
+      "source": "Drawn in the field; Consortium collection"
+    }
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "id": ["xeno.peerdb.org", "SITE", "G1_MARGIN_MORTUARY"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "SITE"] }],
+  "name": [{ "value": "Margin Mortuary Ground", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "localName": [{ "value": "Mmelien Nnau", "gloss": "the cold place we leave them" }],
+  "description": [
+    {
+      "value": "<p>A row of raised platforms of stacked ice on a cooling lobe, set aside for exposure of the dead and maintained by whoever is nearest. Nobody lives here and nobody stays long. The site was recorded in 2259 and photographed once; all subsequent material was gathered from a distance under the ethics ruling.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "REGION", "G1_MARGIN_ICE"] },
+  "siteType": { "id": ["xeno.peerdb.org", "SITE_TYPE", "MORTUARY_GROUND"] },
+  "gridReference": "LT-709.3/-52.7",
+  "population": {
+    "value": { "from": { "amount": 0, "precision": 10 }, "to": { "amount": 0, "precision": 10 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "founded": { "time": "2259-01-01T00:00:00Z", "precision": "y" },
+  "occupation": { "from": { "time": "2259-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true },
+  "image": [
+    { "value": "/f/6nyb8Ws5vuCJWi4h7YmRz2", "name": "G1_MARGIN_MORTUARY.jpg", "caption": "General view", "source": "Consortium survey archive" }
+  ]
+}

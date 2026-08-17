@@ -1,0 +1,18 @@
+{
+  "id": ["xeno.peerdb.org", "INDIVIDUAL", "G4_IN_HUENEWA"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "INDIVIDUAL"] }],
+  "name": [{ "value": "Huenewa" }],
+  "lineageName": [{ "value": "Rearing Chain of the Fourth Terrace" }],
+  "description": [
+    {
+      "value": "<p>A fosterage keeper who holds the chain of who reared whom for some four thousand people across eleven corporations, recited rather than written and checked against nobody. She refused a full interview in 2294, on the ground that four teams had already recorded the same nine minutes of the tether request and could not agree what verb was in it, and that she declined to be the tenth recording of anything. She granted, instead, one hour on fosterage and nothing else, and the transcript of it is the best material the discipline has on the subject.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "species": { "id": ["xeno.peerdb.org", "SPECIES", "G4_TERRACE_BUILDERS"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G4_CU_TETHER_GUILDS"] }],
+  "role": [{ "value": "fosterage keeper", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "formOfAddress": "by rearing chain, then by name",
+  "born": { "time": "2264-01-01T00:00:00Z", "precision": "y" },
+  "birthplace": { "id": ["xeno.peerdb.org", "SITE", "G4_TETHER_STUMP"] }
+}

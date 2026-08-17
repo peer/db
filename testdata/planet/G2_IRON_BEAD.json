@@ -1,0 +1,37 @@
+{
+  "id": ["xeno.peerdb.org", "PLANET", "G2_IRON_BEAD"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PLANET"] }],
+  "name": [{ "value": "Iron Bead", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "catalogueCode": "LM-0234-b",
+  "description": [
+    {
+      "value": "<p>A small, very dense stripped core, turning once every six hours and showing a bare metal surface pitted by four billion years of micrometeorite work. It has no mantle, no atmosphere and no magnetic field, the dynamo having frozen out long before anything else in the system settled down. The survey reached it in 2234, spent ten years on it and left. The final report runs to nineteen pages and lists no open questions.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    { "value": "<p>Golo kovinsko jedro sveta, ki je izgubil plašč.</p>", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }] },
+    {
+      "value": "<p>Um núcleo despido, pequeno e muito denso, que roda uma vez a cada seis horas e mostra uma superfície de metal nu picada por quatro mil milhões de anos de trabalho de micrometeoritos. Não tem manto, nem atmosfera, nem campo magnético, tendo o dínamo congelado muito antes de o resto do sistema assentar. O levantamento chegou lá em 2234, passou dez anos no mundo e partiu. O relatório final tem dezanove páginas e não lista questões em aberto.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "STAR_SYSTEM", "G2_LOW_METAL"] },
+  "planetType": { "id": ["xeno.peerdb.org", "PLANET_TYPE", "STRIPPED_CORE"] },
+  "radius": { "value": { "amount": 0.41, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_RADIUS"] }] },
+  "mass": { "value": { "amount": 0.14, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_MASS"] }] },
+  "surfaceGravity": { "value": { "amount": 0.83, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "STANDARD_GRAVITY"] }] },
+  "dayLength": { "value": { "amount": 6.2, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "HOUR"] }] },
+  "orbitalPeriod": { "value": { "amount": 471.2, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_DAY"] }] },
+  "meanTemperature": { "value": { "amount": -74.0, "precision": 0.1 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "°C"] }] },
+  "hydrosphere": { "value": { "amount": 0, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "PERCENT"] }] },
+  "atmosphere": [
+    {
+      "value": "<p>None. Instruments record hard vacuum to the limit of their sensitivity, and the surface holds a static charge strong enough to make dust stand up around a footprint.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "biosphereNone": true,
+  "contactStatus": { "id": ["xeno.peerdb.org", "CONTACT_STATUS", "NO_CONTACT"] },
+  "firstSurveyed": { "time": "2234-01-01T00:00:00Z", "precision": "y" },
+  "surveyPeriod": { "from": { "time": "2234-01-01T00:00:00Z", "precision": "y" }, "to": { "time": "2244-01-01T00:00:00Z", "precision": "y" } },
+  "image": [{ "value": "/f/D1vrpXeAFD7Q1Lmau9f1KQ", "name": "G2_IRON_BEAD.jpg", "caption": "Approach view", "source": "Consortium survey archive" }]
+}

@@ -1,0 +1,42 @@
+{
+  "id": ["xeno.peerdb.org", "PLANET", "G2_FALLOW"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "PLANET"] }],
+  "name": [{ "value": "Fallow", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "catalogueCode": "TF-0273-a",
+  "description": [
+    {
+      "value": "<p>A high-pressure greenhouse locked to a small red star, its surface sitting at about 244 degrees under thirty-four bar of carbon dioxide and sulphur compounds. The night side is only forty degrees cooler, the atmosphere being thick enough to carry heat right round. Lander survival is measured in hours and three of the four attempts failed during descent. It is lifeless at every level the survey could reach, which was not many.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Vroč svet z gostim ozračjem in kislo meglo. Brez življenja.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "sl-SI"] }]
+    }
+  ],
+  "containedIn": { "id": ["xeno.peerdb.org", "STAR_SYSTEM", "G2_TWELFTH_FIXTURE"] },
+  "planetType": { "id": ["xeno.peerdb.org", "PLANET_TYPE", "GREENHOUSE"] },
+  "radius": { "value": { "amount": 0.98, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_RADIUS"] }] },
+  "mass": { "value": { "amount": 0.94, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_MASS"] }] },
+  "surfaceGravity": { "value": { "amount": 0.98, "precision": 0.01 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "STANDARD_GRAVITY"] }] },
+  "dayLength": { "value": { "amount": 592.8, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "HOUR"] }] },
+  "orbitalPeriod": { "value": { "amount": 24.7, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "EARTH_DAY"] }] },
+  "meanTemperature": { "value": { "amount": 244.0, "precision": 0.1 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "°C"] }] },
+  "hydrosphere": { "value": { "amount": 0, "precision": 0.1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "PERCENT"] }] },
+  "atmosphere": [
+    {
+      "value": "<p>34 bar of carbon dioxide with sulphur dioxide, carbonyl sulphide and a permanent aerosol layer of sulphuric acid. Nothing about it can be experienced directly; the surface images were taken through a window that lasted nine hours.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "biosphereNone": true,
+  "contactStatus": { "id": ["xeno.peerdb.org", "CONTACT_STATUS", "NO_CONTACT"] },
+  "firstSurveyed": { "time": "2273-01-01T00:00:00Z", "precision": "y" },
+  "surveyPeriod": { "from": { "time": "2273-01-01T00:00:00Z", "precision": "y" }, "to": { "time": "2276-01-01T00:00:00Z", "precision": "y" } },
+  "image": [{ "value": "/f/XAWVcWhzUAbR4eig1DCtU3", "name": "G2_FALLOW.jpg", "caption": "Approach view", "source": "Consortium survey archive" }],
+  "notes": [
+    {
+      "value": "<p>The fourth lander is still transmitting a carrier tone and nothing else, and has been since 2276. The sector office lists it as an active asset, removal from the register requiring a form that nobody in the Cold Margin has ever successfully filed.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

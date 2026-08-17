@@ -1,0 +1,27 @@
+{
+  "id": ["xeno.peerdb.org", "RESEARCHER", "RES_DOYLE"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "RESEARCHER"] }],
+  "name": [{ "value": "Ciaran" }],
+  "familyName": [{ "value": "Doyle" }],
+  "researcherCode": "CCX-P-03604",
+  "description": [
+    {
+      "value": "<p>Crossed over from structural engineering at thirty-two and still asks first what a thing is holding up. He gave eleven days of evidence to the tether inquiry, almost none of which appears in the eleven hundred pages of the file that matter. He has stopped mentioning this at conferences.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "affiliatedWith": [{ "id": ["xeno.peerdb.org", "INSTITUTE", "INST_CANOPY"] }, { "id": ["xeno.peerdb.org", "INSTITUTE", "INST_SUBSTRATE"] }],
+  "specialisesIn": [
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "PHOTOGRAMMETRY"] },
+    { "id": ["xeno.peerdb.org", "RESEARCH_METHOD", "MATERIAL_SAMPLING"] }
+  ],
+  "activePeriod": { "from": { "time": "2284-01-01T00:00:00Z", "precision": "y" }, "toIsNone": true },
+  "born": { "time": "2252-01-01T00:00:00Z", "precision": "y" },
+  "image": [{ "value": "/f/6cx5MpLFqVJJxdw98FBdCa", "name": "RES_DOYLE.jpg", "caption": "Staff photograph", "source": "Consortium personnel record" }],
+  "notes": [
+    {
+      "value": "<p>His evidence is deposited in full and is longer than the section of the suspension file that cites it.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

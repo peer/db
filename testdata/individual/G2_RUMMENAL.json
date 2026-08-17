@@ -1,0 +1,27 @@
+{
+  "id": ["xeno.peerdb.org", "INDIVIDUAL", "G2_RUMMENAL"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "INDIVIDUAL"] }],
+  "name": [{ "value": "Rummenal" }],
+  "lineageName": [{ "value": "Seventh Fissure, Benders" }],
+  "description": [
+    {
+      "value": "<p>The other continuation of the same division, holding the seventh fissure and answerable for the same debts as the first, in full and not in half. They cut crust at the Old Seam before the vent failed and remember doing so, as does the other continuation, and neither treats this as a shared memory. The station&#39;s own records had to be restructured in 2286 to allow two entries to be the same prior person, a change nobody has since found a second use for.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "species": { "id": ["xeno.peerdb.org", "SPECIES", "G2_NURRUMALI"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G2_HEARTH_CORPORATIONS"] }, { "id": ["xeno.peerdb.org", "CULTURE", "G2_CUT_CRUST"] }],
+  "role": [
+    { "value": "bender", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "hearth holder", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }
+  ],
+  "formOfAddress": "by fissure and corporation",
+  "born": { "time": "2249-01-01T00:00:00Z", "precision": "y" },
+  "birthplace": { "id": ["xeno.peerdb.org", "SITE", "G2_NURRU_HEARTHS"] },
+  "notes": [
+    {
+      "value": "<p>Asked which of them is the person who cut at the Old Seam, both gave the same answer and neither regarded it as a question. The interviewer&#39;s note reads only that the exchange took four minutes and that this was the interviewer&#39;s fault.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

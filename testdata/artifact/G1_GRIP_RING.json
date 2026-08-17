@@ -1,0 +1,27 @@
+{
+  "id": ["xeno.peerdb.org", "ARTIFACT", "G1_GRIP_RING"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "ARTIFACT"] }],
+  "name": [{ "value": "Grip ring", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Vethran Sef", "gloss": "the house on the inside of the hand" }],
+  "accessionCode": "CCX-A-13279",
+  "description": [
+    {
+      "value": "<p>A ring of column heartwood, hard as carbide and worked with a stone rasp, cut to sit behind the hook of an outer climbing claw and lashed through two drilled holes. Rings carry the house block mark on the inner face, where it is visible only to whoever is being gripped, which is the point and is not explained to anybody who has to ask. This one is worn through on the leading side and was still in use when it was given. It came from a house at the tether foot in 2299, the year that house stopped cutting.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "category": { "id": ["xeno.peerdb.org", "ARTIFACT_CATEGORY", "ORNAMENT"] },
+  "culture": [{ "id": ["xeno.peerdb.org", "CULTURE", "G1_CANOPY_HOUSES"] }],
+  "foundAt": { "id": ["xeno.peerdb.org", "SITE", "G1_CANOPY_TETHER"] },
+  "material": [
+    { "value": "column heartwood", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] },
+    { "value": "gut lashing", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }
+  ],
+  "dimension": [
+    { "value": { "amount": 0.07, "precision": 0.001 }, "axis": "diameter", "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+    { "value": { "amount": 0.014, "precision": 0.001 }, "axis": "thickness", "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] }
+  ],
+  "dateMade": { "time": "2250-01-01T00:00:00Z", "precision": "10y" },
+  "collectedBy": [{ "id": ["xeno.peerdb.org", "RESEARCHER", "RES_VIRTANEN"] }, { "id": ["xeno.peerdb.org", "RESEARCHER", "RES_BEKELE"] }],
+  "image": [{ "value": "/f/4Lh2FtgbUT4a47qJCDNhHy", "name": "G1_GRIP_RING.jpg", "caption": "Object drawing", "source": "Consortium collection" }]
+}

@@ -1,0 +1,35 @@
+{
+  "id": ["xeno.peerdb.org", "ORGANISM", "G2_BRINE_FILM"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "ORGANISM"] }],
+  "name": [{ "value": "Ladder Brine Film", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "taxonCode": "TX-1147-b",
+  "description": [
+    {
+      "value": "<p>A chemolithotroph film occupying the liquid brine held between salt crystals in the stepped basins, and the only life the world has. It is a few cells thick, pink where it is thick enough to see, and it grows outward from any surface that stays damp. Growth rates measured across forty years indicate that a hand-sized patch is older than the Consortium.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    },
+    {
+      "value": "<p>Uma película quimiolitotrófica que ocupa a salmoura líquida retida entre os cristais de sal das bacias em degraus, e a única vida que o mundo tem. Tem a espessura de algumas células, é cor-de-rosa onde é espessa o bastante para se ver, e cresce para fora a partir de qualquer superfície que se mantenha húmida. As taxas de crescimento medidas ao longo de quarenta anos indicam que uma mancha do tamanho de uma mão é mais velha do que o Consórcio.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "pt-PT"] }]
+    }
+  ],
+  "category": { "id": ["xeno.peerdb.org", "ORGANISM_CATEGORY", "CHEMOLITHO_MAT"] },
+  "foundOn": [{ "id": ["xeno.peerdb.org", "PLANET", "G2_OLD_SALT"] }],
+  "biome": [{ "id": ["xeno.peerdb.org", "BIOME", "EVAPORITE_PAN"] }, { "id": ["xeno.peerdb.org", "BIOME", "ENDOLITH_ZONE"] }],
+  "typicalSize": { "value": { "amount": 0.02, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "m"] }] },
+  "typicalMass": { "value": { "amount": 0.001, "precision": 0.01 }, "inUnit": [{ "id": ["core.peerdb.org", "UNIT", "kg"] }] },
+  "image": [
+    {
+      "value": "/f/Q6e6BocCUmm3dXcRaF5GmN",
+      "name": "G2_BRINE_FILM.jpg",
+      "caption": "Field plate",
+      "source": "Drawn in the field; Consortium collection"
+    }
+  ],
+  "notes": [
+    {
+      "value": "<p>The abandoned camp on the third bench is now colonised along every cable run and boot track. The taphonomy programme regards this as data and the people who left the cables regard it as untidy.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

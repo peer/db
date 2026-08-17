@@ -165,7 +165,7 @@ function builtinLabel(type: string): string {
 
 <template>
   <Dialog as="div" class="pd-searchsortdialog relative z-50" :open="open" @close="$emit('close')">
-    <div class="fixed inset-0 bg-black/30" aria-hidden="true" />
+    <div class="pd-searchsortdialog-backdrop fixed inset-0 bg-black/30" aria-hidden="true" />
     <div class="fixed inset-0 flex items-center justify-center">
       <DialogPanel
         class="pd-searchsortdialog-panel flex h-full w-full flex-col overflow-y-auto rounded-none bg-white p-1 shadow-none sm:relative sm:inset-auto sm:h-auto sm:max-h-150 sm:max-w-xl sm:rounded-sm sm:p-4 sm:shadow-sm"
@@ -181,7 +181,7 @@ function builtinLabel(type: string): string {
             class="pd-searchsortdialog-item-sort flex items-center gap-x-2 rounded-sm border border-slate-200 bg-slate-50 p-2"
             :class="`pd-searchsortdialog-item-sort-${colClass(key)}`"
           >
-            <div class="flex flex-col">
+            <div class="pd-searchsortdialog-group-move flex flex-col">
               <button
                 type="button"
                 class="pd-searchsortdialog-button-moveup rounded-sm outline-none hover:bg-slate-200 focus:ring-2 focus:ring-primary-500 disabled:cursor-not-allowed disabled:text-slate-300"
@@ -240,7 +240,12 @@ function builtinLabel(type: string): string {
         <template v-if="availableColumns.length > 0">
           <h3 class="pd-searchsortdialog-header-available mt-4 text-sm font-semibold text-slate-700">{{ t("partials.SearchSortDialog.addColumn") }}</h3>
           <ul class="pd-searchsortdialog-list-available mt-2 flex flex-col gap-y-1">
-            <li v-for="entry in availableColumns" :key="colKey(entry.col)">
+            <li
+              v-for="entry in availableColumns"
+              :key="colKey(entry.col)"
+              class="pd-searchsortdialog-item-available"
+              :class="`pd-searchsortdialog-item-available-${colClass(entry.col)}`"
+            >
               <button
                 type="button"
                 class="pd-searchsortdialog-button-add flex w-full items-center gap-x-1 rounded-sm p-2 text-left outline-none hover:bg-slate-100 focus:ring-2 focus:ring-primary-500"

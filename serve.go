@@ -115,6 +115,7 @@ func (c *ServeCommand) Init(ctx context.Context, globals *Globals, files fs.FS) 
 			LanguagePriority:     nil,
 			DefaultLanguage:      "",
 			LanguageCodes:        nil,
+			NamingProperties:     nil,
 			Features:             internalSite.SiteFeatures{},
 			Roles:                nil,
 			ScopeProperties:      nil,

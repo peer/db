@@ -1,0 +1,48 @@
+{
+  "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G3_PAN_CUT"],
+  "instanceOf": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM"] }],
+  "name": [{ "value": "Pan Cut", "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }] }],
+  "endonym": [{ "value": "Varremmen", "gloss": "the keeping" }],
+  "description": [
+    {
+      "value": "<p>Meaning cut into salt crust: the depth, order and edge angle of a cut, read by touch and by the way the crust takes ultraviolet after wetting. Statements are made by cutting and are unmade by flooding the block, so the twice-yearly flood erases most of what has been said and the cutting begins again, which the workers do not regard as loss. It is entirely adequate for work, ownership and refusal, and the surveys that tried to elicit a term for belief received a flat block and a long silence. An interview here is a week of cutting, and the transcripts are photographs.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "modality": [
+    { "id": ["xeno.peerdb.org", "COMMUNICATION_MODALITY", "WRITTEN_NOTATION"] },
+    { "id": ["xeno.peerdb.org", "COMMUNICATION_MODALITY", "GESTURE"] }
+  ],
+  "users": {
+    "value": { "from": { "amount": 55000, "precision": 100 }, "to": { "amount": 190000, "precision": 100 } },
+    "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "INDIVIDUAL"] }]
+  },
+  "notation": true,
+  "sampleGloss": [
+    {
+      "value": "<p><i>a deep straight cut, two shallow cuts across it, the corner left square</i>. Element by element: mine, twice worked, not finished. Freely: I worked this block twice, it is mine, and I have not done with it.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ],
+  "recording": [
+    {
+      "value": "/f/NSPWt21X3Lz49jb5FSbbwY",
+      "name": "system-G3_PAN_CUT.mp3",
+      "caption": "Elicitation sample",
+      "duration": { "value": { "amount": 1, "precision": 1 }, "inUnit": [{ "id": ["xeno.peerdb.org", "UNIT", "MINUTE"] }] },
+      "inSystem": [{ "id": ["xeno.peerdb.org", "COMMUNICATION_SYSTEM", "G3_PAN_CUT"] }],
+      "note": [
+        {
+          "value": "<p>Recorded during elicitation and kept as the reference sample for this system.</p>",
+          "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+        }
+      ]
+    }
+  ],
+  "notes": [
+    {
+      "value": "<p>The corpus runs to some nine thousand photographs and is restricted with the rest of the material collected before the suspension, so the grammar above is quoted from a summary of a summary.</p>",
+      "inLanguage": [{ "id": ["core.peerdb.org", "LANGUAGE", "en-GB"] }]
+    }
+  ]
+}

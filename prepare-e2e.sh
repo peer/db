@@ -25,7 +25,9 @@ else
   wget --header="JOB-TOKEN: ${CI_JOB_TOKEN}" -O artifacts.zip "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/jobs/artifacts/${CI_DEFAULT_BRANCH}/download?job=test_e2e"
 fi
 
-# Unzip artifacts if downloaded.
+# Unzip artifacts if downloaded. Only the screenshots are wanted out of them: everything else the previous
+# run produced would be restored on top of what this pipeline has already made, and the coverage directory
+# in particular is where the current pipeline's frontend coverage was just put.
 if [ -f artifacts.zip ]; then
-  unzip -o artifacts.zip -x playwright-report/\* -x coverage.html -x coverage.xml -x coverage-frontend/\* -x a11y-report/\*
+  unzip -o artifacts.zip -x playwright-report/\* -x coverage.html -x coverage.xml -x coverage/\* -x coverage-frontend/\* -x a11y-report/\* -x logs/\*
 fi
