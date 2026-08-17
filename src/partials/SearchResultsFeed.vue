@@ -301,7 +301,7 @@ const {
   total: filtersTotal,
   moreThanTotal: filtersMoreThanTotal,
   error: filtersError,
-  url: filtersURL,
+  loadedURL: filtersURL,
 } = useFilters(
   toRef(() => props.searchSession),
   filterQuery,

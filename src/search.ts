@@ -260,16 +260,20 @@ export function useFilters(
   total: DeepReadonly<Ref<number | null>>
   moreThanTotal: DeepReadonly<Ref<boolean>>
   error: DeepReadonly<Ref<string | null>>
-  url: DeepReadonly<Ref<string | null>>
+  loadedURL: DeepReadonly<Ref<string | null>>
 } {
   const router = useRouter()
 
+  // The address published is the one the facets held came from and not the one which was asked for last,
+  // the same way the results are (searchResultsURL in SearchGet.vue): what a caller can tell from it is
+  // which search the facets on the screen belong to, which the address of a request still on its way
+  // would answer wrongly for as long as the answer to it has not been taken.
   const {
     results: rawResults,
     total,
     moreThanTotal,
     error,
-    url,
+    loadedURL,
   } = useSearchResults<FilterResult>(el, progress, () => {
     return router.apiResolve({
       name: "SearchFilters",
@@ -300,7 +304,7 @@ export function useFilters(
     return [...best.values()]
   })
 
-  return { results, total, moreThanTotal, error, url }
+  return { results, total, moreThanTotal, error, loadedURL }
 }
 
 function useSearchResults<T extends Result | FilterResult | RefFilterResult | HasFilterResult>(

@@ -70,7 +70,7 @@ const {
   results: filtersResults,
   total: filtersTotal,
   error: filtersError,
-  url: filtersURL,
+  loadedURL: filtersURL,
 } = useFilters(
   toRef(() => props.searchSession),
   // The table view lists filter columns for the whole table and has no filter-pane search box, so the

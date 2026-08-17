@@ -898,11 +898,13 @@ export async function settleFilters(page: Page): Promise<void> {
       //
       // Which version the list is for is confirmed as well, because a panel showing every facet of the
       // version before is a settled panel by every other measure. The panel builds its list from the search
-      // session it has been handed, which is the session as it was last read back, while the results are
-      // asked for as soon as the version changes (useFilters and useSearchResults in search.ts). Between the
-      // two the panel holds the list of the version before with nothing in flight and nothing left to add,
-      // and the list which then arrives takes it back to the facets it shows first, which is what a capture
-      // taken in the meantime shows.
+      // session it has been handed, which is the session as it was last read back, so it goes on showing the
+      // list of the version before while the results are already those of the new one, with nothing left to
+      // add and nothing to say that a list is on its way. The list which then arrives takes the panel back
+      // to the facets it shows first, which is what a capture taken in the meantime shows. Both the panel
+      // and the results publish the address their contents came from rather than the one last asked for
+      // (see useFilters and useSearchResults in search.ts), so the versions in them agree exactly when what
+      // is on the screen belongs together.
       const fetched = filtersFetched
       const shown = await facets.count()
       await settle(page)
