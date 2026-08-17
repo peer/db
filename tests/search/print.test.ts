@@ -2,6 +2,7 @@ import type { Page } from "@playwright/test"
 
 import { documentIdOf, PROPERTY_IDS, searchByClass } from "../peerdb_utils"
 import {
+  applySearchChange,
   checkpoint,
   expect,
   expectResults,
@@ -234,8 +235,14 @@ test.describe("PeerDB Search Print Flows", () => {
 
     // Expanding the target replaces the line naming it with its own full result card above the results, so
     // that a printout carries what the referencing documents are about.
+    //
+    // Expanding is a change to the search session, and the results of the changed search are waited for
+    // before anything below is driven: the feed reveals its first batch of whatever result set it is given,
+    // so a result set arriving after the reveal below takes the reveal back and leaves the feed offering to
+    // reveal its results again. The change alone is waited for rather than the whole search settling,
+    // because settling waits for the results header, which the print view does not show.
     await expect(page.locator(".pd-searchresultsfeed-result-referencing"), "the target is named rather than rendered before it is expanded").toHaveCount(0)
-    await expand.click()
+    await applySearchChange(page, async () => await expand.click())
     await expect(collapse, "the expanded target offers to be collapsed").toBeVisible()
     await expect(expand, "the expanded target does not offer to be expanded again").toHaveCount(0)
     // The target is asserted through the CSS class its own card carries rather than by counting the cards on
@@ -254,7 +261,7 @@ test.describe("PeerDB Search Print Flows", () => {
     // session, so the results are fetched again and the feed reveals its first batch of them once more,
     // which is why what is asserted here is that the target is gone and that there is something left to
     // reveal, and not a number of results.
-    await collapse.click()
+    await applySearchChange(page, async () => await collapse.click())
     await expect(expand, "the collapsed target offers to be expanded again").toBeVisible()
     await expect(collapse, "the collapsed target does not offer to be collapsed again").toHaveCount(0)
     await expect(page.locator(".pd-searchresultsfeed-result-referencing"), "the card of the collapsed target is gone").toHaveCount(0)
