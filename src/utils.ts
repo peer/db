@@ -1,4 +1,5 @@
 import type { ComputedRef, DeepReadonly, InjectionKey, Ref } from "vue"
+import type { ComposerTranslation } from "vue-i18n"
 
 import type { TimePrecision } from "@/document"
 import type {
@@ -397,7 +398,7 @@ export const HAS_PROPERTY_VALUE_ID = "__HAS__"
 //
 // The labels are t() call results and not message keys, so that a search for a translation finds where
 // it is used.
-export function specialValueLabel(id: string, t: (key: string) => string): string | null {
+export function specialValueLabel(id: string, t: ComposerTranslation): string | null {
   switch (id) {
     case MISSING_VALUE_ID:
       return t("common.values.missing")

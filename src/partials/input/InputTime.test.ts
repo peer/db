@@ -1,5 +1,3 @@
-import type { NamedValue } from "vue-i18n"
-
 import type { TimePrecision } from "@/document"
 
 import { assert, describe, test } from "vitest"
@@ -91,7 +89,7 @@ describe("normalizeForParsing", () => {
 // echoes back the key (and any named values) so each assertion just compares
 // the i18n key produced by progressiveValidate.
 const progressiveValidateExposed = (value: string) =>
-  progressiveValidate(value, (key: string, named?: NamedValue) => {
+  progressiveValidate(value, (key: string, named?: unknown) => {
     if (named) {
       return `${key} ${JSON.stringify(named)}`
     } else {
