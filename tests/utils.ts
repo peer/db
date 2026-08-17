@@ -818,6 +818,26 @@ export async function loadAllResults(page: Page): Promise<void> {
   await expect(loadMore, "the feed offers no more results once all of them are shown").toBeHidden()
 }
 
+// The panel of the feed which lists the facets. It carries the address its list came from, which names the
+// version of the search the list is for.
+const FILTERS_PANEL = ".pd-searchresultsfeed-panel-filters"
+
+// The version of the search the given address was asked for, or null when there is no address or it names no
+// version.
+function versionOfURL(url: string | null): string | null {
+  return url === null ? null : new URL(url, PEERDB_URL).searchParams.get("version")
+}
+
+// The version of the search the given element last asked for, or null when the element is not on the page (a
+// view which renders no such element) or carries no address yet.
+async function versionOfElement(page: Page, selector: string): Promise<string | null> {
+  const element = page.locator(selector).first()
+  if ((await element.count()) === 0) {
+    return null
+  }
+  return versionOfURL(await element.getAttribute("data-url"))
+}
+
 // Adds every facet the filters panel still has to add, so that a checkpoint of a search is of a panel which
 // cannot grow any further.
 //
@@ -875,10 +895,21 @@ export async function settleFilters(page: Page): Promise<void> {
       // network: the button is briefly away in the middle of that, which on its own reads the same as a panel
       // with nothing left to add. A panel taken back to its first facets shows fewer of them than the one
       // which was settled, so the count is what tells the two apart.
+      //
+      // Which version the list is for is confirmed as well, because a panel showing every facet of the
+      // version before is a settled panel by every other measure. The panel builds its list from the search
+      // session it has been handed, which is the session as it was last read back, while the results are
+      // asked for as soon as the version changes (useFilters and useSearchResults in search.ts). Between the
+      // two the panel holds the list of the version before with nothing in flight and nothing left to add,
+      // and the list which then arrives takes it back to the facets it shows first, which is what a capture
+      // taken in the meantime shows.
       const fetched = filtersFetched
       const shown = await facets.count()
       await settle(page)
-      if (filtersFetched === fetched && (await facets.count()) === shown && !(await moreFilters.isVisible().catch(() => false))) {
+      const resultsVersion = await versionOfElement(page, RESULTS_ELEMENT)
+      const filtersVersion = await versionOfElement(page, FILTERS_PANEL)
+      const current = resultsVersion === null || filtersVersion === null || resultsVersion === filtersVersion
+      if (filtersFetched === fetched && (await facets.count()) === shown && !(await moreFilters.isVisible().catch(() => false)) && current) {
         return
       }
     }
@@ -1798,13 +1829,10 @@ const RESULTS_ELEMENT = ".pd-searchresultsfeed-list-results, .pd-searchresultsta
 // Waits until what is rendered are the results of the given version of the search.
 async function expectResultsVersion(page: Page, version: number): Promise<void> {
   await expect
-    .poll(
-      async () => {
-        const url = await page.locator(RESULTS_ELEMENT).first().getAttribute("data-url")
-        return url === null ? null : new URL(url, PEERDB_URL).searchParams.get("version")
-      },
-      { message: `the results on the screen are the ones of the search at version ${version}`, timeout: LOADING_TIMEOUT },
-    )
+    .poll(async () => await versionOfElement(page, RESULTS_ELEMENT), {
+      message: `the results on the screen are the ones of the search at version ${version}`,
+      timeout: LOADING_TIMEOUT,
+    })
     .toBe(String(version))
 }
 
