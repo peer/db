@@ -57,7 +57,7 @@ const (
 
 // ErrSignInFailed marks every client-side failure from Callback: malformed
 // callback parameters, an "error" response from the issuer, a replayed or
-// expired flow row, or a token-exchange / JWT-validation failure. Route
+// expired flow row, or a token-exchange/JWT-validation failure. Route
 // handlers should map errors that wrap this sentinel to HTTP 400 and treat
 // any other Callback error as an internal-server (500) condition.
 var ErrSignInFailed = errors.Base("sign-in failed")
@@ -374,7 +374,7 @@ func (b *baseAuthenticator) CleanupExpired(ctx context.Context) errors.E {
 
 // signInFlow is the shared body of OIDCAuthenticator.SignIn and
 // MockAuthenticator.SignIn. It sanitises the redirect, generates
-// fresh state / PKCE verifier / nonce values, persists them, and
+// fresh state/PKCE verifier/nonce values, persists them, and
 // delegates to the authenticator-specific authCodeURL builder
 // for the final URL.
 func signInFlow(
@@ -459,7 +459,7 @@ func callbackFlow(
 
 	token, expiry, errE := exchangeCode(ctx, code, flow.CodeVerifier, flow.Nonce, allowedRoles)
 	if errE != nil {
-		// Token exchange / JWT validation failures are caller-induced
+		// Token exchange/JWT validation failures are caller-induced
 		// (bad code, signature mismatch, nonce mismatch, ...).
 		return "", time.Time{}, "", errors.WrapWith(errE, ErrSignInFailed)
 	}
@@ -494,7 +494,7 @@ func signOutFlow(
 		return nil
 	}
 
-	// The token is the access token from the cookie / Bearer header.
+	// The token is the access token from the cookie/Bearer header.
 	claims, err := tokenVerifier.Verify(ctx, token)
 	if err != nil {
 		// Token does not validate (expired or tampered): the JWT

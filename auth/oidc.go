@@ -389,7 +389,7 @@ func (a *OIDCAuthenticator) authCodeURL(state, codeVerifier, nonce, uiLocales st
 func (a *OIDCAuthenticator) exchangeCode(
 	ctx context.Context, code, codeVerifier, expectedNonce string, allowedRoles map[string]RoleGrants,
 ) (string, time.Time, errors.E) {
-	// The pooled HTTP client is shared with JWKS / userinfo so token
+	// The pooled HTTP client is shared with JWKS/userinfo so token
 	// exchanges benefit from the same keep-alive pool.
 	tokenCtx := oidc.ClientContext(ctx, a.httpClient)
 	cfg := a.oauthConfig()

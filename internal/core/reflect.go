@@ -64,7 +64,7 @@ var AmountIntervalTypes = map[reflect.Type]bool{
 // ScalarTypes is the union of single-value core types (Ref, Time, std time,
 // TimeInterval, Identifier, Link, File, HTML, RawHTML, None, Unknown). Use
 // this to gate "is this a known core scalar/wrapper, not a user struct"
-// decisions; combine with [AmountTypes] / [AmountIntervalTypes] when you also
+// decisions; combine with [AmountTypes]/[AmountIntervalTypes] when you also
 // want the Amount/Interval families included.
 //
 //nolint:gochecknoglobals

@@ -17,7 +17,7 @@ import (
 
 // newTestRevocationStore returns a fully initialised revocationStore
 // scoped to a fresh per-test schema, plus the ctx the caller should
-// thread into Revoke / IsRevoked.
+// thread into Revoke/IsRevoked.
 func newTestRevocationStore(t *testing.T) (context.Context, *auth.TestingRevocationStore) {
 	t.Helper()
 

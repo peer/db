@@ -5597,7 +5597,7 @@ func TestEarliestClaimTimeNone(t *testing.T) {
 }
 
 // TestEarliestClaimTimeOpenBoundsNotSentinel verifies that a time interval with a
-// None bound does not leak the -MaxFloat64 / +MaxFloat64 range sentinels into the
+// None bound does not leak the -MaxFloat64/+MaxFloat64 range sentinels into the
 // top-level Time field. convertTimeInterval uses those sentinels only for the
 // searchable range of an absent bound; the From/To boundary values stay nil, so
 // Time (derived from them) falls back to the interval's known bound. Unknown

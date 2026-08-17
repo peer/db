@@ -55,7 +55,7 @@ type revocationStore struct {
 
 // newRevocationStore returns a revocationStore backed by the given
 // connection pool. The caller is responsible for ensuring ctx carries
-// the per-site schema when Init / IsRevoked / Revoke run outside of a
+// the per-site schema when Init/IsRevoked/Revoke run outside of a
 // WAF-routed request.
 func newRevocationStore(dbpool *pgxpool.Pool) *revocationStore {
 	return &revocationStore{ //nolint:exhaustruct // mu is a zero-value sync.Mutex.
@@ -193,7 +193,7 @@ func (s *revocationStore) Revoke(ctx context.Context, token string, tokenExp tim
 }
 
 // cleanupExpired removes rows for tokens that have already expired. Safe
-// to call concurrently with Revoke / IsRevoked.
+// to call concurrently with Revoke/IsRevoked.
 func (s *revocationStore) cleanupExpired(ctx context.Context) errors.E {
 	return internalStore.RetryTransaction(ctx, s.DBPool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
 		_, err := tx.Exec(ctx, `DELETE FROM "RevokedTokens" WHERE "expiresAt" <= now()`)

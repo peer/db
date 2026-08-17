@@ -19,7 +19,7 @@ const accessTokenCookieName = "__Host-session" //nolint:gosec
 // SetSessionCookie writes the access-token cookie with the given token
 // value, scoped to the whole site (Path=/) and configured so that
 // JavaScript cannot read it (HttpOnly) and modern browsers only attach it
-// under HTTPS / same-site contexts (Secure, SameSite=Lax).
+// under HTTPS/same-site contexts (Secure, SameSite=Lax).
 //
 // expiresAt should equal the token's exp claim; when it has already
 // passed MaxAge becomes 0, which deletes the cookie immediately.

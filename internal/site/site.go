@@ -242,7 +242,7 @@ type Site struct {
 	ESClient    *elasticsearch.TypedClient `json:"-" yaml:"-"`
 	RiverClient *river.Client[pgx.Tx]      `json:"-" yaml:"-"`
 
-	// Authenticator drives sign-in (SignIn / Callback), sign-out (SignOut)
+	// Authenticator drives sign-in (SignIn/Callback), sign-out (SignOut)
 	// and request-time token validation (Authenticate) for this site.
 	Authenticator auth.Authenticator `json:"-" yaml:"-"`
 

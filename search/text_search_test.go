@@ -236,7 +236,7 @@ func TestTextSearchStemmedPhraseEnglish(t *testing.T) {
 	// Index two English-tagged docs. doc1 has the plural form "running shoes".
 	// A quoted phrase "running shoe" (singular noun) should still match it via
 	// the stemmed-phrase clause: english_stemmer reduces both to the same root
-	// (run / shoe), so phrase positions line up after stemming.
+	// (run/shoe), so phrase positions line up after stemming.
 	doc1ID := identifier.From("doc1")
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
 		DisplaySort:     nil,

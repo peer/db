@@ -16,7 +16,7 @@ import (
 
 // newTestFlowStore returns a fully initialised flowStore scoped to a
 // fresh per-test schema, plus the ctx the caller should thread into
-// BeginFlow / ConsumeFlow.
+// BeginFlow/ConsumeFlow.
 func newTestFlowStore(t *testing.T) (context.Context, *auth.TestingFlowStore) {
 	t.Helper()
 
