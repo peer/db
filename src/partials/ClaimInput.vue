@@ -7,7 +7,10 @@ renders one ClaimCardinality per sub-field.
 
 For HAS the value input is omitted; the slot's emptiness is driven entirely
 by whether the sub-claims are empty. ensureClaimId lazily issues the empty
-HAS AddClaimChange on the first sub-claim add.
+HAS AddClaimChange on the first sub-claim add. A HAS field asking for the
+"checkbox" context instead states itself through a checkbox, which is what
+creates and removes the claim, and shows its sub-fields only while it is
+checked.
 
 initialClaim is the pre-session baseline used to seed the revert/checkpoint
 machinery. It is watched so a parent that re-anchors (mid-session reload,
@@ -57,8 +60,8 @@ const props = withDefaults(
     field: DeepReadonly<FieldData>
     // Errors the enclosing cardinality found for this slot by looking at more than the slot holds.
     // They are shown by the value input, and by the slot itself for a presence-only slot, which has
-    // no value input to show them (with or without a checkbox: a HAS slot with sub-fields has
-    // neither).
+    // no value input to show them (with or without a checkbox: a HAS slot with sub-fields and no
+    // checkbox has neither).
     errors?: ValidationError[]
     // parentClaimId is a callback that returns the parent's claim id
     // (creating it lazily if the parent is a HAS slot whose claim has
@@ -120,6 +123,12 @@ const getFieldLabelCell = inject(fieldLabelCellKey, () => null)
 
 const isHas = computed(() => props.field.valueType === VT_HAS)
 const isPresenceOnly = computed(() => isHas.value || props.field.valueType === VT_NONE || props.field.valueType === VT_UNKNOWN)
+
+// A HAS field with the "checkbox" context states something by being there at all, and its sub-fields
+// are the details of what it states: the checkbox is what the user says it with, and the sub-fields
+// are asked for only once it is checked. Without the context a HAS field with sub-fields is the
+// container it looks like, created implicitly by filling one of them in.
+const isCheckbox = computed(() => isHas.value && (props.field.context?.includes("checkbox") ?? false))
 
 // Local raw-value state, owned by the user once mounted. It is seeded from the session
 // BASELINE (initialClaim) for the first render and switched to the claim's loaded values
@@ -236,6 +245,10 @@ function currentSubClaims(subField: DeepReadonly<FieldData>): readonly DeepReado
 // a parent id, and ensureClaimId for those just returns the existing id.
 const showSubFields = computed(() => {
   if (props.field.subFields.length === 0) return false
+  // A checkbox HAS field is the exception among the HAS fields: its checkbox is what creates the
+  // claim, and the details it asks for are the ones of a statement which has been made, so they are
+  // shown only while it is checked.
+  if (isCheckbox.value) return currentClaim.value !== null
   if (isHas.value) return true
   // Every slot of a default field shows sub-fields before a value exists: any entry may be the
   // none/unknown form (e.g. several studios at unknown locations distinguished by their periods),
@@ -251,11 +264,12 @@ const showSubFields = computed(() => {
 // Whether to render the presence-toggle checkbox. NONE / UNKNOWN never
 // have a value of their own, and HAS without sub-fields also degenerates
 // to a presence-only toggle (no sub-form is shown). HAS *with* sub-fields
-// is checkbox-less: the user creates the HAS claim implicitly by adding
-// the first sub-claim (lazy via ensureClaimId).
+// is checkbox-less unless the field asks for the checkbox (see isCheckbox):
+// otherwise the user creates the HAS claim implicitly by adding the first
+// sub-claim (lazy via ensureClaimId).
 const showCheckbox = computed(() => {
   if (props.field.valueType === VT_NONE || props.field.valueType === VT_UNKNOWN) return true
-  if (props.field.valueType === VT_HAS && props.field.subFields.length === 0) return true
+  if (props.field.valueType === VT_HAS && (props.field.subFields.length === 0 || isCheckbox.value)) return true
   return false
 })
 
@@ -564,11 +578,14 @@ async function doEnsureClaimId(): Promise<string | null> {
 }
 
 // cleanupEmptyBase removes this slot's claim when it is a lazily-created base left
-// holding nothing: a HAS claim (of a field with sub-fields) or a default (none/unknown)
-// form whose sub-claims are all gone and whose value side is empty. Sub-cardinalities
-// call it when a revert empties them - the base came into existence implicitly with the
-// first sub-claim (ensureClaimId), so its removal mirrors that; otherwise an invisible
-// empty claim would keep the field flagged as changed with no control left to remove it.
+// holding nothing: a HAS claim (of a checkbox-less field with sub-fields) or a default
+// (none/unknown) form whose sub-claims are all gone and whose value side is empty.
+// Sub-cardinalities call it when a revert empties them - the base came into existence
+// implicitly with the first sub-claim (ensureClaimId), so its removal mirrors that;
+// otherwise an invisible empty claim would keep the field flagged as changed with no
+// control left to remove it. A checkbox HAS claim is never such a base: the checkbox
+// made it and only the checkbox unmakes it, so emptying its sub-fields leaves it
+// standing, with the required ones complaining as they should.
 function cleanupEmptyBase(): Promise<void> {
   return runSerialized(async () => {
     if (abortController.signal.aborted) return
@@ -585,7 +602,8 @@ function cleanupEmptyBase(): Promise<void> {
     if (hasAnySubClaims()) {
       return
     }
-    const isLazyBase = (isHas.value && props.field.subFields.length > 0) || (props.field.default !== undefined && claimTypeName(committed) === props.field.default)
+    const isLazyBase =
+      (isHas.value && !isCheckbox.value && props.field.subFields.length > 0) || (props.field.default !== undefined && claimTypeName(committed) === props.field.default)
     if (!isLazyBase) {
       return
     }
@@ -818,13 +836,13 @@ async function onCompleteChange(): Promise<void> {
 async function cleanupResidue(): Promise<void> {
   // Two entry kinds defer their empty-removal to slot-leave: any slot of a default field (its
   // empty default form claim carries no value, so commit() leaves it, and it is residue once its
-  // sub-claims are gone too), and a HAS base of a field with sub-fields (commit() never touches
-  // presence-only claims, and with sub-fields there is no checkbox to remove it; such an empty
-  // base is always residue of ensureClaimId, see cleanupEmptyBase). A default field whose min
-  // cardinality is thereby left unsatisfied is not a concern here: a document may violate min
-  // cardinality mid-edit, and the save flow fills default form claims to satisfy it (see
+  // sub-claims are gone too), and a HAS base of a checkbox-less field with sub-fields (commit()
+  // never touches presence-only claims, and without a checkbox there is nothing to remove it with;
+  // such an empty base is always residue of ensureClaimId, see cleanupEmptyBase). A default field
+  // whose min cardinality is thereby left unsatisfied is not a concern here: a document may violate
+  // min cardinality mid-edit, and the save flow fills default form claims to satisfy it (see
   // computeCardinalityFills).
-  const defersToSlotLeave = props.field.default !== undefined || (isHas.value && props.field.subFields.length > 0)
+  const defersToSlotLeave = props.field.default !== undefined || (isHas.value && !isCheckbox.value && props.field.subFields.length > 0)
   if (!defersToSlotLeave) return
   await runSerialized(async () => {
     if (abortController.signal.aborted) return
@@ -1085,9 +1103,10 @@ defineExpose({
     </div>
 
     <!--
-      Presence-toggle checkbox for NONE, UNKNOWN, and HAS-without-sub-fields.
-      HAS *with* sub-fields skips the checkbox entirely and relies on the
-      sub-form to drive presence (lazy create via ensureClaimId).
+      Presence-toggle checkbox for NONE, UNKNOWN, HAS-without-sub-fields, and a
+      HAS field asking for the checkbox. HAS *with* sub-fields otherwise skips
+      the checkbox entirely and relies on the sub-form to drive presence (lazy
+      create via ensureClaimId).
 
       The message and the checkbox are grouped so the message sits right under it, the way the
       value input shows its own message, instead of being pushed away by the slot's gap.
@@ -1110,7 +1129,9 @@ defineExpose({
       sits in FieldsFormField's left grid column). Hidden for non-HAS slots
       that don't have a committed claim yet (the parent must exist before a
       sub-claim can sit under it). For HAS the sub-form is always shown;
-      ensureClaimId lazily creates the parent on the first sub add.
+      ensureClaimId lazily creates the parent on the first sub add. A checkbox
+      HAS field shows it only while checked, its checkbox having created the
+      parent.
 
       A slot whose presence comes from the sub-form has no checkbox to show the message it was
       handed, so the sub-form carries it, as its last member: the message is about the whole entry

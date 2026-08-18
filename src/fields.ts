@@ -89,7 +89,9 @@ export interface FieldData {
   // getFieldInstructions).
   claims?: DeepReadonly<ClaimTypes>
   // FIELD_CONTEXT values: opaque context identifiers from the field's configuration.
-  // The read-only views skip fields with the "edit" context (see fieldShownInView).
+  // The read-only views skip fields with the "edit" context (see fieldShownInView), and a HAS field
+  // with the "checkbox" context is edited as a checkbox whose sub-fields are the details of what it
+  // states, asked for only while it is checked (see ClaimInput).
   context?: readonly string[]
   // Set when a LINK field and a FILE field share the same property at the same level (sibling
   // fields). Both value types produce link claims under the same property, so this flag makes
