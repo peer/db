@@ -11,7 +11,12 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, statSync,
 import { basename } from "node:path"
 
 // Allowed console message patterns.
-const CONSOLE_ALLOWLIST = [/^Failed to load resource: the server responded with a status of 400 \(\)$/, /\[vite]/, /\[Vue/]
+const CONSOLE_ALLOWLIST = [
+  /^Failed to load resource: the server responded with a status of 400 \(\)$/,
+  /\[vite]/,
+  /\[Vue/,
+  /was preloaded using link preload in Early Hints but not used/,
+]
 
 export const PEERDB_URL = process.env.PEERDB_URL || "https://localhost:8080"
 
