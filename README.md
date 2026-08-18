@@ -222,8 +222,8 @@ is left to you. We do suggest that you first populate the database using core Pe
 properties and classes. You can do that by running:
 
 ```sh
-./peerdb populate -S .storage
-./peerdb db reindex -S .storage
+./peerdb populate --storage.dir .storage
+./peerdb db reindex --storage.dir .storage
 ```
 
 On first run PeerDB creates the PostgreSQL schemas and the ElasticSearch indices if they do
@@ -547,8 +547,8 @@ It is opt-in. Pointing `populate` at the test data directory populates the data 
 the schema it needs; without the flag only core documents are populated:
 
 ```sh
-./peerdb populate -S .storage -c config.yml --test-data testdata
-./peerdb db reindex -S .storage -c config.yml
+./peerdb populate --storage.dir .storage -c config.yml --test-data testdata
+./peerdb db reindex --storage.dir .storage -c config.yml
 ```
 
 The development site with test data is further configured through [`config.yml`](./config.yml) file.
