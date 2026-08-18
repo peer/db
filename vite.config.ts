@@ -53,6 +53,22 @@ export default defineConfig({
       // through our Go development proxy.
       clientPort: 8080,
     },
+    watch: {
+      // Directories E2E tests write reports and coverage into. Without this the dev server
+      // watches them and triggers a full page reload for every written report file.
+      // Vite merges these with its own defaults (.git, node_modules, test-results, cache dir).
+      ignored: [
+        "**/a11y-report/**",
+        "**/playwright-report/**",
+        "**/playwright-screenshots/**",
+        "**/blob-report/**",
+        "**/blob-report-merged/**",
+        "**/coverage/**",
+        "**/coverage-frontend/**",
+        "**/.nyc_output/**",
+        "**/logs/**",
+      ],
+    },
   },
   resolve: {
     alias: {
