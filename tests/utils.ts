@@ -1165,7 +1165,6 @@ async function searchIdsForQuery(page: Page, query: string): Promise<Array<strin
   return await resultIds(page)
 }
 
-// Waits until a search for the given query does or does not find the given document, which is how a test
 // The document as the server stores it, fetched from the API as text. An editing session keeps its changes
 // to itself until the save goes through, so this is how a test tells what a refused save left behind, and
 // what one which went through actually wrote. The body is searched as text rather than dug through as a
@@ -1176,6 +1175,7 @@ export async function storedDocument(page: Page, id: string): Promise<string> {
   return response.body
 }
 
+// Waits until a search for the given query does or does not find the given document, which is how a test
 // waits for the index to catch up with what it wrote.
 export async function expectSearchFinds(page: Page, query: string, id: string, found: boolean, what: string): Promise<void> {
   await expect.poll(async () => (await searchIdsForQuery(page, query)).includes(id), { message: what, timeout: INDEXING_TIMEOUT, intervals: [1000] }).toBe(found)
@@ -1580,10 +1580,6 @@ export async function discardEdit(page: Page): Promise<void> {
   await settleDocument(page)
 }
 
-// Starts creating a document of the given class. The create view lists the classes as a tree and a
-// class is chosen by clicking it, so the class is addressed by the identifier in its class name.
-//
-// A class which is a subclass of more than one class is listed once under each of them, so its button
 // The identifiers of the classes the create page offers to start a document of, read out of the identifier
 // every class button carries in its own CSS class, so what is offered is compared as a set of documents
 // rather than as a list of labels, which differ between languages. A class which is a subclass of more than
@@ -1597,6 +1593,10 @@ export async function offeredClasses(page: Page): Promise<Array<string>> {
   return [...new Set(ids)].sort()
 }
 
+// Starts creating a document of the given class. The create view lists the classes as a tree and a class is
+// chosen by clicking it, so the class is addressed by the identifier in its class name.
+//
+// A class which is a subclass of more than one class is listed once under each of them, so its button
 // matches more than once and the first match is taken.
 export async function startCreate(page: Page, classId: string): Promise<void> {
   const createButton = page.locator(".pd-createbutton")
