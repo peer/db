@@ -57,6 +57,7 @@ codeclimate.json
 
 # Binaries
 /peerdb
+*.exe
 
 # Exception: difference from .gitignore.
 !test-e2e-rootCA.pem
