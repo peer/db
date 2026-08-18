@@ -540,17 +540,12 @@ export type DownloadZipWorkerInput =
   | { type: "cancel" }
 
 export type DownloadZipWorkerOutput =
-  | { type: "progress"; completed: number; total: number; currentFile: string }
-  | { type: "blob"; blob: Blob }
-  | { type: "done" }
-  | { type: "error"; message: string }
+  { type: "progress"; completed: number; total: number; currentFile: string } | { type: "blob"; blob: Blob } | { type: "done" } | { type: "error"; message: string }
 
 export type DownloadFilesWorkerInput = { type: "start"; files: DownloadFile[]; directoryHandle: FileSystemDirectoryHandle } | { type: "cancel" }
 
 export type DownloadFilesWorkerOutput =
-  | { type: "progress"; completed: number; total: number; currentFile: string }
-  | { type: "done" }
-  | { type: "error"; message: string }
+  { type: "progress"; completed: number; total: number; currentFile: string } | { type: "done" } | { type: "error"; message: string }
 
 // A single validation failure. Codes (not messages) keep i18n in the
 // presentation layer. Path is a hierarchical address into a composite input
