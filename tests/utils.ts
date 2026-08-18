@@ -498,10 +498,27 @@ export function printVolatile(page: Page): Array<Locator> {
   return [...volatile(page), page.locator(".pd-searchresultsfeed-timestamp")]
 }
 
-// Opens the home page. Every test starts here so that the navbar is in its initial state.
-export async function goHome(page: Page): Promise<void> {
+// The controls of the home view: the box a query is typed into and the button which sends it. Landing on
+// the address of a site which serves that view is the box being there.
+const HOME_SEARCH_INPUT = "#home-input-search"
+const HOME_SEARCH_BUTTON = "#home-button-search"
+
+// Where a site is searched from, for a site which does not serve the home view at its address. A site whose
+// front page is a search over its catalog has no home view at all, so it says which element says its address
+// has landed and which controls it is searched through, instead of the home view's.
+export interface SiteSearchOptions {
+  // What says the address of the site has landed. Defaults to the search box of the home view.
+  landed?: string
+  // Where a query is typed and what sends it. Both default to the controls of the home view.
+  input?: string
+  button?: string
+}
+
+// Opens the address of the site and waits until what it leads to has rendered. Every test starts here so
+// that the navbar is in its initial state.
+export async function goHome(page: Page, { landed = HOME_SEARCH_INPUT }: SiteSearchOptions = {}): Promise<void> {
   await page.goto(PEERDB_URL)
-  await expect(page.locator("#home-input-search")).toBeVisible()
+  await expect(page.locator(landed), "what the address of the site leads to").toBeVisible()
 }
 
 // The name the mock authenticator gives the user signed in with the given roles: the roles in
@@ -548,8 +565,8 @@ async function signInPageState(page: Page): Promise<string> {
 // roles are chosen, and signing in there sends it back where it started. The roles are picked by the
 // label they are listed under, which is the role name the site declares, so the order the page lists
 // them in does not matter.
-export async function signIn(page: Page, roles: ReadonlyArray<string>): Promise<void> {
-  await goHome(page)
+export async function signIn(page: Page, roles: ReadonlyArray<string>, options: SiteSearchOptions = {}): Promise<void> {
+  await goHome(page, options)
   // Signing in starts from the sign in button, which is there only while nobody is signed in, so a test
   // which takes on one identity after another is signed out first.
   if ((await page.locator(".pd-navbarmenu-button").count()) > 0) {
@@ -638,7 +655,7 @@ export async function switchLanguage(page: Page, language: string): Promise<void
 }
 
 // What searchWithQuery may be asked to do beyond running the query.
-export interface SearchWithQueryOptions {
+export interface SearchWithQueryOptions extends SiteSearchOptions {
   // Whether the home page before the search and the results after it are checkpointed. Without it no
   // checkpoint is taken at all, which is what a test about what a search finds rather than about how the
   // page looks asks for.
@@ -648,14 +665,14 @@ export interface SearchWithQueryOptions {
   results?: boolean
 }
 
-// Runs a search from the home page and waits for the results to render.
+// Runs a search from the front page of the site and waits for the results to render.
 export async function searchWithQuery(page: Page, query: string, options: SearchWithQueryOptions = {}): Promise<void> {
-  await goHome(page)
+  await goHome(page, options)
 
-  const searchInput = page.locator("#home-input-search")
-  await expect(searchInput).toBeVisible()
-  const searchButton = page.locator("#home-button-search")
-  await expect(searchButton).toBeVisible()
+  const searchInput = page.locator(options.input ?? HOME_SEARCH_INPUT)
+  await expect(searchInput, "the search box the query is typed into").toBeVisible()
+  const searchButton = page.locator(options.button ?? HOME_SEARCH_BUTTON)
+  await expect(searchButton, "the button which sends the query").toBeVisible()
   if (options.checkpoints) {
     await checkpoint(page, "home-page-before-search")
   }
@@ -1022,15 +1039,16 @@ export async function expectFilterActive(page: Page, facet: Locator, active: boo
   await page.waitForLoadState("networkidle")
 }
 
-// Runs the search over all documents from the home page and opens the filters panel. A test takes its own
-// checkpoints, so that every screenshot name stays unique even when tests run next to each other.
-export async function openAllDocumentsSearch(page: Page): Promise<void> {
-  await goHome(page)
+// Runs the search over all documents from the front page of the site and opens the filters panel. A test
+// takes its own checkpoints, so that every screenshot name stays unique even when tests run next to each
+// other.
+export async function openAllDocumentsSearch(page: Page, options: SiteSearchOptions = {}): Promise<void> {
+  await goHome(page, options)
 
-  const searchInput = page.locator("#home-input-search")
-  await expect(searchInput, "the search box of the home page").toBeVisible()
-  const searchButton = page.locator("#home-button-search")
-  await expect(searchButton, "the search button of the home page").toBeVisible()
+  const searchInput = page.locator(options.input ?? HOME_SEARCH_INPUT)
+  await expect(searchInput, "the search box the query is typed into").toBeVisible()
+  const searchButton = page.locator(options.button ?? HOME_SEARCH_BUTTON)
+  await expect(searchButton, "the button which sends the query").toBeVisible()
 
   await searchInput.fill("")
   await searchButton.click()
