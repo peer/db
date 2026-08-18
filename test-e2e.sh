@@ -190,7 +190,7 @@ docker run --rm \
   -S /data/.storage \
   populate --test-data=/data/testdata-e2e > "$LOGS_DIR/populate.log" 2>&1 || { tail -n 50 "$LOGS_DIR/populate.log"; exit 1; }
 
-echo "7. Reindex PeerDB..."
+echo "7. Reindexing PeerDB..."
 
 docker run --rm \
   --network "$NETWORK" \
