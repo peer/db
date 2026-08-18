@@ -203,25 +203,20 @@ test.describe("PeerDB Create Duplicates Flows", () => {
     const page = await context.newPage()
 
     await signIn(page, ["surveyor"])
-    await startCreate(page, "STAR_SYSTEM")
 
     // A form nothing has been typed into resembles no document: it says only what class is being created,
-    // and the panel is meant to hold its tongue about a bare class (a shared class alone is under the score
-    // it takes to be reported, see minDuplicateScore in search/duplicates.go).
+    // and a shared class alone is under the score it takes to be reported (minDuplicateScore in
+    // search/duplicates.go). The permission claims every document created through the interface is seeded
+    // with are not scored at all, because they say who may read or change a document rather than what it is
+    // about, so they cannot carry a candidate over that score between them either.
     //
-    // This currently fails, and it is a defect rather than a test which expects too much. Every document
-    // created through the interface is given the same five permission claims (read, read historic, update,
-    // delete and update permissions, each scoped to the document itself), and the create session is given
-    // them too before the form is shown. The duplicate search counts every reference claim of the document
-    // being created, permission claims included, so those five alone are worth ten, which is over twice the
-    // score it takes to be reported. Every document ever created through the interface therefore matches
-    // every document being created, whatever either of them is about, and the panel fills up with documents
-    // which have nothing to do with what is being recorded.
+    // The search the panel makes as the form opens is the only one such a form provokes: nothing is typed,
+    // so nothing about the document changes and nothing asks for another one. The wait for it is therefore
+    // armed before the form is opened, because a wait armed afterwards is a wait for a second search.
     const search = page.waitForResponse((response) => response.url().includes("/api/d/findDuplicates"), { timeout: LOADING_TIMEOUT })
+    await startCreate(page, "STAR_SYSTEM")
     const nameInput = field(page, PROPERTY_IDS.NAME).locator(".pd-inputstring").first()
     await expect(nameInput, "the name of the star system being created").toBeVisible({ timeout: LOADING_TIMEOUT })
-    await nameInput.click()
-    await nameInput.blur()
     await search
     await settleEdit(page)
 
