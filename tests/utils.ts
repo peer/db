@@ -615,13 +615,26 @@ export async function expectOfferedRoles(page: Page, roles: ReadonlyArray<string
 // Opens the menu of the signed-in user, which is where the sign-out button and the language switcher
 // live once there is a user to name it after. The menu is left open, because everything in it is
 // reached through it.
+//
+// The press is repeated until the menu is open. A navbar which is still settling (the page it is on has
+// just been answered, or the user it names has just changed) takes a press and does nothing with it, and
+// what says the menu opened is the panel rather than the press having landed.
 export async function openUserMenu(page: Page): Promise<void> {
   const menuButton = page.locator(".pd-navbarmenu-button")
   await expect(menuButton).toBeVisible()
-  if (!(await page.locator(".pd-navbarmenu-panel").isVisible())) {
-    await menuButton.click()
-  }
-  await expect(page.locator(".pd-navbarmenu-panel")).toBeVisible()
+  const panel = page.locator(".pd-navbarmenu-panel")
+  await expect
+    .poll(
+      async () => {
+        if (await panel.isVisible()) {
+          return true
+        }
+        await menuButton.click()
+        return await panel.isVisible()
+      },
+      { message: "the menu of the signed-in user is open", timeout: LOADING_TIMEOUT },
+    )
+    .toBe(true)
 }
 
 export async function signOut(page: Page): Promise<void> {
