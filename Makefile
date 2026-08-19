@@ -91,4 +91,4 @@ sops:
 	SOPS_AGE_KEY_FILE=keys.txt gitlab-config sops .gitlab-conf.yml
 
 watch:
-	CompileDaemon -build="make --silent peerdb" -command="./peerdb -D -k localhost+2.pem -K localhost+2-key.pem -c config.yml -S .storage" -include="*.json" -include="go.*" -include="config.yml" -exclude=".*" -exclude-dir=".?*" -exclude-dir=output -exclude-dir=node_modules -exclude-dir=lib -exclude-dir=coverage -graceful-kill=true -log-prefix=false -color=true
+	CompileDaemon -build="make --silent razume" -command="./razume -D -k localhost+2.pem -K localhost+2-key.pem -c config.yml -S .storage" -include="*.json" -include="go.*" -include="config.yml" -exclude=".*" -exclude-dir=".?*" -exclude-dir=output -exclude-dir=node_modules -exclude-dir=lib -exclude-dir=coverage -exclude-dir=a11y-report -exclude-dir=playwright-report -exclude-dir=playwright-screenshots -exclude-dir=test-results -exclude-dir=blob-report -exclude-dir=blob-report-merged -exclude-dir=logs -graceful-kill=true -log-prefix=false -color=true

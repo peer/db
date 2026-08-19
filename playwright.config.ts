@@ -25,6 +25,7 @@ export default defineConfig({
     ["junit", { outputFile: "test-results/junit.xml" }],
   ],
   use: {
+    ...devices["Desktop Chrome"],
     baseURL: process.env.PEERDB_URL || "https://localhost:8080",
     ignoreHTTPSErrors: false,
     trace: "on-first-retry",
@@ -32,7 +33,6 @@ export default defineConfig({
     headless: true,
     // Assertions are generally used when the element should be present. This timeout only accounts for asynchronicity.
     actionTimeout: 10000,
-    ...devices["Desktop Chrome"],
     contextOptions: {
       reducedMotion: "reduce", // Avoids animation-related test flakiness.
     },

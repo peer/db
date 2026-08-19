@@ -57,3 +57,4 @@ codeclimate.json
 
 # Binaries
 /peerdb
+*.exe
