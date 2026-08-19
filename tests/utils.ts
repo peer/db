@@ -18,6 +18,10 @@ const CONSOLE_ALLOWLIST = [
   /was preloaded using link preload in Early Hints but not used/,
 ]
 
+// How long a menu is given to open, and a button inside one to answer, before the press is made again.
+// It is short because what it waits for is a render and not an answer from the site.
+const MENU_TIMEOUT = 2000
+
 export const PEERDB_URL = process.env.PEERDB_URL || "https://localhost:8080"
 
 // The identifier a document is stored under, derived the way the application derives it: from the namespace
@@ -616,13 +620,18 @@ export async function expectOfferedRoles(page: Page, roles: ReadonlyArray<string
 // live once there is a user to name it after. The menu is left open, because everything in it is
 // reached through it.
 //
-// The press is repeated until the menu is open. A navbar which is still settling (the page it is on has
-// just been answered, or the user it names has just changed) takes a press and does nothing with it, and
-// what says the menu opened is the panel rather than the press having landed.
+// The page is waited out first and the press is repeated until the menu stays open. A navbar renders
+// again whenever what it names changes (the answer to what the page asked for lands, the user signs in
+// or out), and rendering it again closes the menu, so a press which lands in that moment opens a menu
+// which is gone by the time anything in it is reached for.
 export async function openUserMenu(page: Page): Promise<void> {
   const menuButton = page.locator(".pd-navbarmenu-button")
   await expect(menuButton).toBeVisible()
   const panel = page.locator(".pd-navbarmenu-panel")
+  if (await panel.isVisible()) {
+    return
+  }
+  await settle(page)
   await expect
     .poll(
       async () => {
@@ -630,19 +639,41 @@ export async function openUserMenu(page: Page): Promise<void> {
           return true
         }
         await menuButton.click()
-        return await panel.isVisible()
+        // The press is given time to land before it is judged: a menu which took a moment to open is not
+        // a menu which did not open, and pressing again would close the one which just did.
+        return await panel.isVisible({ timeout: MENU_TIMEOUT })
       },
       { message: "the menu of the signed-in user is open", timeout: LOADING_TIMEOUT },
     )
     .toBe(true)
 }
 
+// Signs the user out, through the button inside their own menu.
+//
+// The menu is opened again for every attempt, because it closes whenever the navbar renders again, which
+// it does while the page the sign-out starts from is still being answered. What says the sign-out landed
+// is the button which signs in being back.
 export async function signOut(page: Page): Promise<void> {
-  await openUserMenu(page)
-  const signOutButton = page.locator("#navbar-button-signout")
-  await expect(signOutButton).toBeVisible()
-  await signOutButton.click()
-  await expect(page.locator("#navbar-button-signin")).toBeVisible()
+  const signInButton = page.locator("#navbar-button-signin")
+  await expect
+    .poll(
+      async () => {
+        if (await signInButton.isVisible()) {
+          return true
+        }
+        await openUserMenu(page)
+        const signOutButton = page.locator("#navbar-button-signout")
+        try {
+          await signOutButton.click({ timeout: MENU_TIMEOUT })
+        } catch {
+          // The menu closed under the press, which the next attempt opens again.
+          return false
+        }
+        return await signInButton.isVisible({ timeout: MENU_TIMEOUT })
+      },
+      { message: "the user is signed out", timeout: LOADING_TIMEOUT },
+    )
+    .toBe(true)
 }
 
 // Switches the interface language and waits for the switch to take effect. The switcher sits in the
