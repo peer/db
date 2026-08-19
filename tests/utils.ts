@@ -37,11 +37,36 @@ interface ExtendedBrowserContext extends BrowserContext {
   _consoleMessages: Array<Promise<string>>
 }
 
+// What is answered in place of anything a page asks of a host other than the site: a picture of a fixed
+// size for an image and nothing at all for the rest. A document can point at a picture on somebody else's
+// website, and what such a request does follows how that website answers it: the picture is there in one
+// run and missing in the next, and a request which never answers keeps the page from ever going quiet,
+// which is a test waiting until it times out. Neither is about the site, so nothing leaves it.
+const EXTERNAL_IMAGE = '<svg xmlns="http://www.w3.org/2000/svg" width="300" height="100" viewBox="0 0 300 100"><rect width="300" height="100" fill="#d4d4d4"/></svg>'
+
 export const test = baseTest.extend({
   context: async ({ browser }, use) => {
     const context = (await browser.newContext()) as ExtendedBrowserContext
     // Initialize console messages array for this specific context.
     context._consoleMessages = []
+
+    // The site itself is left alone, and so is what a page carries with it (a data or blob address), which
+    // is not a request over the network at all. This is the first handler the context is given, so a helper
+    // which routes something of the site later takes precedence over it (Playwright tries the handlers it
+    // was given last first), and what this passes on runs as it would have.
+    const siteOrigin = new URL(PEERDB_URL).origin
+    await context.route("**/*", async (route) => {
+      const url = route.request().url()
+      if (url.startsWith(siteOrigin) || url.startsWith("data:") || url.startsWith("blob:")) {
+        await route.fallback()
+        return
+      }
+      if (route.request().resourceType() === "image") {
+        await route.fulfill({ status: 200, contentType: "image/svg+xml", body: EXTERNAL_IMAGE })
+        return
+      }
+      await route.fulfill({ status: 200, contentType: "text/plain", body: "" })
+    })
 
     await context.exposeFunction("collectIstanbulCoverage", (coverageJSON: string) => {
       if (!coverageJSON) {
