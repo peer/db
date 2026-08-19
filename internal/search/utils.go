@@ -78,6 +78,21 @@ func (a loggerAdapter) LogRoundTrip(req *http.Request, res *http.Response, err e
 		event.Int("statusCode", res.StatusCode)
 	}
 
+	// The bodies are logged under their own keys because the logger this event is made on is the one of
+	// the request the call was made for: it already carries that request's identifier under "request"
+	// (see waf's requestIDHandler), which is what makes a call and the request which made it readable
+	// together, and a body logged under the same key would be logged in its place.
+	//
+	// Elasticsearch is sent that same identifier as X-Opaque-Id (see getSearchService) and echoes it
+	// back, which is checked rather than logged again: an echo which is not what was sent means the call
+	// was attributed to something else at the other end, and only then is it worth saying so.
+	if res != nil {
+		sent := req.Header.Get("X-Opaque-Id")
+		if echoed := res.Header.Get("X-Opaque-Id"); echoed != sent {
+			event.Str("opaqueId", echoed)
+		}
+	}
+
 	if a.RequestBodyEnabled() && req != nil && req.Body != nil && req.Body != http.NoBody {
 		var buf bytes.Buffer
 		if req.GetBody != nil {
@@ -86,14 +101,14 @@ func (a loggerAdapter) LogRoundTrip(req *http.Request, res *http.Response, err e
 		} else {
 			buf.ReadFrom(req.Body) //nolint:errcheck,gosec
 		}
-		addBody(event, "request", buf.Bytes())
+		addBody(event, "esRequest", buf.Bytes())
 	}
 
 	if a.ResponseBodyEnabled() && res != nil && res.Body != nil && res.Body != http.NoBody {
 		defer res.Body.Close() //nolint:errcheck
 		var buf bytes.Buffer
 		buf.ReadFrom(res.Body) //nolint:errcheck,gosec
-		addBody(event, "response", buf.Bytes())
+		addBody(event, "esResponse", buf.Bytes())
 	}
 
 	event.Msg("elasticsearch")
