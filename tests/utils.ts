@@ -663,7 +663,9 @@ export async function openUserMenu(page: Page): Promise<void> {
         if (await panel.isVisible()) {
           return true
         }
-        await menuButton.click()
+        if (!(await pressMenuButton(page))) {
+          return false
+        }
         // The press is given time to land before it is judged: a menu which took a moment to open is not
         // a menu which did not open, and pressing again would close the one which just did.
         return await panel.isVisible({ timeout: MENU_TIMEOUT })
@@ -673,20 +675,37 @@ export async function openUserMenu(page: Page): Promise<void> {
     .toBe(true)
 }
 
+// Presses the button which opens the menu of the signed-in user, and reports whether the press landed.
+// The button is gone from a navbar which names nobody, and a navbar renders again whenever what it names
+// changes, so the button can go while it is being pressed: that is what the caller is told about, rather
+// than waiting on a button which is not coming back.
+async function pressMenuButton(page: Page): Promise<boolean> {
+  try {
+    await page.locator(".pd-navbarmenu-button").click({ timeout: MENU_TIMEOUT })
+  } catch {
+    return false
+  }
+  return true
+}
+
 // Signs the user out, through the button inside their own menu.
 //
 // The menu is opened again for every attempt, because it closes whenever the navbar renders again, which
 // it does while the page the sign-out starts from is still being answered. What says the sign-out landed
-// is the button which signs in being back.
+// is the button which signs in being back, which is also what an attempt starts by looking for: the one
+// before it may have signed the user out and left this one with a navbar naming nobody.
 export async function signOut(page: Page): Promise<void> {
   const signInButton = page.locator("#navbar-button-signin")
+  const panel = page.locator(".pd-navbarmenu-panel")
   await expect
     .poll(
       async () => {
         if (await signInButton.isVisible()) {
           return true
         }
-        await openUserMenu(page)
+        if (!(await panel.isVisible()) && !(await pressMenuButton(page))) {
+          return false
+        }
         const signOutButton = page.locator("#navbar-button-signout")
         try {
           await signOutButton.click({ timeout: MENU_TIMEOUT })
