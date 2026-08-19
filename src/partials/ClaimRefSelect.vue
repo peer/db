@@ -181,6 +181,14 @@ function patchFor(target: string): object {
   return makePatchForField(props.field, { ...emptyFieldEntryValue(), value: target })
 }
 
+// What an operation writes back into the local claims is reconciled by claim id, and not by the identity of
+// the claim it read, because the list it writes into may no longer be the list it read from. The gate which
+// keeps the document's version of the list out (pendingCount, see the watch above) is lowered as soon as the
+// change is answered, which is before the operation has written its result, so a document echo arriving in
+// that window replaces the list with one which already carries the change. Reconciling by id makes the write
+// idempotent against that: an added claim which is already there is replaced instead of appended a second
+// time, and a removed one is taken out of whichever copy of the list is current.
+
 // doAdd commits an AddClaimChange for the given target, resolving the (possibly
 // lazily-created) parent first, like ClaimInput.addClaimWithParent.
 async function doAdd(target: string): Promise<void> {
@@ -195,14 +203,14 @@ async function doAdd(target: string): Promise<void> {
   if (!result) {
     return
   }
-  current.value = [...current.value, claimPatchFrom(patch).New(result.id)]
+  current.value = [...current.value.filter((c) => c.id !== result.id), claimPatchFrom(patch).New(result.id)]
 }
 
 async function doRemove(claim: DeepReadonly<Claim>): Promise<void> {
   if (!(await submitChange({ type: "remove", id: claim.id }))) {
     return
   }
-  current.value = current.value.filter((c) => c !== claim)
+  current.value = current.value.filter((c) => c.id !== claim.id)
   // A removal which left the field claim-less may have emptied the enclosing
   // slot's lazily-created base claim; ask it to clean up (it has its own guards).
   if (current.value.length === 0 && props.parentCleanup) {
@@ -221,18 +229,31 @@ async function doSet(claim: DeepReadonly<Claim>, target: string): Promise<void> 
   if (claim.sub) {
     updated.sub = claim.sub as unknown as ClaimTypes
   }
-  current.value = current.value.map((c) => (c === claim ? updated : c))
+  current.value = current.value.map((c) => (c.id === claim.id ? updated : c))
 }
 
 // toggle handles a checkbox (repeated field).
+//
+// The box stands for the target rather than for one claim: the field renders one of them per target however
+// many claims point at it. Unchecking therefore takes out every claim pointing at the target, because taking
+// out one of several would leave the box checked by the ones which remain. Each removal is a change of its
+// own, and an unmount partway through stops the rest instead of queueing changes for a component which is
+// gone, the way reverting a repeated field does.
 function toggle(target: string, checked: boolean): void {
   clearErrors()
   void runSerialized(async () => {
-    const existing = current.value.find((claim) => claimTarget(claim) === target)
-    if (checked && !existing) {
-      await doAdd(target)
-    } else if (!checked && existing) {
-      await doRemove(existing)
+    const existing = current.value.filter((claim) => claimTarget(claim) === target)
+    if (checked) {
+      if (existing.length === 0) {
+        await doAdd(target)
+      }
+    } else {
+      for (const claim of existing) {
+        if (abortController.signal.aborted) {
+          break
+        }
+        await doRemove(claim)
+      }
     }
     await settleFocus(target)
   })
