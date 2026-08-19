@@ -609,7 +609,7 @@ func DuplicatesGet(
 
 	res, err := searchService.Do(ctx)
 	if err != nil {
-		return nil, WithESError(err)
+		return nil, WithESError(ctx, err)
 	}
 
 	results := make([]Result, 0, len(res.Hits.Hits))

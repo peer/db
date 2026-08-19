@@ -15,18 +15,19 @@ import (
 	internalSearch "gitlab.com/peerdb/peerdb/internal/search"
 )
 
-// RequireNoESError fails the test immediately if err (returned by an Elasticsearch client call) is
-// non-nil, wrapping it via WithESError so the flattened ES error cause and status appear in the output.
-func RequireNoESError(t *testing.T, err error) {
+// RequireNoESError fails the test immediately if err (returned by an Elasticsearch client call with
+// ctx) is non-nil, wrapping it via WithESError so the flattened ES error cause and status appear in
+// the output.
+func RequireNoESError(ctx context.Context, t *testing.T, err error) {
 	t.Helper()
-	errE := internalSearch.WithESError(err)
+	errE := internalSearch.WithESError(ctx, err)
 	require.NoError(t, errE, "% -+#.1v", errE)
 }
 
 // AssertNoESError reports, without stopping the test, whether err (returned by an Elasticsearch client
-// call) is nil, wrapping it via WithESError. It suits require.EventuallyWithT polling closures.
-func AssertNoESError(t assert.TestingT, err error) bool {
-	errE := internalSearch.WithESError(err)
+// call with ctx) is nil, wrapping it via WithESError. It suits require.EventuallyWithT polling closures.
+func AssertNoESError(ctx context.Context, t assert.TestingT, err error) bool {
+	errE := internalSearch.WithESError(ctx, err)
 	return assert.NoError(t, errE, "% -+#.1v", errE)
 }
 
@@ -34,7 +35,7 @@ func AssertNoESError(t assert.TestingT, err error) bool {
 func DocExists(ctx context.Context, t *testing.T, esClient *elasticsearch.TypedClient, index, id string) bool {
 	t.Helper()
 	exists, err := esClient.Exists(index, id).IsSuccess(ctx)
-	RequireNoESError(t, err)
+	RequireNoESError(ctx, t, err)
 	return exists
 }
 
@@ -53,7 +54,7 @@ func DocHasReference(ctx context.Context, t *testing.T, esClient *elasticsearch.
 		nestedQuery,
 	)
 	res, err := esClient.Search().Index(index).Query(query).Size(1).Do(ctx)
-	RequireNoESError(t, err)
+	RequireNoESError(ctx, t, err)
 	return res.Hits.Total.Value > 0
 }
 

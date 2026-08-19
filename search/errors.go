@@ -1,6 +1,8 @@
 package search
 
 import (
+	"context"
+
 	"gitlab.com/tozd/go/errors"
 
 	internalSearch "gitlab.com/peerdb/peerdb/internal/search"
@@ -18,8 +20,12 @@ var (
 // Any other non-nil error is wrapped with a stack trace, without extra details. It returns nil
 // if v is nil.
 //
+// A call made with a context which is already done returns an error caused by the context's own, so a
+// request which was abandoned while Elasticsearch was answering it is answered as a timeout and not
+// as a failure of the site.
+//
 // Bulk responses are not handled here: their per-item failures are *types.ErrorCause values
 // aggregated into a single error rather than mapped one-to-one.
-func WithESError(v any) errors.E {
-	return internalSearch.WithESError(v)
+func WithESError(ctx context.Context, v any) errors.E {
+	return internalSearch.WithESError(ctx, v)
 }

@@ -1089,7 +1089,7 @@ func (b *Bridge) Prepare(ctx context.Context, targets []Target) errors.E {
 func (b *Bridge) fetchMaxContentLength(ctx context.Context) (int, errors.E) {
 	res, err := b.ESClient.Nodes.Info().Metric("http").Do(ctx)
 	if err != nil {
-		return 0, WithESError(err)
+		return 0, WithESError(ctx, err)
 	}
 	limit := 0
 	for _, node := range res.Nodes {
@@ -1112,7 +1112,7 @@ func (b *Bridge) Refresh(ctx context.Context) errors.E {
 	for _, t := range b.targets {
 		_, err := b.ESClient.Indices.Refresh().Index(t.Index).Do(ctx)
 		if err != nil {
-			return WithESError(err)
+			return WithESError(ctx, err)
 		}
 	}
 	return nil
@@ -1572,7 +1572,7 @@ func (b *Bridge) indexCommit( //nolint:maintidx
 	bulkStart := time.Now()
 	response, err := bulkService.Do(ctx)
 	if err != nil {
-		return referenceChanges{}, nil, embedChanges{}, WithESError(err)
+		return referenceChanges{}, nil, embedChanges{}, WithESError(ctx, err)
 	}
 	bulkDuration := time.Since(bulkStart)
 
@@ -3056,7 +3056,7 @@ func (b *Bridge) bulkIndexReindexed(ctx context.Context, snapshotSeq int64, pend
 
 	response, err := bulkService.Do(ctx)
 	if err != nil {
-		return 0, WithESError(err)
+		return 0, WithESError(ctx, err)
 	}
 	bulkErrors := []bulkError{}
 	for i, item := range response.Items {

@@ -990,7 +990,7 @@ func TestDocumentEditSessionIndexing(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	_, err := esClient.Indices.Refresh().Index(idx).Do(ctx)
-	testutils.RequireNoESError(t, err)
+	testutils.RequireNoESError(ctx, t, err)
 
 	// Both documents should be in ES.
 	require.EventuallyWithT(t, func(c *assert.CollectT) {
@@ -1036,7 +1036,7 @@ func TestDocumentEditSessionIndexing(t *testing.T) {
 	// Verify the relation A --X--> B is indexed in ES.
 	require.EventuallyWithT(t, func(c *assert.CollectT) {
 		_, err := esClient.Indices.Refresh().Index(idx).Do(ctx)
-		if !testutils.AssertNoESError(c, err) {
+		if !testutils.AssertNoESError(ctx, c, err) {
 			return
 		}
 		assert.True(c, testutils.DocHasReference(ctx, t, esClient, idx, docA, propX, docB),
@@ -1046,7 +1046,7 @@ func TestDocumentEditSessionIndexing(t *testing.T) {
 	// Verify docB gets inverse relation B --Y--> A.
 	require.EventuallyWithT(t, func(c *assert.CollectT) {
 		_, err := esClient.Indices.Refresh().Index(idx).Do(ctx)
-		if !testutils.AssertNoESError(c, err) {
+		if !testutils.AssertNoESError(ctx, c, err) {
 			return
 		}
 		assert.True(c, testutils.DocHasReference(ctx, t, esClient, idx, docB, propY, docA),
@@ -1082,7 +1082,7 @@ func TestDocumentEditSessionIndexing(t *testing.T) {
 	// Verify the relation is removed from ES.
 	require.EventuallyWithT(t, func(c *assert.CollectT) {
 		_, err := esClient.Indices.Refresh().Index(idx).Do(ctx)
-		if !testutils.AssertNoESError(c, err) {
+		if !testutils.AssertNoESError(ctx, c, err) {
 			return
 		}
 		assert.False(c, testutils.DocHasReference(ctx, t, esClient, idx, docA, propX, docB),
@@ -1100,7 +1100,7 @@ func TestDocumentEditSessionIndexing(t *testing.T) {
 
 	require.EventuallyWithT(t, func(c *assert.CollectT) {
 		_, err := esClient.Indices.Refresh().Index(idx).Do(ctx)
-		if !testutils.AssertNoESError(c, err) {
+		if !testutils.AssertNoESError(ctx, c, err) {
 			return
 		}
 		assert.False(c, testutils.DocHasReference(ctx, t, esClient, idx, docB, propY, docA),

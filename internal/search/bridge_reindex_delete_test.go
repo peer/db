@@ -135,7 +135,7 @@ func TestBridgeReindexDoesNotResurrectDeletedDocument(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	_, err := esClient.Indices.Refresh().Index(b.IndexPrefix).Do(ctx)
-	testutils.RequireNoESError(t, err)
+	testutils.RequireNoESError(ctx, t, err)
 	require.True(t, testutils.DocExists(ctx, t, esClient, b.IndexPrefix, docB.String()), "B should exist before delete")
 
 	// Arm the gate and insert A referencing B via the inverse property, which gives B an inverse relation and
@@ -161,7 +161,7 @@ func TestBridgeReindexDoesNotResurrectDeletedDocument(t *testing.T) {
 
 	require.EventuallyWithT(t, func(c *assert.CollectT) {
 		_, err := esClient.Indices.Refresh().Index(b.IndexPrefix).Do(ctx)
-		testutils.RequireNoESError(t, err)
+		testutils.RequireNoESError(ctx, t, err)
 		assert.False(c, testutils.DocExists(ctx, t, esClient, b.IndexPrefix, docB.String()), "B should be removed from ES by the delete")
 	}, 30*time.Second, 100*time.Millisecond)
 
@@ -173,6 +173,6 @@ func TestBridgeReindexDoesNotResurrectDeletedDocument(t *testing.T) {
 
 	// B must stay deleted: the external versioning makes ElasticSearch reject the stale reindex write.
 	_, err = esClient.Indices.Refresh().Index(b.IndexPrefix).Do(ctx)
-	testutils.RequireNoESError(t, err)
+	testutils.RequireNoESError(ctx, t, err)
 	assert.False(t, testutils.DocExists(ctx, t, esClient, b.IndexPrefix, docB.String()), "B must stay deleted (reindex must not resurrect it)")
 }

@@ -1,6 +1,7 @@
 package search
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/elastic/go-elasticsearch/v9/typedapi/types"
@@ -14,9 +15,32 @@ import (
 // Any other non-nil error is wrapped with a stack trace, without extra details. It returns nil
 // if v is nil.
 //
+// A call made with a context which is already done was abandoned by whoever asked for it, whatever
+// Elasticsearch answered: the search it was running is cancelled with it, which Elasticsearch reports
+// as a failure of the shards the search was cancelled on (a task_cancelled_exception). The context's
+// error becomes the cause of what is returned for such a call, so a request which was abandoned is
+// answered as one (a timeout) and not as a failure of the site (an internal error), while what
+// Elasticsearch said is kept. A call which answered without an error is reported as the cancellation
+// alone. Elasticsearch cancelling a task on its own (a search which hit its own timeout, say) leaves
+// the context untouched and is returned as the error it is.
+//
 // Bulk responses are not handled here: their per-item failures are *types.ErrorCause values
 // aggregated into a single error rather than mapped one-to-one.
-func WithESError(v any) errors.E {
+func WithESError(ctx context.Context, v any) errors.E {
+	errE := toESError(v)
+
+	ctxErr := ctx.Err()
+	if ctxErr != nil {
+		if errE == nil {
+			return errors.WithStack(ctxErr)
+		}
+		return errors.WrapWith(ctxErr, errE)
+	}
+
+	return errE
+}
+
+func toESError(v any) errors.E {
 	if v == nil {
 		return nil
 	}

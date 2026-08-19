@@ -764,7 +764,7 @@ func ResultsGet(
 	res, err := searchService.Do(ctx)
 	m.Stop()
 	if err != nil {
-		return nil, nil, WithESError(err)
+		return nil, nil, WithESError(ctx, err)
 	}
 	metrics.Duration(internalStore.MetricElasticSearchInternal).Duration = time.Duration(res.Took) * time.Millisecond
 
@@ -817,7 +817,7 @@ func ScoreFactor(ctx context.Context, getSearchService func() *esSearch.Search) 
 
 	res, err := searchService.Do(ctx)
 	if err != nil {
-		return 0, WithESError(err)
+		return 0, WithESError(ctx, err)
 	}
 
 	agg, errE := internalSearch.AggAs[types.TDigestPercentilesAggregate](res.Aggregations, "scoreP99")

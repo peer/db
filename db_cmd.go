@@ -71,7 +71,7 @@ func startAndWaitSite(
 	for _, index := range site.LevelIndexes() {
 		_, err := site.ESClient.Indices.Refresh().Index(index).Do(ctx)
 		if err != nil {
-			errE := internalSearch.WithESError(err)
+			errE := internalSearch.WithESError(ctx, err)
 			errors.Details(errE)["index"] = index
 			return onShutdown, errE
 		}
@@ -255,7 +255,7 @@ func (c *DBReindexCommand) Run(globals *Globals) errors.E {
 		for _, index := range site.LevelIndexes() {
 			_, err := site.ESClient.Indices.Forcemerge().Index(index).OnlyExpungeDeletes(true).Do(ctx)
 			if err != nil {
-				errE := internalSearch.WithESError(err)
+				errE := internalSearch.WithESError(ctx, err)
 				errors.Details(errE)["index"] = index
 				return errE
 			}
@@ -354,7 +354,7 @@ func (c *DBVacuumCommand) Run(globals *Globals) errors.E {
 		for _, index := range site.LevelIndexes() {
 			_, err := esClient.Indices.Forcemerge().Index(index).OnlyExpungeDeletes(true).Do(siteCtx)
 			if err != nil {
-				errE := internalSearch.WithESError(err)
+				errE := internalSearch.WithESError(ctx, err)
 				errors.Details(errE)["index"] = index
 				return errE
 			}

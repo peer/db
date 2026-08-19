@@ -230,7 +230,7 @@ func (f *HasFilter) Get(
 	res, err := searchService.Do(ctx)
 	m.Stop()
 	if err != nil {
-		return nil, nil, WithESError(err)
+		return nil, nil, WithESError(ctx, err)
 	}
 	metrics.Duration(internalStore.MetricElasticSearchInternal).Duration = time.Duration(res.Took) * time.Millisecond
 
@@ -428,7 +428,7 @@ func (f *HasFilter) GetSubHas(
 	res, err := searchService.Do(ctx)
 	m.Stop()
 	if err != nil {
-		return nil, nil, WithESError(err)
+		return nil, nil, WithESError(ctx, err)
 	}
 	metrics.Duration(internalStore.MetricElasticSearchInternal).Duration = time.Duration(res.Took) * time.Millisecond
 

@@ -52,7 +52,7 @@ func TestEnsureIndexAliasLayout(t *testing.T) {
 
 	// The name is an alias to exactly one timestamped index which is the write index.
 	res, err := esClient.Indices.GetAlias().Name(name).Do(ctx)
-	testutils.RequireNoESError(t, err)
+	testutils.RequireNoESError(ctx, t, err)
 	require.Len(t, res, 1)
 	for index, aliases := range res {
 		assert.True(t, strings.HasPrefix(index, name+"_"), index)
@@ -66,14 +66,14 @@ func TestEnsureIndexAliasLayout(t *testing.T) {
 	errE = internalSearch.EnsureIndex(ctx, esClient, name, 1, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	resAgain, err := esClient.Indices.GetAlias().Name(name).Do(ctx)
-	testutils.RequireNoESError(t, err)
+	testutils.RequireNoESError(ctx, t, err)
 	assert.Equal(t, res, resAgain)
 
 	// DeleteIndex removes the alias together with its concrete index.
 	errE = internalSearch.DeleteIndex(ctx, esClient, name)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	exists, err := esClient.Indices.Exists(name).IsSuccess(ctx)
-	testutils.RequireNoESError(t, err)
+	testutils.RequireNoESError(ctx, t, err)
 	assert.False(t, exists)
 
 	// DeleteIndex of a name which does not exist is not an error.
@@ -89,12 +89,12 @@ func TestDeleteIndexConcreteIndex(t *testing.T) {
 	// A concrete index under the name itself is the layout from before the alias layout.
 	name := "s" + strings.ToLower(identifier.New().String()) + "_all"
 	_, err := esClient.Indices.Create(name).Do(ctx)
-	testutils.RequireNoESError(t, err)
+	testutils.RequireNoESError(ctx, t, err)
 
 	errE := internalSearch.DeleteIndex(ctx, esClient, name)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	exists, err := esClient.Indices.Exists(name).IsSuccess(ctx)
-	testutils.RequireNoESError(t, err)
+	testutils.RequireNoESError(ctx, t, err)
 	assert.False(t, exists)
 }

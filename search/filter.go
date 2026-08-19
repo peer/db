@@ -335,7 +335,7 @@ func histogramGet( //nolint:maintidx
 	res, err := minMaxSearchService.Do(ctx)
 	m.Stop()
 	if err != nil {
-		return nil, nil, WithESError(err)
+		return nil, nil, WithESError(ctx, err)
 	}
 	metrics.Duration(internalStore.MetricElasticSearchInternal1).Duration = time.Duration(res.Took) * time.Millisecond
 
@@ -468,7 +468,7 @@ func histogramGet( //nolint:maintidx
 	res, err = histogramSearchService.Do(ctx)
 	m.Stop()
 	if err != nil {
-		return nil, nil, WithESError(err)
+		return nil, nil, WithESError(ctx, err)
 	}
 	metrics.Duration(internalStore.MetricElasticSearchInternal2).Duration = time.Duration(res.Took) * time.Millisecond
 

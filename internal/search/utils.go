@@ -196,7 +196,7 @@ func LevelIndex(indexPrefix, level string) string {
 func EnsureIndex(ctx context.Context, esClient *elasticsearch.TypedClient, name string, shards int, languagePriority map[string][]string) errors.E {
 	exists, err := esClient.Indices.Exists(name).IsSuccess(ctx)
 	if err != nil {
-		errE := WithESError(err)
+		errE := WithESError(ctx, err)
 		errors.Details(errE)["index"] = name
 		return errE
 	}
@@ -240,7 +240,7 @@ func EnsureIndex(ctx context.Context, esClient *elasticsearch.TypedClient, name 
 		if errExists == nil && exists {
 			return nil
 		}
-		errE := WithESError(err)
+		errE := WithESError(ctx, err)
 		errors.Details(errE)["index"] = index
 		errors.Details(errE)["alias"] = name
 		return errE
@@ -262,7 +262,7 @@ func EnsureIndex(ctx context.Context, esClient *elasticsearch.TypedClient, name 
 func DeleteIndex(ctx context.Context, esClient *elasticsearch.TypedClient, name string) errors.E {
 	isAlias, err := esClient.Indices.ExistsAlias(name).IsSuccess(ctx)
 	if err != nil {
-		errE := WithESError(err)
+		errE := WithESError(ctx, err)
 		errors.Details(errE)["index"] = name
 		return errE
 	}
@@ -271,7 +271,7 @@ func DeleteIndex(ctx context.Context, esClient *elasticsearch.TypedClient, name 
 	if isAlias {
 		res, err := esClient.Indices.GetAlias().Name(name).Do(ctx)
 		if err != nil {
-			errE := WithESError(err)
+			errE := WithESError(ctx, err)
 			errors.Details(errE)["index"] = name
 			return errE
 		}
@@ -280,7 +280,7 @@ func DeleteIndex(ctx context.Context, esClient *elasticsearch.TypedClient, name 
 
 	_, err = esClient.Indices.Delete(target).IgnoreUnavailable(true).Do(ctx)
 	if err != nil {
-		errE := WithESError(err)
+		errE := WithESError(ctx, err)
 		errors.Details(errE)["index"] = target
 		return errE
 	}
@@ -340,7 +340,7 @@ func FetchDocumentIDs(ctx context.Context, esClient *elasticsearch.TypedClient, 
 func FetchDocumentIDsForQuery(ctx context.Context, esClient *elasticsearch.TypedClient, index string, query types.QueryVariant) ([]identifier.Identifier, errors.E) {
 	pit, err := esClient.OpenPointInTime(index).KeepAlive("1m").Do(ctx)
 	if err != nil {
-		return nil, WithESError(err)
+		return nil, WithESError(ctx, err)
 	}
 	pitID := pit.Id
 
@@ -370,7 +370,7 @@ func FetchDocumentIDsForQuery(ctx context.Context, esClient *elasticsearch.Typed
 
 		res, err := searchService.Do(ctx)
 		if err != nil {
-			return nil, WithESError(err)
+			return nil, WithESError(ctx, err)
 		}
 
 		hits := res.Hits.Hits

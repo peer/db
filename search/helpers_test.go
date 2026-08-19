@@ -87,7 +87,7 @@ func indexDocument(t *testing.T, ctx context.Context, esClient *elasticsearch.Ty
 	data, errE := x.MarshalWithoutEscapeHTML(doc)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	_, err := esClient.Index(index).Id(doc.ID.String()).Raw(bytes.NewReader(data)).Do(ctx)
-	testutils.RequireNoESError(t, err)
+	testutils.RequireNoESError(ctx, t, err)
 }
 
 // refreshIndex forces an ES index refresh so documents are searchable.
@@ -95,7 +95,7 @@ func refreshIndex(t *testing.T, ctx context.Context, esClient *elasticsearch.Typ
 	t.Helper()
 
 	_, err := esClient.Indices.Refresh().Index(index).Do(ctx)
-	testutils.RequireNoESError(t, err)
+	testutils.RequireNoESError(ctx, t, err)
 }
 
 // claimsDoc builds a Document with the given ID and claims and nothing else.

@@ -263,7 +263,7 @@ func instanceCounts(ctx context.Context, getSearchService func() *esSearch.Searc
 	res, err := searchService.Do(ctx)
 	m.Stop()
 	if err != nil {
-		return nil, WithESError(err)
+		return nil, WithESError(ctx, err)
 	}
 	metrics.Duration(internalStore.MetricElasticSearchInternal1).Duration = time.Duration(res.Took) * time.Millisecond
 
@@ -330,7 +330,7 @@ func classIDs(ctx context.Context, getSearchService func() *esSearch.Search, acc
 	res, err := searchService.Do(ctx)
 	m.Stop()
 	if err != nil {
-		return nil, WithESError(err)
+		return nil, WithESError(ctx, err)
 	}
 	metrics.Duration(internalStore.MetricElasticSearchInternal2).Duration = time.Duration(res.Took) * time.Millisecond
 

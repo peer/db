@@ -277,7 +277,7 @@ func docHasReference(ctx context.Context, t *testing.T, esClient *elasticsearch.
 		nestedQuery,
 	)
 	res, err := esClient.Search().Index(index).Query(query).Size(1).Do(ctx)
-	testutils.RequireNoESError(t, err)
+	testutils.RequireNoESError(ctx, t, err)
 	return res.Hits.Total.Value > 0
 }
 
@@ -306,7 +306,7 @@ func TestBridgeRealTime(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	_, err := esClient.Indices.Refresh().Index(b.IndexPrefix).Do(ctx)
-	testutils.RequireNoESError(t, err)
+	testutils.RequireNoESError(ctx, t, err)
 
 	// All three documents should now be in search.
 	assert.True(t, testutils.DocExists(ctx, t, esClient, b.IndexPrefix, id1.String()), "doc1 should exist in ES")
@@ -323,7 +323,7 @@ func TestBridgeRealTime(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	_, err = esClient.Indices.Refresh().Index(b.IndexPrefix).Do(ctx)
-	testutils.RequireNoESError(t, err)
+	testutils.RequireNoESError(ctx, t, err)
 
 	// The bridge always indexes the latest version, even if an older commit triggered it.
 	assert.True(t, testutils.DocExists(ctx, t, esClient, b.IndexPrefix, id1.String()), "doc1 should still exist after update")
@@ -356,7 +356,7 @@ func TestBridgeCatchUp(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	_, err := esClient.Indices.Refresh().Index(b.IndexPrefix).Do(ctx)
-	testutils.RequireNoESError(t, err)
+	testutils.RequireNoESError(ctx, t, err)
 
 	// Both documents should be in ES despite being committed before Start.
 	assert.True(t, testutils.DocExists(ctx, t, esClient, b.IndexPrefix, id1.String()), "catchup doc1 should be in ES after catch-up")
@@ -381,7 +381,7 @@ func TestBridgeDeletedDocument(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	_, err := esClient.Indices.Refresh().Index(b.IndexPrefix).Do(ctx)
-	testutils.RequireNoESError(t, err)
+	testutils.RequireNoESError(ctx, t, err)
 
 	assert.True(t, testutils.DocExists(ctx, t, esClient, b.IndexPrefix, id.String()), "document should exist before delete")
 
@@ -392,7 +392,7 @@ func TestBridgeDeletedDocument(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	_, err = esClient.Indices.Refresh().Index(b.IndexPrefix).Do(ctx)
-	testutils.RequireNoESError(t, err)
+	testutils.RequireNoESError(ctx, t, err)
 
 	// After deletion the bridge issues a bulk delete, so the document is removed from search.
 	assert.False(t, testutils.DocExists(ctx, t, esClient, b.IndexPrefix, id.String()), "document should be removed from ES after delete")
@@ -466,7 +466,7 @@ func TestBridgeNotifyRecovery(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	_, err = esClient.Indices.Refresh().Index(b.IndexPrefix).Do(ctx)
-	testutils.RequireNoESError(t, err)
+	testutils.RequireNoESError(ctx, t, err)
 
 	// All four documents must be indexed, including those inserted after the simulated reconnection.
 	assert.True(t, testutils.DocExists(ctx, t, esClient, b.IndexPrefix, id1.String()), "initial doc1 should be in ES")
@@ -499,7 +499,7 @@ func TestBridgeStaleDataNotIndexed(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	_, err := esClient.Indices.Refresh().Index(b.IndexPrefix).Do(ctx)
-	testutils.RequireNoESError(t, err)
+	testutils.RequireNoESError(ctx, t, err)
 
 	// The document in ES should exist - the bridge calls GetLatest so it always indexes the latest version.
 	assert.True(t, testutils.DocExists(ctx, t, esClient, b.IndexPrefix, id.String()), "document should be in ES")
@@ -973,7 +973,7 @@ func TestBridgeEnqueueAllForReindex(t *testing.T) {
 	errE = b.WaitUntilCaughtUp(ctx, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	_, err := esClient.Indices.Refresh().Index(b.IndexPrefix).Do(ctx)
-	testutils.RequireNoESError(t, err)
+	testutils.RequireNoESError(ctx, t, err)
 	require.True(t, testutils.DocExists(ctx, t, esClient, b.IndexPrefix, docLive1.String()), "docLive1 should exist before reindex")
 	require.True(t, testutils.DocExists(ctx, t, esClient, b.IndexPrefix, docMeta.String()), "docMeta should exist before reindex")
 	require.False(t, testutils.DocExists(ctx, t, esClient, b.IndexPrefix, docDeleted.String()), "docDeleted should be absent before reindex")
@@ -990,7 +990,7 @@ func TestBridgeEnqueueAllForReindex(t *testing.T) {
 	errE = b.WaitUntilCaughtUp(ctx, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	_, err = esClient.Indices.Refresh().Index(b.IndexPrefix).Do(ctx)
-	testutils.RequireNoESError(t, err)
+	testutils.RequireNoESError(ctx, t, err)
 
 	// Live documents are re-rendered (present); the deleted one is skipped, never resurrected.
 	assert.True(t, testutils.DocExists(ctx, t, esClient, b.IndexPrefix, docLive1.String()), "docLive1 present after reindex")
@@ -1113,7 +1113,7 @@ func TestBridgePerLevelReindexPresence(t *testing.T) {
 	require.EventuallyWithT(t, func(c *assert.CollectT) {
 		for _, idx := range []string{indexPublic, indexEditor} {
 			_, err := esClient.Indices.Refresh().Index(idx).Do(ctx)
-			if !testutils.AssertNoESError(c, err) {
+			if !testutils.AssertNoESError(ctx, c, err) {
 				return
 			}
 		}
@@ -1256,7 +1256,7 @@ func TestBridgeInverseRelationReindexing(t *testing.T) {
 	// Wait for the River job to re-index document B with the inverse relation.
 	require.EventuallyWithT(t, func(c *assert.CollectT) {
 		_, err := esClient.Indices.Refresh().Index(b.IndexPrefix).Do(ctx)
-		if !testutils.AssertNoESError(c, err) {
+		if !testutils.AssertNoESError(ctx, c, err) {
 			return
 		}
 		assert.True(c, docHasReference(ctx, t, esClient, b.IndexPrefix, docB, propY, docA),
@@ -1370,7 +1370,7 @@ func TestBridgeReindexContinuation(t *testing.T) {
 	// Every B must have been re-indexed with its inverse relation, proving the chain drained all of them.
 	require.EventuallyWithT(t, func(c *assert.CollectT) {
 		_, err := esClient.Indices.Refresh().Index(b.IndexPrefix).Do(ctx)
-		if !testutils.AssertNoESError(c, err) {
+		if !testutils.AssertNoESError(ctx, c, err) {
 			return
 		}
 		for _, rel := range rels {
@@ -1452,7 +1452,7 @@ func TestBridgeReindexSplitsBulkBySize(t *testing.T) {
 	// the whole queue without losing any document.
 	require.EventuallyWithT(t, func(c *assert.CollectT) {
 		_, err := esClient.Indices.Refresh().Index(b.IndexPrefix).Do(ctx)
-		if !testutils.AssertNoESError(c, err) {
+		if !testutils.AssertNoESError(ctx, c, err) {
 			return
 		}
 		for _, rel := range rels {
@@ -1498,7 +1498,7 @@ func TestBridgeInverseRelationMutual(t *testing.T) {
 	// Both documents should eventually have both forward and inverse relations.
 	require.EventuallyWithT(t, func(c *assert.CollectT) {
 		_, err := esClient.Indices.Refresh().Index(b.IndexPrefix).Do(ctx)
-		if !testutils.AssertNoESError(c, err) {
+		if !testutils.AssertNoESError(ctx, c, err) {
 			return
 		}
 		// A should have forward A --X--> B and inverse A --Y--> B (from B --X--> A).
@@ -1552,7 +1552,7 @@ func TestBridgeInverseRelationMultipleSources(t *testing.T) {
 	// B should eventually have both inverse relations.
 	require.EventuallyWithT(t, func(c *assert.CollectT) {
 		_, err := esClient.Indices.Refresh().Index(b.IndexPrefix).Do(ctx)
-		if !testutils.AssertNoESError(c, err) {
+		if !testutils.AssertNoESError(ctx, c, err) {
 			return
 		}
 		assert.True(c, docHasReference(ctx, t, esClient, b.IndexPrefix, docB, propY, docA),
@@ -1597,7 +1597,7 @@ func TestBridgeInverseRelationRemoval(t *testing.T) {
 	// Wait for docB to have the inverse relation.
 	require.EventuallyWithT(t, func(c *assert.CollectT) {
 		_, err := esClient.Indices.Refresh().Index(b.IndexPrefix).Do(ctx)
-		if !testutils.AssertNoESError(c, err) {
+		if !testutils.AssertNoESError(ctx, c, err) {
 			return
 		}
 		assert.True(c, docHasReference(ctx, t, esClient, b.IndexPrefix, docB, propY, docA),
@@ -1625,7 +1625,7 @@ func TestBridgeInverseRelationRemoval(t *testing.T) {
 	// Verify in ES that docB no longer has the inverse relation.
 	require.EventuallyWithT(t, func(c *assert.CollectT) {
 		_, err := esClient.Indices.Refresh().Index(b.IndexPrefix).Do(ctx)
-		if !testutils.AssertNoESError(c, err) {
+		if !testutils.AssertNoESError(ctx, c, err) {
 			return
 		}
 		assert.False(c, docHasReference(ctx, t, esClient, b.IndexPrefix, docB, propY, docA),
@@ -1671,7 +1671,7 @@ func TestBridgeInverseRelationChange(t *testing.T) {
 	// Wait for docB to have the inverse relation.
 	require.EventuallyWithT(t, func(c *assert.CollectT) {
 		_, err := esClient.Indices.Refresh().Index(b.IndexPrefix).Do(ctx)
-		if !testutils.AssertNoESError(c, err) {
+		if !testutils.AssertNoESError(ctx, c, err) {
 			return
 		}
 		assert.True(c, docHasReference(ctx, t, esClient, b.IndexPrefix, docB, propY, docA),
@@ -1690,7 +1690,7 @@ func TestBridgeInverseRelationChange(t *testing.T) {
 	// Wait for docC to gain and docB to lose the inverse relation.
 	require.EventuallyWithT(t, func(c *assert.CollectT) {
 		_, err := esClient.Indices.Refresh().Index(b.IndexPrefix).Do(ctx)
-		if !testutils.AssertNoESError(c, err) {
+		if !testutils.AssertNoESError(ctx, c, err) {
 			return
 		}
 		// C should have the inverse relation.
@@ -1727,7 +1727,7 @@ func esReferencesCount(ctx context.Context, t *testing.T, esClient *elasticsearc
 		Query(esdsl.NewTermQuery("id", esdsl.NewFieldValue().String(id))).
 		DocvalueFields(esdsl.NewFieldAndFormat().Field("counts.references")).
 		Size(1).Do(ctx)
-	testutils.RequireNoESError(t, err)
+	testutils.RequireNoESError(ctx, t, err)
 	require.Len(t, res.Hits.Hits, 1, "document should exist in ES")
 	raw, ok := res.Hits.Hits[0].Fields["counts.references"]
 	if !ok {
@@ -1755,7 +1755,7 @@ func TestBridgeReferencesCountIncremental(t *testing.T) {
 		errE := b.WaitUntilCaughtUp(ctx, nil, nil)
 		require.NoError(t, errE, "% -+#.1v", errE)
 		_, err := esClient.Indices.Refresh().Index(b.IndexPrefix).Do(ctx)
-		testutils.RequireNoESError(t, err)
+		testutils.RequireNoESError(ctx, t, err)
 	}
 
 	target := identifier.New()
@@ -1926,7 +1926,7 @@ func docTextContains(ctx context.Context, t *testing.T, esClient *elasticsearch.
 		esdsl.NewMatchQuery("text.und", term),
 	)
 	res, err := esClient.Search().Index(index).Query(query).Size(1).Do(ctx)
-	testutils.RequireNoESError(t, err)
+	testutils.RequireNoESError(ctx, t, err)
 	return res.Hits.Total.Value > 0
 }
 
@@ -1965,7 +1965,7 @@ func TestBridgeFieldInverseRelationFoldsSourceLabelIntoText(t *testing.T) {
 
 	require.EventuallyWithT(t, func(c *assert.CollectT) {
 		_, err := esClient.Indices.Refresh().Index(b.IndexPrefix).Do(ctx)
-		if !testutils.AssertNoESError(c, err) {
+		if !testutils.AssertNoESError(ctx, c, err) {
 			return
 		}
 		// The field-level inverse materializes the reverse reference artist --hasEvent--> exhibition.
@@ -2022,7 +2022,7 @@ func makeMarkedDocWithRelationJSON(t *testing.T, docID, relProp, targetID, marke
 func esDocVersion(ctx context.Context, t *testing.T, esClient *elasticsearch.TypedClient, index, id string) int64 {
 	t.Helper()
 	res, err := esClient.Get(index, id).Do(ctx)
-	testutils.RequireNoESError(t, err)
+	testutils.RequireNoESError(ctx, t, err)
 	require.True(t, res.Found, "document should exist in ES")
 	require.NotNil(t, res.Version_)
 	return *res.Version_
@@ -2066,7 +2066,7 @@ func TestBridgeSourceCheck(t *testing.T) {
 		errE := b.WaitUntilCaughtUp(ctx, nil, nil)
 		require.NoError(t, errE, "% -+#.1v", errE)
 		_, err := esClient.Indices.Refresh().Index(b.IndexPrefix).Do(ctx)
-		testutils.RequireNoESError(t, err)
+		testutils.RequireNoESError(ctx, t, err)
 	}
 
 	_, errE := s.Insert(ctx, propX, makePropertyDocJSON(t, propX, &propY), dummyMetadata(), dummyCommitMetadata())
