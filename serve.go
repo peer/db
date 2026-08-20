@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"runtime"
 	"slices"
 	"strings"
 	"sync"
@@ -369,6 +370,7 @@ func (c *ServeCommand) Prepare(ctx context.Context, service *Service) (http.Hand
 			Strs("visibility", site.LevelNames()).
 			Strs("roles", siteRoleNames(site)).
 			Strs("languages", site.EnabledLanguages()).
+			Int("gomaxprocs", runtime.GOMAXPROCS(0)).
 			Msg("serving")
 	}
 
