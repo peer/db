@@ -5,7 +5,6 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
-	"slices"
 	"syscall"
 
 	internalStore "gitlab.com/peerdb/peerdb/internal/store"
@@ -154,11 +153,10 @@ func (c *PopulateCommand) populateSite(ctx context.Context, site internalSite.Si
 				return "", errE
 			}
 
-			p := slices.Clone(id)
-			for i := range len(id) - 1 {
-				p = append(p, x.SafeFilename(id[i]))
+			p := make([]string, 0, len(id))
+			for _, part := range id {
+				p = append(p, x.SafeFilename(part))
 			}
-			p = append(p, x.SafeFilename(id[len(id)-1])+".json")
 
 			return filepath.Join(p...), nil
 		})
