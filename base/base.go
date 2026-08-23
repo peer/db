@@ -384,6 +384,10 @@ type StartDocument struct {
 // Documents are property, class, and language documents used to index
 // documents for search. All three kinds must be provided.
 //
+// Start does not wait for any pending indexing to finish: the commit log is replayed by a goroutine, and
+// a reindex queue left behind by a previous run is drained by a background job. Call WaitUntilCaughtUp,
+// before anything which depends on it, to wait for both.
+//
 // You have to call this or PopulateAndStart for each base after Init.
 func (b *B) Start(ctx context.Context, documents []StartDocument) (func(), errors.E) {
 	// The bridge fetches documents for indexing through the indexing normalize hooks only (the read-path

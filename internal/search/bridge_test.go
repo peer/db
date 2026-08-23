@@ -205,11 +205,10 @@ func startBridgeWithTargets(ctx context.Context, t *testing.T, env *bridgeEnv, t
 // TestBridgeStartupDrainsReindexQueueBacklog covers the recovery path where BridgeReindexQueue
 // already holds a backlog at or below the indexed seq at startup, the state an interrupted run leaves
 // behind. Such leftover rows are processed only by the startup job that Prepare submits, because no new
-// commit enqueues a job for them, and the listener's HandlingReady for the reindex queue channel blocks
-// until that backlog drains. The test seeds the backlog and then starts the bridge in production order
-// (Prepare, and thus the converter and startup job, before the listener), asserting that listener.Start
-// drains the backlog instead of hanging. The order is set by the test itself, so it guards the
-// startup-drain mechanism but not the Prepare/listener ordering in base.Start.
+// commit enqueues a job for them. The test seeds the backlog and then starts the bridge in production
+// order (Prepare, and thus the converter and startup job, before the listener), asserting that the job
+// drains the backlog and that listener.Start returns rather than waiting for it. The order is set by the
+// test itself, so it guards the startup-drain mechanism but not the Prepare/listener ordering in base.Start.
 func TestBridgeStartupDrainsReindexQueueBacklog(t *testing.T) {
 	t.Parallel()
 
@@ -229,7 +228,7 @@ func TestBridgeStartupDrainsReindexQueueBacklog(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Production ordering: store the converter and submit the startup job before starting the
-	// listener, so the worker drains the backlog while HandlingReady waits.
+	// listener, so the worker can drain the backlog once river runs.
 	errE = env.bridge.Prepare(ctx, []internalSearch.Target{{Level: "all", Index: env.bridge.IndexPrefix, Converter: newTestBridgeConverter(t)}})
 	require.NoError(t, errE, "% -+#.1v", errE)
 
@@ -239,8 +238,8 @@ func TestBridgeStartupDrainsReindexQueueBacklog(t *testing.T) {
 		<-env.river.Client.Stopped()
 	})
 
-	// If the startup deadlock regresses, listener.Start blocks here until this context expires and
-	// then returns a context error.
+	// If listener.Start regresses into waiting for the backlog, it blocks here until this context
+	// expires and then returns a context error.
 	startCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 	errE = env.listener.Start(startCtx)

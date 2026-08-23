@@ -59,7 +59,8 @@ func (b *B) ResetBridgeProgress(ctx context.Context) errors.E {
 
 // ClearSystemManagedMetadata removes all bridge-maintained inverse relations and embedding entries, so a
 // subsequent full reindex rebuilds them from a clean slate instead of diffing new commits on top of stale or
-// wrongly-leveled entries. It must run while the bridge is not processing (before Start).
+// wrongly-leveled entries. It must run while nothing else touches these tables: while the bridge has no
+// commits to replay, and while no reindex job is rendering documents from them.
 func (b *B) ClearSystemManagedMetadata(ctx context.Context) errors.E {
 	return b.bridge.ClearSystemManagedMetadata(ctx)
 }

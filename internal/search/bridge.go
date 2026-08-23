@@ -567,7 +567,7 @@ func (b *Bridge) HandlingReady(ctx context.Context, channel string) errors.E {
 	case b.bridgeSeqChannel:
 		return b.waitForFixBridgeSeq(ctx)
 	case b.bridgeReindexQueueMinSeqChannel:
-		return b.waitForUpdateBridgeReindexQueueMinSeq(ctx)
+		return b.readyBridgeReindexQueueMinSeq(ctx)
 	default:
 		errE := errors.New("unknown notification channel")
 		errors.Details(errE)["channel"] = channel
@@ -784,11 +784,11 @@ func (b *Bridge) waitForLastSeq(ctx context.Context, seq int64, count, size *x.C
 	return nil
 }
 
-// waitForUpdateBridgeReindexQueueMinSeq is similar to WaitUntilCaughtUp but it does not wait for
-// b.reindexQueueMinSeq to catch up with committed commits, but just that it catches up with
-// the current last-indexed seq from the bridge table. A startup job submitted in Init ensures
-// any leftover rows will be processed.
-func (b *Bridge) waitForUpdateBridgeReindexQueueMinSeq(ctx context.Context) errors.E {
+// readyBridgeReindexQueueMinSeq makes the cached reindex queue state reflect the queue, which is
+// what the handler for the channel has to have in place before notifications about it arrive. It does not
+// wait for the queue to drain: the startup job Prepare submits processes the rows a previous run left
+// behind, and a caller which requires them processed waits for that with WaitUntilCaughtUp.
+func (b *Bridge) readyBridgeReindexQueueMinSeq(ctx context.Context) errors.E {
 	// We must call updateBridgeReindexQueueMinSeq here because HandleBacklog runs in a separate
 	// goroutine and may not have executed yet.
 	errE := b.updateBridgeReindexQueueMinSeq(ctx)
@@ -796,12 +796,16 @@ func (b *Bridge) waitForUpdateBridgeReindexQueueMinSeq(ctx context.Context) erro
 		return errE
 	}
 
-	seq, errE := b.getSeq(ctx)
-	if errE != nil {
-		return errE
+	// How much a previous run left behind is logged because the startup job drains it while the base is
+	// already serving, and nothing else reports how much of it is left.
+	b.reindexQueueMinSeqMu.RLock()
+	remaining := b.reindexQueueCount
+	b.reindexQueueMinSeqMu.RUnlock()
+	if remaining > 0 {
+		zerolog.Ctx(ctx).Info().Int64("remaining", remaining).Msg("reindex queue left behind by a previous run")
 	}
 
-	return b.waitForReindexQueueMinSeq(ctx, seq, nil, nil)
+	return nil
 }
 
 // waitForReindexQueueMinSeq blocks until no BridgeReindexQueue rows with seq at or below the given
@@ -813,8 +817,7 @@ func (b *Bridge) waitForReindexQueueMinSeq(ctx context.Context, seq int64, count
 	// Refresh the cached queue state once before the first cached wait so its size baseline reflects the
 	// committed queue: a stale-low cached count (sampled mid-enqueue, or left by a refresh that timed out
 	// under load) would understate size and freeze the progress counter in waitForReindexQueueMinSeqCached
-	// until the queue drained past it. waitForUpdateBridgeReindexQueueMinSeq therefore refreshes twice; we
-	// accept that to keep the two callers independent.
+	// until the queue drained past it.
 	errE := b.updateBridgeReindexQueueMinSeq(ctx)
 	if errE != nil {
 		// Best-effort progress accounting: log and fall back to the cached value rather than fail the wait.
@@ -978,7 +981,10 @@ func (b *Bridge) ResetSeq(ctx context.Context) errors.E {
 // rebuilds them from a clean slate instead of diffing new commits on top of stale or wrongly-leveled
 // entries.
 //
-// It must run while the bridge is not processing (before Start), so nothing repopulates the tables concurrently.
+// It must run while nothing else touches these tables. Nothing may write them, which means the bridge must
+// have no commits to replay, because replaying writes them and resetting the bridge progress starts a
+// replay. Nothing may render documents from them either, which means no reindex job may be draining the
+// reindex queue, because a document rendered from the cleared tables keeps that rendering.
 func (b *Bridge) ClearSystemManagedMetadata(ctx context.Context) errors.E {
 	return internalStore.RetryTransaction(ctx, b.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
 		_, err := tx.Exec(ctx, `TRUNCATE "`+b.Store.Prefix+`References", "`+b.Store.Prefix+`InverseRelations", "`+b.Store.Prefix+`Embedding"`)
@@ -1070,10 +1076,8 @@ func (b *Bridge) EnqueueAllForReindex(ctx context.Context, count, size *x.Counte
 // Prepare stores the converter and submits a startup job that processes any leftover rows
 // in BridgeReindexQueue from a previous run.
 //
-// It must be called before the river client and the store listener are started. The listener's
-// HandlingReady for the reindex queue channel blocks until the reindex queue backlog
-// (entries at or below the indexed seq) is drained, and draining is possible only once the bridge
-// has the converter and worker can run its jobs.
+// It must be called before the river client and the store listener are started, because the job can be
+// picked up as soon as the river client runs and it can do its work only once the bridge has the targets.
 func (b *Bridge) Prepare(ctx context.Context, targets []Target) errors.E {
 	b.targets = targets
 
