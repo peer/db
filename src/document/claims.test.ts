@@ -1,7 +1,7 @@
 import { Identifier } from "@tozd/identifier"
 import { assert, describe, expect, test } from "vitest"
 
-import { LIST, ORDER_IN_LIST } from "@/core"
+import { INSTANCE_OF, LIST, ORDER_IN_LIST } from "@/core"
 import {
   AmountClaim,
   AmountIntervalClaim,
@@ -26,7 +26,7 @@ import {
   TimeIntervalClaim,
   UnknownClaim,
 } from "@/document"
-import { getAllClaimsOfType, getClaimsOfType } from "@/document/claims"
+import { getAllClaimsOfType, getClaimsOfType, instanceOf } from "@/document/claims"
 
 test("CoreDocument GetID", () => {
   const base = ["testdoc"]
@@ -856,4 +856,34 @@ describe("claimTypeName", () => {
     assert.equal(claimTypeName(new UnknownClaim({ id: Identifier.new().toString(), confidence: HighConfidence, prop: { id: prop } })), "unknown")
     assert.equal(claimTypeName(new StringClaim({ id: Identifier.new().toString(), confidence: HighConfidence, prop: { id: prop }, string: "x" })), "string")
   })
+})
+
+test("instanceOf", () => {
+  const ties = [Identifier.new().toString(), Identifier.new().toString()].sort()
+  const high = Identifier.new().toString()
+  const low = Identifier.new().toString()
+  const other = Identifier.new().toString()
+
+  const ct = new ClaimTypes({
+    ref: [
+      // Unordered on purpose: the IDs are returned by decreasing confidence, ties sorted by ID, with
+      // the duplicate ranking by its highest confidence, and the claim of another property and the
+      // claim below LowConfidence left out.
+      new ReferenceClaim({ id: Identifier.new().toString(), confidence: LowConfidence, prop: { id: INSTANCE_OF }, to: { id: low } }),
+      new ReferenceClaim({ id: Identifier.new().toString(), confidence: MediumConfidence, prop: { id: INSTANCE_OF }, to: { id: ties[1] } }),
+      new ReferenceClaim({ id: Identifier.new().toString(), confidence: HighConfidence, prop: { id: INSTANCE_OF }, to: { id: high } }),
+      new ReferenceClaim({ id: Identifier.new().toString(), confidence: MediumConfidence, prop: { id: INSTANCE_OF }, to: { id: ties[0] } }),
+      new ReferenceClaim({ id: Identifier.new().toString(), confidence: LowConfidence, prop: { id: INSTANCE_OF }, to: { id: high } }),
+      new ReferenceClaim({ id: Identifier.new().toString(), confidence: HighConfidence, prop: { id: other }, to: { id: other } }),
+      new ReferenceClaim({ id: Identifier.new().toString(), confidence: LowConfidence - 0.01, prop: { id: INSTANCE_OF }, to: { id: other } }),
+    ],
+  })
+
+  expect(instanceOf(ct)).toStrictEqual([high, ties[0], ties[1], low])
+  expect(instanceOf(null)).toStrictEqual([])
+  expect(instanceOf(new ClaimTypes({}))).toStrictEqual([])
+
+  // The method on D matches the function over the document's claims.
+  const doc = new D({ id: Identifier.new().toString(), base: ["testdoc"], claims: ct })
+  expect(doc.InstanceOf()).toStrictEqual([high, ties[0], ties[1], low])
 })

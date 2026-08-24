@@ -145,8 +145,9 @@ func (b *B) InsertDocument(ctx context.Context, doc *document.D) errors.E {
 	changesetBase = append(changesetBase, "CHANGESET", "FIRST")
 	user := store.UserFromContext(ctx)
 	_, errE = b.Documents().Insert(ctx, doc.ID, documentJSON, &store.DocumentMetadata{
-		At:    store.Time(time.Now().UTC()),
-		Users: internalStore.SortedUniqueUsers([]*store.User{user}),
+		At:         store.Time(time.Now().UTC()),
+		Users:      internalStore.SortedUniqueUsers([]*store.User{user}),
+		InstanceOf: doc.InstanceOf(),
 	}, &store.CommitMetadata{
 		Base: changesetBase,
 		User: user,
@@ -172,9 +173,11 @@ func (b *B) DeleteDocument(ctx context.Context, id identifier.Identifier) errors
 	changesetBase := slices.Clone(doc.Base)
 	changesetBase = append(changesetBase, "CHANGESET", identifier.New().String())
 
+	// The deleted version has no data, so it is an instance of nothing.
 	metadata := &store.DocumentMetadata{
-		At:    store.Time(time.Now().UTC()),
-		Users: internalStore.SortedUniqueUsers([]*store.User{user}),
+		At:         store.Time(time.Now().UTC()),
+		Users:      internalStore.SortedUniqueUsers([]*store.User{user}),
+		InstanceOf: nil,
 	}
 
 	_, errE = b.Documents().Delete(ctx, id, version.Changeset, metadata, &store.CommitMetadata{

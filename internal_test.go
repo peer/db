@@ -25,6 +25,8 @@ var (
 	TestingTestDataFilesDirectory      = testDataFilesDirectory
 	TestingLoadTestData                = loadTestData
 	TestingGenerateTestDataDocs        = generateTestDataDocuments
+	TestingFetchDocuments              = fetchDocuments
+	TestingConverterDocuments          = converterDocuments
 )
 
 // TestingListReadableDocuments re-exports listReadableDocuments for tests, returning the readable document

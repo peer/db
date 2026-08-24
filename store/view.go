@@ -2,6 +2,8 @@ package store
 
 import (
 	"context"
+	"encoding/json"
+	"strconv"
 
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5"
@@ -432,34 +434,76 @@ func (v View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMeta
 }
 
 // List returns up to MaxPageLength value IDs committed to the view, ordered by ID, after optional ID, to support keyset pagination.
+//
+// A non-nil metadata narrows the listing to values whose latest committed version's metadata contains it
+// (JSON containment, see the @> PostgreSQL jsonb operator). For each value the latest committed version
+// is determined the same way as in GetLatest: the closest ancestor view in the path that has the value at
+// depth=0. Deleted values are listed like any other: a deleted value is one whose latest version's
+// metadata is the one recorded by the delete.
+//
+// Matching by metadata requires MetadataType to be jsonb. Set MetadataIndex for it to be efficient.
 func (v View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]) List(
-	ctx context.Context, after *identifier.Identifier,
+	ctx context.Context, metadata json.RawMessage, after *identifier.Identifier,
 ) ([]identifier.Identifier, errors.E) {
 	arguments := []any{
 		v.name,
 	}
+	if metadata != nil {
+		arguments = append(arguments, metadata)
+	}
 	afterCondition := ""
 	if after != nil {
 		arguments = append(arguments, after.String())
+		afterPlaceholder := "$" + strconv.Itoa(len(arguments))
 		// We want to make sure that after value really exists.
-		afterCondition = `WHERE EXISTS (SELECT 1 FROM "viewPath" JOIN "` + v.store.Prefix + `CommittedValues" USING ("view") WHERE "id"=$2) AND "id">$2`
+		afterCondition = `AND EXISTS (SELECT 1 FROM "viewPath" JOIN "` + v.store.Prefix + `CommittedValues" USING ("view") WHERE "id"=` + afterPlaceholder + `)
+			AND "id">` + afterPlaceholder
+	}
+	var query string
+	if metadata == nil {
+		query = `
+			WITH "viewPath" AS (
+				SELECT UNNEST("path") AS "view" FROM "` + v.store.Prefix + `CurrentViews" JOIN "` + v.store.Prefix + `Views" USING ("view", "revision")
+					WHERE "` + v.store.Prefix + `CurrentViews"."name"=$1
+			)
+			SELECT DISTINCT "id"
+				FROM "viewPath" JOIN "` + v.store.Prefix + `CommittedValues" USING ("view")
+				WHERE TRUE ` + afterCondition + `
+				-- We order by "id" to enable keyset pagination.
+				ORDER BY "id"
+				LIMIT ` + maxPageLengthStr
+	} else {
+		query = `
+			WITH "viewPath" AS (
+				-- We care about order of views so we annotate views in the path with view's index.
+				SELECT p.*
+					FROM "` + v.store.Prefix + `CurrentViews" JOIN "` + v.store.Prefix + `Views" USING ("view", "revision"),
+						UNNEST("path") WITH ORDINALITY AS p("view", "depth")
+					WHERE "` + v.store.Prefix + `CurrentViews"."name"=$1
+			), "latestPerId" AS (
+				-- For each value pick the closest view in the path that has it at depth=0.
+				SELECT DISTINCT ON ("id") "id", "changeset"
+					FROM "viewPath" JOIN "` + v.store.Prefix + `CommittedValues" USING ("view")
+					WHERE "` + v.store.Prefix + `CommittedValues"."depth"=0
+					ORDER BY "id", "viewPath"."depth" ASC
+			)
+			SELECT "id"
+				FROM "latestPerId"
+					JOIN (
+						-- This gives us current revisions. And corresponding metadata.
+						"` + v.store.Prefix + `CurrentChanges" JOIN "` + v.store.Prefix + `Changes" USING ("changeset", "id", "revision")
+					) USING ("changeset", "id")
+				WHERE "metadata" @> $2 ` + afterCondition + `
+				-- We order by "id" to enable keyset pagination.
+				ORDER BY "id"
+				LIMIT ` + maxPageLengthStr
 	}
 	values := make([]identifier.Identifier, 0, MaxPageLength)
 	errE := internalStore.RetryTransaction(ctx, v.store.dbpool, pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
 		// Initialize in the case transaction is retried.
 		values = values[:0]
 
-		rows, err := tx.Query(ctx, `
-			WITH "viewPath" AS (
-				SELECT UNNEST("path") AS "view" FROM "`+v.store.Prefix+`CurrentViews" JOIN "`+v.store.Prefix+`Views" USING ("view", "revision")
-					WHERE "`+v.store.Prefix+`CurrentViews"."name"=$1
-			)
-			SELECT DISTINCT "id"
-				FROM "viewPath" JOIN "`+v.store.Prefix+`CommittedValues" USING ("view")
-				`+afterCondition+`
-				-- We order by "id" to enable keyset pagination.
-				ORDER BY "id"
-				LIMIT `+maxPageLengthStr, arguments...)
+		rows, err := tx.Query(ctx, query, arguments...)
 		if err != nil {
 			return internalStore.WithPgxError(err)
 		}
@@ -487,7 +531,7 @@ func (v View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMeta
 							WHERE "`+v.store.Prefix+`CurrentViews"."name"=$1
 					)
 					SELECT 1 FROM "viewPath" JOIN "`+v.store.Prefix+`CommittedValues" USING ("view") WHERE "id"=$2
-				)`, arguments...).Scan(&exists)
+				)`, v.name, after.String()).Scan(&exists)
 				if err != nil {
 					return internalStore.WithPgxError(err)
 				} else if !exists {

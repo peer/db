@@ -20,7 +20,7 @@ import InputTextLink from "@/components/InputTextLink.vue"
 import WithDocument from "@/components/WithDocument.vue"
 import WithLock from "@/components/WithLock.vue"
 import siteContext from "@/context"
-import { ACTION_CREATE, ACTION_DELETE, ACTION_UPDATE_PERMISSIONS, ACTION_UPDATE, CONTENT, CREATE_SHORTCUT, INSTANCE_OF, NAME, PAGE, SEARCH_SHORTCUT } from "@/core"
+import { ACTION_CREATE, ACTION_DELETE, ACTION_UPDATE_PERMISSIONS, ACTION_UPDATE, CONTENT, CREATE_SHORTCUT, NAME, PAGE, SEARCH_SHORTCUT } from "@/core"
 import { getBestClaimOfType, getClaimsOfTypeWithConfidence, selectClaimsByLanguage, toD } from "@/document"
 import { documentActionsKey } from "@/document-actions"
 import { documentNavigationKey } from "@/document-navigation"
@@ -206,7 +206,7 @@ const isPage = computed(() => {
   // The exposed doc of the generic component does not resolve for typed linting, so it is typed here.
   const doc: DeepReadonly<D> | null | undefined = withDocument.value?.doc
   if (!doc?.claims) return false
-  return getClaimsOfTypeWithConfidence(doc.claims, "ref", INSTANCE_OF).some((ref) => ref.to.id === PAGE)
+  return doc.InstanceOf().includes(PAGE)
 })
 
 // The page content claims in the current language, rendered as prose in the content tab.
@@ -220,12 +220,11 @@ const documentComponents = getDocumentComponents()
 const documentTabs = computed(() => {
   const doc: DeepReadonly<D> | null | undefined = withDocument.value?.doc
   if (isPage.value || !doc?.claims) return []
-  const refs = getClaimsOfTypeWithConfidence(doc.claims, "ref", INSTANCE_OF)
   const tabs: { component: Raw<Component>; id: string }[] = []
-  for (const ref of refs) {
-    const component = documentComponents.value.get(ref.to.id)
+  for (const classId of doc.InstanceOf()) {
+    const component = documentComponents.value.get(classId)
     if (component) {
-      tabs.push({ component, id: ref.to.id })
+      tabs.push({ component, id: classId })
     }
   }
   return tabs

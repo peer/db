@@ -234,6 +234,7 @@ type Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, CompleteDa
 	CompleteSessionTimeout time.Duration `exhaustruct:"optional"`
 
 	// MetadataIndex enables indices on metadata of sessions and their operations.
+	// It requires MetadataType to be jsonb.
 	MetadataIndex bool `exhaustruct:"optional"`
 
 	// AppendedSize is the size of the channel to which operations are sent when they are appended.

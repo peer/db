@@ -59,6 +59,12 @@ type DocumentMetadata struct {
 	// appended a change. The user who ended the session (committer) is NOT
 	// included here; that user goes to CommitMetadata.User instead.
 	Users []User `json:"users,omitempty"`
+
+	// InstanceOf is the deduplicated list of IDs of the classes this version of the document is an
+	// instance of, sorted by decreasing confidence of the claims naming them, with ties sorted by ID
+	// (see document.D.InstanceOf). It makes the documents of a class listable without reading the
+	// documents (see List).
+	InstanceOf []identifier.Identifier `json:"instanceOf,omitempty"`
 }
 
 // CommitMetadata contains metadata about a commit.

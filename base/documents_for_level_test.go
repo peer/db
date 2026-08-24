@@ -81,7 +81,7 @@ func TestDocumentsForLevelDocumentClone(t *testing.T) {
 
 	id := identifier.New()
 	doc := &document.D{CoreDocument: document.CoreDocument{ID: id, Base: []string{"test", id.String()}}}
-	meta := &store.DocumentMetadata{At: store.Time{}, Users: []store.User{{ID: "original"}}}
+	meta := &store.DocumentMetadata{At: store.Time{}, Users: []store.User{{ID: "original"}}, InstanceOf: nil}
 	docs := []base.StartDocument{
 		{Document: doc, Metadata: meta},
 	}

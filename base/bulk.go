@@ -33,8 +33,9 @@ func (b *B) InsertOrReplaceDocument(ctx context.Context, doc *document.D) errors
 	}
 
 	metadata := &store.DocumentMetadata{
-		At:    store.Time(time.Now().UTC()),
-		Users: nil,
+		At:         store.Time(time.Now().UTC()),
+		Users:      nil,
+		InstanceOf: doc.InstanceOf(),
 	}
 
 	// Each doc.Id has to be unique, so each doc.Base is unique as well.

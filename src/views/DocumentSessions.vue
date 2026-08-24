@@ -9,8 +9,6 @@ import { useRouter } from "vue-router"
 import { getURL } from "@/api"
 import { isSignedIn } from "@/auth"
 import ButtonLink from "@/components/ButtonLink.vue"
-import { INSTANCE_OF } from "@/core"
-import { getClaimsOfTypeWithConfidence } from "@/document"
 import { toD } from "@/document"
 import DisplayLabel from "@/partials/DisplayLabel.vue"
 import Footer from "@/partials/Footer.vue"
@@ -82,10 +80,7 @@ function sessionLink(session: DeepReadonly<DocumentSessionResponse>) {
 // document is an instance of, so that the session is told apart by what it works on. They are rendered
 // the same as the tags of a search result.
 function tags(session: DeepReadonly<DocumentSessionResponse>): { id?: string; label?: string }[] {
-  return [
-    { label: session.create ? t("views.DocumentSessions.create") : t("views.DocumentSessions.edit") },
-    ...getClaimsOfTypeWithConfidence(session.doc.claims, "ref", INSTANCE_OF).map((claim) => ({ id: claim.to.id })),
-  ]
+  return [{ label: session.create ? t("views.DocumentSessions.create") : t("views.DocumentSessions.edit") }, ...session.doc.InstanceOf().map((id) => ({ id }))]
 }
 </script>
 

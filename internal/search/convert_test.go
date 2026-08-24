@@ -177,6 +177,17 @@ func makeNamingDoc(id identifier.Identifier, name string) *document.D {
 	}
 }
 
+// makeNamedPropertyDoc creates a property document (instance of PROPERTY class) with a naming label.
+func makeNamedPropertyDoc(id identifier.Identifier, name string) *document.D {
+	doc := makePropertyDoc(id, nil)
+	doc.Claims.String = append(doc.Claims.String, document.StringClaim{
+		CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+		Prop:      document.Reference{ID: internalCore.NamingPropID},
+		String:    name,
+	})
+	return doc
+}
+
 // newTestConverter creates a Converter for testing with the given properties, languages, and extra documents.
 func newTestConverter(
 	t *testing.T,
@@ -8920,7 +8931,7 @@ func TestFromDocumentIncomingInverseRelation(t *testing.T) {
 		newIR(claimID, sourceDocID, propX, propY, identifier.Identifier{}, document.HighConfidence),
 	}
 
-	result, errE := c.FromDocument(ctx, doc, nil, &store.DocumentMetadata{At: store.Time{}, Users: nil}, inverseRelations)
+	result, errE := c.FromDocument(ctx, doc, nil, &store.DocumentMetadata{At: store.Time{}, Users: nil, InstanceOf: nil}, inverseRelations)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Should have a reverse relation rel record with property Y pointing to source document.
@@ -8965,7 +8976,7 @@ func TestFromDocumentIncomingInverseRelationMultipleInverses(t *testing.T) {
 		newIR(claimID, sourceDocID, propB, propC, identifier.Identifier{}, document.HighConfidence),
 	}
 
-	result, errE := c.FromDocument(ctx, doc, nil, &store.DocumentMetadata{At: store.Time{}, Users: nil}, inverseRelations)
+	result, errE := c.FromDocument(ctx, doc, nil, &store.DocumentMetadata{At: store.Time{}, Users: nil, InstanceOf: nil}, inverseRelations)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Should have two reverse relation rel records: one for A and one for C.
@@ -9012,7 +9023,7 @@ func TestFromDocumentIncomingInverseRelationBidirectional(t *testing.T) {
 		newIR(identifier.New(), sourceDocID, propA, propB, identifier.Identifier{}, document.HighConfidence),
 	}
 
-	result, errE := c.FromDocument(ctx, doc, nil, &store.DocumentMetadata{At: store.Time{}, Users: nil}, inverseRelations)
+	result, errE := c.FromDocument(ctx, doc, nil, &store.DocumentMetadata{At: store.Time{}, Users: nil, InstanceOf: nil}, inverseRelations)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Should produce a reverse claim with property B.
@@ -10050,7 +10061,7 @@ func TestFromDocumentLastUpdated(t *testing.T) {
 
 	// LastUpdated comes from the document metadata's At timestamp (seconds since the Unix epoch).
 	at := time.Date(2021, time.January, 2, 3, 4, 5, 0, time.UTC)
-	result, errE := c.FromDocument(ctx, doc, nil, &store.DocumentMetadata{At: store.Time(at), Users: nil}, nil)
+	result, errE := c.FromDocument(ctx, doc, nil, &store.DocumentMetadata{At: store.Time(at), Users: nil, InstanceOf: nil}, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.NotNil(t, result.LastUpdated)
 	assert.InDelta(t, float64(at.Unix()), *result.LastUpdated, 0.001)
@@ -10061,7 +10072,7 @@ func TestFromDocumentLastUpdated(t *testing.T) {
 	assert.Nil(t, result.LastUpdated)
 
 	// A zero At also yields no last-updated time.
-	result, errE = c.FromDocument(ctx, doc, nil, &store.DocumentMetadata{At: store.Time{}, Users: nil}, nil)
+	result, errE = c.FromDocument(ctx, doc, nil, &store.DocumentMetadata{At: store.Time{}, Users: nil, InstanceOf: nil}, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Nil(t, result.LastUpdated)
 }
@@ -10101,7 +10112,7 @@ func TestFromDocumentFinalizeHooks(t *testing.T) {
 			return d, nil
 		},
 	}
-	result, errE := c.FromDocument(t.Context(), doc, nil, &store.DocumentMetadata{At: store.Time{}, Users: nil}, inverseRelations)
+	result, errE := c.FromDocument(t.Context(), doc, nil, &store.DocumentMetadata{At: store.Time{}, Users: nil, InstanceOf: nil}, inverseRelations)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.True(t, sawInverse)
 	assert.Empty(t, result.Claims.Rel)
@@ -10118,7 +10129,7 @@ func TestFromDocumentFinalizeHooks(t *testing.T) {
 			return d, errE
 		},
 	}
-	result, errE = c.FromDocument(t.Context(), doc, nil, &store.DocumentMetadata{At: store.Time{}, Users: nil}, nil)
+	result, errE = c.FromDocument(t.Context(), doc, nil, &store.DocumentMetadata{At: store.Time{}, Users: nil, InstanceOf: nil}, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, result.Claims.Rel, 1)
 	assert.Equal(t, propX, result.Claims.Rel[0].Prop)
@@ -10138,12 +10149,12 @@ func TestExcludeFromTextSearch(t *testing.T) {
 	target := identifier.New()
 
 	// The marked property carries the setting as a boolean has claim.
-	markedPropDoc := makeNamingDoc(markedProp, "marked property")
+	markedPropDoc := makeNamedPropertyDoc(markedProp, "marked property")
 	markedPropDoc.Claims.Has = append(markedPropDoc.Claims.Has, document.HasClaim{
 		CoreClaim: makeCoreClaim(document.HighConfidence, nil),
 		Prop:      document.Reference{ID: internalCore.ExcludeFromTextSearchPropID},
 	})
-	plainPropDoc := makeNamingDoc(plainProp, "plain property")
+	plainPropDoc := makeNamedPropertyDoc(plainProp, "plain property")
 	targetDoc := makeNamingDoc(target, "Slovenian")
 
 	c := newTestConverter(

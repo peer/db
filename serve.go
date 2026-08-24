@@ -354,7 +354,7 @@ func (c *ServeCommand) Prepare(ctx context.Context, service *Service) (http.Hand
 		siteCtx := zerolog.Ctx(ctx).With().Str("indexPrefix", site.IndexPrefix).Str("schema", site.Schema).Logger().WithContext(ctx)
 		siteCtx = internalStore.WithFallbackDBContext(siteCtx, site.Schema, "prepare")
 
-		documents, errE := site.ConverterDocuments(siteCtx)
+		documents, errE := converterDocuments(siteCtx, site.Base)
 		if errE != nil {
 			return nil, onShutdownF, errE
 		}

@@ -73,8 +73,7 @@ func Struct(ctx context.Context, w io.Writer, docIDs []identifier.Identifier,
 			continue
 		}
 
-		// Find INSTANCE_OF class ID.
-		classIDs := findInstanceOfClassIDs(doc)
+		classIDs := doc.InstanceOf()
 		if len(classIDs) == 0 {
 			logger.Warn().Str("docID", docID.String()).Msg("document has no INSTANCE_OF claim, skipping")
 			continue
@@ -131,18 +130,6 @@ func Struct(ctx context.Context, w io.Writer, docIDs []identifier.Identifier,
 	return nil
 }
 
-// findInstanceOfClassIDs extracts INSTANCE_OF reference claim target IDs from a document.
-func findInstanceOfClassIDs(doc *document.D) []identifier.Identifier {
-	claims := doc.Get(internalCore.InstanceOfPropID)
-	result := make([]identifier.Identifier, 0, len(claims))
-	for _, c := range claims {
-		if ref, ok := c.(*document.ReferenceClaim); ok {
-			result = append(result, ref.To.ID)
-		}
-	}
-	return result
-}
-
 // setDocumentFieldsID sets the ID field ([]string with documentid tag) on a struct.
 func setDocumentFieldsID(structVal reflect.Value, structType reflect.Type, base []string) {
 	setDocumentFieldsIDRecursive(structVal, structType, base)
@@ -188,18 +175,15 @@ func setInstanceOfRecursive(
 		fieldVal := structVal.Field(i)
 
 		if field.Tag.Get("property") == "INSTANCE_OF" {
-			// Build Ref slice from INSTANCE_OF reference claims.
-			claims := doc.Get(internalCore.InstanceOfPropID)
-			refs := make([]internalCore.Ref, 0, len(claims))
-			for _, c := range claims {
-				if refClaim, ok := c.(*document.ReferenceClaim); ok {
-					base, errE := cache.getBase(ctx, refClaim.To.ID)
-					if errE != nil {
-						return errE
-					}
-					if base != nil {
-						refs = append(refs, internalCore.Ref{ID: slices.Clone(base)})
-					}
+			classIDs := doc.InstanceOf()
+			refs := make([]internalCore.Ref, 0, len(classIDs))
+			for _, classID := range classIDs {
+				base, errE := cache.getBase(ctx, classID)
+				if errE != nil {
+					return errE
+				}
+				if base != nil {
+					refs = append(refs, internalCore.Ref{ID: slices.Clone(base)})
 				}
 			}
 			if len(refs) > 0 {

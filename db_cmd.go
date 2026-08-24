@@ -26,24 +26,19 @@ import (
 	internalStore "gitlab.com/peerdb/peerdb/internal/store"
 )
 
-// startAndWaitSite starts the base for a site, runs optional beforeWait,
-// then waits for indexing to catch up, and refreshes the ElasticSearch index.
+// startAndWaitSite starts the base for a site, runs optional beforeStart before it does, then waits for
+// indexing to catch up, and refreshes the ElasticSearch indices.
+//
+// beforeStart runs before the base is started, which is where whatever prepares the store for the indexing
+// belongs: once the base is started, its bridge is replaying the commit log and its river client is running
+// reindex jobs. It shares the counters progress is reported through with the indexing which follows, so that
+// the site is reported on as one run.
 func startAndWaitSite(
 	ctx context.Context, logger zerolog.Logger, site internalSite.Site,
-	beforeWait func(ctx context.Context, count, size *x.Counter) errors.E,
+	beforeStart func(ctx context.Context, logger zerolog.Logger, site internalSite.Site, count, size *x.Counter) errors.E,
 ) (func(), errors.E) {
 	// We set fallback context values which are used to set application name on PostgreSQL connections.
 	ctx = internalStore.WithFallbackDBContext(ctx, site.Schema, "db")
-
-	documents, errE := site.ConverterDocuments(ctx)
-	if errE != nil {
-		return nil, errE
-	}
-
-	onShutdown, errE := site.Start(ctx, documents)
-	if errE != nil {
-		return onShutdown, errE
-	}
 
 	count := x.NewCounter(0)
 	size := x.NewCounter(0)
@@ -56,11 +51,21 @@ func startAndWaitSite(
 		}
 	}()
 
-	if beforeWait != nil {
-		errE = beforeWait(ctx, count, size)
+	if beforeStart != nil {
+		errE := beforeStart(ctx, logger, site, count, size)
 		if errE != nil {
-			return onShutdown, errE
+			return nil, errE
 		}
+	}
+
+	documents, errE := converterDocuments(ctx, site.Base)
+	if errE != nil {
+		return nil, errE
+	}
+
+	onShutdown, errE := site.Start(ctx, documents)
+	if errE != nil {
+		return onShutdown, errE
 	}
 
 	errE = site.Base.WaitUntilCaughtUp(ctx, count, size)
@@ -84,6 +89,47 @@ func startAndWaitSite(
 		Msg("indexing done")
 
 	return onShutdown, nil
+}
+
+// enqueueForReindex enqueues every document of the site into the reindex queue. The queue is drained by the
+// job the base submits when it is started, so this runs before that.
+func enqueueForReindex(ctx context.Context, logger zerolog.Logger, site internalSite.Site, count, size *x.Counter) errors.E {
+	enqueued, errE := site.Base.EnqueueAllForReindex(ctx, count, size)
+	if errE != nil {
+		return errE
+	}
+
+	logger.Info().Str("indexPrefix", site.IndexPrefix).Str("schema", site.Schema).Int("enqueued", enqueued).Msg("enqueued documents for reindex")
+
+	return nil
+}
+
+// resetForRecreatedIndex prepares the store for the commit log replay which fills the recreated indices: it
+// cancels the reindex queue, clears the bridge-maintained reference, inverse-relation and embedding tables,
+// and resets the bridge progress so that starting the base replays every commit from the beginning.
+//
+// Entries a previous run left in the reindex queue would be rendered from the cleared tables and indexed with
+// versions above the replay's, shadowing the replay's rebuilt entries for good, which is why the queue goes
+// first.
+//
+// All of it must run after Init and before the base is started, while neither a reindex job nor the bridge's
+// own replay exists in this process. A replay already running would both write the tables while they are
+// cleared and, worse, keep advancing the bridge seq past the reset (updateSeq only refuses to lower it), so
+// the replay the reset asks for would never happen and the recreated indices would stay partial.
+func resetForRecreatedIndex(ctx context.Context, logger zerolog.Logger, site internalSite.Site, _, _ *x.Counter) errors.E {
+	errE := site.Base.CancelReindexQueue(ctx)
+	if errE != nil {
+		return errE
+	}
+
+	errE = site.Base.ClearSystemManagedMetadata(ctx)
+	if errE != nil {
+		return errE
+	}
+
+	logger.Info().Str("indexPrefix", site.IndexPrefix).Str("schema", site.Schema).Msg("cleared system-managed metadata")
+
+	return site.Base.ResetBridgeProgress(ctx)
 }
 
 // Run executes the db wait command which initializes the base,
@@ -145,7 +191,9 @@ func (c *DBWaitCommand) Run(globals *Globals) errors.E {
 // Run executes the db reindex command which re-indexes every document and then exits. By default it re-renders
 // each document's current state through the reindex queue, leaving the indices and metadata in place. With
 // --recreate-index it instead recreates the indices and replays the whole commit log, rebuilding the
-// system-managed metadata too (for a mapping change or a metadata rebuild).
+// system-managed metadata too (for a mapping change or a metadata rebuild). The replay indexes documents in
+// commit order, so like after populate, running the regular reindex afterwards re-renders the documents
+// whose referenced documents were replayed after them.
 func (c *DBReindexCommand) Run(globals *Globals) errors.E {
 	// We stop gracefully on ctrl-c and TERM signal.
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
@@ -209,35 +257,18 @@ func (c *DBReindexCommand) Run(globals *Globals) errors.E {
 	for _, site := range globals.Sites {
 		globals.Logger.Info().Str("indexPrefix", site.IndexPrefix).Str("schema", site.Schema).Msg("reindexing")
 
-		// The regular reindex re-renders every document's current state through the reindex queue: it enqueues
-		// every document and drains the queue, reading each at its latest version (so deleted documents are
-		// skipped, never transiently re-created) without touching the inverse-relation or embedding tables, and
-		// feeds the "indexing" progress (count/size). --recreate-index instead clears the bridge-maintained
-		// inverse relations and embedding and resets the bridge so the whole commit log is replayed into the
-		// freshly recreated index, which rebuilds those from a clean slate; there the replay that follows feeds
-		// the progress.
-		beforeWait := func(ctx context.Context, count, size *x.Counter) errors.E {
-			enqueued, errE := site.Base.EnqueueAllForReindex(ctx, count, size)
-			if errE != nil {
-				return errE
-			}
-			globals.Logger.Info().Str("indexPrefix", site.IndexPrefix).Str("schema", site.Schema).Int("enqueued", enqueued).Msg("enqueued documents for reindex")
-			return nil
-		}
+		// The regular reindex re-renders every document's current state through the reindex queue. It enqueues
+		// every document and the drain reads each at its latest version (so deleted documents are skipped, never
+		// transiently re-created) without touching the inverse-relation or embedding tables.
+		beforeStart := enqueueForReindex
 		if c.RecreateIndex {
-			beforeWait = func(ctx context.Context, _, _ *x.Counter) errors.E {
-				// The bridge is idle here: its seq is not reset until ResetBridgeProgress below, so on start it
-				// saw itself caught up and is not maintaining the tables, so the clear does not race it.
-				errE := site.Base.ClearSystemManagedMetadata(ctx)
-				if errE != nil {
-					return errE
-				}
-				globals.Logger.Info().Str("indexPrefix", site.IndexPrefix).Str("schema", site.Schema).Msg("cleared system-managed metadata")
-				return site.Base.ResetBridgeProgress(ctx)
-			}
+			// --recreate-index instead clears the bridge-maintained tables and resets the bridge, so that starting
+			// the base replays the whole commit log into the freshly recreated indices, rebuilding those tables
+			// from a clean slate.
+			beforeStart = resetForRecreatedIndex
 		}
 
-		onS, errE := startAndWaitSite(ctx, globals.Logger, site, beforeWait)
+		onS, errE := startAndWaitSite(ctx, globals.Logger, site, beforeStart)
 		onShutdown = append(onShutdown, onS)
 		if errE != nil {
 			return errE

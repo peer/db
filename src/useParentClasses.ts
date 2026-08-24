@@ -4,7 +4,7 @@ import { computed, onBeforeUnmount, readonly, ref, watch } from "vue"
 import { useRouter } from "vue-router"
 
 import { getURL } from "@/api"
-import { INSTANCE_OF, SUBCLASS_OF } from "@/core"
+import { SUBCLASS_OF } from "@/core"
 import { D, getClaimsOfTypeWithConfidence } from "@/document"
 
 // useParentClasses resolves all parent class documents for a document by walking its
@@ -63,7 +63,7 @@ export function useParentClasses(
     if (!doc.value?.claims) {
       return []
     }
-    return getClaimsOfTypeWithConfidence(doc.value.claims, "ref", INSTANCE_OF).map((c) => c.to.id)
+    return doc.value.InstanceOf()
   })
   const instanceOfClassIds = process.env.NODE_ENV !== "production" ? readonly(_instanceOfClassIds) : _instanceOfClassIds
 

@@ -80,7 +80,7 @@ func TestListReadableDocuments(t *testing.T) {
 	// The read-path permission hooks are registered (init.go does it for every site) but inert here: they
 	// need a site in ctx and this ctx carries only the schema, so nothing is denied. With nothing deleted
 	// the readable listing is then exactly the store's committed documents, in the same (ID) order.
-	storeIDs, errE := site.Base.Documents().List(ctx, nil)
+	storeIDs, errE := site.Base.Documents().List(ctx, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	readable, errE := peerdb.TestingListReadableDocuments(ctx, site, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
@@ -103,7 +103,7 @@ func TestListReadableDocuments(t *testing.T) {
 	assert.NotContains(t, afterDelete, doc1.ID)
 	assert.Contains(t, afterDelete, doc2.ID)
 
-	rawAfterDelete, errE := site.Base.Documents().List(ctx, nil)
+	rawAfterDelete, errE := site.Base.Documents().List(ctx, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Contains(t, rawAfterDelete, doc1.ID)
 }

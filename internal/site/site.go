@@ -491,61 +491,6 @@ func (s *Site) ReadIndex(ctx context.Context) (string, errors.E) {
 	return internalSearch.LevelIndex(s.IndexPrefix, level), nil
 }
 
-func (s *Site) fetchDocumentIDs(ctx context.Context, classID identifier.Identifier) ([]identifier.Identifier, errors.E) {
-	return internalSearch.FetchDocumentIDs(ctx, s.ESClient, s.TopIndex(), []identifier.Identifier{classID})
-}
-
-// FetchDocuments returns all documents that are instances of classID by loading their latest stored
-// versions. It is used to load the property, class, and language documents that a site's converter
-// needs at startup (see ConverterDocuments).
-//
-// It reads the raw stored documents directly and unfiltered, without the read-path document hooks
-// (and thus any permission checks).
-func (s *Site) FetchDocuments(ctx context.Context, classID identifier.Identifier) ([]base.StartDocument, errors.E) {
-	allIDs, errE := s.fetchDocumentIDs(ctx, classID)
-	if errE != nil {
-		return nil, errE
-	}
-
-	documentsStore := s.Base.Documents()
-	documents := make([]base.StartDocument, 0, len(allIDs))
-	for _, id := range allIDs {
-		data, metadata, _, _, errE := documentsStore.GetLatest(ctx, id)
-		if errE != nil {
-			return nil, errE
-		}
-		doc := new(document.D)
-		errE = x.UnmarshalWithoutUnknownFields(data, doc)
-		if errE != nil {
-			return nil, errE
-		}
-		documents = append(documents, base.StartDocument{Document: doc, Metadata: metadata})
-	}
-
-	return documents, nil
-}
-
-// ConverterDocuments loads the documents the site's converter needs: the property, class, and language
-// documents (instances of the respective core meta-classes). All three kinds are required. Every path
-// that starts the base from stored documents loads them through this, so they cannot drift apart.
-func (s *Site) ConverterDocuments(ctx context.Context) ([]base.StartDocument, errors.E) {
-	documents, errE := s.FetchDocuments(ctx, internalCore.PropertyClassID)
-	if errE != nil {
-		return nil, errE
-	}
-	languages, errE := s.FetchDocuments(ctx, internalCore.LanguageClassID)
-	if errE != nil {
-		return nil, errE
-	}
-	classes, errE := s.FetchDocuments(ctx, internalCore.ClassClassID)
-	if errE != nil {
-		return nil, errE
-	}
-	documents = append(documents, languages...)
-	documents = append(documents, classes...)
-	return documents, nil
-}
-
 func (s *Site) validateDefaultLanguage() errors.E {
 	if s.DefaultLanguage == "" {
 		if len(s.LanguagePriority) < 1 {

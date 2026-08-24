@@ -2,6 +2,7 @@ package store
 
 import (
 	"context"
+	"encoding/json"
 	"strconv"
 	"strings"
 
@@ -207,14 +208,18 @@ func (s *Store[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMe
 }
 
 // List returns up to MaxPageLength value IDs committed to the MainView, ordered by ID, after optional ID, to support keyset pagination.
+//
+// A non-nil metadata narrows the listing to values whose latest committed version's metadata contains it
+// (JSON containment, see the @> PostgreSQL jsonb operator). Matching by metadata requires MetadataType to
+// be jsonb. Set MetadataIndex for it to be efficient.
 func (s *Store[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]) List(
-	ctx context.Context, after *identifier.Identifier,
+	ctx context.Context, metadata json.RawMessage, after *identifier.Identifier,
 ) ([]identifier.Identifier, errors.E) {
 	view, errE := s.View(ctx, MainView)
 	if errE != nil {
 		return nil, errE
 	}
-	return view.List(ctx, after)
+	return view.List(ctx, metadata, after)
 }
 
 // Count returns the number of distinct values currently committed to the MainView.

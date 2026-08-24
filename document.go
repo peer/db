@@ -342,7 +342,7 @@ type documentListItem struct {
 func listReadableDocuments(ctx context.Context, site *internalSite.Site, after *identifier.Identifier) ([]documentListItem, errors.E) {
 	documents := []documentListItem{}
 	for {
-		ids, errE := site.Base.Documents().List(ctx, after)
+		ids, errE := site.Base.Documents().List(ctx, nil, after)
 		if errE != nil {
 			return nil, errE
 		}

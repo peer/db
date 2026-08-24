@@ -44,8 +44,9 @@ func dummyCommitMetadata() *store.CommitMetadata {
 // dummyMetadata returns a minimal DocumentMetadata for testing.
 func dummyMetadata() *store.DocumentMetadata {
 	return &store.DocumentMetadata{
-		At:    store.Time(time.Now().UTC()),
-		Users: nil,
+		At:         store.Time(time.Now().UTC()),
+		Users:      nil,
+		InstanceOf: nil,
 	}
 }
 

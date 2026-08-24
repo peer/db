@@ -3,7 +3,6 @@ import type { Component, DeepReadonly, Ref } from "vue"
 import type { Composer } from "vue-i18n"
 import type { Router } from "vue-router"
 
-import type { ClaimTypes } from "@/document/claims"
 import type { D } from "@/document/document"
 
 export type RefSearchResult = {
@@ -498,7 +497,7 @@ export type SelectButtonOption<T> = {
 }
 
 export type GetDisplayLabel = (
-  claims: DeepReadonly<ClaimTypes> | null | undefined,
+  doc: DeepReadonly<D> | null | undefined,
   router: Router,
   i18n: Composer,
   el: Ref<Element | null> | null,

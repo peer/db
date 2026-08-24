@@ -154,6 +154,8 @@ func initDatabase[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, Commi
 		DataType:     dataType,
 		MetadataType: dataType,
 		PatchType:    dataType,
+		// This also exercises creating the index in tests with jsonb metadata.
+		MetadataIndex: dataType == "jsonb",
 	}
 
 	errE = s.Init(ctx, dbpool, listener)
@@ -609,7 +611,7 @@ func testTop[Data, Metadata, Patch any](t *testing.T, d testCase[Data, Metadata,
 		}
 	}
 
-	ids, errE := s.List(ctx, nil)
+	ids, errE := s.List(ctx, nil, nil)
 	if assert.NoError(t, errE, "% -+#.1v", errE) {
 		assert.ElementsMatch(t, []identifier.Identifier{expectedID, newID, newID2}, ids)
 	}
@@ -647,11 +649,11 @@ func TestListPagination(t *testing.T) {
 		assert.Equal(t, int64(6000), count)
 	}
 
-	page1, errE := s.List(ctx, nil)
+	page1, errE := s.List(ctx, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, page1, store.MaxPageLength)
 
-	page2, errE := s.List(ctx, &page1[4999])
+	page2, errE := s.List(ctx, nil, &page1[4999])
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, page2, 1000)
 
@@ -669,19 +671,19 @@ func TestListPagination(t *testing.T) {
 
 	v, errE := s.View(ctx, "unknown")
 	require.NoError(t, errE, "% -+#.1v", errE)
-	_, errE = v.List(ctx, nil)
+	_, errE = v.List(ctx, nil, nil)
 	assert.ErrorIs(t, errE, store.ErrViewNotFound)
 	_, errE = v.Count(ctx, false)
 	assert.ErrorIs(t, errE, store.ErrViewNotFound)
 
 	// Having no more values is not an error.
-	page3, errE := s.List(ctx, &page2[999])
+	page3, errE := s.List(ctx, nil, &page2[999])
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Empty(t, page3)
 
 	// Using unknown after ID is an error.
 	newID := identifier.New()
-	_, errE = s.List(ctx, &newID)
+	_, errE = s.List(ctx, nil, &newID)
 	assert.ErrorIs(t, errE, store.ErrValueNotFound)
 
 	csPage1, errE := changeset.Changes(ctx, nil)
@@ -2250,13 +2252,13 @@ func TestCountAcrossViewsWithDeletions(t *testing.T) {
 
 	// With includeDeleted=true Count must match the set of ids returned by List
 	// for the same view, regardless of which versions have been deleted.
-	mainList, errE := s.List(ctx, nil)
+	mainList, errE := s.List(ctx, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	mainCount, errE = s.Count(ctx, true)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, int64(len(mainList)), mainCount, "main Count(true) matches List")
 
-	childList, errE := child.List(ctx, nil)
+	childList, errE := child.List(ctx, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	childCount, errE = child.Count(ctx, true)
 	require.NoError(t, errE, "% -+#.1v", errE)
@@ -2282,7 +2284,7 @@ func TestListIncludesDeletedCountIncludeDeletedFlag(t *testing.T) {
 	_, errE = s.Delete(ctx, id, version.Changeset, testutils.DummyData, testutils.DummyData)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	list, errE := s.List(ctx, nil)
+	list, errE := s.List(ctx, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Contains(t, list, id, "List includes deleted id")
 
@@ -2324,7 +2326,7 @@ func TestStaleViewAfterRelease(t *testing.T) {
 	_, _, _, _, errE = child.Get(ctx, id, version) //nolint:dogsled
 	assert.ErrorIs(t, errE, store.ErrViewNotFound)
 
-	_, errE = child.List(ctx, nil)
+	_, errE = child.List(ctx, nil, nil)
 	assert.ErrorIs(t, errE, store.ErrViewNotFound)
 
 	_, errE = child.Count(ctx, false)

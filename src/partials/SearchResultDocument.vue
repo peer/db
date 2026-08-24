@@ -68,9 +68,8 @@ const displayLabelComponent = useTemplateRef<ComponentExposed<typeof DisplayLabe
 const searchResultComponents = getSearchResultComponents()
 const customResultComponent = computed(() => {
   if (!props.doc.claims) return null
-  const refs = getClaimsOfTypeWithConfidence(props.doc.claims, "ref", INSTANCE_OF)
-  for (const ref of refs) {
-    const comp = searchResultComponents.value.get(ref.to.id)
+  for (const classId of props.doc.InstanceOf()) {
+    const comp = searchResultComponents.value.get(classId)
     if (comp) {
       return comp
     }
@@ -83,7 +82,7 @@ const customResultComponent = computed(() => {
 // and the description) instead of dumping the Content field into the result.
 const isPage = computed(() => {
   if (!props.doc.claims) return false
-  return getClaimsOfTypeWithConfidence(props.doc.claims, "ref", INSTANCE_OF).some((ref) => ref.to.id === PAGE)
+  return props.doc.InstanceOf().includes(PAGE)
 })
 
 // Resolve field definitions for this document.

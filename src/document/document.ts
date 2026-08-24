@@ -3,7 +3,7 @@ import type { Confidence, Reference } from "@/document/types"
 
 import { Identifier } from "@tozd/identifier"
 
-import { ClaimTypes } from "@/document/claims"
+import { ClaimTypes, instanceOf } from "@/document/claims"
 import { LowConfidence } from "@/document/confidence"
 import { clone } from "@/utils"
 
@@ -47,6 +47,11 @@ export class D extends CoreDocument implements ClaimsContainer {
     }
     // Wrap raw JSON claims (from Object.assign) or initialize empty.
     this.claims = new ClaimTypes(this.claims ?? {})
+  }
+
+  // InstanceOf returns IDs of the classes this document is an instance of (see instanceOf).
+  InstanceOf(): string[] {
+    return instanceOf(this.claims)
   }
 
   // Clone returns a deep copy of the document.

@@ -26,8 +26,7 @@ import { cloneDeep, isEqual } from "lodash-es"
 import { inject, onBeforeUnmount, onMounted, readonly, ref, shallowRef, toRaw, useId, watch, watchEffect } from "vue"
 
 import siteContext from "@/context"
-import { INSTANCE_OF } from "@/core"
-import { getClaimsOfTypeWithConfidence, selectClaimsByLanguage } from "@/document/claims"
+import { selectClaimsByLanguage } from "@/document/claims"
 import { AddClaimChange } from "@/document/patch"
 import { yearPrecisionMultiple } from "@/document/time"
 import { getDisplayLabelFunctions } from "@/registry/display-label"
@@ -756,36 +755,34 @@ export function amountRangeDisplay(from: number, to: number): { decimals: number
   }
 }
 
-// getDisplayLabel returns the display label for a document's claims, using the
+// getDisplayLabel returns the display label for a document, using the
 // current locale and language fallback chain.
 //
-// If claims contain an INSTANCE_OF claim which points to a class which has
-// a display label function registered in the display label registry, then
-// that function is used instead. In such case this same class should also have
-// DISPLAY_LABEL_TEMPLATE defined to be used in the backend.
+// If the document is an instance of a class which has a display label function registered in the
+// display label registry, then that function is used instead. In such case this same class should
+// also have DISPLAY_LABEL_TEMPLATE defined to be used in the backend.
 //
 // This matches how makeDisplayStrings works in the backend, but for only one language.
-export const getDisplayLabel: GetDisplayLabel = async function (claims, router, i18n, el, abortSignal, progress) {
-  if (!claims) {
+export const getDisplayLabel: GetDisplayLabel = async function (doc, router, i18n, el, abortSignal, progress) {
+  if (!doc) {
     return null
   }
 
   const displayLabelFunctions = getDisplayLabelFunctions()
-  const refs = getClaimsOfTypeWithConfidence(claims, "ref", INSTANCE_OF)
-  for (const ref of refs) {
-    const displayLabelFunction = displayLabelFunctions.value.get(ref.to.id)
+  for (const classId of doc.InstanceOf()) {
+    const displayLabelFunction = displayLabelFunctions.value.get(classId)
     if (displayLabelFunction) {
-      return await displayLabelFunction(claims, router, i18n, el, abortSignal, progress)
+      return await displayLabelFunction(doc, router, i18n, el, abortSignal, progress)
     }
   }
 
   // Default implementation.
-  return defaultDisplayLabel(claims, router, i18n, el, abortSignal, progress)
+  return defaultDisplayLabel(doc, router, i18n, el, abortSignal, progress)
 }
 
 // eslint-disable-next-line @typescript-eslint/require-await
-export const defaultDisplayLabel: GetDisplayLabel = async function (claims, router, i18n, el, abortSignal, progress) {
-  if (!claims) {
+export const defaultDisplayLabel: GetDisplayLabel = async function (doc, router, i18n, el, abortSignal, progress) {
+  if (!doc?.claims) {
     return null
   }
 
@@ -793,7 +790,7 @@ export const defaultDisplayLabel: GetDisplayLabel = async function (claims, rout
 
   // The properties a label is picked from are the ones the site sends, in the order they state in the
   // schema, so that a document is called here what the indexing called it.
-  const claim = selectClaimsByLanguage(claims, "string", siteContext.namingProperties, locale.value, (claims) => !!(claims.length > 0 && claims[0].string))
+  const claim = selectClaimsByLanguage(doc.claims, "string", siteContext.namingProperties, locale.value, (claims) => !!(claims.length > 0 && claims[0].string))
   return claim?.[0].string ?? null
 }
 

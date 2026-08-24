@@ -293,8 +293,9 @@ func (b *B) completeDocumentSession(ctx context.Context, session identifier.Iden
 
 	// Compute new metadata for this version.
 	newMetadata := &store.DocumentMetadata{
-		At:    endMetadata.At,
-		Users: internalStore.SortedUniqueUsers(users),
+		At:         endMetadata.At,
+		Users:      internalStore.SortedUniqueUsers(users),
+		InstanceOf: doc.InstanceOf(),
 	}
 
 	return &documentCompleteData{
@@ -383,6 +384,8 @@ func (b *B) completeDocumentSessionTx(
 			&store.DocumentMetadata{
 				At:    data.EndMetadata.At,
 				Users: internalStore.SortedUniqueUsers([]*store.User{data.BeginMetadata.User}),
+				// The synthesized document is empty, so it is an instance of nothing.
+				InstanceOf: nil,
 			},
 			&store.CommitMetadata{Base: firstBase, User: data.EndMetadata.User},
 		)

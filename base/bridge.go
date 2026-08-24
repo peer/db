@@ -57,6 +57,13 @@ func (b *B) ResetBridgeProgress(ctx context.Context) errors.E {
 	return b.bridge.ResetSeq(ctx)
 }
 
+// CancelReindexQueue removes all entries from the reindex queue, together with the pending reindex
+// jobs. It must run after Init and before Start, so that no reindex job of this process can be
+// mid-batch with entries fetched before the delete.
+func (b *B) CancelReindexQueue(ctx context.Context) errors.E {
+	return b.bridge.CancelReindexQueue(ctx)
+}
+
 // ClearSystemManagedMetadata removes all bridge-maintained inverse relations and embedding entries, so a
 // subsequent full reindex rebuilds them from a clean slate instead of diffing new commits on top of stale or
 // wrongly-leveled entries. It must run while nothing else touches these tables: while the bridge has no

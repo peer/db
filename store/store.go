@@ -97,6 +97,10 @@ type Store[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetada
 	MetadataType string
 	PatchType    string
 
+	// MetadataIndex enables an index on metadata of changes.
+	// It requires MetadataType to be jsonb.
+	MetadataIndex bool `exhaustruct:"optional"`
+
 	// CommittedSize is the size of the channel to which one CommittedChangesets is sent for each commit.
 	//
 	// Set to a negative value to disable creating the channel.
@@ -119,6 +123,14 @@ type Store[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetada
 	committedChangesetsChannel string
 	committed                  chan<- CommittedChangesets[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]
 	committedMu                sync.RWMutex
+}
+
+// metadataIndexes is the DDL creating the index MetadataIndex asks for, and nothing when it does not.
+func (s *Store[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]) metadataIndexes() string {
+	if !s.MetadataIndex {
+		return ""
+	}
+	return `CREATE INDEX ON "` + s.Prefix + `Changes" USING gin ("metadata" jsonb_path_ops);`
 }
 
 // Init initializes the Store.
@@ -190,6 +202,7 @@ func (s *Store[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMe
 					PRIMARY KEY ("changeset", "id", "revision")
 				);
 				CREATE INDEX ON "`+s.Prefix+`Changes" USING gin ("parentChangesets");
+				`+s.metadataIndexes()+`
 				CREATE FUNCTION "`+s.Prefix+`ChangesAfterInsertFunc"()
 					RETURNS TRIGGER LANGUAGE plpgsql AS $$
 					BEGIN

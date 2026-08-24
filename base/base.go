@@ -296,6 +296,7 @@ func (b *B) Init(
 		DataType:      "jsonb",
 		MetadataType:  "jsonb",
 		PatchType:     "jsonb",
+		MetadataIndex: true,
 		CommittedSize: bridgeBufferSize,
 	}
 	errE := documents.Init(ctx, dbpool, listener)
@@ -379,10 +380,17 @@ type StartDocument struct {
 	Metadata *store.DocumentMetadata
 }
 
+// TODO: Maybe replace "documents" argument with options for converter that are otherwise extracted from them.
+//       This is to better support of using PeerDB with non-core documents and custom ontologies.
+
 // Start starts the base.
 //
-// Documents are property, class, and language documents used to index
-// documents for search. All three kinds must be provided.
+// Documents are the property, class, and language documents the search converters are built from, all
+// of them optional. Property documents contribute the property hierarchy and the naming, inverse, and
+// text-excluded properties derived from it, class documents the per-field inverse and embed
+// configuration, and language documents the mapping from a language document to its language code. A
+// base can therefore run on an ontology of its own, without any of PeerDB's core documents: documents
+// are still indexed and searchable, only without what the missing kinds contribute.
 //
 // Start does not wait for any pending indexing to finish: the commit log is replayed by a goroutine, and
 // a reindex queue left behind by a previous run is drained by a background job. Call WaitUntilCaughtUp,

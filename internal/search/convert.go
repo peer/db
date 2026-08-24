@@ -727,15 +727,9 @@ func validateLanguagePriority(priority map[string][]string) errors.E {
 	return nil
 }
 
-// isInstanceOf returns true if the document has an INSTANCE_OF reference claim
-// pointing to the given class ID.
+// isInstanceOf returns true if the document is an instance of the given class.
 func isInstanceOf(doc *document.D, classID identifier.Identifier) bool {
-	for _, rel := range document.GetClaimsOfTypeWithConfidence[document.ReferenceClaim](doc, internalCore.InstanceOfPropID, document.LowConfidence) {
-		if rel.To.ID == classID {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(doc.InstanceOf(), classID)
 }
 
 // buildPropertyHierarchy computes transitive descendants and ancestors for each property
@@ -910,10 +904,14 @@ func (c *Converter) buildInverseProperties(properties []*document.D) {
 
 // buildTextExcludedProperties collects the properties marked with the EXCLUDE_FROM_TEXT_SEARCH
 // setting (a boolean has claim on the property document), whose claims contribute neither their
-// textual values nor their display strings to the searchable text.
+// textual values nor their display strings to the searchable text. Only documents that are
+// instances of PROPERTY are considered.
 func (c *Converter) buildTextExcludedProperties(properties []*document.D) {
 	c.textExcludedProperties = map[identifier.Identifier]bool{}
 	for _, prop := range properties {
+		if !isInstanceOf(prop, internalCore.PropertyClassID) {
+			continue
+		}
 		if len(document.GetClaimsOfTypeWithConfidence[document.HasClaim](prop, internalCore.ExcludeFromTextSearchPropID, document.LowConfidence)) > 0 {
 			c.textExcludedProperties[prop.ID] = true
 		}
@@ -1137,8 +1135,7 @@ func (c *Converter) computeDocumentInfo(
 		return id == internalCore.ClassClassID || id == internalCore.VocabularyClassID
 	}
 	ignoredForReferencesCount := false
-	for _, rel := range document.GetClaimsOfTypeWithConfidence[document.ReferenceClaim](doc, internalCore.InstanceOfPropID, document.LowConfidence) {
-		classID := rel.To.ID
+	for _, classID := range doc.InstanceOf() {
 		if isIgnoredClass(classID) {
 			// This depends only on the document's own InstanceOf claim pointing at the CLASS or
 			// VOCABULARY constant, not on any other document's content, so it records no dependency: a
@@ -2754,11 +2751,7 @@ func (c *Converter) OutgoingReferences(
 ) (map[identifier.Identifier][]Reference, map[identifier.Identifier][]InverseRelation, errors.E) {
 	// Field-level inverse properties are defined per class, so collect the classes the
 	// document is an instance of to resolve them.
-	instanceOf := document.GetClaimsOfTypeWithConfidence[document.ReferenceClaim](doc, internalCore.InstanceOfPropID, document.LowConfidence)
-	classes := make([]identifier.Identifier, 0, len(instanceOf))
-	for _, rel := range instanceOf {
-		classes = append(classes, rel.To.ID)
-	}
+	classes := doc.InstanceOf()
 	v := &referencesVisitor{
 		Ctx:        ctx,
 		Converter:  c,
@@ -3014,12 +3007,7 @@ func (v *embedVisitor) VisitUnknown(claim *document.UnknownClaim) (document.Visi
 // collectEmbedTasks walks the document and returns the embed tasks for its reference claims whose fields are
 // configured for embedding.
 func (c *Converter) collectEmbedTasks(doc *document.D) ([]embedTask, errors.E) {
-	instanceOf := document.GetClaimsOfTypeWithConfidence[document.ReferenceClaim](doc, internalCore.InstanceOfPropID, document.LowConfidence)
-	classes := make([]identifier.Identifier, 0, len(instanceOf))
-	for _, rel := range instanceOf {
-		classes = append(classes, rel.To.ID)
-	}
-	v := &embedVisitor{Converter: c, Classes: classes, Path: nil, Tasks: nil}
+	v := &embedVisitor{Converter: c, Classes: doc.InstanceOf(), Path: nil, Tasks: nil}
 	errE := doc.Visit(v)
 	if errE != nil {
 		return nil, errE

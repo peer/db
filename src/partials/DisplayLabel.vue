@@ -39,7 +39,7 @@ onBeforeUnmount(() => {
 })
 
 // TODO: Pass "el" in.
-const displayLabel = asyncToReactive(() => getDisplayLabel(props.doc?.claims, router, i18n, null, abortController.signal, progress))
+const displayLabel = asyncToReactive(() => getDisplayLabel(props.doc, router, i18n, null, abortController.signal, progress))
 
 defineExpose({
   displayLabel,

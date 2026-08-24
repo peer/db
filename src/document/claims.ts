@@ -4,7 +4,7 @@ import type { Amount, Confidence, Reference, Time, TimePrecision } from "@/docum
 import type { Constructee, Constructor, Required } from "@/types"
 
 import siteContext from "@/context"
-import { IN_LANGUAGE, LIST, ORDER_IN_LIST } from "@/core"
+import { IN_LANGUAGE, INSTANCE_OF, LIST, ORDER_IN_LIST } from "@/core"
 import { amountFloat64, amountWindowEnd, amountWindowStart, validateAmount } from "@/document/amount"
 import { LowConfidence } from "@/document/confidence"
 import { timeFloat64, timeWindowEnd, timeWindowStart, VALID_TIME_PRECISIONS, validateTime } from "@/document/time"
@@ -987,6 +987,25 @@ export function getClaimsOfTypeWithConfidence<K extends ClaimTypeName>(
 ): Required<DeepReadonly<ClaimTypes>>[K][number][] {
   const claims = getClaimsOfType(claimTypes, claimType, propertyId)
   return claims.filter((claim) => claim.confidence >= confidence)
+}
+
+// instanceOf returns IDs of the classes the document is an instance of, deduped: the targets of the
+// document's instance of claims with at least LowConfidence, sorted by decreasing confidence of the
+// claims naming them, with ties sorted ascending by ID. A class named by several claims ranks by its
+// highest confidence. A lookup taking the first match therefore prefers the class the document states
+// with the highest confidence. This is the implementation D.InstanceOf delegates to, which is the
+// public API. The backend counterpart (document.D.InstanceOf) matches, so the list equals the one
+// stored in document metadata.
+export function instanceOf(claimTypes: DeepReadonly<ClaimTypes> | undefined | null): string[] {
+  const claims = getClaimsOfTypeWithConfidence(claimTypes, "ref", INSTANCE_OF)
+  claims.sort((a, b) => b.confidence - a.confidence || (a.to.id < b.to.id ? -1 : a.to.id > b.to.id ? 1 : 0))
+  const ids: string[] = []
+  for (const claim of claims) {
+    if (!ids.includes(claim.to.id)) {
+      ids.push(claim.to.id)
+    }
+  }
+  return ids
 }
 
 // getAllClaimsOfTypeWithConfidence returns all claims of a given type across all

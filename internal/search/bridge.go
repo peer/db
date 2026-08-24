@@ -976,6 +976,38 @@ func (b *Bridge) ResetSeq(ctx context.Context) errors.E {
 	return nil
 }
 
+// CancelReindexQueue removes all entries from the reindex queue, together with this bridge's pending
+// reindex jobs. A job picked up later finds an empty queue and exits.
+//
+// It must run while this process's river client is not started yet, so that no reindex job of this
+// process can be mid-batch with entries fetched before the delete.
+func (b *Bridge) CancelReindexQueue(ctx context.Context) errors.E {
+	// Only this bridge's jobs which have not started yet (state "available") are deleted, so that nothing picks up
+	// the queue again once it is emptied below. A job which is already running keeps the entries it snapshotted and
+	// can still write them: this process cannot have one because its river client is not started yet, and another
+	// process indexing the same store concurrently is out of scope, --recreate-index not being safe to run against
+	// a live process.
+	_, errE := b.deletePendingReindexJobs(ctx)
+	if errE != nil {
+		return errE
+	}
+
+	errE = internalStore.RetryTransaction(ctx, b.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
+		_, err := tx.Exec(ctx, `DELETE FROM "`+b.Store.Prefix+`BridgeReindexQueue"`)
+		return internalStore.WithPgxError(err)
+	})
+	if errE != nil {
+		return errE
+	}
+
+	b.reindexQueueMinSeqMu.Lock()
+	b.reindexQueueMinSeq = math.MaxInt64
+	b.reindexQueueCount = 0
+	b.reindexQueueMinSeqMu.Unlock()
+
+	return nil
+}
+
 // ClearSystemManagedMetadata removes all bridge-maintained reference rows, inverse relations, and
 // embedding entries by truncating the three tables. A subsequent full reindex (commit-log replay) then
 // rebuilds them from a clean slate instead of diffing new commits on top of stale or wrongly-leveled
@@ -1025,7 +1057,7 @@ func (b *Bridge) EnqueueAllForReindex(ctx context.Context, count, size *x.Counte
 	var after *identifier.Identifier
 	for {
 		// List returns every committed value id, including deleted ones, in id order, for keyset pagination.
-		ids, errE := b.Store.List(ctx, after)
+		ids, errE := b.Store.List(ctx, nil, after)
 		if errE != nil {
 			return enqueued, errE
 		}
