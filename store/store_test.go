@@ -13,7 +13,6 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -120,36 +119,15 @@ func initDatabase[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, Commi
 ) {
 	t.Helper()
 
-	if os.Getenv("POSTGRES") == "" {
-		t.Skip("POSTGRES is not available")
-	}
+	infra := testutils.NewPostgres(t)
+	ctx, dbpool := infra.Ctx, infra.DBPool
 
-	ctx := t.Context()
-
-	logger := zerolog.New(zerolog.NewTestWriter(t)).With().Timestamp().Logger()
-	ctx = logger.WithContext(ctx)
-
-	schema := "s" + strings.ToLower(identifier.New().String())
 	prefix := identifier.New().String() + "_"
-
-	// We use context.WithoutCancel here because we want to cancel the pool ourselves and not when context
-	// is cancelled (so that cleanup code which needs PostgreSQL access can continue to use connections).
-	dbCtx := internalStore.WithMaxDBPoolConnections(context.WithoutCancel(ctx), internalStore.TestMaxDBPoolConnections)
-	dbpool, dbpoolCleanup, errE := internalStore.InitPostgres(dbCtx, os.Getenv("POSTGRES"), logger, func(context.Context) (string, string) {
-		return schema, "tests"
-	})
-	require.NoError(t, errE, "% -+#.1v", errE)
-	t.Cleanup(dbpoolCleanup)
-
-	errE = internalStore.RetryTransaction(ctx, dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
-		return internalStore.EnsureSchema(ctx, tx, schema)
-	})
-	require.NoError(t, errE, "% -+#.1v", errE)
 
 	listener := internalStore.NewListener(dbpool)
 
 	s := &store.Store[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]{
-		Schema:       schema,
+		Schema:       infra.Name,
 		Prefix:       prefix,
 		DataType:     dataType,
 		MetadataType: dataType,
@@ -158,7 +136,7 @@ func initDatabase[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, Commi
 		MetadataIndex: dataType == "jsonb",
 	}
 
-	errE = s.Init(ctx, dbpool, listener)
+	errE := s.Init(ctx, dbpool, listener)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	errE = listener.Start(ctx)
@@ -1937,36 +1915,15 @@ func TestCommitLogViewFilter(t *testing.T) {
 func TestNotifyRecovery(t *testing.T) {
 	t.Parallel()
 
-	if os.Getenv("POSTGRES") == "" {
-		t.Skip("POSTGRES is not available")
-	}
+	infra := testutils.NewPostgres(t)
+	ctx, dbpool := infra.Ctx, infra.DBPool
 
-	ctx := t.Context()
-
-	logger := zerolog.New(zerolog.NewTestWriter(t)).With().Timestamp().Logger()
-	ctx = logger.WithContext(ctx)
-
-	schema := "s" + strings.ToLower(identifier.New().String())
 	prefix := identifier.New().String() + "_"
-
-	// We use context.WithoutCancel here because we want to cancel the pool ourselves and not when context
-	// is cancelled (so that cleanup code which needs PostgreSQL access can continue to use connections).
-	dbCtx := internalStore.WithMaxDBPoolConnections(context.WithoutCancel(ctx), internalStore.TestMaxDBPoolConnections)
-	dbpool, dbpoolCleanup, errE := internalStore.InitPostgres(dbCtx, os.Getenv("POSTGRES"), logger, func(context.Context) (string, string) {
-		return schema, "tests"
-	})
-	require.NoError(t, errE, "% -+#.1v", errE)
-	t.Cleanup(dbpoolCleanup)
-
-	errE = internalStore.RetryTransaction(ctx, dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
-		return internalStore.EnsureSchema(ctx, tx, schema)
-	})
-	require.NoError(t, errE, "% -+#.1v", errE)
 
 	listener := internalStore.NewListener(dbpool)
 
 	s := &store.Store[json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage]{
-		Schema:        schema,
+		Schema:        infra.Name,
 		Prefix:        prefix,
 		CommittedSize: 1,
 		DataType:      "jsonb",
@@ -1974,7 +1931,7 @@ func TestNotifyRecovery(t *testing.T) {
 		PatchType:     "jsonb",
 	}
 
-	errE = s.Init(ctx, dbpool, listener)
+	errE := s.Init(ctx, dbpool, listener)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	errE = listener.Start(ctx)

@@ -3,7 +3,6 @@ package store_test
 import (
 	"bytes"
 	"context"
-	"os"
 	"strings"
 	"testing"
 
@@ -18,37 +17,15 @@ import (
 	"gitlab.com/tozd/identifier"
 
 	internalStore "gitlab.com/peerdb/peerdb/internal/store"
+	"gitlab.com/peerdb/peerdb/internal/testutils"
 )
 
 func initTestPool(t *testing.T) (context.Context, *pgxpool.Pool) {
 	t.Helper()
 
-	if os.Getenv("POSTGRES") == "" {
-		t.Skip("POSTGRES is not available")
-	}
+	infra := testutils.NewPostgres(t)
 
-	ctx := t.Context()
-
-	logger := zerolog.New(zerolog.NewTestWriter(t)).With().Timestamp().Logger()
-	ctx = logger.WithContext(ctx)
-
-	schema := "s" + strings.ToLower(identifier.New().String())
-
-	// We use context.WithoutCancel here because we want to cancel the pool ourselves and not when context
-	// is cancelled (so that cleanup code which needs PostgreSQL access can continue to use connections).
-	dbCtx := internalStore.WithMaxDBPoolConnections(context.WithoutCancel(ctx), internalStore.TestMaxDBPoolConnections)
-	dbpool, dbpoolCleanup, errE := internalStore.InitPostgres(dbCtx, os.Getenv("POSTGRES"), logger, func(context.Context) (string, string) {
-		return schema, "tests"
-	})
-	require.NoError(t, errE, "% -+#.1v", errE)
-	t.Cleanup(dbpoolCleanup)
-
-	errE = internalStore.RetryTransaction(ctx, dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
-		return internalStore.EnsureSchema(ctx, tx, schema)
-	})
-	require.NoError(t, errE, "% -+#.1v", errE)
-
-	return ctx, dbpool
+	return infra.Ctx, infra.DBPool
 }
 
 func TestInitPostgres(t *testing.T) {

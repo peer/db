@@ -11,11 +11,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/jackc/pgx/v5"
-	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/identifier"
 
 	"gitlab.com/peerdb/peerdb/coordinator"
@@ -34,41 +31,18 @@ func initDatabase(t *testing.T) (
 ) {
 	t.Helper()
 
-	if os.Getenv("POSTGRES") == "" {
-		t.Skip("POSTGRES is not available")
-	}
+	infra := testutils.NewPostgres(t)
+	ctx, dbpool := infra.Ctx, infra.DBPool
 
-	ctx := t.Context()
-
-	logger := zerolog.New(zerolog.NewTestWriter(t)).With().Timestamp().Logger()
-	ctx = logger.WithContext(ctx)
-
-	schema := "s" + strings.ToLower(identifier.New().String())
 	prefix := identifier.New().String() + "_"
-
-	ctx = internalStore.WithFallbackDBContext(ctx, schema, "tests")
-
-	// We use context.WithoutCancel here because we want to cancel the pool ourselves and not when context
-	// is cancelled (so that cleanup code which needs PostgreSQL access can continue to use connections).
-	dbCtx := internalStore.WithMaxDBPoolConnections(context.WithoutCancel(ctx), internalStore.TestMaxDBPoolConnections)
-	dbpool, dbpoolCleanup, errE := internalStore.InitPostgres(dbCtx, os.Getenv("POSTGRES"), logger, func(context.Context) (string, string) {
-		return schema, "tests"
-	})
-	require.NoError(t, errE, "% -+#.1v", errE)
-	t.Cleanup(dbpoolCleanup)
-
-	errE = internalStore.RetryTransaction(ctx, dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
-		return internalStore.EnsureSchema(ctx, tx, schema)
-	})
-	require.NoError(t, errE, "% -+#.1v", errE)
 
 	listener := internalStore.NewListener(dbpool)
 
-	r, errE := internalStore.NewRiver(ctx, logger, nil, dbpool, schema)
+	r, errE := internalStore.NewRiver(ctx, infra.Logger, nil, dbpool, infra.Name)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	s := &storage.Storage{
-		Schema:             schema,
+		Schema:             infra.Name,
 		Prefix:             prefix,
 		Dir:                t.TempDir(),
 		PrimaryCoordinator: nil,

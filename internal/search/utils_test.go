@@ -2,13 +2,10 @@ package search_test
 
 import (
 	"context"
-	"os"
 	"strings"
 	"testing"
 
 	"github.com/elastic/go-elasticsearch/v9"
-	"github.com/hashicorp/go-cleanhttp"
-	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gitlab.com/tozd/identifier"
@@ -20,18 +17,9 @@ import (
 func initESClient(t *testing.T) (context.Context, *elasticsearch.TypedClient) {
 	t.Helper()
 
-	if os.Getenv("ELASTIC") == "" {
-		t.Skip("ELASTIC is not available")
-	}
+	infra := testutils.NewElastic(t)
 
-	ctx := t.Context()
-
-	logger := zerolog.New(zerolog.NewTestWriter(t)).With().Timestamp().Logger()
-
-	esClient, errE := internalSearch.GetClient(cleanhttp.DefaultPooledClient(), logger, os.Getenv("ELASTIC"))
-	require.NoError(t, errE, "% -+#.1v", errE)
-
-	return ctx, esClient
+	return infra.Ctx, infra.ESClient
 }
 
 func TestEnsureIndexAliasLayout(t *testing.T) {

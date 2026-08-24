@@ -3,16 +3,12 @@ package peerdb_test
 import (
 	"context"
 	"encoding/json"
-	"os"
 	"slices"
-	"strings"
 	"testing"
 	"time"
 
 	"github.com/elastic/go-elasticsearch/v9"
-	"github.com/hashicorp/go-cleanhttp"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gitlab.com/tozd/identifier"
@@ -24,7 +20,6 @@ import (
 	internalCore "gitlab.com/peerdb/peerdb/internal/core"
 	internalSearch "gitlab.com/peerdb/peerdb/internal/search"
 	internalSite "gitlab.com/peerdb/peerdb/internal/site"
-	internalStore "gitlab.com/peerdb/peerdb/internal/store"
 	"gitlab.com/peerdb/peerdb/internal/testutils"
 	"gitlab.com/peerdb/peerdb/store"
 )
@@ -73,45 +68,16 @@ func initBaseForDocuments(t *testing.T) (context.Context, *base.B) {
 func initBaseInfra(t *testing.T) (context.Context, *base.B, *elasticsearch.TypedClient, *pgxpool.Pool) {
 	t.Helper()
 
-	if os.Getenv("ELASTIC") == "" {
-		t.Skip("ELASTIC is not available")
-	}
-	if os.Getenv("POSTGRES") == "" {
-		t.Skip("POSTGRES is not available")
-	}
+	infra := testutils.NewPostgresAndElastic(t)
 
-	ctx := t.Context()
+	testutils.DeleteIndexOnCleanup(t, infra.ESClient, internalSearch.LevelIndex(infra.Name, internalSite.AllVisibilityLevel))
 
-	logger := zerolog.New(zerolog.NewTestWriter(t)).With().Timestamp().Logger()
-	ctx = logger.WithContext(ctx)
-
-	schema := "s" + strings.ToLower(identifier.New().String())
-	index := schema
-
-	ctx = internalStore.WithFallbackDBContext(ctx, schema, "tests")
-
-	// We use context.WithoutCancel here because we want to cancel the pool ourselves and not when context
-	// is cancelled (so that cleanup code which needs PostgreSQL access can continue to use connections).
-	dbCtx := internalStore.WithMaxDBPoolConnections(context.WithoutCancel(ctx), internalStore.TestMaxDBPoolConnections)
-	dbpool, dbpoolCleanup, errE := internalStore.InitPostgres(dbCtx, os.Getenv("POSTGRES"), logger, func(_ context.Context) (string, string) {
-		return schema, "tests"
-	})
-	require.NoError(t, errE, "% -+#.1v", errE)
-	t.Cleanup(dbpoolCleanup)
-
-	esClient, errE := internalSearch.GetClient(cleanhttp.DefaultPooledClient(), logger, os.Getenv("ELASTIC"))
+	b, _, errE := internalBase.InitComponents(
+		infra.Ctx, infra.Logger, nil, infra.DBPool, infra.ESClient, infra.Name, infra.Name, 1, t.TempDir(), nil, nil, []string{internalSite.AllVisibilityLevel},
+	)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	t.Cleanup(func() {
-		// We do not use t.Context() because we want an active context, not a canceled one.
-		errE := internalSearch.DeleteIndex(context.Background(), esClient, internalSearch.LevelIndex(index, internalSite.AllVisibilityLevel))
-		require.NoError(t, errE, "% -+#.1v", errE)
-	})
-
-	b, _, errE := internalBase.InitComponents(ctx, logger, nil, dbpool, esClient, schema, index, 1, t.TempDir(), nil, nil, []string{internalSite.AllVisibilityLevel})
-	require.NoError(t, errE, "% -+#.1v", errE)
-
-	return ctx, b, esClient, dbpool
+	return infra.Ctx, b, infra.ESClient, infra.DBPool
 }
 
 // TestFetchDocumentsSkipsDeleted tests that a document which is listed but is not there anymore when it is
@@ -193,47 +159,18 @@ func distinctFromDoc(docBase []string, target identifier.Identifier) *document.D
 func TestRecreateIndex(t *testing.T) {
 	t.Parallel()
 
-	if os.Getenv("ELASTIC") == "" {
-		t.Skip("ELASTIC is not available")
-	}
-	if os.Getenv("POSTGRES") == "" {
-		t.Skip("POSTGRES is not available")
-	}
+	infra := testutils.NewPostgresAndElastic(t)
+	ctx, logger, dbpool, esClient := infra.Ctx, infra.Logger, infra.DBPool, infra.ESClient
 
-	ctx := t.Context()
-
-	logger := zerolog.New(zerolog.NewTestWriter(t)).With().Timestamp().Logger()
-	ctx = logger.WithContext(ctx)
-
-	schema := "s" + strings.ToLower(identifier.New().String())
-	index := schema
-	topIndex := internalSearch.LevelIndex(index, internalSite.AllVisibilityLevel)
+	topIndex := internalSearch.LevelIndex(infra.Name, internalSite.AllVisibilityLevel)
 	levels := []string{internalSite.AllVisibilityLevel}
 
-	ctx = internalStore.WithFallbackDBContext(ctx, schema, "tests")
-
-	// We use context.WithoutCancel here because we want to cancel the pool ourselves and not when context
-	// is cancelled (so that cleanup code which needs PostgreSQL access can continue to use connections).
-	dbCtx := internalStore.WithMaxDBPoolConnections(context.WithoutCancel(ctx), internalStore.TestMaxDBPoolConnections)
-	dbpool, dbpoolCleanup, errE := internalStore.InitPostgres(dbCtx, os.Getenv("POSTGRES"), logger, func(_ context.Context) (string, string) {
-		return schema, "tests"
-	})
-	require.NoError(t, errE, "% -+#.1v", errE)
-	t.Cleanup(dbpoolCleanup)
-
-	esClient, errE := internalSearch.GetClient(cleanhttp.DefaultPooledClient(), logger, os.Getenv("ELASTIC"))
-	require.NoError(t, errE, "% -+#.1v", errE)
-
-	t.Cleanup(func() {
-		// We do not use t.Context() because we want an active context, not a canceled one.
-		errE := internalSearch.DeleteIndex(context.Background(), esClient, topIndex)
-		require.NoError(t, errE, "% -+#.1v", errE)
-	})
+	testutils.DeleteIndexOnCleanup(t, esClient, topIndex)
 
 	// The first base populates the store: the core documents and a pair of documents with a
 	// DISTINCT_FROM claim between them.
 	ctx1, cancel1 := context.WithCancel(ctx)
-	b1, _, errE := internalBase.InitComponents(ctx1, logger, nil, dbpool, esClient, schema, index, 1, t.TempDir(), nil, nil, levels)
+	b1, _, errE := internalBase.InitComponents(ctx1, logger, nil, dbpool, esClient, infra.Name, infra.Name, 1, t.TempDir(), nil, nil, levels)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	baseA := []string{"test", "recreate", "A"}
@@ -281,7 +218,7 @@ func TestRecreateIndex(t *testing.T) {
 
 	ctx2, cancel2 := context.WithCancel(ctx)
 	t.Cleanup(cancel2)
-	b2, _, errE := internalBase.InitComponents(ctx2, logger, nil, dbpool, esClient, schema, index, 1, t.TempDir(), nil, nil, levels)
+	b2, _, errE := internalBase.InitComponents(ctx2, logger, nil, dbpool, esClient, infra.Name, infra.Name, 1, t.TempDir(), nil, nil, levels)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// The schema documents are loaded from PostgreSQL, so they are complete although the index is empty.

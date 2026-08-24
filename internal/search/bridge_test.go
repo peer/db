@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"os"
 	"strings"
 	"sync"
 	"testing"
@@ -12,7 +11,6 @@ import (
 
 	"github.com/elastic/go-elasticsearch/v9"
 	"github.com/elastic/go-elasticsearch/v9/typedapi/esdsl"
-	"github.com/hashicorp/go-cleanhttp"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/riverqueue/river"
@@ -92,57 +90,24 @@ type bridgeEnv struct {
 func setupBridge(t *testing.T) (context.Context, *bridgeEnv) {
 	t.Helper()
 
-	if os.Getenv("ELASTIC") == "" {
-		t.Skip("ELASTIC is not available")
-	}
-	if os.Getenv("POSTGRES") == "" {
-		t.Skip("POSTGRES is not available")
-	}
+	infra := testutils.NewPostgresAndElastic(t)
+	ctx, logger, dbpool, esClient := infra.Ctx, infra.Logger, infra.DBPool, infra.ESClient
 
-	ctx := t.Context()
-
-	logger := zerolog.New(zerolog.NewTestWriter(t)).With().Timestamp().Logger()
-	ctx = logger.WithContext(ctx)
-
-	schema := "s" + strings.ToLower(identifier.New().String())
 	prefix := identifier.New().String() + "_"
-	index := schema
+	index := infra.Name
 
-	ctx = internalStore.WithFallbackDBContext(ctx, schema, "tests")
+	testutils.DeleteIndexOnCleanup(t, esClient, index)
 
-	// We use context.WithoutCancel here because we want to cancel the pool ourselves and not when context
-	// is cancelled (so that cleanup code which needs PostgreSQL access can continue to use connections).
-	dbCtx := internalStore.WithMaxDBPoolConnections(context.WithoutCancel(ctx), internalStore.TestMaxDBPoolConnections)
-	dbpool, dbpoolCleanup, errE := internalStore.InitPostgres(dbCtx, os.Getenv("POSTGRES"), logger, func(_ context.Context) (string, string) {
-		return schema, "tests"
-	})
-	require.NoError(t, errE, "% -+#.1v", errE)
-	t.Cleanup(dbpoolCleanup)
-
-	esClient, errE := internalSearch.GetClient(cleanhttp.DefaultPooledClient(), logger, os.Getenv("ELASTIC"))
-	require.NoError(t, errE, "% -+#.1v", errE)
-
-	t.Cleanup(func() {
-		// We do not use t.Context() because we want an active context, not a canceled one.
-		errE := internalSearch.DeleteIndex(context.Background(), esClient, index)
-		require.NoError(t, errE, "% -+#.1v", errE)
-	})
-
-	errE = internalSearch.EnsureIndex(ctx, esClient, index, 1, nil)
-	require.NoError(t, errE, "% -+#.1v", errE)
-
-	errE = internalStore.RetryTransaction(ctx, dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
-		return internalStore.EnsureSchema(ctx, tx, schema)
-	})
+	errE := internalSearch.EnsureIndex(ctx, esClient, index, 1, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	listener := internalStore.NewListener(dbpool)
 
-	r, errE := internalStore.NewRiver(ctx, logger, nil, dbpool, schema)
+	r, errE := internalStore.NewRiver(ctx, logger, nil, dbpool, infra.Name)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	s := &bridgeStore{
-		Schema:        schema,
+		Schema:        infra.Name,
 		Prefix:        prefix,
 		DataType:      "jsonb",
 		MetadataType:  "jsonb",

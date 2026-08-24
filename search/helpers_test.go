@@ -4,16 +4,11 @@ import (
 	"bytes"
 	"context"
 	"math"
-	"os"
 	"slices"
-	"strings"
 	"testing"
 
 	"github.com/elastic/go-elasticsearch/v9"
 	esSearch "github.com/elastic/go-elasticsearch/v9/typedapi/core/search"
-	"github.com/hashicorp/go-cleanhttp"
-	"github.com/rs/zerolog"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/go/x"
@@ -51,26 +46,12 @@ func searchLangs(enabledLanguages []string) *search.Languages {
 func initES(t *testing.T) (*elasticsearch.TypedClient, func() *esSearch.Search, string) {
 	t.Helper()
 
-	if os.Getenv("ELASTIC") == "" {
-		t.Skip("ELASTIC is not available")
-	}
+	infra := testutils.NewElastic(t)
+	ctx, esClient, index := infra.Ctx, infra.ESClient, infra.Name
 
-	ctx := t.Context()
+	testutils.DeleteIndexOnCleanup(t, esClient, index)
 
-	logger := zerolog.New(zerolog.NewTestWriter(t)).With().Timestamp().Logger()
-
-	esClient, errE := internalSearch.GetClient(cleanhttp.DefaultPooledClient(), logger, os.Getenv("ELASTIC"))
-	require.NoError(t, errE, "% -+#.1v", errE)
-
-	index := "s" + strings.ToLower(identifier.New().String())
-
-	t.Cleanup(func() {
-		// We do not use t.Context() because we want an active context, not a canceled one.
-		errE := internalSearch.DeleteIndex(context.Background(), esClient, index)
-		assert.NoError(t, errE, "% -+#.1v", errE)
-	})
-
-	errE = internalSearch.EnsureIndex(ctx, esClient, index, 1, nil)
+	errE := internalSearch.EnsureIndex(ctx, esClient, index, 1, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	getSearchService := func() *esSearch.Search {
