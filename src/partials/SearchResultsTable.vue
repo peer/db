@@ -14,7 +14,7 @@ import { useI18n } from "vue-i18n"
 import Button from "@/components/Button.vue"
 import WithDocument from "@/components/WithDocument.vue"
 import siteContext from "@/context"
-import { getClaimsOfTypeWithConfidence } from "@/document"
+import { getClaimsOfTypeWithConfidence, toD } from "@/document"
 import ClaimValue from "@/partials/ClaimValue.vue"
 import DisplayLabel from "@/partials/DisplayLabel.vue"
 import FiltersResult from "@/partials/FiltersResult.vue"
@@ -299,7 +299,7 @@ const WithDocumentD = WithDocument<D>
                 :class="`pd-searchresultstable-column-filter-${filter.props?.[0] ?? ''}`"
               >
                 <!-- <div class="flex flex-row items-center justify-between"> -->
-                <WithDocumentD :id="filter.props?.[0] ?? ''" name="DocumentGet">
+                <WithDocumentD :id="filter.props?.[0] ?? ''" :construct="toD" name="DocumentGet">
                   <template #default="{ doc, url }">
                     <Button
                       :data-url="url"
@@ -327,7 +327,7 @@ const WithDocumentD = WithDocument<D>
         <!-- Results -->
         <tbody :data-url="searchResultsUrl" class="pd-searchresultstable-list-results divide-y divide-gray-200">
           <template v-for="(result, index) in limitedSearchResults" :key="result.id">
-            <WithDocumentD :id="result.id" name="DocumentGet">
+            <WithDocumentD :id="result.id" :construct="toD" name="DocumentGet">
               <template #default="{ doc, url }">
                 <tr
                   :id="`result-${result.id}`"

@@ -37,7 +37,7 @@ export {
 } from "@/document/claims"
 export type { Claim, ClaimForType, ClaimTypeName, Claims, ClaimsContainer } from "@/document/claims"
 
-export { D } from "@/document/document"
+export { D, toD } from "@/document/document"
 
 export {
   AddClaimChange,

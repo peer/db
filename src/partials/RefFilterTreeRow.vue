@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import type { D } from "@/document"
+
+import { toD } from "@/document"
 import type { RefCheckState, RefFilterTreeNode } from "@/types"
 
 import { ArrowTopRightOnSquareIcon } from "@heroicons/vue/20/solid"
@@ -71,7 +73,7 @@ const WithDocumentD = WithDocument<D>
           >
         </template>
         <template v-else>
-          <WithDocumentD :id="node.res.id" name="DocumentGet">
+          <WithDocumentD :id="node.res.id" :construct="toD" name="DocumentGet">
             <template #default="{ doc, url }">
               <label :for="inputId" class="pd-reffiltertreerow-label" :class="locked ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'" :data-url="url"
                 ><DisplayLabel :doc="doc"

@@ -11,6 +11,7 @@ import { isSignedIn } from "@/auth"
 import ButtonLink from "@/components/ButtonLink.vue"
 import { INSTANCE_OF } from "@/core"
 import { getClaimsOfTypeWithConfidence } from "@/document"
+import { toD } from "@/document"
 import DisplayLabel from "@/partials/DisplayLabel.vue"
 import Footer from "@/partials/Footer.vue"
 import IdentityInline from "@/partials/IdentityInline.vue"
@@ -41,7 +42,7 @@ async function loadSessions() {
     if (abortController.signal.aborted || response === null) {
       return
     }
-    sessions.value = response.doc
+    sessions.value = response.doc.map((session) => ({ ...session, doc: toD(session.doc) }))
   } catch (err) {
     if (abortController.signal.aborted) {
       return

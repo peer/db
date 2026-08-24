@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import type { D } from "@/document"
+
+import { toD } from "@/document"
 import type { ClassCreateTreeNode } from "@/types"
 
 import { ref } from "vue"
@@ -34,7 +36,7 @@ const WithDocumentD = WithDocument<D>
 </script>
 
 <template>
-  <WithDocumentD :id="node.res.id" name="DocumentGet">
+  <WithDocumentD :id="node.res.id" :construct="toD" name="DocumentGet">
     <template #default="{ doc, url }">
       <Button
         v-if="node.res.creatable"

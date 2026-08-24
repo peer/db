@@ -30,7 +30,7 @@ import { useI18n } from "vue-i18n"
 import CheckBox from "@/components/CheckBox.vue"
 import RadioButton from "@/components/RadioButton.vue"
 import WithDocument from "@/components/WithDocument.vue"
-import { claimPatchFrom } from "@/document"
+import { claimPatchFrom, toD } from "@/document"
 import { ChangeDroppedError, emptyFieldEntryValue, getClaimValues, getCommittedClaimKey, makePatchForField, saveChangeKey } from "@/fields"
 import DisplayLabel from "@/partials/DisplayLabel.vue"
 import { loadingWidth } from "@/utils"
@@ -491,7 +491,7 @@ const WithPeerDBDocument = WithDocument<D>
           @update:model-value="(v) => toggle(row, !!v)"
         />
         <div class="pd-claimrefselect-value flex items-baseline gap-x-1">
-          <WithPeerDBDocument :id="row" name="DocumentGet">
+          <WithPeerDBDocument :id="row" :construct="toD" name="DocumentGet">
             <template #default="{ doc, url }">
               <label
                 :for="`${baseId}-${row}`"

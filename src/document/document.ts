@@ -26,6 +26,12 @@ class CoreDocument {
   }
 }
 
+// toD wraps a document parsed from JSON into a D instance. A document which already is one is
+// returned as-is.
+export function toD(doc: object): D {
+  return doc instanceof D ? doc : new D(doc)
+}
+
 // D represents a PeerDB document.
 export class D extends CoreDocument implements ClaimsContainer {
   claims!: ClaimTypes

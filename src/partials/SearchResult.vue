@@ -9,6 +9,8 @@ import type { ComponentExposed } from "vue-component-type-helpers"
 import type { DeepReadonly } from "vue"
 
 import type { D } from "@/document"
+
+import { toD } from "@/document"
 import type { Result } from "@/types"
 
 import { useTemplateRef } from "vue"
@@ -48,7 +50,7 @@ const withDocument = useTemplateRef<ComponentExposed<typeof WithDocumentD>>("wit
     :class="flat ? 'pd-searchresult-flat' : 'rounded-sm border border-gray-200 bg-white p-4 shadow-sm'"
     :data-url="withDocument?.url"
   >
-    <WithDocumentD :id="result.id" ref="withDocument" name="DocumentGet">
+    <WithDocumentD :id="result.id" ref="withDocument" :construct="toD" name="DocumentGet">
       <template #default="{ doc }">
         <SearchResultDocument :doc="doc" :search-session-id="searchSessionId" :duplicate="duplicate">
           <template #labelAside><slot name="labelAside" /></template>

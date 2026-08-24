@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { Component, Raw } from "vue"
+import type { Component, DeepReadonly, Raw } from "vue"
 import type { ComponentExposed } from "vue-component-type-helpers"
 
 import type { D } from "@/document"
@@ -21,7 +21,7 @@ import WithDocument from "@/components/WithDocument.vue"
 import WithLock from "@/components/WithLock.vue"
 import siteContext from "@/context"
 import { ACTION_CREATE, ACTION_DELETE, ACTION_UPDATE_PERMISSIONS, ACTION_UPDATE, CONTENT, CREATE_SHORTCUT, INSTANCE_OF, NAME, PAGE, SEARCH_SHORTCUT } from "@/core"
-import { getBestClaimOfType, getClaimsOfTypeWithConfidence, selectClaimsByLanguage } from "@/document"
+import { getBestClaimOfType, getClaimsOfTypeWithConfidence, selectClaimsByLanguage, toD } from "@/document"
 import { documentActionsKey } from "@/document-actions"
 import { documentNavigationKey } from "@/document-navigation"
 import { decodeMetadata } from "@/metadata"
@@ -203,7 +203,8 @@ function afterClick() {
 // layout: a "Content" tab plus the "all properties" and "history" tabs. The class-based
 // registry tabs and the FieldsView tab are not shown for pages.
 const isPage = computed(() => {
-  const doc = withDocument.value?.doc
+  // The exposed doc of the generic component does not resolve for typed linting, so it is typed here.
+  const doc: DeepReadonly<D> | null | undefined = withDocument.value?.doc
   if (!doc?.claims) return false
   return getClaimsOfTypeWithConfidence(doc.claims, "ref", INSTANCE_OF).some((ref) => ref.to.id === PAGE)
 })
@@ -217,7 +218,7 @@ const pageContent = computed(() => {
 
 const documentComponents = getDocumentComponents()
 const documentTabs = computed(() => {
-  const doc = withDocument.value?.doc
+  const doc: DeepReadonly<D> | null | undefined = withDocument.value?.doc
   if (isPage.value || !doc?.claims) return []
   const refs = getClaimsOfTypeWithConfidence(doc.claims, "ref", INSTANCE_OF)
   const tabs: { component: Raw<Component>; id: string }[] = []
@@ -591,7 +592,7 @@ async function beginEdit(tab?: string) {
         class="pd-documentget-card min-w-0 flex-auto basis-3/4 rounded-sm border border-gray-200 bg-white p-4 shadow-sm min-[56rem]:block"
         :class="sidebarOpen && hasSidebarContent ? 'hidden' : 'block'"
       >
-        <WithDocumentD :id="id" ref="withDocument" :key="documentEpoch" name="DocumentGet" :version="reqVersion">
+        <WithDocumentD :id="id" ref="withDocument" :key="documentEpoch" :construct="toD" name="DocumentGet" :version="reqVersion">
           <template #default="{ doc }">
             <div v-if="!classesInitialized" id="documentget-loading-classes" class="my-1 text-center sm:my-4">{{ t("common.status.loading") }}</div>
             <!--

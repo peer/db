@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import type { D } from "@/document"
 
+import { toD } from "@/document"
+
 import WithDocument from "@/components/WithDocument.vue"
 import DisplayLabel from "@/partials/DisplayLabel.vue"
 import { loadingWidth } from "@/utils"
@@ -17,7 +19,7 @@ const WithDocumentD = WithDocument<D>
 <template>
   <ul class="pd-searchresulttags pd-searchresult-list-badges flex flex-row flex-wrap content-start items-baseline gap-1 text-sm">
     <template v-for="(tag, i) of tags" :key="tag.id ?? `label-${i}`">
-      <WithDocumentD v-if="tag.id" :id="tag.id" name="DocumentGet">
+      <WithDocumentD v-if="tag.id" :id="tag.id" :construct="toD" name="DocumentGet">
         <template #default="{ doc, url }">
           <li class="pd-searchresulttags-item pd-searchresult-badge-type rounded-xs bg-slate-100 px-1.5 py-0.5 leading-none text-gray-600 shadow-xs" :data-url="url">
             <DisplayLabel :doc="doc" />

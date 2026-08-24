@@ -2,6 +2,8 @@
 import type { DeepReadonly } from "vue"
 
 import type { D } from "@/document"
+
+import { toD } from "@/document"
 import type { FilterUpdate, HasFilterEntry, HasFilterResult, HasSearchResult, HasValue, SearchSession } from "@/types"
 
 import { ArrowTopRightOnSquareIcon } from "@heroicons/vue/20/solid"
@@ -206,7 +208,7 @@ const WithDocumentD = WithDocument<D>
         <li v-for="res in limitedResults" :key="res.id" class="pd-hasfiltersresult-row contents">
           <CheckBox :id="'has/' + (result.props?.join('/') ?? '') + '/' + res.id" v-model="checkboxState" class="pd-hasfiltersresult-checkbox" :value="res.id" />
           <div class="pd-hasfiltersresult-value flex items-baseline gap-x-1">
-            <WithDocumentD :id="res.id" name="DocumentGet">
+            <WithDocumentD :id="res.id" :construct="toD" name="DocumentGet">
               <template #default="{ doc, url }">
                 <label
                   :for="'has/' + (result.props?.join('/') ?? '') + '/' + res.id"

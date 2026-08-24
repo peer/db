@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import type { D } from "@/document"
 
+import { toD } from "@/document"
+
 import { onBeforeUnmount } from "vue"
 import { useI18n } from "vue-i18n"
 import { useRouter } from "vue-router"
@@ -92,7 +94,7 @@ async function onDelete() {
         grant it and the caller's roles alone cannot tell. The document is fetched once here and is what
         the result below renders, on the card this page already provides.
       -->
-      <WithDocumentD :id="id" name="DocumentGet">
+      <WithDocumentD :id="id" :construct="toD" name="DocumentGet">
         <template #default="{ doc }">
           <form v-if="hasDocumentPermission(ACTION_DELETE, doc)" class="pd-documentdelete-form flex flex-col gap-y-4" @submit.prevent="onDelete">
             <div>

@@ -11,6 +11,8 @@ permissions tab of the document edit page.
 <script setup lang="ts">
 import type { D } from "@/document"
 
+import { toD } from "@/document"
+
 import { computed, onBeforeUnmount, ref, useId, useTemplateRef } from "vue"
 import { useI18n } from "vue-i18n"
 import { useRouter } from "vue-router"
@@ -102,7 +104,7 @@ async function loadDocument() {
     if (abortController.signal.aborted || response === null) {
       return
     }
-    doc.value = response.doc
+    doc.value = toD(response.doc)
   } catch (err) {
     if (abortController.signal.aborted) {
       return

@@ -2,6 +2,8 @@
 import type { ComponentPublicInstance, DeepReadonly } from "vue"
 
 import type { D } from "@/document"
+
+import { toD } from "@/document"
 import type { Filter, FilterUpdate, Result, SearchSession, SortKey, ViewType } from "@/types"
 
 import { ChevronUpDownIcon, FunnelIcon, XMarkIcon } from "@heroicons/vue/20/solid"
@@ -575,7 +577,7 @@ const WithDocumentD = WithDocument<D>
           <i18n-t keypath="partials.SearchResultsFeed.resultsReferencing" scope="global">
             <template #label>
               <RouterLink :to="{ name: 'DocumentGet', params: { id: searchSession.reverse } }" class="link">
-                <WithDocumentD :id="searchSession.reverse" name="DocumentGet">
+                <WithDocumentD :id="searchSession.reverse" :construct="toD" name="DocumentGet">
                   <template #default="{ doc }">
                     <DisplayLabel :doc="doc" />
                   </template>
@@ -719,7 +721,7 @@ const WithDocumentD = WithDocument<D>
           <i18n-t keypath="partials.SearchResultsFeed.resultsReferencing" scope="global">
             <template #label>
               <RouterLink :to="{ name: 'DocumentGet', params: { id: searchSession.reverse } }" class="link">
-                <WithDocumentD :id="searchSession.reverse" name="DocumentGet">
+                <WithDocumentD :id="searchSession.reverse" :construct="toD" name="DocumentGet">
                   <template #default="{ doc }">
                     <DisplayLabel :doc="doc" />
                   </template>

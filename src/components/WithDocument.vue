@@ -15,6 +15,9 @@ const props = defineProps<{
   // When set, the document is fetched at this version ("changeset-revision" or "changeset")
   // instead of the latest one. Absent means the latest version.
   version?: string
+  // When set, the fetched document is passed through it before it is stored, so that a caller can
+  // wrap the parsed JSON into a class instance (see toD).
+  construct?: (doc: T) => T
 }>()
 
 const { t } = useI18n({ useScope: "global" })
@@ -90,7 +93,7 @@ watch(
         return
       }
 
-      _doc.value = response.doc
+      _doc.value = props.construct ? props.construct(response.doc) : response.doc
       _metadata.value = response.metadata
     } catch (err) {
       if (abortController.signal.aborted) {
