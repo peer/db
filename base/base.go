@@ -392,12 +392,49 @@ type StartDocument struct {
 // base can therefore run on an ontology of its own, without any of PeerDB's core documents: documents
 // are still indexed and searchable, only without what the missing kinds contribute.
 //
-// Start does not wait for any pending indexing to finish: the commit log is replayed by a goroutine, and
-// a reindex queue left behind by a previous run is drained by a background job. Call WaitUntilCaughtUp,
-// before anything which depends on it, to wait for both.
+// Start does not wait for any pending indexing to finish: a goroutine catches up on pending commits from
+// the commit log, and a reindex queue left behind by a previous run is drained by a background job. Call
+// WaitUntilCaughtUp, before anything which depends on it, to wait for both.
 //
 // You have to call this or PopulateAndStart for each base after Init.
 func (b *B) Start(ctx context.Context, documents []StartDocument) (func(), errors.E) {
+	// We build the converters first so that invalid input (e.g., an unsupported language priority)
+	// fails fast without leaving any resources running.
+	targets, errE := b.buildTargets(ctx, documents)
+	if errE != nil {
+		return nil, errE
+	}
+	b.bridge.Prepare(targets)
+
+	// Now we can start the river client. It will be stopped when ctx is cancelled.
+	// After this, registering further workers (AddWorker) is a hard failure.
+	errE = b.river.Start(internalStore.WithFallbackDBContext(ctx, b.Schema, "river"))
+	if errE != nil {
+		return nil, errE
+	}
+
+	// The session document cache sweep runs until ctx is cancelled.
+	b.sessionDocs.Start(ctx)
+
+	onShutdown := func() {
+		// Wait for the client to stop.
+		<-b.river.Client.Stopped()
+	}
+
+	// After that, we can start the listener.
+	errE = b.listener.Start(internalStore.WithFallbackDBContext(ctx, b.Schema, "listener"))
+	if errE != nil {
+		return onShutdown, errE
+	}
+
+	return onShutdown, b.bridge.Start(internalStore.WithFallbackDBContext(ctx, b.Schema, "bridge"))
+}
+
+// buildTargets builds one converter and one ElasticSearch index target per visibility level from the
+// given schema documents, and points the bridge's document fetching at the base's indexing hooks. The
+// targets are what the bridge indexes into (see internalSearch.Bridge.Prepare) and what the materialized
+// state is derived through (see RepairMaterializedState).
+func (b *B) buildTargets(ctx context.Context, documents []StartDocument) ([]internalSearch.Target, errors.E) {
 	// The bridge fetches documents for indexing through the indexing normalize hooks only (the read-path
 	// document pre-hooks and post-hooks are not run during indexing). The indexing finalize hooks run
 	// later, inside the conversion, after the document is augmented with embedded claims and synthetic
@@ -406,8 +443,6 @@ func (b *B) Start(ctx context.Context, documents []StartDocument) (func(), error
 	b.bridge.NormalizeHooks = b.IndexingNormalizeHooks
 	b.bridge.SourceCheck = b.IndexingSourceCheck
 
-	// Build one converter and one ElasticSearch index per visibility level. We build them first so that
-	// invalid input (e.g., an unsupported language priority) fails fast without leaving any resources running.
 	targets := make([]internalSearch.Target, 0, len(b.Levels))
 	for i, level := range b.Levels {
 		index := internalSearch.LevelIndex(b.IndexPrefix, level)
@@ -443,34 +478,7 @@ func (b *B) Start(ctx context.Context, documents []StartDocument) (func(), error
 		targets = append(targets, internalSearch.Target{Level: level, Index: index, Converter: converter})
 	}
 
-	// We prepare the bridge startup before starting the river client.
-	errE := b.bridge.Prepare(internalStore.WithFallbackDBContext(ctx, b.Schema, "bridge"), targets)
-	if errE != nil {
-		return nil, errE
-	}
-
-	// Now we can start the river client. It will be stopped when ctx is cancelled.
-	// After this, registering further workers (AddWorker) is a hard failure.
-	errE = b.river.Start(internalStore.WithFallbackDBContext(ctx, b.Schema, "river"))
-	if errE != nil {
-		return nil, errE
-	}
-
-	// The session document cache sweep runs until ctx is cancelled.
-	b.sessionDocs.Start(ctx)
-
-	onShutdown := func() {
-		// Wait for the client to stop.
-		<-b.river.Client.Stopped()
-	}
-
-	// After that, we can start the listener.
-	errE = b.listener.Start(internalStore.WithFallbackDBContext(ctx, b.Schema, "listener"))
-	if errE != nil {
-		return onShutdown, errE
-	}
-
-	return onShutdown, b.bridge.Start(internalStore.WithFallbackDBContext(ctx, b.Schema, "bridge"))
+	return targets, nil
 }
 
 // documentsForLevel returns documents as seen at the given visibility level: each is run through the

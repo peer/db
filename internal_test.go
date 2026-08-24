@@ -27,6 +27,7 @@ var (
 	TestingGenerateTestDataDocs        = generateTestDataDocuments
 	TestingFetchDocuments              = fetchDocuments
 	TestingConverterDocuments          = converterDocuments
+	TestingVacuumSchema                = vacuumSchema
 )
 
 // TestingListReadableDocuments re-exports listReadableDocuments for tests, returning the readable document

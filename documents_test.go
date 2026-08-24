@@ -7,7 +7,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/elastic/go-elasticsearch/v9"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -48,7 +47,7 @@ func classDoc(classID identifier.Identifier) *document.D {
 func initBaseForDocuments(t *testing.T) (context.Context, *base.B) {
 	t.Helper()
 
-	ctx, b, _, _ := initBaseInfra(t)
+	ctx, b, _ := initBaseInfra(t)
 
 	_, transformed, errE := base.GenerateCoreDocuments(ctx, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
@@ -63,9 +62,8 @@ func initBaseForDocuments(t *testing.T) (context.Context, *base.B) {
 }
 
 // initBaseInfra initializes PostgreSQL, ElasticSearch and River for a base, without populating it. It
-// returns the base together with what a test needs to reach around it: the ES client, the connection
-// pool, and the index the base indexes into.
-func initBaseInfra(t *testing.T) (context.Context, *base.B, *elasticsearch.TypedClient, *pgxpool.Pool) {
+// returns the base together with the connection pool, for tests to reach around it.
+func initBaseInfra(t *testing.T) (context.Context, *base.B, *pgxpool.Pool) {
 	t.Helper()
 
 	infra := testutils.NewPostgresAndElastic(t)
@@ -77,7 +75,7 @@ func initBaseInfra(t *testing.T) (context.Context, *base.B, *elasticsearch.Typed
 	)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	return infra.Ctx, b, infra.ESClient, infra.DBPool
+	return infra.Ctx, b, infra.DBPool
 }
 
 // TestFetchDocumentsSkipsDeleted tests that a document which is listed but is not there anymore when it is
@@ -148,14 +146,10 @@ func distinctFromDoc(docBase []string, target identifier.Identifier) *document.D
 }
 
 // TestRecreateIndex tests the flow of db reindex --recreate-index: after a populated base is stopped and
-// its index deleted, a fresh base loads the schema documents from PostgreSQL alone, cancels the reindex
-// queue a previous run left behind, clears the bridge-maintained metadata and resets the bridge, and only
-// then starts, so that the replay fills the recreated index with a working converter.
-//
-// The bridge is left behind on a commit log whose first commits are the documents the assertions are about,
-// which is the state a previous run interrupted mid-replay leaves. Only a replay from the beginning covers
-// those commits, so the test fails if the reset does not take effect: a base started before the reset keeps
-// replaying from where it was left and raises the bridge seq past it again.
+// its index deleted, a fresh base loads the schema documents from PostgreSQL alone, enqueues every
+// document for re-indexing, and starts, so that the drain fills the recreated index by rendering each
+// document at its latest version from the store and the materialized state, which are trusted and
+// persist across the recreation.
 func TestRecreateIndex(t *testing.T) {
 	t.Parallel()
 
@@ -182,8 +176,7 @@ func TestRecreateIndex(t *testing.T) {
 
 	_, transformed, errE := base.GenerateCoreDocuments(ctx1, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
-	// The pair goes first, so that its commits are at the beginning of the commit log.
-	transformed = append([]*document.D{docA, docB}, transformed...)
+	transformed = append(transformed, docA, docB)
 
 	onShutdown1, errE := b1.PopulateAndStart(ctx1, transformed, nil, nil, nil, nil)
 	if onShutdown1 != nil {
@@ -198,17 +191,9 @@ func TestRecreateIndex(t *testing.T) {
 	cancel1()
 	onShutdown1()
 
-	// Seed a leftover reindex queue entry, the state an interrupted reindex leaves behind.
-	_, err := dbpool.Exec(ctx, `INSERT INTO "docsBridgeReindexQueue" ("id", "seq") VALUES ($1, $2)`, identifier.New().String(), int64(1))
-	require.NoError(t, err)
-
-	// Leave the bridge in the middle of the commit log, the state a run interrupted mid-replay leaves behind.
-	// The pair's commits are below it, so they are indexed only by a replay which starts from the beginning.
-	var maxSeq int64
-	err = dbpool.QueryRow(ctx, `SELECT MAX("seq") FROM "docsCommitLog"`).Scan(&maxSeq)
-	require.NoError(t, err)
-	require.Positive(t, maxSeq)
-	_, err = dbpool.Exec(ctx, `UPDATE "docsBridge" SET "seq" = $1`, maxSeq/2)
+	// Seed a leftover reindex queue entry, the state an interrupted run leaves behind. It is drained
+	// together with the enqueued entries, rendering its document from the trusted materialized state.
+	_, err := dbpool.Exec(ctx, `INSERT INTO "docsBridgeReindexQueue" ("id", "seq") VALUES ($1, $2)`, docA.ID.String(), int64(1))
 	require.NoError(t, err)
 
 	// The flow of db reindex --recreate-index: the index is deleted first, so everything below runs
@@ -234,28 +219,11 @@ func TestRecreateIndex(t *testing.T) {
 	assert.Positive(t, kinds[internalCore.LanguageClassID])
 	assert.Positive(t, kinds[internalCore.ClassClassID])
 
-	errE = b2.CancelReindexQueue(ctx)
+	// The reindex flow: enqueue every document before the base is started, so that the drain job the
+	// start submits already finds the entries.
+	enqueued, errE := b2.EnqueueAllForReindex(ctx, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
-
-	var queued int64
-	err = dbpool.QueryRow(ctx, `SELECT COUNT(*) FROM "docsBridgeReindexQueue"`).Scan(&queued)
-	require.NoError(t, err)
-	assert.Zero(t, queued)
-
-	errE = b2.ClearSystemManagedMetadata(ctx)
-	require.NoError(t, errE, "% -+#.1v", errE)
-	errE = b2.ResetBridgeProgress(ctx)
-	require.NoError(t, errE, "% -+#.1v", errE)
-
-	// The base is started only once the bridge is back at the beginning of the commit log and the tables the
-	// replay rebuilds are empty, which is what the replay the start begins depends on.
-	var seq, inverseRelations int64
-	err = dbpool.QueryRow(ctx, `SELECT "seq" FROM "docsBridge"`).Scan(&seq)
-	require.NoError(t, err)
-	assert.Zero(t, seq)
-	err = dbpool.QueryRow(ctx, `SELECT COUNT(*) FROM "docsInverseRelations"`).Scan(&inverseRelations)
-	require.NoError(t, err)
-	assert.Zero(t, inverseRelations)
+	assert.Positive(t, enqueued)
 
 	onShutdown2, errE := b2.Start(ctx2, converterDocs)
 	if onShutdown2 != nil {
@@ -269,14 +237,10 @@ func TestRecreateIndex(t *testing.T) {
 	_, err = esClient.Indices.Refresh().Index(topIndex).Do(ctx)
 	testutils.RequireNoESError(ctx, t, err)
 
-	// The replay ran with a working converter: the documents are back and the target document again
-	// renders the synthetic inverse claim, which requires both the schema in the converter and the
-	// rebuilt inverse relations.
+	// The drain rendered every document with a working converter: the documents are back and the target
+	// document again renders the synthetic inverse claim, which requires both the schema in the converter
+	// and the persisted inverse relations.
 	assert.True(t, testutils.DocExists(ctx, t, esClient, topIndex, docA.ID.String()))
 	assert.True(t, testutils.DocExists(ctx, t, esClient, topIndex, docB.ID.String()))
 	assert.True(t, testutils.DocHasReference(ctx, t, esClient, topIndex, docB.ID, internalCore.DistinctFromPropID, docA.ID))
-
-	err = dbpool.QueryRow(ctx, `SELECT COUNT(*) FROM "docsInverseRelations"`).Scan(&inverseRelations)
-	require.NoError(t, err)
-	assert.Positive(t, inverseRelations)
 }

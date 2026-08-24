@@ -30,9 +30,9 @@ import (
 // indexing to catch up, and refreshes the ElasticSearch indices.
 //
 // beforeStart runs before the base is started, which is where whatever prepares the store for the indexing
-// belongs: once the base is started, its bridge is replaying the commit log and its river client is running
-// reindex jobs. It shares the counters progress is reported through with the indexing which follows, so that
-// the site is reported on as one run.
+// belongs: once the base is started, its bridge is catching up on the commit log and its river client is
+// running reindex jobs. It shares the counters progress is reported through with the indexing which follows,
+// so that the site is reported on as one run.
 func startAndWaitSite(
 	ctx context.Context, logger zerolog.Logger, site internalSite.Site,
 	beforeStart func(ctx context.Context, logger zerolog.Logger, site internalSite.Site, count, size *x.Counter) errors.E,
@@ -104,34 +104,6 @@ func enqueueForReindex(ctx context.Context, logger zerolog.Logger, site internal
 	return nil
 }
 
-// resetForRecreatedIndex prepares the store for the commit log replay which fills the recreated indices: it
-// cancels the reindex queue, clears the bridge-maintained reference, inverse-relation and embedding tables,
-// and resets the bridge progress so that starting the base replays every commit from the beginning.
-//
-// Entries a previous run left in the reindex queue would be rendered from the cleared tables and indexed with
-// versions above the replay's, shadowing the replay's rebuilt entries for good, which is why the queue goes
-// first.
-//
-// All of it must run after Init and before the base is started, while neither a reindex job nor the bridge's
-// own replay exists in this process. A replay already running would both write the tables while they are
-// cleared and, worse, keep advancing the bridge seq past the reset (updateSeq only refuses to lower it), so
-// the replay the reset asks for would never happen and the recreated indices would stay partial.
-func resetForRecreatedIndex(ctx context.Context, logger zerolog.Logger, site internalSite.Site, _, _ *x.Counter) errors.E {
-	errE := site.Base.CancelReindexQueue(ctx)
-	if errE != nil {
-		return errE
-	}
-
-	errE = site.Base.ClearSystemManagedMetadata(ctx)
-	if errE != nil {
-		return errE
-	}
-
-	logger.Info().Str("indexPrefix", site.IndexPrefix).Str("schema", site.Schema).Msg("cleared system-managed metadata")
-
-	return site.Base.ResetBridgeProgress(ctx)
-}
-
 // Run executes the db wait command which initializes the base,
 // waits until all pending indexing is complete, and then exits.
 func (c *DBWaitCommand) Run(globals *Globals) errors.E {
@@ -188,12 +160,11 @@ func (c *DBWaitCommand) Run(globals *Globals) errors.E {
 	return nil
 }
 
-// Run executes the db reindex command which re-indexes every document and then exits. By default it re-renders
-// each document's current state through the reindex queue, leaving the indices and metadata in place. With
-// --recreate-index it instead recreates the indices and replays the whole commit log, rebuilding the
-// system-managed metadata too (for a mapping change or a metadata rebuild). The replay indexes documents in
-// commit order, so like after populate, running the regular reindex afterwards re-renders the documents
-// whose referenced documents were replayed after them.
+// Run executes the db reindex command which re-indexes every document and then exits. It re-renders each
+// document's current state through the reindex queue, from the store and the derived state (the document
+// metadata and the materialized state), which are trusted: when they are not, run db repair first. With
+// --recreate-index the ElasticSearch indices are deleted first and recreated from the current mapping
+// during initialization, so a mapping change is applied without losing source data.
 func (c *DBReindexCommand) Run(globals *Globals) errors.E {
 	// We stop gracefully on ctrl-c and TERM signal.
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
@@ -207,10 +178,9 @@ func (c *DBReindexCommand) Run(globals *Globals) errors.E {
 	}
 
 	// When recreating the index, delete it before Init so that the base's EnsureIndex (run during
-	// startup) recreates it from the current mapping. The documents are then replayed from PostgreSQL
-	// into the fresh index below, so a mapping change is applied without losing source data. Deletion
-	// resolves the level name through its alias to the concrete index, if it is an alias (EnsureIndex
-	// creates such alias layout).
+	// startup) recreates it from the current mapping. The documents are then re-rendered into the fresh
+	// index below. Deletion resolves the level name through its alias to the concrete index, if it is an
+	// alias (EnsureIndex creates such alias layout).
 	if c.RecreateIndex {
 		esClient, errE := internalSearch.GetClient(cleanhttp.DefaultPooledClient(), globals.Logger, globals.Elastic.URL)
 		if errE != nil {
@@ -257,30 +227,21 @@ func (c *DBReindexCommand) Run(globals *Globals) errors.E {
 	for _, site := range globals.Sites {
 		globals.Logger.Info().Str("indexPrefix", site.IndexPrefix).Str("schema", site.Schema).Msg("reindexing")
 
-		// The regular reindex re-renders every document's current state through the reindex queue. It enqueues
-		// every document and the drain reads each at its latest version (so deleted documents are skipped, never
-		// transiently re-created) without touching the inverse-relation or embedding tables.
-		beforeStart := enqueueForReindex
-		if c.RecreateIndex {
-			// --recreate-index instead clears the bridge-maintained tables and resets the bridge, so that starting
-			// the base replays the whole commit log into the freshly recreated indices, rebuilding those tables
-			// from a clean slate.
-			beforeStart = resetForRecreatedIndex
-		}
-
-		onS, errE := startAndWaitSite(ctx, globals.Logger, site, beforeStart)
+		// The reindex re-renders every document's current state through the reindex queue: it enqueues every
+		// document and the drain reads each at its latest version (so deleted documents are skipped, never
+		// transiently re-created), rendering it from the store and the materialized state without writing
+		// either.
+		onS, errE := startAndWaitSite(ctx, globals.Logger, site, enqueueForReindex)
 		onShutdown = append(onShutdown, onS)
 		if errE != nil {
 			return errE
 		}
 
-		// Re-indexing rewrites documents, leaving superseded (deleted) Lucene versions behind: the regular
-		// reindex rewrites each document once, while --recreate-index replaying the commit log rewrites a
-		// document once per commit that changes it (so a reference target hub accumulates many). Those deletes
-		// linger per shard until merged and bloat the index (they also skew per-shard term statistics). Now that
-		// the site is caught up, expunge them. We use only_expunge_deletes rather than max_num_segments because
-		// the index keeps receiving live writes after a reindex, and full-merging an index that is still written
-		// to is discouraged.
+		// Re-indexing rewrites each document once, leaving its superseded (deleted) Lucene version behind.
+		// Those deletes linger per shard until merged and bloat the index (they also skew per-shard term
+		// statistics). Now that the site is caught up, expunge them. We use only_expunge_deletes rather than
+		// max_num_segments because the index keeps receiving live writes after a reindex, and full-merging an
+		// index that is still written to is discouraged.
 		globals.Logger.Info().Str("indexPrefix", site.IndexPrefix).Msg("expunging deletes")
 
 		for _, index := range site.LevelIndexes() {
@@ -299,6 +260,115 @@ func (c *DBReindexCommand) Run(globals *Globals) errors.E {
 	return nil
 }
 
+// repairSite rederives the derived state of one site from its stored documents: first the extracted
+// content in the document metadata, repaired in place at every stored revision, and then the
+// materialized state (the references, inverse-relations, and embedding tables), rebuilt from the latest
+// versions of the documents. Both passes report progress through one set of counters, so the site is
+// reported on as one run.
+func repairSite(ctx context.Context, logger zerolog.Logger, site internalSite.Site, dryRun bool) errors.E {
+	// We set fallback context values which are used to set application name on PostgreSQL connections.
+	ctx = internalStore.WithFallbackDBContext(ctx, site.Schema, "db")
+
+	count := x.NewCounter(0)
+	size := x.NewCounter(0)
+	progress := indexer.Progress(logger, "repairing", nil)
+	ticker := x.NewTicker(ctx, count, size, indexer.ProgressPrintRate)
+	defer ticker.Stop()
+	go func() {
+		for p := range ticker.C {
+			progress(ctx, p)
+		}
+	}()
+
+	examined, repaired, errE := site.Base.RepairDocumentsMetadata(ctx, dryRun, count, size)
+	if errE != nil {
+		return errE
+	}
+	event := logger.Info().Str("indexPrefix", site.IndexPrefix).Str("schema", site.Schema).Int64("examined", examined).Int64("repaired", repaired)
+	if dryRun {
+		event.Msg("document metadata which would be repaired")
+	} else {
+		event.Msg("document metadata repaired")
+	}
+
+	// The schema documents are listed through the just-repaired metadata (see
+	// store.DocumentMetadata.InstanceOf), which is why the metadata pass runs first. With dryRun the
+	// metadata stays as it is, so the drift reported below is computed under the current (possibly
+	// unrepaired) metadata and can differ from what a repair would then compute. We say so when the
+	// metadata does need repair, because the converters are then built from an incomplete schema and
+	// the drift numbers cannot be taken at face value.
+	if dryRun && repaired > 0 {
+		logger.Warn().Str("indexPrefix", site.IndexPrefix).Str("schema", site.Schema).Int64("repaired", repaired).
+			Msg("document metadata needs repair, so the materialized state drift is computed from an incomplete schema and can be wrong")
+	}
+
+	documents, errE := converterDocuments(ctx, site.Base)
+	if errE != nil {
+		return errE
+	}
+
+	drift, errE := site.Base.RepairMaterializedState(ctx, documents, dryRun, count, size)
+	if errE != nil {
+		return errE
+	}
+	event = logger.Info().Str("indexPrefix", site.IndexPrefix).Str("schema", site.Schema).
+		Int64("referencesExtra", drift.ReferencesExtra).Int64("referencesMissing", drift.ReferencesMissing).
+		Int64("inverseRelationsExtra", drift.InverseRelationsExtra).Int64("inverseRelationsMissing", drift.InverseRelationsMissing).
+		Int64("embeddingExtra", drift.EmbeddingExtra).Int64("embeddingMissing", drift.EmbeddingMissing)
+	switch {
+	case dryRun:
+		event.Msg("materialized state drift")
+	case drift.Any():
+		event.Msg("materialized state rebuilt")
+	default:
+		event.Msg("materialized state unchanged")
+	}
+
+	return nil
+}
+
+// Run executes the db repair command which repairs the database of every site, taking its stored
+// documents as the single source of truth, and then exits. With --dry-run it only reports what would
+// be repaired. The repaired state is not re-rendered into ElasticSearch: run db reindex for that. It
+// runs against a stopped deployment: the base is never started here, and nothing else may be writing
+// the store or rendering from the materialized state while it runs.
+func (c *DBRepairCommand) Run(globals *Globals) errors.E {
+	// We stop gracefully on ctrl-c and TERM signal.
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
+	ctx = globals.Logger.WithContext(ctx)
+
+	errE := InitSites(globals)
+	if errE != nil {
+		return errE
+	}
+
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	onShutdownInit, errE := Init(ctx, globals)
+	if onShutdownInit != nil {
+		defer onShutdownInit()
+	}
+	if errE != nil {
+		return errE
+	}
+
+	for _, site := range globals.Sites {
+		globals.Logger.Info().Str("indexPrefix", site.IndexPrefix).Str("schema", site.Schema).Msg("repairing")
+
+		errE := repairSite(ctx, globals.Logger, site, c.DryRun)
+		if errE != nil {
+			return errE
+		}
+	}
+
+	globals.Logger.Info().Msg("db repair done")
+
+	return nil
+}
+
 // vacuumSchema runs VACUUM on every table in the given PostgreSQL schema to reclaim space held by
 // dead tuples and to refresh planner statistics. VACUUM cannot run inside a transaction, so we
 // acquire a single connection and run each statement directly in autocommit mode. We enumerate the
@@ -310,6 +380,23 @@ func vacuumSchema(ctx context.Context, dbpool *pgxpool.Pool, schema string) erro
 		return internalStore.WithPgxError(err)
 	}
 	defer conn.Release()
+
+	// A VACUUM of a large table takes longer than the statement timeout the pool sets, and the timeout
+	// applies to it like to any other statement. It is set on the session and not with SET LOCAL, which
+	// has no effect outside a transaction block, so it is reset before the connection goes back to the
+	// pool: releasing a connection resets only the application name and the search path, so the lifted
+	// timeout would otherwise be inherited by whoever acquires it next. The reset runs on an uncancelled
+	// context so that it still happens when ctx is already done.
+	_, err = conn.Exec(ctx, `SET statement_timeout = 0`)
+	if err != nil {
+		return internalStore.WithPgxError(err)
+	}
+	defer func() {
+		_, err := conn.Exec(context.WithoutCancel(ctx), `RESET statement_timeout`)
+		if err != nil {
+			zerolog.Ctx(ctx).Error().Err(internalStore.WithPgxError(err)).Msg(`unable to reset "statement_timeout" after vacuuming`)
+		}
+	}()
 
 	rows, err := conn.Query(ctx, `SELECT tablename FROM pg_tables WHERE schemaname = $1 ORDER BY tablename`, schema)
 	if err != nil {

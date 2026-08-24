@@ -77,10 +77,10 @@ const reindexJobTimeout = reindexSoftDeadline + reindexJobTimeoutSlack
 // remembers the delete's version, which it does for gc_deletes after the delete. A single reindex job reads a
 // document and writes it later within the same job, so its read-to-write span is bounded by the job's lifetime
 // (reindexJobTimeout), and retaining tombstones for that long would cover every stale write one job can emit.
-// A stale write can however arrive much later than a single job: a full store reindex replays the whole commit
-// log, and several processes can (re)index concurrently with one lagging behind. We therefore extend retention
-// to one day as an approximation of how long those take. The max keeps the value correct if reindexJobTimeout
-// is ever raised above a day. Delete tombstones are kept in ElasticSearch memory.
+// A stale write can however arrive much later than a single job: a full reindex of a large store drains the
+// queue over many jobs, and several processes can (re)index concurrently with one lagging behind. We therefore
+// extend retention to one day as an approximation of how long those take. The max keeps the value correct if
+// reindexJobTimeout is ever raised above a day. Delete tombstones are kept in ElasticSearch memory.
 const gcDeletes = max(reindexJobTimeout, 24*time.Hour)
 
 // bulkSizeFraction is the fraction of http.max_content_length a bulk request may grow to before it is flushed.
@@ -786,7 +786,7 @@ func (b *Bridge) waitForLastSeq(ctx context.Context, seq int64, count, size *x.C
 
 // readyBridgeReindexQueueMinSeq makes the cached reindex queue state reflect the queue, which is
 // what the handler for the channel has to have in place before notifications about it arrive. It does not
-// wait for the queue to drain: the startup job Prepare submits processes the rows a previous run left
+// wait for the queue to drain: the startup job Start submits processes the rows a previous run left
 // behind, and a caller which requires them processed waits for that with WaitUntilCaughtUp.
 func (b *Bridge) readyBridgeReindexQueueMinSeq(ctx context.Context) errors.E {
 	// We must call updateBridgeReindexQueueMinSeq here because HandleBacklog runs in a separate
@@ -943,92 +943,12 @@ func (b *Bridge) waitForReindexQueueMinSeqCached(ctx context.Context, seq int64,
 	return nil
 }
 
-// ResetSeq resets the bridge progress to 0 and clears the reindex queue.
-// This causes the bridge to re-process all commits from the beginning when started.
-func (b *Bridge) ResetSeq(ctx context.Context) errors.E {
-	errE := internalStore.RetryTransaction(ctx, b.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
-		_, err := tx.Exec(ctx, `UPDATE "`+b.Store.Prefix+`Bridge" SET "seq" = 0`)
-		if err != nil {
-			return internalStore.WithPgxError(err)
-		}
-		_, err = tx.Exec(ctx, `DELETE FROM "`+b.Store.Prefix+`BridgeReindexQueue"`)
-		return internalStore.WithPgxError(err)
-	})
-	if errE != nil {
-		return errE
-	}
-
-	b.lastSeqMu.Lock()
-	b.lastSeq = 0
-	b.lastSeqMu.Unlock()
-
-	b.reindexQueueMinSeqMu.Lock()
-	b.reindexQueueMinSeq = math.MaxInt64
-	b.reindexQueueCount = 0
-	b.reindexQueueMinSeqMu.Unlock()
-
-	// We reset the store's Committed channel so that the bridge goroutine detects the closed
-	// channel and restarts its run loop, picking up the reset seq from the database.
-	// This impacts only the current process but this is fine because any concurrent process
-	// will just wait for this process to reindex everything and then continue from there on.
-	b.Store.Reset()
-
-	return nil
-}
-
-// CancelReindexQueue removes all entries from the reindex queue, together with this bridge's pending
-// reindex jobs. A job picked up later finds an empty queue and exits.
-//
-// It must run while this process's river client is not started yet, so that no reindex job of this
-// process can be mid-batch with entries fetched before the delete.
-func (b *Bridge) CancelReindexQueue(ctx context.Context) errors.E {
-	// Only this bridge's jobs which have not started yet (state "available") are deleted, so that nothing picks up
-	// the queue again once it is emptied below. A job which is already running keeps the entries it snapshotted and
-	// can still write them: this process cannot have one because its river client is not started yet, and another
-	// process indexing the same store concurrently is out of scope, --recreate-index not being safe to run against
-	// a live process.
-	_, errE := b.deletePendingReindexJobs(ctx)
-	if errE != nil {
-		return errE
-	}
-
-	errE = internalStore.RetryTransaction(ctx, b.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
-		_, err := tx.Exec(ctx, `DELETE FROM "`+b.Store.Prefix+`BridgeReindexQueue"`)
-		return internalStore.WithPgxError(err)
-	})
-	if errE != nil {
-		return errE
-	}
-
-	b.reindexQueueMinSeqMu.Lock()
-	b.reindexQueueMinSeq = math.MaxInt64
-	b.reindexQueueCount = 0
-	b.reindexQueueMinSeqMu.Unlock()
-
-	return nil
-}
-
-// ClearSystemManagedMetadata removes all bridge-maintained reference rows, inverse relations, and
-// embedding entries by truncating the three tables. A subsequent full reindex (commit-log replay) then
-// rebuilds them from a clean slate instead of diffing new commits on top of stale or wrongly-leveled
-// entries.
-//
-// It must run while nothing else touches these tables. Nothing may write them, which means the bridge must
-// have no commits to replay, because replaying writes them and resetting the bridge progress starts a
-// replay. Nothing may render documents from them either, which means no reindex job may be draining the
-// reindex queue, because a document rendered from the cleared tables keeps that rendering.
-func (b *Bridge) ClearSystemManagedMetadata(ctx context.Context) errors.E {
-	return internalStore.RetryTransaction(ctx, b.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
-		_, err := tx.Exec(ctx, `TRUNCATE "`+b.Store.Prefix+`References", "`+b.Store.Prefix+`InverseRelations", "`+b.Store.Prefix+`Embedding"`)
-		return internalStore.WithPgxError(err)
-	})
-}
-
 // EnqueueAllForReindex enqueues every committed document (via Store.List, including deleted ones) into the
 // reindex queue and submits a job to drain it, so the bridge re-renders each document's current state into
-// ElasticSearch. Unlike the commit-log replay (ResetSeq) it reads each document once at its latest version, so a
-// deleted document is skipped rather than transiently re-created, and it never touches the inverse-relation or
-// embedding tables, leaving the bridge-maintained sets as they are. It returns the number of documents enqueued.
+// ElasticSearch. It reads each document once at its latest version, so a deleted document is skipped rather
+// than transiently re-created, and it never writes the materialized state (the references, inverse-relations,
+// and embedding tables): documents are rendered from it, so it has to be trusted (see
+// RebuildMaterializedState). It returns the number of documents enqueued.
 //
 // Entries are enqueued at the current indexed seq. The drain stamps its writes with the job's snapshot seq (the
 // indexed seq at run time, never below the enqueue seq), which is at least every existing ElasticSearch version
@@ -1036,9 +956,9 @@ func (b *Bridge) ClearSystemManagedMetadata(ctx context.Context) errors.E {
 // higher-versioned entry a prior reindex-queue run left, while a concurrent live commit (a strictly higher seq)
 // still wins.
 //
-// When count and size are non-nil they track the enqueue progress the same way ClearSystemManagedMetadata does:
-// size is increased once by the document total and count is increased as documents are enqueued, ending exactly
-// at that total. The drain phase (WaitUntilCaughtUp) then adds its own total to the same counters.
+// When count and size are non-nil they track the enqueue progress: size is increased once by the document
+// total and count is increased as documents are enqueued, ending exactly at that total. The drain phase
+// (WaitUntilCaughtUp) then adds its own total to the same counters.
 func (b *Bridge) EnqueueAllForReindex(ctx context.Context, count, size *x.Counter) (int, errors.E) {
 	total, errE := b.Store.Count(ctx, true)
 	if errE != nil {
@@ -1105,19 +1025,12 @@ func (b *Bridge) EnqueueAllForReindex(ctx context.Context, count, size *x.Counte
 	return enqueued, nil
 }
 
-// Prepare stores the converter and submits a startup job that processes any leftover rows
-// in BridgeReindexQueue from a previous run.
-//
-// It must be called before the river client and the store listener are started, because the job can be
-// picked up as soon as the river client runs and it can do its work only once the bridge has the targets.
-func (b *Bridge) Prepare(ctx context.Context, targets []Target) errors.E {
+// Prepare sets the per-level targets (index and converter pairs) the bridge works with. It must be
+// called before Start or RebuildMaterializedState, and also before the river client is started:
+// reindex jobs a previous run left behind can be picked up as soon as the river client runs, and a
+// job running without the targets would drain queue entries while indexing nothing.
+func (b *Bridge) Prepare(targets []Target) {
 	b.targets = targets
-
-	// Submit a startup job to process any leftover rows in BridgeReindexQueue from a previous run.
-	_, err := b.riverClient.Insert(ctx, jobArgs{
-		Prefix: b.Store.Prefix,
-	}, nil)
-	return errors.WithStack(err)
 }
 
 // fetchMaxContentLength reads ElasticSearch's http.max_content_length (in bytes) from the cluster, taking the
@@ -1166,6 +1079,15 @@ func (b *Bridge) Refresh(ctx context.Context) errors.E {
 // the Committed channel before calling Start to assure that there is no gap between catch-up and
 // real-time processing of new commits.
 func (b *Bridge) Start(ctx context.Context) errors.E {
+	// Submit a startup job to process any leftover rows in BridgeReindexQueue from a previous run: no new
+	// commit enqueues a job for them, so without it they would sit unprocessed until the next commit.
+	_, err := b.riverClient.Insert(ctx, jobArgs{
+		Prefix: b.Store.Prefix,
+	}, nil)
+	if err != nil {
+		return errors.WithStack(err)
+	}
+
 	go b.runReindexQueueRefresher(ctx)
 
 	go func() {
@@ -1236,11 +1158,12 @@ func (b *Bridge) WaitUntilCaughtUp(ctx context.Context, count, size *x.Counter) 
 
 func (b *Bridge) run(ctx context.Context) errors.E {
 	// We acquire the Committed channel before reading the bridge seq from the database so that
-	// any concurrent Store.Reset (e.g., from ResetSeq during a reindex) closes the channel we are
-	// holding here. That way the real-time select loop below detects the closure and run returns
-	// errCommittedChannelClosed, causing the outer loop to restart run and re-read getSeq.
-	// Otherwise, if we read getSeq first and Store.Reset ran between catch-up and Committed.Get,
-	// we would acquire the freshly recreated channel and miss the reset signal entirely.
+	// any concurrent Store.Reset (from the listener re-establishing its connection, see
+	// Store.HandleBacklog) closes the channel we are holding here. That way the real-time select
+	// loop below detects the closure and run returns errCommittedChannelClosed, causing the outer
+	// loop to restart run and re-read getSeq. Otherwise, if we read getSeq first and Store.Reset
+	// ran between catch-up and Committed.Get, we would acquire the freshly recreated channel and
+	// miss the reset signal entirely.
 	ch, errE := b.Store.Committed.Get(ctx)
 	if errE != nil {
 		return errE

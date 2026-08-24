@@ -210,7 +210,7 @@ type PopulateCommand struct {
 	SaveDir     string `                             help:"Save intermediate structs as files into a directory."                                 name:"save"      placeholder:"DIR"           type:"path" yaml:"saveDir"`
 	OutputDir   string `                             help:"Save documents as files into a directory."                                            name:"output"    placeholder:"DIR" short:"O" type:"path" yaml:"outputDir"`
 	TestDataDir string `default:"${defaultTestData}" help:"Path to directory with test data to load. Pass an empty value to not load test data." name:"test-data" placeholder:"DIR" short:"T" type:"path" yaml:"testDataDir"`
-	DryRun      bool   `                             help:"Dry run. Do everything, but insert documents into the database."                                                                               yaml:"dryRun"`
+	DryRun      bool   `                             help:"Dry run. Do everything but insert documents into the database."                                                                                yaml:"dryRun"`
 
 	// PopulateSite is set in code by a consumer using PeerDB as a library to replace how a site is
 	// populated. When nil, core documents are generated and inserted. It is called with a per-site
@@ -228,7 +228,12 @@ type DBWaitCommand struct{}
 //
 //nolint:lll
 type DBReindexCommand struct {
-	RecreateIndex bool `help:"Delete and recreate the ElasticSearch indices and clear inverse-relation metadata in the store before reindexing, so the current mapping and inverse relations are rebuilt from scratch." name:"recreate-index" yaml:"recreateIndex"`
+	RecreateIndex bool `help:"Delete and recreate the ElasticSearch indices before reindexing, so the current mapping is applied." name:"recreate-index" yaml:"recreateIndex"`
+}
+
+// DBRepairCommand repairs the database based on stored documents.
+type DBRepairCommand struct {
+	DryRun bool `help:"Dry run. Do not change anything. Only report what would be repaired." name:"dry-run" yaml:"dryRun"`
 }
 
 // DBVacuumCommand reclaims dead tuples in PostgreSQL and expunges deleted documents from ElasticSearch for all sites.
@@ -258,6 +263,7 @@ type DBDiagramCommand struct {
 type DBCommand struct {
 	Wait    DBWaitCommand    `cmd:"" help:"Wait for pending indexing to complete and exit."                        yaml:"wait"`
 	Reindex DBReindexCommand `cmd:"" help:"Force full reindex of all documents."                                   yaml:"reindex"`
+	Repair  DBRepairCommand  `cmd:"" help:"Repair database based on stored documents."                             yaml:"repair"`
 	Vacuum  DBVacuumCommand  `cmd:"" help:"Vacuum PostgreSQL and expunge ElasticSearch deletes."                   yaml:"vacuum"`
 	Wipe    DBWipeCommand    `cmd:"" help:"Wipe PostgreSQL schemas, ElasticSearch indices, and storage directory." yaml:"wipe"`
 	Export  DBExportCommand  `cmd:"" help:"Export documents to CSV, JSON, or struct."                              yaml:"export"`

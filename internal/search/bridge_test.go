@@ -151,10 +151,9 @@ func startBridge(ctx context.Context, t *testing.T, env *bridgeEnv, converter *i
 func startBridgeWithTargets(ctx context.Context, t *testing.T, env *bridgeEnv, targets []internalSearch.Target) {
 	t.Helper()
 
-	errE := env.bridge.Prepare(ctx, targets)
-	require.NoError(t, errE, "% -+#.1v", errE)
+	env.bridge.Prepare(targets)
 
-	errE = env.river.Start(ctx)
+	errE := env.river.Start(ctx)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	t.Cleanup(func() {
 		// Wait for the client to stop.
@@ -170,11 +169,11 @@ func startBridgeWithTargets(ctx context.Context, t *testing.T, env *bridgeEnv, t
 
 // TestBridgeStartupDrainsReindexQueueBacklog covers the recovery path where BridgeReindexQueue
 // already holds a backlog at or below the indexed seq at startup, the state an interrupted run leaves
-// behind. Such leftover rows are processed only by the startup job that Prepare submits, because no new
+// behind. Such leftover rows are processed only by the startup job that Start submits, because no new
 // commit enqueues a job for them. The test seeds the backlog and then starts the bridge in production
-// order (Prepare, and thus the converter and startup job, before the listener), asserting that the job
-// drains the backlog and that listener.Start returns rather than waiting for it. The order is set by the
-// test itself, so it guards the startup-drain mechanism but not the Prepare/listener ordering in base.Start.
+// order, asserting that the job drains the backlog and that listener.Start returns rather than waiting
+// for it. The order is set by the test itself, so it guards the startup-drain mechanism but not the
+// ordering in base.Start.
 func TestBridgeStartupDrainsReindexQueueBacklog(t *testing.T) {
 	t.Parallel()
 
@@ -193,10 +192,9 @@ func TestBridgeStartupDrainsReindexQueueBacklog(t *testing.T) {
 	})
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	// Production ordering: store the converter and submit the startup job before starting the
-	// listener, so the worker can drain the backlog once river runs.
-	errE = env.bridge.Prepare(ctx, []internalSearch.Target{{Level: "all", Index: env.bridge.IndexPrefix, Converter: newTestBridgeConverter(t)}})
-	require.NoError(t, errE, "% -+#.1v", errE)
+	// Production ordering: store the converter, then start river and the listener, and let the bridge
+	// Start submit the startup job which drains the backlog.
+	env.bridge.Prepare([]internalSearch.Target{{Level: "all", Index: env.bridge.IndexPrefix, Converter: newTestBridgeConverter(t)}})
 
 	errE = env.river.Start(ctx)
 	require.NoError(t, errE, "% -+#.1v", errE)
@@ -841,64 +839,118 @@ func TestBridgeMutualEmbedding(t *testing.T) {
 	}, 10*time.Second, 100*time.Millisecond)
 }
 
-// TestBridgeClearSystemManagedMetadata verifies that ClearSystemManagedMetadata truncates the inverse-relation
-// and embedding tables, and that it is idempotent.
+// TestBridgeRebuildMaterializedState verifies that RebuildMaterializedState derives the references,
+// inverse-relations, and embedding tables from the latest versions of the stored documents: a rebuild
+// against empty tables fills them, corrupted rows (bogus additions and deleted rows) are reported as
+// drift by a dry run without changing anything and are fixed by a rebuild, and a rebuild of correct
+// tables reports no drift and leaves them alone.
 //
-// The tables are seeded directly rather than via the full bridge pipeline: ClearSystemManagedMetadata only
-// truncates them, so it does not require the bridge to be running.
-func TestBridgeClearSystemManagedMetadata(t *testing.T) {
+// The bridge is never started: the rebuild runs the way db repair runs it, with only Init and Prepare.
+func TestBridgeRebuildMaterializedState(t *testing.T) {
 	t.Parallel()
 
 	ctx, env := setupBridge(t)
 	s, b := env.store, env.bridge
 
-	// target1 receives an inverse relation, target2 an embedding entry.
-	target1 := identifier.New()
-	target2 := identifier.New()
+	// Properties: propX has INVERSE_PROPERTY_OF propY, so a relation claim on propX yields an inverse
+	// relation with propY on its target.
+	propX := identifier.New()
+	propY := identifier.New()
+	docA := identifier.New()
+	docB := identifier.New()
 
-	errE := internalStore.RetryTransaction(ctx, env.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
+	propXDoc := new(document.D)
+	errE := x.UnmarshalWithoutUnknownFields(makePropertyDocJSON(t, propX, &propY), propXDoc)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	propYDoc := new(document.D)
+	errE = x.UnmarshalWithoutUnknownFields(makePropertyDocJSON(t, propY, nil), propYDoc)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	for id, data := range map[identifier.Identifier]json.RawMessage{
+		propX: makePropertyDocJSON(t, propX, &propY),
+		propY: makePropertyDocJSON(t, propY, nil),
+		docA:  makeDocWithRelationJSON(t, docA, propX, docB),
+		docB:  makeDocJSON(t, docB),
+	} {
+		_, errE := s.Insert(ctx, id, data, dummyMetadata(), dummyCommitMetadata())
+		require.NoError(t, errE, "% -+#.1v", errE)
+	}
+
+	c, errE := internalSearch.NewConverter([]*document.D{propXDoc, propYDoc}, nil, nil, nil, b.GetDocument)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	b.Prepare([]internalSearch.Target{{Level: "all", Index: b.IndexPrefix, Converter: c}})
+
+	// A dry run against the empty tables reports everything as missing and writes nothing.
+	drift, errE := b.RebuildMaterializedState(ctx, true, nil, nil)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Positive(t, drift.ReferencesMissing)
+	assert.Positive(t, drift.InverseRelationsMissing)
+	assert.Zero(t, drift.ReferencesExtra)
+	assert.Zero(t, drift.InverseRelationsExtra)
+	inverse, errE := b.InverseRelations(ctx, docB)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Empty(t, inverse, "a dry run should not write the tables")
+
+	// A rebuild fills the tables and reports the same drift.
+	rebuilt, errE := b.RebuildMaterializedState(ctx, false, nil, nil)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, drift, rebuilt)
+	inverse, errE = b.InverseRelations(ctx, docB)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	require.Len(t, inverse["all"], 1)
+	assert.Equal(t, docA, inverse["all"][0].Source)
+	assert.Equal(t, propY, inverse["all"][0].TargetProp)
+	assert.Equal(t, propX, inverse["all"][0].SourceProp)
+
+	// Corrupt the tables: a bogus row in each and the real inverse relation deleted.
+	errE = internalStore.RetryTransaction(ctx, env.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
 		_, err := tx.Exec(ctx, `
-			INSERT INTO "`+s.Prefix+`InverseRelations" ("target", "level", "claim", "source", "targetProp", "sourceProp", "confidence")
-				VALUES ($1, 'all', $2, $3, $4, $5, 1)
-		`, target1.String(), identifier.New().String(), identifier.New().String(), identifier.New().String(), identifier.New().String())
+			INSERT INTO "`+s.Prefix+`References" ("target", "level", "claim", "source", "isSource")
+				VALUES ($1, 'all', $2, $3, true)
+		`, identifier.New().String(), identifier.New().String(), identifier.New().String())
 		if err != nil {
 			return internalStore.WithPgxError(err)
 		}
 		_, err = tx.Exec(ctx, `
 			INSERT INTO "`+s.Prefix+`Embedding" ("target", "embedder", "paths") VALUES ($1, $2, $3)
-		`, target2.String(), identifier.New().String(), `[["`+identifier.New().String()+`"]]`)
+		`, identifier.New().String(), identifier.New().String(), `[["`+identifier.New().String()+`"]]`)
+		if err != nil {
+			return internalStore.WithPgxError(err)
+		}
+		_, err = tx.Exec(ctx, `DELETE FROM "`+s.Prefix+`InverseRelations" WHERE "target"=$1`, docB.String())
 		return internalStore.WithPgxError(err)
 	})
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	// Preconditions: both tables hold their seeded rows.
-	inverse, errE := b.InverseRelations(ctx, target1)
+	// A dry run reports exactly the corruption and changes nothing.
+	drift, errE = b.RebuildMaterializedState(ctx, true, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
-	require.NotEmpty(t, inverse, "target1 should start with an inverse relation")
-	embed, errE := b.Embedding(ctx, target2)
+	assert.Equal(t, int64(1), drift.ReferencesExtra)
+	assert.Equal(t, int64(1), drift.EmbeddingExtra)
+	assert.Equal(t, int64(1), drift.InverseRelationsMissing)
+	assert.Zero(t, drift.ReferencesMissing)
+	assert.Zero(t, drift.InverseRelationsExtra)
+	assert.Zero(t, drift.EmbeddingMissing)
+	inverse, errE = b.InverseRelations(ctx, docB)
 	require.NoError(t, errE, "% -+#.1v", errE)
-	require.NotEmpty(t, embed, "target2 should start with an embedding entry")
+	assert.Empty(t, inverse, "a dry run should not repair the tables")
 
-	// Clear both tables.
-	errE = b.ClearSystemManagedMetadata(ctx)
+	// A rebuild repairs the corruption, after which a further dry run reports no drift.
+	rebuilt, errE = b.RebuildMaterializedState(ctx, false, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, drift, rebuilt)
+	inverse, errE = b.InverseRelations(ctx, docB)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Len(t, inverse["all"], 1)
 
-	inverse, errE = b.InverseRelations(ctx, target1)
+	drift, errE = b.RebuildMaterializedState(ctx, true, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
-	assert.Empty(t, inverse, "target1 inverse relations should be cleared")
-	embed, errE = b.Embedding(ctx, target2)
-	require.NoError(t, errE, "% -+#.1v", errE)
-	assert.Empty(t, embed, "target2 embedding set should be cleared")
-
-	// Clearing again is a no-op.
-	errE = b.ClearSystemManagedMetadata(ctx)
-	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.False(t, drift.Any())
 }
 
 // TestBridgeEnqueueAllForReindex verifies that EnqueueAllForReindex re-renders every live document into
 // ElasticSearch via the reindex queue while skipping deleted documents (never resurrecting them) and leaving
-// the inverse-relation and embedding tables untouched. This is the regular "db reindex" path, which does not
-// replay the commit log.
+// the materialized state untouched. This is the "db reindex" path.
 func TestBridgeEnqueueAllForReindex(t *testing.T) {
 	t.Parallel()
 
