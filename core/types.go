@@ -46,18 +46,31 @@ type Time = internalCore.Time
 type AmountType = internalCore.AmountType
 
 // Amount represents a numeric amount with precision.
+//
+// Infinite or NaN values are not supported for Amount[float32] and Amount[float64].
 type Amount[T AmountType] = internalCore.Amount[T]
 
 // IntervalBound is a type constraint for interval bounds.
 type IntervalBound = internalCore.IntervalBound
 
 // Interval represents an interval between two values.
+//
+// If From or To is nil, it is zero value, unless *IsUnknown or *IsNone is true, respectively.
+//
+// Only one of FromIs* fields can be set at a time. If FromIsUnknown or FromIsNone is true, From must be nil.
+// Only one of ToIs* fields can be set at a time. If ToIsUnknown or ToIsNone is true, To must be nil.
+//
+// FromIsOpen and ToIsOpen are exclusive-bound flags.
 type Interval[T IntervalBound] = internalCore.Interval[T]
 
 // StringWithLanguage represents string with language information.
 type StringWithLanguage = internalCore.StringWithLanguage
 
 // Section represents a section of fields of an entity.
+//
+// ID is the section's stable identity (the name used in section struct tags) and Name its
+// translated display names. Both use the NAME property; consumers access them by claim type
+// (identifier claim vs string claims).
 type Section = internalCore.Section
 
 // Field represents a field of an entity.
@@ -66,7 +79,10 @@ type Field = internalCore.Field
 // Fields represents a list of fields of an entity.
 type Fields = internalCore.Fields
 
-// ComponentWithProps represents a frontend component with the props it is rendered with.
+// ComponentWithProps represents a frontend component with the props it is rendered with. The value
+// is the name the frontend registers the component under, and the props are a query string
+// ("key=value&key=value") of string values, under the component so they cannot be given without one.
+// A key can appear only once, because a prop holds a single string.
 type ComponentWithProps = internalCore.ComponentWithProps
 
 // DocumentFields contains common fields for all documents.

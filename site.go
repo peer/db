@@ -12,7 +12,8 @@ type Site = internalSite.Site
 // Build contains version and build metadata.
 type Build = internalSite.Build
 
-// SiteFeatures contains enabled feature flags.
+// SiteFeatures contains feature flags. Zero values keep the default behavior, so optional
+// features use positive flags (opt-in) while default-on features use disable flags (opt-out).
 type SiteFeatures = internalSite.SiteFeatures
 
 // Favicon configures the site favicon rendered into the page head. When Href is set, a

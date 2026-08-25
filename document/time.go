@@ -381,7 +381,7 @@ func (t *Time) UnmarshalJSON(data []byte) error {
 	return t.UnmarshalText([]byte(s))
 }
 
-// TimePrecision represents the precision level of a timestamp.
+// TimePrecision represents the precision of a time value.
 type TimePrecision = internalDocument.TimePrecision
 
 const (
