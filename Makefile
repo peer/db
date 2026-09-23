@@ -26,16 +26,14 @@ dist: dist/index.html dist/assets dist/LICENSE.txt dist/NOTICE.txt dist/robots.t
 
 FRONTEND_FILES = $(shell find src public -type f 2>/dev/null)
 
-dist/index.html dist/assets dist/LICENSE.txt dist/NOTICE.txt dist/robots.txt: node_modules $(FRONTEND_FILES) index.html vite.config.ts tsconfig.json tsconfig.node.json LICENSE
+dist/index.html dist/assets dist/LICENSE.txt dist/NOTICE.txt dist/robots.txt: node_modules/.package-lock.json $(FRONTEND_FILES) index.html vite.config.ts tsconfig.json tsconfig.node.json package.json LICENSE
 	find dist -mindepth 1 ! -path "dist/dist.go" -delete
 	npm run build
 
-lib: node_modules src vite.config.lib.ts tsconfig.json tsconfig.node.json LICENSE
+lib: node_modules/.package-lock.json src vite.config.lib.ts tsconfig.json tsconfig.node.json LICENSE
 	npm run build-lib
 
-node_modules: package-lock.json
-
-package-lock.json: package.json
+node_modules/.package-lock.json: package.json package-lock.json
 	npm install
 
 # We use -p 1 to run only one package test and thus test process at a time. This allows us to control the number of
