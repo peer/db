@@ -24,7 +24,9 @@ build-static: dist
 
 dist: dist/index.html dist/assets dist/LICENSE.txt dist/NOTICE.txt dist/robots.txt
 
-dist/index.html dist/assets dist/LICENSE.txt dist/NOTICE.txt dist/robots.txt: node_modules src vite.config.ts tsconfig.json tsconfig.node.json LICENSE
+FRONTEND_FILES = $(shell find src public -type f 2>/dev/null)
+
+dist/index.html dist/assets dist/LICENSE.txt dist/NOTICE.txt dist/robots.txt: node_modules $(FRONTEND_FILES) index.html vite.config.ts tsconfig.json tsconfig.node.json LICENSE
 	find dist -mindepth 1 ! -path "dist/dist.go" -delete
 	npm run build
 
