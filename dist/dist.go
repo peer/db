@@ -12,7 +12,7 @@ import (
 //go:embed *
 var files embed.FS
 
-// Files exposes files inside dist directory, except for the dist.go file.
+// Files exposes files inside the dist directory, except for the dist.go file.
 //
 //nolint:gochecknoglobals
 var Files fs.FS

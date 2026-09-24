@@ -26,7 +26,9 @@ dist: dist/index.html dist/assets dist/LICENSE.txt dist/NOTICE.txt dist/robots.t
 
 FRONTEND_FILES = $(shell find src public -type f 2>/dev/null)
 
-dist/index.html dist/assets dist/LICENSE.txt dist/NOTICE.txt dist/robots.txt: node_modules/.package-lock.json $(FRONTEND_FILES) index.html vite.config.ts tsconfig.json tsconfig.node.json package.json LICENSE
+# One run of the build makes all of them, which the grouped target says, so that make runs it once and not once for
+# each, all at the same time and deleting each other's files, when it runs recipes in parallel.
+dist/index.html dist/assets dist/LICENSE.txt dist/NOTICE.txt dist/robots.txt &: node_modules/.package-lock.json $(FRONTEND_FILES) index.html vite.config.ts tsconfig.json tsconfig.node.json package.json LICENSE
 	find dist -mindepth 1 ! -path "dist/dist.go" -delete
 	npm run build
 
