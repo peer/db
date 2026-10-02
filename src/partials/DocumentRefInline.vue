@@ -6,6 +6,7 @@ import type { D } from "@/document"
 import { computed, useTemplateRef } from "vue"
 
 import WithDocument from "@/components/WithDocument.vue"
+import { toD } from "@/document"
 import DisplayLabel from "@/partials/DisplayLabel.vue"
 import { loadingWidth } from "@/utils"
 
@@ -43,7 +44,7 @@ const WithDocumentD = WithDocument<D>
 </script>
 
 <template>
-  <WithDocumentD v-if="id" :id="id" name="DocumentGet">
+  <WithDocumentD v-if="id" :id="id" :construct="toD" name="DocumentGet">
     <template #default="{ doc, url }">
       <RouterLink v-if="link" :to="{ name: 'DocumentGet', params: { id } }" :data-url="url" :title="titleAttr" v-bind="$attrs" class="pd-documentrefinline link"
         ><DisplayLabel ref="displayLabelRef" :doc="doc"

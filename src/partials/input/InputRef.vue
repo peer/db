@@ -44,6 +44,7 @@ import Button from "@/components/Button.vue"
 import InputStyled from "@/components/InputStyled.vue"
 import ProgressBar from "@/components/ProgressBar.vue"
 import WithDocument from "@/components/WithDocument.vue"
+import { toD } from "@/document"
 import { takenValuesKey } from "@/fields"
 import DisplayLabel from "@/partials/DisplayLabel.vue"
 import { useInactivated, useLock } from "@/progress"
@@ -462,7 +463,7 @@ const WithPeerDBDocument = WithDocument<D>
           @paste.prevent
           @drop.prevent
         >
-          <WithPeerDBDocument :id="selectedDocument.id" name="DocumentGet">
+          <WithPeerDBDocument :id="selectedDocument.id" :construct="toD" name="DocumentGet">
             <template #default="{ doc }">
               <DisplayLabel :doc="doc" />
             </template>
@@ -590,7 +591,7 @@ const WithPeerDBDocument = WithDocument<D>
                   for option content of py-2 and px-3, same what InputText and ListboxButton have.
                 -->
                 <div class="flex flex-row items-center justify-between rounded-sm px-2 py-1" :class="active ? 'ring-2 ring-primary-500' : ''">
-                  <WithPeerDBDocument :id="result.id" name="DocumentGet">
+                  <WithPeerDBDocument :id="result.id" :construct="toD" name="DocumentGet">
                     <template #default="{ doc }">
                       <div
                         class="w-full truncate"
