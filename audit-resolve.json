@@ -1,5 +1,22 @@
 {
-  "decisions": {},
+  "decisions": {
+    "1193684|@vitest/coverage-istanbul>vitest>@vitest/mocker": {
+      "decision": "ignore",
+      "madeAt": 1790902953068
+    },
+    "1193684|vitest>@vitest/coverage-istanbul>@vitest/mocker": {
+      "decision": "ignore",
+      "madeAt": 1790902953068
+    },
+    "1193683|@vitest/coverage-istanbul>vitest>@vitest/mocker": {
+      "decision": "ignore",
+      "madeAt": 1790902955763
+    },
+    "1193683|vitest>@vitest/coverage-istanbul>@vitest/mocker": {
+      "decision": "ignore",
+      "madeAt": 1790902955763
+    }
+  },
   "rules": {},
   "version": 1
 }
